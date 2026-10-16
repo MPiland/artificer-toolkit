@@ -17,7 +17,11 @@ import {
   type ServerRuleExecutionD20EvidenceDto,
   type ServerRuleExecutionD20PolicyDto
 } from './ruleExecutionEvidence.js'
-import { characterActiveEffectCreateReceiptDtoSchema } from './ruleExecutionMechanics.js'
+import {
+  characterActiveEffectCreateReceiptDtoSchema,
+  sourceApplicationsChangeState,
+  sourceApplicationsDtoSchema
+} from './ruleExecutionMechanics.js'
 import {
   serverCompletedRuleExecutionDtoSchema,
   type ServerCompletedRuleExecutionDto
@@ -238,13 +242,16 @@ export const encounterFailedCounterDtoSchema: z.ZodMiniType<EncounterFailedCount
 type CounterSpendDto = {
   reaction: EncounterCastReactionPinDto
   spellCastConsumption: CharacterSpellSlotConsumptionReceiptDto | null
-  /** The reactor's Character version once its slot was spent; null exactly when none was. */
+  /** The reactor's own conditions released by effects its cast ended; empty when none. */
+  applications: z.infer<typeof sourceApplicationsDtoSchema>
+  /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
   characterStreamVersion: number | null
   actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema>
 }
 
 const counterSpendShape = () => ({
   spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+  applications: sourceApplicationsDtoSchema,
   characterStreamVersion: z.nullable(aggregateVersionSchema),
   actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
 })
@@ -252,7 +259,11 @@ const counterSpendShape = () => ({
 function validateCounterSpend(value: CounterSpendDto, context: z.core.$RefinementCtx) {
   validateEncounterReactionPin(value.reaction, context, ['reaction'])
   if (
-    (value.spellCastConsumption === null) !== (value.characterStreamVersion === null) ||
+    (value.characterStreamVersion === null) !==
+      !(
+        value.spellCastConsumption !== null ||
+        sourceApplicationsChangeState(value.applications, value.reaction.characterId)
+      ) ||
     (value.spellCastConsumption &&
       value.spellCastConsumption.characterId !== value.reaction.characterId)
   )

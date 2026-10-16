@@ -443,6 +443,8 @@ export function planNativeCounteredCast(input: {
   prepared: Prepared
   /** The effects the caster holds; the cast still ends those that end on a cast. */
   casterEffects: readonly ActiveRuleEffectRecord[]
+  /** The effects the countering reactor holds; its Counterspell is a cast too. */
+  reactorEffects: readonly ActiveRuleEffectRecord[]
   /** The level the countered cast was cast at. */
   triggerLevel: number
   actionEconomy: NativeReaction<unknown>['economy']['consumption'] | null
@@ -464,6 +466,12 @@ export function planNativeCounteredCast(input: {
     makesAttackRoll: false,
     castsSpell: true
   })
+  const reactorEnded = actionEndedEffects({
+    holderActorId: found.prepared.actor.id,
+    held: input.reactorEffects,
+    makesAttackRoll: false,
+    castsSpell: true
+  })
   const spendOf = (spending: Prepared, releases: typeof sourceReleases) =>
     planNativeEncounterAreaSourceSpend(
       {
@@ -479,7 +487,7 @@ export function planNativeCounteredCast(input: {
       input.userId
     )
   const casterSpend = spendOf(prepared, sourceReleases)
-  const reactorSpend = spendOf(found.prepared, [])
+  const reactorSpend = spendOf(found.prepared, reactorEnded.sourceReleases)
   const settled = new Map([
     [
       prepared.actor.id,
@@ -518,6 +526,7 @@ export function planNativeCounteredCast(input: {
         triggerLevel: input.triggerLevel,
         check: countered.check,
         spellConsumption: found.prepared.characterActionState?.spellConsumption,
+        applications: reactorSpend.sourceApplications,
         characterStreamVersion: reactorSpend.sourceCharacterStreamVersion,
         economy: found.economy.consumption
       }
@@ -529,7 +538,7 @@ export function planNativeCounteredCast(input: {
     ),
     reactionSpellConsumption: found.prepared.characterActionState?.spellConsumption ?? null,
     failedCounters: input.failedCounters,
-    consumedGrants
+    consumedGrants: [...consumedGrants, ...reactorEnded.consumedGrants]
   }
 }
 

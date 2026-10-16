@@ -161,7 +161,7 @@ export async function persistEncounterCounteredCastCommit(
     occurredAt: input.occurredAt,
     forceVersionAdvance: false
   }
-  // The caster's batch also carries the conditions the cast's ended effects released.
+  // Each batch also carries the conditions its Character's cast ended effects released.
   const spend = async (
     character: typeof source,
     mutation: typeof sourceMutation | typeof reactorMutation,
@@ -199,8 +199,15 @@ export async function persistEncounterCounteredCastCommit(
       checksumCanonicalJson(root.sourceItemUseStateTransition)
   )
     throw new Error('Live Session source Character receipt mismatch.')
-  const reactorMechanics = reactorSpends ? await spend(reactor, reactorMutation, []) : null
-  if ((reactorMechanics?.characterStreamVersion ?? null) !== counter.characterStreamVersion)
+  const reactorMechanics =
+    reactorSpends || counter.applications.length
+      ? await spend(reactor, reactorMutation, counter.applications)
+      : null
+  if (
+    (reactorMechanics?.characterStreamVersion ?? null) !== counter.characterStreamVersion ||
+    checksumCanonicalJson(reactorMechanics?.receiptApplications ?? []) !==
+      checksumCanonicalJson(counter.applications)
+  )
     throw new Error('Live Session reactor Character receipt mismatch.')
 
   const settledSource = await settleActionSourceSpend(ctx, {

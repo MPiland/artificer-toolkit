@@ -158,7 +158,8 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const { selectedOptionId, targetActorId, application, attackRoll } = evidence.resolution
+    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell } =
+      evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
     const target = await readActor(targetActorId)
     if (
@@ -185,7 +186,7 @@ export async function persistEncounterTurnResources(
     const owner = await readActor(ownerId)
     if (owner.kind !== 'CREATURE')
       throw new Error('Live Session Legendary Action owner is unavailable.')
-    // An attack roll uses up the owner's one-roll grants read now (no per-grant versions were
+    // An attack roll or spell cast uses up the owner's grants read now (no per-grant versions were
     // planned) and releases the conditions only they held, in the owner's own batch.
     const ownerEffects = await createActiveRuleEffectStore(ctx).list(
       turnEffectOwner(owner, state.id)
@@ -193,7 +194,8 @@ export async function persistEncounterTurnResources(
     const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: ownerId,
       held: ownerEffects,
-      makesAttackRoll: attackRoll
+      makesAttackRoll: attackRoll,
+      castsSpell
     })
     const ownerMechanics = sourceReleases.length
       ? await callbacks.applyMechanics({
