@@ -288,31 +288,16 @@ AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) 
 - **SRD data.** No SRD creature action casts a named spell at an authored level, so none is filled; the Worker test (`nativeRoomCounterspellCreatureCast.test.ts`) is the data proof.
 - **Not done by design.** A spell link for display (with a save-time `castLevel` >= spell level check) is a future-enhancements line, not a task.
 
-## Resume here (after T3e, merged in batch bd 0a8405115)
+## Resume here (after T3h, merged in the next Phase 8 batch)
 
-**Next task: T3h (creature-capability casts).** T3e is DONE; do not reopen it. Read D127 and the T3e-a results above first.
+**Next task: REACTION-4.T4 (TARGETED_SELF trigger and source-filtered damage immunity: Shield against Magic Missile).** T3h is DONE (`spellCast: { castLevel }` on the Creature action effect; see the T3h D136 packet above); do not reopen it.
 
-### File map
-- `apps/session-worker/src/nativeEncounterCastPause.ts`: `createNativeCastPause` is the one cast-pause builder (`advance`, `planFailedCounters`). Rules and area planners call it; nothing else opens a cast window.
-- `nativeEncounterAreaRules.ts`: `reachCastPause`, `openReachCastWindow` (area and ACTORS planners share it), `completeAreaCommit`, `readChosenFormCreature`.
-- `nativeEncounterActorsRules.ts`: ACTORS-target casts; uses `openReachCastWindow`.
-- `nativeEncounterRules.ts`: calls `createNativeCastPause(...).advance(...)` and `castPause.planFailedCounters` (the ~200 lines it lost moved into the cast-pause file).
-- `nativeEncounterCastReaction.ts`: `advanceNativeCastReactions`, `planNativeFailedCounters`, `planNativeCounteredCast`.
-- `packages/encounter-persistence/src/`: `actionPending.ts` (`castPendingContinues`), `actionPendingPersistence.ts` (KERNEL_EVIDENCE cast pause on non-ACTOR targets), `areaCommitPersistence.ts` (sealed-counter check, no-stored-area resume), `counteredCastCommitPersistence.ts`, `failedCounterSpend.ts` (`failedCounterSpends`).
-- `packages/rules-runtime/src/encounterActionReceipt.ts`: `buildEncounterFailedCounterReceipt`.
-- Tests: `apps/session-worker/test/nativeRoomCounterspell.test.ts`, `nativeRoomCounterspellMultiTarget.test.ts`.
-
-### Decisions
-- Additive `failedCounters` on the area commit input (approved by Phase 8).
-- Ruling W (caster slot and counter slot commit in one mechanics batch) and the GM-void ruling are folded into D127. No open ruling question.
-
-### Pitfalls
-- `advance` must return `advanced.failedCounters` on OFFER/CHECK; returning the input's list breaks the pending root.
-- Sealed failed counters are DTOs, but the commit input carries receipts: strip `spellCastConsumption`, `applications`, `characterStreamVersion`, `actionEconomyTransition` before comparing checksums.
-- A cast-pause resume may have no stored area (the area caught nobody); continue from the cast's own pending.
-- Test fixtures: a heal target must be hurt (`reactorHurt`), and Fireball range is 150 ft.
-- `nativeRoomEscapeAction.test.ts` flaked once in CI; `gh run rerun --failed` cleared it.
+### T3h pitfalls
+- A new node-map group with add actions needs an `AUTHORING_DEFAULT_MAP_IDS` kind plus a case in `authoringNodeDefaults.ts` (web inventory test).
+- Rule documents are JSON-only: never leave `undefined` keys on effects in tests.
+- A new descriptor field must be added to the `EncounterFeatureActionCapabilityDescriptor` fixtures (`encounterActionEffectBaseline.test.ts`).
+- Convex `api.d.ts` drifts on contract changes: take the `generated-files` artifact from the Live run.
 
 ### Run ids
-- Red: Tests 38951374937 (ffbf3d042), 38956825313 (e17add335), 38959982741 (46fa9ba00); Escape flake on 38964831551 (rerun green).
-- Green: 93bf4f0a0 (Tests 38962425116, Live 38962425251); 0c733d676 (Tests 38964831551, Live 38964831537).
+- Red: Tests 38970845033 (ad8488c11; the build fails because `spellCast` is not on the authored type).
+- Green: 9cec1d408 (Tests 38975904611, Live 38975904624).
