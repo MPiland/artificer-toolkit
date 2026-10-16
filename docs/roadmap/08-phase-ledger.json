@@ -8712,7 +8712,7 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [
@@ -8746,7 +8746,7 @@
             {
               "id": "SPELLS-29.T1",
               "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-29.1"],
               "wsjf": {
                 "bv": 5,
