@@ -59,7 +59,8 @@ const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new 
   ...DND5E_ITEM_CONDITION_KINDS,
   'CAN_ACT',
   'SPEED_ABOVE_ZERO',
-  'FREE_HAND'
+  'FREE_HAND',
+  'ATTACK_ACTION_OTHER_WEAPON'
 ])
 
 /**
@@ -231,9 +232,11 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ITEM_PROPERTY':
       case 'ITEM_SOLE_WEAPON':
       case 'ITEM_ATTACK_ABILITY':
+      case 'ITEM_ACTIVATION':
       case 'CAN_ACT':
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':
+      case 'ATTACK_ACTION_OTHER_WEAPON':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false

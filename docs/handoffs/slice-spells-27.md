@@ -174,3 +174,45 @@ Decided as D125.
 - **T2a (done):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skipped condition-owning effects meanwhile, so no intermediate merge stranded a condition.
 - **T2b (done):** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch (`attackRollEndedEffects` is the one helper every attack-roll root calls); the three fences are gone. The Disarm receipt carries the release in a required `sourceApplications` on `CONTESTED_ACTION`; the Legendary window applies it in `persistEncounterTurnResources`; the movement reaction applies it in `liveMovementReactionPersistence`. Disarm and the Legendary window have no GM undo, so nothing restores these.
 - **T3 (done, see [slice-spells-27-t3.md](slice-spells-27-t3.md)):** a Character's spell cast ends effects listing `ON_CAST_SPELL`, from the one cast-commit path of each kind (action and reaction, area and chosen-creature list, countered). `actionEndedEffects` replaces `attackRollEndedEffects`. AC 27.1 is closed.
+- **T3b (see [slice-spells-27-t3b.md](slice-spells-27-t3b.md)):** the same fact from reactor casts (Shield, Counterspell as reactor) and Creature and Legendary spell-attack actions (`preparedCastsSpell`).
+
+## 8. SPELLS-27.T4: a structured end trigger and the damage-taken event
+
+Decided as D132.
+
+- **Shape.** `definition.recurrence.endOnTriggers` is a list of `{ event: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds: string[] | null }`, unique and in `JSON.stringify` order. `damageTypeIds` is the same `damageTypeFilterDtoSchema` the `DAMAGE_TAKEN` reaction trigger uses (extracted into `shared/reaction.ts`), so the two never drift. The flat `consumeOnFirstEvents` / `endOnEvents` lists are untouched (T6 unifies them after REACTION-4.T3). `endOnTriggers` defaults to `[]` on read.
+- **Source side.** `SOURCE_SIDE` is the effect's `origin.sourceActorId` or an actor `encounterActorRelationship` calls `ALLIED` to it (Charm Person). The schema rejects a `SOURCE_SIDE` trigger on an effect with no Encounter source actor.
+- **Damage taken.** A `DAMAGE` application on the holder with `resolvedAmount > 0` (after resistance and immunity) matching the type filter. `damageTakenEndedEffects` returns the ended effects and their condition releases; the holder's own batch applies the releases after the outcome (`damageReleases` on `planNativeEncounterActionMechanics`) and the action commit deletes the effects through `consumedGrants`. GM undo restores both through the existing receipt.
+- **Authoring.** `lifecycle.endOnTriggers` on a result block (schema, `PathLifecycleAuthored`, node map `pathLifecycleEndTrigger`). Only the timed-condition plan carries it; the grant, concealment and recurring-save plans reject a lifecycle that lists it, so authoring cannot name a trigger no plan consumes.
+- **Proof.** `encounterEndedEffectRelease.test.ts` (consumer), `rules-runtime-contracts.test.ts` (schema), `characterSpellCastActions.test.ts` (compiler), `nativeRoomDamageEndsEffect.test.ts` (Worker journey with GM undo).
+
+### Split
+
+- **T4a (this slice):** the trigger shape, the damage-taken consumer on the single-action root, authoring for the timed-condition plan.
+- **T4b (to register, blocks AC 27.2):** the other damage roots. The area commit, Legendary window, movement reaction, turn effects (ongoing damage) and death-save damage do not call `damageTakenEndedEffects` yet, so an effect with a damage trigger survives damage from them. Also the `ATTACK_ROLL`-against-enemy arm (Sanctuary) and the `SPELL_CAST` arm once T3's cast fact lands. T5 must not author a damage-ending spell whose damage arrives through an unwired root.
+
+### Proposed ledger edits (the main session applies them)
+
+- SPELLS-27.T4 DONE for T4a; register SPELLS-27.T4b with the roots above, WSJF the same as T4.
+- AC 27.2 stays open: the consumer is pending on the roots listed under T4b.
+
+## 9. SPELLS-27.T4b: the other damage roots and the against-enemy arms
+
+Decided as the [D132 amendment](phase-08-2-decisions.md) of 2026-10-16.
+
+- **Trigger shape.** `endOnTriggers` gains `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` (runtime schema, authored schema, `PathLifecycleAuthored`, node map: `by` and `damageTypeIds` show only for `DAMAGE_TAKEN`, `against` only for the other two). `against` is explicit so a later `ALLY` or `ANY` value is a schema widening, not a reinterpretation. The compiler passes the new members through unchanged; `DAMAGE_TAKEN` members are normalized as before.
+- **Enemy.** `actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor (`encounterActorRelationship`); a neutral target is not an enemy. `actionEndedEffects` takes a required `againstEnemy` and every call site computes it (single action, Shield and Counterspell reactors, area caster, Disarm, Legendary, movement reaction).
+- **Roots wired.** Area commit (per target, deduped), Legendary window (planner plus persistence recomputation), movement reaction (mover's ended effects on the REACTION step's `consumedGrants`, limit doubled), turn effects (`turnEffectDamageEnded`; the releases are on the damaging execution, validated by the turn result schema and recomputed by `turnEffectsPersistence`). Death-save damage needs no wiring: it is a `DAMAGE` application inside the roots above.
+- **GM undo.** Only the single-action and area roots have it, and both are proved with it. Legendary, movement reaction and turn effects have no undo, so they are proved without it.
+- **Proof.** `encounterEndedEffectRelease.test.ts`, `rules-runtime-contracts.test.ts`, `characterSpellCastActions.test.ts`, `nativeRoomAreaDamageEndsEffect.test.ts`, `nativeMovementDamageEndsEffect.test.ts`, `nativeRoomLegendary.test.ts`, `nativeRoomTurnEffects.test.ts`, `nativeRoomAttackEndsEffect.test.ts`, `nativeRoomDamageEndsEffect.test.ts`.
+
+### Deferred edge cases
+
+- Cleaving and zone-entry damage roots do not call `damageTakenEndedEffects`; T5 authors no effect whose damage arrives through them.
+- The countered-cast path (`planNativeCounteredCast`) computes `againstEnemy` from the lead target, so an area spell countered after the lead is an ally and the rest are enemies does not end a `SPELL_CAST` effect.
+- A turn effect that is itself a candidate at its boundary and also ends on damage keeps its lifecycle path; the damage does not end it. A candidate that owns the same condition as a damage-ended effect keeps the condition from the release only if it is not a candidate (the release is computed against non-candidates).
+- Turn effects planned for the second boundary of an `ADVANCE_TURN` do not see an effect the first boundary's damage ended (matters only when both boundaries belong to one actor).
+
+### Proposed ledger edits (the main session applies them)
+
+- SPELLS-27.T4b DONE; AC 27.2 can close once T5 and T6 land.

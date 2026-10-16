@@ -1,5 +1,6 @@
 import type {
   AbilityCode,
+  ActivationCode,
   ChargeLimitKind,
   ChargeResetKind,
   CoreMeta,
@@ -92,6 +93,10 @@ export type PredicatePayloadByCode = {
   ATTACK_ABILITY: {
     ability: AbilityCode
   }
+  /** The attack is made with this activation: the bonus action of an off-hand attack. */
+  ATTACK_ACTIVATION: {
+    activation: ActivationCode
+  }
   /** The attack's net roll mode: `NOT_DISADVANTAGE` is advantage or a normal roll. */
   ATTACK_ROLL_MODE: {
     rollMode: AttackRollModeRequirement
@@ -133,6 +138,11 @@ export type PredicatePayloadByCode = {
   CAN_ACT: EmptyObject
   SPEED_ABOVE_ZERO: EmptyObject
   FREE_HAND: EmptyObject
+  /**
+   * The holder took the Attack action this turn with a weapon that has every listed property
+   * (any weapon when not selected), other than the item the requirement belongs to.
+   */
+  ATTACK_ACTION_OTHER_WEAPON: Selectable<{ properties: EquipmentPropertyCode[] }>
   CHARACTER_LEVEL: {
     min: number
     max?: number
@@ -182,6 +192,7 @@ export const SELECTABLE_PREDICATE_CODES = [
   'SPELLCASTING_ABILITY',
   'SAVING_THROW_ABILITY',
   'EQUIPMENT_PROPERTY',
+  'ATTACK_ACTION_OTHER_WEAPON',
   'EQUIPMENT_PROFICIENCY',
   'EQUIPMENT_PROPERTY_PROFICIENCY',
   'SAVE_ABILITY_PROFICIENCY',
@@ -326,6 +337,13 @@ export const PREDICATE_REGISTRY = {
     subjects: ['EQUIPMENT']
   },
 
+  ATTACK_ACTIVATION: {
+    code: 'ATTACK_ACTIVATION',
+    label: 'Attack Activation',
+    description: 'Requires the attack to be made with the activation, such as a bonus action.',
+    subjects: ['EQUIPMENT']
+  },
+
   ATTACK_ROLL_MODE: {
     code: 'ATTACK_ROLL_MODE',
     label: 'Attack Roll Mode',
@@ -403,6 +421,14 @@ export const PREDICATE_REGISTRY = {
     label: 'Free Hand',
     description: 'Requires the holder to have a hand free.',
     subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  ATTACK_ACTION_OTHER_WEAPON: {
+    code: 'ATTACK_ACTION_OTHER_WEAPON',
+    label: 'Attack Action With Another Weapon',
+    description:
+      'Requires the holder to have taken the Attack action this turn with a different weapon that has the selected properties.',
+    subjects: ['CHARACTER']
   },
 
   CHARACTER_LEVEL: {

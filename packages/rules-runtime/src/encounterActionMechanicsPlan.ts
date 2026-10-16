@@ -13,6 +13,7 @@ import type {
   EncounterMechanicsBatchPlan
 } from './encounterMechanicsBatchPlan.js'
 import type { CharacterMovementFacts } from './encounterMovementTargets.js'
+import type { NativeCharacterSpellConsumption } from './character/characterNativeActionResources.js'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 
@@ -41,12 +42,30 @@ export type NativeEncounterActionMechanicsInput = {
    * so the condition it releases is gone before the outcome adds its own.
    */
   sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  /**
+   * The conditions released for a reacting Character that is this action's target (a Shield cast
+   * against the attack on its caster), applied first on the target's batch.
+   */
+  targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  /**
+   * The conditions the target's effects that this action's damage ended held alone
+   * (`damageTakenEndedEffects`), applied to the target after the outcome in the same transaction as
+   * the effects' deletion.
+   */
+  damageReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
   forceTargetVersionAdvance?: boolean
+  /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
+  enterForm?: EncounterMechanicsBatchInput['enterForm']
   eventPhases?: {
     resource: EncounterCharacterMechanicsEventPhase
     outcome: EncounterCharacterMechanicsEventPhase
   }
   ordinal?: number
+  /**
+   * The slots the source spends countering a Counterspell cast against this cast (D127), applied on the
+   * source's one batch after the cast's own, so the Character advances once.
+   */
+  counterSpellConsumptions?: readonly NativeCharacterSpellConsumption[]
   /**
    * Whether this plan settles the source's one spend (resource, item, stow, feature charge) with the
    * outcome. An area action settles it once on its root, so each creature it catches plans with `NONE`.
@@ -87,20 +106,23 @@ function prepareNativeActionMechanicsBatches(
     spend === 'NONE' ? undefined : prepared.characterActionState?.resourceConsumption
   const itemConsumption =
     spend === 'NONE' ? undefined : prepared.characterActionState?.itemConsumption
-  const spellConsumption =
-    spend === 'NONE' ? undefined : prepared.characterActionState?.spellConsumption
+  const castConsumption = prepared.characterActionState?.spellConsumption
+  const spellConsumptions =
+    spend === 'NONE'
+      ? []
+      : [...(castConsumption ? [castConsumption] : []), ...(input.counterSpellConsumptions ?? [])]
   const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
-    ...(spellConsumption ? { characterSpellConsumption: spellConsumption } : {}),
+    ...(spellConsumptions.length > 0 ? { characterSpellConsumptions: spellConsumptions } : {}),
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
   const sourceReleases = input.sourceReleases ?? []
   const onTargetBatch = actor.id === target.id && spend !== 'ONLY'
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
     (source.kind === 'CHARACTER_ACTION' &&
-      (resourceConsumption || itemConsumption || spellConsumption || stow) &&
+      (resourceConsumption || itemConsumption || spellConsumptions.length > 0 || stow) &&
       !onTargetBatch) ||
     (sourceReleases.length && !onTargetBatch)
       ? {
@@ -143,11 +165,17 @@ function prepareNativeActionMechanicsBatches(
           })
         : input.commandId,
     occurredAt: input.occurredAt,
-    applications: onTargetBatch ? [...sourceReleases, ...input.applications] : input.applications,
+    applications: [
+      ...(onTargetBatch ? sourceReleases : []),
+      ...(input.targetReleases ?? []),
+      ...input.applications,
+      ...(input.damageReleases ?? [])
+    ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
+    ...(input.enterForm ? { enterForm: input.enterForm } : {}),
     ...(source.kind === 'CHARACTER_ACTION' && onTargetBatch ? sourceMutation : {})
   }
   return { sourceResourceBatch, targetBatch }

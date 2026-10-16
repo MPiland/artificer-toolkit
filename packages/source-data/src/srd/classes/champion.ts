@@ -20,7 +20,8 @@ import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
   attackingItemPropertyRestriction,
   closedRuleEffect,
-  duelingRestriction
+  duelingRestriction,
+  twoWeaponFightingGrants
 } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -279,23 +280,13 @@ export const championMartialArchetype: ClassAuthored = {
           label: 'Two-Weapon Fighting',
           description:
             'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
-          order: 5,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 20, 6),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 21, 6), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              pathCode: PATH_CODE.ON_HIT,
-              ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_TWO_WEAPON_FIGHTING
-            })
-          ]
+          grants: {
+            modifiers: twoWeaponFightingGrants(
+              (entry) => classRowId(F, 0x22, 13 + entry),
+              (entry) => classRowId(F, 0x7a, 0x60 + entry)
+            )
+          },
+          order: 5
         }
       ]
     },

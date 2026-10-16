@@ -110054,6 +110054,11 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  forms?: Array<{
+                    id: string;
+                    label: string;
+                    maxTargets: number;
+                  }>;
                   kind: "ACTORS";
                   maxTargets: number;
                 }
@@ -110777,6 +110782,11 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  forms?: Array<{
+                    id: string;
+                    label: string;
+                    maxTargets: number;
+                  }>;
                   kind: "ACTORS";
                   maxTargets: number;
                 }
@@ -111590,6 +111600,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -111883,15 +111894,6 @@ export declare const api: {
                 optionIds: Array<string>;
                 requestId: string;
               }
-            | {
-                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-                attackerActorId: string;
-                candidateActorIds: Array<string>;
-                encounterVersion: number;
-                kind: "ATTACK_SQUARE_RESOLUTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
-              }
             | null;
           turnMovement: Array<{
             actorId: string;
@@ -111902,6 +111904,11 @@ export declare const api: {
               speedId: string;
             }>;
             speedId: string | null;
+            teleport: Array<{
+              castCommandId: string;
+              destinationKind: "VISIBLE" | "SPECIFIED_POINT";
+              maxFeet: number;
+            }>;
             used: number;
           }>;
           waitingOn: "GM" | "PLAYER" | null;
@@ -112199,15 +112206,6 @@ export declare const api: {
                   optionIds: Array<string>;
                   requestId: string;
                 }
-              | {
-                  allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-                  attackerActorId: string;
-                  candidateActorIds: Array<string>;
-                  encounterVersion: number;
-                  kind: "ATTACK_SQUARE_RESOLUTION";
-                  occurrenceId: string;
-                  occurrenceVersion: number;
-                }
               | null;
             status: "PENDING" | "COMPLETE" | "VOIDED";
           } | null;
@@ -112444,6 +112442,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -113036,15 +113035,6 @@ export declare const api: {
             optionIds: Array<string>;
             requestId: string;
           }
-        | {
-            allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-            attackerActorId: string;
-            candidateActorIds: Array<string>;
-            encounterVersion: number;
-            kind: "ATTACK_SQUARE_RESOLUTION";
-            occurrenceId: string;
-            occurrenceVersion: number;
-          }
         | null
       >;
     };
@@ -113290,6 +113280,7 @@ export declare const api: {
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
+              unseenReason: "HIDDEN" | "INVISIBLE" | null;
             }>;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
@@ -113590,6 +113581,7 @@ export declare const api: {
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
+                  unseenReason: "HIDDEN" | "INVISIBLE" | null;
                 }>;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -113870,15 +113862,6 @@ export declare const api: {
                 occurrenceVersion: number;
                 optionIds: Array<string>;
                 requestId: string;
-              }
-            | {
-                allowedResponses: Array<"ATTACK_SQUARE_OCCUPANT">;
-                attackerActorId: string;
-                candidateActorIds: Array<string>;
-                encounterVersion: number;
-                kind: "ATTACK_SQUARE_RESOLUTION";
-                occurrenceId: string;
-                occurrenceVersion: number;
               };
         }>
       >;
@@ -121702,6 +121685,36 @@ export declare const internal: {
         any
       >;
       runActorAbsence: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
+    actorFormMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorForm: FunctionReference<
         "mutation",
         "internal",
         {

@@ -113,6 +113,33 @@ it.each([
   async ({ mode, movementKind }) => {
     const value = await setup(mode)
     if (mode === 'MANUAL') await seedSpatialEffect(value.base)
+    // A player's teleport spends an allowance a cast granted this turn (SPELLS-28.2).
+    if (movementKind === 'TELEPORT')
+      await value.base.t.run(async (ctx) => {
+        const run = await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
+          .unique()
+        const state = readRunState(run!)
+        await ctx.db.insert('encounterTurnMovements', {
+          encounterId: state.id,
+          round: state.round,
+          turnActorId: state.currentActorId!,
+          actorId: value.base.run.actors[0]!.id,
+          usedFeet: 0,
+          speedBonuses: 0,
+          speedId: null,
+          usedOncePerTurn: [],
+          teleportAllowances: [
+            {
+              castCommandId: crypto.randomUUID(),
+              maxFeet: 500,
+              destinationKind: 'SPECIFIED_POINT',
+              consumedByCommandId: null
+            }
+          ]
+        })
+      })
     await attachFixtureRoom(value.base.t, value.base.campaign.id)
     const before = await current(value)
     const scene = await value.base.t.run((ctx) =>

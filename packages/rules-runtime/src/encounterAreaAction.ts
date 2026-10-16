@@ -20,11 +20,6 @@ import {
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
 import { selectScalingRow } from './scalingRowSelection.js'
 
-const RANGE_UNCHECKED: EncounterRuleWarningDto = {
-  code: 'TARGET_RANGE_UNCHECKED',
-  message: "Range can't be checked without both tokens on the map."
-}
-
 const OUT_OF_SIGHT: EncounterRuleWarningDto = {
   code: 'TARGET_OUT_OF_SIGHT',
   message: 'The area origin is out of sight.'
@@ -181,11 +176,13 @@ function authoredDirectedArea(
 /**
  * What the action's choice asks the client to pick, as authored: nothing for a self action, a
  * creature (with whether its user may be chosen), the point an area is centered on, or the origin
- * and direction of a directed area (each with the area, for the client's preview). A policy this path cannot resolve stays an actor choice;
- * resolving it is refused.
+ * and direction of a directed area (each with the area, for the client's preview). A list of chosen
+ * creatures also offers the forms the action authors, when it authors any. A policy this path cannot
+ * resolve stays an actor choice; resolving it is refused.
  */
 export function encounterActionChoiceTarget(
-  policy: CompiledActionTargetPolicy | undefined
+  policy: CompiledActionTargetPolicy | undefined,
+  forms?: readonly { id: string; label: string; maxTargets: number }[]
 ): EncounterActionChoiceDto['target'] {
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
@@ -202,6 +199,9 @@ export function encounterActionChoiceTarget(
       area: area?.kind === 'RADIUS' ? area : null,
       ...(targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets
         ? { allowRepeatedTargets: true as const }
+        : {}),
+      ...(forms?.length
+        ? { forms: forms.map(({ id, label, maxTargets }) => ({ id, label, maxTargets })) }
         : {})
     }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
@@ -230,24 +230,22 @@ export function compileEncounterPointArea(
  * Resolves a directed area action from its policy: the area to catch creatures with, aimed from
  * `origin` toward `toward`. Every creature in the area is caught, so the single-target disposition
  * rules (D99) do not apply, and the origin is on the caster so no range or sight is checked. A
- * refusal is hard and says why: the policy takes no direction or its size is unsupported, the
- * caster has no token on the map, or the origin and direction do not start the area on the caster's
- * token as the shape requires.
+ * refusal is hard and says why: the policy takes no direction or its size is unsupported, or the
+ * origin and direction do not start the area on the caster's token as the shape requires.
  */
 export function evaluateEncounterDirectedAreaTarget(input: {
   targetPolicy: CompiledActionTargetPolicy
   origin: ScenePoint
   toward: ScenePoint
   grid: SceneGrid
-  /** The caster's token; null when it is not on the map. */
-  sourceToken: SpatialTokenFootprint | null
+  /** The caster's token. */
+  sourceToken: SpatialTokenFootprint
 }):
   | { shape: SpatialDirectedAreaShape; warnings: EncounterRuleWarningDto[] }
-  | { refusal: 'UNSUPPORTED_AREA' | 'NO_CASTER_TOKEN' | 'ORIGIN_OFF_CASTER' } {
+  | { refusal: 'UNSUPPORTED_AREA' | 'ORIGIN_OFF_CASTER' } {
   const area = authoredDirectedArea(input.targetPolicy)
   const shape = area && directedAreaInSceneCoordinates(area, input.toward, input.grid)
   if (!shape) return { refusal: 'UNSUPPORTED_AREA' }
-  if (input.sourceToken === null) return { refusal: 'NO_CASTER_TOKEN' }
   return isDirectedAreaOriginOnToken({ token: input.sourceToken, origin: input.origin, shape })
     ? { shape, warnings: [] }
     : { refusal: 'ORIGIN_OFF_CASTER' }
@@ -257,24 +255,19 @@ export function evaluateEncounterDirectedAreaTarget(input: {
  * Resolves a caster-centered area action from its policy: the radius to catch creatures with, drawn
  * around the caster's token. No aim is taken, so no range or sight is checked, and every creature in
  * the area is caught, so the single-target disposition rules (D99) do not apply. A refusal is hard
- * and says why: the policy takes no centered area or its size is unsupported, or the caster has no
- * token on the map.
+ * and says why: the policy takes no centered area or its size is unsupported.
  */
 export function evaluateEncounterCasterCenteredAreaTarget(input: {
   targetPolicy: CompiledActionTargetPolicy
   grid: SceneGrid
-  /** The caster's token; null when it is not on the map. */
-  sourceToken: Pick<SceneToken, 'position'> | null
 }):
   | { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] }
-  | { refusal: 'UNSUPPORTED_AREA' | 'NO_CASTER_TOKEN' } {
+  | { refusal: 'UNSUPPORTED_AREA' } {
   const shape =
     encounterActionTargetKind(input.targetPolicy) === 'CASTER_CENTERED'
       ? compileEncounterPointArea(input.targetPolicy, input.grid)
       : null
-  if (!shape) return { refusal: 'UNSUPPORTED_AREA' }
-  if (input.sourceToken === null) return { refusal: 'NO_CASTER_TOKEN' }
-  return { shape, warnings: [] }
+  return shape ? { shape, warnings: [] } : { refusal: 'UNSUPPORTED_AREA' }
 }
 
 /**
@@ -287,8 +280,8 @@ export function evaluateEncounterAreaTargetPolicy(input: {
   targetPolicy: CompiledActionTargetPolicy
   point: ScenePoint
   grid: SceneGrid
-  /** The caster's token; null when it is not on the map. */
-  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'> | null
+  /** The caster's token. */
+  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
   /** Whether the caster can see the point. */
   pointSeen: boolean
 }): { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] } | null {
@@ -334,7 +327,6 @@ function evaluateRangeWarnings(
     { amount: range.amount, unit: range.unit },
     input.grid
   )
-  if (input.sourceToken === null) return [RANGE_UNCHECKED]
   const { position, width, height } = input.sourceToken
   const halfWidth = sceneFootprintMeasureHalfExtent(input.grid, width)
   const halfHeight = sceneFootprintMeasureHalfExtent(input.grid, height)

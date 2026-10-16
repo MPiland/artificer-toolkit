@@ -8,6 +8,7 @@ import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-to
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES,
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -160,8 +161,25 @@ const GAPPED_HEAL = healWithRows('00000000-0000-4000-8000-00000000c001', [
 ])
 /** The first row sits above the spell's own level, so no row applies to a cast at it. */
 const LATE_HEAL = healWithRows('00000000-0000-4000-8000-00000000c002', [[3, 0, '3d4']])
+const FIRE_TYPE_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
+/** Invisibility whose condition also ends when its holder takes fire damage from the caster's side. */
+const SCORCHED_INVISIBILITY = (() => {
+  const authored = structuredClone(INVISIBILITY)
+  const path = authored.effects?.[0]?.paths?.[0]
+  if (!path || !('resultBlock' in path) || !path.resultBlock.lifecycle)
+    throw new Error('Invisibility ends through its authored lifecycle.')
+  path.resultBlock.lifecycle.endOnTriggers = [
+    { event: 'SPELL_CAST', against: 'ENEMY' },
+    { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID, FIRE_TYPE_ID] },
+    { event: 'ATTACK_ROLL', against: 'ENEMY' },
+    { event: 'DAMAGE_TAKEN', by: 'ANYONE' },
+    { event: 'ATTACK_ROLL', against: 'ENEMY' }
+  ]
+  return { ...authored, id: '00000000-0000-4000-8000-00000000c003', label: 'Scorched Invisibility' }
+})()
 const authoredById = new Map(
   [
+    SCORCHED_INVISIBILITY,
     FIREBALL,
     MEND,
     FLY,
@@ -602,6 +620,16 @@ describe('the timed condition a cast owns with no save', () => {
       }
     })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+
+  it('carries authored end triggers with explicit filters, unique and in canonical order', () => {
+    const plan = compiledCast(SCORCHED_INVISIBILITY)?.activeEffectPlan
+    expect(plan?.conditionContribution?.endOnTriggers).toEqual([
+      { event: 'ATTACK_ROLL', against: 'ENEMY' },
+      { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null },
+      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] },
+      { event: 'SPELL_CAST', against: 'ENEMY' }
+    ])
   })
 })
 

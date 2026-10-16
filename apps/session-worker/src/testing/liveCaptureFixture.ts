@@ -134,6 +134,7 @@ export function activeEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'OWNER',
@@ -200,6 +201,7 @@ export function runActor(input: { id: string; characterId?: string }): Encounter
           tempHitPoints: 0,
           conditions: [],
           defeated: false,
+          form: null,
           absence: null,
           disposition: 'HOSTILE'
         }

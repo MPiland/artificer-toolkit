@@ -85,6 +85,8 @@ export function prepareEncounterActionEffectPlans(input: {
   concealment?: { concealmentTotal: number; observerActorIds: readonly string[] } | null
   /** The creatures a bonding action settled on, itself included; omitted for every other action. */
   link?: { memberActorIds: readonly string[] }
+  /** The Creature the caster chose for a form-giving action (D130); omitted for every other action. */
+  form?: { creatureId: string }
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -240,6 +242,24 @@ function prepareRecurringActiveEffect(
     throw new EncounterActionEffectPlanError('A link plan requires the creatures it bonds.')
   const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
   if (linkContribution && linkMemberActorIds.length < 2) return null
+  const formContribution = plan.creatureFormContribution ?? null
+  if (formContribution) {
+    if (!input.form)
+      throw new EncounterActionEffectPlanError('A form plan requires its chosen form.')
+    if (!formContribution.forms.some(({ creatureId }) => creatureId === input.form?.creatureId))
+      throw new EncounterActionEffectPlanError('The chosen form is not one the action authors.')
+    // Only Creature and custom actors take a form (Characters wait for Polymorph), and an actor
+    // already in a form keeps it: the new form does not stack on it.
+    if (
+      input.target.lifetimeScope === 'OWNER' ||
+      input.target.activeEffects.some(
+        (effect) =>
+          effect.definition.schemaVersion === 2 &&
+          effect.definition.stateContributions.some(({ kind }) => kind === 'CREATURE_FORM')
+      )
+    )
+      throw new EncounterActionEffectPlanError('The target cannot take a creature form.')
+  }
   if (plan.concealmentContribution && !concealment?.observerActorIds.length) return null
   const grantLabel = input.sourceLabel?.trim() ?? ''
   if (grantContribution && !grantLabel)
@@ -366,7 +386,8 @@ function prepareRecurringActiveEffect(
       relationshipContribution ||
       grantContribution ||
       concealment ||
-      linkContribution
+      linkContribution ||
+      formContribution
         ? 2
         : 1,
     origin: {
@@ -393,6 +414,7 @@ function prepareRecurringActiveEffect(
         conditionContribution?.consumeOnFirstEvents ??
         [],
       endOnEvents: grantContribution?.endOnEvents ?? conditionContribution?.endOnEvents ?? [],
+      endOnTriggers: conditionContribution?.endOnTriggers ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
@@ -416,9 +438,20 @@ function prepareRecurringActiveEffect(
     relationshipContribution ||
     grantContribution ||
     concealment ||
-    linkContribution
+    linkContribution ||
+    formContribution
       ? {
           stateContributions: [
+            ...(formContribution && input.form
+              ? [
+                  {
+                    kind: 'CREATURE_FORM' as const,
+                    formOutcomeId: formContribution.formOutcomeId,
+                    creatureId: input.form.creatureId,
+                    excessDamageCarriesOver: formContribution.excessDamageCarriesOver
+                  }
+                ]
+              : []),
             ...(linkContribution
               ? [
                   {
@@ -571,6 +604,7 @@ function prepareTargetStateEffect(
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.target.lifetimeScope,

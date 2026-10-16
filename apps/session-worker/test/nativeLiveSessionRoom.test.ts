@@ -3943,6 +3943,7 @@ async function localEncounterFixture(
       tempHitPoints: 0,
       conditions: [],
       defeated: false,
+      form: null,
       absence: null,
       resources: features.length
         ? { featureCharges: Object.fromEntries(features.map(({ id }) => [id, 0])) }
@@ -6139,16 +6140,27 @@ it('lists a creature whose token the map hides only as far as the GM reveals it 
         ? [message.session.state.encounter?.actors ?? []]
         : []
     )
-    return frames.at(-1)?.map(({ id, label }) => ({ id, label }))
+    return frames.at(-1)?.map((actor) => ({
+      id: actor.id,
+      label: actor.label,
+      unseenReason: 'unseenReason' in actor ? actor.unseenReason : undefined
+    }))
   }
+  const visible = { id: actors[0]!.id, label: actors[0]!.label, unseenReason: null }
   player.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
   await vi.waitFor(() => expect(seen()).toBeDefined())
   // The hidden-token creature (actors[1]) and the unlisted one (actors[2]) are not in the list.
-  expect(seen()).toEqual([{ id: actors[0]!.id, label: actors[0]!.label }])
+  expect(seen()).toEqual([visible])
 
   for (const [index, { reveal, expected }] of [
-    { reveal: 'UNNAMED', expected: { id: actors[1]!.id, label: 'Unseen creature' } },
-    { reveal: 'NAMED', expected: { id: actors[1]!.id, label: actors[1]!.label } },
+    {
+      reveal: 'UNNAMED',
+      expected: { id: actors[1]!.id, label: 'Unseen creature', unseenReason: 'HIDDEN' }
+    },
+    {
+      reveal: 'NAMED',
+      expected: { id: actors[1]!.id, label: actors[1]!.label, unseenReason: 'HIDDEN' }
+    },
     { reveal: null, expected: null }
   ].entries()) {
     const commandId = crypto.randomUUID()
@@ -6169,13 +6181,7 @@ it('lists a creature whose token the map hides only as far as the GM reveals it 
         }
       })
     )
-    await vi.waitFor(() =>
-      expect(seen()).toEqual(
-        expected
-          ? [{ id: actors[0]!.id, label: actors[0]!.label }, expected]
-          : [{ id: actors[0]!.id, label: actors[0]!.label }]
-      )
-    )
+    await vi.waitFor(() => expect(seen()).toEqual(expected ? [visible, expected] : [visible]))
   }
   expect(JSON.stringify(player.messages)).not.toContain('Ambusher')
 })
@@ -7138,6 +7144,43 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
     })
   expect(plan('OFF')).toMatchObject({ kind: 'ACCEPTED' })
   expect(plan('SHARED_PARTY')).toMatchObject({ kind: 'STAGED' })
+})
+
+it('walks a teleport that no Encounter allowance admits, so it cannot cross a closed door', () => {
+  const { doorId, scene: walled } = doorScene(crypto.randomUUID())
+  const { scene: open, tokenId } = movementScene(walled.campaignId)
+  const scene: CampaignSceneStateDto = {
+    ...open,
+    barriers: walled.barriers.map((barrier) => ({
+      ...barrier,
+      a: { x: 15, y: 0 },
+      b: { x: 15, y: 100 }
+    })),
+    doorStates: { [doorId]: 'CLOSED' },
+    fogMode: 'OFF'
+  }
+  const plan = (expectedEncounterVersion: number | null) =>
+    planLiveSceneCommand({
+      command: {
+        commandId: crypto.randomUUID(),
+        correlationId: null,
+        expectedEncounterVersion,
+        expectedSceneVersion: scene.version,
+        movementKind: 'TELEPORT',
+        path: [
+          { x: 10, y: 10 },
+          { x: 20, y: 10 }
+        ],
+        sceneId: scene.id,
+        tokenId,
+        type: 'MOVE_SCENE_TOKEN'
+      },
+      scene,
+      encounterId: expectedEncounterVersion === null ? null : crypto.randomUUID(),
+      actor: { role: 'OWNER', userId: crypto.randomUUID() }
+    })
+  expect(plan(null)).toMatchObject({ code: 'INVALID_COMMAND' })
+  expect(plan(3)).toEqual({ kind: 'STAGED' })
 })
 
 it('plans bound moves and moves on a bound Scene through room geometry', () => {

@@ -154,6 +154,7 @@ export function CampaignTabletopActionDrawer({
   // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
+  const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
@@ -203,7 +204,17 @@ export function CampaignTabletopActionDrawer({
     ? pickedOrPreselectedTargetActorId
     : null
   // A list of chosen creatures inside an area is aimed at a point like any point area.
-  const actorsTarget = choiceTarget?.kind === 'ACTORS' ? choiceTarget : null
+  const choiceActorsTarget = choiceTarget?.kind === 'ACTORS' ? choiceTarget : null
+  // An action that swaps its targets into a creature form takes one form for the whole cast, and
+  // that form caps how many creatures it reaches (D130).
+  const chosenForm =
+    choiceActorsTarget?.forms?.find((form) => form.id === pickedFormId) ??
+    choiceActorsTarget?.forms?.[0] ??
+    null
+  const actorsTarget = choiceActorsTarget && {
+    ...choiceActorsTarget,
+    maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
+  }
   const areaTarget =
     choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'DIRECTED'
       ? choiceTarget
@@ -265,6 +276,7 @@ export function CampaignTabletopActionDrawer({
       ? {
           kind: 'ACTORS',
           actorIds: pickedActorIds,
+          ...(chosenForm ? { formId: chosenForm.id } : {}),
           scene: scene
             ? { sceneId: scene.id, expectedSceneVersion: scene.version, point: actorsPoint }
             : null
@@ -434,6 +446,7 @@ export function CampaignTabletopActionDrawer({
   // So do the creatures chosen.
   useEffect(() => {
     setPickedActorIds([])
+    setPickedFormId(null)
   }, [selectedActionId])
 
   useEffect(() => {
@@ -637,6 +650,25 @@ export function CampaignTabletopActionDrawer({
                   fullWidth
                   value={actionId ?? undefined}
                   onChange={setPickedActionId}
+                />
+              ) : null}
+              {choiceActorsTarget?.forms ? (
+                <SegmentedControl
+                  aria-label='Creature form'
+                  data={choiceActorsTarget.forms.map((form) => ({
+                    label: form.label,
+                    value: form.id
+                  }))}
+                  disabled={selectionControlsDisabled}
+                  fullWidth
+                  value={chosenForm?.id}
+                  onChange={(formId) => {
+                    setPickedFormId(formId)
+                    const cap = choiceActorsTarget.forms?.find(
+                      (form) => form.id === formId
+                    )?.maxTargets
+                    if (cap !== undefined) setPickedActorIds((ids) => ids.slice(0, cap))
+                  }}
                 />
               ) : null}
               {actorsTarget?.allowRepeatedTargets ? (

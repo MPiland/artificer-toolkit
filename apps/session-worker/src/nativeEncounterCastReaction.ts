@@ -34,7 +34,10 @@ import {
   buildEncounterCounteredCastStoredExecution,
   buildEncounterFailedCounterReceipt
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -46,6 +49,7 @@ import {
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import {
+  castReactionCheckAbility,
   castReactionCheckRequirement,
   prepareEncounterCastReactionCheck,
   type CastReactionCheckRequirement
@@ -91,15 +95,19 @@ type CastScene = Extract<
 export type NativeCastReaction = NativeReaction<EncounterCastReactionCandidate, Prepared> & {
   /** The check its holder must pass first, because the cast is above the level it counters at. */
   check: CastReactionCheckRequirement | null
+  /** The level its holder casts it at. */
+  level: number
 }
 
 /**
- * The first creature, by actor id, that holds a reaction able to counter this cast, with its menu
+ * The first creature, by actor id, that holds a reaction able to counter a cast, with its menu
  * (a Character has one reaction a round, so its reactions are offered together). A reaction is
- * offered when its holder can afford it now, is not suppressed (D99), reaches the caster with its own
- * range, and is cast at a level at least the cast's, or authors a check for a higher-level cast. A
- * defeated Character (D63), the caster, and a creature that already declined or failed offer nothing.
- * In a Scene a creature with no token on it cannot reach the caster.
+ * offered when its holder can afford it now, is not suppressed (D99), reaches the creature whose cast it
+ * answers with its own range, and is cast at a level at least the cast's, or authors a check for a
+ * higher-level cast. A defeated Character (D63), the creature whose cast is answered, and a creature
+ * already unavailable (declined, used a counter) offer nothing. In a Scene a creature with no token on
+ * it cannot reach the cast. The cast answered is the original caster's unless `against` names a counter
+ * cast, itself a cast another creature may counter, the original caster included.
  */
 export function discoverNativeCastReactions(input: {
   state: EncounterRunState
@@ -113,7 +121,9 @@ export function discoverNativeCastReactions(input: {
   prepareReaction(
     reactor: EncounterRunActorState,
     reactorTarget: ReactorTarget,
-    actionId: string
+    actionId: string,
+    /** The creature whose cast the reaction answers. */
+    against: EncounterRunActorState
   ): Promise<Prepared>
   capture: (
     request: LiveSessionEncounterRulesRequest
@@ -128,22 +138,33 @@ export function discoverNativeCastReactions(input: {
     declinedReactorActorIds: readonly string[]
     /** Only this reaction of this creature: the offer that is being answered. */
     answering?: { reactorActorId: string; actionId: string }
+    /** The cast the reactions answer, when it is not the original caster's own. */
+    against?: { actorId: string; level: number }
   }): Promise<{
     reactor: EncounterRunActorState
     target: ReactorTarget
     reactions: NativeCastReaction[]
   } | null> => {
+    const againstActorId = filter.against?.actorId ?? caster.id
+    const triggerLevel = filter.against?.level ?? input.triggerLevel
+    const against = input.actors.find((actor) => actor.id === againstActorId)
+    const tokenOf = (actorId: string) =>
+      actorId === caster.id
+        ? scene.sourceToken
+        : scene.tokens.find((token) => token.actorId === actorId)
+    const againstToken = tokenOf(againstActorId)
+    if (!against || !againstToken) return null
     const reactors = input.actors
       .filter(
         (actor) =>
           actor.kind === 'CHARACTER' &&
-          actor.id !== caster.id &&
+          actor.id !== againstActorId &&
           !filter.declinedReactorActorIds.includes(actor.id) &&
           (filter.answering === undefined || actor.id === filter.answering.reactorActorId)
       )
       .sort((left, right) => left.id.localeCompare(right.id))
     for (const reactor of reactors) {
-      const reactorToken = scene.tokens.find((token) => token.actorId === reactor.id)
+      const reactorToken = tokenOf(reactor.id)
       if (!reactorToken) continue
       const reactorTarget = await input.loadTarget(reactor)
       if (isEncounterActorDefeated(reactor, deadCharacterIdsOfTargets([reactorTarget]))) continue
@@ -151,7 +172,7 @@ export function discoverNativeCastReactions(input: {
       for (const { actionId } of discoverCastReactionActions(reactorTarget)) {
         if (filter.answering !== undefined && actionId !== filter.answering.actionId) continue
         const prepared = await input
-          .prepareReaction(reactor, reactorTarget, actionId)
+          .prepareReaction(reactor, reactorTarget, actionId, against)
           .catch((error: unknown) => {
             // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
             if (error instanceof StaleCharacterActionError) return null
@@ -164,14 +185,16 @@ export function discoverNativeCastReactions(input: {
         const check = castReactionCheckRequirement({
           higherLevelCheck: trigger?.kind === 'SPELL_CAST' ? trigger.higherLevelCheck : undefined,
           counterLevel,
-          triggerLevel: input.triggerLevel
+          triggerLevel
         })
-        if (counterLevel < input.triggerLevel && !check) continue
+        if (counterLevel < triggerLevel && !check) continue
+        // A reactor with no ability to roll cannot answer the check, so the slot is not on offer.
+        if (check && castReactionCheckAbility(check, reactorTarget) === undefined) continue
         const warnings = evaluateEncounterActionTargetPolicy({
           actor: prepared.actor,
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
-          sceneContext: { grid, sourceToken: reactorToken, targetToken: scene.sourceToken },
+          sceneContext: { grid, sourceToken: reactorToken, targetToken: againstToken },
           makesAttackRoll: prepared.makesAttackRoll
         })
         if (!warnings || warnings.some(({ code }) => code === 'TARGET_OUT_OF_RANGE')) continue
@@ -180,7 +203,7 @@ export function discoverNativeCastReactions(input: {
           state,
           actionId,
           sourceTarget: reactorTarget,
-          targetIds: [caster.id],
+          targetIds: [againstActorId],
           capture: input.capture
         })
         if (!economy?.available || suppressed) continue
@@ -188,6 +211,7 @@ export function discoverNativeCastReactions(input: {
           prepared,
           economy,
           check,
+          level: counterLevel,
           candidate: nativeReactionCandidate({
             trigger: 'SPELL_CAST',
             reactorActorId: reactor.id,
@@ -226,12 +250,20 @@ export type NativeCastReactionAnswer =
  * the cast to the next creature in turn; so does a failed check, which also keeps the failed attempt for
  * the cast's terminal commit (D127). The cast itself is never held; it replays from its command with the
  * declines recorded.
+ *
+ * A counter that stands is itself a cast, so the other creatures are offered a counter to it in turn: the
+ * chain grows by one counter per answer, a fresh level of offers for each, and resolves innermost first
+ * once nobody is left to ask. An odd chain leaves its first counter standing, which counters the cast;
+ * an even one is spent without effect and the cast is offered again at its own level. Every counter in
+ * the chain but the one that stands is kept for the terminal commit to spend.
  */
 export async function advanceNativeCastReactions(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
   gameSystemId: string
   system: SystemAuthoredDto
+  /** The creature casting the spell, whose own offers are measured from it. */
+  casterActorId: string
   /** The level the cast is cast at. */
   triggerLevel: number
   discover: ReturnType<typeof discoverNativeCastReactions>
@@ -244,32 +276,48 @@ export async function advanceNativeCastReactions(input: {
 }) {
   const { runtime, occurrenceId, answer } = input
   const failedCounters = [...input.failedCounters]
-  let declinedReactorActorIds = answer?.offer.declinedReactorActorIds ?? []
-  const countered = async (
+  const chain = [...(answer?.offer.chain?.counters ?? [])]
+  /** The declines of the cast itself, kept while counters stand to the level above. */
+  let castDeclinedReactorActorIds = answer?.offer.chain?.castDeclinedReactorActorIds
+  /** The level of the cast the offers now answer: the last counter's, or the cast's own. */
+  let castLevel = answer?.offer.chain?.castLevel ?? input.triggerLevel
+  let declinedReactorActorIds = [...(answer?.offer.declinedReactorActorIds ?? [])]
+  const reactorOf = ({ reaction }: EncounterFailedCounterDto) => reaction.reactorActorId
+  const against = () => ({
+    actorId: chain.at(-1)?.reaction.reactorActorId ?? input.casterActorId,
+    level: castLevel
+  })
+  const chainOffer = () =>
+    chain.length > 0
+      ? {
+          chain: {
+            counters: chain,
+            castDeclinedReactorActorIds: castDeclinedReactorActorIds ?? [],
+            castLevel
+          }
+        }
+      : {}
+  /** A counter that stands against the cast the offers answer; the next level counters it. */
+  const stand = (
     found: NativeCastReaction,
     pin: EncounterFailedCounterDto['reaction'],
-    choice: EncounterFailedCounterDto['choiceExecution'],
+    choiceExecution: EncounterFailedCounterDto['choiceExecution'],
     check: EncounterCounterCheckEvidenceDto | null
-  ) => ({
-    kind: 'COUNTERED' as const,
-    found,
-    pin,
-    choice,
-    check,
-    counterExecution: (await applyNativeCastReaction({ reaction: found, runtime, occurrenceId }))
-      .execution,
-    failedCounters
-  })
-  /** The reaction as the offer pinned it, still as affordable and as prepared as it was. */
-  const current = async (pin: { reactorActorId: string; actionId: string }) => {
-    const match = await input.discover({
-      declinedReactorActorIds,
-      answering: { reactorActorId: pin.reactorActorId, actionId: pin.actionId }
+  ) => {
+    chain.push({
+      reaction: pin,
+      choiceExecution,
+      triggerLevel: castLevel,
+      againstActorId: against().actorId,
+      check
     })
-    const [found] = match?.reactions ?? []
-    if (!match || !found) throw new Error('Reaction evidence is stale.')
-    return { found, target: match.target }
+    castDeclinedReactorActorIds ??= declinedReactorActorIds
+    declinedReactorActorIds = []
+    castLevel = found.level
   }
+  /** The reaction as the offer pinned it, still as affordable and as prepared as it was. */
+  const current = (pin: { reactorActorId: string; actionId: string }) =>
+    findNativeCastReaction(input.discover, pin, against())
   let rolling: {
     found: NativeCastReaction
     pin: EncounterFailedCounterDto['reaction']
@@ -305,40 +353,41 @@ export async function advanceNativeCastReactions(input: {
         candidate: found.candidate,
         optionId: answer.selection.optionId
       })
-      if (!found.check) return countered(found, reaction, choice, null)
-      const prepared = prepareEncounterCastReactionCheck({
-        requirement: found.check,
-        gameSystemId: input.gameSystemId,
-        system: input.system,
-        reactor: target
-      })
-      const check = {
-        choiceExecution: choice,
-        triggerLevel: input.triggerLevel,
-        checkDefinitionId: prepared.checkDefinitionId,
-        dc: found.check.dc,
-        d20: prepared.d20
-      }
-      const continuation = await startEncounterBasicActionCheck({
-        runtime,
-        gameSystemId: input.gameSystemId,
-        occurrenceId
-      })
-      if (!input.autoRoll(chosen.reactorActorId))
-        return {
-          kind: 'CHECK' as const,
-          reactor: found.prepared.actor,
-          continuation,
-          offer: { reactions: [reaction], declinedReactorActorIds, check },
-          failedCounters
+      if (found.check) {
+        const prepared = prepareEncounterCastReactionCheck({
+          requirement: found.check,
+          gameSystemId: input.gameSystemId,
+          system: input.system,
+          reactor: target
+        })
+        const check = {
+          choiceExecution: choice,
+          triggerLevel: castLevel,
+          checkDefinitionId: prepared.checkDefinitionId,
+          dc: found.check.dc,
+          d20: prepared.d20
         }
-      rolling = {
-        found,
-        pin: reaction,
-        check,
-        continuation,
-        evidence: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId }
-      }
+        const continuation = await startEncounterBasicActionCheck({
+          runtime,
+          gameSystemId: input.gameSystemId,
+          occurrenceId
+        })
+        if (!input.autoRoll(chosen.reactorActorId))
+          return {
+            kind: 'CHECK' as const,
+            reactor: found.prepared.actor,
+            continuation,
+            offer: { reactions: [reaction], declinedReactorActorIds, check, ...chainOffer() },
+            failedCounters
+          }
+        rolling = {
+          found,
+          pin: reaction,
+          check,
+          continuation,
+          evidence: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId }
+        }
+      } else stand(found, reaction, choice, null)
     }
   }
   if (rolling) {
@@ -352,31 +401,87 @@ export async function advanceNativeCastReactions(input: {
     })
     const evidence = { checkDefinitionId: rolling.check.checkDefinitionId, d20: evaluated.d20 }
     if (evaluated.reachesDc)
-      return countered(rolling.found, rolling.pin, rolling.check.choiceExecution, evidence)
-    failedCounters.push({
-      reaction: rolling.pin,
-      choiceExecution: rolling.check.choiceExecution,
-      triggerLevel: rolling.check.triggerLevel,
-      check: evidence
+      stand(rolling.found, rolling.pin, rolling.check.choiceExecution, evidence)
+    else {
+      failedCounters.push({
+        reaction: rolling.pin,
+        choiceExecution: rolling.check.choiceExecution,
+        triggerLevel: rolling.check.triggerLevel,
+        againstActorId: against().actorId,
+        check: evidence
+      })
+      declinedReactorActorIds = [...declinedReactorActorIds, rolling.pin.reactorActorId]
+    }
+  }
+  for (;;) {
+    const next = await input.discover({
+      declinedReactorActorIds: [
+        ...declinedReactorActorIds,
+        ...failedCounters.map(reactorOf),
+        ...chain.map(reactorOf)
+      ],
+      against: against()
     })
-    declinedReactorActorIds = [...declinedReactorActorIds, rolling.pin.reactorActorId]
+    if (next)
+      return {
+        kind: 'OFFER' as const,
+        reactor: next.reactor,
+        continuation: await openEncounterReactionChoice({
+          runtime,
+          occurrenceId,
+          candidate: next.reactions[0]!.candidate
+        }),
+        offer: {
+          reactions: next.reactions.map(({ candidate }) => encounterReactionPin(candidate)),
+          declinedReactorActorIds,
+          ...chainOffer()
+        },
+        failedCounters
+      }
+    if (chain.length === 0) return { kind: 'NONE' as const, failedCounters }
+    if (chain.length % 2 === 1) {
+      // Nobody counters the first counter, so it stands and counters the cast; the rest are spent.
+      const standing = chain[0]!
+      const { found } = await findNativeCastReaction(input.discover, standing.reaction, {
+        actorId: standing.againstActorId,
+        level: standing.triggerLevel
+      })
+      if (!sameEncounterReactionCandidate(standing.reaction, found.candidate))
+        throw new Error('Reaction evidence is stale.')
+      return {
+        kind: 'COUNTERED' as const,
+        found,
+        pin: standing.reaction,
+        choice: standing.choiceExecution,
+        check: standing.check,
+        counterExecution: (
+          await applyNativeCastReaction({ reaction: found, runtime, occurrenceId })
+        ).execution,
+        failedCounters: [...failedCounters, ...chain.slice(1)]
+      }
+    }
+    // Every counter was countered in turn, so none has an effect and the cast is offered again.
+    failedCounters.push(...chain.splice(0))
+    declinedReactorActorIds = castDeclinedReactorActorIds ?? []
+    castDeclinedReactorActorIds = undefined
+    castLevel = input.triggerLevel
   }
-  const next = await input.discover({ declinedReactorActorIds })
-  if (!next) return { kind: 'NONE' as const, failedCounters }
-  return {
-    kind: 'OFFER' as const,
-    reactor: next.reactor,
-    continuation: await openEncounterReactionChoice({
-      runtime,
-      occurrenceId,
-      candidate: next.reactions[0]!.candidate
-    }),
-    offer: {
-      reactions: next.reactions.map(({ candidate }) => encounterReactionPin(candidate)),
-      declinedReactorActorIds
-    },
-    failedCounters
-  }
+}
+
+/** The reaction as an offer pinned it, still as affordable and as prepared as it was. */
+async function findNativeCastReaction(
+  discover: ReturnType<typeof discoverNativeCastReactions>,
+  pin: { reactorActorId: string; actionId: string },
+  against: { actorId: string; level: number }
+) {
+  const match = await discover({
+    declinedReactorActorIds: [],
+    answering: { reactorActorId: pin.reactorActorId, actionId: pin.actionId },
+    against
+  })
+  const [found] = match?.reactions ?? []
+  if (!match || !found) throw new Error('Reaction evidence is stale.')
+  return { found, target: match.target }
 }
 
 /**
@@ -395,15 +500,11 @@ export async function planNativeFailedCounters(input: {
 }) {
   const planned = []
   for (const failed of input.failedCounters) {
-    const match = await input.discover({
-      declinedReactorActorIds: [],
-      answering: {
-        reactorActorId: failed.reaction.reactorActorId,
-        actionId: failed.reaction.actionId
-      }
+    const { found } = await findNativeCastReaction(input.discover, failed.reaction, {
+      actorId: failed.againstActorId,
+      level: failed.triggerLevel
     })
-    const [found] = match?.reactions ?? []
-    if (!found || !sameEncounterReactionCandidate(failed.reaction, found.candidate))
+    if (!sameEncounterReactionCandidate(failed.reaction, found.candidate))
       throw new Error('Reaction evidence is stale.')
     const spend = planNativeEncounterAreaSourceSpend(
       {
@@ -432,6 +533,16 @@ export async function planNativeFailedCounters(input: {
   return planned
 }
 
+/** The slots the failed counters of one actor spend, for the batch its own cast spends in. */
+export function counterConsumptionsOf(
+  planned: Awaited<ReturnType<typeof planNativeFailedCounters>>,
+  actorId: string
+) {
+  return planned.flatMap(({ receipt, spellConsumption }) =>
+    receipt.reaction.reactorActorId === actorId && spellConsumption ? [spellConsumption] : []
+  )
+}
+
 /**
  * The countered cast: the caster spends its slot and action and nothing the spell would have done
  * happens, while the creature that countered it spends its own slot and reaction. Nothing is stored;
@@ -443,6 +554,8 @@ export function planNativeCounteredCast(input: {
   prepared: Prepared
   /** The effects the caster holds; the cast still ends those that end on a cast. */
   casterEffects: readonly ActiveRuleEffectRecord[]
+  /** The effects the countering reactor holds; its Counterspell is a cast too. */
+  reactorEffects: readonly ActiveRuleEffectRecord[]
   /** The level the countered cast was cast at. */
   triggerLevel: number
   actionEconomy: NativeReaction<unknown>['economy']['consumption'] | null
@@ -457,14 +570,36 @@ export function planNativeCounteredCast(input: {
 }) {
   const { state, prepared, countered, actionEconomy } = input
   const { found } = countered
-  // A countered cast makes no attack roll, but it is still a cast.
+  const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
+  // A countered cast makes no attack roll, but it is still a cast: aimed at the cast's target, and the
+  // Counterspell at the caster it counters.
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: input.casterEffects,
     makesAttackRoll: false,
-    castsSpell: true
+    castsSpell: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: prepared.actor.id,
+      targetActorIds: [prepared.target.id],
+      dispositions
+    })
   })
-  const spendOf = (spending: Prepared, releases: typeof sourceReleases) =>
+  const reactorEnded = actionEndedEffects({
+    holderActorId: found.prepared.actor.id,
+    held: input.reactorEffects,
+    makesAttackRoll: false,
+    castsSpell: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: found.prepared.actor.id,
+      targetActorIds: [prepared.actor.id],
+      dispositions
+    })
+  })
+  const spendOf = (
+    spending: Prepared,
+    releases: typeof sourceReleases,
+    counterSpellConsumptions: ReturnType<typeof counterConsumptionsOf> = []
+  ) =>
     planNativeEncounterAreaSourceSpend(
       {
         prepared: spending,
@@ -474,12 +609,18 @@ export function planNativeCounteredCast(input: {
         sourceCommandId: input.commandId,
         commandId: input.commandId,
         occurredAt: input.occurredAt,
-        sourceReleases: releases
+        sourceReleases: releases,
+        counterSpellConsumptions
       },
       input.userId
     )
-  const casterSpend = spendOf(prepared, sourceReleases)
-  const reactorSpend = spendOf(found.prepared, [])
+  // The caster's counter to a counter cast against its cast spends in the caster's one batch with the cast.
+  const casterSpend = spendOf(
+    prepared,
+    sourceReleases,
+    counterConsumptionsOf(input.failedCounters, prepared.actor.id)
+  )
+  const reactorSpend = spendOf(found.prepared, reactorEnded.sourceReleases)
   const settled = new Map([
     [
       prepared.actor.id,
@@ -518,6 +659,7 @@ export function planNativeCounteredCast(input: {
         triggerLevel: input.triggerLevel,
         check: countered.check,
         spellConsumption: found.prepared.characterActionState?.spellConsumption,
+        applications: reactorSpend.sourceApplications,
         characterStreamVersion: reactorSpend.sourceCharacterStreamVersion,
         economy: found.economy.consumption
       }
@@ -529,7 +671,7 @@ export function planNativeCounteredCast(input: {
     ),
     reactionSpellConsumption: found.prepared.characterActionState?.spellConsumption ?? null,
     failedCounters: input.failedCounters,
-    consumedGrants
+    consumedGrants: [...consumedGrants, ...reactorEnded.consumedGrants]
   }
 }
 
@@ -563,7 +705,10 @@ export function buildNativeLiveEncounterCounteredCastCommitInput(
     itemConsumption: prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: prepared.characterActionState?.spellConsumption ?? null,
     reactionSpellConsumption: countered.reactionSpellConsumption,
-    failedCounters: countered.failedCounters,
+    failedCounters: countered.failedCounters.map(({ receipt, spellConsumption }) => ({
+      receipt,
+      spellConsumption
+    })),
     consumedGrants: countered.consumedGrants,
     label: encounterActionSourceLabel(prepared.source),
     ruleOverrides: plan.ruleOverrides

@@ -16,6 +16,7 @@ import {
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
+import { facetDtoSchema } from '../shared/facet.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -94,6 +95,8 @@ const actionEquipmentStateSchema = lazySchema(() =>
     requiresAttuned: booleanSchema,
     /** The grip this action's effect is wielded with; null for non-attack and item-feature actions. */
     grip: z.nullable(equipmentGripSchema),
+    /** The item effect's authored requirements; the Encounter decides them when it offers the action. */
+    requirements: z.optional(facetDtoSchema),
     /** Another weapon is equipped: attacking with this item is not wielding it alone (Dueling). */
     otherWeaponEquipped: booleanSchema,
     /** Using this item's action uses one up (the item's `CONSUMED_ON_USE` attribute). */

@@ -9,6 +9,7 @@ import type {
   FollowUpSaveRepeatRollInfluenceAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
+  ManifestCreatureFormAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
   ManifestProximityRuleAuthored,
@@ -203,6 +204,8 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
+const pathLifecycleEndTrigger =
+  buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
@@ -213,6 +216,7 @@ const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
 const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
+const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
@@ -315,10 +319,77 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
     )
   })
 
+const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
+> = pathLifecycleEndTrigger.define(
+  'pathLifecycleEndTrigger',
+  ({ map, nodes, data, cond, logic }) => {
+    const { selectSingle, selectMulti } = nodes
+    const { table } = data
+    const event = cond.local().field(['event'])
+    const isDamageTaken = event.eq('DAMAGE_TAKEN')
+    const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
+
+    map
+      .set(
+        'event',
+        selectSingle(
+          ['event'],
+          'Ends When',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
+              { code: 'ATTACK_ROLL', label: 'The holder attacks an enemy' },
+              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' }
+            ]
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'by',
+        selectSingle(
+          ['by'],
+          'Damage From',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'ANYONE', label: 'Anyone' },
+              { code: 'SOURCE_SIDE', label: 'The effect source or its allies' }
+            ]
+          },
+          { requiredIf: isDamageTaken, showIf: isDamageTaken }
+        )
+      )
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage Types (any when empty)',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { showIf: isDamageTaken }
+        )
+      )
+      .set(
+        'against',
+        selectSingle(
+          ['against'],
+          'Against',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
+          { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+        )
+      )
+  }
+)
+
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject } = nodes
+    const { selectSingle, selectMulti, groupObject, groupArray } = nodes
     const { table } = data
 
     map
@@ -347,6 +418,12 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         selectMulti(['endOnEvents'], 'End On Events', {
           kind: 'INLINE_OPTIONS',
           options: PATH_LIFECYCLE_END_EVENT_OPTIONS
+        })
+      )
+      .set(
+        'endOnTriggers',
+        groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+          presentation: 'inline'
         })
       )
       .set(
@@ -547,6 +624,36 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       )
   }
 )
+
+const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
+  manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
+    const { text, number, selectSingle } = nodes
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set(
+        'creatureId',
+        selectSingle(
+          ['creatureId'],
+          'Creature',
+          {
+            kind: 'DATA',
+            relationship: table('creatures', { selectColumns: ['id', 'label'] })
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'maxTargets',
+        number(['maxTargets'], 'Maximum Creatures', {
+          constraints: { minimum: 1 },
+          requiredIf: true
+        })
+      )
+  })
 
 const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriterionNode> =
   manifestDestructionCriterion.define(
@@ -1768,23 +1875,23 @@ function registerOutcomeFields(
       )
     )
     .set(
-      'creatureId',
-      selectSingle(
-        ['creatureId'],
-        'Creature',
-        {
-          kind: 'DATA',
-          relationship: table('creatures', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          showIf: and([
-            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-            local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-          ])
-        }
-      )
+      'forms',
+      groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
+        presentation: 'summary',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+        ])
+      })
+    )
+    .set(
+      'excessDamageCarriesOver',
+      toggle(['excessDamageCarriesOver'], 'Excess Damage Carries Over', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+        ])
+      })
     )
     .set(
       'shape',

@@ -81,7 +81,8 @@ Grant lifecycle options on an effect (`path.ts`) are generic node-map options, n
 (`ON_INCAPACITATED`; `ON_IDLE_TURN`, the grant ends at the end of its holder's turn when the holder made no attack roll against a
 hostile creature and took no damage since their previous turn), `endOnConditionIds` (a `condition_types` multi-select; the grant ends while its holder has any of them),
 `holderEnd` (`{ activation }`, the holder may end it at that cost) and `consumeOnFirstEvents`. Modifier facets include
-`ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used) and the `SPELLCASTING_LOCK` `ENABLE`
+`ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used), `ATTACK_ACTIVATION` / `ITEM_ACTIVATION` (gate it on the
+activation the attack is made with, such as the bonus action of an off-hand attack; ATTACK-9.T5b) and the `SPELLCASTING_LOCK` `ENABLE`
 domain (bars every spell cast). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.
 
 Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shared}/maps`. The authoring package's `mapRegistry` registers roots and recursively registers child maps by `mapId`. Duplicate IDs with conflicting signatures fail inventory validation; unknown IDs are `NodeRuntimeInputError`. Add-enabled child maps must have an exact web default factory—there is no generic `{ id, order }` fallback.

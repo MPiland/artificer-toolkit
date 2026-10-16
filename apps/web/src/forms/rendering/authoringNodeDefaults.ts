@@ -379,6 +379,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         blockingRules: [],
         destructionCriteria: []
       }
+    case 'manifestCreatureForm':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        label: '',
+        creatureId: '',
+        maxTargets: 1
+      }
     case 'manifestDestructionCriterion':
       return {
         id: crypto.randomUUID(),
@@ -485,6 +493,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'pathLifecycle':
       return {}
+    case 'pathLifecycleEndTrigger':
+      return { event: 'DAMAGE_TAKEN', by: 'ANYONE' }
     case 'pathLifecycleHolderEnd':
       return { activation: 'BONUS_ACTION' }
     case 'pathLifecycleTurnAnchor':

@@ -134,6 +134,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'EQUIPMENT_PROPERTY',
     'SOLE_WIELDED_WEAPON',
     'ATTACK_ABILITY',
+    'ATTACK_ACTIVATION',
     'ATTACK_ROLL_MODE',
     'ENEMY_NEAR_TARGET',
     'ARMOR_CLASS',
@@ -145,6 +146,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'CAN_ACT',
     'SPEED_ABOVE_ZERO',
     'FREE_HAND',
+    'ATTACK_ACTION_OTHER_WEAPON',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
     'SPELL_OBTAINED',
@@ -351,6 +353,10 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
     'ON_IDLE_TURN'
   ])
 )
+/** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
+export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
+/** Whom an action must be aimed at to end an effect: only enemies of its holder (Sanctuary). */
+export const pathLifecycleEndTriggerAgainstSchema = lazySchema(() => z.enum(['ENEMY']))
 /** The consume events a timed grant can carry (a cast does not use a grant up). */
 export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK'] satisfies z.infer<

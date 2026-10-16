@@ -14,6 +14,7 @@ import type {
 import type {
   ActiveEffectConsumeEvent,
   ActiveEffectEndEvent,
+  ActiveEffectEndTrigger,
   ActiveGrantHolderEnd,
   GrantConsumeEvent,
   GrantEndEvent
@@ -70,6 +71,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
     /** The events whose first occurrence ends the condition, sorted and unique. */
     endOnEvents?: readonly ActiveEffectEndEvent[]
+    /** The structured events that end the condition's effect, unique and in canonical order. */
+    endOnTriggers?: readonly ActiveEffectEndTrigger[]
   }
   /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
   modifierGrantContribution?: null | {
@@ -107,6 +110,16 @@ export interface CharacterRuleActionActiveEffectPlan {
     linkKind: 'TELEPATHIC'
     /** Creatures whose Intelligence is this or lower cannot join the bond. */
     excludesIntelligenceAtOrBelow: number
+  }
+  /**
+   * Each target swaps into the Creature of the form the caster chose (Giant Insect), for the
+   * duration (D130). The chosen form is a cast-time input; every authored form is listed here.
+   */
+  creatureFormContribution?: null | {
+    formOutcomeId: string
+    /** Whether damage past the form's last hit point reduces the origin's (Polymorph) or is lost. */
+    excessDamageCarriesOver: boolean
+    forms: readonly { id: string; label: string; creatureId: string; maxTargets: number }[]
   }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {

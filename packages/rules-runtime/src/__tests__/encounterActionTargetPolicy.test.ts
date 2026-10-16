@@ -394,6 +394,20 @@ describe('encounter action target range', () => {
     ])
   })
 
+  it('holds a self-targeting action with a distance range to its user (Misty Step’s 30 ft is the teleport)', () => {
+    const range = {
+      id: 'range',
+      rangeKind: 'DISTANCE' as const,
+      amount: 30,
+      unit: 'FEET' as const
+    }
+    const targeting = { selectionKind: 'SELF' as const }
+    expect(rangeWarnings({ range, targeting, targetId: 'source' })).toEqual([])
+    expect(rangeWarnings({ range, targeting })).toEqual([
+      { code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }
+    ])
+  })
+
   it('reaches a ranged attack’s long range and warns only beyond it (D62)', () => {
     // A light crossbow: range 80/320 ft., 16 and 64 squares.
     const range = {

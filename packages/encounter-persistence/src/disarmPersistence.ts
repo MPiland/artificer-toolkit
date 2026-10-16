@@ -26,7 +26,10 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -227,7 +230,12 @@ export async function persistEncounterDisarmCommit(
   const { consumedGrants: endedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: source.id,
     held: sourceEffects,
-    makesAttackRoll: true
+    makesAttackRoll: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: source.id,
+      targetActorIds: [target.id],
+      dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+    })
   })
   if (endedGrants.some((grant) => !input.consumedGrants.some(({ id }) => id === grant.id)))
     throw new Error('Live Session Disarm initiator grants changed before settlement.')
@@ -370,6 +378,7 @@ export async function persistEncounterDisarmCommit(
       endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      teleportAllowanceTurn: null,
       turnUses: null,
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,

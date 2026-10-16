@@ -37,11 +37,27 @@ export function castReactionCheckRequirement(input: {
 }
 
 /**
- * Freezes the reactor's d20 for a counter's check: its modifier, contributors and roll mode for the
- * ability the reaction names, conditions and active grants included. SPELLCASTING is the ability the
- * reactor casts with; a reactor with none has no check to make.
+ * The ability a reactor rolls a counter's check with, or undefined when it has none to roll. SPELLCASTING
+ * is the ability the reactor casts with.
  */
-export function prepareEncounterCastReactionCheck<TCharacterFacts extends CharacterMovementFacts>(input: {
+export function castReactionCheckAbility(
+  requirement: CastReactionCheckRequirement,
+  reactor: Pick<MovementTarget, 'characterFacts' | 'effectiveRulePolicyOutput'>
+): string | undefined {
+  if (!reactor.characterFacts) return undefined
+  return requirement.ability === SPELLCASTING_ABILITY_REFERENCE
+    ? reactor.effectiveRulePolicyOutput?.derivedStats.spellcasting?.abilityId
+    : requirement.ability
+}
+
+/**
+ * Freezes the reactor's d20 for a counter's check: its modifier, contributors and roll mode for the
+ * ability the reaction names, conditions and active grants included. A reactor with no such ability has
+ * no check to make.
+ */
+export function prepareEncounterCastReactionCheck<
+  TCharacterFacts extends CharacterMovementFacts
+>(input: {
   requirement: CastReactionCheckRequirement
   gameSystemId: string
   system: SystemAuthoredDto
@@ -49,10 +65,7 @@ export function prepareEncounterCastReactionCheck<TCharacterFacts extends Charac
 }) {
   const { reactor, requirement } = input
   const facts = reactor.characterFacts
-  const ability =
-    requirement.ability === SPELLCASTING_ABILITY_REFERENCE
-      ? reactor.effectiveRulePolicyOutput?.derivedStats.spellcasting?.abilityId
-      : requirement.ability
+  const ability = castReactionCheckAbility(requirement, reactor)
   if (!facts || ability === undefined)
     throw new EncounterValidationError('The reacting creature has no ability for the check.')
   const canonical = resolveAbilityAlias(ability) ?? ability

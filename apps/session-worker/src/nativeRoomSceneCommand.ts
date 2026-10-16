@@ -162,7 +162,14 @@ export function planLiveSceneCommand(input: {
   )
     return reject('FORBIDDEN', 'The current user does not control this Scene token.', false)
   const position = command.path.at(-1)!
-  const failure = sceneTokenMovementFailure(scene, command.tokenId, position, command.path)
+  // Only an Encounter-bound teleport is admitted by a cast's allowance; any other move is walked.
+  const failure = sceneTokenMovementFailure(
+    scene,
+    command.tokenId,
+    position,
+    command.path,
+    command.expectedEncounterVersion === null ? 'VOLUNTARY' : command.movementKind
+  )
   if (failure) return reject('INVALID_COMMAND', failure, true)
   if (staged) return { kind: 'STAGED' }
   return { kind: 'ACCEPTED', delta: { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId } }

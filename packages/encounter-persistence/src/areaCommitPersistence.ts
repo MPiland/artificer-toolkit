@@ -24,7 +24,13 @@ import {
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
+import {
+  actorFormEntry,
+  createdFormCreatureId,
+  readActorFormCreature
+} from './actorFormPersistence.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import {
   requireAreaActionAnswer,
@@ -33,7 +39,14 @@ import {
   requireAreaActionRemoval
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
-import { persistEncounterActionEffects } from './actionEffectPersistence.js'
+import {
+  persistEncounterActionEffects,
+  prepareEncounterActionMaintenance
+} from './actionEffectPersistence.js'
+import {
+  readMaintenanceOwnerRequests,
+  type readEncounterMaintenanceCapture
+} from './maintenanceCapture.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
@@ -48,6 +61,7 @@ import { readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -119,10 +133,20 @@ type CommitScope = {
  */
 export async function persistEncounterAreaCommit(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+    readonly ports: Pick<
+      EncounterWritePorts,
+      | 'insertTableRoll'
+      | 'retainPrivateRoll'
+      | 'requireCampaignAuthority'
+      | 'snapshotBlueprintEnemies'
+    >
   },
   input: LiveSessionEncounterAreaCommitInput,
   callbacks: {
+    readMaintenanceCapture(
+      state: EncounterRunState,
+      request: LiveSessionEncounterAreaCommitInput['maintenanceOwners'][number]
+    ): ReturnType<typeof readEncounterMaintenanceCapture>
     readAreaSceneInputs(
       state: EncounterRunState,
       input: ActionAreaSceneRequestDto
@@ -166,7 +190,6 @@ export async function persistEncounterAreaCommit(
   if (
     command.type !== 'RESOLVE_ACTION' ||
     command.target.kind === 'ACTOR' ||
-    command.target.kind === 'SQUARE' ||
     command.optionalCombatIntent != null ||
     rootExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_AREA_ACTION' ||
@@ -296,7 +319,7 @@ export async function persistEncounterAreaCommit(
       batch.targetActorId !== actor.id ||
       batch.activeEffectTransitions.length + batch.stateEffectTransitions.length !==
         createdEffects.length ||
-      batch.maintenanceTransition !== undefined ||
+      (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
         batch.targetFeatureResourceConsumption !== null) ||
       initial.evidence.source.definitionId !== input.initialDefinitionId ||
@@ -327,6 +350,12 @@ export async function persistEncounterAreaCommit(
   const characterIds = new Set(
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
+  await readMaintenanceOwnerRequests({
+    requests: input.maintenanceOwners,
+    actorIds: [source.id],
+    characterIds,
+    read: (request) => callbacks.readMaintenanceCapture(state, request)
+  })
   await callbacks.validateReadFence(state, [...characterIds], input.revisions)
   for (const occurrenceId of [areaOccurrenceId, ...children.map((child) => child.occurrenceId)]) {
     const collision = await ctx.db
@@ -336,6 +365,28 @@ export async function persistEncounterAreaCommit(
     if (collision && collision._id !== pendingOccurrence?._id)
       throw new Error('Encounter rule occurrence ID was already used.')
   }
+  // The first creature whose outcome a Concentration holds replaces the caster's earlier one and
+  // creates the state; the rest depend on it. This reads before any mechanics advance a Character.
+  const maintained = children.filter(({ batch }) => batch.maintenanceTransition != null)
+  if (maintained.length > 0 !== (input.maintainedState !== null))
+    throw new Error('Live Session area maintenance scope mismatch.')
+  const carrier = maintained[0] ?? null
+  const maintenance = carrier
+    ? await prepareEncounterActionMaintenance(ctx, {
+        state,
+        command: {
+          encounterId: state.id,
+          actorId: source.id,
+          target: { kind: 'ACTOR', actorId: carrier.actor.id },
+          actionId: command.actionId,
+          commandId: encounterAreaTargetCommandId(carrier.occurrenceId)
+        },
+        execution: carrier.execution,
+        maintainedState: input.maintainedState,
+        createdEffects: [...carrier.createdEffects],
+        authorizedCharacterIds: characterIds
+      })
+    : null
 
   const { spends, mutation: sourceMutation } = sourceSpendMutation({
     source,
@@ -399,8 +450,26 @@ export async function persistEncounterAreaCommit(
     throw new Error('Live Session source Character receipt mismatch.')
 
   const healEndedGrants: ActiveRuleEffectRecord[] = []
-  for (const [index, { actor, batch, occurrenceId }] of children.entries()) {
+  // A cast's creature form is one Creature for every child, read once (D130).
+  const formCreatures = new Map<string, Promise<EncounterActorFormCreature>>()
+  for (const [index, { actor, batch, occurrenceId, createdEffects }] of children.entries()) {
     const merged = index === mergedChildIndex
+    const [formEffect] = createdEffects
+    const creatureId = formEffect ? createdFormCreatureId(formEffect) : null
+    if (creatureId !== null && !formCreatures.has(creatureId))
+      formCreatures.set(
+        creatureId,
+        readActorFormCreature(ctx.ports, {
+          campaignId: state.campaignId,
+          userId,
+          gameSystemId: state.gameSystemId,
+          creatureId
+        })
+      )
+    const enterForm =
+      formEffect && creatureId !== null
+        ? actorFormEntry(formEffect, await formCreatures.get(creatureId)!)
+        : undefined
     const mechanics = await callbacks.applyMechanics({
       encounterId: state.id,
       expectedEncounterVersion: state.version,
@@ -416,6 +485,7 @@ export async function persistEncounterAreaCommit(
       effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
       effectiveScalarValues: batch.targetTransition.before.scalarValues,
       forceVersionAdvance: false,
+      ...(enterForm ? { enterForm } : {}),
       ...(merged ? sourceMutation : {})
     })
     if (
@@ -468,7 +538,7 @@ export async function persistEncounterAreaCommit(
       economyOverridden: overridesActionEconomy(input.ruleOverrides)
     })
   )
-  const nextActors: EncounterRunActorState[] = actors.map((actor) => live(actor.id))
+  let nextActors: EncounterRunActorState[] = actors.map((actor) => live(actor.id))
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -489,7 +559,8 @@ export async function persistEncounterAreaCommit(
       sceneId: scope.zoneSceneId,
       zone: input.placedZone
     })
-  for (const { execution, actor, occurrenceId, createdEffects } of children) {
+  for (const child of children) {
+    const { execution, actor, occurrenceId, createdEffects } = child
     await persistCompletedChild(ctx, {
       state: nextState,
       result: execution,
@@ -514,7 +585,7 @@ export async function persistEncounterAreaCommit(
       occurredAt: input.occurredAt
     })
     if (createdEffects.length > 0)
-      await persistEncounterActionEffects(ctx, {
+      nextActors = await persistEncounterActionEffects(ctx, {
         state: nextState,
         command: {
           encounterId: state.id,
@@ -524,14 +595,23 @@ export async function persistEncounterAreaCommit(
           commandId: encounterAreaTargetCommandId(occurrenceId)
         },
         execution,
-        maintainedState: null,
-        maintenance: null,
+        maintainedState: child.batch.maintenanceTransition ? input.maintainedState : null,
+        maintenance: child === carrier ? maintenance : null,
+        deferOwnerReconcile: true,
         createdEffects: [...createdEffects],
         actors: nextActors,
         authorizedCharacterIds: characterIds,
         occurredAt: input.occurredAt
       })
   }
+  // The replaced Concentration's owners settle once every creature holds its new effect.
+  if (maintenance)
+    nextActors = await reconcileNativeMaintenanceOwners(ctx, {
+      encounterId: state.id,
+      maintenance,
+      actors: nextActors,
+      occurredAt: input.occurredAt
+    })
   // One Concentration check per damaged creature, against the damage the root recorded.
   const damage = nativeConcentrationDamageApplications(
     children.map(({ actor, batch }) => ({
@@ -619,8 +699,9 @@ export async function persistEncounterAreaCommit(
         endedGrants: [...input.endedGrants, ...healEndedGrants]
       }),
       endedMaintainedStates,
-      addedConcentrationCasterId: null,
+      addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: null,
+      teleportAllowanceTurn: null,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {

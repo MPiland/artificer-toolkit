@@ -33,6 +33,7 @@ import {
 import {
   activeEffectConsumeEventsSchema,
   activeEffectEndEventsSchema,
+  activeEffectEndTriggersSchema,
   activeGrantConsumeEventsSchema,
   activeGrantEndConditionIdsSchema,
   activeGrantEndEventsSchema,
@@ -158,7 +159,8 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
         z.strictObject({
           conditionId: serverUuidIdentityDtoSchema,
           consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
-          endOnEvents: z._default(activeEffectEndEventsSchema, [])
+          endOnEvents: z._default(activeEffectEndEventsSchema, []),
+          endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
         })
       ),
       null
@@ -217,6 +219,27 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
           linkOutcomeId: serverUuidIdentityDtoSchema,
           linkKind: z.enum(['TELEPATHIC']),
           excludesIntelligenceAtOrBelow: z.number().check(z.int()).check(z.gte(0))
+        })
+      ),
+      null
+    ),
+    creatureFormContribution: z._default(
+      z.nullable(
+        z.strictObject({
+          formOutcomeId: serverUuidIdentityDtoSchema,
+          excessDamageCarriesOver: z.boolean(),
+          /** The Creature each chosen form becomes, by the form option's id. */
+          forms: z
+            .array(
+              z.strictObject({
+                id: serverUuidIdentityDtoSchema,
+                label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+                creatureId: serverUuidIdentityDtoSchema,
+                maxTargets: z.number().check(z.int()).check(z.positive())
+              })
+            )
+            .check(z.minLength(1))
+            .check(z.maxLength(32))
         })
       ),
       null

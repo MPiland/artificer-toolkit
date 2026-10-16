@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
 import { EncounterConflictError } from './encounterErrors.js'
+import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
@@ -279,12 +280,33 @@ export function projectEncounterSpatialOccurrenceSummary(
   if (!spatialCandidate || !spatialCandidate.d20Policy) {
     throw new EncounterConflictError('The spatial occurrence has no resolvable evidence request.')
   }
-  if (!controls(spatialCandidate.candidate.targetActorId)) {
+  const rollerActorId = spatialPendingRollerActorId(spatialCandidate)
+  if (!controls(rollerActorId)) {
     return {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
       pending: null
+    }
+  }
+  if (spatialCandidate.diceStage) {
+    return {
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      status: 'PENDING',
+      pending: {
+        kind: 'ACTION_OUTCOME_EVIDENCE',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion,
+        rollerActorId,
+        request: {
+          requestId: pendingSnapshot.request.requestId,
+          min: pendingSnapshot.request.min,
+          max: pendingSnapshot.request.max
+        },
+        allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+      }
     }
   }
   return {

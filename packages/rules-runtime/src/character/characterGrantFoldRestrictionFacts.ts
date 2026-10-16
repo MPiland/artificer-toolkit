@@ -109,6 +109,12 @@ function normalizeCondition(
       return baseCondition(condition, 'SPEED_ABOVE_ZERO')
     case 'FREE_HAND':
       return baseCondition(condition, 'FREE_HAND')
+    case 'ATTACK_ACTION_OTHER_WEAPON':
+      return {
+        ...baseCondition(condition, 'ATTACK_ACTION_OTHER_WEAPON'),
+        requiredProperties:
+          condition.authoringModeKind === 'SELECTED' ? [...condition.properties] : []
+      }
     case 'EQUIPMENT_PROFICIENCY':
       return {
         ...baseCondition(condition, 'PROFICIENCY'),
@@ -228,6 +234,11 @@ function normalizeItemContext(
         return baseCondition(condition, 'ITEM_SOLE_WEAPON')
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ABILITY')
         return { ...baseCondition(condition, 'ITEM_ATTACK_ABILITY'), abilityId: condition.ability }
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ACTIVATION')
+        return {
+          ...baseCondition(condition, 'ITEM_ACTIVATION'),
+          requiredIds: [condition.activation]
+        }
       return baseCondition(condition, 'UNSUPPORTED')
     })
   ]

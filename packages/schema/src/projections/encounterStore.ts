@@ -97,6 +97,7 @@ export const encounterStoreIndexes = {
   encounterRunActors: {
     by_encounterId_id: ['encounterId', 'id'],
     by_encounterId_snapshotChecksum: ['encounterId', 'snapshotChecksum'],
+    by_encounterId_formOriginSnapshotChecksum: ['encounterId', 'formOriginSnapshotChecksum'],
     by_encounterId_sourceFactsChecksum: ['encounterId', 'sourceFactsChecksum']
   },
   encounterActorSnapshots: {

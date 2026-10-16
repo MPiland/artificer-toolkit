@@ -1,5 +1,6 @@
 import { restoreConcealmentPrune } from '@artificer-toolkit/encounter-persistence/concealmentPrune'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { restoreTurnTeleportAllowance } from '@artificer-toolkit/encounter-persistence/turnMovement'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { sceneStoredConcealmentPruneSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -8,10 +9,11 @@ import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { readRoomSceneRow } from './roomSceneRecords.js'
 
 /**
- * Gives back the observers a token move's prune dropped from concealments, when the GM undoes that
- * move. Only concealments that still exist get them; an ended one stays ended.
+ * Gives back what a token move took when the GM undoes that move: the observers its prune dropped
+ * from concealments (only concealments that still exist get them; an ended one stays ended) and the
+ * teleport allowance it spent (SPELLS-28.2).
  */
-export async function restoreRoomConcealmentPrune(input: {
+export async function restoreRoomMoveUndo(input: {
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -28,7 +30,7 @@ export async function restoreRoomConcealmentPrune(input: {
     input.undoneCommandId
   ])
   const held = authorization.play.encounter
-  if (!row || held?.sceneId !== input.sceneId) return
+  if (held?.sceneId !== input.sceneId) return
   await inputs.encounter(held.encounterId, transaction)
   const ctx = await roomEncounterWriteTransaction({
     store,
@@ -46,9 +48,11 @@ export async function restoreRoomConcealmentPrune(input: {
     .unique()
   if (!run) return
   const state = readRunState(run)
-  await restoreConcealmentPrune(ctx, {
-    state,
-    actors: await readRunActors(ctx, state),
-    entries: sceneStoredConcealmentPruneSchema.parse(row).entries
-  })
+  await restoreTurnTeleportAllowance(ctx, { state, commandId: input.undoneCommandId })
+  if (row)
+    await restoreConcealmentPrune(ctx, {
+      state,
+      actors: await readRunActors(ctx, state),
+      entries: sceneStoredConcealmentPruneSchema.parse(row).entries
+    })
 }

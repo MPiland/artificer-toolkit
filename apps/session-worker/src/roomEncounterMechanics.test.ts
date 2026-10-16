@@ -103,6 +103,7 @@ it('settles Character and Creature mechanics from native play with private recei
     tempHitPoints: 0,
     conditions: [],
     defeated: false,
+    form: null,
     absence: null
   })
   const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: owner.systemId, definitions: [] }

@@ -109,7 +109,8 @@ function pendingCandidate(
       mechanicalContextChecksum: checksum('1'),
       targetStateChecksum: checksum('2')
     },
-    d20Policy: null
+    d20Policy: null,
+    diceStage: null
   }
 }
 
@@ -1298,6 +1299,7 @@ describe('spatial movement rule contracts', () => {
         recurrenceStage: 'NONE' as const,
         consumeOnFirstEvents: [],
         endOnEvents: [],
+        endOnTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER' as const,

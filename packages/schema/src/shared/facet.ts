@@ -9,6 +9,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
   abilityCodeSchema,
+  activationCodeSchema,
   authoringConstraintCodeSchema,
   authoringModeKindSchema,
   chargeLimitKindSchema,
@@ -242,6 +243,10 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ABILITY),
         ability: abilityCodeSchema
       }),
+      ATTACK_ACTIVATION: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTIVATION),
+        activation: activationCodeSchema
+      }),
       ATTACK_ROLL_MODE: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ROLL_MODE),
         rollMode: z.enum(['ADVANTAGE', 'NOT_DISADVANTAGE'])
@@ -369,6 +374,14 @@ const predicatePayloadSchemas = lazySchemaParts(
       FREE_HAND: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FREE_HAND)
       }),
+      ATTACK_ACTION_OTHER_WEAPON: z.intersection(
+        z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTION_OTHER_WEAPON)
+        }),
+        selectableSchema({
+          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
+        })
+      ),
       CHARACTER_LEVEL: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARACTER_LEVEL),
         min: z.number(),

@@ -70,6 +70,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'CAN_ACT',
       'SPEED_ABOVE_ZERO',
       'FREE_HAND',
+      /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
+      'ATTACK_ACTION_OTHER_WEAPON',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',
@@ -82,6 +84,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'ITEM_SOLE_WEAPON',
       /** The attack uses the ability named by `abilityId`. */
       'ITEM_ATTACK_ABILITY',
+      /** The attack is made with an activation in `requiredIds` (the bonus action of an off-hand attack). */
+      'ITEM_ACTIVATION',
       'UNAVAILABLE',
       'UNSUPPORTED'
     ]),

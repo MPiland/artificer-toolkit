@@ -7,6 +7,10 @@ import {
   creatureSenseDtoSchema
 } from '../subjects/creature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import {
+  MAX_TURN_TELEPORT_ALLOWANCES,
+  teleportAllowanceDtoSchema
+} from '../shared/teleportAllowance.js'
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
 import {
@@ -134,7 +138,12 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
  */
 export const encounterPlayerActorDtoSchema = lazySchema(() =>
   z.extend(encounterActorBaseDtoSchema, {
-    health: z.nullable(playerActorHealthDtoSchema)
+    health: z.nullable(playerActorHealthDtoSchema),
+    /**
+     * Why a listed actor is not drawn for the player (D131): `INVISIBLE` when it carries the Invisible
+     * condition, otherwise `HIDDEN` (hidden, in fog or unbound). Null for an actor the player sees or controls.
+     */
+    unseenReason: z.nullable(z.enum(['HIDDEN', 'INVISIBLE']))
   })
 )
 
@@ -549,7 +558,11 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
                 budget: z.number().check(z.nonnegative())
               })
             )
-            .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+            .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)),
+          /** The unspent one-shot teleports this turn's casts granted (Misty Step); a TELEPORT move spends one. */
+          teleport: z
+            .array(teleportAllowanceDtoSchema)
+            .check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES))
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),

@@ -27,12 +27,14 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { endTriggerEffectSeed } from './endTriggerEffectSeed.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
   readActorConditionIds,
+  readActorHitPoints,
   readRoomHistory,
   readRoomRollCards
 } from './roomHistoryReads.js'
@@ -179,6 +181,26 @@ const attackDragon: CreatureAuthored = {
   ...plainWolf,
   id: testUuid(0x734),
   features: [...(plainWolf.features ?? []), attackTail, legendary]
+}
+
+/** The same Medium dragon whose Tail is a melee spell attack: a cast. */
+const spellDragon: CreatureAuthored = {
+  ...attackDragon,
+  id: testUuid(0x73a),
+  features: attackDragon.features?.map((feature) =>
+    feature.id !== attackTail.id
+      ? feature
+      : {
+          ...feature,
+          effects: feature.effects?.map((effect) => {
+            if (effect.invocation.kind !== 'ACTION') throw new Error('Expected an action effect.')
+            return {
+              ...effect,
+              invocation: { ...effect.invocation, triggerCode: 'MELEE_SPELL_ATTACK' as const }
+            }
+          })
+        }
+  )
 }
 
 const sourceUnicornLegendary = creatureFeature(srdUnicorn, 'Legendary Actions')
@@ -489,7 +511,11 @@ describe('a unicorn using Shimmering Shield at another creature’s turn end', (
 })
 
 describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)', () => {
-  async function legendaryTurnEnd(creature: CreatureAuthored, ownedConditionId?: string) {
+  async function legendaryTurnEnd(
+    creature: CreatureAuthored,
+    ownedConditionId?: string,
+    endsOn: 'ATTACK_ROLL' | 'CAST' = 'ATTACK_ROLL'
+  ) {
     const room = await movementRoom({
       actors: [
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
@@ -506,8 +532,9 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
       seed: seedModifierGrant({
         sourceActorId: WOLF_ID,
         holderActorId: FIRST_DRAGON_ID,
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
-        ownedConditionId
+        lifecycle: endsOn === 'CAST' ? {} : { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        ownedConditionId,
+        ...(endsOn === 'CAST' && { endsOnCast: true as const })
       })
     })
     expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)
@@ -552,6 +579,95 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
     const settled = await legendaryTurnEnd(dragon, INVISIBLE_ID)
     expect(settled.activeEffects).toHaveLength(1)
     expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).toContain(INVISIBLE_ID)
+  })
+
+  it('ends the grant that ends on a cast, and releases its condition, when the option is a spell attack (SPELLS-27.T3b)', async () => {
+    const settled = await legendaryTurnEnd(spellDragon, INVISIBLE_ID, 'CAST')
+    expect(settled.activeEffects).toEqual([])
+    expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).not.toContain(INVISIBLE_ID)
+  })
+
+  it('keeps the grant that ends on a cast through a weapon attack', async () => {
+    const settled = await legendaryTurnEnd(attackDragon, INVISIBLE_ID, 'CAST')
+    expect(settled.activeEffects).toHaveLength(1)
+    expect(readActorConditionIds(settled, FIRST_DRAGON_ID)).toContain(INVISIBLE_ID)
+  })
+})
+
+describe('a Legendary Action that damages the holder of a damage-triggered effect (SPELLS-27.T4b)', () => {
+  const EFFECT_ID = testUuid(0x5642)
+
+  /** The invisible Wolf ends its turn and the attacking dragon strikes it with `attackRoll`. */
+  async function strikeInvisibleWolf(attackRoll: number) {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, conditionIds: [INVISIBLE_ID] }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      // The room's dice are zero-based: 18 is a natural 19, 1 a natural 2 (+10 against AC 13).
+      rolls: [attackRoll],
+      seed: endTriggerEffectSeed({
+        effectId: EFFECT_ID,
+        holderActorId: WOLF_ID,
+        sourceActorId: WOLF_ID,
+        triggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }]
+      })
+    })
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    const { answer } = await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    expect(answer.type).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.base.stub)
+    const receipt = history.receipts.find((candidate) => candidate.commandId === commandId)
+    const settled = receipt ? parseReceiptExecution(receipt) : null
+    const strike =
+      settled && 'legendaryActions' in settled ? settled.legendaryActions?.at(0) : undefined
+    return {
+      window:
+        strike?.resolution.kind === 'EXECUTED' &&
+        strike.resolution.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+          ? strike.resolution.application.d20?.resultPath
+          : (strike?.resolution.kind ?? settled?.status),
+      effectIds: history.activeEffects.map(({ id }) => id),
+      invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID),
+      hitPoints: readActorHitPoints(history, WOLF_ID)
+    }
+  }
+
+  it('ends the effect, and releases its condition, when the attack damages its holder', async () => {
+    expect(await strikeInvisibleWolf(18)).toEqual({
+      window: 'ON_HIT',
+      effectIds: [],
+      invisible: false,
+      hitPoints: plainWolf.hitPoints - 10
+    })
+  })
+
+  it('keeps the effect when the attack misses', async () => {
+    expect(await strikeInvisibleWolf(1)).toEqual({
+      window: 'ON_MISS',
+      effectIds: [EFFECT_ID],
+      invisible: true,
+      hitPoints: plainWolf.hitPoints
+    })
   })
 })
 

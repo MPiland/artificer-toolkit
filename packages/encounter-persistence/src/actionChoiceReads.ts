@@ -2,6 +2,7 @@ import {
   encounterActionEconomyWarnings,
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
@@ -147,6 +148,18 @@ export async function readEncounterActionChoices(
       ...mechanics.compiledActionEntryPoints,
       ...spellCast.compiledActionEntryPoints
     ]
+    // An item action offered only after another action this turn (an off-hand attack) hides until then.
+    const requirementsHold = (actionId: string) => {
+      const equipment = actionCandidates.find((value) => value.actionId === actionId)?.equipment
+      return (
+        !equipment ||
+        encounterActionRequirementsHold(equipment.requirements, {
+          attackAction: openAttackAction,
+          turnSequence: state.turnSequence,
+          actingItemInstanceId: equipment.itemInstanceId
+        })
+      )
+    }
     const available = projectCharacterTurnActions(facts, policyOutput, spellCast.decisions).filter(
       (action) =>
         // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
@@ -154,6 +167,7 @@ export async function readEncounterActionChoices(
           action.availability.reasonCode === 'SOURCE_NOT_EQUIPPED' ||
           action.availability.reasonCode === 'INSUFFICIENT_RESOURCE') &&
         action.mechanic &&
+        requirementsHold(action.id) &&
         entryPoints.some(
           (entry) =>
             entry.kind === 'CHARACTER_ACTION' &&
@@ -216,7 +230,14 @@ export async function readEncounterActionChoices(
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(targetPolicy),
+          target: encounterActionChoiceTarget(
+            targetPolicy,
+            entry?.kind === 'CHARACTER_ACTION' &&
+              entry.schemaVersion !== 1 &&
+              entry.compilation.kind === 'COMPILED'
+              ? entry.compilation.activeEffectPlan?.creatureFormContribution?.forms
+              : undefined
+          ),
           warnings: [
             ...economy.warnings,
             ...(reasonCode === 'SOURCE_NOT_EQUIPPED'

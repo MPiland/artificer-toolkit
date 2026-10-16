@@ -36,7 +36,12 @@ import {
   type NativeEncounterActionMechanicsInput
 } from './encounterActionMechanicsPlan.js'
 import { planEncounterMovementReactionEffects } from './encounterMovementReactionEffects.js'
-import { actionEndedEffects } from './encounterEndedEffectRelease.js'
+import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  damageTakenEndedEffects
+} from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<TFacts>>
@@ -198,17 +203,50 @@ function requireCompletedMovementReaction<
   return input.execution
 }
 
-/** The reactor's one-roll grants the reaction's attack roll uses up, and the conditions that frees. */
-function reactionAttackRollEnd<
+/**
+ * The effects the reaction ends: the reactor's that its attack roll or spell cast uses up, and the
+ * mover's that end on damage, with the conditions each frees in its holder's own batch.
+ */
+function reactionEndedEffects<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
->(input: MovementReactionSettlementInput<TFacts, TRow>) {
+>(
+  input: MovementReactionSettlementInput<TFacts, TRow>,
+  effects: ReturnType<typeof planEncounterMovementReactionEffects>
+) {
   const { prepared } = input.prepared
-  return actionEndedEffects({
+  const dispositions = new Map([
+    [prepared.actor.id, prepared.actor.disposition],
+    [prepared.target.id, prepared.target.disposition]
+  ])
+  const reactor = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
+    castsSpell: preparedCastsSpell(prepared),
+    againstEnemy: actsAgainstEnemy({
+      actorId: prepared.actor.id,
+      targetActorIds: [prepared.target.id],
+      dispositions
+    })
   })
+  const mover = damageTakenEndedEffects({
+    holderActorId: prepared.target.id,
+    held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
+      ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
+    ),
+    applications: [
+      ...requireCompletedMovementReaction(input).applications,
+      ...effects.effects.relationshipConditionApplications
+    ],
+    damagerActorId: prepared.actor.id,
+    dispositions
+  })
+  return {
+    consumedGrants: [...reactor.consumedGrants, ...mover.endedEffects],
+    sourceReleases: reactor.sourceReleases,
+    damageReleases: mover.releases
+  }
 }
 
 function reactionMechanicsInput<
@@ -222,6 +260,7 @@ function reactionMechanicsInput<
 } {
   const execution = requireCompletedMovementReaction(input)
   const { prepared } = input
+  const ended = reactionEndedEffects(input, effects)
   return {
     prepared: prepared.prepared,
     encounterId: prepared.prepared.state.id,
@@ -233,7 +272,8 @@ function reactionMechanicsInput<
     applications: [...execution.applications, ...effects.effects.relationshipConditionApplications],
     forceTargetVersionAdvance:
       prepared.prepared.target.kind === 'CHARACTER' && effects.createdEffects.length > 0,
-    sourceReleases: reactionAttackRollEnd(input).sourceReleases,
+    sourceReleases: ended.sourceReleases,
+    damageReleases: ended.damageReleases,
     eventPhases: {
       resource: 'MOVEMENT_REACTION_RESOURCE',
       outcome: 'MOVEMENT_REACTION_OUTCOME'
@@ -497,7 +537,7 @@ export function planEncounterMovementReactionAction<
   return {
     ...result,
     effects,
-    consumedGrants: reactionAttackRollEnd(input).consumedGrants,
+    consumedGrants: reactionEndedEffects(input, effects).consumedGrants,
     sourceResourcePlan: settled.sourceResourcePlan,
     targetPlan: settled.targetPlan,
     projectedTargets: maintenance?.targets ?? projectedTargets,

@@ -1,5 +1,9 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import {
+  MAX_TURN_TELEPORT_ALLOWANCES,
+  teleportAllowanceDtoSchema
+} from '../shared/teleportAllowance.js'
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { projectionChecksumSchema } from './identity.js'
 import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
@@ -72,8 +76,8 @@ export const encounterConcentrationDroppedOutsideInputSchema = lazySchema(() =>
 /**
  * One actor's stored state (`encounterStoredRunActorStateSchema` JSON) with the checksum of its
  * play state: the actor without its source snapshot and without the facts derived from it (ADR 0035
- * Amendment 29). `snapshotChecksum` and `sourceFactsChecksum` repeat the stored state's references
- * so the Run can find the shared rows no actor names any more.
+ * Amendment 29). `snapshotChecksum`, `formOriginSnapshotChecksum` and `sourceFactsChecksum` repeat
+ * the stored state's references so the Run can find the shared rows no actor names any more.
  */
 export const encounterStoredRunActorSchema = lazySchema(() =>
   z.strictObject({
@@ -82,6 +86,8 @@ export const encounterStoredRunActorSchema = lazySchema(() =>
     stateJson: z.string(),
     stateChecksum: projectionChecksumSchema,
     snapshotChecksum: projectionChecksumSchema,
+    /** The snapshot of the creature the actor was before its form (D130), or null. */
+    formOriginSnapshotChecksum: z.nullable(projectionChecksumSchema),
     sourceFactsChecksum: z.nullable(projectionChecksumSchema)
   })
 )
@@ -141,6 +147,14 @@ export const encounterTurnUseKeysSchema = lazySchema(() =>
   z.array(authoredIdentifierSchema).check(z.maxLength(16))
 )
 
+export const encounterTeleportAllowanceSchema = lazySchema(() =>
+  z.strictObject({
+    ...teleportAllowanceDtoSchema.shape,
+    consumedByCommandId: z.nullable(postgresUuidSchema)
+  })
+)
+export type EncounterTeleportAllowance = z.infer<typeof encounterTeleportAllowanceSchema>
+
 /**
  * What an actor did during one turn (D38, D119). The turn is the Run's round and current actor, so
  * a new turn reads a new key and starts empty. It sits outside the Run's version and checksum.
@@ -149,7 +163,10 @@ export const encounterTurnUseKeysSchema = lazySchema(() =>
  * speed to its budget (Dash, D38). `speedId` is the speed type the actor's latest move this turn
  * named (SPELLS-5.6); null until a move names one. `usedOncePerTurn` lists the usage keys of the
  * once-per-turn damage the actor has dealt this turn (Sneak Attack, D119); unlike the movement it
- * is enforced, so the commit transaction reads and writes it.
+ * is enforced, so the commit transaction reads and writes it. `teleportAllowances` lists the
+ * one-shot teleports the actor's casts granted this turn (Misty Step, Dimension Door; SPELLS-28.2):
+ * each names its cast, its range in feet and whether the destination must be seen, and the move
+ * that spent it, if any. A player's TELEPORT move is refused without an unspent entry.
  */
 export const encounterStoredTurnMovementSchema = lazySchema(() =>
   z.strictObject({
@@ -160,7 +177,11 @@ export const encounterStoredTurnMovementSchema = lazySchema(() =>
     usedFeet: z.number().check(z.nonnegative()),
     speedId: z.nullable(authoredIdentifierSchema),
     speedBonuses: z.number().check(z.int()).check(z.nonnegative()),
-    usedOncePerTurn: z._default(encounterTurnUseKeysSchema, [])
+    usedOncePerTurn: z._default(encounterTurnUseKeysSchema, []),
+    teleportAllowances: z._default(
+      z.array(encounterTeleportAllowanceSchema).check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES)),
+      []
+    )
   })
 )
 
@@ -304,6 +325,16 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           round: z.number().check(z.int()).check(z.positive()),
           turnActorId: postgresUuidSchema
         })
+      ),
+      /** The turn movement record a teleport spell's allowance was added to; its undo removes it, and is refused once a move spent it. */
+      teleportAllowanceTurn: z._default(
+        z.nullable(
+          z.strictObject({
+            round: z.number().check(z.int()).check(z.positive()),
+            turnActorId: postgresUuidSchema
+          })
+        ),
+        null
       ),
       /** The once-per-turn uses this action spent from the actor's turn record; its undo gives them back. */
       turnUses: z._default(

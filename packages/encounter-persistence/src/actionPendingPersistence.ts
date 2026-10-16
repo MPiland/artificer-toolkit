@@ -15,7 +15,6 @@ import {
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot
 } from './actionAreaPending.js'
-import { requireAttackSquarePendingRoot } from './attackSquarePending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
@@ -85,23 +84,7 @@ export async function persistEncounterActionPending(
   let evidence:
     | Extract<typeof snapshot, { snapshotKind: 'KERNEL_EVIDENCE' }>['applicationContext']
     | null = null
-  // An attack on a square waits for the GM to name who stands there, and is never itself resumed.
-  if (target.kind === 'SQUARE') {
-    if (input.command.optionalCombatIntent != null || resume)
-      throw new Error('Live Session pending action root mismatch.')
-    await requireAttackSquarePendingRoot(
-      ctx,
-      {
-        snapshot,
-        command: { ...admission.input, target },
-        fingerprint,
-        initiatorUserId,
-        state,
-        actors
-      },
-      callbacks.readAreaSceneInputs
-    )
-  } else if (target.kind !== 'ACTOR') {
+  if (target.kind !== 'ACTOR') {
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume) {
@@ -174,7 +157,8 @@ export async function persistEncounterActionPending(
         actors.some(
           (actor) =>
             actor.id === reaction.reactorActorId &&
-            actor.id !== admission.input.actorId &&
+            // The caster may counter a counter to its spell, never its own cast (D127).
+            (actor.id !== admission.input.actorId || castReaction.chain !== undefined) &&
             actor.kind === 'CHARACTER' &&
             actor.sourceId === reaction.characterId
         )
@@ -222,6 +206,8 @@ export async function persistEncounterActionPending(
   if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
   const occurrence = await ctx.db.get(id)
   if (!occurrence) throw new Error('The pending action was not stored.')
+  // A counter's check pause rolls the reactor's own d20, which the cast's policy does not hold.
+  const d20Policy = evidence?.d20Policy ?? evidence?.castReaction?.check?.d20
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence,
@@ -239,14 +225,12 @@ export async function persistEncounterActionPending(
         request: resume.area
           ? resume.pending.snapshot.request
           : requireServerKernelRuleExecutionPendingSnapshot(snapshot).request,
-        ...(evidence?.d20Policy
+        ...(d20Policy
           ? {
               pending: {
                 kind: 'D20_EVIDENCE',
                 // The receipt is a recipient-visible record, so it keeps what the roller was shown.
-                rollMode: evidence.heldD20
-                  ? 'NORMAL'
-                  : (evidence.d20Belief ?? evidence.d20Policy).rollMode
+                rollMode: evidence?.heldD20 ? 'NORMAL' : (evidence?.d20Belief ?? d20Policy).rollMode
               }
             }
           : {})

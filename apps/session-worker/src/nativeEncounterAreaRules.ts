@@ -75,13 +75,23 @@ import {
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
+import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import {
   encounterActiveEffectPlan,
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
-import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
+import {
+  buildEncounterJoinedMaintenanceTransition,
+  buildEncounterMaintenanceTransition
+} from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import {
+  createNativeActiveEffect,
+  nativeEffectOwner,
+  projectNativeLiveMaintenanceOwners
+} from './nativeEncounterSettlement.js'
 import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
@@ -91,8 +101,12 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  damageTakenEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
@@ -129,9 +143,11 @@ import {
   refuseSpatialInterpretation
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
-import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import {
+  prepareNativeLiveActionMaintenance,
+  prepareNativeLiveMaintainedState
+} from './nativeEncounterMaintenance.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
-import type { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type AreaCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
@@ -164,22 +180,35 @@ export type AreaPlanBase = {
   requireAutoRoll: (actorId: string) => boolean
   /** Each actor's roller preference, for the Concentration checks the area's damage asks for. */
   autoRollByActorId: Readonly<Record<string, boolean>>
+  /** Reads the Creature a form swaps in; absent where the room offers no creature sources. */
+  readFormCreature?: (
+    gameSystemId: string,
+    creatureId: string
+  ) => Promise<EncounterActorFormCreature>
 }
 
 type AreaPlanInput = AreaPlanBase & { command: AreaCommand }
 type ReachPlanInput = AreaPlanBase & { command: ReachCommand }
 
-/** Why a directed area is refused, as the player is told. */
-const DIRECTED_AREA_REFUSALS = {
+/** Why an area is refused, as the player is told. */
+const AREA_REFUSALS = {
   UNSUPPORTED_AREA: "This action's area size is not supported.",
-  NO_CASTER_TOKEN: 'The caster has no token on the map.',
   ORIGIN_OFF_CASTER: 'This area cannot extend from there.'
 } as const
+
+/** What a command that names the wrong kind of target is told, by the target the action takes. */
+const WRONG_TARGET_MESSAGES: Partial<
+  Record<NonNullable<ReturnType<typeof encounterActionTargetKind>>, string>
+> = {
+  POINT: 'This action must be aimed at a point on the map.',
+  DIRECTED: 'This action must be aimed in a direction from the caster.',
+  CASTER_CENTERED: 'This action is centered on the caster and takes no aim.'
+}
 
 /**
  * The caster and the compiled source of a multi-creature action. The action takes the target its
  * policy names (a point, a direction from the caster, a list of chosen creatures); a command that
- * names another kind is refused.
+ * names another kind is refused, saying what the action takes.
  */
 export async function prepareCasterSource(
   input: AreaPlanBase & { command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId'> },
@@ -197,11 +226,12 @@ export async function prepareCasterSource(
     sourceFacts: casterFacts,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
   }).catch(refuseStaleCharacterAction)
-  if (encounterActionTargetKind(targetPolicy) !== targetKind)
+  const takes = encounterActionTargetKind(targetPolicy)
+  if (takes !== targetKind)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
-      message: 'This action does not take that target.'
+      message: (takes && WRONG_TARGET_MESSAGES[takes]) ?? 'This action does not take that target.'
     })
   return { caster, casterFacts, movementTargets, source, targetPolicy }
 }
@@ -235,11 +265,7 @@ export async function prepareAreaScene(
   const { target } = command
   const area =
     target.kind === 'CASTER_CENTERED'
-      ? evaluateEncounterCasterCenteredAreaTarget({
-          targetPolicy,
-          grid,
-          sourceToken: scene.sourceToken
-        })
+      ? evaluateEncounterCasterCenteredAreaTarget({ targetPolicy, grid })
       : target.kind === 'DIRECTED'
         ? evaluateEncounterDirectedAreaTarget({
             targetPolicy,
@@ -268,11 +294,10 @@ export async function prepareAreaScene(
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
-      message: DIRECTED_AREA_REFUSALS[area.refusal]
+      message: AREA_REFUSALS[area.refusal]
     })
   const origin =
-    target.kind === 'CASTER_CENTERED' ? scene.sourceToken?.position : areaActionTargetOrigin(target)
-  if (!origin) throw new Error('A caster-centered area needs the caster’s token.')
+    target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
   // An action that places a zone leaves it at the picked point instead of putting anyone through it.
   const zone =
     source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
@@ -544,7 +569,6 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   // preparation of it.
   const lead = reached[0] ?? (await prepareAreaCaster(input, base))
   refuseActionOutsideItsWindow(lead.prepared)
-  refuseAreaMaintainedEffect(lead.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
   const evaluation = await evaluateNativeLiveActionEconomy({
@@ -1014,19 +1038,15 @@ async function replayAreaTargetSave(
   return tested
 }
 
-/**
- * The sealed pending contract the room persists for an aggregate action: a point area's saves, or
- * the GM's decision on a picked square.
- */
+/** The sealed pending contract the room persists for a point-area action: every caught creature's save. */
 export function buildNativeLiveEncounterAreaActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Pick<
     Extract<
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAction>>
       | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>
-      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>
-      | Awaited<ReturnType<typeof planNativeLiveEncounterAttackSquare>>,
-      { kind: 'AREA_PENDING' | 'SQUARE_PENDING' }
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>,
+      { kind: 'AREA_PENDING' }
     >,
     'command' | 'response' | 'snapshot'
   > & {
@@ -1048,28 +1068,11 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
 
 type AreaPrepared = Awaited<ReturnType<typeof prepareAreaTarget>>['prepared']
 
-function leadActiveEffectPlan(prepared: AreaPrepared) {
+export function leadActiveEffectPlan(prepared: AreaPrepared) {
   return encounterActiveEffectPlan(
     prepared,
     prepared.plan.kind === 'SINGLE_GRAPH' ? prepared.plan.published : prepared.plan.test.published
   )
-}
-
-/**
- * Refuses an area outcome that a Concentration maintains: one maintained state would have to span
- * every creature the area caught, which an area does not commit yet. By default it checks the
- * action's effect plan (at open); at commit the caller passes what the settled outcome produced.
- */
-export function refuseAreaMaintainedEffect(
-  prepared: AreaPrepared,
-  maintenance: object | null | undefined = leadActiveEffectPlan(prepared)?.maintenance
-) {
-  if (maintenance)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'Area actions that maintain an effect with Concentration are not supported yet.'
-    })
 }
 
 /**
@@ -1193,7 +1196,7 @@ export async function planNativeLiveEncounterAreaCommit(
     removal?: RemoveAreaTargetInputDto
   }
 ) {
-  const { command, state, actors, areaSnapshot } = input
+  const { command, areaSnapshot } = input
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
@@ -1347,6 +1350,8 @@ export async function completeAreaCommit(args: {
   occurrenceVersion: number
   response: ResolveRuleOccurrenceInputDto | null
   removal: RemoveAreaTargetInputDto | null
+  /** The Creature every kept creature swaps into when the action authors forms (D130). */
+  formCreature?: EncounterActorFormCreature | null
 }) {
   const {
     input,
@@ -1369,7 +1374,8 @@ export async function completeAreaCommit(args: {
     placement,
     occurrenceVersion,
     response,
-    removal
+    removal,
+    formCreature
   } = args
   const { state, actors } = input
   const occurredAt = new Date().toISOString()
@@ -1378,16 +1384,38 @@ export async function completeAreaCommit(args: {
   const createdEffects = new Map<string, ActiveRuleEffectRecord[]>()
   // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
   // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
+  const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: caster.id,
     held: input.activeEffectsByActorId.get(caster.id) ?? [],
     makesAttackRoll: false,
-    castsSpell: preparedSpellCastLevel(lead) !== null
+    castsSpell: preparedCastsSpell(lead),
+    againstEnemy: actsAgainstEnemy({
+      actorId: caster.id,
+      targetActorIds: kept.map(({ actor }) => actor.id),
+      dispositions
+    })
   })
+  // Damage an outcome deals ends the effects its target holds that end on damage; a creature named
+  // again keeps what an earlier entry ended ended.
+  const damageEndedEffects = new Map<string, ActiveRuleEffectRecord>()
   const entries = encounterChosenActorEntries(
     areaOccurrenceId,
     kept.map(({ actor }) => actor.id)
   )
+  // One Concentration spans every creature the area caught: the first outcome that maintains an
+  // effect creates the one maintained state (and carries the replacement of the caster's prior
+  // one); each later outcome joins it.
+  const maintenance = await prepareNativeLiveActionMaintenance({
+    prepared: lead,
+    activeEffectsByActorId: input.activeEffectsByActorId,
+    capture: input.capture,
+    loadCarriedHolder: async (carrier) =>
+      movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
+  })
+  const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
+  let maintainedState: ReturnType<typeof prepareNativeLiveMaintainedState> | null = null
+  let maintenanceCarried = false
   // A creature named again meets the hit points and Character record its earlier entries left it.
   const advanced = new Map<string, AreaPrepared>()
   for (const [index, { actor, target }] of kept.entries()) {
@@ -1402,12 +1430,28 @@ export async function completeAreaCommit(args: {
       occurrenceId,
       commandId,
       activeEffectsByActorId: input.activeEffectsByActorId,
-      link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] }
+      link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] },
+      ...(formCreature ? { form: { creatureId: formCreature.sourceId } } : {})
     })
-    refuseAreaMaintainedEffect(prepared, effects.maintenance)
+    if (effects.maintenance)
+      maintainedState ??= prepareNativeLiveMaintainedState({
+        completedPolicy: effects.maintenance,
+        maintenance,
+        encounterId: state.id,
+        ownerActorId: caster.id,
+        actionId: command.actionId,
+        sourceOccurrenceId: areaOccurrenceId,
+        occurredAt
+      })
+    const joined = effects.maintenance ? maintainedState : null
     // A creature named again meets the effects its earlier entries left it.
     const earlier = createdEffects.get(actor.id) ?? []
-    const targetEffects = [...(input.activeEffectsByActorId.get(actor.id) ?? []), ...earlier]
+    const targetEffects = [
+      ...(input.activeEffectsByActorId.get(actor.id) ?? []).filter(
+        (effect) => !joined || !removedIds.has(effect.id)
+      ),
+      ...earlier
+    ]
     const effectInput = {
       owner: nativeEffectOwner(prepared.target, state.id),
       currentEffects: targetEffects,
@@ -1416,8 +1460,34 @@ export async function completeAreaCommit(args: {
     const stateEffect =
       effects.stateEffect && createNativeActiveEffect(effects.stateEffect, effectInput)
     const recurringEffect =
-      effects.recurringEffect && createNativeActiveEffect(effects.recurringEffect, effectInput)
+      effects.recurringEffect &&
+      createNativeActiveEffect(effects.recurringEffect, {
+        ...effectInput,
+        maintainedEffectStateId: joined?.id
+      })
     const created = [stateEffect, recurringEffect].flatMap((effect) => (effect ? [effect] : []))
+    const effectTransitions = projectNativeActionEffectTransitions({
+      state: stateEffect,
+      recurring: recurringEffect,
+      targetActorId: actor.id
+    })
+    const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(
+      (effect) => effect.activeEffectId
+    )
+    const maintenanceTransition =
+      joined && maintenance
+        ? maintenanceCarried
+          ? buildEncounterJoinedMaintenanceTransition({
+              createdState: joined,
+              createdDependentEffectIds
+            })
+          : buildEncounterMaintenanceTransition({
+              maintenance,
+              createdState: joined,
+              createdDependentEffectIds
+            })
+        : null
+    if (joined) maintenanceCarried = true
     createdEffects.set(actor.id, [...earlier, ...created])
     refuseSpatialInterpretation(prepared, {
       execution: complete.execution,
@@ -1428,6 +1498,19 @@ export async function completeAreaCommit(args: {
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
+    const applications = [...complete.applications, ...effects.relationshipConditionApplications]
+    const damageEnded = damageTakenEndedEffects({
+      holderActorId: actor.id,
+      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
+        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
+      ),
+      applications,
+      damagerActorId: caster.id,
+      dispositions
+    })
+    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
+    const enterForm =
+      recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -1437,10 +1520,12 @@ export async function completeAreaCommit(args: {
         sourceCommandId: command.commandId,
         commandId,
         occurredAt,
-        applications: [...complete.applications, ...effects.relationshipConditionApplications],
+        applications,
+        damageReleases: damageEnded.releases,
         sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
         forceTargetVersionAdvance: prepared.target.kind === 'CHARACTER' && created.length > 0,
-        ...(carriesSpend ? { sourceReleases } : {})
+        ...(carriesSpend ? { sourceReleases } : {}),
+        ...(enterForm ? { enterForm } : {})
       },
       userId
     )
@@ -1481,13 +1566,9 @@ export async function completeAreaCommit(args: {
         occurrenceId,
         occurrenceVersion: 0,
         settled: mechanics,
-        effects: projectNativeActionEffectTransitions({
-          state: stateEffect,
-          recurring: recurringEffect,
-          targetActorId: actor.id
-        }),
-        maintainedState: null,
-        maintenanceTransition: null,
+        effects: effectTransitions,
+        maintainedState: joined,
+        maintenanceTransition,
         actionEconomy: null,
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
@@ -1608,10 +1689,16 @@ export async function completeAreaCommit(args: {
     ReturnType<typeof planNativeEncounterActionMechanics>['targetPlan'] | null
   >(children.map((child) => [child.actorId, child.mechanics.targetPlan] as const))
   if (sourceSpend && !plans.has(caster.id)) plans.set(caster.id, sourceSpend.sourceResourcePlan)
-  const activeEffectsByActorId = new Map(input.activeEffectsByActorId)
+  const replaced = maintainedState && maintenance ? maintenance : null
+  const activeEffectsByActorId = new Map(
+    [...input.activeEffectsByActorId].map(([actorId, records]) => [
+      actorId,
+      replaced ? records.filter((effect) => !removedIds.has(effect.id)) : records
+    ])
+  )
   for (const [actorId, records] of createdEffects)
     activeEffectsByActorId.set(actorId, [
-      ...(input.activeEffectsByActorId.get(actorId) ?? []),
+      ...(activeEffectsByActorId.get(actorId) ?? []),
       ...records
     ])
   const projectedTargets = new Map(
@@ -1634,6 +1721,17 @@ export async function completeAreaCommit(args: {
       ] as const
     })
   )
+  const reconciled = projectNativeLiveMaintenanceOwners({
+    actors: actors.map((actor) => settledActors.get(actor.id)!),
+    projectedTargets,
+    activeEffectsByActorId,
+    maintenance: replaced ?? { owners: [], removed: [], characterVersions: [] },
+    createdEffects: [...createdEffects.values()].flat(),
+    characterPlans: plans,
+    campaignId: state.campaignId,
+    gameSystemId: state.gameSystemId,
+    occurredAt
+  })
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -1648,11 +1746,8 @@ export async function completeAreaCommit(args: {
     sourceLabels: nativeConcentrationDamageSourceLabels(damageSources, false),
     occurredAt,
     settlement: {
-      actors: actors.map((actor) => settledActors.get(actor.id)!),
-      projectedTargets,
-      activeEffectsByActorId,
-      maintenanceOwners: [],
-      maintainedState: null,
+      ...reconciled,
+      maintainedState,
       createdEffects: [...createdEffects.values()].flat()
     },
     capture: input.capture,
@@ -1689,10 +1784,11 @@ export async function completeAreaCommit(args: {
     })),
     rollsPerTarget,
     rules,
+    maintainedState,
     resourceConsumption: resourceState?.resourceConsumption ?? null,
     itemConsumption: resourceState?.itemConsumption ?? null,
     spellConsumption: resourceState?.spellConsumption ?? null,
-    consumedGrants,
+    consumedGrants: [...consumedGrants, ...damageEndedEffects.values()],
     label: sourceLabel,
     ruleOverrides,
     concentration,
@@ -1704,15 +1800,25 @@ export async function completeAreaCommit(args: {
 export function buildNativeLiveEncounterAreaCommitInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>> & {
+    dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]
     revisions: LiveSessionRulesRevisions
   }
 ) {
+  const owners = new Map(
+    plan.dependencies.flatMap(({ request }) =>
+      request.kind === 'MAINTENANCE_OWNER'
+        ? [[checksumRuleDocument(request), request] as const]
+        : []
+    )
+  )
   return liveSessionEncounterAreaCommitInputSchema.parse({
     ...scope,
     command: plan.command,
     response: plan.response,
     removal: plan.removal,
     revisions: plan.revisions,
+    maintenanceOwners: [...owners.values()],
+    maintainedState: plan.maintainedState,
     occurredAt: plan.occurredAt,
     initialDefinitionId: plan.initialDefinitionId,
     execution: plan.execution,

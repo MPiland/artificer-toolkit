@@ -91,15 +91,40 @@ const [targetHero, targetWarden] = tabletopPlayerEncounter.actors as [
   (typeof tabletopPlayerEncounter.actors)[number],
   (typeof tabletopPlayerEncounter.actors)[number]
 ]
+// A creature the GM revealed unnamed that the player cannot see (D131).
+const targetUnseen = {
+  ...targetWarden,
+  id: '99999999-9999-4999-8999-999999999904',
+  label: 'Unseen creature',
+  unseenReason: 'INVISIBLE' as const
+}
 const onTargetPick = fn()
 const onTargetCancel = fn()
 
-/** The turn-order drawer as the target list: nearest first, each creature a button, the map still reachable. */
+/**
+ * The turn-order drawer as the target list: creatures the player cannot see lead, marked Hidden or
+ * Invisible with no distance (D131); the visible ones follow nearest first. Each creature is a
+ * button, and the map stays reachable.
+ */
 export const Targeting: Story = {
   args: {
     ...Player.args,
+    encounter: {
+      ...tabletopPlayerEncounter,
+      actors: [...tabletopPlayerEncounter.actors, targetUnseen]
+    },
     targeting: {
       entries: [
+        {
+          actorId: targetUnseen.id,
+          attack: null,
+          band: null,
+          distance: null,
+          distanceLabel: null,
+          label: targetUnseen.label,
+          tokenId: null,
+          unseenReason: 'INVISIBLE'
+        },
         {
           actorId: targetWarden.id,
           attack: { reasons: ['Long range'], rollMode: 'DISADVANTAGE' },
@@ -107,7 +132,8 @@ export const Targeting: Story = {
           distance: 40,
           distanceLabel: '40 ft',
           label: 'Vault Warden',
-          tokenId: null
+          tokenId: null,
+          unseenReason: null
         },
         {
           actorId: targetHero.id,
@@ -116,7 +142,8 @@ export const Targeting: Story = {
           distance: 90,
           distanceLabel: '90 ft',
           label: "Ember's Wake",
-          tokenId: null
+          tokenId: null,
+          unseenReason: null
         }
       ],
       pickedActorId: null,
@@ -129,6 +156,13 @@ export const Targeting: Story = {
     onTargetCancel.mockClear()
     const page = within(canvasElement.ownerDocument.body)
     await expect(await page.findByRole('dialog', { name: 'Pick a target' })).toBeVisible()
+    const targets = page.getAllByRole('button', { name: /^Target / })
+    await expect(targets.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Target Unseen creature',
+      'Target Vault Warden',
+      "Target Ember's Wake"
+    ])
+    await expect(page.getByText('Invisible · Distance unknown')).toBeVisible()
     await expect(page.getByText('40 ft · In long range · Disadvantage (Long range)')).toBeVisible()
     await expect(page.getByText('90 ft · Out of range')).toBeVisible()
     await userEvent.click(page.getByRole('button', { name: 'Target Vault Warden' }))

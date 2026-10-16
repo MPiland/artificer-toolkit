@@ -15,7 +15,7 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { spellChildId } from './shared.js'
 function schoolId(code: string): string {
@@ -78,7 +78,38 @@ export const giantInsect: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.GIANT_INSECT, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.CREATURE,
+                excessDamageCarriesOver: false,
+                forms: [
+                  {
+                    id: spellChildId(SPELL_IDS.GIANT_INSECT, 0x214, 1),
+                    order: 1,
+                    label: 'Centipedes',
+                    creatureId: CREATURE_IDS.GIANT_CENTIPEDE,
+                    maxTargets: 10
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.GIANT_INSECT, 0x214, 2),
+                    order: 2,
+                    label: 'Spiders',
+                    creatureId: CREATURE_IDS.GIANT_SPIDER,
+                    maxTargets: 3
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.GIANT_INSECT, 0x214, 3),
+                    order: 3,
+                    label: 'Wasps',
+                    creatureId: CREATURE_IDS.GIANT_WASP,
+                    maxTargets: 5
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.GIANT_INSECT, 0x214, 4),
+                    order: 4,
+                    label: 'Scorpion',
+                    creatureId: CREATURE_IDS.GIANT_SCORPION,
+                    maxTargets: 1
+                  }
+                ]
               }
             ]
           }

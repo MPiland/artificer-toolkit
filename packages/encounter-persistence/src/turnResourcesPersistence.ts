@@ -29,7 +29,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  damageTakenEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -158,7 +162,8 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const { selectedOptionId, targetActorId, application, attackRoll } = evidence.resolution
+    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell } =
+      evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
     const target = await readActor(targetActorId)
     if (
@@ -185,15 +190,25 @@ export async function persistEncounterTurnResources(
     const owner = await readActor(ownerId)
     if (owner.kind !== 'CREATURE')
       throw new Error('Live Session Legendary Action owner is unavailable.')
-    // An attack roll uses up the owner's one-roll grants read now (no per-grant versions were
+    // An attack roll or spell cast uses up the owner's grants read now (no per-grant versions were
     // planned) and releases the conditions only they held, in the owner's own batch.
     const ownerEffects = await createActiveRuleEffectStore(ctx).list(
       turnEffectOwner(owner, state.id)
     )
+    const dispositions = new Map([
+      [ownerId, owner.disposition],
+      [targetActorId, target.disposition]
+    ])
     const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: ownerId,
       held: ownerEffects,
-      makesAttackRoll: attackRoll
+      makesAttackRoll: attackRoll,
+      castsSpell,
+      againstEnemy: actsAgainstEnemy({
+        actorId: ownerId,
+        targetActorIds: [targetActorId],
+        dispositions
+      })
     })
     const ownerMechanics = sourceReleases.length
       ? await callbacks.applyMechanics({
@@ -221,6 +236,34 @@ export async function persistEncounterTurnResources(
     )
       throw new Error('Live Session Legendary Action source release is stale.')
     await deleteGrants(ctx, consumedGrants)
+    // Damage the action dealt ends the target's effects that end on damage, with the conditions
+    // only they held, which the planned target batch already released.
+    const damageEnded = damageTakenEndedEffects({
+      holderActorId: targetActorId,
+      held: (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).filter(
+        ({ id }) => !consumedGrants.some((ended) => ended.id === id)
+      ),
+      applications: application.applications.map((planned) => ({
+        ...planned,
+        targetActorId
+      })),
+      damagerActorId: ownerId,
+      dispositions
+    })
+    if (
+      damageEnded.releases.some(
+        (release) =>
+          !application.applications.some(
+            (planned) =>
+              planned.kind === 'CONDITION_REMOVE' &&
+              planned.sourceOperationKey === release.sourceOperationKey &&
+              planned.sourceActiveEffectId === release.sourceActiveEffectId &&
+              planned.conditionId === release.conditionId
+          )
+      )
+    )
+      throw new Error('Live Session Legendary Action damage release is stale.')
+    await deleteGrants(ctx, damageEnded.endedEffects)
     const feature = snapshotFeatureDefinitions(owner).find(
       (entry) => entry.id === option.ownerFeatureId
     )

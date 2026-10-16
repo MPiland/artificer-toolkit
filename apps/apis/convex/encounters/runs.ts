@@ -175,6 +175,7 @@ export async function createEncounterRun(
         tempHitPoints: 0,
         conditions: [],
         defeated: false,
+        form: null,
         absence: null,
         resources: {},
         gmNotes: null,

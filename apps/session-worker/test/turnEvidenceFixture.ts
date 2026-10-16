@@ -40,12 +40,14 @@ export async function seedTurnSaveEffect(input: {
   ticks: number
   damage: number
   occurredAt: string
+  /** Makes the effect a dependent of this maintained state: its owner and the occurrence that made it. */
+  maintainedBy?: { stateId: string; sourceActorId: string; sourceOccurrenceId: string }
 }) {
   const { actor } = input
   if (actor.kind === 'CHARACTER') throw new Error('Turn save effects target creature actors.')
   const definitionId = crypto.randomUUID()
   const entryId = crypto.randomUUID()
-  const occurrenceId = crypto.randomUUID()
+  const occurrenceId = input.maintainedBy?.sourceOccurrenceId ?? crypto.randomUUID()
   const graph = {
     schemaVersion: 1,
     id: definitionId,
@@ -124,6 +126,7 @@ export async function seedTurnSaveEffect(input: {
     id: crypto.randomUUID(),
     owner: { kind: 'ENCOUNTER_ACTOR', encounterId: input.encounterId, targetActorId: actor.id },
     occurredAt: input.occurredAt,
+    maintainedEffectStateId: input.maintainedBy?.stateId,
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 1,
       origin: {
@@ -131,7 +134,7 @@ export async function seedTurnSaveEffect(input: {
         sourceAggregateId: input.encounterId,
         sourceOccurrenceId: occurrenceId,
         rootCommandId: crypto.randomUUID(),
-        sourceActorId: actor.id
+        sourceActorId: input.maintainedBy?.sourceActorId ?? actor.id
       },
       authoredEffectId: definitionId,
       compiledEntryId: entryId,
@@ -148,6 +151,7 @@ export async function seedTurnSaveEffect(input: {
         recurrenceStage: input.stage,
         consumeOnFirstEvents: [],
         endOnEvents: [],
+        endOnTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER',

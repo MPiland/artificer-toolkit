@@ -69,6 +69,7 @@ type AuthoringDefaultKind =
   | 'invocation'
   | 'manifestBehavior'
   | 'manifestComponent'
+  | 'manifestCreatureForm'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
   | 'manifestProximityRule'
@@ -86,6 +87,7 @@ type AuthoringDefaultKind =
   | 'outcomeBonus'
   | 'pathChoiceOption'
   | 'pathLifecycle'
+  | 'pathLifecycleEndTrigger'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
@@ -201,6 +203,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
+  manifestCreatureForm: ['manifestCreatureForm'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
   manifestProximityRule: ['manifestProximityRule'],
@@ -218,6 +221,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathLifecycle: ['pathLifecycle'],
+  pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],

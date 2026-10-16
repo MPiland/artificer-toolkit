@@ -20,15 +20,23 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
-import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
+import {
+  combineSpendMutations,
+  sourceSpendMutation,
+  settleActionSourceSpend
+} from './actionSourceSpend.js'
 import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
+import { executionTeleportAllowance } from '@artificer-toolkit/rules-runtime/systems/dnd5e/teleportAllowance'
+import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
-import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
+import {
+  readMaintenanceOwnerRequests,
+  type readEncounterMaintenanceCapture
+} from './maintenanceCapture.js'
 import type {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -39,7 +47,11 @@ import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './
 import { castPendingContinues } from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
-import { recordActionRollCards, settledD20s } from './actionRollCards.js'
+import {
+  recordActionRollCards,
+  recordCounterCheckRollCards,
+  settledD20s
+} from './actionRollCards.js'
 
 /** Validates the admitted completed root and applies its native writes in the owning transaction. */
 export async function persistEncounterActionCommit(
@@ -151,15 +163,12 @@ export async function persistEncounterActionCommit(
   const characterIds = new Set(
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
-  const ownerRequests = new Set<string>()
-  for (const request of input.maintenanceOwners) {
-    const key = checksumCanonicalJson(request)
-    if ((request.actorId !== source.id && request.actorId !== target.id) || ownerRequests.has(key))
-      throw new Error('Live Session maintenance owner scope mismatch.')
-    ownerRequests.add(key)
-    await callbacks.readMaintenanceCapture(state, request)
-    if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
-  }
+  await readMaintenanceOwnerRequests({
+    requests: input.maintenanceOwners,
+    actorIds: [source.id, target.id],
+    characterIds,
+    read: (request) => callbacks.readMaintenanceCapture(state, request)
+  })
   await callbacks.readActionSceneInputs(
     state,
     {
@@ -227,6 +236,12 @@ export async function persistEncounterActionCommit(
   const targetFailed = failedSpends.find(({ reactor }) => reactor.id === target.id)
   if (targetFailed && reaction)
     throw new Error('Live Session failed counter and reaction spend the same reaction.')
+  // The source's counter to a Counterspell against its cast spends its slot in the source's one
+  // mechanics call, after the cast's, so the Character advances once.
+  const sourceFailed =
+    source.id === target.id
+      ? undefined
+      : failedSpends.find(({ reactor }) => reactor.id === source.id)
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -263,7 +278,7 @@ export async function persistEncounterActionCommit(
                   )
                 ),
           forceVersionAdvance: false,
-          ...sourceMutation
+          ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
         })
       : null
   const mechanics = await callbacks.applyMechanics({
@@ -277,10 +292,20 @@ export async function persistEncounterActionCommit(
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
-    ...(source.id === target.id ? sourceMutation : {}),
-    ...reactionSpend.mutation,
-    ...targetFailed?.mutation
+    ...combineSpendMutations(
+      source.id === target.id ? sourceMutation : {},
+      reactionSpend.mutation,
+      targetFailed?.mutation ?? {}
+    )
   })
+  if (
+    (sourceFailed &&
+      sourceFailed.failed.receipt.characterStreamVersion !==
+        sourceMechanics?.characterStreamVersion) ||
+    (targetFailed &&
+      targetFailed.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion)
+  )
+    throw new Error('Live Session failed counter Character receipt mismatch.')
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||
@@ -320,20 +345,32 @@ export async function persistEncounterActionCommit(
       : mechanics.updatedActor
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
-  const settledSource = await settleActionSourceSpend(ctx, {
+  const castSettledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
     source: beforeSource,
     spend: batch,
     economyOverridden: overridesActionEconomy(input.ruleOverrides),
     engages: attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target })
   })
+  const settledSource = sourceFailed
+    ? await settleActionSourceSpend(ctx, {
+        encounterId: state.id,
+        source: castSettledSource,
+        spend: {
+          featureResourceConsumption: null,
+          actionEconomyTransition: sourceFailed.failed.receipt.actionEconomyTransition,
+          attackActionTransition: undefined
+        },
+        economyOverridden: false
+      })
+    : castSettledSource
   const settledFailed = await applyFailedCounterSpends(ctx, {
     state,
     occurrenceId: execution.occurrenceId,
     sourceCommandId: command.commandId,
     occurredAt: input.occurredAt,
     spends: failedSpends,
-    exceptActorId: target.id,
+    exceptActorIds: [source.id, target.id],
     applyMechanics: callbacks.applyMechanics,
     currentCharacterMaximumHitPoints: callbacks.currentCharacterMaximumHitPoints
   })
@@ -408,6 +445,20 @@ export async function persistEncounterActionCommit(
       dice: settledD20s(batch)
     })
   })
+  await recordCounterCheckRollCards(ctx, {
+    campaign,
+    encounterId: state.id,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: execution.occurrenceId,
+    checks: failedSpends.flatMap(({ failed, reactor }) =>
+      failed.receipt.check ? [{ reactor, check: failed.receipt.check }] : []
+    ),
+    response: input.response,
+    responderUserId: userId,
+    initiatorUserId,
+    visibility: command.visibility,
+    createdAt: input.occurredAt
+  })
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
@@ -421,6 +472,16 @@ export async function persistEncounterActionCommit(
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const addsSpeed = executionAddsSpeedToMovement(execution)
   if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
+  // A teleport spell (Misty Step) grants a one-shot allowance keyed by this cast; the move consumes it.
+  const teleport = executionTeleportAllowance(execution)
+  const teleportAllowanceTurn = teleport
+    ? await recordTurnTeleportAllowance(ctx, {
+        state,
+        actorId: source.id,
+        castCommandId: command.commandId,
+        ...teleport
+      })
+    : null
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   await recordActionRoot(ctx, {
@@ -444,6 +505,7 @@ export async function persistEncounterActionCommit(
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
+      teleportAllowanceTurn,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

@@ -63,6 +63,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
       tempHitPoints: 0,
       conditions: [],
       defeated: false,
+      form: null,
       absence: null,
       createdAt: now,
       updatedAt: now
@@ -125,6 +126,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
       recurrenceStage: 'NONE',
       consumeOnFirstEvents: [],
       endOnEvents: [],
+      endOnTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',

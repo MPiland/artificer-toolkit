@@ -38,7 +38,11 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  damageTakenEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   snapshotCreatureTypeId,
@@ -93,7 +97,10 @@ import {
   planNativeFailedCounters,
   type NativeCastReactionAnswer
 } from './nativeEncounterCastReaction.js'
-import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import {
+  preparedCastsSpell,
+  preparedSpellCastLevel
+} from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterCastReactionPendingSnapshot
@@ -116,6 +123,7 @@ import {
   restoreEncounterActionPending
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
@@ -124,7 +132,6 @@ import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
-import { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
@@ -137,7 +144,8 @@ import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   refuseSpatialInterpretation,
-  refuseUnmetBasicActionRestrictions
+  refuseUnmetBasicActionRestrictions,
+  refuseUnmetItemActionRequirements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -341,12 +349,10 @@ export async function planNativeLiveEncounterAction(
       message: DOMAIN_REJECTION_MESSAGES.ASSISTED_ONLY
     })
 
-  const { actors, activeEffectsByActorId, deadCharacterIds } = await readNativeLiveActorsAndEffects(
-    {
-      state,
-      capture
-    }
-  )
+  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
+    state,
+    capture
+  })
 
   async function loadTarget(
     actor: EncounterRunActorState,
@@ -372,29 +378,6 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
-  if (command.target.kind === 'SQUARE') {
-    if (removalCommand || responseCommand) throw new Error('A square attack is answered by the GM.')
-    return {
-      ...(await planNativeLiveEncounterAttackSquare({
-        initial,
-        command: { ...command, target: command.target },
-        fingerprint: admission.fingerprint,
-        state,
-        system,
-        actors,
-        activeEffectsByActorId,
-        loadTarget,
-        capture,
-        runtime: executionOptions.runtime,
-        random: executionOptions.random,
-        requireAutoRoll,
-        autoRollByActorId,
-        deadCharacterIds
-      })),
-      dependencies,
-      revisions
-    }
-  }
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
     const areaInput = {
@@ -410,7 +393,8 @@ export async function planNativeLiveEncounterAction(
       runtime: executionOptions.runtime,
       random: executionOptions.random,
       requireAutoRoll,
-      autoRollByActorId
+      autoRollByActorId,
+      readFormCreature: executionOptions.captures.readFormCreature
     }
     if (removalCommand) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
@@ -575,6 +559,7 @@ export async function planNativeLiveEncounterAction(
     definitions,
     speedDefinitions: system.speeds
   })
+  refuseUnmetItemActionRequirements(prepared, state)
   const triggerLevel = preparedSpellCastLevel(prepared)
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
@@ -697,13 +682,19 @@ export async function planNativeLiveEncounterAction(
   // cast (Invisibility) releases the condition it alone held in the source's own batch. A new
   // Concentration already ends its replaced dependents, and releases their conditions, with the
   // maintenance transition, so those are not ended a second time here.
+  const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
       (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
     ),
     makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: triggerLevel !== null
+    castsSpell: preparedCastsSpell(prepared),
+    againstEnemy: actsAgainstEnemy({
+      actorId: prepared.actor.id,
+      targetActorIds: [prepared.target.id],
+      dispositions
+    })
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
@@ -790,6 +781,24 @@ export async function planNativeLiveEncounterAction(
       ? (snapshot.applicationContext.failedCounters ?? [])
       : []
   let castDiscovery: Promise<ReturnType<typeof discoverNativeCastReactions>> | undefined
+  const castConsumption = prepared.characterActionState?.spellConsumption
+  /**
+   * A reactor counters against the slots it has left. The cast's own caster counters a counter cast
+   * against its cast with the cast's slot already spent, on the Character version both spends commit in.
+   */
+  const castSpentTarget = (
+    reactorActorId: string,
+    reactorTarget: Awaited<ReturnType<typeof loadTarget>>
+  ) =>
+    castConsumption && reactorActorId === prepared.actor.id
+      ? projectSpellSlotSpend({
+          target: reactorTarget,
+          consumption: castConsumption,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt
+        })
+      : reactorTarget
   /** The creatures that may counter this cast, read once from the Scene the cast names. */
   const discoverCast = (level: number) =>
     (castDiscovery ??= (async () => {
@@ -811,16 +820,18 @@ export async function planNativeLiveEncounterAction(
         triggerLevel: level,
         scene: castScene.context,
         loadTarget,
-        prepareReaction: (reactor, reactorTarget, actionId) =>
+        prepareReaction: async (reactor, reactorTarget, actionId, against) =>
           prepareEncounterActionMechanics({
             state,
             actor: reactor,
-            target: prepared.actor,
+            target: against,
             actors,
             actionId,
             wieldConflictAcceptance: { kind: 'UNPROMPTED' },
             overridable: false,
-            movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
+            movementTargets: new Map(movementTargets)
+              .set(reactor.id, castSpentTarget(reactor.id, reactorTarget))
+              .set(against.id, movementTargets.get(against.id) ?? (await loadTarget(against))),
             sceneContext: null,
             ...actionSources
           }),
@@ -856,6 +867,7 @@ export async function planNativeLiveEncounterAction(
       occurrenceId,
       gameSystemId: state.gameSystemId,
       system,
+      casterActorId: prepared.actor.id,
       triggerLevel,
       answer: castAnswer,
       failedCounters,
@@ -873,6 +885,7 @@ export async function planNativeLiveEncounterAction(
           actors,
           prepared,
           casterEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+          reactorEffects: activeEffectsByActorId.get(cast.found.prepared.actor.id) ?? [],
           triggerLevel,
           actionEconomy,
           ruleOverrides: ruleWarnings.overrides,
@@ -1094,6 +1107,24 @@ export async function planNativeLiveEncounterAction(
           economy: reaction.found.economy.consumption
         }
       : null
+  // A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
+  // reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
+  const reactionEnded =
+    reactionUse && preparedCastsSpell(reactionUse.prepared)
+      ? actionEndedEffects({
+          holderActorId: reactionUse.prepared.actor.id,
+          held: (activeEffectsByActorId.get(reactionUse.prepared.actor.id) ?? []).filter(
+            (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
+          ),
+          makesAttackRoll: false,
+          castsSpell: true,
+          againstEnemy: actsAgainstEnemy({
+            actorId: reactionUse.prepared.actor.id,
+            targetActorIds: [reactionUse.prepared.target.id],
+            dispositions
+          })
+        })
+      : null
   const failedSpends = await plannedFailedCounters(failedCounters)
   // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
   // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
@@ -1108,6 +1139,21 @@ export async function planNativeLiveEncounterAction(
     published: execution.published,
     targetActorId: prepared.target.id
   })
+  const applications = [
+    ...execution.applications,
+    ...preparedEffects.relationshipConditionApplications
+  ]
+  // Damage the target takes ends the effects it holds that end on damage, and releases the
+  // conditions only they held in the target's own batch.
+  const damageEnded = damageTakenEndedEffects({
+    holderActorId: prepared.target.id,
+    held: (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
+      ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
+    ),
+    applications,
+    damagerActorId: prepared.actor.id,
+    dispositions
+  })
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1117,11 +1163,10 @@ export async function planNativeLiveEncounterAction(
       sourceCommandId: command.commandId,
       commandId: command.commandId,
       occurredAt,
-      applications: [
-        ...execution.applications,
-        ...preparedEffects.relationshipConditionApplications
-      ],
+      applications,
       sourceReleases,
+      targetReleases: reactionEnded?.sourceReleases,
+      damageReleases: damageEnded.releases,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1292,8 +1337,11 @@ export async function planNativeLiveEncounterAction(
         : [],
     cleaving,
     reactionUse,
+    reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     failedSpends,
-    revisions
+    revisions,
+    // The attacker's one-roll grants and the target's effects the damage ended, one receipt.
+    consumedGrants: [...consumedGrants, ...damageEnded.endedEffects]
   }
 }
 
@@ -1379,7 +1427,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentrationEnds: plan.concentration.concentrationEnds,
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
-    consumedGrants: plan.consumedGrants,
+    consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
     turnUses: plan.turnUses
   })
 }

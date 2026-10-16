@@ -19,6 +19,7 @@ import { readPendingSnapshot } from './pendingSnapshots.js'
 import { assertGeometryReceiving, readMovementResolution } from './sceneGeometryDocuments.js'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { spatialPendingRollerActorId } from '@artificer-toolkit/rules-runtime/encounterSpatialPendingRoller'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { rejectDomain } from './domainRejections.js'
 
@@ -157,11 +158,11 @@ export async function readMovementResponseAuthority(
     if (!participantActorId) throw new Error('Movement passage participant is unavailable.')
     decisionActorIds = [participantActorId]
   } else if (context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT') {
-    decisionActorIds = [context.currentCandidate.candidate.targetActorId]
+    decisionActorIds = [spatialPendingRollerActorId(context.currentCandidate)]
   } else if (context.phase.kind === 'CONCENTRATION_EVIDENCE') {
     decisionActorIds = [context.phase.concentration.application.targetActorId]
   } else if (context.phase.kind === 'SPATIAL_EVIDENCE') {
-    decisionActorIds = [context.phase.currentCandidate.candidate.targetActorId]
+    decisionActorIds = [spatialPendingRollerActorId(context.phase.currentCandidate)]
   } else if (context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
     decisionActorIds = [context.phase.resistance.targetActorId]
   } else if (context.phase.kind === 'ACTION_EVIDENCE') {
