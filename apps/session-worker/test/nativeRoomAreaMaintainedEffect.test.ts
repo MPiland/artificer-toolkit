@@ -99,6 +99,17 @@ const effectsOnEveryCreature = (history: Awaited<ReturnType<typeof readRoomHisto
   character: history.characterEffects.length
 })
 
+/** The actors currently holding Frightened. */
+const frightenedActorIds = (history: Awaited<ReturnType<typeof readRoomHistory>>) =>
+  vitalsOf(history)
+    .filter((vitals) =>
+      ((vitals.conditions ?? []) as { conditionTypeId: string }[]).some(
+        ({ conditionTypeId }) => conditionTypeId === frightenedId()
+      )
+    )
+    .map(({ id }) => id)
+    .sort()
+
 describe('room point-area Concentration spell that frightens (SPELLS-19.T2)', () => {
   it('keeps one Concentration holding the effect on every creature the area frightens', async () => {
     const room = await frightRoom()
@@ -114,6 +125,7 @@ describe('room point-area Concentration spell that frightens (SPELLS-19.T2)', ()
     })
     for (const effect of [...committed.activeEffects, ...committed.characterEffects])
       expect(effect.maintainedEffectStateId).toBe(state?.id)
+    expect(frightenedActorIds(committed)).toEqual([...CAUGHT_IDS].sort())
   })
 
   it('removes the effect and its condition from every creature when the caster ends Concentration', async () => {
@@ -130,12 +142,7 @@ describe('room point-area Concentration spell that frightens (SPELLS-19.T2)', ()
     expect(after.maintainedStates).toEqual([])
     expect(after.activeEffects).toEqual([])
     expect(after.characterEffects).toEqual([])
-    for (const vitals of vitalsOf(after))
-      expect(
-        (vitals.conditions as { conditionTypeId: string }[]).map(
-          ({ conditionTypeId }) => conditionTypeId
-        )
-      ).not.toContain(frightenedId())
+    expect(frightenedActorIds(after)).toEqual([])
   })
 
   it('ends the earlier Concentration on every creature once when the caster concentrates again, and refuses its undo', async () => {
