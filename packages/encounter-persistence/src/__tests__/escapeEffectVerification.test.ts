@@ -211,7 +211,7 @@ describe('requireEscapeAllowance', () => {
   })
   if (actionBinding.kind !== 'REQUIRED') throw new Error('The Action must bind an allowance.')
   const action = { definitionId: actionBinding.capabilityDefinitionId }
-  const state = { gameSystemId: SRD_SYSTEM_ID, automationMode: 'ASSISTED' as const }
+  const state = { gameSystemId: SRD_SYSTEM_ID }
 
   async function escapeFor(
     activation: NonNullable<Parameters<typeof escapeGrappleEffectDefinition>[0]['activation']>
@@ -241,13 +241,9 @@ describe('requireEscapeAllowance', () => {
     expect(() => requireEscapeAllowance(state, bonus, action)).toThrow(ESCAPE_EFFECT_MISMATCH)
   })
 
-  it('spends nothing for a free activation or in a Manual Run', async () => {
+  it('spends nothing for a free activation', async () => {
     const free = await escapeFor({ code: 'FREE' })
     expect(() => requireEscapeAllowance(state, free, null)).not.toThrow()
     expect(() => requireEscapeAllowance(state, free, action)).toThrow(ESCAPE_EFFECT_MISMATCH)
-    const escape = await escapeFor({ code: 'ACTION', amount: 1 })
-    const manual = { ...state, automationMode: 'MANUAL' as const }
-    expect(() => requireEscapeAllowance(manual, escape, null)).not.toThrow()
-    expect(() => requireEscapeAllowance(manual, escape, action)).toThrow(ESCAPE_EFFECT_MISMATCH)
   })
 })

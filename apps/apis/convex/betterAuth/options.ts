@@ -4,7 +4,7 @@ import { admin } from 'better-auth/plugins/admin'
 import { adminAc, userAc } from 'better-auth/plugins/admin/access'
 import { emailOTP } from 'better-auth/plugins/email-otp'
 import { username } from 'better-auth/plugins/username'
-import { validateUsername } from '@artificer-toolkit/shared/account/username'
+import { isUsernameFormatValid } from '@artificer-toolkit/shared/account/username'
 import authConfig from '../auth.config'
 
 export function createAuthAdapterOptions(
@@ -34,8 +34,9 @@ export function createAuthAdapterOptions(
       username({
         usernameNormalization: (value) => value.trim().toLowerCase(),
         displayUsernameNormalization: (value) => value.trim(),
-        usernameValidator: (value) => validateUsername(value).message === null,
-        displayUsernameValidator: (value) => validateUsername(value).message === null
+        // Better Auth also runs this on the typed name at sign-in, so it checks format only;
+        // moderation runs at sign-up and rename in the auth hook (authFactory.helper).
+        usernameValidator: isUsernameFormatValid
       }),
       adminPlugin,
       emailOTP({

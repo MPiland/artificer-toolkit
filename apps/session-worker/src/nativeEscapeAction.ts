@@ -46,12 +46,7 @@ export async function planNativeLiveEscape(
     captures: LiveCaptureReads
   }
 ) {
-  const admitted = await admitNativeLiveHolderCommand(
-    scope,
-    command,
-    executionOptions.captures,
-    'escape'
-  )
+  const admitted = await admitNativeLiveHolderCommand(scope, command, executionOptions.captures)
   if (admitted.kind === 'REPLAY') return admitted
   const { initial, reads, ready, state, system } = admitted
   const { capture } = reads

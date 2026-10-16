@@ -61,20 +61,25 @@ const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes })
     .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
 })
 
-const REACTION_TRIGGER_KIND_OPTIONS: { code: ReactionTriggerBindingAuthored['kind']; label: string }[] =
-  [
-    { code: 'MOVEMENT', label: 'A creature moves' },
-    { code: 'ATTACKED_SELF', label: 'You are hit by an attack' }
-  ]
+const REACTION_TRIGGER_KIND_OPTIONS: {
+  code: ReactionTriggerBindingAuthored['kind']
+  label: string
+}[] = [
+  { code: 'MOVEMENT', label: 'A creature moves' },
+  { code: 'ATTACKED_SELF', label: 'You are hit by an attack' },
+  { code: 'DAMAGE_TAKEN', label: 'You take damage' }
+]
 
 const reactionTrigger = buildNodeMap<ReactionTriggerBindingAuthored>()
 
 const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
   'reactionTrigger',
-  ({ map, nodes, cond }) => {
-    const { selectSingle, text } = nodes
+  ({ map, nodes, cond, data }) => {
+    const { selectSingle, selectMulti, text } = nodes
+    const { table } = data
     const local = cond.local()
     const isMovement = local.field(['kind']).eq('MOVEMENT')
+    const isDamageTaken = local.field(['kind']).eq('DAMAGE_TAKEN')
 
     map
       .set(
@@ -125,6 +130,18 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
           requiredIf: isMovement,
           showIf: isMovement
         })
+      )
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage types',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { order: 5, requiredIf: isDamageTaken, showIf: isDamageTaken }
+        )
       )
   }
 )

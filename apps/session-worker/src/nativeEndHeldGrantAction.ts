@@ -25,12 +25,7 @@ export async function planNativeLiveEndHeldGrant(
   command: EndHeldGrantInputDto,
   executionOptions: { captures: LiveCaptureReads }
 ) {
-  const admitted = await admitNativeLiveHolderCommand(
-    scope,
-    command,
-    executionOptions.captures,
-    'end-grant'
-  )
+  const admitted = await admitNativeLiveHolderCommand(scope, command, executionOptions.captures)
   if (admitted.kind === 'REPLAY') return admitted
   const { initial, reads, ready, state } = admitted
   const { capture } = reads

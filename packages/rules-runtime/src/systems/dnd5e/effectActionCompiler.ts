@@ -2258,8 +2258,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
     // and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' &&
-        (grantPlan !== null || checkAction)))
+      (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
@@ -2267,10 +2266,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       ? invocation.resourceUse !== undefined
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
-          // A reaction to being attacked; the attack's pending decision offers it (never a direct action).
+          // A reaction to being attacked or to taking damage; the attack's pending decision offers it (never a direct action).
           (invocation.activation.code === 'REACTION' &&
             'reactionTrigger' in invocation &&
-            invocation.reactionTrigger?.kind === 'ATTACKED_SELF')) &&
+            (invocation.reactionTrigger?.kind === 'ATTACKED_SELF' ||
+              invocation.reactionTrigger?.kind === 'DAMAGE_TAKEN'))) &&
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||

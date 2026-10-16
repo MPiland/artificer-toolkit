@@ -636,6 +636,15 @@ describe('a Rage made on the Barbarian’s own turn', () => {
     ).toEqual([])
     expect(grantsEndedByHolderState([record], { reason: 'DEFEATED', conditionIds: [] })).toEqual([])
   })
+
+  it('reads no conditions from a defeated holder, as persistence does', () => {
+    expect(
+      grantsEndedByHolderState([record], {
+        reason: 'DEFEATED',
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+      })
+    ).toEqual([])
+  })
 })
 
 describe('a grant that ends on incapacitation', () => {

@@ -214,6 +214,7 @@ export async function persistEncounterCleavingResponse(
     userId: input.expectedUserId,
     authorizedCharacterIds: characterIds,
     occurredAt,
+    damagedActorIds: new Set(mechanics ? [mechanics.updatedActor.id] : []),
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
     endedGrants: input.endedGrants,

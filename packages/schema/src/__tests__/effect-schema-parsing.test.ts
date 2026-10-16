@@ -377,6 +377,55 @@ describe('effect schema parsing', () => {
     ).toBe(false)
   })
 
+  it('accepts a DAMAGE_TAKEN reaction trigger naming at least one damage type', () => {
+    const fire = '00000000-0000-4000-8000-0000000000f1'
+    const cold = '00000000-0000-4000-8000-0000000000f2'
+    const damageTaken = {
+      id: '00000000-0000-4000-8000-0000000000eb',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'REACTION', amount: 1 },
+        range: { id: 'damage-taken-range', rangeKind: 'SELF' },
+        reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds: [fire, cold] }
+      },
+      paths: [
+        fixedPath(
+          'damage-taken-path',
+          1,
+          'ON_USE',
+          singleResultBlock('damage-taken-result', {
+            id: 'damage-taken-outcome',
+            effectKind: 'CONDITION',
+            conditionId: 'damage-taken-condition'
+          })
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.parse(damageTaken).invocation).toMatchObject({
+      reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds: [fire, cold] }
+    })
+    for (const reactionTrigger of [
+      { kind: 'DAMAGE_TAKEN', damageTypeIds: [] },
+      { kind: 'DAMAGE_TAKEN' },
+      { kind: 'DAMAGE_TAKEN', damageTypeIds: ['fire'] }
+    ])
+      expect(
+        effectDtoSchema.safeParse({
+          ...damageTaken,
+          invocation: { ...damageTaken.invocation, reactionTrigger }
+        }).success
+      ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...damageTaken,
+        invocation: { ...damageTaken.invocation, activation: { code: 'ACTION', amount: 1 } }
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts only REACTION action movement trigger bindings', () => {
     const reactionEffect = {
       id: '00000000-0000-4000-8000-0000000000e9',

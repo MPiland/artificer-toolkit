@@ -1,6 +1,6 @@
 # Slice workbook: SPELLS-8.T1 (Encounter spell casting: choices, slot spend, undo, upcasting)
 
-**Status:** T1 DONE, merged 6bafbd6ed (2026-10-15); T5, T6 and T2 continue. Previous status: SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
+**Status:** T1, T5 and T6a merged (6bafbd6ed, e8ebfb687). Next: T2 review, then T12 (T6b, D118) and T13 (allowed creature types). Previous status: SECOND FIX ROUND DONE, READY FOR REVIEW (started 2026-10-13; split by the Phase 8 review 2026-10-14)
 **Base:** `codex/phase-08-2-convex-cutover`.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -67,7 +67,7 @@ Read first: D95, D99, D103, D104 in `docs/handoffs/phase-08-2-decisions.md`; `do
 | Concentration start | A single-Effect compiled spell with a maintenance outcome starts the maintained effect and ends the previous one (D99: a replacing start has no GM undo; a start that replaced nothing undoes). Proven with a synthetic Concentration heal. | Not proven for the real SRD Concentration spells; each needs compiling and a per-spell proof.                                                                                     |
 | Multi-Effect        | Only a spell with exactly one active Effect is offered; there is no merging.                                                                                                                                                                | The dnd5e compiler does not execute multi-entry groups. Merging returns with the compiler's multi-entry slice (test `does not offer a multi-Effect spell…` proves "not offered"). |
 | Components          | Nothing.                                                                                                                                                                                                                                    | No Sheet rule exists (material cost, free hand, silence); none was invented.                                                                                                      |
-| Scaling heals       | Offered from T6a (single target); the multi-target ones wait for T6b.                                                                                                                                                                      | Historical (T1): the compiler could not execute HEAL with PER_LEVEL scaling. T6a collapses the dice to the cast level's row.                                                                               |
+| Scaling heals       | Offered from T6a (single target); the multi-target ones wait for T6b.                                                                                                                                                                       | Historical (T1): the compiler could not execute HEAL with PER_LEVEL scaling. T6a collapses the dice to the cast level's row.                                                      |
 
 ## T5: every SRD Concentration spell starts Concentration (Hold Person replaces Fly)
 

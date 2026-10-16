@@ -179,7 +179,11 @@ function attackModifierContributions(
     .flatMap((group) => group.contributions)
 }
 
-/** The attack's ability is the one its highest applied ability modifier adds (finesse picks the better). */
+/**
+ * The attack's ability is the one its highest applied ability modifier adds (finesse picks the better).
+ * Only the attacking item's own modifiers name it; a Character-wide ability bonus from another source
+ * adds to the roll without changing which ability the attack uses.
+ */
 function usedAttackAbility(
   input: CharacterActionModelInput,
   attackDomain: string,
@@ -189,7 +193,9 @@ function usedAttackAbility(
     attackModifierContributions(input, attackDomain, 'ATTACK_ROLL', ABILITY_MODIFIER_KINDS)
       .filter(
         (contribution) =>
-          contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+          contribution.state === 'APPLIED' &&
+          contribution.scope === 'SOURCE' &&
+          dnd5eModifierApplies(contribution, target)
       )
       .reduce<ModifierContribution | null>(
         (best, contribution) =>

@@ -22,6 +22,8 @@ import {
   accountPasswordUpdateInputSchema,
   type AccountDeleteInput
 } from '@artificer-toolkit/schema/api/account'
+import { USERNAME_NOT_ALLOWED_MESSAGE } from '@artificer-toolkit/shared/account/username'
+import { validateUsernameOnServer } from '@artificer-toolkit/shared/account/usernameServer'
 import { deleteSessionCookie } from 'better-auth/cookies'
 import { JWT_COOKIE_NAME } from '@convex-dev/better-auth/plugins'
 import { makeFunctionReference } from 'convex/server'
@@ -112,6 +114,17 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
           throw new APIError('BAD_REQUEST', {
             message: 'A valid username is required.'
           })
+        }
+        // Moderation applies when a name is chosen (sign-up, rename), never when it is typed to sign in.
+        if (context.path === '/sign-up/email' || context.path === '/update-user') {
+          for (const name of [context.body?.username, context.body?.displayUsername]) {
+            if (typeof name === 'string' && validateUsernameOnServer(name).message !== null) {
+              throw new APIError('BAD_REQUEST', {
+                message: USERNAME_NOT_ALLOWED_MESSAGE,
+                code: 'INVALID_USERNAME'
+              })
+            }
+          }
         }
       })
     },
