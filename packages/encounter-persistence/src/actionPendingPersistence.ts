@@ -15,9 +15,11 @@ import {
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot
 } from './actionAreaPending.js'
+import { requireAttackSquarePendingRoot } from './attackSquarePending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
+import { castReactionAnswerContinues } from './actionPending.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -83,9 +85,23 @@ export async function persistEncounterActionPending(
   let evidence:
     | Extract<typeof snapshot, { snapshotKind: 'KERNEL_EVIDENCE' }>['applicationContext']
     | null = null
-  // A cast on chosen creatures never waits for anyone: it commits whole or not at all.
-  if (target.kind === 'ACTORS') throw new Error('Live Session pending action root mismatch.')
-  if (target.kind !== 'ACTOR') {
+  // An attack on a square waits for the GM to name who stands there, and is never itself resumed.
+  if (target.kind === 'SQUARE') {
+    if (input.command.optionalCombatIntent != null || resume)
+      throw new Error('Live Session pending action root mismatch.')
+    await requireAttackSquarePendingRoot(
+      ctx,
+      {
+        snapshot,
+        command: { ...admission.input, target },
+        fingerprint,
+        initiatorUserId,
+        state,
+        actors
+      },
+      callbacks.readAreaSceneInputs
+    )
+  } else if (target.kind !== 'ACTOR') {
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume) {
@@ -120,7 +136,9 @@ export async function persistEncounterActionPending(
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
       snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
       (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
-        snapshot.applicationContext.rollerActorId !== target.actorId) ||
+        snapshot.applicationContext.rollerActorId !== target.actorId &&
+        // A creature offered the chance to counter the cast is the roller of that decision.
+        snapshot.applicationContext.castReaction === undefined) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
       snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -139,11 +157,30 @@ export async function persistEncounterActionPending(
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==
-            resume.pending.context.currentnessChecksum)) ||
+            resume.pending.context.currentnessChecksum ||
+          !castReactionAnswerContinues(
+            resume.pending.context,
+            input.response,
+            snapshot.applicationContext
+          ))) ||
       input.command.optionalCombatIntent != null
     )
       throw new Error('Live Session pending action root mismatch.')
     evidence = snapshot.applicationContext
+    const { castReaction } = evidence
+    if (
+      castReaction &&
+      !castReaction.reactions.every((reaction) =>
+        actors.some(
+          (actor) =>
+            actor.id === reaction.reactorActorId &&
+            actor.id !== admission.input.actorId &&
+            actor.kind === 'CHARACTER' &&
+            actor.sourceId === reaction.characterId
+        )
+      )
+    )
+      throw new Error('Live Session pending cast reaction mismatch.')
     if (!actors.some((actor) => actor.id === target.actorId))
       throw new Error('Encounter action target was not found.')
     await callbacks.readActionSceneInputs(

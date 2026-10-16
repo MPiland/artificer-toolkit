@@ -195,6 +195,10 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   The last answer, the last decision, a settling removal, or the open when every save auto-rolls commits the
   area in one transaction: a root receipt with the source spend plus one child receipt per kept creature
   (current, D103).
+- A `RESOLVE_ACTION` with a `SQUARE` target (an attack aimed at a map square, ATTACK-17.T4a) pends a GM-only
+  `ATTACK_SQUARE_RESOLUTION` that lists the creatures standing there, hidden ones included. A player's session
+  frame carries no such pending, only `waitingOn: 'GM'`. The GM's `ATTACK_SQUARE_OCCUPANT` answer runs an
+  ordinary attack on the named creature (see `rules-runtime.md`, "An attack aimed at a square").
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").

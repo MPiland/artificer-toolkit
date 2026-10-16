@@ -1,5 +1,7 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
+import type { EncounterCastReactionPinDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
@@ -233,6 +235,68 @@ export function buildEncounterAreaStoredExecution(input: {
       spellCastConsumption: spend.spellConsumptionReceipt,
       actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
       ...(input.attackAction ? { attackActionTransition: input.attackAction } : {})
+    }
+  })
+}
+
+/**
+ * Builds the stored root of a countered cast. The caster still spends its slot and action; nothing the
+ * spell would have done is applied. The counter records what the reactor spent.
+ */
+export function buildEncounterCounteredCastStoredExecution(input: {
+  occurrenceId: string
+  occurrenceVersion: number
+  actorId: string
+  sourceCharacterId: string | null
+  spend: Pick<
+    ReturnType<typeof planNativeEncounterAreaSourceSpend>,
+    | 'sourceCharacterStreamVersion'
+    | 'resourceReceipt'
+    | 'featureResourceReceipt'
+    | 'sourceItemUseStateTransition'
+    | 'itemConsumptionReceipt'
+    | 'spellConsumptionReceipt'
+  >
+  actionEconomy: EncounterActionEconomyConsumption | null
+  counter: {
+    reaction: EncounterCastReactionPinDto
+    choiceExecution: ServerCompletedRuleExecutionDto
+    counterExecution: ServerCompletedRuleExecutionDto
+    triggerLevel: number
+    spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
+    /** The reactor's Character version once its slot was spent; null when none was. */
+    characterStreamVersion: number | null
+    economy: EncounterActionEconomyConsumption
+  }
+}) {
+  const { spend, counter } = input
+  return storedRuleExecutionResultDtoSchema.parse({
+    status: 'AGGREGATE_CHOICE_COMPLETE',
+    schemaVersion: 1,
+    occurrenceId: input.occurrenceId,
+    occurrenceVersion: input.occurrenceVersion,
+    applicationOutputs: {
+      kind: 'ENCOUNTER_COUNTERED_CAST',
+      schemaVersion: 1,
+      occurrenceId: input.occurrenceId,
+      sourceActorId: input.actorId,
+      sourceCharacterId: input.sourceCharacterId,
+      sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
+      resourceConsumption: spend.resourceReceipt,
+      featureResourceConsumption: spend.featureResourceReceipt,
+      sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
+      sourceItemConsumption: spend.itemConsumptionReceipt,
+      spellCastConsumption: spend.spellConsumptionReceipt,
+      actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
+      counter: {
+        reaction: counter.reaction,
+        choiceExecution: counter.choiceExecution,
+        counterExecution: counter.counterExecution,
+        triggerLevel: counter.triggerLevel,
+        spellCastConsumption: characterSpellConsumptionReceipt(counter.spellConsumption),
+        characterStreamVersion: counter.characterStreamVersion,
+        actionEconomyTransition: actionEconomyReceipt(counter.economy)
+      }
     }
   })
 }

@@ -6,8 +6,10 @@ import {
   chosenEncounterReaction,
   encounterReactionPin,
   openEncounterReactionChoice,
+  settleEncounterCastReactionUse,
   settleEncounterReactionChoice,
-  type EncounterAttackReactionCandidate
+  type EncounterAttackReactionCandidate,
+  type EncounterCastReactionCandidate
 } from '../encounterReactionChoice.js'
 import { createReactionChoiceDefinition } from '../reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
@@ -140,5 +142,69 @@ describe('settling the chosen reaction (REACTION-4.5)', () => {
       selection: { kind: 'DECLINE' }
     })
     expect(settled).toMatchObject({ use: false, reaction: { actionId: 'reaction-1' } })
+  })
+})
+
+describe('settling a used reaction to a cast (REACTION-4.3)', () => {
+  let runtime: RulesRuntimeService
+  beforeAll(async () => {
+    runtime = await createSrdRulesRuntime()
+  })
+
+  const counter = (seed: number): EncounterCastReactionCandidate => ({
+    ...candidate(seed),
+    trigger: 'SPELL_CAST'
+  })
+  const offer = { reactions: [encounterReactionPin(counter(1)), encounterReactionPin(counter(2))] }
+
+  it('uses the reaction whose option was chosen', async () => {
+    const settled = await settleEncounterCastReactionUse({
+      runtime,
+      occurrenceId: testUuid(0x7d4),
+      offer,
+      candidate: counter(2),
+      optionId: offer.reactions[1]!.useOptionId
+    })
+    expect(settled.reaction.actionId).toBe('reaction-2')
+    expect(settled.choice.outputs.selectedIndex).toBe(1)
+  })
+
+  it('refuses a chosen reaction answered against another reaction’s candidate', async () => {
+    await expect(
+      settleEncounterCastReactionUse({
+        runtime,
+        occurrenceId: testUuid(0x7d5),
+        offer,
+        candidate: counter(1),
+        optionId: offer.reactions[1]!.useOptionId
+      })
+    ).rejects.toThrow('Reaction evidence is stale.')
+  })
+
+  it('refuses an option the offer never issued', async () => {
+    await expect(
+      settleEncounterCastReactionUse({
+        runtime,
+        occurrenceId: testUuid(0x7d6),
+        offer,
+        candidate: counter(1),
+        optionId: 'c'.repeat(64)
+      })
+    ).rejects.toThrow('Reaction selection was not issued.')
+  })
+
+  it('refuses a reaction whose allowance changed since it was offered', async () => {
+    await expect(
+      settleEncounterCastReactionUse({
+        runtime,
+        occurrenceId: testUuid(0x7d7),
+        offer,
+        candidate: {
+          ...counter(1),
+          allowance: { definitionId: testUuid(0x7f0), beforeUsed: 1, maximum: 1 }
+        },
+        optionId: offer.reactions[0]!.useOptionId
+      })
+    ).rejects.toThrow('Reaction evidence is stale.')
   })
 })

@@ -795,13 +795,15 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
     await strike(room, 0)
     const { pending, context } = await offeredMenu(room)
 
-    expect(pending.options).toHaveLength(2)
+    // Absorb Elements scales with its slot, so it is offered at each of the five levels the Character
+    // owns, lowest first; Shield does not, so it is offered once.
+    expect(pending.options).toHaveLength(6)
     expect(pending.options.map(({ optionId }) => optionId)).toEqual(
       context.reactionChoice?.reactions.map(({ useOptionId }) => useOptionId)
     )
-    expect(context.reactionChoice?.reactions.map(({ trigger }) => trigger).sort()).toEqual([
+    expect(context.reactionChoice?.reactions.map(({ trigger }) => trigger)).toEqual([
       'ATTACKED_SELF',
-      'DAMAGE_TAKEN'
+      ...Array(5).fill('DAMAGE_TAKEN')
     ])
     expect(await readSpellSlots(room)).toEqual([])
   })

@@ -3,7 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { postgresUuidSchema } from './postgresUuid.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 
 const uuidSchema = lazySchema(() =>
@@ -308,7 +308,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             })
           )
           .check(z.minLength(1))
-          .check(z.maxLength(8)),
+          .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
@@ -443,6 +443,19 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.minLength(2))
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         allowedResponses: z.tuple([z.literal('INITIATIVE_ENTITY')])
+      }),
+      /** GM-only: the creatures standing on the square an attack was aimed at. */
+      z.strictObject({
+        kind: z.literal('ATTACK_SQUARE_RESOLUTION'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        attackerActorId: uuidSchema,
+        candidateActorIds: z
+          .array(uuidSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('ATTACK_SQUARE_OCCUPANT')])
       })
     ])
     .check(

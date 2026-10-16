@@ -43,7 +43,10 @@ import {
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
-import { encounterActionReactionReceiptDtoSchema } from './ruleExecutionReactionChoice.js'
+import {
+  encounterActionReactionReceiptDtoSchema,
+  encounterCounteredCastApplicationOutputDtoSchema
+} from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionChecksumSchema as checksumSchema,
@@ -508,6 +511,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof concentrationCheckApplicationOutputDtoSchema>
   | z.infer<typeof concentrationEndApplicationOutputDtoSchema>
   | z.infer<typeof encounterAreaActionApplicationOutputDtoSchema>
+  | z.infer<typeof encounterCounteredCastApplicationOutputDtoSchema>
   | z.infer<typeof encounterActorMechanicsBatchApplicationOutputDtoSchema>
   | z.infer<typeof basicActionCheckApplicationOutputDtoSchema>
   | z.infer<typeof escapeCheckApplicationOutputDtoSchema>
@@ -523,6 +527,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       concentrationCheckApplicationOutputDtoSchema,
       concentrationEndApplicationOutputDtoSchema,
       encounterAreaActionApplicationOutputDtoSchema,
+      encounterCounteredCastApplicationOutputDtoSchema,
       encounterActorMechanicsBatchApplicationOutputDtoSchema,
       basicActionCheckApplicationOutputDtoSchema,
       escapeCheckApplicationOutputDtoSchema,

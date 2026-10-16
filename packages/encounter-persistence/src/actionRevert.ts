@@ -53,6 +53,10 @@ type ActionBatch = Extract<
   { kind: 'CHARACTER_MECHANICS_BATCH' | 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
 >
 type AreaRoot = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_AREA_ACTION' }>
+type CounteredRoot = Extract<
+  ServerRuleExecutionApplicationOutputsDto,
+  { kind: 'ENCOUNTER_COUNTERED_CAST' }
+>
 type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CLEAVING_DAMAGE' }>
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
@@ -193,6 +197,7 @@ export async function revertLastEncounterAction(
     unavailable('This action has too many follow-up results to undo; adjust manually.')
   let batch: ActionBatch | null = null
   let areaRoot: AreaRoot | null = null
+  let counteredRoot: CounteredRoot | null = null
   const areaTargetBatches = new Map<string, ActionBatch>()
   const cleaving: CleavingDamage[] = []
   const unsupported = new Set<string>()
@@ -210,6 +215,7 @@ export async function revertLastEncounterAction(
       )
         batch = outputs
       else if (outputs?.kind === 'ENCOUNTER_AREA_ACTION') areaRoot = outputs
+      else if (outputs?.kind === 'ENCOUNTER_COUNTERED_CAST') counteredRoot = outputs
       else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a Disarm' : 'this action')
       continue
     }
@@ -243,7 +249,7 @@ export async function revertLastEncounterAction(
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
     unavailable('Another decision changed the Encounter after this action; adjust manually.')
-  if (!batch && !areaRoot && !unsupported.size)
+  if (!batch && !areaRoot && !counteredRoot && !unsupported.size)
     throw new Error('Stored Encounter action receipt is missing.')
   // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.
   const targetBatches = areaRoot
@@ -275,6 +281,7 @@ export async function revertLastEncounterAction(
   }
   const spend =
     areaRoot ??
+    counteredRoot ??
     (batch && {
       sourceActorId: batch.sourceActorId,
       resourceConsumption: batch.resourceConsumption,
@@ -512,6 +519,25 @@ export async function revertLastEncounterAction(
     if (!restored)
       unavailable("The actor's Attack action changed after this action; adjust manually.")
     updateActor(source.id, { resources: restored.resources })
+  }
+  // The creature that countered the cast spent its own slot and reaction.
+  const counter = counteredRoot?.counter
+  if (counter) {
+    const reactor = actorsById.get(counter.reaction.reactorActorId)
+    if (reactor?.kind !== 'CHARACTER')
+      throw new Error('Stored Encounter action actors are unavailable.')
+    if (counter.spellCastConsumption) {
+      if (counter.characterStreamVersion === null)
+        throw new Error('Stored reactor Character version is missing.')
+      characterInverse(reactor.sourceId, counter.characterStreamVersion).spell =
+        counter.spellCastConsumption
+    }
+    const reaction = counter.actionEconomyTransition
+    if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
+      unavailable("The countering creature's reactions changed after this action; adjust manually.")
+    updateActor(reactor.id, {
+      resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
+    })
   }
 
   // A Dash's speed bonus leaves the turn's movement record.

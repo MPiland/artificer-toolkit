@@ -586,6 +586,8 @@ export const characterSpellActionFactsSchema = lazySchema(() =>
     .array(
       z.strictObject({
         spellId: identitySchema,
+        /** Whether a higher cast level changes what the spell does, so the Character may list those levels. */
+        readsCastLevel: booleanSchema,
         effects: z
           .array(
             z.strictObject({
@@ -799,6 +801,7 @@ export const characterSpellReferenceMechanicsSchema = lazySchema(() =>
       z.strictObject({
         sequence: integerSchema.check(z.gte(0)).check(z.lte(999)),
         spellId: identitySchema,
+        readsCastLevel: booleanSchema,
         mechanics: z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100))
       })
     )
