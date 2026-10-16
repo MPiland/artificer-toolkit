@@ -535,8 +535,7 @@ type Targeting = NonNullable<CompiledEffectGroup['invocation']['targeting']>
 function targetingReadsSpellCastLevel(targeting: Targeting | undefined): boolean {
   return (
     targeting?.selectionKind === 'CHOSEN_CREATURES' &&
-    (targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL' ||
-      targeting.resolutionCountScaling?.scalingSource === 'SPELL_CAST_LEVEL')
+    targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL'
   )
 }
 
