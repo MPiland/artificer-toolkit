@@ -8117,8 +8117,10 @@
           "acs": [
             {
               "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "SPELLS-19.T2: CI Tests 38918427785 and Live backend 38918427783 on bcfd161d0 (maintained Fear across every caught creature, Concentration end and GM undo)"
+              ],
               "origin": [
                 "2026-10-16 main ruling on the SPELLS-19.T2 escalation: relationship conditions dropped from this AC. An area resolves by saves, and a relationship (Grappled, D105) comes only from a hit, so no area can author one. Frightened of the caster moved to SPELLS-29."
               ],
@@ -8155,8 +8157,8 @@
             },
             {
               "id": "SPELLS-19.T2",
-              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration.",
-              "status": "IN_PROGRESS",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration. (Red: ci/spells-19 Tests 38915948809 on 924051aa4, \"ends the earlier Concentration on every creature once when the caster concentrates again, and refuses its undo\"; earlier red 38911126971 on 38156df11. Green: ci/spells-19 Tests 38918427785 and Live backend 38918427783 on bcfd161d0.)",
+              "status": "DONE",
               "closes": ["SPELLS-19.1"],
               "wsjf": {
                 "bv": 8,
@@ -8164,13 +8166,12 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-19.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              }
             },
             {
               "id": "SPELLS-19.T3",
               "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8178,7 +8179,8 @@
                 "rr": 3,
                 "size": 8,
                 "after": ["SPELLS-19.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T4",
