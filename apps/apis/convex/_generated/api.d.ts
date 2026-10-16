@@ -112004,7 +112004,7 @@ export declare const api: {
         { actorId: string; encounterId: string; expectedVersion: number },
         {
           actions: Array<{
-            actionCost?: "ACTION" | "BONUS_ACTION" | "FREE";
+            actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -112725,7 +112725,7 @@ export declare const api: {
           }>;
           actorId: string;
           basicActionChoices: Array<{
-            actionCost?: "ACTION" | "BONUS_ACTION" | "FREE";
+            actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -123108,7 +123108,7 @@ export declare const internal: {
             systemId: string;
           }>;
         },
-        { inserted: number; reused: number }
+        { inserted: number; replaced: number; reused: number }
       >;
       readBootstrap: FunctionReference<
         "query",
@@ -123171,6 +123171,26 @@ export declare const internal: {
         }
       >;
       readDefinitions: FunctionReference<
+        "query",
+        "internal",
+        {
+          contentSourceId: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{ checksum: string; id: string }>;
+        }
+      >;
+      readSubjectChecksums: FunctionReference<
         "query",
         "internal",
         {
@@ -123283,6 +123303,7 @@ export declare const internal: {
           definitions: number;
           inserted: number;
           manifestChecksum: string;
+          replaced: number;
           reused: number;
           subjects: number;
           systems: number;

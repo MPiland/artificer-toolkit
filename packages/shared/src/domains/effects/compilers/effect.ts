@@ -22,6 +22,7 @@ import type {
   TreeStrideAuthored,
   ActorRelationshipAuthored,
   ClosedRuleAuthored,
+  FacetAuthored,
   PathLifecycleAuthored,
   RangeAuthored,
   ResultBlockAuthored,
@@ -61,6 +62,7 @@ export type CompiledEffect = {
   maintenanceDefinitionId?: string
   duration?: CompiledDuration
   lifecycle?: PathLifecycleAuthored
+  restrictions?: FacetAuthored
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
   outcome: CompiledEffectOutcome
@@ -381,6 +383,7 @@ function compileResultBlock(
         outcome: compiledOutcome,
         ...(duration ? { duration } : {}),
         ...(resultBlock.lifecycle ? { lifecycle: resultBlock.lifecycle } : {}),
+        ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),
         ...(path.targetingOverride ? { targetingOverride: path.targetingOverride } : {})
       }

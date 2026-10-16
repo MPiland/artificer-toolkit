@@ -72,20 +72,24 @@ export async function compileCurrentRace(
 
 export async function assertNoRaceChildren(ctx: QueryCtx, systemId: string, raceId: string) {
   await assertRaceRelationshipsIndexed(ctx, systemId)
+  const dependents: string[] = []
   for await (const root of ctx.db
     .query('authoredRoots')
     .withIndex('by_system_kind_parentRaceId', (q) =>
       q.eq('systemId', systemId).eq('subjectKind', 'RACE').eq('parentRaceId', raceId)
     )) {
-    if (await isImportRowVisible(ctx, root.importJobId))
-      throw new Error('A Race with published subraces cannot be deleted or made a subrace.')
+    if (await isImportRowVisible(ctx, root.importJobId)) dependents.push(root.id)
   }
+  if (dependents.length > 0)
+    throw new Error(
+      `A Race with published subraces cannot be deleted or made a subrace. Subraces: ${dependents.join(', ')}.`
+    )
 }
 
 export async function recompileRaceChildren(
   ctx: MutationCtx,
   parent: ResolvedBaseRace,
-  userId: string
+  userId: string | null
 ) {
   const children = await ctx.db
     .query('authoredRoots')
@@ -96,7 +100,10 @@ export async function recompileRaceChildren(
   if (children.length >= 500) throw new Error('Race inheritance exceeds the authoring limit.')
   for (const root of children) {
     if (!(await isImportRowVisible(ctx, root.importJobId))) continue
-    if (root.ownerUserId !== userId || !(await canReadAuthoredRoot(ctx, root, userId)))
+    if (
+      root.ownerUserId !== (userId ?? undefined) ||
+      !(await canReadAuthoredRoot(ctx, root, userId))
+    )
       throw new Error('Race dependent ownership mismatch.')
     const version = await readAuthoredVersion(ctx, root)
     const document = raceAuthoredDtoSchema.parse(await readPublishedDocument(ctx, root, version))
