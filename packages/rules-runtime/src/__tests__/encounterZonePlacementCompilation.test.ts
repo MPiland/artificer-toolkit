@@ -200,9 +200,9 @@ describe('the zone an area action leaves at its chosen point', () => {
   })
 
   it('leaves the zone itself standing when hit points are regained: only the grant it hands out ends', () => {
-    expect(effectsEndedBy([grantRecordFor(placedCaltropsZone())], 'ON_HIT_POINTS_REGAINED')).toEqual(
-      []
-    )
+    expect(
+      effectsEndedBy([grantRecordFor(placedCaltropsZone())], 'ON_HIT_POINTS_REGAINED')
+    ).toEqual([])
   })
 })
 
@@ -342,6 +342,84 @@ describe('a zone authored with another save DC and a circle shape', () => {
       geometry: { shape: { kind: 'CIRCLE', center: { x: 250, y: 350 }, radius: 200 } },
       label: 'Spike field',
       bypassAtHalfSpeed: true
+    })
+  })
+})
+
+/** The authored zone damage, as dice instead of the fixed amount. */
+function diceDamage(diceConfig: string, change?: (damage: Record<string, unknown>) => void) {
+  return ({ savePath }: ZoneParts) => {
+    const damage = savePath.resultBlock.outcomes.find((outcome) => outcome.effectKind === 'DAMAGE')
+    if (!damage) throw new Error('The zone must author damage.')
+    const authored: Record<string, unknown> = damage
+    delete authored.amount
+    Object.assign(authored, { valueKind: 'DICE', diceConfig })
+    change?.(authored)
+  }
+}
+
+describe('a zone whose failed entry save deals dice damage (D133)', () => {
+  const authored = variantEquipment(diceDamage('2d6'))
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('rolls its dice inside the one frozen entry graph, only for the failed save', () => {
+    const { nodes, outputs } = zonePlacementOf(authored).entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual([
+      'd20',
+      'test',
+      'damage-enabled',
+      'damage-die-1',
+      'damage-die-2',
+      'damage-sum-1',
+      'proposal-on_save_fail',
+      'movement-interruption'
+    ])
+    expect(nodes.find((node) => node.id === 'damage-enabled')?.inputs).toMatchObject({
+      resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
+      authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_FAIL' }
+    })
+    for (const dieId of ['damage-die-1', 'damage-die-2'])
+      expect(nodes.find((node) => node.id === dieId)).toMatchObject({
+        operation: { key: 'evidence.optional-integer-range' },
+        inputs: {
+          min: { value: 1 },
+          max: { value: 6 },
+          enabled: { kind: 'NODE_OUTPUT', nodeId: 'damage-enabled', port: 'authorized' }
+        }
+      })
+    expect(nodes.find((node) => node.id === 'proposal-on_save_fail')?.inputs.amount).toEqual({
+      kind: 'NODE_OUTPUT',
+      nodeId: 'damage-sum-1',
+      port: 'value'
+    })
+    expect(outputs).toHaveProperty('movementInterruption')
+  })
+
+  it('keeps the zone shape, trigger modes and grant of the fixed-damage zone', () => {
+    expect(zonePlacementOf(authored)).toMatchObject({
+      label: zonePlacementOf().label,
+      triggerModes: zonePlacementOf().triggerModes,
+      grant: { endOnEvents: zonePlacementOf().grant?.endOnEvents }
+    })
+  })
+
+  it.each([
+    ['a flat modifier', diceDamage('1d4+1')],
+    ['a bonus', diceDamage('1d4', (damage) => Object.assign(damage, { bonuses: [{}] }))],
+    ['half damage', diceDamage('1d4', (damage) => Object.assign(damage, { amountKind: 'HALF' }))],
+    [
+      'damage that scales per level',
+      diceDamage('1d4', (damage) =>
+        Object.assign(damage, { scalingKind: 'PER_LEVEL', scalingSource: 'CHARACTER_LEVEL' })
+      )
+    ]
+  ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
+    expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({
+      kind: 'MANUAL',
+      reasonCode: 'NOT_NORMALIZED'
     })
   })
 })
