@@ -315,7 +315,8 @@ describe('effect compiler', () => {
         outcome: {
           id: 'slowed',
           effectKind: EFFECT_KIND.CONDITION,
-          conditionId: 'slowed'
+          conditionId: 'slowed',
+          recordsSource: false
         }
       },
       {
@@ -334,7 +335,8 @@ describe('effect compiler', () => {
         outcome: {
           id: 'poisoned',
           effectKind: EFFECT_KIND.CONDITION,
-          conditionId: 'poisoned'
+          conditionId: 'poisoned',
+          recordsSource: false
         }
       }
     ])
