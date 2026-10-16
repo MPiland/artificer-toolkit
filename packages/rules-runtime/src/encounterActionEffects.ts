@@ -67,6 +67,8 @@ export function prepareNativeActionEffectsPlan<
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  /** What triggered a reaction, which its effect may bind. */
+  trigger?: { damageTypeIds: readonly string[] }
 }) {
   const { prepared, execution } = input
   const plan = encounterActiveEffectPlan(prepared, execution.published)
@@ -97,7 +99,8 @@ export function prepareNativeActionEffectsPlan<
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,
-    applications: execution.applications
+    applications: execution.applications,
+    trigger: input.trigger
   })
   const relationship =
     effects.recurringEffect?.definition.schemaVersion === 2 &&

@@ -24,13 +24,15 @@ export function attackHitDamageTypeIds(
 /**
  * The reactions a Character holds that answer an attack that hit it: authored `ATTACKED_SELF`
  * reactions, and `DAMAGE_TAKEN` reactions naming a damage type the hit deals, among its actions and
- * the spells it may cast now. Whether one is affordable is decided when it is prepared.
+ * the spells it may cast now. A `DAMAGE_TAKEN` reaction also names the damage types that triggered
+ * it (those it names that the hit deals). Whether one is affordable is decided when it is prepared.
  */
 export function discoverAttackReactionActions(
   target: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
   hitDamageTypeIds: ReadonlySet<string>
 ): readonly (Pick<CharacterActionCandidate, 'actionId' | 'effectId'> & {
   trigger: EncounterReactionPinDto['trigger']
+  triggerDamageTypeIds: readonly string[]
 })[] {
   const candidates: readonly CharacterActionCandidate[] = [
     ...(target.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
@@ -40,13 +42,15 @@ export function discoverAttackReactionActions(
     .flatMap(({ actionId, effectId, mechanicFacts: { invocation } }) => {
       const trigger = invocation.reactionTrigger
       if (invocation.activation?.code !== 'REACTION' || !trigger) return []
-      if (
-        trigger.kind === 'ATTACKED_SELF' ||
-        (trigger.kind === 'DAMAGE_TAKEN' &&
-          trigger.damageTypeIds.some((damageTypeId) => hitDamageTypeIds.has(damageTypeId)))
+      if (trigger.kind === 'ATTACKED_SELF')
+        return [{ actionId, effectId, trigger: trigger.kind, triggerDamageTypeIds: [] }]
+      if (trigger.kind !== 'DAMAGE_TAKEN') return []
+      const triggerDamageTypeIds = trigger.damageTypeIds.filter((damageTypeId) =>
+        hitDamageTypeIds.has(damageTypeId)
       )
-        return [{ actionId, effectId, trigger: trigger.kind }]
-      return []
+      return triggerDamageTypeIds.length > 0
+        ? [{ actionId, effectId, trigger: trigger.kind, triggerDamageTypeIds }]
+        : []
     })
     .sort((left, right) => left.actionId.localeCompare(right.actionId))
 }

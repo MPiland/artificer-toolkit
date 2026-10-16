@@ -6,6 +6,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { absorbElementsSpell } from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
+import { srdDamageTypeId } from '@artificer-toolkit/rules-runtime/testing/plannedAbsorbElements'
 import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltingGauntlet'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
@@ -594,7 +595,7 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
     expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
   })
 
-  it('leaves the caster resistance to each chosen type and extra damage on melee attacks', async () => {
+  it('leaves the caster resistance to the type that hit and slot-scaled damage on melee attacks', async () => {
     const room = await absorbRoom()
     await strike(room, 0)
     const { decision, pending } = await offeredReaction(room)
@@ -603,23 +604,23 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
     const [effect] = (await readRoomHistory(room.room.base.stub)).characterEffects
     const [grant] = JSON.parse(effect!.definitionJson).stateContributions
     expect(grant.kind).toBe('MODIFIER_GRANT')
-    expect(grant.modifiers).toHaveLength(3)
+    expect(grant.modifiers).toHaveLength(2)
     expect(grant.modifiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ valueDomainCode: 'DAMAGE_RESISTANCE' }),
+        expect.objectContaining({
+          valueDomainCode: 'DAMAGE_RESISTANCE',
+          grant: expect.objectContaining({ payload: { damageTypeId: srdDamageTypeId('FIRE') } })
+        }),
         expect.objectContaining({
           valueDomainCode: 'DAMAGE',
           modifierKind: 'BONUS',
-          domain: { attackDomain: 'MELEE' }
+          domain: { attackDomain: 'MELEE' },
+          grant: expect.objectContaining({
+            payload: expect.objectContaining({ valueKind: 'FIXED', amount: 2 })
+          })
         })
       ])
     )
-    expect(
-      grant.modifiers.filter(
-        ({ valueDomainCode }: { valueDomainCode: string }) =>
-          valueDomainCode === 'DAMAGE_RESISTANCE'
-      )
-    ).toHaveLength(2)
   })
 
   it('is offered when a later chosen type is the one the hit deals', async () => {
@@ -634,7 +635,20 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
       optionId: pending.options[0].optionId
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
-    expect(hitPointsLost(characterBatch(await readRoomHistory(room.room.base.stub)))).toBe(5)
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(hitPointsLost(characterBatch(history))).toBe(5)
+    const [effect] = history.characterEffects
+    const [grant] = JSON.parse(effect!.definitionJson).stateContributions
+    expect(
+      grant.modifiers.filter(
+        ({ valueDomainCode }: { valueDomainCode: string }) =>
+          valueDomainCode === 'DAMAGE_RESISTANCE'
+      )
+    ).toEqual([
+      expect.objectContaining({
+        grant: expect.objectContaining({ payload: { damageTypeId: srdDamageTypeId('COLD') } })
+      })
+    ])
   })
 
   it('applies the whole damage when declined, spending nothing', async () => {

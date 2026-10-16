@@ -451,7 +451,8 @@ export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueD
  */
 
 export type ValueDomainOptionPayloadByDomain = {
-  DAMAGE_RESISTANCE: { damageTypeId: string }
+  /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
+  DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
   DAMAGE_IMMUNITY: { damageTypeId: string }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 

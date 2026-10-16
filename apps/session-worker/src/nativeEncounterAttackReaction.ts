@@ -37,6 +37,8 @@ type MovementTargets = Prepared['movementTargets']
 /** A reaction its holder could use against the attack being resolved, prepared as it stands now. */
 export type NativeAttackReaction = {
   candidate: EncounterAttackReactionCandidate
+  /** The damage types that triggered it, which its effect may bind (none for an attack reaction). */
+  triggerDamageTypeIds: readonly string[]
   /** The reaction action prepared against its reactor's own facts. */
   prepared: Prepared
   economy: NonNullable<Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['economy']>
@@ -45,8 +47,8 @@ export type NativeAttackReaction = {
 /**
  * The reactions the attacked Character may use against this attack, each one it holds and can afford
  * now, by action id. They are offered together as a menu (a Character has one reaction a round); a
- * decided offer names the reaction it answers (`answering`) so that one is found again, whatever the
- * hit's severity then. A creature that attacks itself, a defeated Character (D63) and one with its
+ * decided offer names the reaction it answers (`answering`) so that one is found again, on the same
+ * severity of hit it was offered for. A creature that attacks itself, a defeated Character (D63) and one with its
  * reactions suppressed (D99) answer nothing.
  */
 export function discoverNativeAttackReaction(input: {
@@ -57,9 +59,10 @@ export function discoverNativeAttackReaction(input: {
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }) {
-  return async (
-    hit: { critical: boolean } | { answering: string }
-  ): Promise<readonly NativeAttackReaction[]> => {
+  return async (hit: {
+    critical: boolean
+    answering?: string
+  }): Promise<readonly NativeAttackReaction[]> => {
     const { actor, target, movementTargets } = input.attack
     const reactor = movementTargets.get(target.id)
     if (
@@ -74,11 +77,14 @@ export function discoverNativeAttackReaction(input: {
       source.kind === 'CHARACTER_ACTION'
         ? source.candidate.mechanicFacts
         : source.capability.mechanicFacts,
-      'answering' in hit || hit.critical
+      hit.critical
     )
     const reactions: NativeAttackReaction[] = []
-    for (const { actionId, trigger } of discoverAttackReactionActions(reactor, hitDamageTypeIds)) {
-      if ('answering' in hit && actionId !== hit.answering) continue
+    for (const { actionId, trigger, triggerDamageTypeIds } of discoverAttackReactionActions(
+      reactor,
+      hitDamageTypeIds
+    )) {
+      if (hit.answering !== undefined && actionId !== hit.answering) continue
       const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
         // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.
         if (error instanceof StaleCharacterActionError) return null
@@ -97,6 +103,7 @@ export function discoverNativeAttackReaction(input: {
       reactions.push({
         prepared,
         economy,
+        triggerDamageTypeIds,
         candidate: {
           trigger,
           reactorActorId: target.id,
@@ -163,7 +170,8 @@ export async function applyNativeAttackReaction(input: {
     execution,
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
-    activeEffectsByActorId: input.activeEffectsByActorId
+    activeEffectsByActorId: input.activeEffectsByActorId,
+    trigger: { damageTypeIds: input.reaction.triggerDamageTypeIds }
   })
   if (effects.stateEffect || !effects.recurringEffect || effects.maintenance)
     throw unsupportedReaction('A reaction must create exactly one effect on its reactor.')

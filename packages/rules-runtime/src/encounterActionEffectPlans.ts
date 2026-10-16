@@ -11,6 +11,7 @@ import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
 } from './platformRulesRuntime.js'
+import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRuleActionApplication,
   CharacterRuleActionActiveEffectPlan
@@ -80,6 +81,8 @@ export function prepareEncounterActionEffectPlans(input: {
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
   applications: readonly CharacterRuleActionApplication[]
+  /** What triggered a reaction, which its effect may bind (resistance to the triggering damage). */
+  trigger?: { damageTypeIds: readonly string[] }
 }): {
   stateEffect: EffectPlan | null
   recurringEffect: EffectPlan | null
@@ -138,6 +141,35 @@ function reachesAuthoredHitPath(
   if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
     throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
   return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
+}
+
+/**
+ * Resistance to "the triggering damage type" becomes one resistance per damage type that triggered the
+ * reaction; any other modifier stays as authored.
+ */
+function bindTriggerDamageTypes(
+  modifier: CharacterGrantFoldModifier,
+  damageTypeIds: readonly string[]
+): CharacterGrantFoldModifier[] {
+  const { grant } = modifier
+  if (typeof grant !== 'object' || grant === null || Array.isArray(grant)) return [modifier]
+  const { payload } = grant
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    Array.isArray(payload) ||
+    payload.damageTypeSource !== 'TRIGGER'
+  )
+    return [modifier]
+  if (damageTypeIds.length === 0)
+    throw new EncounterActionEffectPlanError(
+      'A resistance to the triggering damage type needs the damage that triggered the reaction.'
+    )
+  return damageTypeIds.map((damageTypeId) => ({
+    ...modifier,
+    grantId: `${modifier.grantId}:${damageTypeId}`,
+    grant: { ...grant, payload: { damageTypeId } }
+  }))
 }
 
 function prepareRecurringActiveEffect(
@@ -322,7 +354,9 @@ function prepareRecurringActiveEffect(
                   {
                     kind: 'MODIFIER_GRANT' as const,
                     applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
-                    modifiers: grantContribution.modifiers,
+                    modifiers: grantContribution.modifiers.flatMap((modifier) =>
+                      bindTriggerDamageTypes(modifier, input.trigger?.damageTypeIds ?? [])
+                    ),
                     senses: grantContribution.senses,
                     sourceLabel: grantLabel,
                     sourceHidden: input.sourceHidden

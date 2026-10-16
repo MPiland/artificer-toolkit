@@ -1354,7 +1354,7 @@ function modifierGrantEntryPlan(input: {
   if (
     (grants.modifiers?.length ?? 0) + senses.length === 0 ||
     grantedSenses.length !== senses.length ||
-    // A slot-scaled amount (Aid) resolves at cast time, which grants do not carry yet.
+    // A slot-scaled amount (Aid) is fixed by the cast level, so a cast resolves it before this plan.
     grants.modifiers?.some(
       ({ payload }) => payload && 'valueKind' in payload && payload.valueKind === 'SPELL_SLOT_LEVEL'
     ) ||

@@ -152,14 +152,43 @@ function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[
 /**
  * The Effect as one cast at `castLevel` runs it. A dice heal that scales by cast level rolls a
  * fixed number of dice, so it becomes the row the cast level selects (the highest level at or below
- * it, as a damage spell's scaling is selected); every other outcome is left as authored.
+ * it, as a damage spell's scaling is selected); a granted amount that scales by slot level becomes
+ * the fixed amount that level gives; every other outcome is left as authored.
  */
-function effectAtCastLevel(group: CompiledEffectGroup, castLevel: number): CompiledEffectGroup {
+export function effectAtCastLevel(
+  group: CompiledEffectGroup,
+  castLevel: number
+): CompiledEffectGroup {
   return {
     ...group,
     entries: group.entries.map((entry) => {
       if (!('outcome' in entry)) return entry
       const { outcome } = entry
+      if (outcome.effectKind === 'APPLY_GRANT' && outcome.grants.modifiers)
+        return {
+          ...entry,
+          outcome: {
+            ...outcome,
+            grants: {
+              ...outcome.grants,
+              modifiers: outcome.grants.modifiers.map((modifier) =>
+                modifier.payload &&
+                'valueKind' in modifier.payload &&
+                modifier.payload.valueKind === 'SPELL_SLOT_LEVEL'
+                  ? {
+                      ...modifier,
+                      payload: {
+                        valueKind: 'FIXED' as const,
+                        amount:
+                          (modifier.payload.multiplier ?? 1) *
+                          Math.max(0, castLevel - (modifier.payload.subtractLevels ?? 0))
+                      }
+                    }
+                  : modifier
+              )
+            }
+          }
+        }
       if (
         outcome.effectKind !== 'HEAL' ||
         outcome.valueKind !== 'DICE' ||
