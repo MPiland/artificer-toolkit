@@ -635,26 +635,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       command: Record<string, unknown> & { commandId: string },
       who: 'PLAYER' | 'OTHER_PLAYER' = 'PLAYER'
     ) {
-      const player = await connectPlayer(room.base, who)
-      const first = player.messages.length
-      player.socket.send(
-        JSON.stringify({
-          type: 'COMMAND',
-          expectedSessionSequence: 0,
-          command: { scope: 'ENCOUNTER', command }
-        })
-      )
-      return vi.waitFor(() => {
-        const answer = player.messages
-          .slice(first)
-          .find(
-            (message) =>
-              (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
-              message.commandId === command.commandId
-          )
-        if (!answer) throw new Error('The room has not answered the player.')
-        return answer
-      }, ROOM_REPLY_WAIT)
+      const player = await room.asPlayer(who)
+      return player.send(command.commandId, { scope: 'ENCOUNTER', command })
     },
     /** The room's own Optional Rule choice for the acting actor's action at `targetActorId`. */
     async optionalActionChoices(

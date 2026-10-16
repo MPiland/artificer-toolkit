@@ -24,6 +24,7 @@ import {
   type RoomCaller,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { domainRejection } from '../../tests/fixtures/playerControl'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -69,6 +70,10 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean; crea
       ...seededSrdLoadoutEquipment(dragon).map(importedSubject)
     ]
   })
+  // A second player, who owns no Character: the controller a GM can grant the dragon.
+  const dragonController = await createPartyPlayer(base.t, base.campaign)
+  await dragonController.join()
+  await setAutoRollDice(base.t, dragonController.userId, input.playerAutoRoll)
   await attachFixtureRoom(base.t, base.campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
@@ -92,7 +97,7 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean; crea
       [characterActor.id, dragonActor.id]
     )
   )
-  return { ...base, run, dragonActor, characterActor }
+  return { ...base, run, dragonActor, characterActor, dragonController }
 }
 
 type Fixture = Awaited<ReturnType<typeof setup>>
@@ -220,7 +225,7 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
           commandId: crypto.randomUUID(),
           expectedVersion: base.run.version,
           actorId: base.dragonActor.id,
-          controllerUserIds: [base.player.userId]
+          controllerUserIds: [base.dragonController.userId]
         }
       })
       const advanceInput = {
@@ -228,19 +233,24 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
       }
       const choice = await executeInRoom(base.owner.caller, advanceInput)
       const { option } = tailAttack(choice)
-      await expect(pendingFor(base, base.player.caller)).resolves.toMatchObject({
+      const pick = respond(base, choice, {
+        kind: 'LEGENDARY_OPTION',
+        optionId: option.optionId,
+        targetActorId: base.characterActor.id
+      })
+      // The grant is the dragon's controller's alone: the Character's own player is neither shown
+      // the choice nor allowed to answer it, and the refusal leaves the choice pending.
+      await expect(pendingFor(base, base.dragonController.caller)).resolves.toMatchObject({
         kind: 'LEGENDARY_ACTION_CHOICE',
         options: [option]
       })
-      const caller = answerer === 'PLAYER' ? base.player.caller : base.owner.caller
-      const attack = await executeInRoom(
-        caller,
-        respond(base, choice, {
-          kind: 'LEGENDARY_OPTION',
-          optionId: option.optionId,
-          targetActorId: base.characterActor.id
-        })
-      )
+      await expect(pendingFor(base, base.player.caller)).resolves.toBeNull()
+      await expect(executeInRoom(base.player.caller, pick)).rejects.toThrow()
+      await expect(pendingFor(base, base.dragonController.caller)).resolves.toMatchObject({
+        kind: 'LEGENDARY_ACTION_CHOICE'
+      })
+      const caller = answerer === 'PLAYER' ? base.dragonController.caller : base.owner.caller
+      const attack = await executeInRoom(caller, pick)
       const d20 = attack.occurrence?.pending
       if (d20?.kind !== 'D20_EVIDENCE') throw new Error('Expected the dragon’s attack roll.')
       expect(d20.rollerActorId).toBe(base.dragonActor.id)

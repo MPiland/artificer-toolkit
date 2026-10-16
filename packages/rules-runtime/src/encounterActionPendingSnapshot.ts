@@ -1,28 +1,39 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import type { EncounterCastReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterCastReactionOfferDto,
+  EncounterFailedCounterDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   PendingNativeActionGraphs,
   ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
 
+/** The kernel request a sealed snapshot waits on, without the application's wrapping. */
+export function pendingSnapshotContinuation(
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+): ServerRuleExecutionContinuationDto {
+  const {
+    snapshotKind: _snapshotKind,
+    applicationContext: _applicationContext,
+    optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+    phaseReceipts: _phaseReceipts,
+    deferredCleaving: _deferredCleaving,
+    ...continuation
+  } = snapshot
+  return continuation
+}
+
 /** The paused request a sealed snapshot holds, restored so its roller's answer can resume it. */
 export function restoreEncounterActionPending(
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
 ): ResumedNativeActionGraphs {
-  const {
-    snapshotKind: _snapshotKind,
-    applicationContext: context,
-    optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
-    phaseReceipts,
-    deferredCleaving: _deferredCleaving,
-    ...continuation
-  } = snapshot
+  const { applicationContext: context, phaseReceipts } = snapshot
   if (context.kind !== 'ENCOUNTER_ACTION')
     throw new Error('The pending action snapshot is invalid.')
   return {
     kind: 'PENDING',
-    continuation,
+    continuation: pendingSnapshotContinuation(snapshot),
     d20Policy: context.d20Policy,
     twoPhase: context.twoPhase,
     ...(context.d20Belief ? { d20Belief: context.d20Belief } : {}),
@@ -47,6 +58,7 @@ export function buildEncounterActionPendingSnapshot(input: {
   sourceActorId: string
   targetActorId: string
   currentnessChecksum: string
+  failedCounters?: readonly EncounterFailedCounterDto[]
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   const { execution } = input
   return {
@@ -69,7 +81,8 @@ export function buildEncounterActionPendingSnapshot(input: {
         ? { legendaryResistance: execution.legendaryResistance }
         : {}),
       ...(execution.reactionChoice ? { reactionChoice: execution.reactionChoice } : {}),
-      ...(execution.onHitChoice ? { onHitChoice: execution.onHitChoice } : {})
+      ...(execution.onHitChoice ? { onHitChoice: execution.onHitChoice } : {}),
+      ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }
@@ -89,6 +102,7 @@ export function buildEncounterCastReactionPendingSnapshot(input: {
   commandFingerprint: string
   initiatorUserId: string
   currentnessChecksum: string
+  failedCounters: readonly EncounterFailedCounterDto[]
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
@@ -104,7 +118,8 @@ export function buildEncounterCastReactionPendingSnapshot(input: {
       currentnessChecksum: input.currentnessChecksum,
       d20Policy: null,
       twoPhase: null,
-      castReaction: input.castReaction
+      castReaction: input.castReaction,
+      ...(input.failedCounters.length ? { failedCounters: [...input.failedCounters] } : {})
     }
   }
 }

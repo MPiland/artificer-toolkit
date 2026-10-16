@@ -91,9 +91,17 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
+- **Failed-counter binding is by reactor id only (REACTION-4.T3c):** persistence binds a failed Counterspell spend to the held pause by the reactor's id, without comparing the pin, the sealed choice or the d20. Similarly, the reactor-is-target merge doesn't compare the failed receipt's Character version. Both inputs come from the room's own planner, so a mismatch needs a room bug, and the GM can undo the action.
+
+- **A free GM pick for an attack on a square (ATTACK-17.T4):** the GM chooses only among the creatures whose token covers the square. Letting the GM name any creature (a creature that dodged into the square, a large creature the token footprint misses) is a larger rule and is deferred.
+- **Square attack answer after the pending index is lost (ATTACK-17.T4a):** a retried GM answer replays by its derived child command id; if the room journal has forgotten the pending and the occurrence index, the retry is rejected as stale rather than replayed. Rare and recoverable by aiming again.
+- **Square attack range is checked on the GM answer (ATTACK-17.T4a):** the aim seals the candidates, and the ordinary attack run on the named creature raises its normal range warning then, so the player learns of an out-of-range target only after the GM answers.
+- **A Scene edit while a square attack pends (ATTACK-17.T4a):** the candidates are sealed with the Scene version; a token moved afterwards does not change them, and the child attack re-reads the Scene as any attack does.
+- **An empty square is refused until T4b (ATTACK-17.T4a):** a player who aims at a square with nobody on it gets `TARGET_UNAVAILABLE`, which tells them it is empty. T4b replaces it with the guaranteed-miss root.
 - **A second Action Surge in one turn (ATTACK-9.T3):** SRD Action Surge is once per turn, but the feature-action path has no per-turn use cap, so a level-17 Fighter with two uses can spend both in one turn. The second one sets the same action count and wastes a charge; the GM can undo it. The fix is a per-turn use cap on feature actions, authored in data for Action Surge.
 - **Live-backend script spawn failure:** if `yarn` can't start, `scripts/liveBackendValidation.mjs` throws an unhandled rejection instead of a step error. This is dev tooling; the run still fails, just with a noisier log.
 - **`--fresh` guard:** `liveBackendValidation.mjs --fresh` checks the container by name only. A different container given the same name would be reset.
+- **A creature named twice by a projectile list that leaves a condition (SPELLS-19.T1):** `advanceAreaPrepared` does not add the effect an earlier entry created to the creature's `activeEffects`, so a repeated-target action whose outcome applies a condition reads the condition as already present when it records the second entry's baseline. No SRD projectile action applies a condition; it needs an authored list action that does.
 - **Chosen-creature list and a moved Scene (SPELLS-8.T12):** the list commit (`areaCommitPersistence.ts`, `input.area === null`) does not re-read the Scene, so a token moved between planning and commit (the sphere membership or range was checked at plan time) is not re-checked. Single-target commits re-read it. Only a Scene edit landing inside one command's await gap triggers it, and the GM can undo the cast.
 - **Range outline of a shaped chosen-creature list (SPELLS-8.T12):** Mass Cure Wounds draws no range outline from the caster (`enforcedRange` reports UNLIMITED for the creatures; the picked point carries the 60 ft range), yet the room warns for a point beyond it.
 - **Replay of a completed chosen-creature cast:** `actionAdmission.ts`'s replay branch expects a mechanics-batch output, so a retried command id after the room journal has forgotten it may raise "Stored Encounter action receipt mismatch." Unverified; point-area roots may share it.
@@ -212,6 +220,10 @@ D107 tracks what each hand holds, but spellcasting ignores it: a caster with a s
 ### One free object interaction per turn
 
 Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`). Candidate: track the SRD's one free object interaction per turn, so a second draw or stow costs the Use an Object action. Raised 2026-10-10 during ATTACK-7 design; post-launch.
+
+### Level-gated check on an effect (Dispel Magic)
+
+REACTION-4.T3c authors the level-gated check as `higherLevelCheck` on a `SPELL_CAST` reaction binding (roll only when the triggering level exceeds the level the reaction is cast at; DC = base DC + the triggering level). Dispel Magic is not a reaction: it ends an effect of a given level on a target, and an effect above the slot owes the same check. Its gate needs the same shape authored on the effect side, with the check resolved by the same rules-runtime requirement, before Dispel Magic can reuse it. Raised by Phase 8 on 2026-10-16; post-launch.
 
 ### Metric Campaigns
 
