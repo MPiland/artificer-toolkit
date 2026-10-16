@@ -178,7 +178,7 @@ Decided as D125.
 
 ## 8. SPELLS-27.T4: a structured end trigger and the damage-taken event
 
-Decision number pending (`D-pending-spells-27-t4`; the main session assigns the Dnnn).
+Decided as D132.
 
 - **Shape.** `definition.recurrence.endOnTriggers` is a list of `{ event: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds: string[] | null }`, unique and in `JSON.stringify` order. `damageTypeIds` is the same `damageTypeFilterDtoSchema` the `DAMAGE_TAKEN` reaction trigger uses (extracted into `shared/reaction.ts`), so the two never drift. The flat `consumeOnFirstEvents` / `endOnEvents` lists are untouched (T6 unifies them after REACTION-4.T3). `endOnTriggers` defaults to `[]` on read.
 - **Source side.** `SOURCE_SIDE` is the effect's `origin.sourceActorId` or an actor `encounterActorRelationship` calls `ALLIED` to it (Charm Person). The schema rejects a `SOURCE_SIDE` trigger on an effect with no Encounter source actor.
