@@ -976,8 +976,9 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
 
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
       expect(await hitPointsOf(room)).toBe(1)
+      // The pre-spent slots first, then the cast's: the state lists slots in the order they were spent.
       expect(await slotsOf(room, CASTER_ID)).toEqual(
-        [3, 4, 5].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
+        [3, 5, 4].map((level) => ({ slotKey: `STANDARD:${level}`, used: 1 }))
       )
     })
   })
