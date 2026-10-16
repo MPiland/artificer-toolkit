@@ -422,7 +422,7 @@ describe('the activation a cast carries', () => {
   ])(
     'offers $authored.label with the $activation its Effect authors, ready to run',
     ({ authored, activation }) => {
-      const [offered] = build([candidate(authored)]).candidates
+      const [offered] = build([candidate(authored, authored.level)]).candidates
       expect(offered?.mechanicFacts.invocation.activation).toEqual({ code: activation, amount: 1 })
       expect(compiledCast(authored)).not.toBeNull()
     }
