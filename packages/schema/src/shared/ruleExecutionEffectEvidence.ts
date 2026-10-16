@@ -284,7 +284,7 @@ export const spatialMovementExecutionDtoSchema = lazySchema(() =>
               (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
               (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
                 ? trace.outputs.conditionId === application.conditionId
-                : application.kind === 'STABILIZE'
+                : application.kind === 'STABILIZE' || application.kind === 'DEPART'
                   ? true
                   : application.kind === 'SCALAR_REDUCTION'
                     ? trace.outputs.amount === application.reductionAmount

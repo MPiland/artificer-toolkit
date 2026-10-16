@@ -18,6 +18,8 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
+import { planeShift } from '@artificer-toolkit/source-data/srd/spells/plane-shift.js'
+import { wordOfRecall } from '@artificer-toolkit/source-data/srd/spells/word-of-recall.js'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -569,6 +571,31 @@ describe('native phased action execution', () => {
     })
     expect(result.applications).toMatchObject([{ kind: 'STABILIZE', targetActorId: TARGET_ID }])
   })
+
+  it.each([
+    ['Word of Recall', wordOfRecall],
+    ['Plane Shift', planeShift]
+  ])(
+    'compiles the SRD %s to a depart proposal that applies without an amount',
+    async (_name, spell) => {
+      const [spellEffect] = spell.effects ?? []
+      if (!spellEffect) throw new Error('The SRD spell has no effect.')
+      const action = descriptor(compileEffect({ ...spellEffect, id: EFFECT_ID }))
+      expect(
+        singlePlan(action).published.definition.nodes.map(({ operation }) => operation.key)
+      ).toContain('dnd5e.depart-proposal')
+
+      const result = await executeNativeActionGraphs({
+        runtime: runtime(),
+        adapter: dnd5eCharacterRuleActionSystemAdapter,
+        plan: singlePlan(action),
+        occurrenceId: OCCURRENCE_ID,
+        binding: binding(),
+        afterTest: async () => undefined
+      })
+      expect(result.applications).toMatchObject([{ kind: 'DEPART', targetActorId: TARGET_ID }])
+    }
+  )
 
   it('compiles the SRD Antitoxin to a timed grant of poison-scoped save advantage', async () => {
     const [antitoxinEffect] = antitoxinVial.effects ?? []

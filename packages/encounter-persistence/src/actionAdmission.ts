@@ -124,24 +124,10 @@ export async function readNativeEncounterActionAdmission(
     const { _id: _occurrenceId, _creationTime: _occurrenceTime, ...storedOccurrence } = occurrence
     encounterStoredRuleOccurrenceSchema.parse(storedOccurrence)
     const payload = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-    if (payload.status !== 'COMPLETE') throw new Error('Stored Encounter action receipt mismatch.')
-    const initialExecution = payload.phaseReceipts?.[0]?.execution ?? payload
-    const terminalExecution = payload.phaseReceipts?.at(-1)?.execution ?? payload
-    if (
-      checksumRuleDocument({
-        outputs: terminalExecution.outputs,
-        evidence: terminalExecution.evidence
-      }) !==
-      checksumRuleDocument({
-        outputs: payload.outputs,
-        evidence: payload.evidence
-      })
-    )
-      throw new Error('Stored Encounter action phase receipt mismatch.')
     const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
       JSON.parse(receipt.commandMetadataJson)
     )
-    if (
+    const commonMismatch =
       occurrence.state !== 'COMPLETED' ||
       occurrence.encounterId !== run.id ||
       occurrence.campaignId !== campaign.id ||
@@ -158,21 +144,7 @@ export async function readNativeEncounterActionAdmission(
       receipt.resultChecksum !== root.ruleResultChecksum ||
       payload.occurrenceId !== occurrence.id ||
       payload.occurrenceVersion !== occurrence.version ||
-      (payload.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
-        payload.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH') ||
-      payload.applicationOutputs.occurrenceId !== occurrence.id ||
-      payload.applicationOutputs.sourceActorId !== input.actorId ||
-      (input.target.kind === 'ACTOR' &&
-        payload.applicationOutputs.targetActorId !== input.target.actorId) ||
       metadata.transition !== 'START' ||
-      metadata.definitionId !== initialExecution.evidence.source.definitionId ||
-      (payload.initialFactsChecksum !== undefined
-        ? metadata.factsChecksum !== payload.initialFactsChecksum ||
-          (payload.phaseReceipts !== undefined &&
-            payload.initialFactsChecksum !== payload.phaseReceipts[0]?.boundFactsChecksum)
-        : metadata.factsChecksum !==
-          (payload.phaseReceipts?.[0]?.boundFactsChecksum ??
-            checksumRuleDocument(initialExecution.evidence.facts))) ||
       metadata.expectedAggregateVersion !== input.expectedVersion ||
       metadata.optionalCombatSnapshotChecksum !== root.optionalCombatSnapshotChecksum ||
       replayReceipt.occurrence?.status !== 'COMPLETE' ||
@@ -180,8 +152,50 @@ export async function readNativeEncounterActionAdmission(
       replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
       replayReceipt.occurrence.pending !== null ||
       replayReceipt.roll !== null
-    )
-      throw new Error('Stored Encounter action receipt mismatch.')
+    // A countered cast ran no graph: its receipt names the Character spends, not rebuilt facts.
+    if (payload.status === 'AGGREGATE_CHOICE_COMPLETE') {
+      if (
+        commonMismatch ||
+        payload.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST' ||
+        payload.applicationOutputs.occurrenceId !== occurrence.id ||
+        payload.applicationOutputs.sourceActorId !== input.actorId
+      )
+        throw new Error('Stored Encounter action receipt mismatch.')
+    } else {
+      if (payload.status !== 'COMPLETE')
+        throw new Error('Stored Encounter action receipt mismatch.')
+      const initialExecution = payload.phaseReceipts?.[0]?.execution ?? payload
+      const terminalExecution = payload.phaseReceipts?.at(-1)?.execution ?? payload
+      if (
+        checksumRuleDocument({
+          outputs: terminalExecution.outputs,
+          evidence: terminalExecution.evidence
+        }) !==
+        checksumRuleDocument({
+          outputs: payload.outputs,
+          evidence: payload.evidence
+        })
+      )
+        throw new Error('Stored Encounter action phase receipt mismatch.')
+      if (
+        commonMismatch ||
+        (payload.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
+          payload.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH') ||
+        payload.applicationOutputs.occurrenceId !== occurrence.id ||
+        payload.applicationOutputs.sourceActorId !== input.actorId ||
+        (input.target.kind === 'ACTOR' &&
+          payload.applicationOutputs.targetActorId !== input.target.actorId) ||
+        metadata.definitionId !== initialExecution.evidence.source.definitionId ||
+        (payload.initialFactsChecksum !== undefined
+          ? metadata.factsChecksum !== payload.initialFactsChecksum ||
+            (payload.phaseReceipts !== undefined &&
+              payload.initialFactsChecksum !== payload.phaseReceipts[0]?.boundFactsChecksum)
+          : metadata.factsChecksum !==
+            (payload.phaseReceipts?.[0]?.boundFactsChecksum ??
+              checksumRuleDocument(initialExecution.evidence.facts)))
+      )
+        throw new Error('Stored Encounter action receipt mismatch.')
+    }
     const result = await replayEncounterCommandResult(ctx, state, replay)
     return { kind: 'REPLAY' as const, input, run, state, campaign, membership, fingerprint, result }
   }

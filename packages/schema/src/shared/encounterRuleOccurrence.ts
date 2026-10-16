@@ -3,7 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { postgresUuidSchema } from './postgresUuid.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 
 const uuidSchema = lazySchema(() =>
@@ -315,7 +315,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             })
           )
           .check(z.minLength(1))
-          .check(z.maxLength(8)),
+          .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({

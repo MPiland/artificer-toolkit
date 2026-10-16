@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import {
   encounterAttackD20Belief,
   encounterAttackSightCaptions,
+  encounterSaveSightCaptions,
   isEncounterSightGovernedD20,
   reconcileEncounterD20Faces
 } from '../encounterAttackBelief.js'
@@ -16,7 +17,8 @@ import {
   encounterAttackSightContributors,
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception,
-  type EncounterAttackPerception
+  type EncounterAttackPerception,
+  type EncounterPerceptionRoller
 } from '../encounterAttackPerception.js'
 import { selectEncounterActionD20Natural } from '../encounterEvidenceAnswer.js'
 import { mergeCanonicalD20Contributors } from '../encounterRelationshipActionFacts.js'
@@ -51,6 +53,7 @@ async function perceptions(input: {
   attackerConditionIds?: readonly string[]
   targetConditionIds?: readonly string[]
   targetBlindsight?: boolean
+  roller?: EncounterPerceptionRoller
 }) {
   const prepared = await prepareCreatureAction({
     actor: creatureActor({
@@ -90,7 +93,8 @@ async function perceptions(input: {
     believed: await resolveEncounterBelievedAttackPerception({
       ...loaders,
       attacker: prepared.sourceFacts,
-      target
+      target,
+      roller: input.roller
     })
   }
 }
@@ -299,6 +303,82 @@ describe('encounter attack sight captions', () => {
     )
     expect(captions!.gmReason).toContain(' · ')
     expect(captions!.gmReason.length).toBeLessThanOrEqual(160)
+  })
+})
+
+describe('believed sight for a save', () => {
+  it('believes the saver is Blinded when it rolls the save, but not when it rolls an attack', async () => {
+    const save = await perceptions({ targetConditionIds: [BLINDED], roller: 'TARGET' })
+    expect(save.believed.targetSeesAttacker).toBe('UNSEEN')
+    const attack = await perceptions({ targetConditionIds: [BLINDED] })
+    expect(attack.believed.targetSeesAttacker).toBe('SEES')
+  })
+
+  it('believes the source is Invisible to the saver, as it is', async () => {
+    const { believed } = await perceptions({ attackerConditionIds: [INVISIBLE], roller: 'TARGET' })
+    expect(believed.targetSeesAttacker).toBe('UNSEEN')
+  })
+})
+
+describe('encounter save sight captions', () => {
+  const advantage = {
+    sourceId: 'test:danger-sense',
+    grantId: null,
+    domainKey: 'test:danger-sense',
+    influence: 'ADVANTAGE' as const
+  }
+  const disadvantage = { ...advantage, influence: 'DISADVANTAGE' as const }
+  const sight = (
+    value: Partial<Parameters<typeof encounterSaveSightCaptions>[0]>
+  ): Parameters<typeof encounterSaveSightCaptions>[0] => ({
+    actual: {
+      targetSeesAttacker: 'SEES',
+      attackerSeesTarget: 'SEES',
+      targetSenseLabels: [],
+      attackerSenseLabels: []
+    },
+    trueSight: [],
+    believedSight: [],
+    attackerLabel: 'Fireball Caster',
+    targetLabel: 'Barbarian',
+    ...value
+  })
+
+  it('says nothing when the saver believes the mode it gets', () => {
+    expect(
+      encounterSaveSightCaptions(sight({ trueSight: [advantage], believedSight: [advantage] }))
+    ).toBeNull()
+  })
+
+  it('shows the player a generic reason and the GM the specific one when advantage is lost', () => {
+    const captions = encounterSaveSightCaptions(sight({ believedSight: [advantage] }))
+    expect(captions).toEqual({
+      playerCaption: 'Advantage no longer applies to this save',
+      gmReason: "Barbarian can't see Fireball Caster"
+    })
+    expect(captions!.playerCaption).not.toContain('Fireball Caster')
+  })
+
+  it('names the Sense only for the GM when advantage is gained, and words disadvantage alike', () => {
+    const gained = encounterSaveSightCaptions(
+      sight({
+        trueSight: [advantage],
+        actual: {
+          targetSeesAttacker: 'SEES',
+          attackerSeesTarget: 'SEES',
+          targetSenseLabels: [blindsightLabel],
+          attackerSenseLabels: []
+        }
+      })
+    )
+    expect(gained).toEqual({
+      playerCaption: 'Advantage applies to this save',
+      gmReason: `Barbarian senses Fireball Caster with ${blindsightLabel}`
+    })
+    expect(gained!.playerCaption).not.toContain(blindsightLabel)
+    expect(encounterSaveSightCaptions(sight({ trueSight: [disadvantage] }))!.playerCaption).toBe(
+      'Disadvantage applies to this save'
+    )
   })
 })
 

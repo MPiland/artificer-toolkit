@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { telepathicBond } from '@artificer-toolkit/source-data/srd/spells/telepathic-bond.js'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -17,6 +18,10 @@ import type { EncounterFeatureActionCapabilityDescriptor } from '../encounterFea
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 
 const ids = {
   encounter: '00000000-0000-4000-8000-000000000901',
@@ -395,5 +400,54 @@ describe('encounter Grappled outcome held at once', () => {
         otherHolds: [holdBySource(heldA, otherOutcome), holdBySource(heldB, otherOutcome)]
       }).recurringEffect
     ).not.toBeNull()
+  })
+})
+
+describe('encounter actor link plan (SPELLS-28)', () => {
+  const bondPlan = (memberActorIds: readonly string[]) => {
+    const effect = telepathicBond.effects?.[0]
+    if (!effect) throw new Error('Telepathic Bond has no effect.')
+    const action = characterActionDescriptor(compileEffect({ ...effect, id: ACTION_EFFECT_ID }))
+    const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+    const [plan] = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({ action, published })
+    return prepareEncounterActionEffectPlans({
+      encounterId: ids.encounter,
+      occurrenceId: ids.occurrence,
+      commandId: ids.command,
+      sourceActorId: ids.source,
+      sourceLabel: null,
+      sourceHidden: false,
+      currentActorId: null,
+      target: {
+        actorId: ids.target,
+        conditionIds: [],
+        effectiveSize: 'MEDIUM',
+        lifetimeScope: 'ENCOUNTER',
+        activeEffects: []
+      },
+      activeEffectsByActorId: new Map(),
+      activeEffectPlan: plan ?? null,
+      link: { memberActorIds },
+      published,
+      execution: execution(),
+      d20: null,
+      applications: []
+    }).recurringEffect
+  }
+
+  it('freezes every bonded creature, sorted, into the bond each target holds', () => {
+    const definition = bondPlan([ids.target, ids.source, ids.occurrence])?.definition
+    if (definition?.schemaVersion !== 2) throw new Error('Expected state contributions.')
+    expect(definition.stateContributions).toEqual([
+      expect.objectContaining({
+        kind: 'ACTOR_LINK',
+        linkKind: 'TELEPATHIC',
+        memberActorIds: [ids.target, ids.source, ids.occurrence].sort()
+      })
+    ])
+  })
+
+  it('leaves no bond when fewer than two creatures were reached', () => {
+    expect(bondPlan([ids.target])).toBeNull()
   })
 })

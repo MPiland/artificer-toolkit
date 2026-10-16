@@ -93,6 +93,15 @@ function damage(input: {
   }
 }
 
+const depart: CharacterRuleActionApplication = {
+  sourceNodeId: origin.sourceNodeId,
+  sourceOperationKey: 'dnd5e.depart-proposal',
+  authoredPath: null,
+  resolvedPath: null,
+  kind: 'DEPART',
+  targetActorId: ACTOR_ID
+}
+
 function conditionApply(conditionIdValue: string): CharacterRuleActionApplication {
   return {
     ...origin,
@@ -306,6 +315,44 @@ describe('Creature mechanics batch plan', () => {
         applied: false
       }
     ])
+    expect(plan.stateChanged).toBe(false)
+  })
+
+  it('marks the actor departed and leaves its hit points, conditions and place in the Run alone (D128)', () => {
+    const actor = creature({ current: 11, temporary: 0, max: 11, conditions: [POISONED] })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([depart]),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toEqual({ ...actor, absence: 'DEPARTED' })
+    expect(plan.receiptApplications).toEqual([
+      {
+        sourceNodeId: origin.sourceNodeId,
+        sourceOperationKey: 'dnd5e.depart-proposal',
+        authoredPath: null,
+        resolvedPath: null,
+        ordinal: 0,
+        kind: 'DEPART',
+        applied: true
+      }
+    ])
+    expect(plan.targetTransition.before).toEqual(plan.targetTransition.after)
+    expect(plan.stateChanged).toBe(true)
+  })
+
+  it('records a departure of an actor already away without changing it', () => {
+    const away = {
+      ...creature({ current: 11, temporary: 0, max: 11 }),
+      absence: 'GM_REMOVED' as const
+    }
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([depart]),
+      actor: away,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toEqual(away)
+    expect(plan.receiptApplications).toMatchObject([{ kind: 'DEPART', applied: false }])
     expect(plan.stateChanged).toBe(false)
   })
 
@@ -630,6 +677,25 @@ describe('Character mechanics batch plan', () => {
       shouldAdvance: false,
       characterUpdate: null,
       receiptApplications: []
+    })
+  })
+
+  it('marks a departing Character absent in the Run without touching its Sheet (D128)', () => {
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([depart], {
+        expectedCharacterStreamVersion: STREAM_VERSION,
+        effectiveMaximumHitPoints: 12
+      }),
+      actor,
+      userId: USER_ID,
+      characterFacts
+    })
+    expect(plan.updatedActor).toEqual({ ...actor, absence: 'DEPARTED' })
+    expect(plan.receiptApplications).toMatchObject([{ kind: 'DEPART', applied: true }])
+    expect(plan).toMatchObject({
+      characterStreamVersion: null,
+      shouldAdvance: false,
+      characterUpdate: null
     })
   })
 

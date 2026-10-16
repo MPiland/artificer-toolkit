@@ -5,7 +5,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { SRD_CREATURE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -17,6 +16,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { mend } from './mendSpell.js'
 import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
 
 const CHARACTER_ACTOR_ID = testUuid(0x7c0)
@@ -218,23 +218,6 @@ describe('room upcast point-area spell cast by a Character', () => {
     expect(await readSpellSlots(room)).toEqual([])
   })
 })
-
-/** Cure Wounds with no Scene geometry, healing a fixed 2. */
-const mend: SpellAuthored = (() => {
-  const spell = structuredClone(cureWounds)
-  for (const effect of spell.effects ?? []) {
-    if (effect.invocation.kind !== 'ACTION') continue
-    effect.invocation.range = { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' }
-    effect.invocation.targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
-  }
-  const path = spell.effects?.[0]?.paths?.[0]
-  const outcome = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[0] : undefined
-  if (outcome?.effectKind !== 'HEAL') throw new Error('Cure Wounds heals.')
-  Object.assign(outcome, { valueKind: 'FIXED', scalingKind: 'NONE', amount: 2 })
-  for (const key of ['diceConfig', 'levels', 'scalingSource', 'bonuses'])
-    delete (outcome as Record<string, unknown>)[key]
-  return { ...spell, id: testUuid(0x7c5), label: 'Mend', level: 1 }
-})()
 
 describe('room single-target spell cast by a Character', () => {
   it('spends the slot with the heal in one Character version, and one undo restores both', async () => {

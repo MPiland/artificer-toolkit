@@ -232,6 +232,7 @@ export async function persistEncounterBasicAction(
         consumedGrants: input.consumedGrants,
         endedGrants: endedEffects
       }),
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,

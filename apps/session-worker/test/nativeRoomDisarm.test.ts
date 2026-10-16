@@ -206,6 +206,25 @@ describe('room Disarm contests', () => {
     expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toEqual([])
   })
 
+  // A Disarm releases no condition yet (SPELLS-27.T2b), so it must not strand one.
+  it('keeps an initiator’s grant that owns a condition, which a Disarm cannot release', async () => {
+    const disarming = await disarmRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [9, 9],
+      seed: seedModifierGrant({
+        sourceActorId: TARGET_ID,
+        holderActorId: SOURCE_ID,
+        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        ownedConditionId: srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')!
+          .id
+      })
+    })
+
+    await startDisarm(disarming)
+
+    expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toHaveLength(1)
+  })
+
   it('starts a Disarm of a two-handed holder', async () => {
     const disarming = await disarmRoom({
       autoRoll: 'GAME_MASTER',
