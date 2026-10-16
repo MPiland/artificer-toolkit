@@ -70,8 +70,7 @@ export type EncounterCastReactionPinDto = z.infer<typeof encounterCastReactionPi
 /** What identifies the reaction offered, independent of the volatile Character version and allowance. */
 export function encounterReactionSelectionIdentity(
   pin: Pick<
-    EncounterReactionPinDto | EncounterCastReactionPinDto,
-    | 'trigger'
+    EncounterReactionPinDto,
     | 'reactorActorId'
     | 'characterId'
     | 'actionId'
@@ -79,7 +78,7 @@ export function encounterReactionSelectionIdentity(
     | 'allowanceDefinitionId'
     | 'choiceDefinitionId'
     | 'choiceDefinitionChecksum'
-  >
+  > & { trigger: string }
 ) {
   return {
     trigger: pin.trigger,
