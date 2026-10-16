@@ -77,7 +77,12 @@ async function equipmentRoom() {
     heldEntryId,
     storedOgre,
     runVersion,
-    async replace(input: { equipmentId: string; actorId?: string; commandId?: string }) {
+    async replace(input: {
+      equipmentId: string
+      actorId?: string
+      commandId?: string
+      expectedVersion?: number
+    }) {
       const commandId = input.commandId ?? crypto.randomUUID()
       return room.send(commandId, {
         scope: 'ENCOUNTER',
@@ -85,7 +90,7 @@ async function equipmentRoom() {
           type: 'REPLACE_CREATURE_EQUIPMENT',
           encounterId: room.encounterId,
           commandId,
-          expectedVersion: await runVersion(),
+          expectedVersion: input.expectedVersion ?? (await runVersion()),
           actorId: input.actorId ?? OGRE_ID,
           loadoutEntryId: heldEntryId,
           equipmentId: input.equipmentId
@@ -102,7 +107,11 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     const versionBefore = await room.runVersion()
     const commandId = crypto.randomUUID()
 
-    const answer = await room.replace({ equipmentId: compatibleGreatclub.id, commandId })
+    const answer = await room.replace({
+      equipmentId: compatibleGreatclub.id,
+      commandId,
+      expectedVersion: versionBefore
+    })
 
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await room.runVersion()).toBe(versionBefore + 1)
@@ -124,7 +133,11 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     expect(source!.sourceChecksum).toBe(checksumRuleDocument(source!.payload))
     expect(after.currentHitPoints).toBe(before.currentHitPoints)
 
-    const replay = await room.replace({ equipmentId: compatibleGreatclub.id, commandId })
+    const replay = await room.replace({
+      equipmentId: compatibleGreatclub.id,
+      commandId,
+      expectedVersion: versionBefore
+    })
     expect(replay.type, JSON.stringify(replay)).toBe('COMMAND_COMMITTED')
     expect(await room.runVersion()).toBe(versionBefore + 1)
   })
