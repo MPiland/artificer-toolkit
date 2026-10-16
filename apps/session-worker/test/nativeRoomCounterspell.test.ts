@@ -3,6 +3,7 @@ import { characterActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSr
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -28,6 +29,8 @@ const CASTER_ID = testUuid(0x7e1)
 const REACTOR_ACTOR_ID = testUuid(0x7e2)
 const REACTOR_ID = testUuid(0x7e3)
 const SLOT_SPENT = (level: number) => [{ slotKey: `STANDARD:${level}`, used: 1 }]
+const invisible = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')
+if (!invisible) throw new Error('The SRD names the Invisible condition.')
 
 afterEach(() => {
   closeTrackedSockets()
@@ -44,6 +47,8 @@ function counterspellRoom(
     castLevel?: string
     reactorSpells?: boolean
     reactorSlotsSpent?: readonly { slotKey: string; used: number }[]
+    /** Sheet conditions the Caster already carries. */
+    casterConditions?: { conditionTypeId: string; label: string }[]
   } = {}
 ) {
   const {
@@ -51,6 +56,7 @@ function counterspellRoom(
     castLevel = '1st',
     reactorSpells = true,
     reactorSlotsSpent,
+    casterConditions,
     ...rest
   } = options
   return actionRoom({
@@ -68,7 +74,10 @@ function counterspellRoom(
       characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
     ],
     characterSpellcasting: { spells: [spell], prepared: [spell.id] },
-    characterPlay: { currentHitPoints: 1 },
+    characterPlay: {
+      currentHitPoints: 1,
+      ...(casterConditions && { conditions: casterConditions })
+    },
     secondCharacter: {
       characterId: REACTOR_ID,
       play: { spellSlots: reactorSlotsSpent },
@@ -187,21 +196,28 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     await offered(room)
   })
 
-  it('uses up the caster’s grants that end on a cast even when the cast is countered, and one undo gives them back (SPELLS-27.1)', async () => {
+  it('uses up the caster’s grant that ends on a cast, and releases its condition, even when the cast is countered, and one undo gives both back (SPELLS-27.1)', async () => {
     const room = await counterspellRoom({
+      casterConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],
       seed: seedModifierGrant({
         sourceActorId: CASTER_ACTOR_ID,
         holderActorId: CASTER_ACTOR_ID,
-        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] }
+        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] },
+        ownedConditionId: invisible.id
       })
     })
     const grantIds = async () =>
       (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    const conditionIds = async () =>
+      ((await readPlay(room, CASTER_ID)).conditions ?? []).map(
+        ({ conditionTypeId }) => conditionTypeId
+      )
     const held = await grantIds()
     expect(held).toHaveLength(1)
     await cast(room)
     const { decision, pending } = await offered(room)
     expect(await grantIds()).toEqual(held)
+    expect(await conditionIds()).toEqual([invisible.id])
 
     const used = await room.resolve(decision, {
       kind: 'OPTION',
@@ -209,6 +225,37 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     expect(await grantIds()).toEqual([])
+    expect(await conditionIds()).toEqual([])
+
+    await undoLastAction(room)
+    expect(await grantIds()).toEqual(held)
+    expect(await conditionIds()).toEqual([invisible.id])
+  })
+
+  it('ends the grant once when the cast is declined and then resolves', async () => {
+    const room = await counterspellRoom({
+      casterConditions: [{ conditionTypeId: invisible.id, label: 'Invisible' }],
+      seed: seedModifierGrant({
+        sourceActorId: CASTER_ACTOR_ID,
+        holderActorId: CASTER_ACTOR_ID,
+        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] },
+        ownedConditionId: invisible.id
+      })
+    })
+    const grantIds = async () =>
+      (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    const held = await grantIds()
+    await cast(room)
+    const { decision } = await offered(room)
+
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds()).toEqual([])
+    expect(
+      ((await readPlay(room, CASTER_ID)).conditions ?? []).map(
+        ({ conditionTypeId }) => conditionTypeId
+      )
+    ).toEqual([])
 
     await undoLastAction(room)
     expect(await grantIds()).toEqual(held)

@@ -1251,6 +1251,51 @@ describe('Character spell casting in an Encounter', () => {
       240000
     )
 
+    // The new Concentration replaces the old one, which already ends Invisibility as its dependent:
+    // the cast must end it once, not twice.
+    it('ends once when the cast is another Concentration spell, and a GM undo gives the Invisibility back', async () => {
+      const fixture = await setup({
+        known: [concentrationSpell(invisibility), concentrationSpell(fly)],
+        slots: [
+          { spellLevel: 2, slotCount: 1 },
+          { spellLevel: 3, slotCount: 1 }
+        ]
+      })
+      if (!invisibleId) throw new Error('Missing the Invisible condition.')
+      const unseen = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, await choiceId(fixture, 'Invisibility (2nd level)', 0), 0)
+      })
+      expect(unseen.occurrence?.status).toBe('COMPLETE')
+      const [invisibleConcentration] = await maintainedEffects(fixture)
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: invisibleConcentration?.id }
+      ])
+
+      await resetActionAllowance(fixture)
+      const flying = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(
+          fixture,
+          await choiceId(fixture, 'Fly (3rd level)', unseen.projection.version),
+          unseen.projection.version
+        )
+      })
+      expect(flying.occurrence?.status).toBe('COMPLETE')
+      const [flightConcentration, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      expect(flightConcentration?.id).not.toBe(invisibleConcentration?.id)
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: flightConcentration?.id }
+      ])
+      expect(await conditionIds(fixture)).not.toContain(invisibleId)
+
+      await revert(fixture, flying.projection.version)
+      expect(await maintainedEffects(fixture)).toEqual([invisibleConcentration])
+      expect(await characterActiveEffects(fixture)).toEqual([
+        { maintainedEffectStateId: invisibleConcentration?.id }
+      ])
+      expect(await conditionIds(fixture)).toContain(invisibleId)
+    }, 240000)
+
     /** Invisibility as an author builds it in the Spell form: its own id and label, ending on a cast only. */
     function castOnlyVariant() {
       const variant = srdSpell(invisibility)

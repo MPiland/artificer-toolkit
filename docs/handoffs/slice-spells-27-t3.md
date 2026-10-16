@@ -22,13 +22,15 @@ Iterate in CI (`ci/spells-27-t3`). Parent: [slice-spells-27.md](slice-spells-27.
 - Rules-runtime unit: `encounterEndedEffectRelease.test.ts` (cast describe), `grantLifetimes.test.ts` (multi-event, one end per effect).
 - Journey (Convex, real room): `actionSpellCasting.test.ts` Invisibility describe. Cast Invisibility, cast Cure Wounds on another creature and on the caster: effect, condition and Concentration end; a GM undo gives all three back.
 - Authoring parity (ADR 0038 decision 1): same describe. The SRD record and an author's variant (own id and label, `endOnEvents: ['ON_CAST_SPELL']`) pass the real `spell` node map unchanged (`clearedPaths` empty, effects equal), and the variant ends on a cast as the SRD does.
-- Worker rooms: `nativeRoomChosenActorsSpell.test.ts` (list cast ends the caster's cast-ending grant, one undo returns it) and `nativeRoomCounterspell.test.ts` (a countered cast still ends it, one undo returns it).
+- Concentration collision (reviewer finding): casting a second Concentration spell while the first Concentration is an Invisibility used to end the Invisibility effect twice (cast trigger and the replaced-Concentration maintenance), and `deleteCas` threw. `planNativeLiveEncounterAction` now computes the ended effects after the maintenance and leaves out the effects it removes. Regression: `actionSpellCasting.test.ts` "ends once when the cast is another Concentration spell, and a GM undo gives the Invisibility back".
+- Worker rooms: `nativeRoomChosenActorsSpell.test.ts` (list cast, and list cast with the caster among the chosen creatures) and `nativeRoomCounterspell.test.ts` (countered cast, and declined then resolved). Each seeds the grant with an owned Invisible condition on the Character's Sheet and checks the condition is released and one undo restores grant and condition, so the `sourceApplications` persistence and revert branches run.
 
 ## Disclosures
 
 - Schema contract change: `sourceApplications` is required on the area and countered roots (`sourceSpendReceiptShape`), and `consumedGrants` on their commit inputs. Pre-launch, no shim; development receipts that fail the new field take the approved local reset.
 - Creature and Legendary casts do not raise `ON_CAST_SPELL` (`preparedSpellCastLevel` is Character-only). No SRD creature effect lists the event today.
 - Pre-existing, unchanged: an area ray's grant that ends only on `ON_ATTACK_ROLL` is not consumed (area casts are covered by `ON_CAST_SPELL`).
+- Not covered, proposed as a follow-up: a Character's _reactor_ casts. A Shield (or Counterspell) cast as the reaction to another creature's action, spent through `reactionUse` / the countered cast's `reactorSpend`, does not raise `ON_CAST_SPELL` for the reactor, so an invisible Character who reacts with Shield stays invisible. It needs the reactor's own releases and consumed grants carried on the host action's contract and undone with it. The cast reaction this slice covers is the Character's own cast (action, area, list, countered).
 - T6 still unifies `consumeOnFirstEvents` and `endOnEvents`; `effectsEndedBy` reads both.
 
 ## Log

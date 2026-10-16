@@ -553,16 +553,7 @@ export async function planNativeLiveEncounterAction(
     definitions,
     speedDefinitions: system.speeds
   })
-  // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
-  // a saving-throw action leaves them for the next attack. An effect that ends with the roll or the
-  // cast (Invisibility) releases the condition it alone held in the source's own batch.
   const triggerLevel = preparedSpellCastLevel(prepared)
-  const { consumedGrants, sourceReleases } = actionEndedEffects({
-    holderActorId: prepared.actor.id,
-    held: activeEffectsByActorId.get(prepared.actor.id) ?? [],
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: triggerLevel !== null
-  })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const { activationCode, economy, suppressed, attackAction } =
@@ -678,6 +669,19 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     capture,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
+  })
+  // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
+  // a saving-throw action leaves them for the next attack. An effect that ends with the roll or the
+  // cast (Invisibility) releases the condition it alone held in the source's own batch. A new
+  // Concentration already ends its replaced dependents, and releases their conditions, with the
+  // maintenance transition, so those are not ended a second time here.
+  const { consumedGrants, sourceReleases } = actionEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
+      (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
+    ),
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
+    castsSpell: triggerLevel !== null
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
