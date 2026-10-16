@@ -566,10 +566,7 @@ export function buildNativeLiveEncounterCounteredCastCommitInput(
     itemConsumption: prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: prepared.characterActionState?.spellConsumption ?? null,
     reactionSpellConsumption: countered.reactionSpellConsumption,
-    failedCounters: countered.failedCounters.map(({ receipt, spellConsumption }) => ({
-      receipt,
-      spellConsumption
-    })),
+    failedCounters: countered.failedCounters,
     consumedGrants: countered.consumedGrants,
     label: encounterActionSourceLabel(prepared.source),
     ruleOverrides: plan.ruleOverrides
