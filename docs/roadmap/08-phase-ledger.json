@@ -8300,8 +8300,8 @@
               }
             },
             {
-              "id": "SPELLS-20.T2",
-              "text": "Ending, dropping or replacing Concentration removes the zone the spell placed (Concentration-maintained spatial effects, serving every lasting zone).",
+              "id": "SPELLS-20.T2a",
+              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians.",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
@@ -8310,6 +8310,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T2b",
+              "text": "Ending, dropping or replacing Concentration removes the zones dependent on that maintained state in the same transaction (one cleanup path, D135), and GM undo restores them; serves every lasting zone.",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T2a"]
               }
             },
             {
