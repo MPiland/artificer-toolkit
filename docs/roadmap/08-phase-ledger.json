@@ -8035,7 +8035,7 @@
         {
           "id": "SPELLS-27",
           "title": "Effects end on their authored end events",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8062,7 +8062,16 @@
             "tc": 2,
             "rr": 3,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-27.T1",
+              "text": "Survey end-event mechanics and propose one generic end-event consumer and the authored event vocabulary; ruling recorded as a D-number before build.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-27.1", "SPELLS-27.2"],
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            }
+          ]
         }
       ]
     },

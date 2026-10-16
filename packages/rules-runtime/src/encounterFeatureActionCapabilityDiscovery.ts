@@ -242,7 +242,10 @@ function snapshotLoadout(actor: EncounterProjectionActorInput) {
 function hitDamageTypeIds(effect: CompiledEffectGroup): ReadonlySet<string> {
   return new Set(
     effect.entries.flatMap((entry) =>
-      entry.pathCode === 'ON_HIT' && 'outcome' in entry && entry.outcome.effectKind === 'DAMAGE'
+      entry.pathCode === 'ON_HIT' &&
+      'outcome' in entry &&
+      entry.outcome.effectKind === 'DAMAGE' &&
+      entry.outcome.damageTypeId !== undefined
         ? [entry.outcome.damageTypeId]
         : []
     )

@@ -140,7 +140,9 @@ async function setup(
                       resultBlock: {
                         ...path.resultBlock,
                         outcomes: path.resultBlock.outcomes.map((outcome) =>
-                          outcome.effectKind === 'DAMAGE' ? { ...outcome, amount: 40 } : outcome
+                          outcome.effectKind === 'DAMAGE' && outcome.damageTypeId !== undefined
+                            ? { ...outcome, amount: 40 }
+                            : outcome
                         )
                       }
                     }
