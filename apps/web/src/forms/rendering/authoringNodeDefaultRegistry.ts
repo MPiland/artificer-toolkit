@@ -85,6 +85,7 @@ type AuthoringDefaultKind =
   | 'outcomeBonus'
   | 'pathChoiceOption'
   | 'pathLifecycle'
+  | 'pathLifecycleEndTrigger'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
@@ -216,6 +217,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathLifecycle: ['pathLifecycle'],
+  pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],

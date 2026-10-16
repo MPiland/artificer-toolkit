@@ -57,7 +57,8 @@ function damageRoom(input: {
     ],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
     autoRoll: 'BOTH',
-    rolls: [input.attackRoll ?? 14],
+    // An invisible target is attacked with disadvantage: two d20s, both the same.
+    rolls: [input.attackRoll ?? 14, input.attackRoll ?? 14],
     fallbackRoll: 0,
     seed: async ({ effects, encounterId, occurredAt }) => {
       const planned = plannedTimedCondition({
