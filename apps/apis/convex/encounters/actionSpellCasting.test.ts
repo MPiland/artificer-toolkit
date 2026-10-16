@@ -1087,19 +1087,26 @@ describe('Character spell casting in an Encounter', () => {
       expect(pending.request.derivedRollModeReasons).toContain('Unseen attacker')
       expect(await characterActiveEffects(fixture)).toHaveLength(1)
 
+      // The hit leaves its damage dice to roll by hand too; the effect ends when the action completes.
       await queueRoomRolls(fixture.campaign.id, { rolls: [19], repeat: 19 })
-      const rolled = await executeInRoom(fixture.gm.caller, {
-        command: {
-          type: 'ROLL_RULE_EVIDENCE',
-          encounterId: fixture.run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: pending.encounterVersion,
-          occurrenceId: pending.occurrenceId,
-          expectedOccurrenceVersion: pending.occurrenceVersion,
-          requestId: pending.request.requestId,
-          rollMode: null
-        }
-      })
+      let rolled = attacked
+      for (let step = 0; step < 2 && rolled.occurrence?.status === 'PENDING'; step += 1) {
+        const awaiting = rolled.occurrence.pending
+        if (awaiting?.kind !== 'D20_EVIDENCE' && awaiting?.kind !== 'ACTION_OUTCOME_EVIDENCE')
+          throw new Error('Expected a roll for the caster.')
+        rolled = await executeInRoom(fixture.gm.caller, {
+          command: {
+            type: 'ROLL_RULE_EVIDENCE',
+            encounterId: fixture.run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: awaiting.encounterVersion,
+            occurrenceId: awaiting.occurrenceId,
+            expectedOccurrenceVersion: awaiting.occurrenceVersion,
+            requestId: awaiting.request.requestId,
+            rollMode: null
+          }
+        })
+      }
       expect(rolled.occurrence?.status).toBe('COMPLETE')
       expect(await characterActiveEffects(fixture)).toEqual([])
       expect(await maintainedEffects(fixture)).toEqual([])
