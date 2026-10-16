@@ -70,6 +70,13 @@ import {
   type EncounterReactionSelection
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
+import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
+import {
+  onHitCandidates,
+  onHitSpellConsumption
+} from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
+import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import {
   applyNativeAttackReaction,
   discoverNativeAttackReaction
@@ -208,6 +215,10 @@ export async function planNativeLiveEncounterAction(
     offer: EncounterReactionOfferDto
     selection: EncounterReactionSelection
   } | null = null
+  let onHitAnswer: {
+    offer: EncounterOnHitOfferDto
+    selection: EncounterOnHitSelection
+  } | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
@@ -228,6 +239,10 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a reaction decision.')
       reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
+    } else if (snapshot.applicationContext.onHitChoice) {
+      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+        throw new Error('The action requires an on-hit decision.')
+      onHitAnswer = { offer: snapshot.applicationContext.onHitChoice, selection: resolution }
     } else if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
@@ -721,6 +736,20 @@ export async function planNativeLiveEncounterAction(
       adjustedBinding: applied?.adjustedBinding ?? prepared.binding
     }
   }
+  // The optional on-hit riders the attacker could pay for now: a Character's slots pay them, unless
+  // the action already spends one.
+  const attackPlan = prepared.plan
+  const onHitNow =
+    prepared.source.kind === 'CHARACTER_ACTION' &&
+    attackPlan.kind === 'TEST_OUTCOME' &&
+    !prepared.characterActionState?.spellConsumption
+      ? onHitCandidates({
+          riders: prepared.adapter.optionalOnHitRiders({
+            compilerSource: attackPlan.compilerSource
+          }),
+          spellSlots: prepared.source.effectivePolicyOutput.spellSlots
+        })
+      : []
   const answered = resistanceAnswer
     ? await resolveNativeActionLegendaryResistance({
         ...actionSource,
@@ -742,16 +771,42 @@ export async function planNativeLiveEncounterAction(
           ...(await resolveNativeActionReaction({
             ...actionSource,
             ...reactionAnswer,
-            ...answeredReaction
+            ...answeredReaction,
+            onHitCandidates: onHitNow
           }))
         }
       : null
+  // A held on-hit offer that follows a used reaction answers the hit as that reaction left it.
+  const heldReaction = onHitAnswer?.offer.reaction
+    ? {
+        reaction: onHitAnswer.offer.reaction,
+        testExecution: onHitAnswer.offer.testExecution,
+        testRollEvidence: onHitAnswer.offer.testD20
+      }
+    : null
+  const heldReactionNow = heldReaction
+    ? await currentReaction(
+        heldReaction.reaction.selection === 'USE',
+        heldReaction.reaction.reaction.actionId,
+        heldReaction.testExecution.outputs.resultPath === 'ON_CRIT'
+      )
+    : null
+  const answeredOnHit = onHitAnswer
+    ? await resolveNativeActionOnHit({
+        ...actionSource,
+        ...onHitAnswer,
+        candidates: onHitNow,
+        adjustedBinding: heldReactionNow?.adjustedBinding ?? null
+      })
+    : null
   const execution =
     answered?.execution ??
     reactionAnswered?.execution ??
+    answeredOnHit?.execution ??
     (await advanceNativeActionGraphs({
       ...actionSource,
       attackSight: prepared.attackSight,
+      onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
@@ -771,19 +826,19 @@ export async function planNativeLiveEncounterAction(
         })
       : null)
   const retainedReaction =
-    execution.kind !== 'PENDING' &&
-    !reactionAnswered &&
-    retained?.phase === 'OUTCOME' &&
-    retained.reaction
-      ? retained
+    execution.kind !== 'PENDING' && !reactionAnswered
+      ? (heldReaction ??
+        (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
-  const replayedReaction = retainedReaction
-    ? await currentReaction(
-        retainedReaction.reaction!.selection === 'USE',
-        retainedReaction.reaction!.reaction.actionId,
-        retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
-      )
-    : null
+  const replayedReaction =
+    heldReactionNow ??
+    (retainedReaction
+      ? await currentReaction(
+          retainedReaction.reaction!.selection === 'USE',
+          retainedReaction.reaction!.reaction.actionId,
+          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
+        )
+      : null)
   const reaction =
     execution.kind === 'PENDING'
       ? null
@@ -823,6 +878,26 @@ export async function planNativeLiveEncounterAction(
     revisions
   }
   if (execution.kind === 'PENDING') return { ...preflight, kind: 'PENDING' as const, execution }
+  // The slot an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
+  // fence above was taken on the unspent attack.
+  const chosenOnHit =
+    answeredOnHit?.audit.option ??
+    (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
+  const settledPrepared =
+    chosenOnHit && prepared.source.kind === 'CHARACTER_ACTION' && prepared.characterActionState
+      ? {
+          ...prepared,
+          characterActionState: {
+            ...prepared.characterActionState,
+            spellConsumption: onHitSpellConsumption({
+              spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
+              slotLevel: chosenOnHit.slotLevel,
+              characterId: prepared.source.characterId,
+              expectedStreamVersion: prepared.source.characterStreamVersion
+            })
+          }
+        }
+      : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({
     prepared,
     execution,
@@ -846,7 +921,7 @@ export async function planNativeLiveEncounterAction(
   })
   const planned = planNativeEncounterActionMechanics(
     {
-      prepared,
+      prepared: settledPrepared,
       encounterId: state.id,
       expectedEncounterVersion: state.version,
       occurrenceId,
@@ -898,7 +973,7 @@ export async function planNativeLiveEncounterAction(
     command,
     occurrenceId,
     occurredAt,
-    prepared,
+    prepared: settledPrepared,
     mechanics,
     effects: preparedEffects,
     reactionEffect: reactionUse?.applied.reactionEffect ?? null,
@@ -945,7 +1020,7 @@ export async function planNativeLiveEncounterAction(
     { output: prepared.actorRules }
   )
   const storedExecution = buildEncounterActionStoredExecution({
-    prepared,
+    prepared: settledPrepared,
     execution,
     occurrenceId,
     occurrenceVersion,
@@ -1008,6 +1083,7 @@ export async function planNativeLiveEncounterAction(
   }
   return {
     ...preflight,
+    prepared: settledPrepared,
     kind: 'PLANNED' as const,
     execution,
     preparedEffects,

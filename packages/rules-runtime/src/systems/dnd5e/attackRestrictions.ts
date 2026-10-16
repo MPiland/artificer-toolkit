@@ -17,6 +17,8 @@ export type Dnd5eAttackCircumstances = {
   rollMode: Dnd5eAttackRollMode
   /** Null when the attack has no Scene to measure on, so an enemy-distance check cannot be answered. */
   enemyProximity: Dnd5eEnemyProximity | null
+  /** The creature type of the target; null for a target with none, such as a Character. */
+  targetCreatureTypeId: string | null
 }
 
 type Restrictions = FacetAuthored
@@ -24,31 +26,47 @@ type Group = Restrictions['groups'][number]
 type Context = Group['contexts'][number]
 type Condition = NonNullable<Context['conditions']>[number]
 type RollModeCondition = Extract<Condition, { predicateCode: 'ATTACK_ROLL_MODE' }>
+type CreatureTypeCondition = Extract<Condition, { predicateCode: 'CREATURE_TYPE' }>
 type EnemyNearCondition = Extract<Condition, { predicateCode: 'ENEMY_NEAR_TARGET' }>
-type CircumstanceCondition = RollModeCondition | EnemyNearCondition
+type CircumstanceCondition = RollModeCondition | EnemyNearCondition | CreatureTypeCondition
 
 function isEnemyNearCondition(condition: Condition): condition is EnemyNearCondition {
   return condition.kind === 'PREDICATE' && condition.predicateCode === 'ENEMY_NEAR_TARGET'
 }
 
-/** The checks an attack decides at the moment it rolls, rather than from the weapon it holds. */
-function isCircumstanceCondition(condition: Condition): condition is CircumstanceCondition {
+function isCreatureTypeCondition(condition: Condition): condition is CreatureTypeCondition {
+  return condition.kind === 'PREDICATE' && condition.predicateCode === 'CREATURE_TYPE'
+}
+
+/**
+ * The checks an attack decides at the moment it rolls, rather than from the weapon it holds: its
+ * net roll mode, the enemies near its target, and the creature type of the target.
+ */
+function isCircumstanceCondition(
+  context: Context,
+  condition: Condition
+): condition is CircumstanceCondition {
   return (
     (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ROLL_MODE') ||
-    isEnemyNearCondition(condition)
+    isEnemyNearCondition(condition) ||
+    (context.subject === 'CREATURE' && isCreatureTypeCondition(condition))
   )
 }
 
-function withoutCircumstanceConditions(context: Context): Context {
+/** The context without its circumstance checks; a target context left with none no longer constrains the weapon. */
+function withoutCircumstanceConditions(context: Context): Context | null {
   const { conditions, ...rest } = context
-  const kept = (conditions ?? []).filter((condition) => !isCircumstanceCondition(condition))
+  const kept = (conditions ?? []).filter((condition) => !isCircumstanceCondition(context, condition))
+  if (kept.length === 0 && context.subject === 'CREATURE') return null
   return (kept.length > 0 ? { ...rest, conditions: kept } : rest) as Context
 }
 
 /** A group's circumstance checks, the only ones left once the weapon's own are settled. */
 function circumstanceContexts(group: Group): Context[] {
   return group.contexts.flatMap((context) => {
-    const conditions = (context.conditions ?? []).filter(isCircumstanceCondition)
+    const conditions = (context.conditions ?? []).filter((condition) =>
+      isCircumstanceCondition(context, condition)
+    )
     return conditions.length > 0 ? [{ ...context, conditions } as Context] : []
   })
 }
@@ -62,10 +80,11 @@ const WEAPON_CHECK_KINDS: ReadonlySet<string> = new Set([
 
 /**
  * Resolves the weapon checks of an attack's restrictions against the weapon it is made with,
- * leaving only the circumstance checks (roll mode, nearby enemies), which are decided when the attack rolls. A group whose weapon
- * checks fail can never hold and is dropped; a group with nothing left to decide always holds, as
- * does a facet without groups. Returns `null` when the restrictions can never be met and `undefined`
- * when they always are. Only the attacking item's own checks are evaluated: a check the item cannot
+ * leaving only the circumstance checks (roll mode, nearby enemies, target creature type), which are
+ * decided when the attack rolls. A group whose weapon checks fail can never hold and is dropped; a
+ * group with nothing left to decide always holds, as does a facet without groups. Returns `null`
+ * when the restrictions can never be met and `undefined` when they always are. Only the attacking
+ * item's own checks are evaluated: a check the item cannot
  * answer (`ATTACK_ABILITY`, another subject's check) fails its group whatever its constraint.
  */
 function reduceRestrictions(
@@ -75,13 +94,16 @@ function reduceRestrictions(
   if (restrictions.groups.length === 0) return undefined
   const groups: Group[] = []
   for (const group of restrictions.groups) {
+    const weaponContexts = group.contexts.flatMap(
+      (context) => withoutCircumstanceConditions(context) ?? []
+    )
     const weaponChecks = normalizeCharacterGrantRestrictions({
       id: restrictions.id,
-      groups: [{ ...group, contexts: group.contexts.map(withoutCircumstanceConditions) }]
+      groups: [{ ...group, contexts: weaponContexts }]
     })
     const [{ conditions }] = weaponChecks as [(typeof weaponChecks)[number]]
     if (
-      group.contexts.some((context) => context.subject !== 'EQUIPMENT') ||
+      weaponContexts.some((context) => context.subject !== 'EQUIPMENT') ||
       conditions.some((condition) => !WEAPON_CHECK_KINDS.has(condition.kind))
     )
       continue
@@ -118,7 +140,12 @@ function circumstanceMet(
   circumstances: Dnd5eAttackCircumstances
 ): boolean {
   let matches: boolean
-  if (isEnemyNearCondition(condition)) {
+  if (isCreatureTypeCondition(condition)) {
+    const { targetCreatureTypeId } = circumstances
+    matches =
+      condition.authoringModeKind === 'ALL' ||
+      (targetCreatureTypeId !== null && condition.creatureTypeIds.includes(targetCreatureTypeId))
+  } else if (isEnemyNearCondition(condition)) {
     // Without a Scene the check has no answer, so it fails whatever its constraint.
     if (!circumstances.enemyProximity) return false
     const { nearestFeet } = circumstances.enemyProximity
@@ -142,7 +169,7 @@ export function attackRestrictionsMet(
   return restrictions.groups.some((group) =>
     group.contexts.every((context) =>
       (context.conditions ?? []).every((condition) => {
-        if (!isCircumstanceCondition(condition))
+        if (!isCircumstanceCondition(context, condition))
           throw new Error('Attack restrictions must be reduced to circumstance checks.')
         return circumstanceMet(condition, circumstances)
       })

@@ -5112,14 +5112,15 @@
             {
               "id": "ATTACK-2.T1",
               "text": "Player parity matrix: a test derived from the real Encounter command registry proves every command the GM can issue for a Character is accepted from that Character's controlling player (own actor, own turn or a reaction window) and refused for others; each GM-only gap found is fixed through the player path, not by widening authorization.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
             },
             {
               "id": "ATTACK-2.T2",
@@ -5132,7 +5133,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-2.T1", "ATTACK-17.T3", "REACTION-4.T3b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
             }
           ]
         },
@@ -5743,8 +5745,15 @@
             {
               "id": "ATTACK-9.4",
               "text": "Divine Smite: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge 1aed8c7ef (T4 with merge batch k) and b7ed9081e on ci/attack-9-t4, 2026-10-16",
+                "apps/session-worker/test/nativeRoomOnHitChoice.test.ts (Worker journey: hit, slot spent, 3d8, crit doubling, undo, SRD Ghoul undead)",
+                "packages/rules-runtime/src/__tests__/srdDivineSmite.test.ts, encounterOnHitChoice.test.ts, characterOptionalOnHitRiders.test.ts, attackRestrictions.test.ts",
+                "packages/schema/src/__tests__/on-hit-choice-contract.test.ts; packages/encounter-persistence/src/__tests__/actionPendingOffers.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (Divine Smite authoring parity)",
+                "CI runs Tests 38862637381 and Live backend 38862637798 green on b7ed9081e"
+              ],
               "origin": [],
               "note": ""
             },
@@ -5866,7 +5875,7 @@
             {
               "id": "ATTACK-9.T4",
               "text": "Divine Smite post-hit slot spend and Improved Divine Smite.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.4"],
               "wsjf": {
                 "bv": 5,
@@ -5874,8 +5883,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T2a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t4.md"
+              }
             },
             {
               "id": "ATTACK-9.T5",
@@ -5972,7 +5980,9 @@
             {
               "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011"
+              ],
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
               "id": "ATTACK-10.4"
@@ -6022,17 +6032,41 @@
               }
             },
             {
-              "id": "ATTACK-10.T3",
-              "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
+              "id": "ATTACK-10.T3a",
+              "text": "Movement-reaction perception applies condition contributions (Blinded, Invisible).",
+              "status": "DONE",
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 1
+              },
+              "closes": ["ATTACK-10.4"]
+            },
+            {
+              "id": "ATTACK-10.T3b",
+              "text": "Opportunity attacks apply attack-roll sight: a believed prompt, a true settlement, a held die and a mode adjustment, retained and replayed.",
+              "status": "DONE",
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 2
+              },
+              "closes": ["ATTACK-10.4"]
+            },
+            {
+              "id": "ATTACK-10.T3c",
+              "text": "Disarm applies attack-roll sight like RESOLVE_ACTION (believed prompt, true settlement), and a room test proves the player-side believed prompt of an opportunity attack.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
-                "size": 3
+                "size": 2
               },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t3.md"
             },
             {
               "id": "ATTACK-10.T4",
@@ -10010,6 +10044,45 @@
                 "rr": 8,
                 "size": 2
               }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-15",
+          "title": "Initiative declaration settlement test is deterministic",
+          "status": "TODO",
+          "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-15.1",
+              "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-15.T1",
+              "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
             }
           ]
         }

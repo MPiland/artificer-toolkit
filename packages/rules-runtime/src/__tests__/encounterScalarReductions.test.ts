@@ -263,6 +263,7 @@ describe('Creature movement target', () => {
       conditionMechanics: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,
+        creatureTypeId: null,
         // Dexterity 12 drained to 7: initiative +1 becomes -2.
         initiativeModifier: -2,
         savingThrowDefinitions: savingThrows(9, 7),

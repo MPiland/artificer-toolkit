@@ -73,7 +73,9 @@ export async function readEncounterWaitingOn(
               : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
                   decision.kind === 'REACTION_CHOICE'
                 ? decision.targetActorId
-                : null
+                : decision.kind === 'ON_HIT_CHOICE'
+                  ? decision.attackerActorId
+                  : null
   if (!actorId) return 'GM'
   const actor = await readRunActor(ctx, readRunState(row), actorId)
   return (await readEncounterActorPrimaryController(ctx, campaign, actor)) === campaign.ownerUserId
@@ -194,7 +196,7 @@ export async function readPendingRunDecision(
             pendingSnapshot
           },
           row.version,
-          { controlledActorIds },
+          { controlledActorIds, isOwner: membership.role === 'OWNER' },
           reasons
         ).pending
     )

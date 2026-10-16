@@ -260,7 +260,8 @@ async function projectCurrentOccurrence(
         campaign: input.campaign,
         membership: input.membership,
         actors: await readRunActors(ctx, state)
-      })
+      }),
+      isOwner: input.membership.role === 'OWNER'
     }
   )
 }
@@ -480,7 +481,8 @@ export async function publishMovementResponse(
           campaign: input.campaign,
           membership: input.membership,
           actors: await readRunActors(ctx, current.state)
-        })
+        }),
+        isOwner: input.membership.role === 'OWNER'
       }
     )
     const ownerOccurrence = projectEncounterSpatialOccurrenceSummary(
@@ -491,7 +493,7 @@ export async function publishMovementResponse(
         pendingSnapshot: snapshot
       },
       version,
-      { controlledActorIds: new Set(current.state.actorIds) }
+      { controlledActorIds: new Set(current.state.actorIds), isOwner: true }
     )
     const payload = storedRuleExecutionResultDtoSchema.parse({
       status: 'ENCOUNTER_OCCURRENCE_PENDING',
