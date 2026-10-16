@@ -253,7 +253,7 @@
               "id": "PLATFORM-5.4"
             },
             {
-              "text": "The full cloud-dev import and read-back pass within the mutation CPU limit using 128 KiB input batching.",
+              "text": "The full cloud-dev import and read-back pass within the mutation CPU limit using cost-budgeted input batches (PLATFORM-5.T1).",
               "status": "DONE",
               "proof": [
                 "cloudDevEvidence (phase82-source-data)"
@@ -281,7 +281,10 @@
               "id": "PLATFORM-5.7",
               "text": "Every SRD seed mutation (bootstrap, subject and definition batches, derived syncs) finishes well under the Convex 1 s execution limit on the local backend while the machine is loaded, proved by recorded per-mutation durations from a loaded seed run.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "partial: merge of eb483df41 (PLATFORM-5.T1); docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md: fresh-backend loaded seeds, every mutation <= 308 ms at 12 busy processes and <= 717 ms at 16 (red: importSubjects 1005 ms); CI 38825767175 green",
+                "open: the replay path (reseed over existing data, as staging and production releases do) is unmeasured and still runs full exact() comparisons"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-17.T4 merge: content/seed:seed failed with \"Function execution timed out (maximum duration: 1s)\" at about 74% host CPU, before bootstrap committed (the audit found no platform content source); the unchanged rerun at 71% passed (local-validation/merge-s17t4/deploy-seed.log, deploy-seed-2.log). Find the mutation near the limit and cut its work; do not raise a limit or add a retry."
             }
@@ -290,7 +293,7 @@
             {
               "id": "PLATFORM-5.T1",
               "text": "Measure each SRD seed mutation under load, find the one near the 1 s limit, cut its work, and prove the margin with a loaded run.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-5.7"
               ],
@@ -299,6 +302,20 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 2
+              }
+            },
+            {
+              "id": "PLATFORM-5.T2",
+              "text": "Finish AC 5.7 on the replay path: compare a replayed subject by stored checksum instead of a whole-document exact() with re-parse and re-canonicalize, skip the canonicalize on replay (import.ts:219-222), and record loaded per-mutation durations for a reseed over an already-seeded backend.",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-5.7"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1
               },
               "activeWorkbook": "docs/handoffs/slice-platform-5-t1.md"
             }
@@ -1471,8 +1488,13 @@
             {
               "id": "ACCOUNTS-7.4",
               "text": "Username moderation is tiered (Q22): normalized names are split into parts at separators, case changes and letter-digit changes; a blocked part, an unambiguous term anywhere, or a blocked word plus dictionary words (server-side) is refused; ordinary names such as Cassandra, Classic, Dickens, Essex, Glasshouse and Assassin are accepted; ass_muncher, AssMuncher, Ass1Muncher and assmuncher are refused.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge of 1d3bcb214 (ACCOUNTS-7.T1; D117)",
+                "packages/shared/src/domains/account/usernamePolicy.test.ts and usernameServerPolicy.test.ts (accepted and refused lists, compound tie rule, real-name allowlist)",
+                "apps/apis/convex/usernameModeration.test.ts through the real auth.handler: refused at sign-up and rename, never at sign-in",
+                "CI 38825929350 green"
+              ],
               "origin": "Q22 (2026-10-15), from the PLATFORM-13.9 test-data flake.",
               "note": ""
             },
@@ -1495,7 +1517,7 @@
             {
               "id": "ACCOUNTS-7.T1",
               "text": "Replace the substring profanity check in validateUsername with the Q22 tiered policy; evaluate the obscenity npm library first; dictionary segmentation runs server-side only.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ACCOUNTS-7.4"
               ],
@@ -1504,12 +1526,11 @@
                 "tc": 5,
                 "rr": 2,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
+              }
             },
             {
               "id": "ACCOUNTS-7.T2",
-              "text": "Move campaignTextPolicy to obscenity with the username tiers (no dictionary on the web), remove @2toad/profanity, keep campaign text tests red-first.",
+              "text": "Move campaignTextPolicy to obscenity with the username tiers (no dictionary on the web), remove @2toad/profanity, keep campaign text tests red-first. Also: a test that /invitation/redeem (authInvitations.ts signUpEmail) refuses a blocked username through the before hook.",
               "status": "TODO",
               "closes": [
                 "ACCOUNTS-7.5"
@@ -1522,7 +1543,8 @@
                 "after": [
                   "ACCOUNTS-7.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
             }
           ]
         },
@@ -7015,9 +7037,6 @@
               }
             },
             {
-              "id": "ATTACK-9.T2",
-              "text": "Sneak Attack once-per-turn ON_HIT rider.",
-              "status": "TODO",
               "closes": [
                 "ATTACK-9.2"
               ],
@@ -7029,7 +7048,62 @@
                 "after": [
                   "ATTACK-9.T1"
                 ]
-              }
+              },
+              "id": "ATTACK-9.T2a",
+              "status": "TODO",
+              "text": "Sneak Attack shapes (a)-(c) per D119: PASSIVE Feature ON_HIT damage merged into the weapon outcome, class-level dice through the shared row selector, triggering-weapon damage type; an unconditional Rogue rider proved end to end including a critical hit.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+            },
+            {
+              "closes": [
+                "ATTACK-9.2"
+              ],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "ATTACK-9.T1"
+                ]
+              },
+              "id": "ATTACK-9.T2b",
+              "status": "TODO",
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
+            },
+            {
+              "closes": [
+                "ATTACK-9.2"
+              ],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "ATTACK-9.T1"
+                ]
+              },
+              "id": "ATTACK-9.T2c",
+              "status": "TODO",
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
+            },
+            {
+              "closes": [
+                "ATTACK-9.2"
+              ],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "ATTACK-9.T1"
+                ]
+              },
+              "id": "ATTACK-9.T2d",
+              "status": "TODO",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof."
             },
             {
               "id": "ATTACK-9.T3",
@@ -7044,7 +7118,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": [
-                  "ATTACK-9.T2"
+                  "ATTACK-9.T2d"
                 ]
               }
             },
@@ -7061,7 +7135,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": [
-                  "ATTACK-9.T2"
+                  "ATTACK-9.T2a"
                 ]
               }
             },
@@ -7096,7 +7170,7 @@
                 "size": 1,
                 "after": [
                   "ATTACK-9.T1",
-                  "ATTACK-9.T2"
+                  "ATTACK-9.T2d"
                 ]
               }
             },
@@ -7179,6 +7253,14 @@
               "origin": [],
               "note": "Registered 2026-10-09 (D100 believed vs true mode): the user chose attacks first, saves as a follow-up.",
               "id": "ATTACK-10.5"
+            },
+            {
+              "id": "ATTACK-10.6",
+              "text": "The GM sees, for each hidden creature, which observers it is hidden from and which failed to notice it (D100), and can add or remove observers from the live table UI through SET_CONCEALMENT_OBSERVERS; players never see that list.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI."
             }
           ],
           "wsjf": {
@@ -7229,6 +7311,20 @@
                 "tc": 2,
                 "rr": 2,
                 "size": 3
+              }
+            },
+            {
+              "id": "ATTACK-10.T5",
+              "text": "GM concealment projection and observer editor (AC 10.6), with a browser journey test.",
+              "status": "TODO",
+              "closes": [
+                "ATTACK-10.6"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 2
               }
             }
           ]
