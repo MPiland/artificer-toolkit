@@ -9242,11 +9242,11 @@
             },
             {
               "id": "SPELLS-17.6",
-              "text": "Every mechanics-batch caller that can end a grant (basic action check settlement, cleaving response, live movement reaction and spatial persistence) carries the ended grants into its undo receipt, so undoing that root restores them.",
+              "text": "No mechanics-batch caller can end a grant without a way to give it back: basic action check settlement and the cleaving response cannot raise hit points, so they end no until-healed grant; and a move whose movement reaction or spatial persistence ended grants cannot be undone by REVERT_LAST_ACTION or Scene undo, so nothing is half-restored. Each is proved by a test through real code.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-15 from the SPELLS-17.T2 merge review (report-only item; no SRD heal reaches these paths today)."
+              "note": "Registered 2026-10-15 from the SPELLS-17.T2 merge review (report-only item; no SRD heal reaches these paths today). Reworded 2026-10-15 at the T5 survey: none of these callers can heal today and moves are not undoable action roots, so receipt wiring would be dead code."
             }
           ],
           "wsjf": {
@@ -9314,7 +9314,7 @@
             },
             {
               "id": "SPELLS-17.T5",
-              "text": "Carry endedGrants into the undo receipts of the remaining mechanics-batch callers, with a revert test per root kind that can heal.",
+              "text": "Prove AC 17.6: damage and stabilize settlements on a holder of an until-healed grant end nothing; a move that settled encounter mechanics is refused by both REVERT_LAST_ACTION and Scene undo (or, if Scene undo allows it, the ended grants are restored with it).",
               "status": "TODO",
               "closes": [
                 "SPELLS-17.6"
@@ -9327,7 +9327,8 @@
                 "after": [
                   "SPELLS-17.T2"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-17.md"
             }
           ]
         },
