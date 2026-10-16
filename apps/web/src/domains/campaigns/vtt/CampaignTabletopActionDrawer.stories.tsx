@@ -220,6 +220,9 @@ const meta = {
     onAreaSizeChange: fn(),
     onActionPreviewChange: fn(),
     onPickAreaOrigin: fn(),
+    onPickTargetOnMap: fn(),
+    onTargetPick: fn(),
+    pickedTargetActorId: undefined,
     onEscape: sendEscapeCommand,
     onEndHeldGrant: sendEndHeldGrantCommand,
     onOpen: fn(),
@@ -228,14 +231,19 @@ const meta = {
   render: function Render(args) {
     const [opened, { open, close }] = useDisclosure(false)
     const [areaAim, setAreaAim] = useState<VttAreaAim | null>(args.areaAim)
+    const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
+      undefined
+    )
     return (
       <CampaignTabletopActionDrawer
         {...args}
         areaAim={areaAim}
         opened={opened}
+        pickedTargetActorId={pickedTargetActorId}
         onAreaAimChange={setAreaAim}
         onOpen={open}
         onClose={close}
+        onTargetPick={setPickedTargetActorId}
       />
     )
   },

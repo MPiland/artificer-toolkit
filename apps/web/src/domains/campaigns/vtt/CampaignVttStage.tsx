@@ -81,6 +81,7 @@ import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import * as styles from './CampaignVttStage.css'
+import { useActionTargetModifiers } from './useActionTargetModifiers'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 import { useLatestEvidenceRoll } from './useLatestEvidenceRoll'
 import { readFromRoomOrFallback, useRoomEncounterRead } from './useRoomEncounterRead'
@@ -101,6 +102,12 @@ import {
   type VttAreaSize
 } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
+import {
+  buildTargetEntries,
+  describeTargetEntry,
+  targetableTokenIds,
+  type VttTargetingRequest
+} from './vttTargeting.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
 import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
 import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
@@ -120,11 +127,18 @@ export function CampaignVttStage({
   const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
   const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
+  // The action the caster is picking a target for on the map or in the turn-order list (ATTACK-17.1).
+  const [targetingRequest, setTargetingRequest] = useState<VttTargetingRequest | null>(null)
+  // `undefined` is untouched (the open Attack action's last target applies); `null` is cleared.
+  const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
+    undefined
+  )
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
   const sceneRef = useRef<CampaignSceneStateDto | undefined>(undefined)
   const commitTokenMoveRef = useRef(commitTokenMove)
+  const pickTargetTokenRef = useRef(pickTargetToken)
   const transientSequence = useRef(0)
   const optimisticDoorCommands = useRef(new Map<string, string>())
   const [mode, setMode] = useState<CampaignVttMode>('PLAY')
@@ -198,8 +212,10 @@ export function CampaignVttStage({
       !activeEncounter?.id ||
       !currentActor?.id ||
       activeEncounter?.automationMode === 'MANUAL'
-    )
+    ) {
       setActionsOpened(false)
+      setTargetingRequest(null)
+    }
   }, [activeEncounter?.automationMode, activeEncounter?.id, currentActor?.id, currentActorMine])
   const actionChoiceScope =
     actionsOpened &&
@@ -344,6 +360,8 @@ export function CampaignVttStage({
     (room || currentSceneBinding.encounterVersion === activeEncounter.version)
       ? currentSceneBinding
       : null
+  // The Scene the Encounter's tokens and ranges are measured on; null when the presented one is not it.
+  const encounterScene = scene && activeEncounterSceneBinding?.sceneId === scene.id ? scene : null
   const roomActorTokenBindings = useRoomEncounterRead({
     read: sceneBindingInput ? { kind: 'ACTOR_TOKEN_BINDINGS', input: sceneBindingInput } : null,
     readEncounter: live.readEncounter,
@@ -394,6 +412,48 @@ export function CampaignVttStage({
         ).map((binding) => [binding.tokenId, binding.actorId])
       ),
     [activeEncounterSceneBinding, actorTokenBindings.data, actorTokenBindings.error]
+  )
+  const targeting = actionsOpened ? targetingRequest : null
+  const targetModifiers = useActionTargetModifiers({
+    input:
+      targeting && activeEncounter && currentActor
+        ? {
+            encounterId: activeEncounter.id,
+            expectedVersion: activeEncounter.version,
+            actorId: currentActor.id,
+            actionId: targeting.actionId,
+            scene: encounterScene
+              ? { sceneId: encounterScene.id, expectedSceneVersion: encounterScene.version }
+              : null
+          }
+        : null,
+    readEncounter: live.readEncounter,
+    roomVersion
+  })
+  const targetEntries = useMemo(
+    () =>
+      targeting && activeEncounter
+        ? buildTargetEntries({
+            actorIdByTokenId,
+            actors: activeEncounter.actors,
+            currentActorId: currentActor?.id ?? null,
+            modifiers: targetModifiers,
+            range: actionPreview?.range,
+            scene: encounterScene,
+            selfRefused: targeting.selfRefused,
+            sourceTokenId: actionPreview?.sourceTokenId ?? null
+          })
+        : null,
+    [
+      actionPreview?.range,
+      actionPreview?.sourceTokenId,
+      activeEncounter,
+      actorIdByTokenId,
+      currentActor?.id,
+      encounterScene,
+      targetModifiers,
+      targeting
+    ]
   )
   const viewerUserId = gmPreviewUserId ?? currentUserId
   // Bound tokens move for their actor's controllers (a GM preview checks as the previewed player).
@@ -524,7 +584,8 @@ export function CampaignVttStage({
             currentUserId: viewerUserId,
             encounter: activeEncounter,
             pending: pendingOccurrence ?? null,
-            scene: renderedScene
+            scene: renderedScene,
+            targetableTokenIds: targetEntries ? targetableTokenIds(targetEntries) : undefined
           })
         : undefined,
     [
@@ -533,6 +594,7 @@ export function CampaignVttStage({
       boundTokenControl,
       pendingOccurrence,
       renderedScene,
+      targetEntries,
       tokenArtUrls,
       viewerUserId
     ]
@@ -565,6 +627,9 @@ export function CampaignVttStage({
   const listedTokenId = inspectedTokenId ?? selectedSceneTokenId
   const listedPresentation = listedTokenId ? tokenPresentations?.[listedTokenId] : undefined
   const listedLabel = scene?.tokens.find((token) => token.id === listedTokenId)?.label ?? ''
+  const hoveredTarget = inspectedTokenId
+    ? targetEntries?.find((entry) => entry.tokenId === inspectedTokenId)
+    : undefined
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
   const effectivePreviewTokenId =
     campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
@@ -600,6 +665,7 @@ export function CampaignVttStage({
         role: effectiveRole,
         scene: renderedScene,
         selectedTokenId: selectedSceneTokenId,
+        targeting: targeting !== null,
         tokenPresentations,
         tool,
         viewTokenId
@@ -804,7 +870,9 @@ export function CampaignVttStage({
         return sent
       },
       onTokenCommit: (tokenId, position) => commitTokenMoveRef.current(tokenId, position),
+      onTargetingCancel: () => setTargetingRequest(null),
       onTokenHover: setInspectedTokenId,
+      onTokenPick: (tokenId) => pickTargetTokenRef.current(tokenId),
       onTokenSelect: setSelectedTokenId,
       onTokenPreview: (tokenId, position) =>
         transientRef.current({ kind: 'TOKEN_DRAG_PREVIEW', position, tokenId })
@@ -840,6 +908,7 @@ export function CampaignVttStage({
     previewTokenId,
     scene,
     selectedSceneTokenId,
+    targeting,
     tokenPresentations,
     tool,
     viewTokenId
@@ -848,6 +917,18 @@ export function CampaignVttStage({
   useEffect(() => {
     setMapLoadStatus(null)
   }, [scene?.id])
+
+  // A pick on the map or in the list ends targeting and hands the creature back to the action drawer.
+  function pickTarget(actorId: string): void {
+    setPickedTargetActorId(actorId)
+    setTargetingRequest(null)
+  }
+
+  function pickTargetToken(tokenId: string): void {
+    const actorId = actorIdByTokenId.get(tokenId)
+    if (actorId) pickTarget(actorId)
+  }
+  pickTargetTokenRef.current = pickTargetToken
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
@@ -1230,7 +1311,21 @@ export function CampaignVttStage({
                 Boolean(activeEncounterSceneBinding && actorTokenBindings.isPending)
               }
               role={campaign.role}
-              scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
+              scene={encounterScene}
+              targeting={
+                targeting && targetEntries
+                  ? {
+                      entries: targetEntries,
+                      pickedActorId:
+                        pickedTargetActorId ??
+                        (actionPreview?.targetTokenId
+                          ? (actorIdByTokenId.get(actionPreview.targetTokenId) ?? null)
+                          : null),
+                      onCancel: () => setTargetingRequest(null),
+                      onPick: pickTarget
+                    }
+                  : null
+              }
               onCommand={(command) => encounterCommand.mutate(command)}
               onEndCharacterConcentration={setEndingConcentrationOf}
             />
@@ -1264,13 +1359,13 @@ export function CampaignVttStage({
               connected={live.status === 'CONNECTED'}
               encounter={activeEncounter}
               isGm={campaign.role === 'OWNER'}
-              opened={actionsOpened && !aimingArea}
+              opened={actionsOpened && !aimingArea && !targeting}
               onOpen={() => setActionsOpened(true)}
               onClose={() => setActionsOpened(false)}
               unavailableActions={currentActionChoices?.unavailableActions ?? []}
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
-              scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
+              scene={encounterScene}
               areaAim={areaAim}
               waitingOn={encounterSessionState?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
@@ -1278,6 +1373,9 @@ export function CampaignVttStage({
               onAreaSizeChange={setAreaSize}
               onActionPreviewChange={setActionPreview}
               onPickAreaOrigin={() => setAimingArea(true)}
+              pickedTargetActorId={pickedTargetActorId}
+              onPickTargetOnMap={setTargetingRequest}
+              onTargetPick={setPickedTargetActorId}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onEscape={(command) => encounterCommand.mutateAsync(command)}
               onEndHeldGrant={(command) => encounterCommand.mutateAsync(command)}
@@ -1442,6 +1540,11 @@ export function CampaignVttStage({
               {scene.grid.kind === 'SQUARE' ? 'Square grid' : 'Gridless'}
             </span>
           </div>
+          {hoveredTarget ? (
+            <Text aria-live='polite' role='status' size='sm'>
+              {hoveredTarget.label}: {describeTargetEntry(hoveredTarget)}
+            </Text>
+          ) : null}
           {listedPresentation?.dispositionLabel || listedPresentation?.statuses.length ? (
             <CampaignVttTokenStatusList
               dispositionLabel={listedPresentation.dispositionLabel}

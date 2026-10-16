@@ -13,6 +13,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   encounterActionCurrentnessChecksum,
+  encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
@@ -54,6 +55,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
+import { readNativeLiveTurnUses } from './nativeTurnUses.js'
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -69,7 +71,10 @@ import {
   chosenEncounterReaction,
   type EncounterReactionSelection
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
-import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type {
+  EncounterCastReactionOfferDto,
+  EncounterReactionOfferDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
 import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
@@ -81,7 +86,16 @@ import {
   applyNativeAttackReaction,
   discoverNativeAttackReaction
 } from './nativeEncounterAttackReaction.js'
-import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  advanceNativeCastReactions,
+  discoverNativeCastReactions,
+  planNativeCounteredCast
+} from './nativeEncounterCastReaction.js'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import {
+  buildEncounterActionPendingSnapshot,
+  buildEncounterCastReactionPendingSnapshot
+} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
   withEncounterAppRoll,
   type EncounterEvidenceAnswer
@@ -105,6 +119,7 @@ import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
+import { planNativeLiveEncounterAttackSquare } from './nativeEncounterAttackSquare.js'
 import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
@@ -215,6 +230,10 @@ export async function planNativeLiveEncounterAction(
     offer: EncounterReactionOfferDto
     selection: EncounterReactionSelection
   } | null = null
+  let castAnswer: {
+    offer: EncounterCastReactionOfferDto
+    selection: EncounterReactionSelection
+  } | null = null
   let onHitAnswer: {
     offer: EncounterOnHitOfferDto
     selection: EncounterOnHitSelection
@@ -239,6 +258,10 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a reaction decision.')
       reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
+    } else if (snapshot.applicationContext.castReaction) {
+      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+        throw new Error('The action requires a reaction decision.')
+      castAnswer = { offer: snapshot.applicationContext.castReaction, selection: resolution }
     } else if (snapshot.applicationContext.onHitChoice) {
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires an on-hit decision.')
@@ -296,10 +319,12 @@ export async function planNativeLiveEncounterAction(
       message: DOMAIN_REJECTION_MESSAGES.ASSISTED_ONLY
     })
 
-  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
-    state,
-    capture
-  })
+  const { actors, activeEffectsByActorId, deadCharacterIds } = await readNativeLiveActorsAndEffects(
+    {
+      state,
+      capture
+    }
+  )
 
   async function loadTarget(
     actor: EncounterRunActorState,
@@ -325,10 +350,10 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
-  if (command.target.kind === 'ACTORS') {
-    if (removalCommand || responseCommand) throw new Error('A chosen-creature action never pends.')
+  if (command.target.kind === 'SQUARE') {
+    if (removalCommand || responseCommand) throw new Error('A square attack is answered by the GM.')
     return {
-      ...(await planNativeLiveEncounterActorsAction({
+      ...(await planNativeLiveEncounterAttackSquare({
         initial,
         command: { ...command, target: command.target },
         fingerprint: admission.fingerprint,
@@ -341,16 +366,18 @@ export async function planNativeLiveEncounterAction(
         runtime: executionOptions.runtime,
         random: executionOptions.random,
         requireAutoRoll,
-        autoRollByActorId
+        autoRollByActorId,
+        deadCharacterIds
       })),
       dependencies,
       revisions
     }
   }
   if (command.target.kind !== 'ACTOR') {
+    const target = command.target
     const areaInput = {
       initial,
-      command: { ...command, target: command.target },
+      command: { ...command, target },
       fingerprint: admission.fingerprint,
       state,
       system,
@@ -401,7 +428,15 @@ export async function planNativeLiveEncounterAction(
       }
     }
     return {
-      ...(await planNativeLiveEncounterAreaAction(areaInput)),
+      ...(target.kind === 'ACTORS'
+        ? await planNativeLiveEncounterActorsAction({
+            ...areaInput,
+            command: { ...command, target }
+          })
+        : await planNativeLiveEncounterAreaAction({
+            ...areaInput,
+            command: { ...command, target }
+          })),
       dependencies,
       revisions
     }
@@ -497,6 +532,7 @@ export async function planNativeLiveEncounterAction(
           definitions,
           capture
         }),
+      loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const prepared = await prepareAttack(movementTargets)
@@ -691,6 +727,108 @@ export async function planNativeLiveEncounterAction(
     return { candidate, currentFeatureResource, targetStateChecksum }
   }
   const occurredAt = new Date().toISOString()
+  /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
+  const preflight = () => ({
+    command,
+    response: responseCommand,
+    // A response continues the original initiator's action; the responder is authorized in Convex.
+    initiatorUserId:
+      snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+        ? snapshot.applicationContext.initiatorUserId
+        : initial.expectedUserId,
+    fingerprint: admission.fingerprint,
+    occurrenceId,
+    occurrenceVersion,
+    occurredAt,
+    prepared,
+    actionEconomy,
+    attackAction,
+    ruleOverrides: ruleWarnings.overrides,
+    maintenance,
+    sceneContext,
+    currentnessChecksum,
+    activeEffectsByActorId,
+    consumedGrants,
+    dependencies,
+    revisions
+  })
+  // Before a Character's spell does anything, another Character in range may counter it. A cast that
+  // already offered itself replays past this point once answered: a decline moves to the next creature,
+  // and an answer to a later decision (dice, a Legendary Resistance) was made after every offer.
+  const triggerLevel = preparedSpellCastLevel(prepared)
+  if (castAnswer && triggerLevel === null) throw new Error('Reaction evidence is stale.')
+  if (
+    triggerLevel !== null &&
+    (!snapshot || castAnswer) &&
+    // Range is read from the Scene, so a cast made without one offers no reaction.
+    command.sceneContext &&
+    actors.some((actor) => actor.kind === 'CHARACTER' && actor.id !== prepared.actor.id)
+  ) {
+    const castScene = await capture({
+      kind: 'ACTION_AREA_SCENE',
+      command: {
+        actorId: command.actorId,
+        sceneId: command.sceneContext.sceneId,
+        expectedSceneVersion: command.sceneContext.expectedSceneVersion
+      }
+    })
+    if (castScene.kind !== 'ACTION_AREA_SCENE')
+      throw new Error('Action Scene context is unavailable.')
+    const cast = await advanceNativeCastReactions({
+      runtime: executionOptions.runtime,
+      occurrenceId,
+      answer: castAnswer,
+      discover: discoverNativeCastReactions({
+        state,
+        actors,
+        caster: prepared.actor,
+        triggerLevel,
+        scene: castScene.context,
+        loadTarget,
+        prepareReaction: (reactor, reactorTarget, actionId) =>
+          prepareEncounterActionMechanics({
+            state,
+            actor: reactor,
+            target: prepared.actor,
+            actors,
+            actionId,
+            wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+            overridable: false,
+            movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
+            sceneContext: null,
+            ...actionSources
+          }),
+        capture
+      })
+    })
+    if (cast?.kind === 'COUNTERED')
+      return {
+        ...preflight(),
+        kind: 'COUNTERED' as const,
+        countered: planNativeCounteredCast({
+          state,
+          actors,
+          prepared,
+          triggerLevel,
+          actionEconomy,
+          ruleOverrides: ruleWarnings.overrides,
+          occurrenceId,
+          occurrenceVersion,
+          commandId: command.commandId,
+          occurredAt,
+          userId: initial.expectedUserId,
+          countered: cast
+        })
+      }
+    if (cast?.kind === 'OFFER')
+      return {
+        ...preflight(),
+        kind: 'CAST_PENDING' as const,
+        continuation: cast.continuation,
+        rollerActorId: cast.reactor.id,
+        castReaction: cast.offer
+      }
+  }
   const discoverReaction = discoverNativeAttackReaction({
     state,
     attack: prepared,
@@ -827,8 +965,7 @@ export async function planNativeLiveEncounterAction(
       : null)
   const retainedReaction =
     execution.kind !== 'PENDING' && !reactionAnswered
-      ? (heldReaction ??
-        (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
   const replayedReaction =
     heldReactionNow ??
@@ -853,31 +990,7 @@ export async function planNativeLiveEncounterAction(
               })
             }
           : null))
-  const preflight = {
-    command,
-    response: responseCommand,
-    // A response continues the original initiator's action; the responder is authorized in Convex.
-    initiatorUserId:
-      snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-        ? snapshot.applicationContext.initiatorUserId
-        : initial.expectedUserId,
-    fingerprint: admission.fingerprint,
-    occurrenceId,
-    occurrenceVersion,
-    occurredAt,
-    prepared,
-    actionEconomy,
-    attackAction,
-    ruleOverrides: ruleWarnings.overrides,
-    maintenance,
-    sceneContext,
-    currentnessChecksum,
-    activeEffectsByActorId,
-    consumedGrants,
-    dependencies,
-    revisions
-  }
-  if (execution.kind === 'PENDING') return { ...preflight, kind: 'PENDING' as const, execution }
+  if (execution.kind === 'PENDING') return { ...preflight(), kind: 'PENDING' as const, execution }
   // The slot an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   const chosenOnHit =
@@ -1082,7 +1195,7 @@ export async function planNativeLiveEncounterAction(
     })
   }
   return {
-    ...preflight,
+    ...preflight(),
     prepared: settledPrepared,
     kind: 'PLANNED' as const,
     execution,
@@ -1093,6 +1206,10 @@ export async function planNativeLiveEncounterAction(
     nextState,
     nextRules,
     storedExecution,
+    turnUses:
+      storedExecution.status === 'COMPLETE'
+        ? encounterActionSpentTurnUses(prepared, storedExecution.evidence)
+        : [],
     cleaving,
     reactionUse,
     revisions
@@ -1102,8 +1219,18 @@ export async function planNativeLiveEncounterAction(
 /** The sealed pending contract the room persists before acknowledging an assisted action. */
 export function buildNativeLiveEncounterActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PENDING' }>
+  plan: Extract<
+    Awaited<ReturnType<typeof planNativeLiveEncounterAction>>,
+    { kind: 'PENDING' | 'CAST_PENDING' }
+  >
 ) {
+  const pinned = {
+    optionalCombatSnapshotChecksum: plan.prepared.state.optionalCombatSnapshotChecksum,
+    commandJson: JSON.stringify(plan.command),
+    commandFingerprint: plan.fingerprint,
+    initiatorUserId: plan.initiatorUserId,
+    currentnessChecksum: plan.currentnessChecksum
+  }
   return liveSessionEncounterActionPendingInputSchema.parse({
     ...scope,
     command: plan.command,
@@ -1112,16 +1239,20 @@ export function buildNativeLiveEncounterActionPendingInput(
     maintenanceOwners: plan.dependencies.flatMap(({ request }) =>
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
-    snapshot: buildEncounterActionPendingSnapshot({
-      execution: plan.execution,
-      optionalCombatSnapshotChecksum: plan.prepared.state.optionalCombatSnapshotChecksum,
-      commandJson: JSON.stringify(plan.command),
-      commandFingerprint: plan.fingerprint,
-      initiatorUserId: plan.initiatorUserId,
-      sourceActorId: plan.prepared.actor.id,
-      targetActorId: plan.prepared.target.id,
-      currentnessChecksum: plan.currentnessChecksum
-    })
+    snapshot:
+      plan.kind === 'CAST_PENDING'
+        ? buildEncounterCastReactionPendingSnapshot({
+            ...pinned,
+            continuation: plan.continuation,
+            castReaction: plan.castReaction,
+            rollerActorId: plan.rollerActorId
+          })
+        : buildEncounterActionPendingSnapshot({
+            ...pinned,
+            execution: plan.execution,
+            sourceActorId: plan.prepared.actor.id,
+            targetActorId: plan.prepared.target.id
+          })
   })
 }
 
@@ -1161,6 +1292,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentrationEnds: plan.concentration.concentrationEnds,
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
-    consumedGrants: plan.consumedGrants
+    consumedGrants: plan.consumedGrants,
+    turnUses: plan.turnUses
   })
 }

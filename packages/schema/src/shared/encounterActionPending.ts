@@ -13,6 +13,7 @@ import {
   validateEncounterOnHitOption
 } from './ruleExecutionOnHitChoice.js'
 import {
+  encounterCastReactionOfferDtoSchema,
   encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -31,15 +32,16 @@ export type EncounterActionHeldD20Dto = {
   gmReason: string | null
 }
 
-export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(() =>
-  z.strictObject({
-    rolledMode: z.literal('NORMAL'),
-    faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
-    playerCaption: z.nullable(
-      z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
-    ),
-    gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-  })
+export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(
+  () =>
+    z.strictObject({
+      rolledMode: z.literal('NORMAL'),
+      faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
+      playerCaption: z.nullable(
+        z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+      ),
+      gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+    })
 )
 
 /** Native action ownership; the command JSON is parsed by its owning command schema on every read. */
@@ -75,6 +77,12 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * that choice; the TEST stays unsettled until the answer.
        */
       reactionChoice: z.optional(encounterReactionOfferDtoSchema),
+      /**
+       * Set while a cast waits, before it executes, on a creature's chance to counter it. The roller is
+       * that creature; the snapshot's continuation is its sealed reaction choice. No cast state is held:
+       * the cast replays from the command, and the declined reactors keep the replay deterministic.
+       */
+      castReaction: z.optional(encounterCastReactionOfferDtoSchema),
       /**
        * Set while a hit waits on its attacker's choice to add an optional on-hit rider, after any
        * reaction to the hit has settled. The snapshot's continuation is that choice; the TEST stays
@@ -122,17 +130,39 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'A reaction offer belongs to a TEST held for the reacting creature.'
             })
         }
-        if (value.onHitChoice) {
-          for (const [index, option] of value.onHitChoice.options.entries())
-            validateEncounterOnHitOption(
-              option,
-              value.onHitChoice.testExecutionChecksum,
-              context,
-              ['onHitChoice', 'options', index]
-            )
+        if (value.castReaction) {
+          for (const [index, reaction] of value.castReaction.reactions.entries())
+            validateEncounterReactionPin(reaction, context, ['castReaction', 'reactions', index])
           if (
             value.legendaryResistance ||
             value.reactionChoice ||
+            value.onHitChoice ||
+            value.twoPhase !== null ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20 ||
+            value.castReaction.reactions.some(
+              ({ reactorActorId }) => reactorActorId !== value.rollerActorId
+            ) ||
+            value.castReaction.declinedReactorActorIds.includes(value.rollerActorId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['castReaction'],
+              message: 'A cast reaction offer belongs to a cast held before it executes.'
+            })
+        }
+        if (value.onHitChoice) {
+          for (const [index, option] of value.onHitChoice.options.entries())
+            validateEncounterOnHitOption(option, value.onHitChoice.testExecutionChecksum, context, [
+              'onHitChoice',
+              'options',
+              index
+            ])
+          if (
+            value.legendaryResistance ||
+            value.reactionChoice ||
+            value.castReaction ||
             value.twoPhase?.phase !== 'TEST' ||
             value.d20Policy !== null ||
             value.contest ||
@@ -144,7 +174,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'An on-hit offer belongs to a TEST held for the attacker.'
             })
         }
-        if (value.heldD20 && value.d20Policy === null)
+        if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({
             code: 'custom',
             path: ['heldD20'],

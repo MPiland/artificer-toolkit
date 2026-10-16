@@ -295,10 +295,10 @@ the viewer sees inside; the room still decides who is caught.
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
-Healing, Mass Cure Wounds, Magic Missile) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
 `encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
 spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
-accepts uses it. The compiler accepts one only when the outcome is a heal or unscaled dice damage, the cap is authored (fixed, or
+accepts uses it. The compiler accepts one only when the outcome is a heal, unscaled dice damage or a per-creature save (an `ANY` disposition, a `SAVING_THROW` trigger and no repeated targets), the cap is authored (fixed, or
 scaled by the cast level and resolved first by `resolveChosenCreaturesTargeting`; no `resolutionCount`), and the shape is absent or a sphere, cylinder or circle
 whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
 spend, one undo; one action per creature is rejected because it breaks undo atomicity).
@@ -318,9 +318,32 @@ and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped
 itself, because the picked point carries the range. The commit reuses the `ENCOUNTER_AREA_ACTION` root and
 children with a null `area`; `encounterChosenActorsChecksum(actorIds)` is the root's caught checksum, so the
 persistence side (`areaCommitPersistence.ts`) checks every id belongs to the Encounter and commits each as
-perceived by the caster. A list has no pending path, so `executeEncounterActorsAction` refuses an outcome
-that asks for evidence (a save or roll card). A spell that takes a list is refused when sent at one creature
+perceived by the caster. **Saves (current, SPELLS-26):** a list whose plan is not `SINGLE_GRAPH` (Acid Splash,
+Chain Lightning) is not executed in place: `planNativeLiveEncounterActorsAction` hands it to `sealReachSaves`, the
+point area's own open path, so the list pends on one sealed save per distinct creature and resumes through the
+area's Answer, Legendary Resistance, GM removal and Commit planners. Damage is rolled once for the cast and
+replayed per creature on one frozen tape (`createFrozenRollTape`), so a failed and a successful save share the
+dice they have in common. The pending context (`EncounterAreaActionPendingContextDto`) seals a null `scene`
+and `area` for a list read against no Scene or naming no area, and a null `token` for a creature with no token
+on the Scene read; `requireAreaActionPendingRoot` then checks the sealed creatures plus the GM's removals equal
+the named ones, and, when the list names an area, that each is still inside it (a point area instead requires
+the caught set to equal the sealed one). An immediate list (heals, projectiles) still commits whole in the
+room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
+
+### An attack aimed at a square (current, ATTACK-17.T4a; empty squares are T4b)
+
+A player can aim a creature-targeted attack at a map square with the sixth target, `{ kind: 'SQUARE', sceneId,
+expectedSceneVersion, point }`. Only the GM knows who stands there, so the room does not roll: `planNativeLiveEncounterAttackSquare`
+finds the candidates (`attackSquareCandidates`: actors other than the attacker, not defeated, whose token footprint contains the point,
+hidden tokens included) and seals an `ENCOUNTER_ATTACK_SQUARE` aggregate-choice pending (owner `ATTACK_SQUARE`). The GM sees
+`ATTACK_SQUARE_RESOLUTION` with the candidate ids; the attacker and every other player see only that the GM is deciding
+(`waitingOn: 'GM'`, no pending). The GM answers `ATTACK_SQUARE_OCCUPANT { actorId }` through `RESOLVE_RULE_OCCURRENCE`. The answer closes the square
+occurrence as COMPLETED (`occurrenceClosing.ts`) and runs an ordinary ACTOR-target `RESOLVE_ACTION` on the named creature under the derived
+command id `attackSquareChildCommandId(occurrenceId)`, so the attack, its roll card and its action economy are the actor path's and a retried
+answer replays. An answer outside the sealed candidates is rejected and the decision stays pending; a GM attacker answers their own decision;
+`VOID_RULE_OCCURRENCE` cancels it with no attack. A square with nobody on it is refused (`TARGET_UNAVAILABLE`) until T4b adds the guaranteed-miss
+root, which must show the player exactly what an occupant miss shows.
 
 ### Caster-centered radius areas (current, SPELLS-22)
 
@@ -467,15 +490,21 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
-#### `SPELL_CAST` (transitional, REACTION-4.T3b-1)
+#### `SPELL_CAST` (current, REACTION-4.T3b-2; D124)
 
 `reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
 `CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal
 that stores nothing; `executionCancelsTriggeringEvent` reads it from the committed trace, as
-`executionAddsSpeedToMovement` does. `discoverCastReactionActions` lists the reactions a Character holds for a
-cast; the caller keeps those whose own invocation range reaches the caster, and the sealed pin accepts the
-`SPELL_CAST` trigger. **Not yet reachable in play:** the Worker pause before a cast and the `SPENT_NO_EFFECT`
-settlement (T3b-2) are not built, so a cast offers no Counterspell yet.
+`executionAddsSpeedToMovement` does.
+
+Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
+`discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
+reaches the caster on the Scene and whose slot level is at least the cast's (Counterspell's rule until T3c), and
+holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
+and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
+caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
+Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
+made without the Scene offer no reaction. The chain is T3d; the higher-level ability check is T3c.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -737,10 +766,14 @@ activation and an attack or damage trigger is offered like a Feature reaction).
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
-(`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
-scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
-own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
-ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+(`getSpellCastLevels`): the spell's own level, plus every higher level for which the Character owns a slot
+(standard or Pact Magic) when the spell reads its cast level. A spell reads it when its authored effects scale by
+it (damage or healing `SPELL_CAST_LEVEL` scaling, a `SPELL_CAST_LEVEL` target count, a granted amount of
+`SPELL_SLOT_LEVEL`) anywhere in the Effect, including follow-up save/check branches and manifest behaviors, components and proximity rules or compare with it (`CANCEL_TRIGGERING_EVENT`, Counterspell's slot-versus-spell check).
+`effectReadsSpellCastLevel` derives that flag from the compiled Effects into `readsCastLevel` on the spell's
+action facts and reference mechanics; nothing names a spell. Any other spell is cast at its own level only.
+A Warlock's pact slot also pays a cast at the spell's own level and is spent whatever its level. A candidate is
+dropped when its decision is not `AVAILABLE` or it is a ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
 SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
 (`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
 is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A
@@ -953,12 +986,15 @@ conditions) that gates whether its result is owed. The compiler copies it onto e
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
 leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
-that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
-roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
-d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
-(`attackRestrictionsMet`); a `CREATURE_TYPE` check reads the target's creature type from
-`dnd5e.target-creature-type`, which the attack TEST binds from the target's derived facts (a `CREATURE` context
-is `authoringModeKind: ALL` or `SELECTED` over `creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
+mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
+restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
+evidence `rollMode`, which `resolveEncounterActionPhaseExecution` passes to the adapter as `testRollMode`, not
+the mode the rules derived from roll contributors. A hand-rolled advantage unlocks the rider, a flattened
+derived advantage forgoes it, and a sight-governed d20 (D100) settles in the true mode, so the check follows that.
+A `CREATURE_TYPE` check reads the target's creature type from `dnd5e.target-creature-type`, which the attack
+TEST binds from the target's derived facts (a `CREATURE` context is `authoringModeKind: ALL` or `SELECTED` over
+`creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
 so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`- and `CREATURE`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
@@ -972,7 +1008,7 @@ a NEUTRAL actor is never hostile. `prepareEncounterActionMechanics` asks its opt
 supplier only for an attack whose compiled Effect reads the predicate (`effectReadsEnemyProximity`), and puts
 the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFacts` emits it as the TEXT fact
 `dnd5e.attack-enemy-proximity` (`{"nearestFeet": number | null}`). An attack without the fact (no Scene
-context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
+context, or a path that supplies no loader) leaves the check unanswerable, so
 the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
 (`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
 consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
@@ -980,7 +1016,25 @@ moved Scene version (`Action Scene context is stale.`) while planning, the commi
 consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
 binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
 unavailable token refuses the attack, as for an area action. Persistence never
-re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
+re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies". A movement
+opportunity attack supplies the same fact: the Session Worker places the mover at the contact point of its
+planned path and measures the Scene with the same helper (`measureNativeEnemyProximity`).
+
+**Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
+(Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own
+Effect and the Feature id for a passive Feature rider merged onto the attack (`oncePerTurnUsageKey`; a
+compiled Effect has one entry per scaling row, so keys are deduplicated). The record is the D38 row
+`encounterTurnMovements`, keyed (Encounter, round, turn actor, actor), extended with `usedOncePerTurn`
+(sorted key ids); there is no second table. `loadTurnUses` (`encounterActionMechanicsPreparation`) reads it
+only for an attack whose Effect reads it (`effectReadsTurnUses`), and `bindFacts` emits it as the
+`dnd5e.attack-turn-uses` TEXT fact; `pathOwed` refuses a limited entry whose key is spent. After the roll
+`spentTurnUses` derives the spent keys from the final evidence `sourceEntryBindings`. The commit writes
+them in the same transaction (`spendTurnUses`; spending an already spent key throws), the command record keeps
+`turnUses {round, turnActorId, keys}`, a replayed command returns the stored result before any spend (so it
+never spends twice), and `REVERT_LAST_ACTION` gives them back (`restoreTurnUses`). A movement opportunity attack carries `turnUses` on
+its reaction settlement and spends them for the reactor. ATTACK-9.T6 reads the same row. Character on-hit
+riders merge only onto equipment-sourced attacks (`collectOnHitRiders`), so a Feature-sourced attack, such as
+a creature-style Bite Feature, gets no rider.
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm

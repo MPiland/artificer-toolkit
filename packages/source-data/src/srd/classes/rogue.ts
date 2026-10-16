@@ -6,9 +6,12 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   MEASUREMENT_UNIT_CODE,
   PATH_CODE,
+  PATH_GROUP_TYPE,
+  PATH_USAGE,
   STARTING_EQUIPMENT_KIND,
   GRANT_KIND,
   PROFICIENCY_KIND,
@@ -21,7 +24,8 @@ import {
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
-  type EffectAuthored
+  type EffectAuthored,
+  type FacetAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import {
@@ -89,6 +93,133 @@ function selfClassRuleEffect(
           targeting: { selectionKind: 'SELF' }
         }
   })
+}
+
+/** Rogue levels that raise Sneak Attack by a die: 1d6 at 1st, then one more every other level. */
+const SNEAK_ATTACK_LEVELS = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as const
+
+/**
+ * Sneak Attack's gate: advantage on the roll, or an able enemy of the target within 5 feet and no
+ * disadvantage. A melee attack must also use a finesse weapon; a ranged attack needs nothing more.
+ * Uses facet ids `classRowId(R, 0x61, base + 3..)`.
+ */
+function sneakAttackGate(variant: 'MELEE' | 'RANGED', base: number): FacetAuthored {
+  const id = (entry: number) => classRowId(R, 0x61, base + entry)
+  const finesse = variant === 'MELEE'
+  const group = (index: number, nearEnemy: boolean) => {
+    const conditions = [
+      ...(finesse
+        ? [
+            {
+              kind: 'PREDICATE' as const,
+              constraint: 'INCLUDE' as const,
+              predicateCode: 'EQUIPMENT_PROPERTY' as const,
+              authoringModeKind: 'SELECTED' as const,
+              properties: ['FINESSE' as const]
+            }
+          ]
+        : []),
+      ...(nearEnemy
+        ? [
+            {
+              kind: 'PREDICATE' as const,
+              constraint: 'INCLUDE' as const,
+              predicateCode: 'ENEMY_NEAR_TARGET' as const,
+              feet: 5
+            },
+            {
+              kind: 'PREDICATE' as const,
+              constraint: 'INCLUDE' as const,
+              predicateCode: 'ATTACK_ROLL_MODE' as const,
+              rollMode: 'NOT_DISADVANTAGE' as const
+            }
+          ]
+        : [
+            {
+              kind: 'PREDICATE' as const,
+              constraint: 'INCLUDE' as const,
+              predicateCode: 'ATTACK_ROLL_MODE' as const,
+              rollMode: 'ADVANTAGE' as const
+            }
+          ])
+    ]
+    return {
+      id: id(4 + index),
+      order: index,
+      contexts: [
+        {
+          id: id(6 + index),
+          order: 0,
+          subject: 'EQUIPMENT' as const,
+          authoringModeKind: 'ALL' as const,
+          conditions: conditions.map((condition, order) => ({
+            ...condition,
+            id: id(8 + index * 4 + order),
+            order
+          }))
+        }
+      ]
+    }
+  }
+  return { id: id(3), groups: [group(0, false), group(1, true)] }
+}
+
+/**
+ * Sneak Attack as authored data: an `ON_HIT` rider of the weapon's own damage type whose dice grow
+ * with Rogue level, gated and limited to once per turn. The melee and ranged triggers are two
+ * effects of the one Feature, which share its single use each turn.
+ */
+function sneakAttackEffect(variant: 'MELEE' | 'RANGED'): EffectAuthored {
+  const melee = variant === 'MELEE'
+  const effectEntry = melee ? 2 : 0x81
+  const base = melee ? 0 : 0x40
+  const id = (entry: number) => classRowId(R, 0x61, base + entry)
+  return {
+    id: classRowId(R, 0x60, effectEntry),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: melee ? TRIGGER.MELEE_WEAPON_ATTACK : TRIGGER.RANGED_WEAPON_ATTACK,
+      range: { id: classRowId(R, 0x69, effectEntry), rangeKind: RANGE_KIND.SPECIAL },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+        dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+      }
+    },
+    paths: [
+      {
+        id: id(0),
+        order: 1,
+        pathCode: PATH_CODE.ON_HIT,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        usage: PATH_USAGE.ONCE_PER_TURN,
+        restrictions: sneakAttackGate(variant, base),
+        resultBlock: {
+          id: id(1),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: id(2),
+              effectKind: EFFECT_KIND.DAMAGE,
+              usesTriggeringWeaponDamageType: true,
+              valueKind: 'DICE',
+              scalingKind: SCALING.PER_LEVEL,
+              scalingSource: 'CLASS_LEVEL',
+              classId: CLASS_IDS.ROGUE,
+              levels: SNEAK_ATTACK_LEVELS.map((level, index) => ({
+                id: id(0x20 + index),
+                level,
+                order: index + 1,
+                diceConfig: `${index + 1}d6`
+              }))
+            }
+          ]
+        }
+      }
+    ]
+  }
 }
 
 export const rogue: ClassAuthored = {
@@ -498,36 +629,7 @@ export const rogue: ClassAuthored = {
       label: 'Sneak Attack',
       description:
         "Beginning at 1st level, you know how to strike subtly and exploit a foe's distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack if you have advantage on the attack roll. The attack must use a finesse or a ranged weapon.\n\nYou don't need advantage on the attack roll if another enemy of the target is within 5 feet of it, that enemy isn't incapacitated, and you don't have disadvantage on the attack roll.\n\nThe amount of the extra damage increases as you gain levels in this class, as shown in the Sneak Attack column of the Rogue table.",
-      effects: [
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 2),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_SNEAK_ATTACK,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(R, 0x69, 2), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 0x81),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_SNEAK_ATTACK,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(R, 0x69, 0x81), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        })
-      ],
+      effects: [sneakAttackEffect('MELEE'), sneakAttackEffect('RANGED')],
       availableAtLevel: 1,
       order: 1
     },

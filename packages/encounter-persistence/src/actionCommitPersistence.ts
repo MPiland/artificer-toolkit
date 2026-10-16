@@ -22,7 +22,7 @@ import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpen
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { recordTurnSpeedBonus } from './turnMovement.js'
+import { recordTurnSpeedBonus, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type {
@@ -32,6 +32,7 @@ import type {
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
+import { castReactionAnswerContinues } from './actionPending.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 
@@ -91,6 +92,7 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
+    (resume && !castReactionAnswerContinues(resume.pending.context, input.response, {})) ||
     command.optionalCombatIntent != null ||
     command.target.kind !== 'ACTOR'
   )
@@ -365,6 +367,8 @@ export async function persistEncounterActionCommit(
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const addsSpeed = executionAddsSpeedToMovement(execution)
   if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
+  // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
+  const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   await recordActionRoot(ctx, {
     run,
     state,
@@ -384,7 +388,8 @@ export async function persistEncounterActionCommit(
         endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
       }),
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
-      speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null
+      speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
+      turnUses
     },
     occurredAt: input.occurredAt
   })

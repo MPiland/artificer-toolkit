@@ -117,6 +117,10 @@ interface VttSceneRendererCallbacks {
   /** Sends a ping; returns whether it was sent, so the renderer draws it for this member too. */
   onPing: (position: ScenePoint) => boolean
   onTokenCommit: (tokenId: string, path: ScenePoint[]) => void
+  /** The caster pressed a targetable token while targeting. */
+  onTokenPick?: (tokenId: string) => void
+  /** The caster pressed Escape while targeting. */
+  onTargetingCancel?: () => void
   /** The pointer entered a token, or left it (null). */
   onTokenHover?: (tokenId: string | null) => void
   /** The SELECT tool pressed a token (any token), or the empty map (null). */
@@ -144,6 +148,8 @@ export interface VttSceneRendererUpdate {
   /** The token drawn with the selection outline. */
   selectedTokenId?: string | null
   tokenPresentations?: Readonly<Record<string, VttTokenPresentation>>
+  /** While set, a press on a targetable token picks it as the action's target and nothing else on the map reacts. */
+  targeting?: boolean
   tool: CampaignVttTool
   /**
    * The token whose view is drawn: its sight is not clamped to an authored range, and its senses
@@ -203,6 +209,8 @@ export interface VttSceneRenderer {
       crosshairDrawn: boolean
       facingRotationDegrees: number | null
       footprint: { height: number; width: number }
+      /** Whether the ring that marks the token as pickable while targeting is drawn. */
+      targetableDrawn: boolean
       /** The drawn turn or reaction halo. */
       halo: { color: number; label: string } | null
       id: string
@@ -271,6 +279,7 @@ const tokenHaloLabelPrefix = 'token-halo:'
 const tokenOuterRingLabel = 'token-outer-ring'
 const tokenOverflowSegmentLabel = 'token-status-overflow'
 const tokenRingLabel = 'token-ring'
+const tokenTargetableLabel = 'token-targetable'
 const tokenSegmentLabel = 'token-status-segment'
 const tokenSelectionLabel = 'token-selection'
 const zoomFactor = 1.1
@@ -1633,7 +1642,7 @@ export async function createVttSceneRenderer(
   ): Container {
     const visual = new pixi.Container()
     visual.eventMode = 'static'
-    visual.cursor = tokenCanMove(token) ? 'grab' : 'default'
+    visual.cursor = presentation?.targetable ? 'pointer' : tokenCanMove(token) ? 'grab' : 'default'
     visual.on('pointerover', () => callbacks.onTokenHover?.(token.id))
     visual.on('pointerout', () => callbacks.onTokenHover?.(null))
     if (presentation?.halo) {
@@ -1721,8 +1730,21 @@ export async function createVttSceneRenderer(
       crosshair.label = tokenCrosshairLabel
       visual.addChild(crosshair)
     }
+    if (presentation?.targetable) {
+      const targetable = new pixi.Graphics()
+        .ellipse(0, 0, token.width / 2 + 14, token.height / 2 + 14)
+        .stroke({ alpha: 0.95, color: 0xfab005, width: 3 })
+      targetable.label = tokenTargetableLabel
+      visual.addChild(targetable)
+    }
     addStatusRing(visual, token, presentation?.statuses ?? [])
     visual.on('pointerdown', (event) => {
+      if (current?.targeting) {
+        if (!presentation?.targetable) return
+        event.stopPropagation()
+        callbacks.onTokenPick?.(token.id)
+        return
+      }
       if (current?.tool !== 'SELECT' || current.areaAim) return
       callbacks.onTokenSelect?.(token.id)
       // A token the member cannot move still lets the press reach the map, so it can ping there.
@@ -1897,7 +1919,9 @@ export async function createVttSceneRenderer(
     }
     current = next
     // Escape cancels the aim, so the canvas takes focus when it starts.
-    if (!previous?.areaAim && next.areaAim) app.canvas.focus({ preventScroll: true })
+    if ((!previous?.areaAim && next.areaAim) || (!previous?.targeting && next.targeting)) {
+      app.canvas.focus({ preventScroll: true })
+    }
     if (previous?.areaAim && !next.areaAim) {
       destroyChildren(measurementLayer)
       drawMeasurements(next.scene)
@@ -2010,6 +2034,7 @@ export async function createVttSceneRenderer(
       previous.previewTokenId === next.previewTokenId &&
       previous.selectedTokenId === next.selectedTokenId &&
       previous.tokenPresentations === next.tokenPresentations &&
+      previous.targeting === next.targeting &&
       previous.viewTokenId === next.viewTokenId
     )
   }
@@ -2062,6 +2087,7 @@ export async function createVttSceneRenderer(
     requestRender()
     if (!current) return
     const point = worldPoint(event)
+    if (current.targeting && event.button === 0) return
     if (current.areaAim && event.button === 0) {
       if (isDirectedAreaShape(current.areaAim.size)) areaPress = point
       else callbacks.onAreaPoint?.(point)
@@ -2232,6 +2258,11 @@ export async function createVttSceneRenderer(
     if (current?.areaAim && event.key === 'Escape') {
       event.preventDefault()
       callbacks.onAreaAimCancel?.()
+      return
+    }
+    if (current?.targeting && event.key === 'Escape') {
+      event.preventDefault()
+      callbacks.onTargetingCancel?.()
       return
     }
     if (!current || current.tool !== 'WALL' || !wallChainStart) return
@@ -2550,6 +2581,7 @@ export async function createVttSceneRenderer(
                 ? { color: haloColor, label: halo.label.slice(tokenHaloLabelPrefix.length) }
                 : null,
             id,
+            targetableDrawn: visual.getChildByLabel(tokenTargetableLabel) !== null,
             innerRing: {
               height: innerBounds?.height ?? 0,
               width: innerBounds?.width ?? 0,

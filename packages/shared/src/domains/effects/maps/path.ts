@@ -33,6 +33,7 @@ import {
 } from '#authored'
 import {
   PATH_ORIGIN_KIND_OPTIONS,
+  PATH_USAGE_OPTIONS,
   PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS,
   PATH_LIFECYCLE_END_EVENT_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
@@ -2929,6 +2930,13 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
         })
       )
       .set(
+        'usage',
+        selectSingle(['usage'], 'Usage Limit', {
+          kind: 'INLINE_OPTIONS',
+          options: PATH_USAGE_OPTIONS
+        })
+      )
+      .set(
         'rangeOverride',
         groupObject(['rangeOverride'], 'Range Override', () => RANGE_NODE_MAP, {
           presentation: 'inline'
@@ -3069,6 +3077,13 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
               }
             ]
           }
+        })
+      )
+      .set(
+        'usage',
+        selectSingle(['usage'], 'Usage Limit', {
+          kind: 'INLINE_OPTIONS',
+          options: PATH_USAGE_OPTIONS
         })
       )
       .set(

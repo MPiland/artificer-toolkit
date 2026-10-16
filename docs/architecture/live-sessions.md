@@ -195,6 +195,10 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   The last answer, the last decision, a settling removal, or the open when every save auto-rolls commits the
   area in one transaction: a root receipt with the source spend plus one child receipt per kept creature
   (current, D103).
+- A `RESOLVE_ACTION` with a `SQUARE` target (an attack aimed at a map square, ATTACK-17.T4a) pends a GM-only
+  `ATTACK_SQUARE_RESOLUTION` that lists the creatures standing there, hidden ones included. A player's session
+  frame carries no such pending, only `waitingOn: 'GM'`. The GM's `ATTACK_SQUARE_OCCUPANT` answer runs an
+  ordinary attack on the named creature (see `rules-runtime.md`, "An attack aimed at a square").
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").
@@ -231,8 +235,14 @@ planner read reaches Convex. This is current behavior.
 GM-set `controllerUserIds` (current Campaign players only, at most 8) and a `disposition`; a
 Character actor's assigned player is always a controller, derived and never stored.
 `encounters/actorController.ts` is the one predicate used by admission, reads and responses. A PLAYER
-may `RESOLVE_ACTION` for an actor they control, end the current actor's turn when it is theirs, and
-answer decisions routed to them; every other Encounter command is GM-only (`GM_ONLY`). A roll belongs
+may `RESOLVE_ACTION` for an actor they control, end the current actor's turn when it is theirs,
+answer decisions routed to them, and enter initiative once for an actor they control, rolled
+(`ROLL_ACTOR_INITIATIVE`) or hand-entered (`SET_INITIATIVE` without a `manualOrder`), only while the Run is
+`PREPARED` and the actor has no initiative yet (`recordEncounterToolCommand` checks
+`requireEncounterActorControl`). Every other Encounter command is GM-only (`GM_ONLY`), including a second
+entry, a re-roll and any initiative change once the Run is active. The matrix test
+`apps/session-worker/test/nativeRoomPlayerParity.test.ts` classifies every command in the schema
+registry as PLAYER, SHEET or TABLE and fails on a command with no class. A roll belongs
 to the actor who makes it: pending evidence carries `rollerActorId`, and only that actor's controllers
 and the GM see and answer it. Results returned to a non-owner pass through
 `presentEncounterResultForMember`; the room refuses to hand a PLAYER anything that does not parse as a
@@ -339,9 +349,9 @@ settlement, timeline }`:
 #### Held turn reads
 
 The four version-keyed turn reads (`actionChoices.get`, `actionChoices.optional`,
-`evidenceRolls.latest`, `sceneBindings.get`) and the Scene's actor token bindings are not in the frame;
-they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union over the five
-reads with the Convex query's arguments less `expectedVersion`
+`evidenceRolls.latest`, `sceneBindings.get`), the Scene's actor token bindings and the target modifiers are
+not in the frame; they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union
+over the six reads with the Convex query's arguments less `expectedVersion`
 ([encounterRead.ts](../../packages/schema/src/api/encounterRead.ts)). The room answers at its own current
 version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result }`, or
 `ENCOUNTER_READ_REJECTED { requestId, code, reason, message }` (the rejection codes of `COMMAND_REJECTED`).
@@ -357,6 +367,31 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   the room; the web view (`CampaignVttStage`) reads this while routed and re-asks when the viewer's token
   set changes. It keeps the Convex action for an unrouted read. A Scene the room does not present is
   `UNAVAILABLE`.
+- `ACTION_TARGET_MODIFIERS { encounterId, actorId, actionId, scene }` answers ATTACK-17.2's hover readout
+  ([encounterActionTargetModifiers.ts](../../packages/schema/src/api/encounterActionTargetModifiers.ts),
+  [actionTargetModifierReads.ts](../../packages/encounter-persistence/src/actionTargetModifierReads.ts)). For
+  each creature the viewer can list it returns the d20 mode the acting Character believes (ATTACK-10.1, D100:
+  the same believed-mode mechanism as the roll prompt, never the true mode) and the player-safe reasons, or
+  `attack: null` when the action makes no attack roll against it. The web asks once when targeting starts
+  (`useActionTargetModifiers`, keyed by Encounter, actor, action and Scene) and never per hover; the
+  Convex query `encounters/actionTargetModifiers:get` is the fallback and agrees with the room. The GM reads
+  the same believed mode in this version.
+
+#### Targeting from the map or the list (ATTACK-17.1, 17.2)
+
+Choosing an action whose target is one creature lets the caster pick it on the map (the area-aim pattern).
+`CampaignVttStage` owns the targeting request and the picked creature; the Action drawer's Target select,
+"Pick on map" button, the map and the Encounter drawer all read and write that one pick.
+
+- `vttTargeting.model.ts` is the pure model: it lists the creatures the action can name, measures each one's
+  footprint distance and reach band from the caster's token on the Scene, sorts nearest first (a creature with no
+  token sorts last as "distance unknown") and flags exactly the listed tokens in normal or long range as
+  targetable. The renderer draws the flag as a ring, shows a pointer cursor and turns a click into
+  `onTokenPick`; Escape calls `onTargetingCancel`.
+- While targeting, the Encounter drawer is the target list: non-modal beside the map, ordered by the model,
+  each listed creature a labelled `Target <name>` button with its distance, reach and believed modifier text.
+  Out-of-range creatures stay selectable from the list (marked "Out of range"); only the map refuses them.
+  When targeting ends the drawer closes (or returns to turn order) and the order is initiative order again.
 - The readers are shared with the Convex queries
   ([actionChoiceReads](../../packages/encounter-persistence/src/actionChoiceReads.ts),
   [evidenceRolls](../../packages/encounter-persistence/src/evidenceRolls.ts),

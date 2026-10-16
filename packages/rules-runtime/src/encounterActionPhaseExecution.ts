@@ -1,9 +1,11 @@
 import type {
   RuleGraphSourceIdentityDto,
+  ServerRuleExecutionD20EvidenceDto,
   ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { RuleValue } from '@artificer-toolkit/shared/rules'
 
+import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 import type {
   CharacterRuleActionExecutionPlan,
   CharacterRuleActionOutcomeTemplate,
@@ -21,6 +23,12 @@ type EncounterActionPhaseResolution =
       template: RuleGraphSourceIdentityDto
     }
 
+/** The mode a completed TEST's d20 was settled in; a TEST_OUTCOME action always settles one. */
+export function requireTestRollMode(d20: ServerRuleExecutionD20EvidenceDto | null) {
+  if (!d20) throw new Error('The action TEST holds no settled d20.')
+  return d20.rollMode
+}
+
 /**
  * Selects the sole optional OUTCOME after a completed TEST. Aggregate callers
  * own locking, currentness, evidence collection, execution, and application.
@@ -31,6 +39,8 @@ export function resolveEncounterActionPhaseExecution(input: {
   execution: ServerRuleExecutionResultDto
   adapter: Pick<CharacterRuleActionSystemAdapter, 'specializeOutcomeTemplate'>
   facts: Readonly<Record<string, RuleValue>>
+  /** The mode the TEST d20 was settled in (its evidence `rollMode`), which a path gate reads. */
+  testRollMode: EncounterD20RollMode
   /** A server-owned interstitial policy may select a legal replacement path without rewriting TEST evidence. */
   effectivePath?: string
 }): EncounterActionPhaseResolution {
@@ -51,7 +61,8 @@ export function resolveEncounterActionPhaseExecution(input: {
     compilerSource: input.plan.compilerSource,
     testTemplate: input.plan.test,
     selectedPath,
-    facts: input.facts
+    facts: input.facts,
+    testRollMode: input.testRollMode
   })
   if (!expectedTemplate) {
     if (outcome) throw new Error('An omitted TEST outcome path cannot produce an OUTCOME graph.')

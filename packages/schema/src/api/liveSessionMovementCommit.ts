@@ -30,6 +30,7 @@ import {
 } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_SPATIAL_CANDIDATES } from '../shared/spatialFacts.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 
 /** Ordered domain outcomes only; Character documents and arbitrary patches never cross this seam. */
 export const liveSessionMovementSettlementSchema = lazySchema(() =>
@@ -54,7 +55,9 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       /** The reactor's one-roll grants the attack roll used up; the commit deletes them. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** The once-per-turn uses the reaction attack spent from the reactor's turn record (D119). */
+      turnUses: encounterTurnUseKeysSchema
     }),
     z.strictObject({
       kind: z.literal('CONCENTRATION'),

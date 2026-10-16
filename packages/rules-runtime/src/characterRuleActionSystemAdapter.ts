@@ -187,6 +187,14 @@ export class CharacterRuleActionUnsupportedCompilationError extends Error {
   }
 }
 
+/** A System adapter throws this when an attack's target has no defense value to roll against. */
+export class CharacterRuleActionTargetDefenseUnavailableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CharacterRuleActionTargetDefenseUnavailableError'
+  }
+}
+
 interface CharacterHitPointOutcomeApplicationBase {
   sourceNodeId: string
   sourceOperationKey: string
@@ -380,6 +388,8 @@ export interface CharacterRuleActionSystemAdapter {
     testTemplate: CharacterRuleActionTestTemplate
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
+    /** The mode the TEST d20 was settled in, which may differ from the mode the rules derived. */
+    testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   }): CharacterRuleActionOutcomeTemplate | null
   /**
    * The zone this action places when its authored outcome is a placed-space manifest, or null for

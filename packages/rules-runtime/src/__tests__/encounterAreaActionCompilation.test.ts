@@ -300,17 +300,55 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     expect(plan?.modifierGrantContribution ?? null).toBeNull()
   })
 
-  it('refuses an area it cannot aim at a point, or a list that is not a heal', () => {
+  it('refuses an area it cannot aim at a point, or a list that repeats a creature through a save', () => {
     expect(() =>
       compile({ shape: { id: 's', shapeKind: 'CUBE', edgeLength: feet(15) } }, MASS_CURE_WOUNDS, 5)
     ).toThrow(CharacterRuleActionUnsupportedCompilationError)
     expect(() =>
       compile({
         shape: undefined,
-        targeting: { selectionKind: 'CHOSEN_CREATURES', dispositionKind: 'ANY', maxTargets: 3 }
+        targeting: {
+          selectionKind: 'CHOSEN_CREATURES',
+          dispositionKind: 'ANY',
+          maxTargets: 3,
+          allowRepeatedTargets: true
+        }
       })
     ).toThrow(CharacterRuleActionUnsupportedCompilationError)
   })
+})
+
+describe('chosen-creature save compilation from the SRD (SPELLS-26)', () => {
+  const ACID_SPLASH = spellEffect('Acid Splash')
+  const CHAIN_LIGHTNING = spellEffect('Chain Lightning')
+  const targetOf = (effect: typeof FIREBALL, castLevel: number) =>
+    encounterActionChoiceTarget(
+      buildCompiledActionTargetPolicy(compile({}, effect, castLevel).action)
+    )
+
+  it('takes a list of up to two creatures, each with its own save', () => {
+    const { action, plan } = compile({}, ACID_SPLASH, 0)
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(action))).toBe('ACTORS')
+    expect(targetOf(ACID_SPLASH, 0)).toEqual({ kind: 'ACTORS', maxTargets: 2, area: null })
+  })
+
+  it.each([
+    [6, 4],
+    [7, 5],
+    [8, 6],
+    [9, 7]
+  ])(
+    'takes one more creature for each level above the 6th (level %i, %i creatures)',
+    (level, cap) => {
+      expect(compile({}, CHAIN_LIGHTNING, level).plan?.kind).toBe('TEST_OUTCOME')
+      expect(targetOf(CHAIN_LIGHTNING, level)).toEqual({
+        kind: 'ACTORS',
+        maxTargets: cap,
+        area: null
+      })
+    }
+  )
 })
 
 describe('chosen-creature projectile compilation from the SRD (SPELLS-26)', () => {

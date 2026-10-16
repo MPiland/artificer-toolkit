@@ -26,7 +26,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { requireEncounterActorControllerCandidates } from './actorController.js'
+import {
+  requireEncounterActorControl,
+  requireEncounterActorControllerCandidates
+} from './actorController.js'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
@@ -129,7 +132,10 @@ export async function recordEncounterCommand(
   return recordEncounterToolCommand(ctx, command, userId, nextInt)
 }
 
-/** Records a generic GM tool command using the transaction's real domain capabilities. */
+/**
+ * Records a generic GM tool command using the transaction's real domain capabilities. The one
+ * player-issued exception is entering their own actor's initiative.
+ */
 async function recordEncounterToolCommand(
   ctx: EncounterWriteTransaction,
   command: EncounterToolCommand,
@@ -208,15 +214,29 @@ async function recordEncounterToolCommand(
     .unique()
   if (!row) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(row.campaignId, userId)
-  if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
+  const state = readRunState(row)
+  // A player enters their own actor's initiative once, rolled or hand-entered, while it is
+  // collected, before the Run starts (ADR 0034 decision 1); the value and the roll are visible to
+  // the table. Every later change, a re-roll, a tie-break order or a settled order, is the GM's.
+  const playerInitiative =
+    state.status === 'PREPARED' &&
+    (input.type === 'ROLL_ACTOR_INITIATIVE' ||
+      (input.type === 'SET_INITIATIVE' && input.manualOrder === undefined))
+  if (membership.role !== 'OWNER' && !playerInitiative) rejectDomain('GM_ONLY')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
+  const playerInitiativeActor =
+    membership.role !== 'OWNER' && playerInitiative
+      ? (await readRunActorWithRow(ctx, state, input.actorId)).actor
+      : null
+  if (playerInitiativeActor)
+    await requireEncounterActorControl(ctx, { campaign, membership, actor: playerInitiativeActor })
   const { fingerprint: commandFingerprint, result: replayResult } =
     await readNativeEncounterCommandReplay(ctx, { input, row, campaign, userId })
   if (replayResult)
     return presentEncounterResultForMember(ctx, { campaign, membership, result: replayResult })
-  const state = readRunState(row)
+  if (playerInitiativeActor && playerInitiativeActor.initiative !== null) rejectDomain('GM_ONLY')
   const actorIds = new Set(state.actorIds)
   const pendingOccurrences = await ctx.db
     .query('encounterRuleOccurrences')
@@ -718,5 +738,5 @@ async function recordEncounterToolCommand(
       createdAt: updatedAt
     })
   )
-  return result
+  return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }

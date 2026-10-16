@@ -15,6 +15,7 @@ import {
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 
 const FIREBALL = srdSpells.find((spell) => spell.label === 'Fireball')!
+const ACID_SPLASH = srdSpells.find((spell) => spell.label === 'Acid Splash')!
 const MEND = fixedHealSpell()
 
 const spellAction = (spell: SpellAuthored) => {
@@ -30,7 +31,10 @@ const TARGET_ID = '00000000-0000-4000-8000-0000000c0001'
 function bind(spell: SpellAuthored, actionMechanic: Record<string, unknown>) {
   const { action, compilerSource } = spellAction(spell)
   // A spell with an attack or save is bound at its TEST phase; one without (a heal) as a single graph.
-  const test = spell === FIREBALL ? adapter.compileTestTemplate?.({ compilerSource }) : null
+  const test =
+    spell === FIREBALL || spell === ACID_SPLASH
+      ? adapter.compileTestTemplate?.({ compilerSource })
+      : null
   const published = test ? test.published : adapter.compile({ action })
   return adapter.bindFacts({
     actionMechanic,
@@ -71,7 +75,8 @@ describe('scaling a spell by the cast level fact (M2)', () => {
       compilerSource,
       testTemplate,
       selectedPath: 'ON_SAVE_FAIL',
-      facts: { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: castLevel }
+      facts: { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: castLevel },
+      testRollMode: 'NORMAL'
     })
   }
 
@@ -83,5 +88,33 @@ describe('scaling a spell by the cast level fact (M2)', () => {
 
   it('selects the same outcome for the same cast level', () => {
     expect(specialize(5)?.published.checksum).toBe(specialize(5)?.published.checksum)
+  })
+})
+
+describe('scaling a cantrip by the Character level the action binds', () => {
+  const FIGHTER_ID = '00000000-0000-4000-8000-0000000c0002'
+  const damageChecksum = (classLevels: Record<string, number>) => {
+    const { compilerSource } = spellAction(ACID_SPLASH)
+    const testTemplate = adapter.compileTestTemplate?.({ compilerSource })
+    if (!testTemplate) throw new Error('Acid Splash has no TEST template.')
+    return adapter.specializeOutcomeTemplate?.({
+      compilerSource,
+      testTemplate,
+      selectedPath: 'ON_SAVE_FAIL',
+      facts: bind(ACID_SPLASH, { outcomes: [], classLevels }),
+      testRollMode: 'NORMAL'
+    })?.published.checksum
+  }
+
+  it('reads the Character level as the sum of the class levels the action binds', () => {
+    const checksums = [1, 5, 11].map((level) => damageChecksum({ [FIGHTER_ID]: level }))
+    expect(checksums.every((checksum) => typeof checksum === 'string')).toBe(true)
+    expect(new Set(checksums).size).toBe(3)
+  })
+
+  it('reads the same level from a Character of several classes as from one class', () => {
+    expect(damageChecksum({ [FIGHTER_ID]: 3, '00000000-0000-4000-8000-0000000c0003': 2 })).toBe(
+      damageChecksum({ [FIGHTER_ID]: 5 })
+    )
   })
 })

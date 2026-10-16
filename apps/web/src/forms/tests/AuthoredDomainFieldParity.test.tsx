@@ -16,7 +16,9 @@ import {
 import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import {
   authoredRouteStoryRecords,
@@ -63,6 +65,7 @@ const SYSTEM_MANAGED_PATH_KEYS = new Set([
 const DISPLAY_COPY_KEYS = new Set(['description', 'label'])
 const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
 const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
+const SNEAK_ATTACK_SCENARIO_LABEL = 'class SRD Sneak Attack feature'
 const SMITE_SCENARIO_LABEL = 'class SRD Divine Smite features'
 const smiteFeatures = paladin.features?.filter(({ label }) =>
   ['Divine Smite', 'Improved Divine Smite'].includes(label)
@@ -70,6 +73,7 @@ const smiteFeatures = paladin.features?.filter(({ label }) =>
 const smiteEffects = smiteFeatures?.map(({ effects }) => effects)
 const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
 const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
+const COUNTERSPELL_SCENARIO_LABEL = 'spell user-authored Counterspell'
 
 const scenarios = createBranchScenarios()
 // One case per resolved context: rendering a whole scenario in a single test made the
@@ -95,6 +99,12 @@ const rageCases = registrationCases.filter(
 const rageScenario = scenarios.find(({ label }) => label === RAGE_SCENARIO_LABEL)
 if (!rageScenario) throw new Error('Expected the SRD Rage class scenario.')
 const rageFormValues = toActualFormValues('class', parseScenarioRecord(rageScenario))
+const sneakAttackCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === SNEAK_ATTACK_SCENARIO_LABEL
+)
+const sneakAttackScenario = scenarios.find(({ label }) => label === SNEAK_ATTACK_SCENARIO_LABEL)
+if (!sneakAttackScenario) throw new Error('Expected the SRD Sneak Attack class scenario.')
+const sneakAttackFormValues = toActualFormValues('class', parseScenarioRecord(sneakAttackScenario))
 const smiteCases = registrationCases.filter(
   ({ scenarioLabel }) => scenarioLabel === SMITE_SCENARIO_LABEL
 )
@@ -113,6 +123,15 @@ const absorbCases = registrationCases.filter(
 const absorbScenario = scenarios.find(({ label }) => label === ABSORB_SCENARIO_LABEL)
 if (!absorbScenario) throw new Error('Expected the Absorb Elements spell scenario.')
 const absorbFormValues = toActualFormValues('spell', parseScenarioRecord(absorbScenario))
+const counterspellCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === COUNTERSPELL_SCENARIO_LABEL
+)
+const counterspellScenario = scenarios.find(({ label }) => label === COUNTERSPELL_SCENARIO_LABEL)
+if (!counterspellScenario) throw new Error('Expected the Counterspell spell scenario.')
+const counterspellFormValues = toActualFormValues(
+  'spell',
+  parseScenarioRecord(counterspellScenario)
+)
 const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValues: {} })
 
 afterEach(cleanup)
@@ -207,6 +226,52 @@ describe('SRD Rage feature effect authoring parity', () => {
 
     expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
       stripKeys(rageEffects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
+describe('SRD Sneak Attack feature effect authoring parity', () => {
+  const sneakAttackEffects = rogue.features?.find(({ label }) => label === 'Sneak Attack')?.effects
+
+  it('authors the once-per-turn and gate shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(sneakAttackEffects)
+    for (const shape of ['"usage":"ONCE_PER_TURN"', 'ENEMY_NEAR_TARGET', 'ATTACK_ROLL_MODE', 'FINESSE']) {
+      expect(authored).toContain(shape)
+    }
+  })
+
+  it('keeps every Sneak Attack value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'class',
+      values: sneakAttackFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(sneakAttackFormValues)
+  })
+
+  for (const [index, { context }] of sneakAttackCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Sneak Attack context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the Rogue class as the SRD Sneak Attack effects', async () => {
+    const rootContext = sneakAttackCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Sneak Attack class root context.')
+    await renderUntilRegistered(rootContext.model, sneakAttackFormValues)
+
+    const session = createScenarioSession('class', parseScenarioRecord(sneakAttackScenario))
+    const submitted = classAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(sneakAttackEffects, NON_STRUCTURAL_KEYS)
     )
   })
 })
@@ -381,6 +446,50 @@ describe('user-authored Absorb Elements reaction authoring parity (ADR 0038)', (
   })
 })
 
+describe('user-authored Counterspell reaction authoring parity (ADR 0038)', () => {
+  it('authors the reaction shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(counterspell.effects)
+    for (const shape of ['SPELL_CAST', 'CANCEL_TRIGGERING_EVENT', 'REACTION']) {
+      expect(authored).toContain(shape)
+    }
+  })
+
+  it('keeps every Counterspell value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'spell',
+      values: counterspellFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(counterspellFormValues)
+  })
+
+  for (const [index, { context }] of counterspellCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Counterspell context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the spell as the Counterspell effect', async () => {
+    const rootContext = counterspellCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Counterspell spell root context.')
+    await renderUntilRegistered(rootContext.model, counterspellFormValues)
+
+    const session = createScenarioSession('spell', parseScenarioRecord(counterspellScenario))
+    const submitted = spellAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(counterspell.effects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
 const isTriggerPayload = ({ damageTypeSource }: Record<string, unknown>) =>
   damageTypeSource === 'TRIGGER'
 
@@ -479,6 +588,17 @@ function createBranchScenarios(): BranchScenario[] {
         attributes: [],
         features: barbarian.features?.filter(({ label }) => label === 'Rage'),
         resources: barbarian.resources
+      }
+    },
+    {
+      domain: 'class',
+      label: SNEAK_ATTACK_SCENARIO_LABEL,
+      record: {
+        ...wizard,
+        id: 'story-sneak-attack-class',
+        label: 'Sneak Attack Test Class',
+        attributes: [],
+        features: rogue.features?.filter(({ label }) => label === 'Sneak Attack')
       }
     },
     {
@@ -676,6 +796,16 @@ function createBranchScenarios(): BranchScenario[] {
         id: 'story-absorb-elements',
         label: 'Test Absorb Elements',
         effects: absorbElementsSpell(['FIRE', 'COLD']).effects
+      }
+    },
+    {
+      domain: 'spell',
+      label: COUNTERSPELL_SCENARIO_LABEL,
+      record: {
+        ...fireball,
+        id: 'story-counterspell',
+        label: 'Test Counterspell',
+        effects: counterspell.effects
       }
     },
     {

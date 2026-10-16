@@ -27,6 +27,7 @@ import {
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterResourceUsageOwnerSchema } from '../projections/characterSheetState.js'
+import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 import {
   activeRuleEffectRecordSchema,
   encounterMaintainedEffectStateRecordSchema
@@ -139,6 +140,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
+  /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
+  turnUses: z.infer<typeof encounterTurnUseKeysSchema>
 }
 export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
@@ -182,8 +185,50 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      turnUses: encounterTurnUseKeysSchema
     })
+  )
+
+/**
+ * The terminal outcome of a cast that another creature countered: the caster's one spend and the
+ * reactor's, recorded on one root. Nothing of the spell applies, so it creates no effect, damage or
+ * Concentration and consumes no grant.
+ */
+export type LiveSessionEncounterCounteredCastCommitInput = Omit<
+  LiveSessionEncounterActionCommitInput,
+  | 'maintenanceOwners'
+  | 'createdEffects'
+  | 'maintainedState'
+  | 'concentration'
+  | 'pendingConcentration'
+  | 'concentrationEnds'
+  | 'endedGrants'
+  | 'cleaving'
+  | 'consumedGrants'
+  | 'turnUses'
+>
+
+export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCounteredCastCommitInput> =
+  lazySchema(() =>
+    z.extend(
+      z.omit(liveSessionEncounterActionPendingInputSchema, {
+        snapshot: true,
+        maintenanceOwners: true
+      }),
+      {
+        occurredAt: z.iso.datetime(),
+        initialDefinitionId: postgresUuidSchema,
+        execution: storedRuleExecutionResultDtoSchema,
+        rules: encounterActorRuleOutputSchema,
+        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+        reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+        ruleOverrides: encounterRuleWarningsDtoSchema
+      }
+    )
   )
 
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
@@ -209,9 +254,9 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
 /**
  * The terminal outcome of a point-area action or of a cast on a list of chosen creatures: the root
  * with the caster's one spend, one settled outcome per kept creature, and, for an area, its final
- * snapshot the last answer produced (a chosen list never pends, so it has none). It creates no
- * maintained state or cleaving choice, so those fields do not exist here; each creature may be left
- * one lasting effect, and the action may place one spatial effect in the Scene.
+ * snapshot the last answer produced (a chosen list that asked for no save never pends, so it has none).
+ * It creates no maintained state or cleaving choice, so those fields do not exist here; each creature
+ * may be left one lasting effect, and the action may place one spatial effect in the Scene.
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
@@ -221,6 +266,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'maintainedState'
   | 'cleaving'
   | 'consumedGrants'
+  | 'turnUses'
   | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>

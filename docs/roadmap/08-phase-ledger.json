@@ -5096,7 +5096,9 @@
             {
               "text": "A player can do everything the GM can for their own Characters in play (player play parity, launch-gating).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1: a controlling player enters their own actor's initiative once (rolled or hand-entered) while the Run is PREPARED; re-rolls, tie-break and settled orders stay GM-only. packages/encounter-persistence/src/commands.ts; matrix rows on both sides. CI Tests 38870865820 and Live backend 38870866069 on 5821eed47"
+              ],
               "origin": [],
               "note": "Carry-over from ADR 0034 (inventory section 7).",
               "id": "ATTACK-2.5"
@@ -5112,15 +5114,14 @@
             {
               "id": "ATTACK-2.T1",
               "text": "Player parity matrix: a test derived from the real Encounter command registry proves every command the GM can issue for a Character is accepted from that Character's controlling player (own actor, own turn or a reaction window) and refused for others; each GM-only gap found is fixed through the player path, not by widening authorization.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
+              }
             },
             {
               "id": "ATTACK-2.T2",
@@ -5727,9 +5728,12 @@
             {
               "id": "ATTACK-9.2",
               "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts; closes after T2b-T2d"
+                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts",
+                "T2d: ONCE_PER_TURN and the real SRD Rogue Sneak Attack: packages/source-data srdSneakAttack.test.ts, packages/encounter-persistence turnUses.test.ts, apps/session-worker nativeRoomOncePerTurn.test.ts, nativeMovementOncePerTurnRider.test.ts, nativeRoomEnemyProximity.test.ts; authored parity: apps/web src/forms/tests/AuthoredDomainFieldParity.test.tsx",
+                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts",
+                "T2d/T2e green: CI Tests 38869134710 and Live backend 38869134783 on 6649d84da"
               ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
@@ -5767,7 +5771,7 @@
             },
             {
               "id": "ATTACK-9.6",
-              "text": "Rage ends early at the start of the Barbarian's turn when they neither attacked a hostile creature nor took damage since their previous turn, read from the per-turn Encounter record ATTACK-9.T2 builds. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
+              "text": "Rage ends early when the Barbarian's turn ends and they have neither attacked a hostile creature nor taken damage since their previous turn (SRD 5.1), tracked on the Rage grant by a generic ON_IDLE_TURN end event; authored only from core options with an author-built parity proof.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -5842,14 +5846,13 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2d",
-              "status": "IN_PROGRESS",
-              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack).",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack)."
             },
             {
               "id": "ATTACK-9.T2e",
               "text": "Sneak Attack and other roll-mode-gated paths gate on the settled roll mode (TEST evidence rolledMode), not the derived mode, so hand-rolled and GM-adjudicated advantage count (architect ruling: option B; D-entry and rules-runtime guide).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.2"],
               "wsjf": {
                 "bv": 5,
@@ -5870,7 +5873,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T4",
@@ -5901,7 +5905,7 @@
             {
               "id": "ATTACK-9.T6",
               "text": "Rage early end from the per-turn attack and damage record. Also narrow endHolderGrants in movementSettlementPersistence.ts to the actors the pass damaged (one effect-list read per damaged actor, not per Run actor; free-tier cost).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.6"],
               "wsjf": {
                 "bv": 3,
@@ -5909,7 +5913,8 @@
                 "rr": 2,
                 "size": 1,
                 "after": ["ATTACK-9.T1", "ATTACK-9.T2d"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
               "id": "ATTACK-9.T7",
@@ -5979,9 +5984,11 @@
             },
             {
               "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011"
+                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011",
+                "T3c: apps/session-worker/test/nativeRoomDisarm.test.ts (auto-rolled and prompted Disarm against a Blinded target, held die), apps/session-worker/test/nativeMovementAttackSight.test.ts (player-side opportunity-attack believed prompt, GM reasons), apps/apis/convex/encounters/actionDisarm.test.ts (Convex Disarm redaction and true settlement)",
+                "T3c green: CI Tests 38871163036 on d8382138b; Live backend 38867014459 on ef97b2530 (later commits test and docs only)"
               ],
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
@@ -6058,27 +6065,27 @@
             {
               "id": "ATTACK-10.T3c",
               "text": "Disarm applies attack-roll sight like RESOLVE_ACTION (believed prompt, true settlement), and a room test proves the player-side believed prompt of an opportunity attack.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t3.md"
+              }
             },
             {
               "id": "ATTACK-10.T4",
               "text": "Saving throws use the believed mode in the prompt and settle in the true mode; player reasons never name a hidden fact.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.5"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 2,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t4.md"
             },
             {
               "id": "ATTACK-10.T5",
@@ -6329,15 +6336,24 @@
             {
               "text": "Choosing an attack or spell enters targeting mode on the map: a range ring around the actor's token, targetable tokens highlighted, a hover readout of distance and roll modifiers, a click on a token targets it, and Esc cancels.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (targetable flag, distance, bands)",
+                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's targeting review. Today the target is only a dropdown of non-defeated public actors (CampaignTabletopActionDrawer.tsx), with no map targeting. User ruling 2026-10-14: built to DESIGN.md now; the design review is RELEASE-8, after all code is green.",
+              "note": "Open: the browser journey apps/web/tests/live-backend/encounterDisarm.ts (Pick on map, Escape, hover readout, token click, resolve against the picked creature) and the Storybook \"Domains/Campaigns/VTT/Tabletop Turn Order\" Targeting story have not run; neither runs in CI. The main session runs both locally after deploying batch n, then closes this AC.",
               "id": "ATTACK-17.1"
             },
             {
               "text": "In targeting mode the Encounter drawer's actor list becomes the target list: sorted by distance with range shown, out-of-range entries marked, and returning to initiative order when targeting ends; the map and the list share one selection.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/actionCommands.test.ts (believed-mode read equals the roll prompt, unseen targets unlisted, Convex fallback matches the room, long range disadvantage)",
+                "packages/schema/src/__tests__/live-session-contracts.test.ts (ACTION_TARGET_MODIFIERS read contract)",
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (nearest first, distance unknown last, initiative order restored)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (target list buttons, cancel, order restored)",
+                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745"
+              ],
               "origin": [],
               "note": "User decision 2026-10-09: one persistent, collapsible list (the existing Encounter drawer list), not a second pane. The list is the keyboard, screen-reader and no-map path.",
               "id": "ATTACK-17.2"
@@ -6359,7 +6375,9 @@
             {
               "text": "A player can attack an empty square in range; the GM sees which creature, if any, is there and resolves it, a wrong square is a miss, and the player learns only the outcome.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
+              ],
               "origin": [],
               "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
               "id": "ATTACK-17.4"
@@ -6425,7 +6443,7 @@
             {
               "id": "ATTACK-17.T3",
               "text": "Map targeting mode and the distance-sorted target list with one shared selection.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-17.1", "ATTACK-17.2"],
               "wsjf": {
                 "bv": 8,
@@ -6433,13 +6451,12 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-17.T2"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
-              "id": "ATTACK-17.T4",
-              "text": "Attack an empty square; the GM resolves who, if anyone, is there.",
-              "status": "TODO",
+              "id": "ATTACK-17.T4a",
+              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
+              "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -6448,6 +6465,20 @@
                 "size": 2,
                 "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
               }
+            },
+            {
+              "id": "ATTACK-17.T4b",
+              "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-17.4"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 2,
+                "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
             },
             {
               "id": "ATTACK-17.T5",
@@ -8196,7 +8227,8 @@
               "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split projectiles (a repeated target entry is one Magic Missile dart, Scorching Ray ray or Eldritch Blast beam, each its own damage instance, the count scaled by cast or character level) and per-creature saves; a corpus test derived from the real compiler fails on any such spell that does not compile, unless it fails for the same reason as a SINGLE_TARGET cast (its outcome is owned elsewhere: SPELLS-8.T4, SPELLS-4.T2, SPELLS-28, or ADR 0018 manual adjudication).",
               "status": "TODO",
               "proof": [
-                "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488"
+                "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488",
+                "T2 (per-creature saves for a chosen list: Acid Splash, Chain Lightning): compile tests and apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts; CI Tests 38877818014 and Live backend 38877818009 on 132bf12de"
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable. Amended 2026-10-16 after the SPELLS-26 survey (docs/handoffs/slice-spells-26.md): projectiles use allowRepeatedTargets and maxTargetsScaling, not a new target-count contract; outcome gaps go to their owning PBIs."
@@ -8224,7 +8256,7 @@
             {
               "id": "SPELLS-26.T2",
               "text": "Per-creature saves for a chosen list (Acid Splash, Chain Lightning) through the area save-and-commit flow: one sealed save per distinct creature, damage rolled once.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8232,13 +8264,12 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
+              }
             },
             {
               "id": "SPELLS-26.T3",
               "text": "An attack roll per ray or beam (Scorching Ray, Eldritch Blast): one attack and, on a hit, one damage instance per entry; Eldritch Blast re-authored with beam count via maxTargetsScaling; resolutionCount and resolutionCountScaling deleted.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8646,7 +8677,9 @@
             {
               "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574"
+              ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
               "id": "REACTION-4.1"
@@ -8749,9 +8782,8 @@
             {
               "id": "REACTION-4.T3b",
               "text": "CAST_REACTION pause, SPENT_NO_EFFECT terminal result and the cast apply path, wiring discoverCastReactionActions and executionCancelsTriggeringEvent; narrow the attack-path pin types to exclude SPELL_CAST; a Counterspell on a cast of level at or below its slot cancels it (no roll), with undo, replay and the web drawer; web authoring parity for a SPELL_CAST reaction.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8763,7 +8795,7 @@
             {
               "id": "REACTION-4.T3c",
               "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -8771,7 +8803,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T3d",
@@ -8784,6 +8817,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3e",
+              "text": "Cast reactions for creature-capability casts, chosen-creature (ACTORS) casts and area casts: the same CAST_REACTION pause and countered-cast terminal as a Character single-target cast.",
+              "status": "TODO",
+              "closes": ["REACTION-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["REACTION-4.T3b"]
               }
             },
             {
@@ -10050,9 +10096,9 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10064,25 +10110,122 @@
             {
               "id": "RELIABILITY-15.1",
               "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (queued room rolls: distinct faces settle; a tied score settles by the roll-off; a double tie asks the GM for the order)",
+                "Red: ci/reliability-15-red Tests 38868117842 on 2afb63e55 fails the target test on a forced double tie",
+                "Green: CI Tests 38868097461 and Live backend 38868097317 on e2f06ddc0"
+              ],
               "origin": [],
               "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
+            },
+            {
+              "id": "RELIABILITY-15.2",
+              "text": "Every test in initiativeDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE_ORDER decision (seeded rolls through the existing queued-roll mechanism or explicit tie handling), proved red with a forced tie for each affected case before the fix. Found 2026-10-16: \"shows a Character declaration only to its current controller and the GM\" (CI 38870307348) and \"settles declarations from two assigned Character controllers through the player action entrypoint\" (CI 38872456272) failed with PREPARED on unrelated branches.",
+              "status": "TODO",
+              "proof": []
             }
           ],
           "tasks": [
             {
               "id": "RELIABILITY-15.T1",
               "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-15.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 8,
                 "size": 1
+              }
+            },
+            {
+              "id": "RELIABILITY-15.T2",
+              "text": "Seed or tie-handle every remaining settling case in initiativeDeclarations.test.ts (no weakened assertion, no retry); red per case on a ci/ -red branch, then green.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-15.2"],
+              "activeWorkbook": "docs/handoffs/slice-reliability-15-t2.md"
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-16",
+          "title": "Snapshot drift is regenerated in CI",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-16.1",
+              "text": "When a ci/** Tests run fails only on Vitest snapshot mismatches, the workflow reruns the failing test files with snapshot update and uploads the changed __snapshots__ files as an `updated-snapshots` artifact; scripts/watchCi.ps1 prints the download command, and slice-workbook-rules.md tells sessions to commit the artifact instead of regenerating snapshots locally. A deliberately stale snapshot on a ci/ branch proves it red then green.",
+              "status": "DONE",
+              "proof": [
+                "scripts/snapshotDrift.test.mjs",
+                "Red: ci/reliability-16-proof Tests 38877347249 on bb4e1d230 fails Convex shard 2 on a deliberately stale snapshot and uploads updated-snapshots byte-identical to the corrected file",
+                "Green: ci/reliability-16-proof Tests 38879476375 on 8af4aa98d with the artifact committed; branch CI Tests 38877351838 on a712089e1"
+              ],
+              "origin": [],
+              "note": "Snapshot conflicts after merging a batch need a light-lane -u run, and the light lane is starved while many sessions run (AvailableMBytes ~490 on 2026-10-16 against a 1 GB gate). Mirrors the live-backend generated-files artifact."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-16.T1",
+              "text": "Add the snapshot-regeneration step and `updated-snapshots` artifact to tests.yml for the Convex shards and package tests, teach watchCi.ps1 to print its download command, and update slice-workbook-rules.md and AGENTS.md Validation; prove with a deliberately stale snapshot on a ci/ branch.",
+              "status": "DONE",
+              "closes": ["RELIABILITY-16.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-17",
+          "title": "Unseen-target Worker test is deterministic",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/session-worker/test/nativeRoomUnseenTarget.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-17.1",
+              "text": "nativeRoomUnseenTarget.test.ts \"takes a creature the map draws, with nothing revealed\" (ATTACK-17.3) passes deterministically: the cause of its intermittent empty target list is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-16: failed with \"expected [] to deep equally contain ObjectContaining{…}\" on ci/reaction-4-t3b Tests 38877353496 attempt 1 (3fcee9574) and passed on attempt 2; the branch does not touch targeting."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-17.T1",
+              "text": "Find why the unseen-target journey intermittently lists no targets (Scene token write timing, vision read or fog order), fix the cause, and prove it with a forced red on a ci/ -red branch.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-17.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
               },
-              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+              "activeWorkbook": "docs/handoffs/slice-reliability-17.md"
             }
           ]
         }
