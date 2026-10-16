@@ -246,6 +246,10 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ROLL_MODE),
         rollMode: z.enum(['ADVANTAGE', 'NOT_DISADVANTAGE'])
       }),
+      ENEMY_NEAR_TARGET: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ENEMY_NEAR_TARGET),
+        feet: z.number().positive()
+      }),
       EQUIPMENT_PROFICIENCY: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)

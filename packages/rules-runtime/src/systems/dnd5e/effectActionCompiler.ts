@@ -79,7 +79,11 @@ import {
   REACTION_CHOICE_OPERATION_KEY
 } from '../../reactionChoiceDefinition.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
-import { attackRestrictionsMet, type Dnd5eAttackRollMode } from './attackRestrictions.js'
+import {
+  attackRestrictionsMet,
+  type Dnd5eAttackRollMode,
+  type Dnd5eEnemyProximity
+} from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
@@ -179,6 +183,8 @@ export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 /** The attack's net d20 roll mode, which a path restriction reads when its outcome specializes. */
 const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
+/** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
+const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -269,6 +275,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   spellCastLevel?: number
   classLevels?: Readonly<Record<string, number>>
   attackRollMode?: Dnd5eAttackRollMode
+  attackEnemyProximity?: Dnd5eEnemyProximity
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -299,6 +306,7 @@ function dndScalingFactsFromRuleValues(
     spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
     classLevels: parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY]),
     attackRollMode: parseAttackRollMode(facts[DND5E_ATTACK_ROLL_MODE_FACT_KEY]),
+    attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -316,6 +324,24 @@ function parseAttackRollMode(value: RuleValue | undefined): Dnd5eAttackRollMode 
   if (value !== 'NORMAL' && value !== 'ADVANTAGE' && value !== 'DISADVANTAGE')
     unsupported('D&D attack roll mode is malformed.')
   return value
+}
+
+function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') unsupported('D&D enemy proximity is malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D enemy proximity is malformed.')
+  }
+  const nearestFeet =
+    typeof parsed === 'object' && parsed !== null && 'nearestFeet' in parsed
+      ? parsed.nearestFeet
+      : undefined
+  if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
+    unsupported('D&D enemy proximity is malformed.')
+  return { nearestFeet }
 }
 
 function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
@@ -3370,6 +3396,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     },
     { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -4676,7 +4703,7 @@ function mergedOutcomeGraphDefinition(input: {
   }
 }
 
-/** An entry reduced to roll-mode checks is owed only to an attack whose net roll mode meets them. */
+/** An entry reduced to circumstance checks is owed only to an attack whose circumstances meet them. */
 function pathRestrictionsMet(
   entry: CompiledEffectGroup['entries'][number],
   facts: Dnd5eEffectScalingFacts
@@ -4684,7 +4711,10 @@ function pathRestrictionsMet(
   if (!('restrictions' in entry) || !entry.restrictions) return true
   if (facts.attackRollMode === undefined)
     unsupported('D&D path restrictions need the roll mode of an attack.')
-  return attackRestrictionsMet(entry.restrictions, facts.attackRollMode)
+  return attackRestrictionsMet(entry.restrictions, {
+    rollMode: facts.attackRollMode,
+    enemyProximity: facts.attackEnemyProximity ?? null
+  })
 }
 
 function specializeDnd5eEffectActionOutcomeBody(input: {
@@ -7095,12 +7125,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ? 'DISADVANTAGE'
           : 'NORMAL'
       const contributorChecksum = checksumRuleDocument(allContributors)
+      const enemyProximity = sourceDerivedFacts.attackEnemyProximity as
+        | Dnd5eEnemyProximity
+        | undefined
       return {
         facts: {
           ...baseFacts,
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
           [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
+          ...(enemyProximity
+            ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
+            : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
             ? 'HIT_IS_CRITICAL'
