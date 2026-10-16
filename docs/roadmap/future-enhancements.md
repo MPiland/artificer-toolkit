@@ -103,6 +103,9 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Waking a Brass Dragon's Sleep Breath target with an action (SPELLS-19.T3):** the unconscious condition ends on damage taken, but "someone uses an action to wake it" is not a commit event; the GM ends the condition by hand.
 - **A projectile aimed again at a creature whose form its earlier dart ended (SPELLS-28.T2, D130):** the dice settle each entry against the hit points the earlier entry left, which are the form's, so the commit finds the actor back at its origin's hit points and refuses the second dart as stale. The caster re-aims; the fix is a settle that follows the revert (carry-over included).
 - **Undo of a damage action that auto-reverted a creature form (SPELLS-28.T2, D130):** the revert restores the form's hit points, which `restoreHitPoints` refuses once the actor is out of its form. The GM corrects the hit points by hand; a form-aware undo can follow if it shows up in play.
+- **"You must have seen the creature" for Shapechange and Wild Shape (SPELLS-28.T4, D130):** the filtered form choice checks creature type, challenge-rating cap and excluded speeds against the System's creature list, but not whether the caster has met that creature. The table polices it; a per-Character known-forms list can follow if it shows up in play.
+- **Willing Polymorph targets still roll the save (SPELLS-28.T4, D130):** a willing creature can fail on purpose, and the GM can override the roll. A "willing target skips the save" choice needs a willing-target input on the command.
+- **The creature picker is not narrowed by the filter (SPELLS-28.T4, D130):** the Action drawer lists the System's creatures; the Worker refuses one the filter rejects at cast. Narrowing the list by type and challenge-rating cap is a presentation change.
 - **Failed-counter binding is by reactor id only (REACTION-4.T3c):** persistence binds a failed Counterspell spend to the held pause by the reactor's id, without comparing the pin, the sealed choice or the d20. Similarly, the reactor-is-target merge doesn't compare the failed receipt's Character version. Both inputs come from the room's own planner, so a mismatch needs a room bug, and the GM can undo the action.
 
 - **A free GM pick for an attack on a square (ATTACK-17.T4):** the GM chooses only among the creatures whose token covers the square. Letting the GM name any creature (a creature that dodged into the square, a large creature the token footprint misses) is a larger rule and is deferred.
@@ -251,6 +254,10 @@ Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`)
 ### Level-gated check on an effect (Dispel Magic)
 
 REACTION-4.T3c authors the level-gated check as `higherLevelCheck` on a `SPELL_CAST` reaction binding (roll only when the triggering level exceeds the level the reaction is cast at; DC = base DC + the triggering level). Dispel Magic is not a reaction: it ends an effect of a given level on a target, and an effect above the slot owes the same check. Its gate needs the same shape authored on the effect side, with the check resolved by the same rules-runtime requirement, before Dispel Magic can reuse it. Raised by Phase 8 on 2026-10-16; post-launch.
+
+### Object forms, permanent True Polymorph and Shapechange re-forming (SPELLS-28.T4, D130)
+
+D130 swaps a creature for a creature. Candidates, each its own rule: True Polymorph turning a creature into an object and an object into a creature; True Polymorph's permanence after an hour of Concentration (the form outlasting the effect); and Shapechange's action to take a different form during the duration. Until then the GM adjudicates these by hand. Raised by the architect on 2026-10-16 while ruling on SPELLS-28.T4; post-launch.
 
 ### Metric Campaigns
 

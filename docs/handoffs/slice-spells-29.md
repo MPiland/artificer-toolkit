@@ -2,6 +2,11 @@
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md) (soft enforcement), [ADR 0038](../adr/0038-rules-authored-from-core-options.md) (core options), D94, D100, D116 and D131 in [phase-08-2-decisions.md](phase-08-2-decisions.md). Builds on [SPELLS-19.T2](slice-spells-19.md) (one Concentration spans an area; Fear-shaped proof).
 
+## Resume here
+
+- T1 is merged or merging (green `df9d20bb5`). The T1 merge exposed a Worker-suite timing flake, fixed on `ci/spells-29-t1-fix` (`79b73e3d1`, Tests [38975274041](https://github.com/MPiland/artificer-toolkit/actions/runs/38975274041), Live [38975297402](https://github.com/MPiland/artificer-toolkit/actions/runs/38975297402); red `eb7cdd6b1`): the suite outlasts the room's 5-minute idle release, so rooms of finished tests woke mid-suite and logged failed releases into other tests' `console.error` spies. A setup-file `afterEach` now cancels the alarms of the rooms a test created.
+- Next: SPELLS-29.T2 (the `fleesSource` rider). The work is on branch `claude/bold-chaplygin-b95f96`: red `04e6af8c5`, impl `841de7cfc`, and an unpushed generated-files commit `b1935d755`. Rebase on the phase branch (bc or later), push to `ci/spells-29-t2`, and fix what the stale-base run showed: TS2339 `ruleKind` in `nativeEncounterRules.ts(604)`, `fleeSourceActorIds` missing in `CampaignVttStage.teleport.test.tsx`, the `effect-compiler` roll-table test, and the seed manifest drift (regenerate from the CI artifact).
+
 Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-b95f96`, CI branches `ci/spells-29-t1-red` (red) and `ci/spells-29-t1` (green). Decision numbers: `D134`.
 
 ## Scope (T1, closes AC 29.1)

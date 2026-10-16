@@ -3,19 +3,25 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
+  SCALING,
   SPELL_ATTRIBUTE,
   RANGE_KIND,
   SUBJECT,
   SHAPE_KIND,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const spiritGuardians: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SPIRIT_GUARDIANS,
@@ -45,7 +51,8 @@ export const spiritGuardians: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         },
         shape: {
           id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x212, 1),
@@ -67,11 +74,74 @@ export const spiritGuardians: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x213, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x214, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 10
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SPIRIT_GUARDIANS' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'SOURCE' as const,
+                label: 'Spirit Guardians',
+                shape: {
+                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x220, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x221, 1),
+                    order: 1,
+                    label: 'Enter the spirits',
+                    interactionKind: 'ENTER_SPACE' as const,
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                {
+                                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x226, 1),
+                                  effectKind: EFFECT_KIND.DAMAGE,
+                                  damageTypeId: damageTypeId('RADIANT'),
+                                  valueKind: DAMAGE_VALUE_KIND.DICE,
+                                  scalingKind: SCALING.NONE,
+                                  diceConfig: '3d8'
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

@@ -8288,8 +8288,8 @@
             },
             {
               "id": "SPELLS-20.T1b",
-              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
-              "status": "IN_PROGRESS",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it. (Red: ci/spells-20-t1b-red Tests 38947417012 and Live 38947417027 on 7ea6348fd failed on nativeRoomSourceAura.test.ts and sourceZoneAuthoringParity.test.ts. Green: ci/spells-20-t1b Tests 38960499458 and Live 38962770319 on f0ae7dce6.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8297,12 +8297,11 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-20.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
-              "id": "SPELLS-20.T2",
-              "text": "Ending, dropping or replacing Concentration removes the zone the spell placed (Concentration-maintained spatial effects, serving every lasting zone).",
+              "id": "SPELLS-20.T2a",
+              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians.",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
@@ -8311,6 +8310,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T2b",
+              "text": "Ending, dropping or replacing Concentration removes the zones dependent on that maintained state in the same transaction (one cleanup path, D135), and GM undo restores them; serves every lasting zone.",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T2a"]
               }
             },
             {
@@ -8716,8 +8728,8 @@
             },
             {
               "id": "SPELLS-28.T4",
-              "text": "Polymorph, True Polymorph (creature to creature), Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant, which also applies to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). A rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
-              "status": "IN_PROGRESS",
+              "text": "Polymorph and True Polymorph (creature to creature) authored from core options on the CREATURE_FORM grant, with a rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. (Split 2026-10-16: the Character half moved to T4c.) (Red: ci/spells-28-t4-red Tests 38944606546 on a13f8cf76. Green: ci/spells-28-t4 Tests 38957200514 and Live backend 38957200558 on 2b10ea73f.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8725,8 +8737,34 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T2"]
+              }
+            },
+            {
+              "id": "SPELLS-28.T4c",
+              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-28.T4"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T4d",
+              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-28.T4c"]
+              }
             },
             {
               "id": "SPELLS-28.T4b",
@@ -8738,7 +8776,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-28.T4"]
+                "after": ["SPELLS-28.T4c"]
               }
             }
           ]

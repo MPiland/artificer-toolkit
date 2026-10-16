@@ -601,7 +601,10 @@ function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]
   return (
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
-      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT'))
+      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
+    (entry.outcome.effectKind === 'MANIFEST' &&
+      entry.outcome.manifestKind === 'CREATURE' &&
+      entry.pathCode === 'ON_SAVE_FAIL')
   )
 }
 
@@ -1821,7 +1824,9 @@ function actorLinkPlan(
 /**
  * A timed MANIFEST creature (Giant Insect): each creature the cast reached swaps into one of the
  * authored forms for the duration (D130). Which form is the caster's choice at cast time; the plan
- * carries every form and the Encounter effect records the chosen Creature.
+ * carries every form and the Encounter effect records the chosen Creature. Polymorph authors it on
+ * the failed-save path with a filter instead of fixed forms: the effect exists only for a creature
+ * that failed, and the caster names any Creature that meets the filter.
  */
 function creatureFormPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1833,17 +1838,28 @@ function creatureFormPlan(
   if (
     outcome.effectKind !== 'MANIFEST' ||
     outcome.manifestKind !== 'CREATURE' ||
-    !outcome.forms?.length ||
+    (!outcome.forms?.length && !outcome.formFilter) ||
     !entry.duration
   )
     return null
   const initialRemaining = conditionDurationTurns(entry.duration)
+  const forms = outcome.forms ?? []
+  const { formFilter } = outcome
+  const savePath = entry.pathCode === 'ON_SAVE_FAIL'
   if (
     initialRemaining === null ||
     Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
-    outcome.forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId))
+    forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
+    (savePath && action.compiledEffect.invocation.triggerCode !== 'SAVING_THROW') ||
+    (formFilter !== undefined &&
+      ((formFilter.creatureTypeId !== undefined && !UUID.test(formFilter.creatureTypeId)) ||
+        (formFilter.challengeRatingCapKind === 'FIXED') !==
+          (formFilter.maxChallengeRatingId !== undefined) ||
+        (formFilter.maxChallengeRatingId !== undefined &&
+          !UUID.test(formFilter.maxChallengeRatingId)) ||
+        (formFilter.excludedSpeedIds ?? []).some((speedId) => !UUID.test(speedId))))
   )
     return null
   return {
@@ -1856,11 +1872,19 @@ function creatureFormPlan(
     creatureFormContribution: {
       formOutcomeId: outcome.id,
       excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
-      forms: [...outcome.forms]
+      forms: [...forms]
         .sort((a, b) => a.order - b.order)
-        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets }))
+        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
+      filter: formFilter
+        ? {
+            creatureTypeId: formFilter.creatureTypeId ?? null,
+            challengeRatingCapKind: formFilter.challengeRatingCapKind,
+            maxChallengeRatingId: formFilter.maxChallengeRatingId ?? null,
+            excludedSpeedIds: [...new Set(formFilter.excludedSpeedIds ?? [])].sort()
+          }
+        : null
     },
-    adapterFacts: {},
+    adapterFacts: savePath ? { 'dnd5e.form-authored-path': 'ON_SAVE_FAIL' } : {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry)
   }
@@ -1959,9 +1983,10 @@ function durationPublishedGraph(input: {
 }
 
 /**
- * The zone a PLACED_SPACE manifest action places. Its one entering behavior is a fixed-DC saving
- * throw whose failure stops the mover, deals fixed damage and may leave a grant that lasts until
- * its authored end event. Anything else the behavior authors is refused rather than partly honored.
+ * The zone a PLACED_SPACE or SOURCE manifest action places. Its one entering behavior is a saving
+ * throw against a fixed DC or the caster's save DC (stored when the zone is placed) whose failure
+ * stops the mover, deals damage and may leave a grant that lasts until its authored end event.
+ * Anything else the behavior authors is refused rather than partly honored.
  */
 function zonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1975,15 +2000,25 @@ function zonePlacementPlan(
     action.compiledEffect.invocation.range.rangeKind,
     zone.shape.shapeKind
   )
-  // A directed area is aimed, not placed at a point; a zone is left where its action is centered.
-  if (placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED')
-    unsupported('A placed zone takes a point or the caster as its center.')
+  // A directed area is aimed, not placed at a point; a zone is left where its action is centered,
+  // and a source zone is centered on the caster.
+  if (
+    zone.attachment === 'SOURCE'
+      ? placementKind !== 'CASTER_CENTERED'
+      : placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED'
+  )
+    unsupported(
+      zone.attachment === 'SOURCE'
+        ? 'A source zone is centered on the caster.'
+        : 'A placed zone takes a point or the caster as its center.'
+    )
+  const pinnedDc = pinnedSaveDc(savingThrow)
   if (
     !triggerModes ||
     invocation.triggerCode !== 'SAVING_THROW' ||
-    savingThrow?.dcMethod !== 'FIXED_DC' ||
+    !savingThrow ||
+    !pinnedDc ||
     !UUID.test(savingThrow.abilityDefinitionId) ||
-    !Number.isSafeInteger(savingThrow.baseDc) ||
     entries.some(
       (entry) =>
         entry.resolutionKind !== 'DIRECT' ||
@@ -1993,7 +2028,7 @@ function zonePlacementPlan(
         entry.targetingOverride
     )
   )
-    unsupported('A placed zone behavior is a fixed-DC saving throw with direct failure outcomes.')
+    unsupported('A placed zone behavior is a saving throw with direct failure outcomes.')
   const outcomeEntries = (effectKind: string) =>
     entries.filter((entry) => 'outcome' in entry && entry.outcome.effectKind === effectKind)
   const stops = outcomeEntries('MOVEMENT_RULE').filter(
@@ -2022,9 +2057,10 @@ function zonePlacementPlan(
     initialRemaining: null,
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: savingThrow.abilityDefinitionId,
-      [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc,
+      ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20'
     },
+    castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
     maintenance: null
   }
@@ -2050,6 +2086,7 @@ function zonePlacementPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   return {
+    attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
     triggerModes,
@@ -2765,6 +2802,19 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry))
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
+  // A failed save's creature form is left to its active-effect plan; one the plan cannot carry
+  // must not silently vanish.
+  if (
+    kind === 'SAVE' &&
+    entries.some(
+      (entry) =>
+        'outcome' in entry &&
+        entry.outcome.effectKind === 'MANIFEST' &&
+        entry.outcome.manifestKind === 'CREATURE'
+    ) &&
+    creatureFormPlan(action) === null
+  )
+    unsupported('D&D creature form after a saving throw must be one bounded timed form.')
   const branches = new Map<string, Outcome>()
   const branchResultBlocks = new Map<string, string>()
   const recurringPlan = supportedRecurringPlan(action)
@@ -7364,7 +7414,10 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
       }
     })
   }
-  if (outcomes.length === 0) unsupported('D&D test action has no specialized outcome path.')
+  // A TEST whose every outcome its active-effect plan carries (a creature form after a failed save)
+  // selects no OUTCOME graph: the plan runs from the TEST's result path.
+  if (outcomes.length === 0 && creatureFormPlan(action) === null)
+    unsupported('D&D test action has no specialized outcome path.')
   return outcomes
 }
 
