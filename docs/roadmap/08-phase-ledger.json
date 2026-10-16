@@ -8888,6 +8888,58 @@
               }
             },
             {
+              "id": "SPELLS-27.T8",
+              "text": "Sleep from core options: roll the hit-point pool, put creatures in the area to sleep from lowest current HP up, and the unconscious condition ends when the sleeper takes damage or a creature uses an action to wake it. GM undo restores both (D122 amendment of 2026-10-16).",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T9",
+              "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T10",
+              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T11",
+              "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
               "id": "SPELLS-27.T6",
               "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
               "status": "TODO",
