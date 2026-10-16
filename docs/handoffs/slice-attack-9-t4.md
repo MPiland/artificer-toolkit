@@ -1,7 +1,7 @@
 # Workbook: ATTACK-9.T4 Divine Smite and Improved Divine Smite (AC ATTACK-9.4)
 
-**Status:** survey done 2026-10-15; plan below awaits Phase 8's ruling on the three contract questions. No product code yet.
-**Base:** `b51aa4b74` (phase branch `codex/phase-08-2-convex-cutover`). T2a (`ci/attack-9-t2a`, riders) is not merged yet; Improved Divine Smite and the Smite dice depend on it.
+**Status:** D123 ruled Option A on 2026-10-15; building in increments I1-I4 (below). Branch `claude/stoic-hypatia-f53439`, CI branch `ci/attack-9-t4`.
+**Base:** phase branch `codex/phase-08-2-convex-cutover`, T2a (`6fb948a36`, riders) merged in.
 
 ## Brief
 
@@ -47,3 +47,19 @@ D107 (as cited in the brief) covers hand slots and the off-hand default; it defi
 ## Status log
 
 - 2026-10-15: survey done; plan written; questions sent to Phase 8. Waiting for the ruling.
+- 2026-10-15: D123 answers received (Option A; `onHitChoice` is a third sibling offer, generic over attacker on-hit options; `optionalOnHit` cost is a spell slot with a level choice or a resource-pool use; creature type is a T2b predicate, added after T2b merges; Improved Divine Smite is a mandatory D119(a) rider). Design below settled; building.
+
+## Settled runtime shape (D123)
+
+- **Authoring.** `optionalOnHit` is a field of a `PASSIVE` weapon-attack invocation: `{ cost: { kind: 'SPELL_SLOT' } | { kind: 'RESOURCE_POOL', chargeId, cost } }`. Nothing else marks a rider optional. The rider's damage rows are keyed by `SPELL_CAST_LEVEL` (D118), so the level the player picks selects the row.
+- **Merge.** `collectOnHitRiders` carries the rider's effect id and `optionalOnHit`; `mergeOnHitRiders` appends an optional rider's entries to the weapon's compiled effect through the same path, stamped `optionalRider: { riderId, cost }`. They stay in `compiledEffect`, so TEST, `compilerSourceChecksum` and the plan are stable whether or not the rider is chosen.
+- **Selection.** The OUTCOME specialization drops every entry stamped `optionalRider` unless its `riderId` is in the bound fact `dnd5e.selected-optional-riders`; the cast level rides in the existing `dnd5e.spell-cast-level` fact. The Sheet's action card (`normalizeCharacterActionMechanicFacts`) never lists an optional rider.
+- **Pause.** After a hit (and after any `reactionChoice` resolves) the attacker's riders it can pay for hold the occurrence with `applicationContext.onHitChoice`, mirroring `reactionChoice`: choice graph via `startReactionChoice`, a pin, an audit in the OUTCOME `twoPhase`. A choice rebuilds the TEST under an adjusted binding (`reconstructNativeActionTest` without `execution`), as a used reaction does, then `continueNativeActionAfterTest` with the audit.
+- **Spend.** The slot or pool use rides in the attack's own `CHARACTER_MECHANICS_BATCH`, so GM undo restores it.
+
+## Increments
+
+- I1: authoring option, merge, OUTCOME selection, core-option Divine Smite fixture (rules-runtime proofs: chosen versus not, 2nd-level slot 3d8, cap 5d8, crit doubling, resistance).
+- I2: `onHitChoice` pause (schema, runtime, persistence, Worker), slot/pool spend and undo; Worker journey.
+- I3: SRD Paladin Features from core options, closed-rule kinds deleted, authoring parity test, Improved Divine Smite.
+- I4: decision drawer, docs, creature-type predicate after T2b merges.
