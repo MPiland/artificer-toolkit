@@ -6446,9 +6446,23 @@
               }
             },
             {
-              "id": "ATTACK-17.T4",
-              "text": "Attack an empty square; the GM resolves who, if anyone, is there.",
+              "id": "ATTACK-17.T4a",
+              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
               "status": "IN_PROGRESS",
+              "closes": ["ATTACK-17.4"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 2,
+                "size": 2,
+                "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+            },
+            {
+              "id": "ATTACK-17.T4b",
+              "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
+              "status": "TODO",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -10060,9 +10074,9 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10074,8 +10088,12 @@
             {
               "id": "RELIABILITY-15.1",
               "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (queued room rolls: distinct faces settle; a tied score settles by the roll-off; a double tie asks the GM for the order)",
+                "Red: ci/reliability-15-red Tests 38868117842 on 2afb63e55 fails the target test on a forced double tie",
+                "Green: CI Tests 38868097461 and Live backend 38868097317 on e2f06ddc0"
+              ],
               "origin": [],
               "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
             }
@@ -10084,15 +10102,14 @@
             {
               "id": "RELIABILITY-15.T1",
               "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-15.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 8,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+              }
             }
           ]
         },
@@ -10130,7 +10147,8 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 2
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-16.md"
             }
           ]
         }
