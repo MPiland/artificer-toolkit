@@ -91,6 +91,7 @@ const REACTION_TRIGGER_KIND_OPTIONS: {
 }[] = [
   { code: 'MOVEMENT', label: 'A creature moves' },
   { code: 'ATTACKED_SELF', label: 'You are hit by an attack' },
+  { code: 'SPELL_CAST', label: 'A creature casts a spell' },
   { code: 'DAMAGE_TAKEN', label: 'You take damage' }
 ]
 

@@ -461,6 +461,16 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
+#### `SPELL_CAST` (transitional, REACTION-4.T3b-1)
+
+`reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
+`CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal
+that stores nothing; `executionCancelsTriggeringEvent` reads it from the committed trace, as
+`executionAddsSpeedToMovement` does. `discoverCastReactionActions` lists the reactions a Character holds for a
+cast; the caller keeps those whose own invocation range reaches the caster, and the sealed pin accepts the
+`SPELL_CAST` trigger. **Not yet reachable in play:** the Worker pause before a cast and the `SPENT_NO_EFFECT`
+settlement (T3b-2) are not built, so a cast offers no Counterspell yet.
+
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
 `reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds }` (a user-authored Absorb Elements) rides the same
@@ -993,10 +1003,17 @@ Amendment 30 drops. A Character's own (`OWNER`-scoped) timed grants outlast the 
 Concentration grant the Character holds (SPELLS-5.7): COMPLETE detaches it from the Run's maintained state
 (`detachMaintainedCas` nulls `maintainedEffectStateId` and `sourceEncounterId`) and stamps
 `lifecycle.concentrationCasterCharacterId` with the caster's Character id (`null` for a Creature caster).
-`planCarriedOverGrants` keeps the stamp. Then: `planCarriedOverGrants` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
+`planCarriedOverEffects` keeps the stamp. Then: `planCarriedOverEffects` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
 Campaign clock's absolute minute at completion plus 6 seconds per remaining round rounded up to whole
 minutes, with `remainingTicks: null` so later Runs never tick it. Without a Campaign clock the grant gets no
-expiry and lasts until the GM ends it. `expiredCarriedOverGrants` lists the grants a clock minute has
+expiry and lasts until the GM ends it. A timed condition-owning effect on a Character (Hold Person's
+Paralyzed, Invisibility) is carried the same way (SPELLS-5.14): its plan takes the target's lifetime scope
+like a grant's, `planCarriedOverEffects` selects it, and the turn-effect kernel skips it once it carries
+an expiry (`isTurnEffectEligible`). A Creature's condition effect keeps `ENCOUNTER` scope and ends with the
+Run. The condition leaves the Character's Sheet when the carried effect ends: the GM-only
+`END_ACTIVE_EFFECT` and the caster's `END_CONCENTRATION` Sheet commands strip the conditions only the ended
+effects held (`endedMaintenanceConditions`), and the Concentration-caster end paths reach the same helper
+through `reconcileNativeMaintenanceOwners`. `expiredCarriedOverGrants` lists the grants a clock minute has
 reached. The room has no Campaign clock, so Convex converts them (see
 [persistence](persistence.md#encounter-run-storage)). Advancing the Campaign clock ends the carried grants
 it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;
