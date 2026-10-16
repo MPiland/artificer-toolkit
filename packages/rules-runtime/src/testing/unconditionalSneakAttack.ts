@@ -1,4 +1,4 @@
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { FacetAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 
 import { testUuid } from './dnd5eSrdEncounter.js'
 
@@ -66,5 +66,55 @@ export function unconditionalSneakAttack(rogueClassId: string): FeatureAuthored 
         ]
       }
     ]
+  }
+}
+
+/** One property check of a rider gate group, on the attacking weapon or on the attack's roll. */
+export type RiderGateCondition =
+  | { constraint?: 'EXCLUDE'; predicateCode: 'EQUIPMENT_PROPERTY'; properties: readonly ['FINESSE'] }
+  | { constraint?: 'EXCLUDE'; predicateCode: 'ATTACK_ROLL_MODE'; rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE' }
+  | { constraint?: 'EXCLUDE'; predicateCode: 'ENEMY_NEAR_TARGET'; feet: number }
+
+/** A gate of the given OR-ed groups, each an AND of checks on the attacking weapon. */
+export function riderGate(...groups: readonly (readonly RiderGateCondition[])[]): FacetAuthored {
+  return {
+    id: testUuid(0xa20),
+    groups: groups.map((conditions, groupIndex) => ({
+      id: testUuid(0xa30 + groupIndex),
+      order: groupIndex,
+      contexts: [
+        {
+          id: testUuid(0xa40 + groupIndex),
+          order: 0,
+          subject: 'EQUIPMENT',
+          authoringModeKind: 'ALL',
+          conditions: conditions.map(({ constraint, ...condition }, index) => ({
+            id: testUuid(0xa50 + groupIndex * 8 + index),
+            order: index,
+            kind: 'PREDICATE' as const,
+            constraint: constraint ?? ('INCLUDE' as const),
+            ...(condition.predicateCode === 'EQUIPMENT_PROPERTY'
+              ? {
+                  ...condition,
+                  properties: [...condition.properties],
+                  authoringModeKind: 'SELECTED' as const
+                }
+              : condition)
+          }))
+        }
+      ]
+    }))
+  }
+}
+
+/** The unconditional rider, owed only while its path's gate is met. */
+export function gatedSneakAttack(rogueClassId: string, gate: FacetAuthored): FeatureAuthored {
+  const feature = unconditionalSneakAttack(rogueClassId)
+  return {
+    ...feature,
+    effects: feature.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => ({ ...path, restrictions: gate }))
+    }))
   }
 }

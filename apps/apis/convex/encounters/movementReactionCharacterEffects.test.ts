@@ -114,7 +114,8 @@ it('creates one Character reaction effect after the public choice and preserves 
   expect(afterSettlement.effects).toHaveLength(1)
   expect(afterSettlement.effects[0]).toMatchObject({
     characterId: value.base.character.id,
-    sourceEncounterId: value.base.run.id,
+    // A Character's timed condition effect outlasts the Run, so it is not stamped to it (SPELLS-5.14).
+    sourceEncounterId: null,
     createdOrdinal: 1
   })
   expect(afterSettlement.character.play.streamVersion).toBe(

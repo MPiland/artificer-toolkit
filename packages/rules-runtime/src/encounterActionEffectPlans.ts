@@ -377,13 +377,16 @@ function prepareRecurringActiveEffect(
       consumeOnFirstEvents:
         grantContribution?.consumeOnFirstEvents ??
         plan.concealmentContribution?.consumeOnFirstEvents ??
+        conditionContribution?.consumeOnFirstEvents ??
         [],
-      endOnEvents: grantContribution?.endOnEvents ?? [],
+      endOnEvents: grantContribution?.endOnEvents ?? conditionContribution?.endOnEvents ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
-      // A grant outlasts the Encounter when the target's lifetime scope says so. A Concentration
-      // grant keeps its maintenance link while the Run lasts and is detached from it at COMPLETE.
-      lifetimeScope: grantContribution ? input.target.lifetimeScope : 'ENCOUNTER',
+      // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
+      // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
+      // at COMPLETE.
+      lifetimeScope:
+        grantContribution || conditionContribution ? input.target.lifetimeScope : 'ENCOUNTER',
       expiration:
         initialRemaining === null
           ? { kind: 'INDEFINITE' }

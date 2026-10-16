@@ -435,6 +435,9 @@ export type ActiveGrantHolderEnd = z.infer<typeof activeGrantHolderEndSchema>
 /** The events whose first occurrence can use an Encounter grant up. */
 export type GrantConsumeEvent = z.infer<typeof pathLifecycleGrantConsumeEventSchema>
 
+/** The events whose first occurrence uses an active effect up. */
+export type ActiveEffectConsumeEvent = z.infer<typeof pathLifecycleConsumeEventSchema>
+
 /** The events whose first occurrence ends an active effect. */
 export type ActiveEffectEndEvent = z.infer<typeof pathLifecycleEndEventSchema>
 

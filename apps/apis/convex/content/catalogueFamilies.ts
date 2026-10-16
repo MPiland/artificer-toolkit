@@ -66,7 +66,7 @@ export async function publishClassCatalogueFamily(
   ctx: MutationCtx,
   root: Doc<'authoredRoots'>,
   previousLabel: string | undefined,
-  userId: string
+  userId: string | null
 ) {
   const parent = await readCatalogueParent(ctx, root, userId)
   const family = { id: parent?.id ?? root.id, nameKey: (parent?.label ?? root.label).toLowerCase() }
@@ -82,7 +82,10 @@ export async function publishClassCatalogueFamily(
   if (children.length >= 500)
     throw new Error('Class family exceeds the 500-record authoring limit.')
   for (const child of children) {
-    if (child.ownerUserId !== userId || !(await canReadAuthoredRoot(ctx, child, userId)))
+    if (
+      child.ownerUserId !== (userId ?? undefined) ||
+      !(await canReadAuthoredRoot(ctx, child, userId))
+    )
       throw new Error('Class dependent ownership mismatch.')
     await readCatalogueParent(ctx, child, userId)
     // Only read ordering changes. UUID references, authored versions and drafts remain untouched.

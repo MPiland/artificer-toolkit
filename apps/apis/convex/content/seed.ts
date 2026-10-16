@@ -37,12 +37,13 @@ type SrdImportManifest = {
   manifestChecksum: string
 }
 
-let cachedManifest: SrdImportManifest | undefined
+let cachedManifest: { encoded: string; manifest: SrdImportManifest } | undefined
 
 function prepared(): SrdImportManifest {
-  if (cachedManifest) return cachedManifest
+  const encoded = srdManifestBrotliBase64
+  if (cachedManifest?.encoded === encoded) return cachedManifest.manifest
   const parsed = JSON.parse(
-    brotliDecompressSync(Buffer.from(srdManifestBrotliBase64, 'base64')).toString('utf8')
+    brotliDecompressSync(Buffer.from(encoded, 'base64')).toString('utf8')
   ) as unknown
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
     throw new Error('Generated SRD manifest is invalid.')
@@ -71,8 +72,8 @@ function prepared(): SrdImportManifest {
   )
   if (checksum !== result.manifestChecksum)
     throw new Error('Generated SRD manifest checksum differs.')
-  cachedManifest = result
-  return cachedManifest
+  cachedManifest = { encoded, manifest: result }
+  return result
 }
 
 function exact(actual: unknown, expected: unknown) {
@@ -193,8 +194,51 @@ async function auditPrepared(
   }
 }
 
+// Removal is not supported: the seed refuses a stored record missing from the corpus before it
+// writes any subject or definition, rather than leave it stale.
+async function storedChecksums(
+  readPage: (cursor: string | null) => Promise<SourceImportAuditPageDto>
+) {
+  const stored = new Map<string, string>()
+  let cursor: string | null = null
+  do {
+    const page: SourceImportAuditPageDto = await readPage(cursor)
+    for (const { id, checksum } of page.page) stored.set(id, checksum)
+    cursor = page.isDone ? null : page.continueCursor
+  } while (cursor !== null)
+  return stored
+}
+
+function requireNoneRemoved(
+  kind: string,
+  stored: ReadonlyMap<string, string>,
+  expected: ReadonlyMap<string, unknown>
+) {
+  const removed = [...stored.keys()].filter((id) => !expected.has(id))
+  if (removed.length)
+    throw new Error(
+      `Canonical ${kind} were removed from the corpus, which the seed cannot apply: ${removed.join(', ')}.`
+    )
+}
+
+// Returns the ids whose stored checksum differs, which the import replaces in place.
+async function changedSubjectIds(ctx: ActionCtx, manifest: SrdImportManifest) {
+  const expected = new Map(manifest.subjects.map((subject) => [subject.id, subject.checksum]))
+  const stored = await storedChecksums((cursor) =>
+    ctx.runQuery(internal.content.import.readSubjectChecksums, {
+      contentSourceId: manifest.contentSource.id,
+      paginationOpts: { numItems: 10, cursor }
+    })
+  )
+  requireNoneRemoved('subjects', stored, expected)
+  return new Set(
+    [...stored].filter(([id, checksum]) => expected.get(id) !== checksum).map(([id]) => id)
+  )
+}
+
 // CLI-only internal action. Batches commit independently; exact repeats make interrupted
-// provisioning resumable. No existing source is overwritten, even when its checksum differs.
+// provisioning resumable. A changed System, source, catalogue, subject or definition is replaced in place
+// (ADR 0024, D120); a subject or definition missing from the corpus fails the seed before it writes them.
 export const seed = internalAction({
   args: {},
   returns: zodToConvex(sourceImportSeedResultDtoSchema),
@@ -205,13 +249,25 @@ export const seed = internalAction({
       contentSource: manifest.contentSource,
       catalogue: manifest.catalogue
     })
-    for (const subjects of sourceImportBatches(manifest.subjects)) {
+    const changed = await changedSubjectIds(ctx, manifest)
+    requireNoneRemoved(
+      'definitions',
+      await storedChecksums((cursor) =>
+        ctx.runQuery(internal.content.import.readDefinitionChecksums, {
+          contentSourceId: manifest.contentSource.id,
+          paginationOpts: { numItems: 10, cursor }
+        })
+      ),
+      new Map(manifest.definitions.map((definition) => [definition.id, definition]))
+    )
+    for (const subjects of sourceImportBatches(manifest.subjects, ({ id }) => changed.has(id))) {
       const batch = await ctx.runMutation(internal.content.import.importSubjects, {
         contentSourceId: manifest.contentSource.id,
         subjects
       })
       counts.inserted += batch.inserted
       counts.reused += batch.reused
+      counts.replaced += batch.replaced
     }
     for (const subject of manifest.subjects) {
       if (subject.subjectKind === 'CLASS')
@@ -246,6 +302,7 @@ export const seed = internalAction({
       })
       counts.inserted += batch.inserted
       counts.reused += batch.reused
+      counts.replaced += batch.replaced
     }
     return { ...(await auditPrepared(ctx, manifest)), ...counts }
   }

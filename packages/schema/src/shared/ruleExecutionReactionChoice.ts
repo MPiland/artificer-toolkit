@@ -36,7 +36,7 @@ const actionIdentitySchema = lazySchema(() =>
  */
 export const encounterReactionPinDtoSchema = lazySchema(() =>
   z.strictObject({
-    trigger: z.enum(['ATTACKED_SELF', 'DAMAGE_TAKEN']),
+    trigger: z.enum(['ATTACKED_SELF', 'DAMAGE_TAKEN', 'SPELL_CAST']),
     reactorActorId: uuidSchema,
     characterId: uuidSchema,
     characterStreamVersion: aggregateVersionSchema,

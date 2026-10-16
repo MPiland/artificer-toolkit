@@ -661,8 +661,34 @@ missing server-derived Equipment option facts after verifying the unchanged root
 replayed subject is compared with the stored root, version and document, and is never canonicalized
 for storage (PLATFORM-5.T2: dropping the stored-document comparison did not lower reseed
 time, so it stays).
-Different stored content or existing option facts are an error, never an overwrite. Interrupted provisioning resumes by rerunning the
+Existing option facts that differ from an unchanged subject are an error. Interrupted provisioning resumes by rerunning the
 seed. Complete read-back audit is required before the import is accepted.
+
+A corpus change is applied in place (PLATFORM-18.T1, ADR 0024, D120). The seed is declarative: a
+subject whose checksum differs from the stored root is replaced through
+`replaceCurrentAuthoredVersion` (`authoredReplacement.ts`), the same step publishing a changed
+homebrew document uses: insert the next version, replace the root, delete the previous version with its
+chunks and compilation, then sync catalogue metadata and families. Variants, subraces and Equipment
+children are recompiled against the replaced parent. Play data keeps working because it reads the
+current document and frozen occurrences keep their own facts. Seeding an older corpus is another
+replace. A subject changing kind, System or content source is a conflict. Demoting a Class or Race that
+still has subclasses or subraces is refused with their ids. `importSubjects` and `seed` report
+`replaced`. The seed reads the stored checksums first and gives each replaced subject a batch alone
+(a replace costs about 100-250 ms idle however small the document;
+[measurements](../../docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md)). A subject removed from the corpus fails the seed before any write, naming its ids
+(removal is a deferred edge case).
+
+Definitions, Systems, content sources and catalogues are replaced in place the same way (PLATFORM-18.T2,
+D120): `bootstrap` and `importDefinitions` patch the mutable fields of an identical-identity record
+(`mutableChanges` in `import.ts`) and report `replaced`. A content source or catalogue changes `label`
+and `description`; a Definition changes `label`, `description`, `checksum` and `documentJson`, keeps
+`version` 1 and the checksum is its revision identity; a System changes `document` and `checksum` and
+appends the next `systemVocabularySnapshots` version (earlier versions stay). Changing a record's
+identity (code, kind, System, family key, content source) is "Canonical content conflict.". A System
+replace that drops a vocabulary entry id stored data may name is refused with the ids; a Definition
+removed from the corpus fails the seed before any subject or definition write, naming its ids.
+`liveBackendValidation.mjs` proves replacement on an ephemeral backend (`replace`/`reseed` steps) and
+times each mutation.
 
 Master ownership comes from the PLATFORM content source with a null owner, not the canonical
 payload's placeholder `userId`. Public/authored UUIDs remain distinct from Convex `_id` values.

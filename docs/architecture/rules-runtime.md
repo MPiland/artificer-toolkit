@@ -406,7 +406,7 @@ is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANG
 point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
 (`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
 A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
-disposition (excluded creature types only warn; neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions still do), the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
+disposition (creature type restrictions only warn: `allowedCreatureTypeIds` names the only types the action affects and `excludedCreatureTypeIds` the types it does not, and `targetingExcludesCreatureType` reads both. Neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions and area saves still do), the room raises the one overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning for either list, only for a Creature target, since a Character's facts carry no creature type. The compiler refuses an area restriction, so an area spell has no per-target type gate), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
@@ -460,6 +460,16 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 (`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
+
+#### `SPELL_CAST` (transitional, REACTION-4.T3b-1)
+
+`reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
+`CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal
+that stores nothing; `executionCancelsTriggeringEvent` reads it from the committed trace, as
+`executionAddsSpeedToMovement` does. `discoverCastReactionActions` lists the reactions a Character holds for a
+cast; the caller keeps those whose own invocation range reaches the caster, and the sealed pin accepts the
+`SPELL_CAST` trigger. **Not yet reachable in play:** the Worker pause before a cast and the `SPENT_NO_EFFECT`
+settlement (T3b-2) are not built, so a cast offers no Counterspell yet.
 
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
@@ -715,15 +725,21 @@ one action choice per offered candidate, so upcasting is choosing the higher-lev
 has no cast-level field. The action id is `spell-cast:<uuid v5 of the candidate id>`, a fixed length however
 long the candidate id grows. The choices travel beside the Character's other actions as
 `characterSpellCast` on the Encounter source facts (`encounterMovementTargets.ts`), so the Sheet's own
-actions and the movement reactions never see spells.
+actions and the movement reactions never see spells. Attack reactions do read them (a spell with a REACTION
+activation and an attack or damage trigger is offered like a Feature reaction).
 
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
 (`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
 scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
-own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE`, or it is a
-ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
+own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
+ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
+(`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
+is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A
+`CAST_AT_LEVEL` grant casts at its `castAtLevel` even when it is also `LIMITED_USE`. The Worker does not offer
+an attack reaction whose prepared state spends a pool, because the reaction receipt carries no pool spend. A spell is offered only with exactly one active
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
 stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that
@@ -912,6 +928,38 @@ rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.cla
 other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
 `ADD_BONUS_DIE` stays non-executable.
 
+**Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
+conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
+`buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
+identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
+leaves only circumstance checks, `ATTACK_ROLL_MODE` and `ENEMY_NEAR_TARGET` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
+roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
+d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
+(`attackRestrictionsMet`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`-context
+checks are evaluated; any other subject fails its group. A path whose every group is restricted away
+produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
+edge cases in `docs/roadmap/future-enhancements.md`).
+
+**Enemy near the target (D119 e).** `ENEMY_NEAR_TARGET {feet}` is the second circumstance check: another
+creature hostile to the target, able to act (not defeated, not incapacitated), within `feet` of the target,
+measured by `measureSceneTokenFootprintDistance` between the target's token and the candidate's and converted
+to feet (`encounterEnemyProximity`, `nearestAbleEnemyProximity`). The attacker and the target never count;
+a NEUTRAL actor is never hostile. `prepareEncounterActionMechanics` asks its optional `loadEnemyProximity`
+supplier only for an attack whose compiled Effect reads the predicate (`effectReadsEnemyProximity`), and puts
+the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFacts` emits it as the TEXT fact
+`dnd5e.attack-enemy-proximity` (`{"nearestFeet": number | null}`). An attack without the fact (no Scene
+context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
+the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
+(`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
+consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
+moved Scene version (`Action Scene context is stale.`) while planning, the commit's read fence covers the
+consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
+binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
+unavailable token refuses the attack, as for an area action. Persistence never
+re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
+
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
 attacks, timed conditions and multi-condition hits are defined by the compiler
@@ -963,10 +1011,17 @@ Amendment 30 drops. A Character's own (`OWNER`-scoped) timed grants outlast the 
 Concentration grant the Character holds (SPELLS-5.7): COMPLETE detaches it from the Run's maintained state
 (`detachMaintainedCas` nulls `maintainedEffectStateId` and `sourceEncounterId`) and stamps
 `lifecycle.concentrationCasterCharacterId` with the caster's Character id (`null` for a Creature caster).
-`planCarriedOverGrants` keeps the stamp. Then: `planCarriedOverGrants` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
+`planCarriedOverEffects` keeps the stamp. Then: `planCarriedOverEffects` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
 Campaign clock's absolute minute at completion plus 6 seconds per remaining round rounded up to whole
 minutes, with `remainingTicks: null` so later Runs never tick it. Without a Campaign clock the grant gets no
-expiry and lasts until the GM ends it. `expiredCarriedOverGrants` lists the grants a clock minute has
+expiry and lasts until the GM ends it. A timed condition-owning effect on a Character (Hold Person's
+Paralyzed, Invisibility) is carried the same way (SPELLS-5.14): its plan takes the target's lifetime scope
+like a grant's, `planCarriedOverEffects` selects it, and the turn-effect kernel skips it once it carries
+an expiry (`isTurnEffectEligible`). A Creature's condition effect keeps `ENCOUNTER` scope and ends with the
+Run. The condition leaves the Character's Sheet when the carried effect ends: the GM-only
+`END_ACTIVE_EFFECT` and the caster's `END_CONCENTRATION` Sheet commands strip the conditions only the ended
+effects held (`endedMaintenanceConditions`), and the Concentration-caster end paths reach the same helper
+through `reconcileNativeMaintenanceOwners`. `expiredCarriedOverGrants` lists the grants a clock minute has
 reached. The room has no Campaign clock, so Convex converts them (see
 [persistence](persistence.md#encounter-run-storage)). Advancing the Campaign clock ends the carried grants
 it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;

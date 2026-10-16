@@ -717,6 +717,29 @@ const openAction = (made: number): EncounterActionChoicesDto['openAttackAction']
   lastTargetIds: [target.id]
 })
 
+describe('CampaignTabletopActionDrawer activation', () => {
+  it('names the activation a spell cast uses in its label', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), {
+      choices: [
+        {
+          ...actions[0]!,
+          id: 'spell-cast:healing-word',
+          label: 'Healing Word (1st level)',
+          sourceLabel: 'Cleric',
+          actionCost: 'BONUS_ACTION'
+        }
+      ]
+    })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.click(await screen.findByRole('option', { name: /Bonus Action/ }))
+    expect(screen.getByRole('combobox', { name: 'Action' })).toHaveValue(
+      'Healing Word (1st level) · Cleric · Bonus Action'
+    )
+  })
+})
+
 describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
   it('labels the attack an action would make in the list and for the selected action', async () => {
     const user = userEvent.setup()

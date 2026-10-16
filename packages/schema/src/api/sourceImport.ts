@@ -82,10 +82,12 @@ export const authoredContentSourceDtoSchema = lazySchema(() =>
   ])
 )
 
+// A stored record whose content changed is replaced in place; `replaced` counts those.
 export const sourceImportBatchResultDtoSchema = lazySchema(() =>
   z.strictObject({
     inserted: z.number().check(z.int()).check(z.nonnegative()),
-    reused: z.number().check(z.int()).check(z.nonnegative())
+    reused: z.number().check(z.int()).check(z.nonnegative()),
+    replaced: z.number().check(z.int()).check(z.nonnegative())
   })
 )
 

@@ -1,9 +1,9 @@
-// Manifest, codegen push, deploy, seed and SRD audit against the self-hosted Convex backend container
-// at http://127.0.0.1:3210: the local Docker backend by default, or an ephemeral container on a GitHub
+// Manifest, codegen push, deploy, seed, in-place replace probe, reseed and SRD audit against the
+// self-hosted Convex backend container at http://127.0.0.1:3210: the local Docker backend by default, or an ephemeral container on a GitHub
 // runner (.github/workflows/live-backend.yml). Stops at the first failing step; with --log-dir each
 // step's log and duration are written there. The admin key never reaches a log or a file.
 //   node scripts/liveBackendValidation.mjs [--container=<name>] [--fresh]
-//     [--steps=manifest,codegen,deploy,seed,audit] [--log-dir=<dir>]
+//     [--steps=manifest,codegen,deploy,seed,replace,reseed,audit] [--log-dir=<dir>]
 // --fresh is for a just-started ephemeral container: it first sets the deployment env the auth config
 // needs. It is refused for the local container, which keeps its own.
 import { spawn } from 'node:child_process'
@@ -24,7 +24,7 @@ import {
 } from './convexSelfHosted.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const defaultSteps = ['manifest', 'codegen', 'deploy', 'seed', 'audit']
+const defaultSteps = ['manifest', 'codegen', 'deploy', 'seed', 'replace', 'reseed', 'audit']
 
 const options = {
   container: localConvex.container,
@@ -74,6 +74,18 @@ const allSteps = {
   codegen: [convex('codegen', '--typecheck', 'disable')],
   deploy: [[...convexDeployArguments, ...convexCliArguments(localConvex.url, adminKey)]],
   seed: [convex('run', 'content/seed:seed')],
+  // Replaces canonical subjects, the System, content source, catalogue and a reusable definition in
+  // place and times each mutation; the reseed then replaces the one subject the probe leaves
+  // changed, and the audit proves the corpus is exact again.
+  replace: [
+    [
+      'exec',
+      'tsx',
+      'apps/apis/scripts/liveBackendReplaceProbe.ts',
+      `--container=${options.container}`
+    ]
+  ],
+  reseed: [convex('run', 'content/seed:seed')],
   audit: [convex('run', 'content/seed:audit')]
 }
 const stepNames = options.fresh ? ['env', ...options.steps] : options.steps

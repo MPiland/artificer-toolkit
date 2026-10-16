@@ -18,9 +18,7 @@ import { requireIdentity } from '../lib/identity'
 import { createSystemSourceReader } from '../authoring/systemSources'
 import {
   canReadAuthoredRoot,
-  deleteAuthoredVersion,
   deleteDraftPayload,
-  insertAuthoredVersion,
   readAuthoredVersion,
   readDraft,
   readPublishedDocument
@@ -33,11 +31,10 @@ import {
 } from './classRelationships'
 import { assertNoRaceChildren, requireRaceParent } from './raceRelationships'
 import { ensureAuthoredRouteId } from './routeIds'
-import { catalogueMetadata, syncCatalogueMetadata } from './catalogueMetadata'
+import { replaceCurrentAuthoredVersion } from './authoredReplacement'
 import { promoteDraftImageSlot } from './imageSlots'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import type { ResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
-import { publishClassCatalogueFamily, readCatalogueParent } from './catalogueFamilies'
 import { requireDefaultUserContentSource } from './sources'
 import { isImportRowVisible } from '../imports/visibility'
 import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
@@ -243,9 +240,10 @@ export async function commitPublication(
   const publicId = await ensureAuthoredRouteId(ctx, input.subjectKind, input.subjectId)
   if (publicId !== draft.publicId) throw new Error('Stored draft route mismatch.')
   const currentVersionPublicId = crypto.randomUUID()
-  const currentVersionId = await insertAuthoredVersion(
-    ctx,
-    {
+  const { published } = await replaceCurrentAuthoredVersion(ctx, {
+    root,
+    previous,
+    version: {
       subjectKind: input.subjectKind,
       id: input.subjectId,
       systemId: draft.systemId,
@@ -256,79 +254,48 @@ export async function commitPublication(
       version: (previous?.version ?? 0) + 1,
       documentSchemaVersion: 1
     },
-    canonicalizeRuleDocument(document),
-    compilation
-  )
-  const current = {
-    id: input.subjectId,
-    subjectKind: input.subjectKind,
-    systemId: draft.systemId,
-    ownerUserId: userId,
-    label: document.label,
-    checksum,
-    contentSourceId,
-    currentVersionId,
-    currentVersionPublicId,
-    authoringSources,
-    activeNameKey: activePublicationNameKey(document.label),
-    ...(subject.subjectKind === 'EQUIPMENT'
-      ? {
-          parentEquipmentId:
-            subject.document.category === 'VARIANT' ? subject.document.parentEquipmentId : null,
-          equipmentOptions: equipmentOptionFacts(subject.document, checksum, effectiveEquipment)
-        }
-      : {}),
-    ...(subject.subjectKind === 'CLASS'
-      ? {
-          parentClassId:
-            subject.document.category === 'SUBCLASS' ? subject.document.parentClassId : null
-        }
-      : {}),
-    ...(subject.subjectKind === 'RACE'
-      ? {
-          parentRaceId:
-            subject.document.category === 'SUBRACE' ? subject.document.parentRaceId : null
-        }
-      : {}),
-    catalogue: root?.catalogue,
-    catalogueFamily: root?.catalogueFamily
-  }
-  const rootId = root?._id ?? (await ctx.db.insert('authoredRoots', current))
-  if (root) await ctx.db.replace(root._id, current)
-  if (previous) await deleteAuthoredVersion(ctx, previous)
+    documentJson: canonicalizeRuleDocument(document),
+    compilation,
+    current: {
+      id: input.subjectId,
+      subjectKind: input.subjectKind,
+      systemId: draft.systemId,
+      ownerUserId: userId,
+      label: document.label,
+      checksum,
+      contentSourceId,
+      currentVersionPublicId,
+      authoringSources,
+      activeNameKey: activePublicationNameKey(document.label),
+      ...(subject.subjectKind === 'EQUIPMENT'
+        ? {
+            parentEquipmentId:
+              subject.document.category === 'VARIANT' ? subject.document.parentEquipmentId : null,
+            equipmentOptions: equipmentOptionFacts(subject.document, checksum, effectiveEquipment)
+          }
+        : {}),
+      ...(subject.subjectKind === 'CLASS'
+        ? {
+            parentClassId:
+              subject.document.category === 'SUBCLASS' ? subject.document.parentClassId : null
+          }
+        : {}),
+      ...(subject.subjectKind === 'RACE'
+        ? {
+            parentRaceId:
+              subject.document.category === 'SUBRACE' ? subject.document.parentRaceId : null
+          }
+        : {})
+    },
+    document,
+    publicId
+  })
   await promoteDraftImageSlot(ctx, {
     subjectId: draft.subjectId,
     subjectKind: draft.subjectKind
   })
   await deleteDraftPayload(ctx, draft)
   await ctx.db.delete(draft._id)
-  const published = await ctx.db.get(currentVersionId)
-  if (!published) throw new Error('Published content is missing.')
-  await syncCatalogueMetadata(
-    ctx,
-    rootId,
-    await catalogueMetadata(ctx, document, {
-      checksum,
-      publicId,
-      createdAt: published._creationTime
-    })
-  )
-  if (subject.subjectKind === 'CLASS') {
-    const currentRoot = await ctx.db.get(rootId)
-    if (!currentRoot) throw new Error('Published Class root is missing.')
-    await publishClassCatalogueFamily(ctx, currentRoot, root?.label, userId)
-  }
-  if (subject.subjectKind === 'RACE') {
-    const currentRoot = await ctx.db.get(rootId)
-    if (!currentRoot) throw new Error('Published Race root is missing.')
-    const parent = await readCatalogueParent(ctx, currentRoot, userId)
-    await ctx.db.patch(rootId, {
-      catalogueFamily: {
-        id: parent?.id ?? currentRoot.id,
-        nameKey: (parent?.label ?? currentRoot.label).toLowerCase()
-      }
-    })
-  }
   return authoredPublicationResultSchema.parse({
     subjectKind: input.subjectKind,
     subjectId: input.subjectId,

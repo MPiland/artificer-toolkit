@@ -14,6 +14,7 @@ export type TargetingAuthored =
       dispositionKind?: TargetDispositionKind
       /** Naming the user: allowed (default), an overridable warning, or refused outright. */
       self?: TargetSelfPolicy
+      allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }
   | {
@@ -24,10 +25,12 @@ export type TargetingAuthored =
       resolutionCount?: number
       resolutionCountScaling?: ScalableValueAuthored<{ amount: number }>
       allowRepeatedTargets?: boolean
+      allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }
   | {
       selectionKind: Extract<TargetSelectionKind, 'AREA_CONTENTS'>
       dispositionKind?: TargetDispositionKind
+      allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }

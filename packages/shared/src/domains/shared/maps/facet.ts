@@ -13,6 +13,7 @@ import {
 } from '#authored'
 import {
   ABILITY_OPTIONS,
+  ATTACK_ROLL_MODE_OPTIONS,
   AUTHORING_CONSTRAINT_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
   CHARGE_LIMIT_OPTIONS,
@@ -1795,6 +1796,28 @@ function createFacetPredicateNodeMap(
             requiredIf: local.field(['predicateCode']).eq('ATTACK_ABILITY')
           }
         )
+      )
+      .set(
+        'rollMode',
+        selectSingle(
+          ['rollMode'],
+          'Attack Roll Mode',
+          { kind: 'INLINE_OPTIONS', options: ATTACK_ROLL_MODE_OPTIONS },
+          {
+            order: 3,
+            showIf: local.field(['predicateCode']).eq('ATTACK_ROLL_MODE'),
+            requiredIf: local.field(['predicateCode']).eq('ATTACK_ROLL_MODE')
+          }
+        )
+      )
+      .set(
+        'feet',
+        number(['feet'], 'Feet', {
+          constraints: { minimum: 1 },
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET'),
+          requiredIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET')
+        })
       )
       .set(
         'category',
