@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
+import { useState, type ComponentProps } from 'react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
@@ -67,6 +68,26 @@ const resolved: EncounterCommandResultDto = {
   evidenceRoll: null
 }
 
+/** The stage owns the picked target, so the drawer is rendered under a holder of it. */
+function TargetedDrawer(
+  props: Omit<
+    ComponentProps<typeof CampaignTabletopActionDrawer>,
+    'onPickTargetOnMap' | 'onTargetPick' | 'pickedTargetActorId'
+  >
+) {
+  const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
+    undefined
+  )
+  return (
+    <CampaignTabletopActionDrawer
+      {...props}
+      pickedTargetActorId={pickedTargetActorId}
+      onPickTargetOnMap={vi.fn()}
+      onTargetPick={setPickedTargetActorId}
+    />
+  )
+}
+
 function drawerElement(
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<unknown>,
   {
@@ -113,7 +134,7 @@ function drawerElement(
   } = {}
 ) {
   return (
-    <CampaignTabletopActionDrawer
+    <TargetedDrawer
       actionChoicesError={null}
       actions={choices}
       basicActionChoices={authoredBasicActions}

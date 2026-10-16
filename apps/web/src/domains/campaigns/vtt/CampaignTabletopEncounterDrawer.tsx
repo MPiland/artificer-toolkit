@@ -25,6 +25,11 @@ import { ActiveGrantList } from '../../../components/activeGrants/ActiveGrantLis
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
+import {
+  describeTargetEntry,
+  orderActorsForTargeting,
+  type VttTargetEntry
+} from './vttTargeting.model'
 
 /** A creature the map hides stays unlisted for players until the GM reveals it (ATTACK-17.3). */
 const REVEAL_OPTIONS = [
@@ -44,6 +49,7 @@ export function CampaignTabletopEncounterDrawer({
   pending,
   role,
   scene,
+  targeting = null,
   onCommand,
   onEndCharacterConcentration
 }: {
@@ -56,12 +62,26 @@ export function CampaignTabletopEncounterDrawer({
   pending: boolean
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto | null
+  /**
+   * While the caster picks a target, this list is the target list (ATTACK-17.2): nearest first,
+   * open beside the map, and each listed creature is a button that picks it.
+   */
+  targeting?: {
+    entries: readonly VttTargetEntry[]
+    pickedActorId: string | null
+    onCancel: () => void
+    onPick: (actorId: string) => void
+  } | null
   onCommand: (command: LiveEncounterCommand) => void
   /** A Character ends its Concentration with its Sheet command, not an Encounter command. */
   onEndCharacterConcentration: (characterId: string) => void
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   const controlsDisabled = !connected || pending
+  const listedActors = targeting
+    ? orderActorsForTargeting(encounter.actors, targeting.entries)
+    : encounter.actors
+  const targetEntries = new Map(targeting?.entries.map((entry) => [entry.actorId, entry]))
 
   function command(
     input:
@@ -109,13 +129,18 @@ export function CampaignTabletopEncounterDrawer({
         </ActionIcon>
       </Tooltip>
       <Drawer
-        closeButtonProps={{ 'aria-label': 'Close turn order' }}
-        opened={opened}
+        // The map stays clickable beside the list while targeting.
+        closeButtonProps={{ 'aria-label': targeting ? 'Cancel targeting' : 'Close turn order' }}
+        closeOnClickOutside={!targeting}
+        lockScroll={!targeting}
+        opened={opened || targeting !== null}
         position='right'
         size='min(28rem, 100vw)'
-        title='Turn order'
+        title={targeting ? 'Pick a target' : 'Turn order'}
+        trapFocus={!targeting}
+        withOverlay={!targeting}
         zIndex={400}
-        onClose={close}
+        onClose={targeting ? targeting.onCancel : close}
       >
         <div aria-busy={pending || undefined}>
           <div className={styles.summary}>
@@ -135,8 +160,9 @@ export function CampaignTabletopEncounterDrawer({
           ) : null}
 
           <div className={styles.actorList} aria-label='Encounter turn order'>
-            {encounter.actors.map((actor) => {
+            {listedActors.map((actor) => {
               const current = encounter.currentActorId === actor.id
+              const targetEntry = targetEntries.get(actor.id)
               return (
                 <div
                   aria-current={current ? 'true' : undefined}
@@ -175,6 +201,18 @@ export function CampaignTabletopEncounterDrawer({
                           ? 'Current turn'
                           : actor.kind.toLowerCase()}
                     </Text>
+                    {targetEntry ? <Text size='xs'>{describeTargetEntry(targetEntry)}</Text> : null}
+                    {targetEntry && targeting ? (
+                      <Button
+                        aria-label={`Target ${actor.label}`}
+                        aria-pressed={targeting.pickedActorId === actor.id}
+                        size='compact-xs'
+                        variant={targeting.pickedActorId === actor.id ? 'filled' : 'default'}
+                        onClick={() => targeting.onPick(actor.id)}
+                      >
+                        Target
+                      </Button>
+                    ) : null}
                     <ActiveGrantList
                       disabled={controlsDisabled}
                       grants={actor.activeGrants}

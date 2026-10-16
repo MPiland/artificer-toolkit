@@ -97,6 +97,8 @@ export interface VttTokenPresentation {
   halo: { color: number; label: string } | null
   marked: boolean
   outlineColor: number
+  /** The creature can be picked on the map while the caster targets (ATTACK-17.1). */
+  targetable: boolean
   statuses: Array<{
     category: VttStatusCategory
     id: string
@@ -236,6 +238,15 @@ type ActionPreviewLength = Extract<
   { kind: 'WITHIN' }
 >['distance']
 
+/** An action's normal reach, then its long reach when it has one; empty for SELF, UNLIMITED and none. */
+export function actionRangeLengths(range: VttActionPreview['range']): ActionPreviewLength[] {
+  return range?.kind === 'WITHIN'
+    ? [range.distance]
+    : range?.kind === 'RANGED'
+      ? [range.normal, range.long]
+      : []
+}
+
 let rangeOutlinesMemo: { key: string; overlays: VttScenePresentationOverlay[] } | null = null
 
 /**
@@ -285,12 +296,7 @@ export function actionPreviewOverlays(
   if (!preview) return []
   const overlays: VttScenePresentationOverlay[] = []
   const source = scene.tokens.find((token) => token.id === preview.sourceTokenId)
-  const distances =
-    preview.range?.kind === 'WITHIN'
-      ? [preview.range.distance]
-      : preview.range?.kind === 'RANGED'
-        ? [preview.range.normal, preview.range.long]
-        : []
+  const distances = actionRangeLengths(preview.range)
   if (source) overlays.push(...rangeOutlineOverlays(scene.grid, source, distances))
   const target = scene.tokens.find((token) => token.id === preview.targetTokenId)
   if (target) {
@@ -386,7 +392,11 @@ export function buildVttFogMask(
 }
 
 export function formatSceneMeasurement(grid: SceneGrid, path: readonly ScenePoint[]): string {
-  const distance = measureScenePathDistance(grid, path)
+  return formatSceneDistance(grid, measureScenePathDistance(grid, path))
+}
+
+/** A distance in the Scene's grid units, with the unit's short name. */
+export function formatSceneDistance(grid: SceneGrid, distance: number): string {
   const formatted = Number.isInteger(distance) ? String(distance) : distance.toFixed(1)
   const unit = grid.unit === 'FEET' ? 'ft' : grid.unit === 'METERS' ? 'm' : 'squares'
   return `${formatted} ${unit}`
@@ -427,6 +437,7 @@ export function sceneTokenAppearanceKey(
     presentation?.halo?.color,
     presentation?.marked,
     presentation?.outlineColor,
+    presentation?.targetable,
     presentation?.statuses.map((status) => `${status.id}:${status.label}:${status.kind}`).join(',')
   ].join(':')
 }

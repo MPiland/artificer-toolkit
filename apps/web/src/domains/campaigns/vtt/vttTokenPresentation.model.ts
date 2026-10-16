@@ -54,6 +54,8 @@ export function buildVttTokenPresentations(input: {
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto | null
   scene: CampaignSceneStateDto
+  /** The tokens the caster can pick while targeting; empty when no one is targeting. */
+  targetableTokenIds?: ReadonlySet<string>
 }): Record<string, VttTokenPresentation> {
   const actors = new Map(input.encounter.actors.map((actor) => [actor.id, actor]))
   // Only the GM projection carries health; players see none by default.
@@ -148,7 +150,8 @@ export function buildVttTokenPresentations(input: {
           : null,
       marked: isCurrent,
       outlineColor: actor ? dispositionRingColours[actor.disposition] : NO_DISPOSITION_RING_COLOUR,
-      statuses
+      statuses,
+      targetable: input.targetableTokenIds?.has(token.id) ?? false
     }
   }
 
