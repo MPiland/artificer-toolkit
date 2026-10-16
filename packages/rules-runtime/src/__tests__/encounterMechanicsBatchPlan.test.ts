@@ -13,6 +13,7 @@ import {
 
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { enterActorForm, revertActorForm } from '../encounterActorForm.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
 import {
   planEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput
@@ -23,6 +24,8 @@ import {
   ENCOUNTER_ID,
   TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
+
+type EncounterActorWithForm = ReturnType<typeof planEncounterMechanicsBatch>['updatedActor']
 
 const ACTOR_ID = '00000000-0000-4000-8000-00000000e101'
 const CHARACTER_ID = '00000000-0000-4000-8000-00000000e102'
@@ -712,6 +715,178 @@ describe('Character mechanics batch plan', () => {
       }
     ])
     expect(plan.targetTransition.after.conditionIds).toEqual([PRONE, FRIGHTENED])
+  })
+
+  describe('Creature forms (D130 amendment)', () => {
+    const FORM_EFFECT_ID = '00000000-0000-4000-8000-00000000e1f2'
+    const abilityId = (code: string) => DND5E_ABILITY_DEFINITION_ID_BY_CODE[code]!
+    const SHEET_MAXIMUM = 12
+    const formSnapshot = {
+      label: 'Giant Centipede',
+      payload: { abilityScores: { STRENGTH: 5, INTELLIGENCE: 1, WISDOM: 7, CHARISMA: 3 } },
+      ruleFacts: {
+        abilityScores: {
+          [abilityId('STRENGTH')]: 5,
+          [abilityId('INTELLIGENCE')]: 1,
+          [abilityId('WISDOM')]: 7,
+          [abilityId('CHARISMA')]: 3
+        }
+      }
+    }
+    const enterForm = (excessDamageCarriesOver: boolean) => ({
+      effectId: FORM_EFFECT_ID,
+      excessDamageCarriesOver,
+      creature: {
+        sourceId: '00000000-0000-4000-8000-00000000e1f3',
+        sourceRevision: 7,
+        snapshot: formSnapshot,
+        maxHitPoints: 4
+      }
+    })
+    const play = (applications: CharacterRuleActionApplication[], form: EncounterActorWithForm) =>
+      planEncounterMechanicsBatch({
+        batch: batch(applications, {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: 4,
+          sheetMaximumHitPoints: SHEET_MAXIMUM
+        }),
+        actor: form,
+        userId: USER_ID,
+        characterFacts
+      })
+    const entered = (excessDamageCarriesOver: boolean) =>
+      planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: SHEET_MAXIMUM,
+          effectiveScalarValues: {
+            [abilityId('INTELLIGENCE')]: 14,
+            [abilityId('WISDOM')]: 12,
+            [abilityId('CHARISMA')]: 9
+          },
+          enterForm: enterForm(excessDamageCarriesOver)
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts
+      }).updatedActor as EncounterActorWithForm
+    const hit = (requested: number, before: number, after: number) =>
+      damage({
+        requested,
+        before: { current: before, temporary: 0 },
+        after: { current: after, temporary: 0 },
+        maximum: 4
+      })
+
+    it('gives the Character the form at full hit points, keeping INT/WIS/CHA and the Sheet untouched', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: SHEET_MAXIMUM,
+          effectiveScalarValues: {
+            [abilityId('INTELLIGENCE')]: 14,
+            [abilityId('WISDOM')]: 12,
+            [abilityId('CHARISMA')]: 9
+          },
+          enterForm: enterForm(true)
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts
+      })
+      expect(plan.updatedActor).toMatchObject({
+        kind: 'CHARACTER',
+        form: {
+          effectId: FORM_EFFECT_ID,
+          excessDamageCarriesOver: true,
+          currentHitPoints: 4,
+          maxHitPoints: 4,
+          tempHitPoints: 0,
+          snapshot: {
+            payload: { abilityScores: { STRENGTH: 5, INTELLIGENCE: 14, WISDOM: 12, CHARISMA: 9 } }
+          }
+        }
+      })
+      expect(plan.stateChanged).toBe(true)
+      expect(plan.characterUpdate).toBeNull()
+      expect(plan.characterStreamVersion).toBeNull()
+    })
+
+    it('refuses to enter a form while in one', () => {
+      expect(() =>
+        planEncounterMechanicsBatch({
+          batch: batch([], {
+            expectedCharacterStreamVersion: STREAM_VERSION,
+            effectiveMaximumHitPoints: 4,
+            sheetMaximumHitPoints: SHEET_MAXIMUM,
+            enterForm: enterForm(true)
+          }),
+          actor: entered(true),
+          userId: USER_ID,
+          characterFacts
+        })
+      ).toThrow('already has a form')
+    })
+
+    it('damages the form and leaves the Sheet as it was', () => {
+      const plan = play([hit(3, 4, 1)], entered(true))
+      expect(plan.updatedActor).toMatchObject({ form: { currentHitPoints: 1, maxHitPoints: 4 } })
+      expect(plan.characterUpdate).toBeNull()
+      expect(plan.characterStreamVersion).toBeNull()
+      expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 1 })
+    })
+
+    it('ends the form at 0 and spends the excess on the Sheet in the same batch when it carries over', () => {
+      // 9 damage: 4 end the form, 5 come off the Sheet's 10.
+      const plan = play([hit(9, 4, 0)], entered(true))
+      expect(plan.updatedActor).toMatchObject({ kind: 'CHARACTER', form: null })
+      expect(plan.characterUpdate?.character.state.hitpoints).toMatchObject({ current: 5, temp: 0 })
+      expect(plan.characterStreamVersion).toBe(STREAM_VERSION + 1)
+      expect(plan.receiptApplications).toEqual([
+        expect.objectContaining({ ordinal: 0, kind: 'DAMAGE', appliedAmount: 4 }),
+        expect.objectContaining({
+          ordinal: 1,
+          kind: 'DAMAGE',
+          requestedAmount: 5,
+          appliedAmount: 5,
+          beforeCurrentHitPoints: 10,
+          afterCurrentHitPoints: 5,
+          maximumHitPoints: SHEET_MAXIMUM
+        })
+      ])
+    })
+
+    it('loses the excess when the form does not carry it over', () => {
+      const plan = play([hit(9, 4, 0)], entered(false))
+      expect(plan.updatedActor).toMatchObject({ form: null })
+      expect(plan.characterUpdate).toBeNull()
+      expect(plan.receiptApplications).toHaveLength(1)
+    })
+
+    it('can take the Sheet to 0 through the carried-over damage', () => {
+      const plan = play([hit(30, 4, 0)], entered(true))
+      expect(plan.characterUpdate?.character.state.hitpoints.current).toBe(0)
+    })
+
+    it('needs the Sheet maximum while in a form', () => {
+      expect(() =>
+        planEncounterMechanicsBatch({
+          batch: batch([hit(1, 4, 3)], {
+            expectedCharacterStreamVersion: STREAM_VERSION,
+            effectiveMaximumHitPoints: 4
+          }),
+          actor: entered(true),
+          userId: USER_ID,
+          characterFacts
+        })
+      ).toThrow('needs its Sheet maximum hit points')
+    })
+
+    it('ends through the one revert, whatever the cause', () => {
+      const reverted = revertActorForm(entered(true))
+      expect(reverted).toEqual(actor)
+      expect(revertActorForm(reverted)).toEqual(actor)
+    })
   })
 
   describe('spell slot consumption', () => {
