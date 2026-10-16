@@ -201,7 +201,10 @@ describe('SRD Rage feature effect authoring parity', () => {
 
 describe('SRD Hold Person creature type restriction authoring parity', () => {
   it('authors the creature type restriction this parity gate is meant to prove', () => {
-    expect(holdPerson.effects?.[0]?.invocation.targeting?.allowedCreatureTypeIds).toHaveLength(1)
+    expect(holdPerson.effects?.[0]?.invocation.targeting).toMatchObject({
+      selectionKind: 'SINGLE_TARGET',
+      allowedCreatureTypeIds: [expect.any(String)]
+    })
   })
 
   it('keeps the allowed creature types through node-runtime normalization', async () => {
