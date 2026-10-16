@@ -161,6 +161,24 @@ async function projectionReadCost(base: PlayerControlFixture, role: 'OWNER' | 'P
       samples.push(performance.now() - started)
       read = counter
     })
+  await base.t.run(async (ctx) => {
+    const actorRows = await ctx.db.query('encounterRunActors').collect()
+    const sourceRows = await ctx.db.query('encounterSourceProjectionFacts').collect()
+    const sample = actorRows[actorRows.length - 1]!
+    console.log(
+      'BUDGETDIAG',
+      JSON.stringify({
+        role,
+        actorRows: actorRows.length,
+        actorBytes: actorRows.reduce((total, row) => total + bytes(row), 0),
+        sourceRows: sourceRows.length,
+        sourceBytes: sourceRows.reduce((total, row) => total + bytes(row), 0),
+        sampleFields: Object.fromEntries(
+          Object.entries(sample).map(([key, value]) => [key, bytes(value)])
+        )
+      })
+    )
+  })
   const member = role === 'OWNER' ? base.owner : base.player
   const queries: number[] = []
   for (let sample = 0; sample < 5; sample++) {
