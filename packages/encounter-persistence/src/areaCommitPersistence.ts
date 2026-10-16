@@ -385,6 +385,7 @@ export async function persistEncounterAreaCommit(
     throw new Error('Live Session source Character receipt mismatch.')
 
   const healEndedGrants: ActiveRuleEffectRecord[] = []
+  const engagedActorIds: string[] = []
   for (const [index, { actor, batch, occurrenceId }] of children.entries()) {
     const merged = index === mergedChildIndex
     const mechanics = await callbacks.applyMechanics({
@@ -420,6 +421,7 @@ export async function persistEncounterAreaCommit(
       throw new Error('Live Session mechanics receipt mismatch.')
     current.set(actor.id, mechanics.updatedActor)
     healEndedGrants.push(...mechanics.endedGrants)
+    if (mechanics.engaged) engagedActorIds.push(actor.id)
     // A Legendary Resistance the creature used spends one of its own charges.
     const charge =
       batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
@@ -586,6 +588,7 @@ export async function persistEncounterAreaCommit(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,
+      engagedActorIds,
       issuerLines: children.flatMap(({ actor, batch }) => {
         // A cast on chosen creatures asks no save, so it has nothing to report per creature.
         if (!batch.d20) return []

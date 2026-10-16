@@ -1,11 +1,18 @@
-import { planEncounterGrantTicks } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { withEncounterActorEngaged } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  planEncounterGrantTicks,
+  planIdleTurnGrantEnds
+} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import {
   turnEffectOwner,
   type TurnEffectBoundary
 } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readRunActors } from './documents.js'
+import {
+  encounterRunActorStateSchema,
+  type EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readRunActors, replaceRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -27,7 +34,7 @@ export async function persistEncounterGrantTicks(
   if (input.turnActorId === null) return
   const { state, stage, turnActorId } = input
   const store = createActiveRuleEffectStore(ctx)
-  const actors = await readRunActors(ctx, state)
+  let actors = await readRunActors(ctx, state)
   const holders = await Promise.all(
     actors.map(async (actor) => ({
       actor,
@@ -35,6 +42,29 @@ export async function persistEncounterGrantTicks(
     }))
   )
   const expired: ActiveRuleEffectRecord[] = []
+  const turnHolder =
+    stage === 'END_OF_TURN' ? holders.find(({ actor }) => actor.id === turnActorId) : undefined
+  if (turnHolder) {
+    // An idle turn ends the holder's idle-bound grants; the engaged mark resets either way.
+    const idle = planIdleTurnGrantEnds({ encounterId: state.id, ...turnHolder })
+    for (const effect of idle.ended) {
+      await store.deleteCas({
+        id: effect.id,
+        owner: turnEffectOwner(turnHolder.actor, state.id),
+        expectedVersion: effect.version
+      })
+      expired.push(effect)
+    }
+    turnHolder.effects = turnHolder.effects.filter((effect) => !idle.ended.includes(effect))
+    if (idle.clearEngaged) {
+      const cleared = encounterRunActorStateSchema.parse({
+        ...turnHolder.actor,
+        resources: withEncounterActorEngaged(turnHolder.actor, false)
+      })
+      await replaceRunActor(ctx, turnHolder.actor, cleared)
+      actors = actors.map((actor) => (actor.id === cleared.id ? cleared : actor))
+    }
+  }
   for (const tick of planEncounterGrantTicks({
     encounterId: state.id,
     stage,

@@ -142,6 +142,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
   turnUses: z.infer<typeof encounterTurnUseKeysSchema>
+  /** Whether the source holds a grant that ends on an idle turn, so an attack on a hostile creature marks it engaged. */
+  engagesSource: boolean
 }
 export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
@@ -186,7 +188,8 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-      turnUses: encounterTurnUseKeysSchema
+      turnUses: encounterTurnUseKeysSchema,
+      engagesSource: z.boolean()
     })
   )
 
@@ -226,6 +229,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'cleaving'
   | 'consumedGrants'
   | 'turnUses'
+  | 'engagesSource'
   | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>

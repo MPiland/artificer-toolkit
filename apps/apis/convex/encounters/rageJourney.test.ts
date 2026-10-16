@@ -365,6 +365,100 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
     }, 120000)
   })
 
+  describe('ending early when the Barbarian is idle (ATTACK-9.T6)', () => {
+    const advance = (fixture: Fixture, from: { projection: Pick<Result['projection'], 'version'> }) =>
+      executeOnRun(fixture, (base) => ({
+        ...base,
+        type: 'ADVANCE_TURN',
+        expectedVersion: from.projection.version
+      }))
+
+    const undo = (fixture: Fixture, from: { projection: Pick<Result['projection'], 'version'> }) =>
+      executeOnRun(fixture, (base) => ({
+        ...base,
+        type: 'REVERT_LAST_ACTION',
+        expectedVersion: from.projection.version
+      }))
+
+    const grantCount = async (fixture: Fixture) => (await barbarianState(fixture)).grantIds.length
+
+    /** The Barbarian rages and passes the turn; the Wolf holds the turn and the Rage is not yet at risk. */
+    async function ragedAndPassed(fixture: Fixture) {
+      const wolfTurn = await advance(fixture, await rages(fixture))
+      expect(wolfTurn.projection.currentActorId).toBe(fixture.wolf.id)
+      return wolfTurn
+    }
+
+    const bites = async (fixture: Fixture, wolfTurn: Result) => {
+      await queueRoomRolls(fixture.campaign.id, { rolls: [14, 0, 3] })
+      return actOnRun(fixture, wolfTurn, {
+        actorId: fixture.wolf.id,
+        actionId: fixture.biteActionId,
+        targetActorId: fixture.actor.id
+      })
+    }
+
+    const swings = async (fixture: Fixture, turn: Result) => {
+      await queueRoomRolls(fixture.campaign.id, { rolls: [14, 4] })
+      return actOnRun(fixture, turn, {
+        actorId: fixture.actor.id,
+        actionId: fixture.actions.axe.actionId,
+        targetActorId: fixture.wolf.id
+      })
+    }
+
+    it('keeps a Rage through the end of the turn it began on, then ends it after a turn with no attack and no damage', async () => {
+      const fixture = await setup(source)
+      const secondTurn = await advance(fixture, await ragedAndPassed(fixture))
+      expect(secondTurn.projection.currentActorId).toBe(fixture.actor.id)
+      expect(await grantCount(fixture)).toBe(1)
+
+      await advance(fixture, secondTurn)
+      expect(await barbarianState(fixture)).toMatchObject({ rageChargesUsed: 1, grantIds: [] })
+    }, 180000)
+
+    it('keeps the Rage after a turn with an attack on a hostile creature, which counts for that turn only', async () => {
+      const fixture = await setup(source)
+      const secondTurn = await advance(fixture, await ragedAndPassed(fixture))
+      const hit = await swings(fixture, secondTurn)
+      expect(hit.occurrence?.status).toBe('COMPLETE')
+
+      const thirdTurn = await advance(fixture, await advance(fixture, hit))
+      expect(await grantCount(fixture)).toBe(1)
+
+      await advance(fixture, thirdTurn)
+      expect(await grantCount(fixture)).toBe(0)
+    }, 240000)
+
+    it('keeps the Rage after damage taken on another creature turn', async () => {
+      const fixture = await setup(source)
+      const bitten = await bites(fixture, await ragedAndPassed(fixture))
+      expect(bitten.occurrence?.status).toBe('COMPLETE')
+
+      const secondTurn = await advance(fixture, bitten)
+      await advance(fixture, secondTurn)
+      expect(await grantCount(fixture)).toBe(1)
+    }, 240000)
+
+    it('ends the Rage after an idle turn once the GM undoes the attack that kept it', async () => {
+      const fixture = await setup(source)
+      const secondTurn = await advance(fixture, await ragedAndPassed(fixture))
+      const undone = await undo(fixture, await swings(fixture, secondTurn))
+
+      await advance(fixture, undone)
+      expect(await grantCount(fixture)).toBe(0)
+    }, 240000)
+
+    it('ends the Rage after an idle turn once the GM undoes the bite that kept it', async () => {
+      const fixture = await setup(source)
+      const bitten = await bites(fixture, await ragedAndPassed(fixture))
+      const secondTurn = await advance(fixture, await undo(fixture, bitten))
+
+      await advance(fixture, secondTurn)
+      expect(await grantCount(fixture)).toBe(0)
+    }, 240000)
+  })
+
   it('gives the charge back and removes the grant when the GM undoes the Rage', async () => {
     const fixture = await setup(source)
     const raged = await rages(fixture)

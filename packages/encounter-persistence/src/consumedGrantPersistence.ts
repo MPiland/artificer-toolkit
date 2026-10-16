@@ -2,9 +2,14 @@ import {
   consumableGrants,
   grantsEndedBy
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { encounterActorEngaged } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import type { TargetState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type {
@@ -56,6 +61,30 @@ export async function endGrantsOnHitPointsRegained(
   )
   await deleteGrants(ctx, ended)
   return ended
+}
+
+/**
+ * Whether damage newly marks the owner engaged (SRD Rage): the change lowered its hit points or
+ * temporary hit points, it holds a grant that ends on an idle turn and it is not marked already.
+ * Reads the owner's effects only for a damaged actor.
+ */
+export async function damageEngagesGrantHolder(
+  ctx: EncounterWriteContext,
+  input: {
+    actor: Pick<EncounterRunActorState, 'resources'>
+    owner: ActiveRuleEffectRecord['owner']
+    before: Pick<TargetState, 'currentHitPoints' | 'temporaryHitPoints'>
+    after: Pick<TargetState, 'currentHitPoints' | 'temporaryHitPoints'>
+  }
+) {
+  const { actor, before, after } = input
+  return (
+    (after.currentHitPoints < before.currentHitPoints ||
+      after.temporaryHitPoints < before.temporaryHitPoints) &&
+    !encounterActorEngaged(actor) &&
+    grantsEndedBy(await createActiveRuleEffectStore(ctx).list(input.owner), 'ON_IDLE_TURN').length >
+      0
+  )
 }
 
 /**

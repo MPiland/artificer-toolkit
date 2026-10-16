@@ -700,6 +700,18 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `EQUIPMENT_EQUIPPED` condition (category `ARMOR`, property `HEAVY`) on each Rage benefit's facets, the same predicate Monk's Unarmored
   Movement uses. A Rage that ends Concentration (`SPELLCASTING_LOCKED`) adds a Concentration-end child that undo cannot restore, so GM
   undo of that action is refused with that reason (a full restore is a proposed follow-up).
+  **Idle turns (ATTACK-9.T6, SRD Rage "ends early").** The end event `ON_IDLE_TURN` ends a grant at the end of its holder's turn
+  unless the holder was engaged since their previous turn. The engaged mark is `engagedSinceTurn` in the actor's free-form
+  `resources` (`encounterActorEngaged` / `withEncounterActorEngaged`), so it is hashed in the actor state checksum and replays with
+  the Run; it is set only for holders of such a grant. Engaged means an attack roll (d20 result `ON_HIT`/`ON_MISS`/`ON_CRIT`) against a
+  hostile creature (`attackedHostileCreature`, set by the action commit from the worker's `engagesSource` claim, which holds the grant
+  only when the actor made an attack roll) or damage taken after reductions (`damageEngagesGrantHolder`, one effects read per damaged
+  actor that is not yet engaged). `planIdleTurnGrantEnds`, run by the turn tick at END_OF_TURN, ends the grants of an idle holder
+  and clears the mark of an engaged one. A grant created during its holder's own turn marks the holder engaged, so the first check is
+  at the end of the holder's next turn: a lenient, recorded deviation from SRD 5.1 (the SRD checks the turn Rage begins on only
+  when the Barbarian did nothing since). GM undo clears the marks that action set (`engagedActorIds` on the `RESOLVE_ACTION` root).
+  Not covered: attack rolls made by a spell or area action, a Disarm, a reaction attack or a Cleaving attack do not set the source
+  mark; damage from those sites still marks the damaged holder, but their undo does not clear it.
 - **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
   the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
 - **Gone with slice D:** `USE_BASIC_ACTION`, `UseEncounterBasicActionInputDto`, the catalogue `check` and `mechanics`
