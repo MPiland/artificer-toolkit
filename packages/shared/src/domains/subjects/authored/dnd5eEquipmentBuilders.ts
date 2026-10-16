@@ -1028,8 +1028,8 @@ export function withOffHandDamage(
     entry: number,
     constraint: 'INCLUDE' | 'EXCLUDE'
   ) =>
-    ({
-      ...modifier,
+    // Object.assign: spreading the whole modifier union is too complex for the compiler to compare.
+    Object.assign({}, modifier, {
       restrictions: {
         ...modifier.restrictions!,
         groups: modifier.restrictions!.groups.map((group) => ({
