@@ -5994,14 +5994,15 @@
             {
               "id": "ATTACK-10.T3",
               "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
             },
             {
               "id": "ATTACK-10.T4",
