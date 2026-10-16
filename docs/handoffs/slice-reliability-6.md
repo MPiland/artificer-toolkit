@@ -14,11 +14,11 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 
 ### Acceptance criteria and proof
 
-| AC   | Text                                                                                                                                                              | Proof                                                                                                                                   | Status |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 6.1  | A short-rest hit-die roll is recognised by its source kind (HIT_DIE), not its display label.                                                                      | `apps/apis/convex/rolls.test.ts` hit-die test (relabelled request resolves to the same source)                                          | coded  |
-| 6.3  | A skill's governing ability and an ability's identity resolve from the System's authored vocabulary by id; a missing mapping is an error, never a silent DEXTERITY. | `packages/rules-runtime/src/__tests__/sheetSkillAbility.test.ts` (custom Wisdom skill projects as WISDOM)                               | coded  |
-| 6.15 | An actor's initiative roll is read by one shared function switching on source kind, used by the Worker and Convex.                                                | `packages/rules-runtime/src/__tests__/encounterInitiativeRoll.test.ts` (Character, effective override, Creature, custom, adapter parity) | coded  |
+| AC   | Text                                                                                                                                                                | Proof                                                                                                                                    | Status |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.1  | A short-rest hit-die roll is recognised by its source kind (HIT_DIE), not its display label.                                                                        | `apps/apis/convex/rolls.test.ts` hit-die test (relabelled request resolves to the same source)                                           | coded  |
+| 6.3  | A skill's governing ability and an ability's identity resolve from the System's authored vocabulary by id; a missing mapping is an error, never a silent DEXTERITY. | `packages/rules-runtime/src/__tests__/sheetSkillAbility.test.ts` (custom Wisdom skill projects as WISDOM)                                | coded  |
+| 6.15 | An actor's initiative roll is read by one shared function switching on source kind, used by the Worker and Convex.                                                  | `packages/rules-runtime/src/__tests__/encounterInitiativeRoll.test.ts` (Character, effective override, Creature, custom, adapter parity) | coded  |
 
 ### Red-first checklist
 
