@@ -1326,6 +1326,66 @@ describe('Character spell casting in an Encounter', () => {
       expect(await characterActiveEffects(fixture)).toEqual([])
       expect(await maintainedEffects(fixture)).toEqual([])
       expect(await conditionIds(fixture)).not.toContain(invisibleId)
+
+      // An end event the System does not list is cleared by the same map; the valid one stays.
+      const invalid = castOnlyVariant()
+      const invalidPath = invalid.effects?.[0]?.paths?.[0]
+      if (!invalidPath || !('resultBlock' in invalidPath))
+        throw new Error('Expected a result block.')
+      invalidPath.resultBlock = {
+        ...invalidPath.resultBlock,
+        lifecycle: {
+          ...invalidPath.resultBlock.lifecycle,
+          endOnEvents: ['ON_CAST_SPELL', 'ON_NOT_A_LISTED_EVENT' as 'ON_CAST_SPELL']
+        }
+      }
+      const cleaned = await fixture.gm.caller.query(normalizeValues, {
+        mapId: 'spell',
+        systemId: invalid.systemId,
+        values: { ...invalid, classIds: [fixture.baseClass.id] }
+      })
+      expect(JSON.stringify(cleaned.values)).not.toContain('ON_NOT_A_LISTED_EVENT')
+      expect(cleaned.values).toHaveProperty('effects', variant.effects)
+    }, 240000)
+
+    // The cast alone ends the effect: a cantrip spends no slot, and the variant ignores the attack roll,
+    // so the Sheet's only change is the release.
+    it('ends on a cantrip that spends no slot, and a GM undo gives the effect back', async () => {
+      const variant = concentrationSpell(castOnlyVariant())
+      const bolt = srdSpell(fireBolt)
+      targetAnyCreatureAtAnyRange(bolt)
+      const fixture = await setup({
+        known: [variant],
+        granted: [{ spell: bolt, attributes: ['CAST_AT_WILL'] }],
+        withOthers: true
+      })
+      const wolf = fixture.wolf
+      if (!wolf || !invisibleId) throw new Error('Missing the Wolf or the Invisible condition.')
+      const unseen = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, await choiceId(fixture, 'Veil of Shadows (2nd level)', 0), 0)
+      })
+      expect(unseen.occurrence?.status).toBe('COMPLETE')
+      const [concentration] = await maintainedEffects(fixture)
+      expect(await conditionIds(fixture)).toContain(invisibleId)
+
+      await resetActionAllowance(fixture)
+      const cantrip = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(
+          fixture,
+          await choiceId(fixture, 'Fire Bolt', unseen.projection.version),
+          unseen.projection.version,
+          undefined,
+          wolf.id
+        )
+      })
+      expect(cantrip.occurrence?.status).toBe('COMPLETE')
+      expect(await characterActiveEffects(fixture)).toEqual([])
+      expect(await maintainedEffects(fixture)).toEqual([])
+      expect(await conditionIds(fixture)).not.toContain(invisibleId)
+
+      await revert(fixture, cantrip.projection.version)
+      expect(await maintainedEffects(fixture)).toEqual([concentration])
+      expect(await conditionIds(fixture)).toContain(invisibleId)
     }, 240000)
   })
 
