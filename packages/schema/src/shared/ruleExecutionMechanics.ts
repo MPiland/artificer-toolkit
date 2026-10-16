@@ -464,7 +464,6 @@ export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
       createdDependentEffectIds: z
         .array(uuidSchema)
-        .check(z.minLength(1))
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
     .check(
@@ -581,12 +580,6 @@ export function validateMaintainedEffectCreation(input: {
         code: 'custom',
         path: ['maintenanceTransition'],
         message: 'Maintained replacement created dependencies are invalid.'
-      })
-    if (input.activeEffectTransitions.length === 0)
-      input.context.addIssue({
-        code: 'custom',
-        path: ['maintenanceTransition'],
-        message: 'Maintained state requires a created dependent effect.'
       })
   } else if (
     input.activeEffectTransitions.some((transition) => transition.maintainedEffectStateId != null)

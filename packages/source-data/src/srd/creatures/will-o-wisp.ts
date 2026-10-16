@@ -1,7 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { indefiniteInvisibilityEffect } from './indefiniteInvisibility.js'
 export const willOWisp: CreatureAuthored = {
   id: S.CREATURE_IDS.WILL_O_WISP,
   label: "Will-o'-Wisp",
@@ -261,43 +261,12 @@ export const willOWisp: CreatureAuthored = {
       description:
         "Invisibility. The will-o'-wisp and its light magically become invisible until it attacks or uses its Consume Life, or until its concentration ends (as if concentrating on a spell).",
       effects: [
-        {
-          id: S.actionId(294, 4),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.BONUS_ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(294, 5),
-              rangeKind: S.RANGE_KIND.SELF
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(294, 6),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(294, 6) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(294, 6),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('INVISIBLE')
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        indefiniteInvisibilityEffect({
+          effectId: S.actionId(294, 4),
+          rangeId: S.actionId(294, 5),
+          pathId: S.actionId(294, 6),
+          endOnEvents: ['ON_ATTACK_ROLL']
+        })
       ],
       order: 7
     }

@@ -162,6 +162,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     snapshot: {},
     frozenState: null,
     absence: null,
+    form: null,
     createdAt: now,
     updatedAt: now
   })

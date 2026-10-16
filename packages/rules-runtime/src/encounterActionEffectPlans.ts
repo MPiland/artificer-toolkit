@@ -256,10 +256,8 @@ function prepareRecurringActiveEffect(
       !formContribution.forms.some(({ creatureId }) => creatureId === input.form?.creatureId)
     )
       throw new EncounterActionEffectPlanError('The chosen form is not one the action authors.')
-    // Only Creature and custom actors take a form (Characters wait for Polymorph), and an actor
-    // already in a form keeps it: the new form does not stack on it.
+    // An actor already in a form keeps it: the new form does not stack on it.
     if (
-      input.target.lifetimeScope === 'OWNER' ||
       input.target.activeEffects.some(
         (effect) =>
           effect.definition.schemaVersion === 2 &&

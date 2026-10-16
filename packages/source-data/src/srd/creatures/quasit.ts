@@ -2,6 +2,7 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { indefiniteInvisibilityEffect } from './indefiniteInvisibility.js'
 export const quasit: CreatureAuthored = {
   id: S.CREATURE_IDS.QUASIT,
   label: 'Quasit',
@@ -286,43 +287,12 @@ export const quasit: CreatureAuthored = {
       description:
         'Invisibility. The quasit magically turns invisible until it attacks or uses Scare, or until its concentration ends (as if concentrating on a spell). Any equipment the quasit wears or carries is invisible with it.',
       effects: [
-        {
-          id: S.actionId(2663, 5),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(2663, 6),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(2663, 7),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(2663, 7) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(2663, 7),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('INVISIBLE')
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        indefiniteInvisibilityEffect({
+          effectId: S.actionId(2663, 5),
+          rangeId: S.actionId(2663, 6),
+          pathId: S.actionId(2663, 7),
+          endOnEvents: ['ON_ATTACK_ROLL']
+        })
       ],
       order: 5
     }
