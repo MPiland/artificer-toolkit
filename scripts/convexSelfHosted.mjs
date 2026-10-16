@@ -77,4 +77,18 @@ export function convexCliEnvironment() {
   return environment
 }
 
+/** The deploy command every local runner uses; append convexCliArguments so the target is explicit. */
+export const convexDeployArguments = [
+  'workspace',
+  '@artificer-toolkit/apis',
+  'exec',
+  'convex',
+  'deploy',
+  '--yes',
+  '--typecheck',
+  'disable',
+  '--codegen',
+  'disable'
+]
+
 export const convexCliArguments = (url, adminKey) => ['--url', url, '--admin-key', adminKey]

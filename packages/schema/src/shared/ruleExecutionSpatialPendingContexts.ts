@@ -6,7 +6,9 @@ import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
+import { encounterActionHeldD20DtoSchema } from './encounterActionPending.js'
 import {
+  serverRuleExecutionD20BeliefDtoSchema,
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
@@ -156,6 +158,10 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       rollerActorId: uuidSchema,
       maintenanceCurrentnessChecksum: z.optional(checksumSchema),
       d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
+      /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.4). */
+      d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
+      /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
+      heldD20: z.optional(encounterActionHeldD20DtoSchema),
       twoPhase: z.optional(z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema)))
     }),
     z.strictObject({

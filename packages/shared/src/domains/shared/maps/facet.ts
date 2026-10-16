@@ -1216,6 +1216,27 @@ function createFacetPredicateNodeMap(
         )
       )
       .set(
+        'creatureTypeIds',
+        selectMulti(
+          ['creatureTypeIds'],
+          'Creature Types',
+          {
+            kind: 'DATA',
+            relationship: table('creature_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            order: 3,
+            requiredIf: true,
+            showIf: and([
+              local.field(['predicateCode']).eq('CREATURE_TYPE'),
+              local.field(['authoringModeKind']).eq('SELECTED')
+            ])
+          }
+        )
+      )
+      .set(
         'rangeKind',
         selectMulti(
           ['rangeKind'],
@@ -1809,6 +1830,15 @@ function createFacetPredicateNodeMap(
             requiredIf: local.field(['predicateCode']).eq('ATTACK_ROLL_MODE')
           }
         )
+      )
+      .set(
+        'feet',
+        number(['feet'], 'Feet', {
+          constraints: { minimum: 1 },
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET'),
+          requiredIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET')
+        })
       )
       .set(
         'category',

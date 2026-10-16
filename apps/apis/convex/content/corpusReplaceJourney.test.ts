@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  SRD_CONTENT_SOURCE,
+  SRD_RULES_CATALOGUE
+} from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { SRD_CONDITION_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -72,5 +79,35 @@ describe('re-importing a changed canonical corpus', () => {
       reused: 1,
       replaced: 0
     })
+  }, 120_000)
+
+  it('keeps a committed Character working when the System, source, catalogue and a definition change', async () => {
+    const { t, owner, character } = await readySheetFixture()
+    const sheetOnN = await owner.caller.query(api.characters.sheet.get, {
+      id: character.id
+    })
+
+    // Corpus N+1 revises the System document, the source and catalogue labels and one definition.
+    const system = jsonValueSchema.parse({ ...srdSystemRecord, description: 'Revised SRD' })
+    const definition = SRD_CONDITION_RULE_STATE_DEFINITIONS[0]
+    expect(
+      await t.mutation(internal.content.import.bootstrap, {
+        systems: [
+          { id: srdSystemRecord.id, document: system, checksum: checksumRuleDocument(system) }
+        ],
+        contentSource: { ...SRD_CONTENT_SOURCE, label: 'Revised source' },
+        catalogue: { ...SRD_RULES_CATALOGUE, description: 'Revised catalogue' }
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 3 })
+    expect(
+      await t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions: [{ ...definition, label: 'Revised condition' }]
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 1 })
+
+    expect(await owner.caller.query(api.characters.sheet.get, { id: character.id })).toEqual(
+      sheetOnN
+    )
   }, 120_000)
 })

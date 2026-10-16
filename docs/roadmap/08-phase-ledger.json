@@ -781,15 +781,19 @@
         {
           "id": "PLATFORM-14",
           "title": "Fast, reliable web tests and tooling",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/tests.yml"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Web tests reliable: test workers capped to physical cores; 3 full runs, 0 failures",
-              "status": "IN_PROGRESS",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/vitest.config.ts (maxWorkers 50%: logical CPUs halved stand in for physical cores, rationale in place)",
+                "docs/handoffs/slice-platform-14.md (flake survey)",
+                "Three consecutive green full CI web runs on the merge batches: Web tests jobs 116826454007 (run 38855518184, 1dfa8a6d8), 116827337630 (run 38855774749, 8c3671f53), 116829367364 (run 38856437824, 1855512ce)"
+              ],
               "note": "Audit: cap built (020e60aae, maxWorkers 50%); the three clean full runs are not recorded.",
               "origin": ["TST-7"],
               "id": "PLATFORM-14.1"
@@ -816,7 +820,21 @@
             "tc": 3,
             "rr": 5,
             "size": 2
-          }
+          },
+          "tasks": [
+            {
+              "id": "PLATFORM-14.T1",
+              "text": "Cap web test workers to physical cores; three full CI web runs with 0 failures; root-cause any flake.",
+              "status": "DONE",
+              "closes": ["PLATFORM-14.1"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              }
+            }
+          ]
         },
         {
           "id": "PLATFORM-15",
@@ -927,9 +945,9 @@
         {
           "id": "PLATFORM-18",
           "title": "SRD corpus updates reach a live deployment without a reset",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/content/corpusReplaceJourney.test.ts"],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -955,8 +973,14 @@
             {
               "id": "PLATFORM-18.2",
               "text": "Changed SRD definitions, Systems, content sources and catalogues also reach a live deployment without a reset: seeding corpus N+1 updates them in place, or refuses with a named reason, and play data created on N keeps working. Proved by real-code tests plus a live-backend seed N, then seed N+1, run.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/content/corpusReplaceJourney.test.ts (journey: readied Character, System, source, catalogue and definition changed and reseeded, Sheet unchanged)",
+                "apps/apis/convex/content/import.test.ts (System, source, catalogue and definition replace; vocabulary-removal refusal; identity-change conflict)",
+                "apps/apis/convex/content/seedReplace.test.ts (seed N to N+1 replace; removed definition refused before any write)",
+                "live backend replace/restore probe (scripts/liveBackendValidation.mjs): bootstrap 91/87 ms, one definition 41/35 ms",
+                "CI 38854089851/38854090002 at ba1c3c074"
+              ],
               "origin": [],
               "note": "Registered 2026-10-16 from the PLATFORM-18.T1 report: bootstrap and definitions are still insert-or-identical, so a definition change still needs a reset that production cannot take after launch."
             }
@@ -977,15 +1001,14 @@
             {
               "id": "PLATFORM-18.T2",
               "text": "Extend D120 in-place replacement to definitions, Systems, content sources and catalogues in content/import bootstrap and definitions import, red-first against the current conflict; update the runbook reset list.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-18.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-18-t1.md"
+              }
             }
           ]
         }
@@ -5084,7 +5107,36 @@
             "tc": 5,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ATTACK-2.T1",
+              "text": "Player parity matrix: a test derived from the real Encounter command registry proves every command the GM can issue for a Character is accepted from that Character's controlling player (own actor, own turn or a reaction window) and refused for others; each GM-only gap found is fixed through the player path, not by widening authorization.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-2.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
+            },
+            {
+              "id": "ATTACK-2.T2",
+              "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
+              "status": "TODO",
+              "closes": ["ATTACK-2.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-2.T1", "ATTACK-17.T3", "REACTION-4.T3b"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
+            }
+          ]
         },
         {
           "id": "ATTACK-3",
@@ -5693,8 +5745,15 @@
             {
               "id": "ATTACK-9.4",
               "text": "Divine Smite: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge 1aed8c7ef (T4 with merge batch k) and b7ed9081e on ci/attack-9-t4, 2026-10-16",
+                "apps/session-worker/test/nativeRoomOnHitChoice.test.ts (Worker journey: hit, slot spent, 3d8, crit doubling, undo, SRD Ghoul undead)",
+                "packages/rules-runtime/src/__tests__/srdDivineSmite.test.ts, encounterOnHitChoice.test.ts, characterOptionalOnHitRiders.test.ts, attackRestrictions.test.ts",
+                "packages/schema/src/__tests__/on-hit-choice-contract.test.ts; packages/encounter-persistence/src/__tests__/actionPendingOffers.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (Divine Smite authoring parity)",
+                "CI runs Tests 38862637381 and Live backend 38862637798 green on b7ed9081e"
+              ],
               "origin": [],
               "note": ""
             },
@@ -5770,9 +5829,8 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2c",
-              "status": "TODO",
-              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence.",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
             },
             {
               "closes": ["ATTACK-9.2"],
@@ -5784,8 +5842,22 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2d",
+              "status": "IN_PROGRESS",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack).",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+            },
+            {
+              "id": "ATTACK-9.T2e",
+              "text": "Sneak Attack and other roll-mode-gated paths gate on the settled roll mode (TEST evidence rolledMode), not the derived mode, so hand-rolled and GM-adjudicated advantage count (architect ruling: option B; D-entry and rules-runtime guide).",
               "status": "TODO",
-              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof."
+              "closes": ["ATTACK-9.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-9.T2d"]
+              }
             },
             {
               "id": "ATTACK-9.T3",
@@ -5803,7 +5875,7 @@
             {
               "id": "ATTACK-9.T4",
               "text": "Divine Smite post-hit slot spend and Improved Divine Smite.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.4"],
               "wsjf": {
                 "bv": 5,
@@ -5811,8 +5883,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["ATTACK-9.T2a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t4.md"
+              }
             },
             {
               "id": "ATTACK-9.T5",
@@ -5909,7 +5980,9 @@
             {
               "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T3a and T3b: packages/rules-runtime/src/__tests__/encounterMovementReactionPerception.test.ts (condition contributions), apps/session-worker/test/nativeMovementAttackSight.test.ts (opportunity-attack believed prompt, true settlement, held die); CI Tests 38860508666 on 6c42d11b2, Live backend 38858966792 on 663fff011"
+              ],
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
               "id": "ATTACK-10.4"
@@ -5925,15 +5998,18 @@
             {
               "id": "ATTACK-10.6",
               "text": "The GM sees, for each hidden creature, which observers it is hidden from and which failed to notice it (D100), and can add or remove observers from the live table UI through SET_CONCEALMENT_OBSERVERS; players never see that list.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts",
                 "apps/session-worker/test/nativeRoomHideAction.test.ts",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx",
+                "apps/web/tests/live-backend/encounterHide.ts",
+                "apps/apis/tests/developmentEncounterHide.ts",
+                "docs/validation/attack-10-t5-hide-browser-2026-10-16.md",
                 "CI 38842195604 at a05549a24"
               ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI. Built 2026-10-15 (ATTACK-10.T5, slice-attack-10-t5.md): GM-only concealment projection, drawer editor and room/projection redaction proofs are green. Stays TODO until the live journey (apps/web/tests/live-backend/encounterHide.ts, runLocalConvexProof.ps1 -Proof hide-browser) has run; it is written and registered but was not run in the workbook."
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 merge review: the GM half of D100 is stored but not projected, and the GM command has no UI. Built 2026-10-15 (ATTACK-10.T5, slice-attack-10-t5.md): GM-only concealment projection, drawer editor and room/projection redaction proofs are green. Live journey run 2026-10-16 against the local container (hide-browser proof, evidence in docs/validation/attack-10-t5-hide-browser-2026-10-16.md): passed."
             }
           ],
           "wsjf": {
@@ -5956,16 +6032,41 @@
               }
             },
             {
-              "id": "ATTACK-10.T3",
-              "text": "Opportunity attacks and Disarm apply attack-roll sight; movement-reaction perception applies condition contributions.",
-              "status": "TODO",
+              "id": "ATTACK-10.T3a",
+              "text": "Movement-reaction perception applies condition contributions (Blinded, Invisible).",
+              "status": "DONE",
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 1
+              },
+              "closes": ["ATTACK-10.4"]
+            },
+            {
+              "id": "ATTACK-10.T3b",
+              "text": "Opportunity attacks apply attack-roll sight: a believed prompt, a true settlement, a held die and a mode adjustment, retained and replayed.",
+              "status": "DONE",
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 2
+              },
+              "closes": ["ATTACK-10.4"]
+            },
+            {
+              "id": "ATTACK-10.T3c",
+              "text": "Disarm applies attack-roll sight like RESOLVE_ACTION (believed prompt, true settlement), and a room test proves the player-side believed prompt of an opportunity attack.",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-10.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
-                "size": 3
-              }
+                "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-10-t3.md"
             },
             {
               "id": "ATTACK-10.T4",
@@ -5982,15 +6083,14 @@
             {
               "id": "ATTACK-10.T5",
               "text": "GM concealment projection and observer editor (AC 10.6), with a browser journey test.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-10.6"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 2,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-10-t1.md"
+              }
             }
           ]
         },
@@ -6221,7 +6321,7 @@
         {
           "id": "ATTACK-17",
           "title": "Target creatures from the map or the Encounter list",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6244,8 +6344,14 @@
             },
             {
               "text": "A player's map and target list show only creatures that player can see; an unseen or hidden creature is neither drawn nor listed unless the GM reveals it to players (as an unnamed unseen creature or by name), and a creature the GM keeps hidden is never listed even when it is public in initiative.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts (unseenEncounterActorIds, D121 predicate table)",
+                "apps/session-worker/test/nativeRoomUnseenTarget.test.ts (an unseen target is refused as unavailable)",
+                "apps/apis/convex/encounters/recipientBindings.test.ts and apps/session-worker/test/nativeLiveSessionRoom.test.ts (per-viewer lists, Convex and room)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (GM unnamed or named reveal control)",
+                "CI Tests 38859125052 and Live backend 38859125065 on 40cdc77aa"
+              ],
               "origin": [],
               "note": "User decision 2026-10-09: unseen creatures are not shown unless the GM marks them shown, so the list never gives away the encounter. Fixes today's leak where a public actor with a hidden or fogged token is still in the target dropdown.",
               "id": "ATTACK-17.3"
@@ -6306,7 +6412,7 @@
             {
               "id": "ATTACK-17.T2",
               "text": "Per-viewer player Encounter projection: only creatures the player can see, plus the GM's unnamed or named reveal.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-17.3"],
               "wsjf": {
                 "bv": 8,
@@ -6314,13 +6420,12 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-9.T1", "SPELLS-22"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T3",
               "text": "Map targeting mode and the distance-sorted target list with one shared selection.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.1", "ATTACK-17.2"],
               "wsjf": {
                 "bv": 8,
@@ -7152,7 +7257,8 @@
               "proof": [
                 "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
                 "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
-                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts"
+                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts",
+                "SPELLS-8.T8 (pool-paid casts): apps/apis/convex/encounters/actionSpellCasting.test.ts journey \"a $attribute grant is cast from its use and not a slot, and GM undo restores the use\" (LIMITED_USE, CAST_AT_LEVEL) and exhaustion refusal; packages/rules-runtime characterSpellCastActions.test.ts pool binding, Assisted spend, Manual and cantrip no-spend; session-worker nativeRoomReaction.test.ts pool-paid reaction not offered (deferred edge case in future-enhancements.md); CI 38852613485/38852613448."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
@@ -7160,8 +7266,10 @@
             },
             {
               "text": "Spare the Dying is castable in an Encounter and stabilizes a dying target through the STABILIZE executor; its undead and construct exclusion applies to targets.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomStabilizeAction.test.ts › Spare the Dying cast by a Character (stabilizes through the STABILIZE executor, no slot; an Undead target warns TARGET_CREATURE_TYPE_EXCLUDED in the shared order and an override applies nothing); CI Tests 38858490124 on cce167033, Live backend 38858347236 on c76399218"
+              ],
               "origin": [],
               "note": "Moved from SPELLS-3.5 on 2026-10-08 (D96). Since SPELLS-8.T6a (e8ebfb687) excluded creature types raise an overridable warning instead of a compile refusal.",
               "id": "SPELLS-8.2"
@@ -7239,7 +7347,7 @@
             {
               "id": "SPELLS-8.T3",
               "text": "Spare the Dying stabilizes through the STABILIZE executor.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.2"],
               "wsjf": {
                 "bv": 3,
@@ -7260,7 +7368,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t3.md"
             },
             {
               "id": "SPELLS-8.T5",
@@ -7306,7 +7415,7 @@
             {
               "id": "SPELLS-8.T8",
               "text": "Spells cast from LIMITED_USE features and resource pools (FIXED_LEVEL casts) spend and restore that use, not a slot.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -7314,8 +7423,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T9",
@@ -8078,7 +8186,7 @@
         {
           "id": "SPELLS-26",
           "title": "Spells that target several chosen creatures",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8087,7 +8195,9 @@
               "id": "SPELLS-26.1",
               "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split projectiles (a repeated target entry is one Magic Missile dart, Scorching Ray ray or Eldritch Blast beam, each its own damage instance, the count scaled by cast or character level) and per-creature saves; a corpus test derived from the real compiler fails on any such spell that does not compile, unless it fails for the same reason as a SINGLE_TARGET cast (its outcome is owned elsewhere: SPELLS-8.T4, SPELLS-4.T2, SPELLS-28, or ADR 0018 manual adjudication).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable. Amended 2026-10-16 after the SPELLS-26 survey (docs/handoffs/slice-spells-26.md): projectiles use allowRepeatedTargets and maxTargetsScaling, not a new target-count contract; outcome gaps go to their owning PBIs."
             }
@@ -8102,9 +8212,8 @@
             {
               "id": "SPELLS-26.T1",
               "text": "Magic Missile: a repeated chosen-creature entry is one dart (allowRepeatedTargets; projectile count = maxTargets scaled by cast level), one 1d4+1 force damage instance per dart, one commit, slot spend and undo; Magic Missile re-authored per dart (journey: three darts split 2+1 between two goblins).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-26.1"],
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8115,7 +8224,7 @@
             {
               "id": "SPELLS-26.T2",
               "text": "Per-creature saves for a chosen list (Acid Splash, Chain Lightning) through the area save-and-commit flow: one sealed save per distinct creature, damage rolled once.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8123,7 +8232,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
             },
             {
               "id": "SPELLS-26.T3",
@@ -8136,7 +8246,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
             },
             {
               "id": "SPELLS-26.T4",
@@ -8149,7 +8260,8 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["SPELLS-26.T2", "SPELLS-26.T3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
             }
           ]
         },
@@ -8168,6 +8280,13 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+            },
+            {
+              "id": "SPELLS-28.2",
+              "text": "A Character casts Misty Step or Dimension Door in an Encounter and moves its token to a chosen unoccupied point within the spell range with no path and no opportunity attacks; the cast grants a bounded teleport allowance that the move consumes, a teleport by a player without one is refused, and GM undo restores the position.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
             }
           ],
           "wsjf": {
@@ -8180,13 +8299,28 @@
             {
               "id": "SPELLS-28.T1",
               "text": "TELEPORT outcome executor (Word of Recall; Plane Shift travel).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T1b",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-28.2"],
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-28.T1"]
               }
             },
             {
@@ -8199,7 +8333,8 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             },
             {
               "id": "SPELLS-28.T3",
@@ -8211,6 +8346,20 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T4",
+              "text": "Polymorph, True Polymorph, Shapechange and Wild Shape authored from core options on the CREATURE_FORM grant SPELLS-28.T2 builds (separate form HP, revert at 0 with carry-over, revert at duration end), with a corpus proof against the real compiler and one journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-28.T2"]
               }
             }
           ]
@@ -8260,8 +8409,8 @@
               }
             },
             {
-              "id": "SPELLS-27.T2",
-              "text": "One consumer effectsEndedBy over both event lists for any v2 effect; Invisibility ends on its holder's attack roll after granting advantage; GM undo restores it (journey).",
+              "id": "SPELLS-27.T2a",
+              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D124); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
@@ -8274,6 +8423,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
+              "id": "SPELLS-27.T2b",
+              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T2a"]
+              }
+            },
+            {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
               "status": "TODO",
@@ -8283,7 +8445,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T2"]
+                "after": ["SPELLS-27.T2a"]
               }
             },
             {
@@ -8296,7 +8458,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T2"]
+                "after": ["SPELLS-27.T2a"]
               }
             },
             {
@@ -9805,6 +9967,124 @@
             "rr": 5,
             "size": 5
           }
+        },
+        {
+          "id": "RELIABILITY-13",
+          "title": "Development fixture cleanup is deterministic",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/encounters/developmentLifecycleProof.test.ts"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "acs": [
+            {
+              "id": "RELIABILITY-13.1",
+              "text": "developmentLifecycleProof.test.ts passes deterministically: scenes/developmentScene:removeFixtureState never throws \"Fixture Scene bounds or ownership mismatch\" for a fixture the test created, and a test reproduces the failing order or state before the fix.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/scenes/developmentScene.test.ts seeds 6, 16 and 17 presentation receipts (6 red before the fix); CI Tests 38855413473 green on da6d11648"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-16: intermittent failure in Convex suite shard 3/4 (run 38848532122 on ci/attack-17-t2 at 3c20a8a0d), passing on the next run with only an error-message change; ATTACK-17.T2 session found it pre-existing (error raised only in post-test cleanup). The cleanup error now names the failing bound counts."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-13.T1",
+              "text": "Find the nondeterminism in fixture Scene cleanup (bound counts in the error), reproduce it deterministically, fix the root cause.",
+              "status": "DONE",
+              "closes": ["RELIABILITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-14",
+          "title": "Campaign custody deletion test is deterministic",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/apis/convex/campaigns/deletionCustody.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-14.1",
+              "text": "deletionCustody.test.ts \"runs the real public custody producers before deleting a ACTIVE Campaign\" passes deterministically: no contentSnapshotObjects remain after deletion, and a test reproduces the failing order or state before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Failed on ledger-only merge batch h (e2d6dc33d, run 38858694893, Convex 3/4) whose code was green on batch g: contentSnapshotObjects expected [] but held 3."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-14.T1",
+              "text": "Find the nondeterminism behind leftover contentSnapshotObjects after an ACTIVE Campaign custody deletion, reproduce it red, fix the root cause (no retry, no loosened assertion).",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-14.1"],
+              "activeWorkbook": "docs/handoffs/slice-reliability-14.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-15",
+          "title": "Initiative declaration settlement test is deterministic",
+          "status": "TODO",
+          "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-15.1",
+              "text": "initiativeDeclarations.test.ts \"collects each automatic declaration, then settles exactly one Run, round, and order\" passes deterministically: its automatic initiative rolls cannot tie into an unhandled INITIATIVE_ORDER decision (seeded rolls or explicit tie handling), and a test reproduces the tie red before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Flaked on aeb08c947 (Tests 38857606244): equal random auto-rolls with initiativeTieDefinitionId null left the Run on an INITIATIVE_ORDER decision; passed on rerun with no code change."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-15.T1",
+              "text": "Make the initiative declaration settlement test deterministic: control the auto-rolls through the platform random seam (never product logic) or resolve the tie decision; reproduce the tie red first; no retry, no loosened assertion.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-15.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+            }
+          ]
         }
       ]
     },

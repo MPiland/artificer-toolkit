@@ -106,11 +106,13 @@ it('runs the shared Manual and Assisted lifecycles, native map/Scene binding and
   const policies = createEncounterLifecyclePolicyFixture(owner.userId)
   expect(await t.mutation(internal.content.import.bootstrap, policies.bootstrap)).toEqual({
     inserted: 2,
-    reused: 1
+    reused: 1,
+    replaced: 0
   })
   expect(await t.mutation(internal.content.import.importDefinitions, policies.imported)).toEqual({
     inserted: 6,
-    reused: 0
+    reused: 0,
+    replaced: 0
   })
   await seedRoomContentSnapshots(campaign.id)
   const result = await verifyEncounterLifecycle({ ...clients, campaignId: campaign.id })

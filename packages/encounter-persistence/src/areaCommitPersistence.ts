@@ -18,7 +18,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   encounterAreaTargetCommandId,
-  encounterAreaTargetOccurrenceId,
+  encounterChosenActorEntries,
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
@@ -245,10 +245,10 @@ export async function persistEncounterAreaCommit(
       zoneSceneId: context.placesZone ? context.scene.sceneId : null
     }
   }
-  const kept = scope.targets.map(({ actorId }) => ({
-    actorId,
-    occurrenceId: encounterAreaTargetOccurrenceId(areaOccurrenceId, actorId)
-  }))
+  const kept = encounterChosenActorEntries(
+    areaOccurrenceId,
+    scope.targets.map(({ actorId }) => actorId)
+  )
   if (
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== scope.caughtChecksum ||
@@ -308,10 +308,14 @@ export async function persistEncounterAreaCommit(
     }
   })
   const casterIsCharacter = source.kind === 'CHARACTER'
-  const mergedSpend = casterIsCharacter && children.some(({ actor }) => actor.id === source.id)
+  // A caster named again (a second dart) spends once, with their first outcome.
+  const mergedChildIndex = casterIsCharacter
+    ? children.findIndex(({ actor }) => actor.id === source.id)
+    : -1
+  const mergedSpend = mergedChildIndex !== -1
   if (
     children.some(
-      (child) => !carriesCasterSpend(child.batch, root, mergedSpend && child.actor.id === source.id)
+      (child, index) => !carriesCasterSpend(child.batch, root, index === mergedChildIndex)
     )
   )
     throw new Error('Live Session area target spend mismatch.')
@@ -381,8 +385,8 @@ export async function persistEncounterAreaCommit(
     throw new Error('Live Session source Character receipt mismatch.')
 
   const healEndedGrants: ActiveRuleEffectRecord[] = []
-  for (const { actor, batch, occurrenceId } of children) {
-    const merged = mergedSpend && actor.id === source.id
+  for (const [index, { actor, batch, occurrenceId }] of children.entries()) {
+    const merged = index === mergedChildIndex
     const mechanics = await callbacks.applyMechanics({
       encounterId: state.id,
       expectedEncounterVersion: state.version,
@@ -521,7 +525,8 @@ export async function persistEncounterAreaCommit(
     pendingConcentration: input.pendingConcentration
   })
   const projection = await projectNativeGm(ctx, nextState, settledChildren.actors, input.rules)
-  // Each creature's save is its own card; the area's one damage roll is carded once, with the first.
+  // Each creature's save is its own card; the area's one damage roll is carded once, with the first,
+  // unless every entry rolled its own.
   const actionLabel = (await ctx.ports.readContentLabel(input.initialDefinitionId)) ?? 'Action'
   const answers = await actionSystemRollAnswers(ctx, {
     occurrenceId: areaOccurrenceId,
@@ -534,7 +539,7 @@ export async function persistEncounterAreaCommit(
       encounterId: state.id,
       gameSystemId: state.gameSystemId,
       rollScope: occurrenceId,
-      batch: index === 0 ? batch : { ...batch, applications: [] },
+      batch: index === 0 || input.rollsPerTarget ? batch : { ...batch, applications: [] },
       actionLabel,
       source,
       target: rollerAsPerceivedByCaster(

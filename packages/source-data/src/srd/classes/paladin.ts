@@ -7,6 +7,7 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
@@ -15,6 +16,7 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
+  PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -28,11 +30,19 @@ import {
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
-  type EffectAuthored
+  type EffectAuthored,
+  type FacetAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_CREATURE_TYPES,
+  SRD_CURRENCIES,
+  SRD_DAMAGE_TYPES,
+  SRD_SKILLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
@@ -90,6 +100,111 @@ function selfClassRuleEffect(
           targeting: { selectionKind: 'SELF' }
         }
   })
+}
+
+function vocabularyEntryId(entries: readonly { id: string; code: string }[], code: string): string {
+  const entry = entries.find((candidate) => candidate.code === code)
+  if (!entry) throw new Error(`SRD vocabulary entry ${code} required.`)
+  return entry.id
+}
+
+/** Divine Smite and Improved Divine Smite share one id scheme: eight ids per Feature row in each group. */
+function smiteId(group: number, feature: number, part: number): string {
+  return classRowId(P, group, feature * 8 + part)
+}
+
+/** The target must be an undead or a fiend. */
+function undeadOrFiendTarget(feature: number): FacetAuthored {
+  return {
+    id: smiteId(0x65, feature, 0),
+    groups: [
+      {
+        id: smiteId(0x65, feature, 1),
+        order: 0,
+        contexts: [
+          {
+            id: smiteId(0x65, feature, 2),
+            order: 0,
+            subject: 'CREATURE',
+            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            conditions: [
+              {
+                id: smiteId(0x65, feature, 3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'CREATURE_TYPE',
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                creatureTypeIds: [
+                  vocabularyEntryId(SRD_CREATURE_TYPES, 'UNDEAD'),
+                  vocabularyEntryId(SRD_CREATURE_TYPES, 'FIEND')
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/** An on-hit radiant damage path of a smite Feature, with its dice fixed or keyed by the slot level spent. */
+function smiteRadiantPath(
+  feature: number,
+  part: number,
+  damage:
+    | { diceConfig: string }
+    | { levels: readonly (readonly [level: number, diceConfig: string])[] },
+  restrictions?: FacetAuthored
+): EffectAuthored['paths'][number] {
+  const outcome = {
+    id: smiteId(0x63, feature, part),
+    effectKind: EFFECT_KIND.DAMAGE,
+    damageTypeId: vocabularyEntryId(SRD_DAMAGE_TYPES, 'RADIANT'),
+    valueKind: 'DICE' as const
+  }
+  return {
+    id: smiteId(0x61, feature, part),
+    order: part + 1,
+    pathCode: PATH_CODE.ON_HIT,
+    groupType: PATH_GROUP_TYPE.SINGLE,
+    originKind: 'SOURCE',
+    selectionKind: 'FIXED',
+    ...(restrictions ? { restrictions } : {}),
+    resultBlock: {
+      id: smiteId(0x62, feature, part),
+      resultKind: 'SINGLE',
+      outcomes: [
+        'diceConfig' in damage
+          ? { ...outcome, scalingKind: SCALING.NONE, diceConfig: damage.diceConfig }
+          : {
+              ...outcome,
+              scalingKind: SCALING.PER_LEVEL,
+              scalingSource: 'SPELL_CAST_LEVEL',
+              levels: damage.levels.map(([level, diceConfig], index) => ({
+                id: smiteId(0x64, feature, index),
+                level,
+                order: index + 1,
+                diceConfig
+              }))
+            }
+      ]
+    }
+  }
+}
+
+/** A melee weapon hit's passive invocation, optionally paid for with a spell slot. */
+function smiteInvocation(feature: number, optionalOnHit?: { kind: 'SPELL_SLOT' }) {
+  return {
+    kind: 'PASSIVE',
+    triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+    range: { id: classRowId(P, 0x69, feature), rangeKind: RANGE_KIND.SPECIAL },
+    targeting: {
+      selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+      dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+    },
+    ...(optionalOnHit ? { optionalOnHit } : {})
+  } as const
 }
 
 // Paladin spell slot charge — half caster (starts L2), resets on long rest
@@ -816,20 +931,22 @@ export const paladin: ClassAuthored = {
       description:
         "Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon's damage. The extra damage is 2d8 for a 1st-level spell slot, plus 1d8 for each spell level higher than 1st, to a maximum of 5d8. The damage increases by 1d8 if the target is an undead or a fiend.",
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 0x60, 5),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_DIVINE_SMITE,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(P, 0x69, 5), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        })
+          order: 1,
+          invocation: smiteInvocation(5, { kind: 'SPELL_SLOT' }),
+          paths: [
+            smiteRadiantPath(5, 0, {
+              levels: [
+                [1, '2d8'],
+                [2, '3d8'],
+                [3, '4d8'],
+                [4, '5d8']
+              ]
+            }),
+            smiteRadiantPath(5, 1, { diceConfig: '1d8' }, undeadOrFiendTarget(5))
+          ]
+        }
       ],
       availableAtLevel: 2,
       order: 4
@@ -965,20 +1082,12 @@ export const paladin: ClassAuthored = {
       description:
         'By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage. If you also use your Divine Smite with an attack, you add this damage to the extra damage of your Divine Smite.',
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 0x60, 14),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_IMPROVED_DIVINE_SMITE,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(P, 0x69, 14), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        })
+          order: 1,
+          invocation: smiteInvocation(14),
+          paths: [smiteRadiantPath(14, 0, { diceConfig: '1d8' })]
+        }
       ],
       availableAtLevel: 11,
       order: 13

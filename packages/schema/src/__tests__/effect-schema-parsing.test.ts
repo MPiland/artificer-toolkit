@@ -696,6 +696,11 @@ describe('effect schema parsing', () => {
       false
     )
     expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE' })).success).toBe(false)
+
+    expect(parse(gate({ predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 })).success).toBe(true)
+    for (const feet of [0, -5, undefined]) {
+      expect(parse(gate({ predicateCode: 'ENEMY_NEAR_TARGET', feet })).success).toBe(false)
+    }
   })
 
   it('lets only an ON_HIT or ON_CRIT path carry restrictions', () => {

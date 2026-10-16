@@ -10,8 +10,10 @@ import { rejectDomain } from './domainRejections.js'
 import { requireEncounterActorControl } from './actorController.js'
 import { readRunActor, readRunState } from './documents.js'
 import { presentStoredCommandReplay } from './resultPresentation.js'
+import { requireTargetSeenByMember } from './targetVisibility.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
 
 type BasicActionRootCommand =
   | ResolveCheckActionInputDto
@@ -30,7 +32,7 @@ async function admitCurrentActorCommand<TCommand extends BasicActionRootCommand>
   command: TCommand,
   checkTarget?: (scope: {
     state: ReturnType<typeof readRunState>
-    role: BasicActionScopeInput['expectedRole']
+    membership: EncounterDocument<'campaignMemberships'>
   }) => Promise<void>
 ) {
   const { userId } = await ctx.ports.requireIdentity()
@@ -87,7 +89,7 @@ async function admitCurrentActorCommand<TCommand extends BasicActionRootCommand>
   const actor = await readRunActor(ctx, state, command.actorId)
   await requireEncounterActorControl(ctx, { campaign, membership, actor })
   if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
-  await checkTarget?.({ state, role: input.expectedRole })
+  await checkTarget?.({ state, membership })
   if (state.version !== command.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
@@ -116,10 +118,10 @@ export async function readBasicActionAdmission(
     actorId: input.command.actorId.toLowerCase(),
     target: { kind: 'ACTOR', actorId: input.command.target.actorId.toLowerCase() }
   }
-  return admitCurrentActorCommand(ctx, input, command, async ({ state, role }) => {
+  return admitCurrentActorCommand(ctx, input, command, async ({ state, membership }) => {
     const target = await readRunActor(ctx, state, command.target.actorId)
     // Players aim only at actors in their projection; a hidden actor reads as unavailable.
-    if (role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
     if (await readEncounterActorDefeated(ctx, target))
       rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't be helped.")
   })

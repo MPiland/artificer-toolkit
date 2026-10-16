@@ -1989,12 +1989,23 @@ describe('Assisted soft enforcement', () => {
       })
     )
     await setAutoRollDice(base.t, base.other.userId, false)
-    const conditioned = await executeInRoom(base.owner.caller, {
+    // The player's map does not draw the target through fog, so the GM reveals it (ATTACK-17.3).
+    const revealed = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPDATE_ACTOR',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: base.run.version,
+        actorId: base.target.id,
+        reveal: 'NAMED'
+      }
+    })
+    const conditioned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: revealed.projection.version,
         actorId: base.actor.id,
         conditions: [invisible.id]
       }
@@ -2050,12 +2061,23 @@ describe('Assisted soft enforcement', () => {
       })
     )
     await setAutoRollDice(base.t, base.other.userId, false)
-    const conditioned = await executeInRoom(base.owner.caller, {
+    // The player's map does not draw the target through fog, so the GM reveals it (ATTACK-17.3).
+    const revealed = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPDATE_ACTOR',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: base.run.version,
+        actorId: base.target.id,
+        reveal: 'NAMED'
+      }
+    })
+    const conditioned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: revealed.projection.version,
         actorId: base.target.id,
         conditions: [blinded.id]
       }

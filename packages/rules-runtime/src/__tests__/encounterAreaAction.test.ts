@@ -137,6 +137,15 @@ describe('chosen creatures target', () => {
     })
   })
 
+  it('lets the client name a creature more than once when the selection allows repeated targets', () => {
+    expect(
+      encounterActionChoiceTarget(chosen({ maxTargets: 3, allowRepeatedTargets: true }))
+    ).toEqual({ kind: 'ACTORS', maxTargets: 3, area: null, allowRepeatedTargets: true })
+    expect(
+      encounterActionChoiceTarget(chosen({ maxTargets: 3, allowRepeatedTargets: false }))
+    ).toEqual({ kind: 'ACTORS', maxTargets: 3, area: null })
+  })
+
   it('takes the list inside a round area picked at a point within range', () => {
     for (const shape of [SHAPES.SPHERE, SHAPES.CYLINDER, SHAPES.CIRCLE])
       expect(encounterActionTargetKind(chosen({ maxTargets: 6 }, shape)), shape.shapeKind).toBe(
@@ -171,7 +180,6 @@ describe('chosen creatures target', () => {
     }
     for (const targeting of [
       {},
-      { maxTargets: 6, allowRepeatedTargets: true },
       { maxTargets: 6, resolutionCount: 2 },
       { maxTargets: 6, maxTargetsScaling: scaling }
     ])

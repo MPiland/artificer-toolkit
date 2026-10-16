@@ -27,6 +27,8 @@ type NativeCharacterActionMechanic = Omit<
   spellCastLevel?: number
   /** The Character's level in each class, which selects class-level scaling rows of its outcomes. */
   classLevels?: Readonly<Record<string, number>>
+  /** The optional on-hit riders the player chose (D123), whose merged outcomes then resolve. */
+  selectedOptionalRiderIds?: readonly string[]
 }
 
 type ActionIdentity = Pick<
@@ -134,9 +136,15 @@ function resourceOwner(
         featureId: resource.featureId
       })
     case 'SPELL_SOURCE':
-      throw new Error(
-        'Spell-source resource actions are not supported by this Character action entry point.'
-      )
+      return toCharacterResourceOwnerKey({
+        kind: resource.ownerKind,
+        resourceGrantId: resource.accessId,
+        source: {
+          spellId: resource.spellId,
+          sourceKind: 'FEATURE',
+          sourceInstanceId: resource.sourceInstanceId
+        }
+      })
   }
 }
 

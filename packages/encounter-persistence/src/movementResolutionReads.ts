@@ -67,7 +67,7 @@ export async function readMovementResponseResult(
           pendingSnapshot: await readPendingSnapshot(ctx, occurrence)
         },
         run.version,
-        { controlledActorIds: new Set(readRunState(run).actorIds) }
+        { controlledActorIds: new Set(readRunState(run).actorIds), isOwner: true }
       )
     })
   })

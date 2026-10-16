@@ -96,6 +96,10 @@ export type PredicatePayloadByCode = {
   ATTACK_ROLL_MODE: {
     rollMode: AttackRollModeRequirement
   }
+  /** Another creature hostile to the target, able to act, stands within `feet` of the target. */
+  ENEMY_NEAR_TARGET: {
+    feet: number
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -326,6 +330,14 @@ export const PREDICATE_REGISTRY = {
     code: 'ATTACK_ROLL_MODE',
     label: 'Attack Roll Mode',
     description: 'Requires the attack to have advantage, or not to have disadvantage.',
+    subjects: ['EQUIPMENT']
+  },
+
+  ENEMY_NEAR_TARGET: {
+    code: 'ENEMY_NEAR_TARGET',
+    label: 'Enemy Near Target',
+    description:
+      'Requires another creature hostile to the target, and not incapacitated, within the distance of the target.',
     subjects: ['EQUIPMENT']
   },
 

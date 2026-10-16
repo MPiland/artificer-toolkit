@@ -48,6 +48,7 @@ import {
   type StagedSceneCommand,
   type StagedSceneContext
 } from './roomSceneGeometryPlan.js'
+import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { stageRoomSceneGeometry } from './roomSceneGeometryStaging.js'
 import {
@@ -75,6 +76,7 @@ export async function executeRoomSceneGeometry(input: {
   userId: string
   command: StagedSceneCommand
   context: StagedSceneContext
+  sceneTokens: RoomSceneTokens
   runtime: RulesRuntimeService
   random(maximum: number): number
 }) {
@@ -91,7 +93,8 @@ export async function executeRoomSceneGeometry(input: {
     campaignId,
     epoch,
     userId,
-    observed
+    observed,
+    sceneTokens: input.sceneTokens
   })
   const { membership } = await ctx.ports.requireCampaignAuthority(campaignId, userId)
   const begun = await stageRoomSceneGeometry({
