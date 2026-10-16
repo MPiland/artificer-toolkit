@@ -8379,7 +8379,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4",
@@ -8977,7 +8978,21 @@
             },
             {
               "id": "SPELLS-27.T8",
-              "text": "Sleep from core options: roll the hit-point pool, put creatures in the area to sleep from lowest current HP up, and the unconscious condition ends when the sleeper takes damage or a creature uses an action to wake it. GM undo restores both (D122 amendment of 2026-10-16).",
+              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            },
+            {
+              "id": "SPELLS-27.T12",
+              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern.",
               "status": "TODO",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
@@ -8985,9 +9000,8 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+                "after": ["SPELLS-27.T8"]
+              }
             },
             {
               "id": "SPELLS-27.T9",
@@ -8999,7 +9013,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T5"]
+                "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
               }
             },
             {
