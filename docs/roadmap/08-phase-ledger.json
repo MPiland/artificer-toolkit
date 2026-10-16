@@ -1015,9 +1015,9 @@
         {
           "id": "PLATFORM-19",
           "title": "Generated-file drift on a CI branch fixes itself",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/live-backend.yml"],
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -1028,19 +1028,22 @@
           "acs": [
             {
               "id": "PLATFORM-19.1",
-              "text": "When the only live-backend failure on a ci/** push is generated-file drift (SRD manifest or Convex _generated), the workflow commits the regenerated files back to that same ci/** branch and starts Tests and Live on the new commit; it never writes the phase branch or main, never loops on its own commit, and scripts/watchCi.ps1 reports the new sha to follow.",
-              "status": "TODO",
-              "proof": [],
+              "text": "CI never fails on generated-file drift that it can fix itself: the SRD manifest is not committed and is generated after the package build in every job that needs it (user decision 2026-10-16, option b); when the only live-backend failure on a ci/** push is Convex _generated drift, the workflow commits the regenerated files back to that same ci/** branch and starts Tests and Live on the new commit; it never writes the phase branch or main, never loops on its own commit, and scripts/watchCi.ps1 follows the new sha.",
+              "status": "DONE",
+              "proof": [
+                ".github/actions/setup/action.yml (manifest generation)",
+                ".github/workflows/live-backend.yml (auto-fix job)",
+                "scripts/watchCi.ps1 (AUTO-FIX follow)"
+              ],
               "origin": [],
               "note": "Registered 2026-10-16 at the user's request: about a quarter of recent Live runs failed only on drift, each costing a CI cycle plus a manual artifact download and re-push. A local pre-push regeneration was tried and rejected: the manifest generator reads built package dist, and worktrees have no node_modules."
             }
           ],
-          "activeWorkbook": "docs/handoffs/slice-platform-19.md",
           "tasks": [
             {
               "id": "PLATFORM-19.T1",
-              "text": "live-backend.yml commits regenerated generated files back to the ci/** branch on drift-only failure and dispatches Tests and Live on the new commit (GITHUB_TOKEN pushes do not trigger workflows); loop guard on its own commit; watchCi.ps1 follows the new sha.",
-              "status": "IN_PROGRESS",
+              "text": "Stop committing the SRD manifest and generate it in the CI setup action after the build; narrow drift to Convex _generated; live-backend.yml commits regenerated _generated files back to the ci/** branch on drift-only failure and dispatches Tests and Live on the new commit (GITHUB_TOKEN pushes do not trigger workflows); loop guard on its own commit; watchCi.ps1 follows the new sha. (Base: ci/platform-19 Tests 38977513942 and Live 38977513914 on e371ed77c. Drift proof: ci/platform-19-drift Live 38977521997 failed on bf90de31b, auto-fix commit 0a22547dd green on Tests 38978637618 and Live 38978639676.)",
+              "status": "DONE",
               "closes": ["PLATFORM-19.1"],
               "wsjf": {
                 "bv": 5,
@@ -1048,8 +1051,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": []
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-19.md"
+              }
             }
           ]
         }
@@ -8343,8 +8345,8 @@
             },
             {
               "id": "SPELLS-20.T2a",
-              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians.",
-              "status": "IN_PROGRESS",
+              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians. (Red: ci/spells-20-t2a-red on bac84acaa. Green: ci/spells-20-t2a Tests 38972849265 and Live 38974795282 on 16e4493c7.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -8352,8 +8354,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
               "id": "SPELLS-20.T2b",
@@ -8785,8 +8786,8 @@
             },
             {
               "id": "SPELLS-28.T4c",
-              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
-              "status": "IN_PROGRESS",
+              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey. (Red: ci/spells-28-t4c-red Tests 38964372322 on 8582fe60a. Green: ci/spells-28-t4c Tests 38975553592 and Live 38977759895 on 23de9c2cd.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8794,8 +8795,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T4"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4d",
@@ -9019,8 +9019,8 @@
             },
             {
               "id": "SPELLS-27.T10",
-              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo.",
-              "status": "TODO",
+              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo. (Red: ci/spells-27-t10-red Tests 38973682677 on f95bacfe5. Green: ci/spells-27-t10 Tests 38975443036 and Live 38975443035 on 6e993607d.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9028,8 +9028,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-27.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T11",
@@ -9485,8 +9484,8 @@
             },
             {
               "id": "REACTION-4.T3h",
-              "text": "Cast reactions for Creature capability casts: a capability that casts a spell gets its cast level from the referenced System spell, or from an authored cast level on the capability (additive core option, SRD data filled) where no spell is referenced, so Counterspell's higher-level check has its input; a capability that is not a spell is never offered a counter.",
-              "status": "TODO",
+              "text": "Cast reactions for Creature capability casts (D136): a Feature action effect authors spellCast { castLevel: 1..9 } beside grip on ACTION invocations only, and Counterspell is offered only for those; a spell-attack-only action is not counterable; no spellId and no new room-input capture kind. (Red: ci/reaction-4-t3h-red Tests 38970845033 on ad8488c11. Green: ci/reaction-4-t3h Tests 38975904611 and Live 38975904624 on 9cec1d408.)",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
