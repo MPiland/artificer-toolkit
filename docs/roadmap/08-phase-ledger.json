@@ -8909,8 +8909,8 @@
             },
             {
               "id": "SPELLS-27.T5",
-              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
-              "status": "IN_PROGRESS",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms. (Red: ci/spells-27-t5-red Tests 38956741664 on 21f6e15ca. Green: ci/spells-27-t5 Tests 38967899788 and Live 38967899786 on 7c66e5554.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8918,8 +8918,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T7",
@@ -8971,7 +8970,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-27.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T11",
