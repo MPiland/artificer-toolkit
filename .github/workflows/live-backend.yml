@@ -37,7 +37,9 @@ permissions:
 
 concurrency:
   group: live-backend-${{ github.ref }}
-  cancel-in-progress: true
+  # A dispatched run queues behind the running one instead of cancelling it: the auto-fix job dispatches
+  # Live on the new commit while its own run is still finishing, and that run must end as a failure.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   # The one machine-readable source of the image digest: the digest the local phase82-convex-local-linux
