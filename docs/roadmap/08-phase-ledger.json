@@ -9178,14 +9178,14 @@
             },
             {
               "id": "REACTION-4.T3g",
-              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements.",
+              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold.",
               "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["REACTION-4.T3d"]
               },
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
