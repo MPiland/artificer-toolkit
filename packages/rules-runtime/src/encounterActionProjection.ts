@@ -4,7 +4,9 @@ import {
   type StoredCharacter
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { NativeCharacterSpellConsumption } from './character/characterNativeActionResources.js'
 import { evaluateCharacterRules } from './character/characterRuleEvaluation.js'
+import { updateSpellSlotUsage } from './character/sheetCommandReducer.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
 import type { EncounterMechanicsBatchPlan } from './encounterMechanicsBatchPlan.js'
 import {
@@ -20,6 +22,40 @@ export type ProjectableCharacterFacts = CharacterMovementFacts & {
   prepared: Awaited<ReturnType<typeof prepareCharacterSheetFromContext>>['prepared']
   sheetState: CharacterSheetState
   evaluationInput: Parameters<typeof evaluateCharacterRules>[0]
+}
+
+/**
+ * The target with a spell slot spent, still on the Character version it was read at: a counter to a
+ * Counterspell against the target's own cast is planned against the slots the cast leaves, and both
+ * spends commit in one batch on that version.
+ */
+export function projectSpellSlotSpend<TCharacterFacts extends ProjectableCharacterFacts>(input: {
+  target: MovementTarget<TCharacterFacts>
+  consumption: Pick<NativeCharacterSpellConsumption, 'slotKey' | 'afterUsed'>
+  campaignId: string
+  gameSystemId: string
+  occurredAt: string
+}): MovementTarget<TCharacterFacts> {
+  const characterFacts = input.target.characterFacts
+  if (!characterFacts) throw new Error('Projected movement Character state is unavailable.')
+  return projectEncounterActionTarget({
+    target: input.target,
+    actor: input.target.actor,
+    plan: {
+      characterUpdate: {
+        character: updateSpellSlotUsage(
+          characterFacts.character,
+          input.consumption.slotKey,
+          () => input.consumption.afterUsed
+        ),
+        sheetState: null
+      },
+      characterStreamVersion: characterFacts.active.play.streamVersion
+    },
+    campaignId: input.campaignId,
+    gameSystemId: input.gameSystemId,
+    occurredAt: input.occurredAt
+  })
 }
 
 /** Rebuilds current rule facts after a planned outcome, within this movement preparation only. */
