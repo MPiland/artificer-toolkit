@@ -372,7 +372,9 @@ Encounter mechanics batch (a heal, or a death save's natural 20, keyed on the ta
 a Character's Sheet command that raises hit points (Convex `executeCharacterSheetCommand` and the room's Sheet command path), and
 a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an action or area command hands the ended
 records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
-save and GM edit paths have no undoable root, so their endings are not undone. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
+save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
+receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
+and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch

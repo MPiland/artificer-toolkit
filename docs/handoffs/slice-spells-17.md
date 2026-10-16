@@ -114,6 +114,15 @@ Synced to the lane first. One helper now ends "until healed" grants: `endGrantsO
 - **CI:** run 38810469108 on `9a46a5748` (after the ATTACK-9.T1 sync; all other jobs green), 38786427152 on `99c2b68d3` (and 38782976507 on `116953cd5`, which also had the two snapshot mismatches, fixed in `99c2b68d3`). The only remaining failure is `developmentLifecycleProof` at `developmentEncounterTransactions.ts:286` (replayed START returns the player projection), the known base defect PRIVACY-1.T1, not T2.
 - **Ended without an undoable root:** a Sheet heal, a turn-start death save's natural 20 and a GM `UPDATE_ACTOR` hit point edit on a non-Character actor end the grant but are not undone (they have no action root). The batch predicate is now the target's hit points rising (`after > before`), shared with the Sheet rule, so a death save and any other batch that raises hit points end it. **Report-only (registered by Phase 8):** `basicActionCheckSettlement`, `cleavingResponsePersistence`, `liveMovementReactionPersistence` and `liveMovementSpatialPersistence` drop `endedGrants` from their undo receipts.
 
+## SPELLS-17.T5 (AC 17.6): the remaining mechanics-batch callers
+
+**Status:** done on the branch; no production change. Closes AC 17.6 as reworded below (Phase 8 owns the ledger).
+
+`endGrantsOnRegain` ends a grant only when the target's hit points rise. Of the four callers named in the AC: basic action check settlement applies only `STABILIZE` (hit points stay put) and Cleaving only `DAMAGE`, so neither can end a grant; movement reactions and spatial effects can heal, but they run under `MOVE_SCENE_TOKEN`, which is not an undoable root (revert handles `RESOLVE_ACTION` and `ESCAPE_RELATIONSHIP`), and they already delete used-up grants with no receipt. Wiring `endedGrants` there would add untestable code.
+
+- **Proof:** Convex `mechanicsBatch.test.ts` "ends a grant that lasts until healed only when hit points rise": a damage batch on a creature holding the grant ends nothing; a heal batch ends it. Existing `actionCommands.test.ts` ("refuses after the turn advanced, so a turn commit that ended grants needs no undo receipt") is the same refusal for a non-action command.
+- **Suggested AC wording:** no remaining mechanics-batch caller can end a grant outside an undoable root.
+
 ## Proposed ledger edits (filled by the slice session)
 
 - Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).
