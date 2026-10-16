@@ -602,6 +602,11 @@ export async function revertLastEncounterAction(
       characterInverse(reactor.sourceId, counter.characterStreamVersion).spell =
         counter.spellCastConsumption
     }
+    restoreReleasedConditions(
+      reactor,
+      endedConditionReleases(counter.applications),
+      counter.characterStreamVersion
+    )
     const reaction = counter.actionEconomyTransition
     if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
       unavailable("The countering creature's reactions changed after this action; adjust manually.")

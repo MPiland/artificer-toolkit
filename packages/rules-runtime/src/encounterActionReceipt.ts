@@ -270,7 +270,9 @@ export function buildEncounterCounteredCastStoredExecution(input: {
     counterExecution: ServerCompletedRuleExecutionDto
     triggerLevel: number
     spellConsumption: Parameters<typeof characterSpellConsumptionReceipt>[0]
-    /** The reactor's Character version once its slot was spent; null when none was. */
+    /** The reactor's conditions released by effects its cast ended. */
+    applications: ReturnType<typeof planNativeEncounterAreaSourceSpend>['sourceApplications']
+    /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
     characterStreamVersion: number | null
     economy: EncounterActionEconomyConsumption
   }
@@ -301,6 +303,7 @@ export function buildEncounterCounteredCastStoredExecution(input: {
         counterExecution: counter.counterExecution,
         triggerLevel: counter.triggerLevel,
         spellCastConsumption: characterSpellConsumptionReceipt(counter.spellConsumption),
+        applications: counter.applications,
         characterStreamVersion: counter.characterStreamVersion,
         actionEconomyTransition: actionEconomyReceipt(counter.economy)
       }

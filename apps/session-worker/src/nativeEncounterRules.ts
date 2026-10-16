@@ -91,7 +91,10 @@ import {
   discoverNativeCastReactions,
   planNativeCounteredCast
 } from './nativeEncounterCastReaction.js'
-import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import {
+  preparedCastsSpell,
+  preparedSpellCastLevel
+} from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterCastReactionPendingSnapshot
@@ -681,7 +684,7 @@ export async function planNativeLiveEncounterAction(
       (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
     ),
     makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: triggerLevel !== null
+    castsSpell: preparedCastsSpell(prepared)
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
@@ -818,6 +821,7 @@ export async function planNativeLiveEncounterAction(
           actors,
           prepared,
           casterEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+          reactorEffects: activeEffectsByActorId.get(cast.reactor.id) ?? [],
           triggerLevel,
           actionEconomy,
           ruleOverrides: ruleWarnings.overrides,
@@ -1035,6 +1039,19 @@ export async function planNativeLiveEncounterAction(
           economy: reaction.found.economy.consumption
         }
       : null
+  // A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
+  // reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
+  const reactionEnded =
+    reactionUse && preparedCastsSpell(reactionUse.prepared)
+      ? actionEndedEffects({
+          holderActorId: reactionUse.prepared.actor.id,
+          held: (activeEffectsByActorId.get(reactionUse.prepared.actor.id) ?? []).filter(
+            (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
+          ),
+          makesAttackRoll: false,
+          castsSpell: true
+        })
+      : null
   refuseSpatialInterpretation(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -1055,6 +1072,7 @@ export async function planNativeLiveEncounterAction(
         ...preparedEffects.relationshipConditionApplications
       ],
       sourceReleases,
+      targetReleases: reactionEnded?.sourceReleases,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1222,6 +1240,7 @@ export async function planNativeLiveEncounterAction(
         : [],
     cleaving,
     reactionUse,
+    reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     revisions
   }
 }
@@ -1302,7 +1321,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentrationEnds: plan.concentration.concentrationEnds,
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
-    consumedGrants: plan.consumedGrants,
+    consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
     turnUses: plan.turnUses
   })
 }

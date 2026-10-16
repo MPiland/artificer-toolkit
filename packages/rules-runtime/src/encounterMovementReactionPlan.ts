@@ -36,6 +36,7 @@ import {
   type NativeEncounterActionMechanicsInput
 } from './encounterActionMechanicsPlan.js'
 import { planEncounterMovementReactionEffects } from './encounterMovementReactionEffects.js'
+import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
 import { actionEndedEffects } from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
@@ -198,7 +199,7 @@ function requireCompletedMovementReaction<
   return input.execution
 }
 
-/** The reactor's one-roll grants the reaction's attack roll uses up, and the conditions that frees. */
+/** The reactor's grants the reaction's attack roll or spell cast uses up, and the conditions that frees. */
 function reactionAttackRollEnd<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
@@ -207,7 +208,8 @@ function reactionAttackRollEnd<
   return actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number'
+    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
+    castsSpell: preparedCastsSpell(prepared)
   })
 }
 
