@@ -210,9 +210,33 @@ Decided as the [D132 amendment](phase-08-2-decisions.md) of 2026-10-16.
 
 - Cleaving and zone-entry damage roots do not call `damageTakenEndedEffects`; T5 authors no effect whose damage arrives through them.
 - The countered-cast path (`planNativeCounteredCast`) computes `againstEnemy` from the lead target, so an area spell countered after the lead is an ally and the rest are enemies does not end a `SPELL_CAST` effect.
-- A turn effect that is itself a candidate at its boundary and also ends on damage keeps its lifecycle path; the damage does not end it. A candidate that owns the same condition as a damage-ended effect keeps the condition from the release only if it is not a candidate (the release is computed against non-candidates).
+- A turn effect that is a candidate at its boundary and also ends on damage: damage from a later execution of the same turn expires it at its own execution, but damage from a later candidate does not end an earlier one retroactively (it already ran). A candidate that owns the same condition as a damage-ended effect keeps the condition from the release only if it is not a candidate (the release is computed against non-candidates).
 - Turn effects planned for the second boundary of an `ADVANCE_TURN` do not see an effect the first boundary's damage ended (matters only when both boundaries belong to one actor).
 
 ### Proposed ledger edits (the main session applies them)
 
 - SPELLS-27.T4b DONE; AC 27.2 can close once T5 and T6 land.
+
+## 10. SPELLS-27.T5: author SRD end events from core options
+
+### Ruling applied (D122 amendment, 2026-10-16)
+
+A plain allow-list of the closed-rule spells was rejected: a `CLOSED_RULE` creates no effect, so listing it would cover nothing. T5 authors what the existing trigger shapes carry, lists the rest by the mechanism that covers it, and reports anything that needs a new mechanic. No new trigger shape was added.
+
+### Survey (detector in `packages/source-data/src/srd/endEvents.test.ts`)
+
+The test walks every SRD subject record and splits its description into sentences. A sentence is a hit when it prints an end (ends, wakes, disappears, until) beside a holder event: takes damage, is harmed, is attacked, attacks or casts a spell. "Until the spell ends, your attacks…", repeat-save-on-damage text (Hideous Laughter, Contagion) and grapple ends are not hits. Result: 30 records print such an end (17 spells, 1 class feature, 12 creature records; Sprite has two).
+
+- **Authored (7):** Invisibility, the four Brass Dragon breaths (already), Charm Person (`DAMAGE_TAKEN` by `SOURCE_SIDE`) and Duergar Invisibility (`endOnEvents` `ON_ATTACK_ROLL` / `ON_CAST_SPELL`; its duration was 1 minute against "up to 1 hour" in the text and is now 1 hour).
+- **`GM_ADJUDICATED` (13, per both D122 amendments):** Animal Friendship, Awaken, Calm Emotions, Eyebite, Mass Suggestion, Mislead, Modify Memory, Phantom Steed, Produce Flame, Project Image, Sequester, Suggestion, Oath of Devotion's Turn the Unholy. One future-enhancements line covers them.
+- **`REGISTERED_FOLLOW_UP` (10), each names its task:** Sanctuary (T7); Sleep (T8: hit point pool targeting; also waking with an action); Hypnotic Pattern (T9: charmed, incapacitated and speed 0 from one timed effect, but the timed condition plan takes exactly one condition); Imp, Quasit, Green Hag, Sprite and Will-o'-Wisp invisibility (T10: no duration, kept by concentration); the Drow, Pseudodragon and Sprite stings (T11: unconscious on failing the save by 5 or more). Sleep and Hypnotic Pattern do not compile from existing plans, so they stay with T8 and T9.
+- **Categories `CONCENTRATION`, `DISMISSAL`, `DISTANCE`, `DURATION`** are in the type; no current hit needs them.
+- Charm Person's "advantage on the saving throw if you or your companions are fighting it" is not authored (no conditional save advantage exists); noted for a follow-up.
+
+### Proof
+
+`endEvents.test.ts` fails for any record that prints a holder-event end and neither authors an end event nor appears in the typed list, and for any list entry that no longer prints one or now authors it. `encounterAreaActionCompilation.test.ts` moves Charm Person from the refused list to a compiled plan carrying the `SOURCE_SIDE` damage trigger.
+
+### Proposed ledger edits (the main session applies them)
+
+- SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.
