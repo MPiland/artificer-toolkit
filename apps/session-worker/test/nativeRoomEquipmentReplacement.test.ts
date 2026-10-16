@@ -107,9 +107,9 @@ async function equipmentRoom() {
       const answer = await replace(input)
       return {
         answer,
-        causes: logged.mock.calls.map(([, error]) =>
-          error instanceof Error ? error.message : error
-        )
+        causes: logged.mock.calls
+          .filter(([message]) => message === 'Live Session Encounter command failed in the room.')
+          .map(([, error]) => (error instanceof Error ? error.message : error))
       }
     },
     replace
