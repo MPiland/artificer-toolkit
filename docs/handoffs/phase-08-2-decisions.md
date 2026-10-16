@@ -803,6 +803,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Intelligence:** the outcome's `excludesIntelligenceAtOrBelow` is an overridable `TARGET_INTELLIGENCE_EXCLUDED` warning at cast, read from a Creature's snapshot. A Character's facts carry no Intelligence, so none is raised for one.
   - **Persistence:** the chosen-creature commit now persists each child's created effect (`targets[].createdEffects`, at most one) through the same path as a single-target cast, so revert deletes the effects with the children. The area open/commit paths still refuse every other lasting outcome.
   - **Deferred:** the web bond badge (no active-effect client projection exists for any kind) and Character Intelligence; both are in `future-enhancements.md`.
+* **D131** (2026-10-16) Players target only tokens or the target list; there is no square attack (ATTACK-17.4). Decided by the user; supersedes the "attack a square" scope of ATTACK-17.T4a.
+  - **Rule:** in targeting mode the Encounter target list puts the creatures the GM has revealed but the player cannot see first, each marked hidden or invisible with an unknown distance. Visible creatures follow, nearest first. A creature the GM has not revealed is still neither drawn nor listed (ATTACK-17.3).
+  - **Removed:** the `SQUARE` target on `RESOLVE_ACTION` and the GM-only `ATTACK_SQUARE_RESOLUTION` decision, with their tests and stories, with no shim (ATTACK-17.T4b).
+  - **Rejected:** a player guessing a square without a GM reveal. A player who suspects a hidden creature asks the GM, who reveals it to the list.
 
 ## Approved implementation decisions
 
