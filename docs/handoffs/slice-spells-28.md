@@ -62,7 +62,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Compile: `encounterAreaActionCompilation.test.ts` (Giant Insect forms, 600-turn plan, no carry-over; Polymorph-shaped clone carries).
 - Plan: `encounterMechanicsBatchPlan.test.ts` (enter, refuse a second form, revert at 0 with and without carry-over, carried excess defeats the origin, revert idempotent).
 - Authoring parity: `packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts`.
-- Journey: `apps/session-worker/test/nativeRoomGiantInsect.test.ts` (cast and byte-exact undo, duration expiry, Magic Missile ends one form while the other stays, refusals).
+- Journey: `apps/session-worker/test/nativeRoomGiantInsect.test.ts` (cast and byte-exact undo, duration expiry, Magic Missile ends one form while the other stays; a repeated dart on a reverted form is deferred, refusals).
 - Migration: `apps/apis/convex/encounters/actorFormMigration.test.ts`; main runs it locally after merge.
 - Web: `CampaignTabletopActionDrawer.test.tsx` (form picker sends `formId`).
 - Deferred (`future-enhancements.md`): undo of a damage action that auto-reverted a form.

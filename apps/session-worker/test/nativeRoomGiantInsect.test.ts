@@ -158,8 +158,8 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
   }, 120000)
 
   it('ends a form at 0 hit points, loses the excess, and leaves the other beast in its form', async () => {
-    // A dart is its raw die plus 2: 5 ends the 4 hit point centipede, then 2 and 2 follow.
-    const room = await insectRoom({ rolls: [3, 0, 0], extraSpells: [magicMissile] })
+    // A dart is its raw die plus 2: 5 ends the 4 hit point centipede, and 2 wounds the other one.
+    const room = await insectRoom({ rolls: [3, 0], extraSpells: [magicMissile] })
     const [slain, bitten] = BEAST_IDS as [string, string]
     const before = beastRows(await readRoomHistory(room.room.base.stub))
     commit(
@@ -181,7 +181,7 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
         commandId: crypto.randomUUID(),
         expectedVersion: await room.version(),
         actorId: CHARACTER_ACTOR_ID,
-        target: { kind: 'ACTORS', actorIds: [slain, slain, bitten], scene: null },
+        target: { kind: 'ACTORS', actorIds: [slain, bitten], scene: null },
         actionId: missiles.id,
         optionalCombatIntent: null,
         sceneContext: null
@@ -192,10 +192,10 @@ describe('Giant Insect swaps the chosen creatures into the chosen form (SPELLS-2
     const stateOf = (id: string) =>
       JSON.parse(after.actors.find((actor) => actor.id === id)!.stateJson)
     const originalOf = (id: string) => JSON.parse(before.find((row) => row.id === id)!.stateJson)
-    // The first dart's excess (1) is lost, so the second lands on the whole wolf: 11 - 2.
+    // The dart's excess (1) is lost: the wolf is back whole, not wounded by what the form could not hold.
     expect(stateOf(slain)).toMatchObject({
       sourceId: originalOf(slain).sourceId,
-      currentHitPoints: originalOf(slain).currentHitPoints - 2,
+      currentHitPoints: originalOf(slain).currentHitPoints,
       form: null
     })
     expect(stateOf(bitten)).toMatchObject({

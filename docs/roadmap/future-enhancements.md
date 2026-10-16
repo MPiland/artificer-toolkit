@@ -91,6 +91,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
+- **A projectile aimed again at a creature whose form its earlier dart ended (SPELLS-28.T2, D130):** the dice settle each entry against the hit points the earlier entry left, which are the form's, so the commit finds the actor back at its origin's hit points and refuses the second dart as stale. The caster re-aims; the fix is a settle that follows the revert (carry-over included).
 - **Undo of a damage action that auto-reverted a creature form (SPELLS-28.T2, D130):** the revert restores the form's hit points, which `restoreHitPoints` refuses once the actor is out of its form. The GM corrects the hit points by hand; a form-aware undo can follow if it shows up in play.
 - **Failed-counter binding is by reactor id only (REACTION-4.T3c):** persistence binds a failed Counterspell spend to the held pause by the reactor's id, without comparing the pin, the sealed choice or the d20. Similarly, the reactor-is-target merge doesn't compare the failed receipt's Character version. Both inputs come from the room's own planner, so a mismatch needs a room bug, and the GM can undo the action.
 
