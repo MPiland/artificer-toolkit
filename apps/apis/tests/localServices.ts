@@ -6,17 +6,15 @@ import { startLocalR2 } from './localR2'
  * scheduled job finds a configured provider instead of a missing variable. The providers behind
  * those modes are answered here, per test file, so jobs that fire after the test that scheduled
  * them neither fail nor reach a real service: the local R2 fixture serves content snapshot
- * uploads, and the local email sink and the Live Session Worker answer with the success each gives
- * (204). A test that needs another answer stubs the environment or `fetch` itself.
- * Registered via `setupFiles`.
+ * uploads, and the local email sink and the Live Session Worker's room control answer any request
+ * with an empty success (204), which is all their callers read. A test that needs another answer
+ * stubs the environment or `fetch` itself. Registered via `setupFiles`.
  */
 const realFetch = globalThis.fetch
 
 function originOf(value: string | URL | Request | undefined): string | null {
   try {
-    return value === undefined || value === ''
-      ? null
-      : new URL(value instanceof Request ? value.url : value).origin
+    return value === undefined ? null : new URL(value instanceof Request ? value.url : value).origin
   } catch {
     return null
   }
