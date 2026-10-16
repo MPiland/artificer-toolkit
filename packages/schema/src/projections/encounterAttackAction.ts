@@ -20,7 +20,8 @@ export const encounterAttackActionStateDtoSchema = lazySchema(() =>
         .array(
           z.strictObject({
             actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-            targetIds: z.array(postgresUuidSchema).check(z.minLength(1)).check(z.maxLength(16))
+            /** Empty for an attack aimed at a square no one stands on. */
+            targetIds: z.array(postgresUuidSchema).check(z.maxLength(16))
           })
         )
         .check(z.minLength(1))

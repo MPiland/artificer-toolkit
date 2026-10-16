@@ -6,6 +6,7 @@ import {
 } from '../api/encounterRuleCommands.js'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
+import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 
 const id = (index: number) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
@@ -98,5 +99,22 @@ describe('an attack aimed at a square (ATTACK-17.T4)', () => {
       expect(snapshot([{ actorId: id(2), tokenId: id(12) }])).toBe(true)
       expect(snapshot([])).toBe(true)
     })
+  })
+})
+
+describe('the Attack action an empty-square attack opens (ATTACK-17.4)', () => {
+  it('records an attack with no creature as its target', () => {
+    const transition = (targetIds: string[]) =>
+      encounterAttackActionTransitionDtoSchema.safeParse({
+        before: null,
+        after: {
+          kind: 'ATTACK_ACTION',
+          turnSequence: 1,
+          total: 1,
+          attacks: [{ actionId: 'bite', targetIds }]
+        }
+      }).success
+    expect(transition([])).toBe(true)
+    expect(transition([id(2)])).toBe(true)
   })
 })
