@@ -330,8 +330,8 @@ export function encounterConditionSources(
 ): Map<string, string[]> {
   const held = new Set(target.state.conditions)
   const holdings = new Map<string, (string | null)[]>()
-  for (const effect of target.activeEffects)
-    for (const contribution of effect.definition.stateContributions)
+  for (const { definition } of target.activeEffects)
+    for (const contribution of definition.schemaVersion === 2 ? definition.stateContributions : [])
       if (contribution.kind === 'CONDITION_OWNERSHIP' && held.has(contribution.conditionId))
         holdings.set(contribution.conditionId, [
           ...(holdings.get(contribution.conditionId) ?? []),

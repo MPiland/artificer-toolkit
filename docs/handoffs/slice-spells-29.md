@@ -37,3 +37,11 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 
 - 2026-10-16: merged `3ce5883f1` (fast-forward); read AGENTS.md, ADR 0034, ADR 0038, D94, D100, D116, D131, slice-spells-19.md and the SRD Frightened (line 17053) and Fear (line 7026) text.
 - 2026-10-16: red tests written (rules-runtime unit, compiler, authoring parity, room journey, web move warning). The worktree has no `node_modules`, so the red run is CI only (`ci/spells-29-t1-red`).
+- 2026-10-16: red Tests run [38924777168](https://github.com/MPiland/artificer-toolkit/actions/runs/38924777168) failed as expected:
+  - Packages: `encounterConditionMechanics.test.ts` "a condition that follows its source (SPELLS-29)", all five tests (sourced only when every holding records it; move closer warns, equal or farther doesn't; no approach mechanic never warns; disadvantage only while a source is in sight; unsourced keeps disadvantage).
+  - Packages: `encounterAreaActionCompilation.test.ts` "plans the Frightened of SRD Fear as recording its caster; Phantasmal Killer records none".
+  - Web: `CampaignVttStage.moveWarning.test.tsx`, both tests ("sends nothing more when the mover keeps to the rule"; "shows the warning on a refused move and resends it acknowledged on Do it anyway").
+  - Both typecheck jobs: the missing exports, plus the unknown warning code `CONDITION_SOURCE_APPROACH` in `nativeRoomFearSource.test.ts` and the web test.
+  - The Worker room journey did not reach execution: the Packages and Worker job stopped at the failing rules-runtime step.
+  - The red Live backend run, 38924777274, succeeded.
+- 2026-10-16: green attempt 1 (`751692f2b`, after merging `ci/merge-batch-ak`) failed in Build packages. The SRD Frightened spread onto a widened `ConditionMechanicRule`, and the journey read `rollMode` on an un-narrowed roll request. Fixed in `3cbe4f781`.
