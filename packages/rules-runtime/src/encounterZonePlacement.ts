@@ -12,8 +12,12 @@ type PlacedSpaceManifest = Exclude<
   { manifestKind: 'CREATURE' } | { manifestKind: 'SUMMON' }
 >
 
-/** An authored zone an action places at a chosen point, with the behavior its entry runs. */
+/**
+ * An authored zone an action places, with the behavior its entry runs: left at a chosen point, or
+ * (a SOURCE zone) centered on the action's user and moving with it.
+ */
 export interface PlacedSpaceZone {
+  attachment: CompiledActionZonePlacement['attachment']
   label: string
   shape: NonNullable<PlacedSpaceManifest['shape']>
   component: CompiledManifestComponent
@@ -58,7 +62,8 @@ function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean
 
 /**
  * The manifest of an action whose one outcome places a zone in the space it names (a PLACED_SPACE
- * ZONE), or null for any other action. Identification only: {@link placedSpaceZone} validates it.
+ * ZONE) or on its user (a SOURCE ZONE), or null for any other action. Identification only:
+ * {@link placedSpaceZone} validates it.
  */
 export function placedSpaceManifest(
   compiledEffect: CompiledEffectGroup
@@ -68,7 +73,7 @@ export function placedSpaceManifest(
   const outcome = entry.outcome
   return outcome.effectKind === 'MANIFEST' &&
     outcome.manifestKind === 'ZONE' &&
-    outcome.attachmentKind === 'PLACED_SPACE'
+    (outcome.attachmentKind === 'PLACED_SPACE' || outcome.attachmentKind === 'SOURCE')
     ? (outcome as PlacedSpaceManifest)
     : null
 }
@@ -100,7 +105,24 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone component needs exactly one behavior.'
     )
-  return { label, shape, component, behavior }
+  return {
+    attachment: manifest.attachmentKind === 'SOURCE' ? 'SOURCE' : 'PLACED_SPACE',
+    label,
+    shape,
+    component,
+    behavior
+  }
+}
+
+/**
+ * The saving throw a placed or source zone's entering behavior authors, for the action facts that
+ * resolve its DC. Tolerant where {@link placedSpaceZone} refuses: an action whose zone is not
+ * modeled has no entering save to expose.
+ */
+export function zoneEntrySavingThrow(compiledEffect: CompiledEffectGroup) {
+  const invocation =
+    placedSpaceManifest(compiledEffect)?.components?.[0]?.behaviors?.[0]?.invocation
+  return invocation && 'savingThrow' in invocation ? invocation.savingThrow : undefined
 }
 
 /** The movement a zone component reacts to, in canonical order; null for an unmodeled interaction. */

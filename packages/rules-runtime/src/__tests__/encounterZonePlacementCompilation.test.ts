@@ -125,7 +125,9 @@ function placedCaltropsZone() {
     rootCommandId: SPREAD_COMMAND_ID,
     sourceActorId: SOURCE_ID,
     point: { x: 250, y: 350 },
-    area: { kind: 'CUBE', edgeLength: 100 }
+    area: { kind: 'CUBE', edgeLength: 100 },
+    sourceToken: null,
+    saveDc: null
   })
 }
 
@@ -336,7 +338,9 @@ describe('a zone authored with another save DC and a circle shape', () => {
       rootCommandId: SPREAD_COMMAND_ID,
       sourceActorId: SOURCE_ID,
       point: { x: 250, y: 350 },
-      area: { kind: 'RADIUS', radius: 200 }
+      area: { kind: 'RADIUS', radius: 200 },
+      sourceToken: null,
+      saveDc: null
     })
     expect(placed.placement).toMatchObject({
       geometry: { shape: { kind: 'CIRCLE', center: { x: 250, y: 350 }, radius: 200 } },

@@ -12,6 +12,7 @@ import {
   compiledEquipmentParentIds,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
+import { zoneEntrySavingThrow } from '../encounterZonePlacement.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
@@ -65,7 +66,8 @@ function nullableLabel(value: unknown): string | null {
 }
 
 function normalizeInvocation(
-  invocation: CompiledEffectGroup['invocation']
+  invocation: CompiledEffectGroup['invocation'],
+  zoneSavingThrow: ReturnType<typeof zoneEntrySavingThrow>
 ): ActionMechanicFacts['invocation'] {
   const activation =
     'activation' in invocation
@@ -88,30 +90,32 @@ function normalizeInvocation(
           longAmount: null,
           unit: null
         }
-  const savingThrow =
-    invocation.triggerCode === 'SAVING_THROW'
-      ? {
-          dcMethod: invocation.savingThrow.dcMethod,
-          abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
-          baseDc: 'baseDc' in invocation.savingThrow ? invocation.savingThrow.baseDc : null,
-          bonuses:
-            'bonuses' in invocation.savingThrow
-              ? (invocation.savingThrow.bonuses ?? []).map((bonus) => {
-                  switch (bonus.bonusKind) {
-                    case 'ABILITY_MODIFIER':
-                      return {
-                        bonusKind: bonus.bonusKind,
-                        abilityDefinitionId: bonus.abilityDefinitionId
-                      }
-                    case 'PROFICIENCY_BONUS':
-                      return { bonusKind: bonus.bonusKind }
-                    case 'STATIC_BONUS':
-                      return { bonusKind: bonus.bonusKind, amount: bonus.amount }
-                  }
-                })
-              : []
-        }
-      : null
+  // A zone's save is made later by whoever enters it; its DC is the action's to resolve.
+  const authoredSave =
+    invocation.triggerCode === 'SAVING_THROW' ? invocation.savingThrow : zoneSavingThrow
+  const savingThrow = authoredSave
+    ? {
+        dcMethod: authoredSave.dcMethod,
+        abilityDefinitionId: authoredSave.abilityDefinitionId,
+        baseDc: 'baseDc' in authoredSave ? authoredSave.baseDc : null,
+        bonuses:
+          'bonuses' in authoredSave
+            ? (authoredSave.bonuses ?? []).map((bonus) => {
+                switch (bonus.bonusKind) {
+                  case 'ABILITY_MODIFIER':
+                    return {
+                      bonusKind: bonus.bonusKind,
+                      abilityDefinitionId: bonus.abilityDefinitionId
+                    }
+                  case 'PROFICIENCY_BONUS':
+                    return { bonusKind: bonus.bonusKind }
+                  case 'STATIC_BONUS':
+                    return { bonusKind: bonus.bonusKind, amount: bonus.amount }
+                }
+              })
+            : []
+      }
+    : null
 
   const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
   const targetCount =
@@ -309,7 +313,10 @@ export function normalizeCharacterActionMechanicFacts(
     })
   }
 
-  return { invocation: normalizeInvocation(effect.invocation), outcomes }
+  return {
+    invocation: normalizeInvocation(effect.invocation, zoneEntrySavingThrow(effect)),
+    outcomes
+  }
 }
 
 function appendActions(params: {

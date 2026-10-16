@@ -301,7 +301,9 @@ export async function prepareAreaScene(
     movementTargets,
     scene: { ...scene, grid },
     area: { ...area, origin },
-    placement: zone ? { zone, origin, shape: area.shape } : null
+    placement: zone
+      ? { zone, origin, shape: area.shape, sourceToken: scene.sourceToken ?? null }
+      : null
   }
 }
 
@@ -1600,7 +1602,9 @@ export async function completeAreaCommit(args: {
         rootCommandId: command.commandId,
         sourceActorId: caster.id,
         point: placement.origin,
-        area: placement.shape
+        area: placement.shape,
+        sourceToken: placement.sourceToken,
+        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null
       })
     : null
   const execution = buildEncounterAreaStoredExecution({
