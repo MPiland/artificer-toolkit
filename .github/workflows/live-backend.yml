@@ -68,7 +68,19 @@ jobs:
           if [ -n "$STEPS" ]; then args+=(--steps="$STEPS"); fi
           node scripts/liveBackendValidation.mjs "${args[@]}"
       - name: Generated files match the commit
+        id: drift
         run: node scripts/generatedDrift.mjs apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
+      # The regenerated files, to commit instead of regenerating locally:
+      # gh run download <run-id> -n generated-files -D apps/apis/convex
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.drift.outcome == 'failure'
+        with:
+          name: generated-files
+          path: |
+            apps/apis/convex/content/srdManifest.generated.ts
+            apps/apis/convex/_generated/
+            apps/apis/convex/betterAuth/_generated/
+          retention-days: 7
       - name: Step durations
         if: always()
         run: |
