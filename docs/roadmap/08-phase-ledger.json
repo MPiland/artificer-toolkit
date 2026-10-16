@@ -8571,8 +8571,14 @@
             {
               "id": "SPELLS-28.2",
               "text": "A Character casts Misty Step or Dimension Door in an Encounter and moves its token to a chosen unoccupied point within the spell range with no path and no opportunity attacks; the cast grants a bounded teleport allowance that the move consumes, a teleport by a player without one is refused, and GM undo restores the position.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomTeleportAction.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.teleport.test.tsx",
+                "packages/encounter-persistence/src/__tests__/turnTeleportAllowance.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterTeleportAllowance.test.ts",
+                "packages/shared/src/__tests__/vtt-teleport-destination.test.ts"
+              ],
               "origin": []
             }
           ],
@@ -8597,10 +8603,9 @@
             },
             {
               "id": "SPELLS-28.T1b",
-              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
-              "status": "IN_PROGRESS",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options. (Red: ci/spells-28-t1b-red Tests 38923039027 on 2be9ea48f failed on the vtt-teleport-destination typecheck (selectTeleportAllowance missing). Green: ci/spells-28-t1b Tests 38932220927 and Live backend 38932220847 on c3eff99c8.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.2"],
-              "activeWorkbook": "docs/handoffs/slice-spells-28-t1b.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
