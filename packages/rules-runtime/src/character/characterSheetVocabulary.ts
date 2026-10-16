@@ -1,5 +1,6 @@
 import { ABILITIES } from '@artificer-toolkit/shared/core'
-import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/character'
+import { resolveSystemSkillAbilities, SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/character'
+import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 export const DND5E_2014_EXHAUSTION_PRESENTATION = {
@@ -44,20 +45,18 @@ function toSkillCanonicalCode(value: string | undefined): string {
   return value.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
 }
 
-export function toSkillFallbackCode(slug: string): string {
+function toSkillFallbackCode(slug: string): string {
   return slug.toUpperCase().replace(/-/g, '_')
 }
 
-export function toSkillFallbackLabel(slug: string): string {
+function toSkillFallbackLabel(slug: string): string {
   return slug
     .split('-')
     .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
     .join(' ')
 }
 
-export function createSkillReference(
-  systemSkills: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined
-) {
+export function createSkillReference(system: CharacterAssemblyRegistry['system']) {
   const canonicalBySubject = new Map<string, string>()
   const metadataByCanonical = new Map<
     string,
@@ -68,6 +67,26 @@ export function createSkillReference(
       ability: keyof typeof ABILITIES
     }
   >()
+
+  if (system?.schemaVersion === 4) {
+    for (const { skill, code, canonicalId, abilityCode } of resolveSystemSkillAbilities(system)) {
+      const ability = resolveAbilityCode(abilityCode)
+      if (!ability) {
+        throw new Error(
+          `System check definition "${skill.id}" is governed by an ability the Sheet does not know.`
+        )
+      }
+      metadataByCanonical.set(canonicalId, {
+        skillId: skill.id,
+        code,
+        label: skill.label,
+        ability
+      })
+      for (const alias of [skill.id, code, code.toUpperCase(), canonicalId])
+        canonicalBySubject.set(alias, canonicalId)
+    }
+    return { canonicalBySubject, metadataByCanonical }
+  }
 
   for (const [skillId, ability] of Object.entries(SKILL_ABILITY_MAP)) {
     const abilityCode = resolveAbilityCode(ability)
@@ -82,7 +101,7 @@ export function createSkillReference(
     canonicalBySubject.set(skillId.toUpperCase(), skillId)
   }
 
-  for (const skill of systemSkills ?? []) {
+  for (const skill of system?.skills ?? []) {
     const canonicalFromCode = SKILL_ABILITY_MAP[toSkillCanonicalCode(skill.code)]
       ? toSkillCanonicalCode(skill.code)
       : undefined
@@ -98,25 +117,12 @@ export function createSkillReference(
     if (skill.code) canonicalBySubject.set(toSkillCanonicalCode(skill.code), canonical)
 
     const existing = metadataByCanonical.get(canonical)
-    const ability = resolveAbilityCode(
-      SKILL_ABILITY_MAP[canonical] ??
-        SKILL_ABILITY_MAP[toSkillCanonicalCode(skill.id)] ??
-        'DEXTERITY'
-    )
     if (existing) {
       metadataByCanonical.set(canonical, {
         ...existing,
         skillId: skill.id,
         code: skill.code ?? existing.code,
-        label: skill.label,
-        ability: ability ?? existing.ability
-      })
-    } else {
-      metadataByCanonical.set(canonical, {
-        skillId: skill.id,
-        code: skill.code ?? toSkillFallbackCode(canonical),
-        label: skill.label,
-        ability: ability ?? 'DEXTERITY'
+        label: skill.label
       })
     }
   }
@@ -125,10 +131,10 @@ export function createSkillReference(
 }
 
 export function resolveCharacterSheetSkillKey(
-  systemSkills: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined,
+  system: CharacterAssemblyRegistry['system'],
   skillId: string
 ): string {
-  return createSkillReference(systemSkills).canonicalBySubject.get(skillId) ?? skillId
+  return createSkillReference(system).canonicalBySubject.get(skillId) ?? skillId
 }
 
 export function getAbilityDerivedTotal(

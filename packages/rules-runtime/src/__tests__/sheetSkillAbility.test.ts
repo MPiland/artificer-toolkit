@@ -9,7 +9,8 @@ import {
 
 describe('Sheet skill governing ability', () => {
   it("reads a System skill's governing ability from the System, not a built-in skill table", async () => {
-    const wisdom = system.abilities?.find((ability) => ability.code === 'WISDOM')
+    if (system.schemaVersion !== 4) throw new Error('Expected the SRD System at schema v4.')
+    const wisdom = system.abilities.find((ability) => ability.code === 'WISDOM')
     if (!wisdom) throw new Error('Expected the SRD Wisdom ability.')
     const tumbling = {
       id: crypto.randomUUID(),
