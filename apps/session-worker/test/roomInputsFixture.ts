@@ -154,7 +154,10 @@ export function roomInputsResponse(
           { scope: 'CAMPAIGN', id: campaignId, revision: null },
           { scope: 'PLAY', id: campaignId, revision: null }
         ],
-        contentSnapshots: {
+        // The Campaign serves the content head its Characters' pages pin, so an Encounter source
+        // read finds the same published Equipment and Creatures.
+        contentSnapshots: characterInputs?.parts.find((part) => part.status === 'ASSIGNED')
+          ?.contentSnapshots ?? {
           systemId,
           sources: [],
           campaign: {
