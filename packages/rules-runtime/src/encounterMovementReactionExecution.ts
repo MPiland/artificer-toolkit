@@ -94,13 +94,14 @@ export async function executeEncounterMovementReactionAction(input: {
     afterTest: async () => undefined,
     random: input.random
   }
+  const { attackSight } = input.prepared.prepared
   let result
   let resistance: Awaited<ReturnType<typeof resolveNativeMovementLegendaryResistance>> | null = null
   if (
     input.prepared.executionPlan.kind === 'TEST_OUTCOME' &&
     input.resume?.pending.twoPhase?.phase !== 'OUTCOME'
   ) {
-    const boundary = await prepareNativeActionTest(executionInput)
+    const boundary = await prepareNativeActionTest({ ...executionInput, attackSight })
     if (boundary.kind === 'PENDING') return boundary
     const candidate =
       boundary.execution.outputs.resultPath === 'ON_SAVE_FAIL'
@@ -137,7 +138,7 @@ export async function executeEncounterMovementReactionAction(input: {
         legendaryResistance: resistance.audit,
         effectivePath: resistance.effectivePath
       })
-    } else result = await advanceNativeActionGraphs(executionInput)
+    } else result = await advanceNativeActionGraphs({ ...executionInput, attackSight })
   }
   if (result.kind === 'PENDING') return result
   return {

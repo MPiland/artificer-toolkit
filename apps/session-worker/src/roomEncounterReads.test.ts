@@ -28,7 +28,7 @@ function reads(admitted: typeof member | null) {
       admission: () => admitted,
       scope: () => ({ authorityEpoch: '00000000-0000-4000-8000-000000000004', campaignId }),
       presentedSceneId: () => null,
-      visibleTokenIds: () => null,
+      sceneTokens: () => async () => null,
       send: (_socket, message) => sent.push(message)
     })
   }

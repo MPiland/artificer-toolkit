@@ -3,6 +3,8 @@
 Closes AC SPELLS-28.1 (tasks T1 TELEPORT, T2 MANIFEST, T3 TELEPATHIC_LINK). Status: rulings received; T1 (TELEPORT, off-Scene) on CI; T3 (TELEPATHIC_LINK) built, awaiting T1 green before push.
 Build order: **T1 → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM) → T1b (in-Scene teleport, AC SPELLS-28.2)**, each green before the next. T4 (Polymorph family) is out of scope.
 
+Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
+
 ## Survey (what exists, verified in source)
 
 | Area                                                                   | Today                                                                                                                                                                                                                                                                                                              |

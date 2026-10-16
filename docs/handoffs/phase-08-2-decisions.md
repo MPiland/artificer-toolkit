@@ -549,7 +549,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **UNKNOWN (retired by D111):** it covered a Creature observer with authored free-text senses whose ordinary sight fails. Creature Senses are now structured, so every sight is definitive.
   - **Never inputs:** fog and viewer projection (an actor public or hidden from players). The "Unseen source" redaction of player roll prompts is viewer redaction and unrelated to this rule.
   - **Not automated:** "hidden" through the Hide action (a Stealth check, with the hidden state ending on attack) stays unautomated.
-  - **Not wired (current):** Convex action preparation, Disarm, and opportunity attacks (movement-owned; the movement reaction's perception also doesn't pass condition contributions).
+  - **Opportunity attacks (current, ATTACK-10.T3a/b):** the movement reaction's perception gate applies condition contributions. The Worker's reaction prepare supplies `loadAttackPerception` with the reactor at its token and the mover at the contact point, so the roll follows the believed/true rule below. The retained `ACTION_EVIDENCE` phase stores `d20Belief` and `heldD20`; replay re-enters the roller's own dice (`modeAdjustment.rolledFaces`, then the held die's added face), never a fabricated system roll. `projectEncounterSpatialOccurrenceSummary` takes `viewer.isOwner`: a non-owner sees the believed mode and the held die's `playerCaption`, the owner the true mode and `gmReason`. Movement reactions post no settled roll card, so there is no `D20_MODE_ADJUSTED` card for them.
+  - **Not wired (current):** Convex action preparation and Disarm (ATTACK-10.T3c).
   - **Believed vs true mode (user ruling 2026-10-09; the interpretation below is Claude's):** a roller is never told sight facts their Character can't know.
     - **Prompt:** the player's roll prompt shows the _believed_ mode. The GM (Campaign owner) sees the true mode.
     - **Believed sight (`encounterAttackBelief.ts`, `resolveEncounterBelievedAttackPerception`):** uses only the attacker's own facts on the neutral environment.
@@ -914,7 +915,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     D63 defeat (`skippedEncounterActorIds`). The GM returns it with `UPDATE_ACTOR` `returnToInitiative`,
     into its old slot. A pending decision refuses the removal. Frozen (departed) Characters and PREPARED
     Runs still delete the actor. Persisted shape: required `absence` on Run actors and their projection
-    facts (it replaced `outOfInitiative`), so dev data needs a reseed.
+    facts (it replaced `outOfInitiative`); the `encounters/actorAbsenceMigration` run rewrites stored
+    actors (a set flag was always a GM removal, so it becomes `GM_REMOVED`) and their checksums.
   - **Not D82:** account deletion removes the actor (D74) and leaving the Campaign freezes it; both
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write

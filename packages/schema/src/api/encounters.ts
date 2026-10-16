@@ -3,6 +3,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   encounterActorControllerUserIdsDtoSchema,
   encounterActorDispositionDtoSchema,
+  encounterActorRevealDtoSchema,
   encounterBlueprintEnemyInputDtoSchema
 } from './encounterData.js'
 
@@ -56,6 +57,7 @@ export {
   encounterStatusDtoSchema,
   encounterActorKindDtoSchema,
   encounterActorDispositionDtoSchema,
+  encounterActorRevealDtoSchema,
   encounterActorControllerUserIdsDtoSchema,
   MAX_ENCOUNTER_ACTOR_CONTROLLERS,
   MAX_ENCOUNTER_ACTORS,
@@ -121,6 +123,8 @@ export const updateEncounterActorInputDtoSchema = lazySchema(() =>
     disposition: z.optional(encounterActorDispositionDtoSchema),
     /** GM-only override of the Encounter health display default for an enemy or NPC; null clears it. */
     healthDisplay: z.optional(z.nullable(healthDisplayLevelDtoSchema)),
+    /** GM-only: lists a public actor the players cannot see as an Unseen creature or by name (ATTACK-17.3); null hides it again. */
+    reveal: z.optional(z.nullable(encounterActorRevealDtoSchema)),
     /** GM-only: returns an absent actor (D82, D125) to its place in the round and its Scene token. */
     returnToInitiative: z.optional(z.literal(true)),
     /** GM-only: ends a grant (D99) this Creature or custom actor holds; a Character's ends on its Sheet. */

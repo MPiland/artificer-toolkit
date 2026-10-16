@@ -230,6 +230,11 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
     /** The lasting effect the action left on this creature, if any. */
     createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
   }[]
+  /**
+   * Whether every entry of `targets` rolled its own dice (a projectile list names a creature once
+   * per projectile) rather than sharing the one roll of an area or a list of different creatures.
+   */
+  rollsPerTarget: boolean
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
@@ -257,6 +262,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        rollsPerTarget: z.boolean(),
         area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
         removal: z.nullable(removeAreaTargetInputDtoSchema),
         placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),

@@ -278,6 +278,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
           recipientUserIds: [gmId, playerId],
           command,
           random: () => 0,
+          sceneTokens: async () => null,
           turnExecution: { runtime }
         }),
       failDurable

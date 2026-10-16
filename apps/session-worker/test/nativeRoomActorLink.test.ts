@@ -31,9 +31,12 @@ const bondRoom = () =>
   actionRoom({
     actors: [
       characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
-      ...WOLF_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf })),
+      ...WOLF_IDS.map((id) =>
+        srdCreatureActor({ id, creature: plainWolf, disposition: 'FRIENDLY' })
+      ),
       srdCreatureActor({
         id: DULL_ID,
+        disposition: 'FRIENDLY',
         creature: { ...plainWolf, abilityScores: { ...plainWolf.abilityScores, INTELLIGENCE: 2 } }
       })
     ],

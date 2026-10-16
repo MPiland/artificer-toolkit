@@ -97,6 +97,15 @@ export interface EncounterReadPorts {
   readAutoRollDice(userId: string): Promise<boolean>
   /** The GM's remembered Public/Private roll toggle: it decides rolls the GM did not start. */
   readGmRollVisibility(userId: string): Promise<RollVisibilityDto>
+  /**
+   * The tokens this member can see on the Scene the room presents, by the map's own visibility
+   * predicate (ATTACK-17.3). Null when the host cannot tell, as Convex's reactive reads cannot, so a
+   * player's list fails closed: a bound creature is listed only when controlled or revealed.
+   */
+  readViewerSceneTokens(viewer: {
+    userId: string
+    role: EncounterDocument<'campaignMemberships'>['role']
+  }): Promise<{ sceneId: string; visibleTokenIds: ReadonlySet<string> } | null>
   /** Whether a live room holds this open Run, so Convex leaves its actor departures to the room. */
   isRoomHeldRun(run: Pick<EncounterRunState, 'campaignId' | 'status'>): Promise<boolean>
   /** Whether the app profile of this user still exists (it goes last in account deletion). */

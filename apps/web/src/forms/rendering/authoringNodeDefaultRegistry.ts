@@ -78,6 +78,7 @@ type AuthoringDefaultKind =
   | 'modifierGrantDomain'
   | 'modifierGrantPayload'
   | 'numericExpr'
+  | 'optionalOnHit'
   | 'outcome'
   | 'outcomeBreakpoint'
   | 'outcomeBreakpointValue'
@@ -208,6 +209,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   modifierGrantDomain: ['modifierGrantDomain'],
   modifierGrantPayload: ['modifierGrantPayload'],
   numericExpr: ['numericAtom', 'numericExpr'],
+  optionalOnHit: ['optionalOnHit'],
   outcome: ['nonManifestOutcome', 'outcome'],
   outcomeBreakpoint: ['outcomeBreakpoint'],
   outcomeBreakpointValue: ['outcomeBreakpointValue'],

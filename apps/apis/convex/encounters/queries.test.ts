@@ -258,7 +258,8 @@ describe('native Encounter reads', () => {
     expect(playerProjection).toEqual(
       projectPlayerEncounterProjection(activeOwnerProjection, {
         userId: other.userId,
-        characters: new Map()
+        characters: new Map(),
+        unseenActorIds: new Set<string>()
       })
     )
     expect(playerProjection.currentActorId).toBe(ownerCreature!.id)
@@ -306,7 +307,8 @@ describe('native Encounter reads', () => {
     expect((await other.caller.query(active, { campaignId: campaign.id })).encounter).toEqual(
       projectPlayerEncounterProjection(activeOwnerProjection, {
         userId: other.userId,
-        characters: new Map()
+        characters: new Map(),
+        unseenActorIds: new Set<string>()
       })
     )
     expect(await other.caller.query(list, { campaignId: campaign.id })).toHaveLength(1)
@@ -396,7 +398,11 @@ describe('native Encounter reads', () => {
     })
     expect(await other.caller.query(get, { encounterId: run.id })).toEqual(run)
     expect(await owner.caller.query(get, { encounterId: run.id })).toEqual(
-      projectPlayerEncounterProjection(run, { userId: owner.userId, characters: new Map() })
+      projectPlayerEncounterProjection(run, {
+        userId: owner.userId,
+        characters: new Map(),
+        unseenActorIds: new Set<string>()
+      })
     )
   }, 30000)
 })

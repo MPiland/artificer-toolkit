@@ -41,6 +41,7 @@ import {
   reconcileEncounterActorRuleOutput,
   requireEncounterActorRuleResult
 } from './encounterActorRuleOutput.js'
+import { snapshotCreatureTypeId } from './encounterActorState.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
@@ -416,6 +417,7 @@ export function buildMovementTarget<
         activeEffects
       ),
       featureResources: actorRule.featureResources,
+      creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,
       statBlock: creatureStatBlock && {
         ...creatureStatBlock,

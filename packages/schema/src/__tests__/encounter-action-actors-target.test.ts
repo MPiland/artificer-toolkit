@@ -15,7 +15,7 @@ const actors = (actorIds: string[], scene: unknown = null) => ({
 describe('a list of chosen creatures as a RESOLVE_ACTION target (D118)', () => {
   const parse = (value: unknown) => resolveEncounterActionTargetDtoSchema.safeParse(value).success
 
-  it('takes one or more creatures, each named once, with or without a Scene and a point', () => {
+  it('takes one or more creatures, with or without a Scene and a point', () => {
     expect(parse(actors([actorId(1)]))).toBe(true)
     expect(
       parse(actors([actorId(1), actorId(2)], { sceneId, expectedSceneVersion: 3, point: null }))
@@ -25,10 +25,12 @@ describe('a list of chosen creatures as a RESOLVE_ACTION target (D118)', () => {
     ).toBe(true)
   })
 
-  it('refuses an empty list, a repeated creature and a list past the Encounter’s size', () => {
+  it('names a creature once per entry: a repeat is a further dart, which the action decides', () => {
+    expect(parse(actors([actorId(1), actorId(1), actorId(2)]))).toBe(true)
+  })
+
+  it('refuses an empty list and a list past the Encounter’s size', () => {
     expect(parse(actors([]))).toBe(false)
-    expect(parse(actors([actorId(1), actorId(1)]))).toBe(false)
-    expect(parse(actors([actorId(0xabc).toUpperCase(), actorId(0xabc)]))).toBe(false)
     const tooMany = Array.from({ length: MAX_ENCOUNTER_ACTORS + 1 }, (_, index) =>
       actorId(index + 1)
     )

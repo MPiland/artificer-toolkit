@@ -586,6 +586,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
       random: () => {
         throw new Error('Entered dice must not reroll.')
       },
+      sceneTokens: async () => null,
       turnExecution: { runtime }
     })
   }
@@ -723,6 +724,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
           random: () => {
             throw new Error('Removing an actor must not roll.')
           },
+          sceneTokens: async () => null,
           turnExecution: { runtime }
         })
       )

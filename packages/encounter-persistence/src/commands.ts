@@ -432,6 +432,7 @@ async function recordEncounterToolCommand(
               : { controllerUserIds: input.controllerUserIds }),
             ...(input.disposition === undefined ? {} : { disposition: input.disposition }),
             ...(input.healthDisplay === undefined ? {} : { healthDisplay: input.healthDisplay }),
+            ...(input.reveal === undefined ? {} : { reveal: input.reveal }),
             ...(input.returnToInitiative ? { absence: null } : {}),
             ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
             updatedAt

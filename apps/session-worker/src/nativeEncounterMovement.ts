@@ -27,6 +27,10 @@ import {
   type PreparedSpatialMovementPlan
 } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPreparation'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
+import {
+  resolveEncounterAttackPerception,
+  resolveEncounterBelievedAttackPerception
+} from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import {
   discoverEncounterMovementReactionChoices,
@@ -133,13 +137,21 @@ export async function prepareNativeLiveMovement(
     }
   }
 
+  const loadDefinition = async (id: string) => {
+    const current = await definitions.requireCurrent(id)
+    return {
+      definitionFamilyKey: current.definitionFamilyKey,
+      gameSystemId: current.gameSystemId,
+      current
+    }
+  }
+
   async function perceptionFor(targets: ReadonlyMap<string, MovementTarget<CharacterFacts>>) {
     const facts = factsFor(targets)
     if (targets === captured.targets && captured.resolvePerception)
       return { facts, resolvePerception: captured.resolvePerception }
     const resolvePerception = await createEncounterMovementReactionPerception({
       state,
-      actors: facts.encounter.actors,
       targets,
       movingTokenId: captured.token.id,
       actorIdByTokenId: captured.actorIdByTokenId,
@@ -148,14 +160,7 @@ export async function prepareNativeLiveMovement(
       sceneGrid: scene.grid,
       scene,
       loadSystem: async () => system,
-      loadDefinition: async (id) => {
-        const current = await definitions.requireCurrent(id)
-        return {
-          definitionFamilyKey: current.definitionFamilyKey,
-          gameSystemId: current.gameSystemId,
-          current
-        }
-      },
+      loadDefinition,
       loadSpatialEffects: async () => spatialEffects
     })
     return { facts, resolvePerception }
@@ -188,6 +193,39 @@ export async function prepareNativeLiveMovement(
         prepareEncounterActionMechanics({
           ...mechanics,
           overridable: false,
+          // The reactor attacks from its token; the mover is the target at the contact point.
+          loadAttackPerception: async ({ sourceFacts, targetFacts }) => {
+            const { reactorTokenId, contact } = reaction.option.candidate
+            const attackerToken = scene.tokens.find((token) => token.id === reactorTokenId)
+            const movingToken = scene.tokens.find((token) => token.id === captured.token.id)
+            if (!attackerToken || !movingToken)
+              throw new Error('Movement reaction perception facts are stale.')
+            const loaders = {
+              gameSystemId: state.gameSystemId,
+              loadDefinition,
+              loadSystem: async () => system
+            }
+            const [actual, believed] = await Promise.all([
+              resolveEncounterAttackPerception({
+                ...loaders,
+                attacker: sourceFacts,
+                target: targetFacts,
+                placement: {
+                  scene,
+                  sceneGrid: scene.grid,
+                  attackerToken,
+                  targetToken: { ...movingToken, position: contact },
+                  spatialEffects
+                }
+              }),
+              resolveEncounterBelievedAttackPerception({
+                ...loaders,
+                attacker: sourceFacts,
+                target: targetFacts
+              })
+            ])
+            return { actual, believed }
+          },
           loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
           loadRelationshipFacts: async (relationship) => {
             return lockedRelationshipActionFacts({

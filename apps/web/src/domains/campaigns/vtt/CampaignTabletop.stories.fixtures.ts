@@ -300,6 +300,7 @@ export const tabletopGmEncounter = {
     gmNotes: null,
     healthBand: index === 0 ? ('HEALTHY' as const) : ('WOUNDED' as const),
     healthDisplay: null,
+    reveal: null,
     maxHitPoints: index === 0 ? 36 : 64,
     resources: {},
     stableTieKey: actor.id,
