@@ -111418,6 +111418,7 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
+              skillDefinitionId: string | null;
             }>;
             rarities: Array<{
               code: string;
