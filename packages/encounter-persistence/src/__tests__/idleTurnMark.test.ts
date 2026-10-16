@@ -1,5 +1,6 @@
 import { creatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { escapeGrappleEffectDefinition } from '@artificer-toolkit/rules-runtime/testing/escapeGrappleEffectFixture'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import {
   encounterActorIdleTurnMark,
   withEncounterActorIdleTurnMark
@@ -17,11 +18,6 @@ const ENCOUNTER_ID = '00000000-0000-4000-8000-0000000e0001'
 const HOLDER_ID = '00000000-0000-4000-8000-0000000e0002'
 const OTHER_ID = '00000000-0000-4000-8000-0000000e0003'
 const GRANT_ID = '00000000-0000-4000-8000-0000000e0004'
-const owner = {
-  kind: 'ENCOUNTER_ACTOR' as const,
-  encounterId: ENCOUNTER_ID,
-  targetActorId: HOLDER_ID
-}
 
 const marked = (
   actor: ReturnType<typeof creatureActor>,
@@ -33,7 +29,7 @@ const marked = (
   })
 
 /** The stored grant a feature that ends on an idle turn leaves (SRD Rage), or one that does not. */
-async function createdGrant(endOnEvents: readonly 'ON_IDLE_TURN'[]) {
+async function createdGrant(lifecycle: Parameters<typeof plannedModifierGrant>[0]['lifecycle']) {
   const memory = createMemoryEncounterStore()
   memory.load(
     'encounterRuns',
@@ -49,21 +45,20 @@ async function createdGrant(endOnEvents: readonly 'ON_IDLE_TURN'[]) {
     ] as unknown as EncounterDocument<'encounterRunActors'>[],
     { validate: false }
   )
-  const definition = escapeGrappleEffectDefinition({
-    encounterId: ENCOUNTER_ID,
-    grapplerId: OTHER_ID,
-    conditionIds: []
-  })
+  const holder = creatureActor({ id: HOLDER_ID, snapshot: {} })
   return createActiveRuleEffectStore({
     db: memory.store
   } as unknown as EncounterPersistenceTransaction).create({
     id: GRANT_ID,
-    owner,
-    definition: {
-      ...definition,
-      recurrence: { ...definition.recurrence, endOnEvents: [...endOnEvents] }
-    },
-    lifecycle: { schemaVersion: 1, remainingTicks: null },
+    owner: turnEffectOwner(holder, ENCOUNTER_ID),
+    definition: plannedModifierGrant({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: OTHER_ID,
+      holderActorId: HOLDER_ID,
+      lifecycle,
+      rounds: 10
+    }).definition,
+    lifecycle: { schemaVersion: 1, remainingTicks: 10 },
     occurredAt: '2026-01-01T00:00:00.000Z'
   })
 }
@@ -85,26 +80,26 @@ describe('arming an actor given an idle-bound grant', () => {
   const actor = creatureActor({ id: HOLDER_ID, snapshot: {} })
 
   it('arms a holder that is not on its own turn', async () => {
-    const grant = await createdGrant(['ON_IDLE_TURN'])
+    const grant = await createdGrant({ endOnEvents: ['ON_IDLE_TURN'] })
     const armed = armIdleTurnActor({ actor, createdEffects: [grant], currentActorId: OTHER_ID })
     expect(encounterActorIdleTurnMark(armed)).toBe('ARMED')
   })
 
   it('exempts the turn the grant starts on by arriving engaged', async () => {
-    const grant = await createdGrant(['ON_IDLE_TURN'])
+    const grant = await createdGrant({ endOnEvents: ['ON_IDLE_TURN'] })
     const engaged = armIdleTurnActor({ actor, createdEffects: [grant], currentActorId: HOLDER_ID })
     expect(encounterActorIdleTurnMark(engaged)).toBe('ENGAGED')
   })
 
   it('leaves an actor given no idle-bound grant unmarked', async () => {
-    const grant = await createdGrant([])
+    const grant = await createdGrant({})
     expect(armIdleTurnActor({ actor, createdEffects: [grant], currentActorId: OTHER_ID })).toBe(
       actor
     )
   })
 
   it.each(['ARMED', 'ENGAGED'] as const)('keeps the mark of a holder already %s', async (mark) => {
-    const grant = await createdGrant(['ON_IDLE_TURN'])
+    const grant = await createdGrant({ endOnEvents: ['ON_IDLE_TURN'] })
     const before = marked(actor, mark)
     expect(armIdleTurnActor({ actor: before, createdEffects: [grant], currentActorId: OTHER_ID })).toBe(
       before
