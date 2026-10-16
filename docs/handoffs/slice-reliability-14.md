@@ -16,3 +16,6 @@ To do:
 Do not retry the test or loosen the assertion.
 
 ## Log
+- Root cause: the Campaign snapshot build is scheduled on a real 2 s timer when the test's setup marks the Campaign. It fired at a machine-dependent moment relative to the test's `before` snapshot and the deletion. Fired after `before` and before the deletion, CAMPAIGN-scope `contentSnapshotObjects` appeared where the test expects none (run 38858694893). Fired earlier, the objects were in `before` and the deletion superseded them. Product behaviour is correct (a deleted scope's objects become superseded rows, removed by the daily sweep; its head is deleted), so the fix is test-only.
+- Red: `ci/reliability-14-red` carries the original test plus a 2.5 s real-time sleep after the expected snapshot, which forces the build before the deletion. An injected sleep cannot stay in the suite.
+- Fix: the test fakes only `setTimeout`/`clearTimeout` from the start, so the build is pending until the test says otherwise. `AFTER_DELETION` (the original ACTIVE and ARCHIVED cases, assertions unchanged) drains setup work due within 1 s and leaves the build pending. New `BEFORE_DELETION` case runs the build first, then asserts its three Campaign objects are superseded at the deletion time and no Campaign head remains. Both cases assert no Campaign head remains.
