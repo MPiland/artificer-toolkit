@@ -6,6 +6,7 @@ import {
 } from '../../tests/fixtures/spatialPreparation'
 import {
   attachFixtureRoom,
+  checkpointLiveRoom,
   executeSceneInRoom,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -89,6 +90,31 @@ it('lets a controlling player move their bound token but refuses a token bound t
   // The baseline's UNINTERRUPTED plan outcome: no occurrence opened, a plain token move.
   expect(move.result).toMatchObject({ occurrence: null, replayed: false })
   expect(move.result?.delta).toMatchObject({ kind: 'TOKEN_MOVED' })
+})
+
+it('writes nothing when a player moves a token bound to an actor they do not control', async () => {
+  const { base, input } = await setup()
+  const written = async () => {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.t.run(async (ctx) => ({
+      runs: await ctx.db.query('encounterRuns').collect(),
+      occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+      definitionSaves: await ctx.db.query('sceneDefinitionSaves').collect(),
+      definitionEntities: await ctx.db.query('sceneDefinitionEntities').collect(),
+      liveStates: await ctx.db.query('sceneLiveStates').collect()
+    }))
+  }
+  const before = await written()
+  await expect(
+    executeSceneInRoom(base.owner.caller, {
+      ...input,
+      commandId: crypto.randomUUID(),
+      tokenId: base.tokens[1]!.id.toLowerCase(),
+      path: [base.tokens[1]!.position, { x: 10, y: 0 }]
+    })
+  ).rejects.toMatchObject({ data: { code: 'DOMAIN_REJECTED', reason: 'NOT_ACTOR_CONTROLLER' } })
+  expect(await written()).toEqual(before)
 })
 
 it('refuses a player move of a locked token', async () => {
