@@ -90,7 +90,7 @@ function itemConditionMatches(
  * OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement, or a
  * group of attack-ability conditions alone.
  */
-function dnd5eItemRequirementsMet(
+export function dnd5eItemRequirementsMet(
   requirements: CharacterGrantFoldRestriction,
   item: Dnd5eAttackingItem | null,
   attackAbility: string | null
