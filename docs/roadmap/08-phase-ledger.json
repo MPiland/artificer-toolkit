@@ -5939,8 +5939,8 @@
             },
             {
               "id": "ATTACK-9.T5a",
-              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon.",
-              "status": "IN_PROGRESS",
+              "text": "Two-weapon fighting off-hand attack: the compiler grants a BONUS_ACTION off-hand attack after the Attack action; the turn records the ATTACK_ACTION weapon and the ATTACK_ACTION_OTHER_WEAPON predicate requires a different light weapon. (Red: ci/attack-9-t5a-red Tests 38905082156 on 07affe3dc, 3 intended failures. Green: ci/attack-9-t5 Tests 38918177360 and Live backend 38918177250 on bd973edd4.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5948,13 +5948,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T3"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T5b",
               "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5962,7 +5961,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T5c",
