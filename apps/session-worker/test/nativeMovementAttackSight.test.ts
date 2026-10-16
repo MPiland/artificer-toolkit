@@ -110,7 +110,10 @@ describe('a player rolling an opportunity attack against a mover that cannot see
     const playerView = await room.pendingFor(false)
     if (gmView?.kind !== 'D20_EVIDENCE' || playerView?.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the reaction attack roll.')
-    expect(gmView.request.rollMode).toBe('ADVANTAGE')
+    expect(gmView.request).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      derivedRollModeReasons: ['Unseen attacker']
+    })
     expect(playerView.request).toMatchObject({
       rollMode: 'NORMAL',
       derivedRollModeReasons: []

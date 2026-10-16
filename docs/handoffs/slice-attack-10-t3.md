@@ -35,3 +35,12 @@
 
 - No direct unit test of the rules-runtime contest executor with `initiatorSight`; it is proved through the Worker and Convex Disarm tests.
 - Deferred (future-enhancements, Deferred edge cases): movement reactions and Disarm post no `D20_MODE_ADJUSTED` card, and Disarm stores no `modeAdjustment`.
+
+## Status log
+
+- The opportunity-attack player-view test asserts the GM view's exact reasons (`['Unseen attacker']`). The `pendingFor` fixture projects through the same pure label step the pending read uses (`labelEncounterRollModeReasons`); it had passed no labels, so reasons read `[]`. That was a harness gap, not a product bug: rules-owned reasons need no authored source. The player view stays `[]` because its believed mode is Normal.
+
+## Proposed ledger edit (the main session owns the ledger)
+
+- `ATTACK-10.T3c`: `status` DONE; remove `activeWorkbook` at merge.
+- `ATTACK-10.4`: `status` DONE; append to `proof`: `T3c: apps/session-worker/test/nativeRoomDisarm.test.ts (auto-rolled and prompted Disarm against a Blinded target, held die), apps/session-worker/test/nativeMovementAttackSight.test.ts (player-side opportunity-attack believed prompt, GM reasons), apps/apis/convex/encounters/actionDisarm.test.ts (Convex Disarm redaction and true settlement); CI run ids in the merge report`.

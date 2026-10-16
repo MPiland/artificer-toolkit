@@ -22,6 +22,7 @@ import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { Dnd5eOptionalCombatRuleKindDto } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import { labelEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import {
   currentSrdDefinition,
@@ -648,7 +649,10 @@ export async function movementRoom(config: MovementRoomConfig) {
         }
       })
     },
-    /** The PENDING movement decision as a viewer reads it: the GM (`isOwner`) or a player who controls every actor. */
+    /**
+     * The PENDING movement decision as a viewer reads it: the GM (`isOwner`) or a player who controls
+     * every actor, with the rules-owned reason labels the pending read adds.
+     */
     pendingFor(isOwner: boolean) {
       return runInDurableObject(base.stub, async (_instance, context) => {
         const room = new RoomEncounterStore(context.storage)
@@ -669,7 +673,8 @@ export async function movementRoom(config: MovementRoomConfig) {
           {
             controlledActorIds: new Set(room.documents('encounterRunActors').map(({ id }) => id)),
             isOwner
-          }
+          },
+          labelEncounterRollModeReasons(new Map())
         ).pending
       })
     },
