@@ -13,14 +13,10 @@ export const lightHammer: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.LIGHT,
     S.EQUIPMENT_PROPERTY_CODE.THROWN
   ],
-  modifiers: S.thrownWeaponAbilityModifiers(S.equipId(6)),
-  effects: S.thrownWeaponEffects(
+  modifiers: S.withOffHandDamage(S.equipId(6), S.thrownWeaponAbilityModifiers(S.equipId(6))),
+  effects: S.withOffHandAttack(
     S.equipId(6),
-    'BLUDGEONING',
-    '1d4',
-    20,
-    60,
-    S.EQUIPMENT_GRIP.ONE_HANDED
+    S.thrownWeaponEffects(S.equipId(6), 'BLUDGEONING', '1d4', 20, 60, S.EQUIPMENT_GRIP.ONE_HANDED)
   ),
   cost: S.gp(2),
   weight: S.lbs(2),

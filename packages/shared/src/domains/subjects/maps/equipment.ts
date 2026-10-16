@@ -101,20 +101,39 @@ type EquipmentMapAuthored = EquipmentAuthored | EquipmentVariantAuthored
 const equipmentEffect = buildNodeMap<EquipmentEffectAuthored>()
 
 /**
- * The shared effect editor plus the grip a weapon attack is made with. Node conditions cannot read
- * the child invocation scope (`invocation.triggerCode`), so the grip stays visible and the Equipment
- * schema enforces it on save: required exactly for non-passive weapon attack effects, null otherwise.
+ * The shared effect editor plus the grip a weapon attack is made with and the requirements that
+ * gate when the effect is offered (an off-hand attack after another Light weapon's attack). Node
+ * conditions cannot read the child invocation scope (`invocation.triggerCode`), so the grip stays
+ * visible and the Equipment schema enforces it on save: required exactly for non-passive weapon
+ * attack effects, null otherwise.
  */
 const EQUIPMENT_EFFECT_NODE_MAP = equipmentEffect.define(
   'equipmentEffect',
   ({ map, nodes }) => {
-    map.merge(EFFECT_NODE_MAP.nodes as NodeMap<EquipmentEffectAuthored>['nodes']).set(
-      'grip',
-      nodes.selectSingle(['grip'], 'Weapon attack grip', {
-        kind: 'INLINE_OPTIONS',
-        options: EQUIPMENT_GRIP_OPTIONS
-      })
-    )
+    map
+      .merge(EFFECT_NODE_MAP.nodes as NodeMap<EquipmentEffectAuthored>['nodes'])
+      .set(
+        'grip',
+        nodes.selectSingle(['grip'], 'Weapon attack grip', {
+          kind: 'INLINE_OPTIONS',
+          options: EQUIPMENT_GRIP_OPTIONS
+        })
+      )
+      .set(
+        'requirements',
+        nodes.groupObject(['requirements'], 'Requirements', () => EQUIPMENT_RESTRICTIONS_NODE_MAP, {
+          presentation: 'inline',
+          authoring: {
+            actions: [
+              {
+                type: 'collection.add',
+                label: 'Add',
+                presentation: AUTHORING_ACTION_PRESENTATIONS.button
+              }
+            ]
+          }
+        })
+      )
   },
   EFFECT_NODE_MAP.authoring
 )
