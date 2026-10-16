@@ -8564,7 +8564,7 @@
             {
               "id": "SPELLS-27.T4",
               "text": "Structured end trigger (event, by, against) sharing the reactionTrigger filter types; damage-taken and harm-by-source events.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8572,7 +8572,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T5",
@@ -10302,9 +10303,12 @@
         {
           "id": "RELIABILITY-17",
           "title": "Unseen-target Worker test is deterministic",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/session-worker/test/nativeRoomUnseenTarget.test.ts"],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomUnseenTarget.test.ts",
+            "apps/session-worker/test/nativeRoomFixtureIsolation.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10316,8 +10320,12 @@
             {
               "id": "RELIABILITY-17.1",
               "text": "nativeRoomUnseenTarget.test.ts \"takes a creature the map draws, with nothing revealed\" (ATTACK-17.3) passes deterministically: the cause of its intermittent empty target list is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Cause 1: room replies waited on vi.waitFor 1 s and the 5 s test default; loaded runners take longer to build a room (ROOM_REPLY_WAIT 20 s, testTimeout 30 s). Cause 2: rooms in one test file share globalThis.fetch, so a draining room from an earlier test checkpointed through the next fixture mock and overwrote its persisted authority; activation then failed and no STATE_SYNC arrived. Fixed with a campaignId guard on the fixture checkpoint handler in liveRoomFixture.ts.",
+                "Red: ci/reliability-17-red2 Tests 38892078328 (0ba524985) and ci/reliability-17-red3 Tests 38894485983 (1fbdc8089), nativeRoomFixtureIsolation.test.ts fails without the guard with the flake signature (no STATE_SYNC).",
+                "Green: ci/reliability-17 Tests 38894481673 on c85692fdd (Worker 77/77); Live backend 38892132879 on f1618c919 (later commits are Worker test-only)."
+              ],
               "origin": [],
               "note": "Found 2026-10-16: failed with \"expected [] to deep equally contain ObjectContaining{…}\" on ci/reaction-4-t3b Tests 38877353496 attempt 1 (3fcee9574) and passed on attempt 2; the branch does not touch targeting."
             }
@@ -10326,15 +10334,14 @@
             {
               "id": "RELIABILITY-17.T1",
               "text": "Find why the unseen-target journey intermittently lists no targets (Scene token write timing, vision read or fog order), fix the cause, and prove it with a forced red on a ci/ -red branch.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-17.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
                 "rr": 8,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-reliability-17.md"
+              }
             }
           ]
         }
