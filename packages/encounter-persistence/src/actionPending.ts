@@ -83,26 +83,66 @@ export async function canControlEvidenceRoller(
 
 type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
+type PendingCounter = { reaction: { reactorActorId: string } }
+
 type CastPendingContext = {
   rollerActorId?: string
-  castReaction?: { declinedReactorActorIds: readonly string[]; check?: unknown } | null
-  failedCounters?: readonly { reaction: { reactorActorId: string } }[]
+  castReaction?: {
+    declinedReactorActorIds: readonly string[]
+    check?: unknown
+    chain?: {
+      counters: readonly PendingCounter[]
+      castDeclinedReactorActorIds: readonly string[]
+    }
+  } | null
+  failedCounters?: readonly PendingCounter[]
 }
 
-const failedReactorIds = ({ failedCounters = [] }: CastPendingContext) =>
-  failedCounters.map(({ reaction }) => reaction.reactorActorId)
+const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
+  counters.map(({ reaction }) => reaction.reactorActorId)
+
+const failedReactorIds = ({ failedCounters }: CastPendingContext) =>
+  counterReactorIds(failedCounters)
+
+const chainReactorIds = ({ castReaction }: CastPendingContext) =>
+  counterReactorIds(castReaction?.chain?.counters)
 
 const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length && left.every((id, index) => id === right[index])
 
+/** The same unique ids in any order. */
+const sameMembers = (left: readonly string[], right: readonly string[]) => {
+  const members = new Set(left)
+  return (
+    members.size === left.length &&
+    new Set(right).size === right.length &&
+    right.length === left.length &&
+    right.every((id) => members.has(id))
+  )
+}
+
+/**
+ * How a cast's pause is answered: a decline, a counter chosen (an OPTION), or, while the pause waits on
+ * the check a chosen counter owes, the roll of that check. Anything else does not answer it.
+ */
+function castAnswer(
+  previous: CastPendingContext,
+  response: { resolution: { kind: string } } | null | undefined
+): 'DECLINE' | 'SPEND' | null {
+  const kind = response?.resolution.kind
+  if (kind === undefined) return null
+  if (previous.castReaction?.check) return kind === 'DECLINE' || kind === 'OPTION' ? null : 'SPEND'
+  return kind === 'DECLINE' ? 'DECLINE' : kind === 'OPTION' ? 'SPEND' : null
+}
+
 /**
  * How a cast's pending may continue (D127). A held cast leaves its pause by a decline, or by choosing a
- * counter that owes a check, which pauses on that roll; a failed roll then leaves it like a decline.
- * A choice whose check the app rolls inside the answer leaves the cast the same way a failed roll does.
- * Using a counter that owes no check, and passing the check, commit a countered cast instead.
- * When another reactor is offered next, the declined list is exactly the earlier declines plus the
- * answerer, and the failed counters carried to any next pause or terminal commit are exactly the
- * earlier ones plus the answerer's failed check.
+ * counter that owes a check, which pauses on that roll. Every counter the answer uses is carried to the
+ * cast's terminal commit, which spends it: the answerer is stood as the next counter in the chain (a
+ * counter is itself a cast the next holders may counter, opening a fresh level of offers that keeps the
+ * outer level's declines), or, when its check failed, recorded as failed and declined at its level. A
+ * chain with nobody left to ask resolves: an even chain is spent and the cast is offered again at its
+ * own level with that level's declines restored; an odd chain counters the cast, which commits instead.
  */
 export function castPendingContinues(
   previous: CastPendingContext,
@@ -110,47 +150,84 @@ export function castPendingContinues(
   next: CastPendingContext
 ): boolean {
   const { castReaction } = previous
-  const failed = failedReactorIds(previous)
-  if (!castReaction) return sameIds(failedReactorIds(next), failed)
-  const answered = response?.resolution.kind
-  const roller = previous.rollerActorId ? [previous.rollerActorId] : []
-  const declinedMatches = (expected: readonly string[]) => {
-    if (!next.castReaction) return true
-    const declined = next.castReaction.declinedReactorActorIds
-    const expectedSet = new Set(expected)
-    return declined.length === expectedSet.size && declined.every((id) => expectedSet.has(id))
-  }
-  if (answered === 'OPTION') {
-    if (castReaction.check) return false
-    // The counter owes a check: the cast stays held for the same reactor, now on that roll.
-    if (next.castReaction?.check !== undefined)
-      return (
-        next.rollerActorId === previous.rollerActorId &&
-        sameIds(failedReactorIds(next), failed) &&
-        declinedMatches(castReaction.declinedReactorActorIds)
-      )
-    // The reactor's player has the app roll, so the check failed inside the choice: it leaves the cast
-    // like a failed roll.
+  const failedPrevious = failedReactorIds(previous)
+  const failedNext = failedReactorIds(next)
+  if (!castReaction) return sameMembers(failedNext, failedPrevious)
+  const answer = castAnswer(previous, response)
+  const roller = previous.rollerActorId
+  if (!answer || roller === undefined) return false
+  const spends = answer === 'SPEND'
+  const declinedPrevious = castReaction.declinedReactorActorIds
+  const castDeclinedPrevious = castReaction.chain?.castDeclinedReactorActorIds ?? []
+  const chainPrevious = chainReactorIds(previous)
+  const chainNext = chainReactorIds(next)
+  // The counter owes a check: the cast stays held for the same reactor, now on that roll.
+  if (spends && !castReaction.check && next.castReaction?.check !== undefined)
     return (
-      sameIds(failedReactorIds(next), [...failed, ...roller]) &&
-      declinedMatches([...castReaction.declinedReactorActorIds, ...roller])
+      next.rollerActorId === roller &&
+      sameMembers(failedNext, failedPrevious) &&
+      sameMembers(next.castReaction.declinedReactorActorIds, declinedPrevious) &&
+      sameIds(chainNext, chainPrevious) &&
+      sameMembers(next.castReaction.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
     )
-  }
-  const declined = answered === 'DECLINE' && !castReaction.check
-  const failedCheck = answered !== undefined && answered !== 'DECLINE' && !!castReaction.check
+  const pushed = spends && sameIds(chainNext, [...chainPrevious, roller])
+  const unchanged = sameIds(chainNext, chainPrevious)
+  const resolved =
+    chainNext.length === 0 && chainPrevious.length > 0 && (chainPrevious.length % 2 === 0 || spends)
+  if (!pushed && !unchanged && !resolved) return false
+  if (
+    !sameMembers(
+      [...failedNext, ...chainNext],
+      [...failedPrevious, ...chainPrevious, ...(spends ? [roller] : [])]
+    )
+  )
+    return false
+  const offered = next.castReaction
+  if (!offered) return true
+  if (pushed)
+    return (
+      offered.declinedReactorActorIds.length === 0 &&
+      sameMembers(
+        offered.chain?.castDeclinedReactorActorIds ?? [],
+        chainPrevious.length === 0 ? declinedPrevious : castDeclinedPrevious
+      )
+    )
+  if (resolved) return sameMembers(offered.declinedReactorActorIds, castDeclinedPrevious)
   return (
-    (declined || failedCheck) &&
-    sameIds(failedReactorIds(next), failedCheck ? [...failed, ...roller] : failed) &&
-    declinedMatches([...castReaction.declinedReactorActorIds, ...roller])
+    sameMembers(offered.declinedReactorActorIds, [...declinedPrevious, roller]) &&
+    sameMembers(offered.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
   )
 }
 
-/** Whether a cast countered at its pause carries exactly the failed counters that pause held (D127). */
+/**
+ * Whether a cast countered at its pause carries exactly the failed counters its chain left (D127). The
+ * counters standing with the answer's own use of one are the chain; the first of them counters the cast
+ * (an odd chain leaves it standing) and every other counter used is spent with it.
+ */
 export function castCounteredCarriesFailedCounters(
   previous: CastPendingContext,
+  response: { resolution: { kind: string } } | null | undefined,
+  counterReactorActorId: string,
   next: CastPendingContext
 ): boolean {
-  return sameIds(failedReactorIds(next), failedReactorIds(previous))
+  if (!previous.castReaction) return false
+  const answer = castAnswer(previous, response)
+  const roller = previous.rollerActorId
+  if (!answer || (answer === 'SPEND' && roller === undefined)) return false
+  const spends = answer === 'SPEND' && roller !== undefined
+  const chainPrevious = chainReactorIds(previous)
+  const chain =
+    spends && chainPrevious.length % 2 === 0 ? [...chainPrevious, roller] : chainPrevious
+  const failedNext = failedReactorIds(next)
+  return (
+    chain.length % 2 === 1 &&
+    chain[0] === counterReactorActorId &&
+    !failedNext.includes(counterReactorActorId) &&
+    sameMembers(
+      [...failedNext, counterReactorActorId],
+      [...failedReactorIds(previous), ...chainPrevious, ...(spends ? [roller] : [])]
+    )
+  )
 }
 
 /** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
