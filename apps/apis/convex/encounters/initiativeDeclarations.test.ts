@@ -255,6 +255,8 @@ async function startCharacterDeclarationRun(
 describe('native initiative declarations', () => {
   it('collects each automatic declaration, then settles exactly one Run, round, and order', async () => {
     const base = await setup()
+    // Distinct faces keep the scores apart; equal random faces would tie and ask for an order.
+    await queueRoomRolls(base.campaign.id, { rolls: [4, 9] })
     const start: EncounterExecuteInput = {
       command: {
         type: 'START',
@@ -334,6 +336,55 @@ describe('native initiative declarations', () => {
           version: result.projection.version
         })
       ])
+  }, 30000)
+
+  it('asks the GM for the order when the automatic scores and the tie-break rolls both tie', async () => {
+    const base = await setup()
+    // Faces 10 and 10 tie the scores, and the tie-break faces 6 and 6 tie again.
+    await queueRoomRolls(base.campaign.id, { rolls: [9, 9, 5, 5] })
+    let result = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    })
+    for (let declared = 0; declared < 2; declared += 1) {
+      if (result.occurrence?.pending?.kind !== 'INITIATIVE_DECLARATION')
+        throw new Error('Expected a declaration.')
+      result = await executeInRoom(
+        base.owner.caller,
+        declarationCommand({ encounterId: base.run.id, pending: result.occurrence.pending })
+      )
+    }
+    const order = result.occurrence?.pending
+    if (order?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected the GM order decision.')
+    expect(result).toMatchObject({
+      projection: { status: 'PREPARED', round: 0 },
+      occurrence: { status: 'PENDING' }
+    })
+    const settled = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: order.encounterVersion,
+        occurrenceId: order.occurrenceId,
+        expectedOccurrenceVersion: order.occurrenceVersion,
+        correlationId: null,
+        resolution: {
+          kind: 'INITIATIVE_ENTITY',
+          requestId: order.requestId,
+          entityId: order.optionIds[0]!
+        }
+      }
+    })
+    expect(settled).toMatchObject({
+      projection: { status: 'ACTIVE', round: 1 },
+      occurrence: { status: 'COMPLETE', pending: null }
+    })
+    expect((await storedInitiative(base)).rounds).toHaveLength(1)
   }, 30000)
 
   it('settles Assisted declarations through score evidence and GM order', async () => {
