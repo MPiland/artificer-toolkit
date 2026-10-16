@@ -48,7 +48,7 @@ export const removeFixtureState = internalMutation({
       ctx.db
         .query('campaignEvents')
         .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id))
-        .take(6)
+        .take(17)
     ])
     const campaignPresentations = presentations.filter(
       (presentation) => presentation.campaignId === campaign.id
@@ -58,7 +58,8 @@ export const removeFixtureState = internalMutation({
       definitions.length > 3 ||
       liveScenes.length > 3 ||
       campaignPresentations.length > 1 ||
-      events.length > 5 ||
+      // One receipt per presentation change, bounded like the other fixture rows.
+      events.length > 16 ||
       definitions.some(
         (definition) =>
           !selectedSaveIds.has(definition.saveId) || definition.campaignId !== campaign.id

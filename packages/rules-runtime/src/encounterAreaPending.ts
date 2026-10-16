@@ -16,6 +16,26 @@ export function encounterAreaTargetOccurrenceId(areaOccurrenceId: string, actorI
   return uuidv5(`${areaOccurrenceId}:${actorId}:area-save`, encounterAreaNamespace)
 }
 
+/**
+ * The entries of a list of chosen creatures, each with the occurrence its own commit runs under. A
+ * creature named again (a second dart of Magic Missile) is a further entry with an occurrence of its
+ * own; its first entry keeps the id it has when named once.
+ */
+export function encounterChosenActorEntries(areaOccurrenceId: string, actorIds: readonly string[]) {
+  const named = new Map<string, number>()
+  return actorIds.map((actorId) => {
+    const ordinal = named.get(actorId) ?? 0
+    named.set(actorId, ordinal + 1)
+    return {
+      actorId,
+      occurrenceId:
+        ordinal === 0
+          ? encounterAreaTargetOccurrenceId(areaOccurrenceId, actorId)
+          : uuidv5(`${areaOccurrenceId}:${actorId}:area-save:${ordinal}`, encounterAreaNamespace)
+    }
+  })
+}
+
 /** The command id a settled creature's receipt is stored under; it has no command of its own. */
 export function encounterAreaTargetCommandId(targetOccurrenceId: string) {
   return uuidv5(`${targetOccurrenceId}:command`, encounterAreaNamespace)
