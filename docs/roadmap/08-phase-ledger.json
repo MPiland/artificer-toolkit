@@ -8550,7 +8550,7 @@
             {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8558,7 +8558,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27-t3.md"
             },
             {
               "id": "SPELLS-27.T4",
