@@ -203,12 +203,16 @@ export function speedFractionEffect(input: {
                         ...outcome,
                         grants: {
                           ...outcome.grants,
-                          modifiers: outcome.grants.modifiers?.map((modifier) => ({
-                            ...modifier,
-                            domain: input.speedId === undefined ? {} : { speedId: input.speedId },
-                            modifierKind: 'MULTIPLY' as const,
-                            payload: input.fraction
-                          }))
+                          modifiers: outcome.grants.modifiers?.map(
+                            (modifier) =>
+                              ({
+                                ...modifier,
+                                domain:
+                                  input.speedId === undefined ? {} : { speedId: input.speedId },
+                                modifierKind: 'MULTIPLY',
+                                payload: input.fraction
+                              }) as typeof modifier
+                          )
                         }
                       }
                     : outcome
@@ -251,7 +255,7 @@ export function goldWeakeningEffect(input: { id: string; holderActorId: string }
   const grants = goldDragonWyrmling.features
     ?.flatMap((feature) => feature.effects ?? [])
     .flatMap((effect) => effect.paths)
-    .flatMap((path) => path.resultBlock.outcomes)
+    .flatMap((path) => ('resultBlock' in path ? path.resultBlock.outcomes : []))
     .flatMap((outcome) => (outcome.effectKind === 'APPLY_GRANT' ? [outcome.grants] : []))[0]
   const mockery = viciousMockery.effects?.[0]
   if (!grants || !mockery) throw new Error('The Weakening Breath grants are not authored.')

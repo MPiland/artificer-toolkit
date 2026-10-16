@@ -139,14 +139,15 @@ function offHandWeapon(
     effects: [attack, bonusAttack],
     modifiers: [
       ...(modifiers ?? []).filter((modifier) => modifier !== damage),
-      { ...damage, restrictions: onBonusAction(damage.restrictions, 'EXCLUDE') },
-      {
-        ...damage,
+      Object.assign({}, damage, {
+        restrictions: onBonusAction(damage.restrictions, 'EXCLUDE')
+      }),
+      Object.assign({}, damage, {
         id: equipId(index + 0x200),
         order: 3,
-        payload: { ...damage.payload, max: 0 },
+        payload: Object.assign({}, damage.payload, { max: 0 }),
         restrictions: onBonusAction(damage.restrictions, 'INCLUDE')
-      }
+      })
     ] as EquipmentAuthored['modifiers']
   }
 }
