@@ -193,7 +193,7 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
     expect(await readZones(room)).toEqual([])
   })
 
-  it('lists the aura with its label, radius and source token to the GM and to the caster's player', async () => {
+  it('lists the aura with its label, radius and source token to the GM and to the caster’s player', async () => {
     const room = await auraRoom(OUTSIDE_THE_AURA)
     expect(await aurasListedTo(room.room.base)).toEqual([])
     await castAura(room)
