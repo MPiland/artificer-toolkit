@@ -112975,6 +112975,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_INTELLIGENCE_EXCLUDED"
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
@@ -113697,6 +113698,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_INTELLIGENCE_EXCLUDED"
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
@@ -113725,6 +113727,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_INTELLIGENCE_EXCLUDED"
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
@@ -113744,6 +113747,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_INTELLIGENCE_EXCLUDED"
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
@@ -124091,6 +124095,36 @@ export declare const internal: {
     >;
   };
   encounters: {
+    actorAbsenceMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorAbsence: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
     development: {
       removeFixtureBlueprint: FunctionReference<
         "mutation",

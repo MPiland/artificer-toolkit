@@ -90,8 +90,13 @@ describe('Telepathic Bond bonds the chosen creatures (SPELLS-28.1)', () => {
     expect(refused.answer).toMatchObject({
       type: 'COMMAND_REJECTED',
       reason: 'RULE_WARNINGS',
-      warnings: [{ code: 'TARGET_INTELLIGENCE_EXCLUDED' }, { code: 'TARGET_RANGE_UNCHECKED' }]
+      // Both warnings, whichever the room evaluates first.
+      warnings: expect.arrayContaining([
+        expect.objectContaining({ code: 'TARGET_INTELLIGENCE_EXCLUDED' }),
+        expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })
+      ])
     })
+    expect(refused.answer).toMatchObject({ warnings: { length: 2 } })
     commit((await room.startActorsAction(chosen, TOO_DULL, false)).answer)
   }, 120000)
 })
