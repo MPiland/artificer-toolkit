@@ -339,9 +339,9 @@ settlement, timeline }`:
 #### Held turn reads
 
 The four version-keyed turn reads (`actionChoices.get`, `actionChoices.optional`,
-`evidenceRolls.latest`, `sceneBindings.get`) and the Scene's actor token bindings are not in the frame;
-they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union over the five
-reads with the Convex query's arguments less `expectedVersion`
+`evidenceRolls.latest`, `sceneBindings.get`), the Scene's actor token bindings and the target modifiers are
+not in the frame; they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union
+over the six reads with the Convex query's arguments less `expectedVersion`
 ([encounterRead.ts](../../packages/schema/src/api/encounterRead.ts)). The room answers at its own current
 version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result }`, or
 `ENCOUNTER_READ_REJECTED { requestId, code, reason, message }` (the rejection codes of `COMMAND_REJECTED`).
@@ -357,6 +357,31 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   the room; the web view (`CampaignVttStage`) reads this while routed and re-asks when the viewer's token
   set changes. It keeps the Convex action for an unrouted read. A Scene the room does not present is
   `UNAVAILABLE`.
+- `ACTION_TARGET_MODIFIERS { encounterId, actorId, actionId, scene }` answers ATTACK-17.2's hover readout
+  ([encounterActionTargetModifiers.ts](../../packages/schema/src/api/encounterActionTargetModifiers.ts),
+  [actionTargetModifierReads.ts](../../packages/encounter-persistence/src/actionTargetModifierReads.ts)). For
+  each creature the viewer can list it returns the d20 mode the acting Character believes (ATTACK-10.1, D100:
+  the same believed-mode mechanism as the roll prompt, never the true mode) and the player-safe reasons, or
+  `attack: null` when the action makes no attack roll against it. The web asks once when targeting starts
+  (`useActionTargetModifiers`, keyed by Encounter, actor, action and Scene) and never per hover; the
+  Convex query `encounters/actionTargetModifiers:get` is the fallback and agrees with the room. The GM reads
+  the same believed mode in this version.
+
+#### Targeting from the map or the list (ATTACK-17.1, 17.2)
+
+Choosing an action whose target is one creature lets the caster pick it on the map (the area-aim pattern).
+`CampaignVttStage` owns the targeting request and the picked creature; the Action drawer's Target select,
+"Pick on map" button, the map and the Encounter drawer all read and write that one pick.
+
+- `vttTargeting.model.ts` is the pure model: it lists the creatures the action can name, measures each one's
+  footprint distance and reach band from the caster's token on the Scene, sorts nearest first (a creature with no
+  token sorts last as "distance unknown") and flags exactly the listed tokens in normal or long range as
+  targetable. The renderer draws the flag as a ring, shows a pointer cursor and turns a click into
+  `onTokenPick`; Escape calls `onTargetingCancel`.
+- While targeting, the Encounter drawer is the target list: non-modal beside the map, ordered by the model,
+  each listed creature a labelled `Target <name>` button with its distance, reach and believed modifier text.
+  Out-of-range creatures stay selectable from the list (marked "Out of range"); only the map refuses them.
+  When targeting ends the drawer closes (or returns to turn order) and the order is initiative order again.
 - The readers are shared with the Convex queries
   ([actionChoiceReads](../../packages/encounter-persistence/src/actionChoiceReads.ts),
   [evidenceRolls](../../packages/encounter-persistence/src/evidenceRolls.ts),

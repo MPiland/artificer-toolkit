@@ -59,7 +59,10 @@ import type {
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
+import {
+  CharacterRuleActionTargetDefenseUnavailableError,
+  CharacterRuleActionUnsupportedCompilationError
+} from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
   chosenCreaturesMaxTargets,
@@ -7294,7 +7297,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     if (typeof action.attackBonus === 'number' && Number.isSafeInteger(action.attackBonus)) {
       if (typeof armorClass !== 'number' || !Number.isSafeInteger(armorClass))
-        throw new Dnd5eEffectActionCompilerError('D&D attack target defense is unavailable.')
+        throw new CharacterRuleActionTargetDefenseUnavailableError(
+          'D&D attack target defense is unavailable.'
+        )
       if (
         action.attackRollMode !== 'NORMAL' &&
         action.attackRollMode !== 'ADVANTAGE' &&

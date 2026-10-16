@@ -2,6 +2,7 @@ import {
   readEncounterActionChoices,
   readEncounterOptionalActionChoices
 } from '@artificer-toolkit/encounter-persistence/actionChoiceReads'
+import { readEncounterActionTargetModifiers } from '@artificer-toolkit/encounter-persistence/actionTargetModifierReads'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readLatestEvidenceRolls } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
 import type {
@@ -69,6 +70,15 @@ async function readEncounter(
       return {
         kind: read.kind,
         result: await readEncounterOptionalActionChoices(tx, {
+          run,
+          ...authority,
+          request: { ...read.input, expectedVersion: run.version }
+        })
+      }
+    case 'ACTION_TARGET_MODIFIERS':
+      return {
+        kind: read.kind,
+        result: await readEncounterActionTargetModifiers(tx, {
           run,
           ...authority,
           request: { ...read.input, expectedVersion: run.version }

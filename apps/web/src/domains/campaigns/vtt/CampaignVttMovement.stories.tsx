@@ -84,7 +84,8 @@ function MovementFixture({
               halo: null,
               marked: false,
               outlineColor: 0xffffff,
-              statuses: []
+              statuses: [],
+              targetable: false
             }
           }
         : undefined,

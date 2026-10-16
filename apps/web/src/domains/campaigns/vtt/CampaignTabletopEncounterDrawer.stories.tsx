@@ -86,3 +86,54 @@ export const Reconnecting: Story = {
     connected: false
   }
 }
+
+const [targetHero, targetWarden] = tabletopPlayerEncounter.actors as [
+  (typeof tabletopPlayerEncounter.actors)[number],
+  (typeof tabletopPlayerEncounter.actors)[number]
+]
+const onTargetPick = fn()
+const onTargetCancel = fn()
+
+/** The turn-order drawer as the target list: nearest first, each creature a button, the map still reachable. */
+export const Targeting: Story = {
+  args: {
+    ...Player.args,
+    targeting: {
+      entries: [
+        {
+          actorId: targetWarden.id,
+          attack: { reasons: ['Long range'], rollMode: 'DISADVANTAGE' },
+          band: 'LONG',
+          distance: 40,
+          distanceLabel: '40 ft',
+          label: 'Vault Warden',
+          tokenId: null
+        },
+        {
+          actorId: targetHero.id,
+          attack: null,
+          band: 'OUT',
+          distance: 90,
+          distanceLabel: '90 ft',
+          label: "Ember's Wake",
+          tokenId: null
+        }
+      ],
+      pickedActorId: null,
+      onCancel: onTargetCancel,
+      onPick: onTargetPick
+    }
+  },
+  play: async ({ canvasElement }) => {
+    onTargetPick.mockClear()
+    onTargetCancel.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    await expect(await page.findByRole('dialog', { name: 'Pick a target' })).toBeVisible()
+    await expect(page.getByText('40 ft · In long range · Disadvantage (Long range)')).toBeVisible()
+    await expect(page.getByText('90 ft · Out of range')).toBeVisible()
+    await userEvent.click(page.getByRole('button', { name: 'Target Vault Warden' }))
+    await expect(onTargetPick).toHaveBeenCalledWith(targetWarden.id)
+    await userEvent.click(page.getByRole('button', { name: 'Cancel targeting' }))
+    await expect(onTargetCancel).toHaveBeenCalledOnce()
+  }
+}
