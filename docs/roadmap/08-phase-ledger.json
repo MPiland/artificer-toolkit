@@ -6287,7 +6287,7 @@
         {
           "id": "ATTACK-17",
           "title": "Target creatures from the map or the Encounter list",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6310,8 +6310,14 @@
             },
             {
               "text": "A player's map and target list show only creatures that player can see; an unseen or hidden creature is neither drawn nor listed unless the GM reveals it to players (as an unnamed unseen creature or by name), and a creature the GM keeps hidden is never listed even when it is public in initiative.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts (unseenEncounterActorIds, D121 predicate table)",
+                "apps/session-worker/test/nativeRoomUnseenTarget.test.ts (an unseen target is refused as unavailable)",
+                "apps/apis/convex/encounters/recipientBindings.test.ts and apps/session-worker/test/nativeLiveSessionRoom.test.ts (per-viewer lists, Convex and room)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (GM unnamed or named reveal control)",
+                "CI Tests 38859125052 and Live backend 38859125065 on 40cdc77aa"
+              ],
               "origin": [],
               "note": "User decision 2026-10-09: unseen creatures are not shown unless the GM marks them shown, so the list never gives away the encounter. Fixes today's leak where a public actor with a hidden or fogged token is still in the target dropdown.",
               "id": "ATTACK-17.3"
@@ -6372,7 +6378,7 @@
             {
               "id": "ATTACK-17.T2",
               "text": "Per-viewer player Encounter projection: only creatures the player can see, plus the GM's unnamed or named reveal.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-17.3"],
               "wsjf": {
                 "bv": 8,
@@ -6380,13 +6386,12 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-9.T1", "SPELLS-22"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T3",
               "text": "Map targeting mode and the distance-sorted target list with one shared selection.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.1", "ATTACK-17.2"],
               "wsjf": {
                 "bv": 8,
