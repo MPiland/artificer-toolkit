@@ -98,8 +98,18 @@ describe('effect node maps', () => {
     }
     expect(kindNode.source.options.map((option) => option.code)).toEqual([
       'MOVEMENT',
-      'ATTACKED_SELF'
+      'ATTACKED_SELF',
+      'DAMAGE_TAKEN'
     ])
+    const damageTypesNode = reactionMap.nodes.damageTypeIds
+    if (damageTypesNode?.kind !== 'INPUT' || damageTypesNode.type !== 'SELECT_MULTI')
+      throw new Error('Expected the damage types to be a multi select')
+    expect(damageTypesNode.source).toMatchObject({
+      kind: 'DATA',
+      relationship: { kind: 'TABLE', table: 'damage_types' }
+    })
+    expect(damageTypesNode.showIf).toBeDefined()
+    expect(damageTypesNode.requiredIf).toBeDefined()
   })
 
   it('exposes result structure on all effect result blocks', () => {
