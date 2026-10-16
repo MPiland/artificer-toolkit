@@ -1225,8 +1225,6 @@ function multipliedDamageAmount(amount: number, multiplier: number): number {
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
-  if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
-    unsupported('D&D hit-point pool area outcome must be a timed condition.')
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
@@ -3005,6 +3003,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       'D&D Effect action resource use must use a normalized charge identity and positive safe cost.'
     )
   const outcome = entry.outcome
+  if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
+    unsupported('D&D hit-point pool area outcome must be a timed condition.')
   if (
     checkAction &&
     outcome.effectKind !== 'STABILIZE' &&
