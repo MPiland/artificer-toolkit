@@ -275,17 +275,20 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       })
     }
 
-    /** The cast's healing, answered with a total once the counters have all failed. */
-    async function healFor(room: Room, total: number) {
-      const decision = await room.pendingDecision()
-      if (decision.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
-        throw new Error(`Expected the healing roll, got ${decision.pending.kind}.`)
-      const healed = await room.resolve(decision, {
-        kind: 'ENTER_INTEGER',
-        requestId: decision.pending.request.requestId,
-        value: total
-      })
-      expect(healed.type, JSON.stringify(healed)).toBe('COMMAND_COMMITTED')
+    /** The cast's healing dice (4d8 here), each answered with the lowest face. */
+    async function healWithLowestDice(room: Room) {
+      for (;;) {
+        const decision = await readPendingActionDecision(room.room.base.stub)
+        if (!decision) return
+        if (decision.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+          throw new Error(`Expected a healing die, got ${decision.pending.kind}.`)
+        const healed = await room.resolve(decision, {
+          kind: 'ENTER_INTEGER',
+          requestId: decision.pending.request.requestId,
+          value: decision.pending.request.min
+        })
+        expect(healed.type, JSON.stringify(healed)).toBe('COMMAND_COMMITTED')
+      }
     }
 
     it('pauses for the holder’s roll, spending and applying nothing', async () => {
@@ -332,8 +335,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       const rolled = await rollTheCheck(room, 1)
       expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
       // The failed attempt is not offered again: the cast goes on to its own healing.
-      await healFor(room, 4)
-      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      await healWithLowestDice(room)
       expect(await hitPointsOf(room)).toBe(5)
       expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
       expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
@@ -345,14 +347,14 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     })
 
     it('settles the roll inside the choice when the holder’s player has the app roll', async () => {
-      const passing = await highCast({ autoRoll: 'BOTH', rolls: [19] })
+      const passing = await highCast({ autoRoll: 'EVERYONE', rolls: [19] })
       await cast(passing)
       expect((await counterWithLowestSlot(passing)).type).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(passing.room.base.stub)).toBeNull()
       expect(await hitPointsOf(passing)).toBe(1)
       expect(await slotsOf(passing, REACTOR_ID)).toEqual(SLOT_SPENT(3))
 
-      const failing = await highCast({ autoRoll: 'BOTH', rolls: [0] })
+      const failing = await highCast({ autoRoll: 'EVERYONE', rolls: [0] })
       await cast(failing)
       expect((await counterWithLowestSlot(failing)).type).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(failing.room.base.stub)).toBeNull()
