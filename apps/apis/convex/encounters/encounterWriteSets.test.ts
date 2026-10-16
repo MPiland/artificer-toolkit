@@ -94,17 +94,16 @@ async function measure(
 
 /** Reads through `db` counting each returned document and its bytes. */
 function countingReads<Database extends object>(db: Database) {
-  const counter = { documents: 0, bytes: 0, byTable: {} as Record<string, number> }
-  const count = (value: unknown, table = '?') => {
+  const counter = { documents: 0, bytes: 0 }
+  const count = (value: unknown) => {
     const documents = Array.isArray(value) ? value : [value]
     for (const document of documents)
       if (typeof document === 'object' && document !== null && '_id' in document) {
         counter.documents++
         counter.bytes += bytes(document)
-        counter.byTable[table] = (counter.byTable[table] ?? 0) + bytes(document)
       }
   }
-  const wrap = <Target extends object>(target: Target, table = '?'): Target =>
+  const wrap = <Target extends object>(target: Target): Target =>
     new Proxy(target, {
       get(object, property) {
         const value: unknown = Reflect.get(object, property)
@@ -115,7 +114,7 @@ function countingReads<Database extends object>(db: Database) {
             return {
               next: async () => {
                 const step = await iterator.next()
-                if (!step.done) count(step.value, table)
+                if (!step.done) count(step.value)
                 return step
               }
             }
@@ -127,12 +126,10 @@ function countingReads<Database extends object>(db: Database) {
           )
           if (returned instanceof Promise)
             return returned.then((resolved: unknown) => {
-              count(resolved, table)
+              count(resolved)
               return resolved
             })
-          return typeof returned === 'object' && returned !== null
-            ? wrap(returned, property === 'query' ? String(args[0]) : table)
-            : returned
+          return typeof returned === 'object' && returned !== null ? wrap(returned) : returned
         }
       }
     })
@@ -163,7 +160,6 @@ async function projectionReadCost(base: PlayerControlFixture, role: 'OWNER' | 'P
       })
       samples.push(performance.now() - started)
       read = counter
-      console.log('BUDGETTABLES', role, JSON.stringify(counter.byTable))
     })
   await base.t.run(async (ctx) => {
     const actorRows = await ctx.db.query('encounterRunActors').collect()
