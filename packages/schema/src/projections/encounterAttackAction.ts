@@ -20,7 +20,20 @@ export const encounterAttackActionStateDtoSchema = lazySchema(() =>
         .array(
           z.strictObject({
             actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-            targetIds: z.array(postgresUuidSchema).check(z.minLength(1)).check(z.maxLength(16))
+            targetIds: z.array(postgresUuidSchema).check(z.minLength(1)).check(z.maxLength(16)),
+            /** The item the attack was made with and its property codes; absent for an unarmed strike. */
+            item: z.optional(
+              z.strictObject({
+                itemInstanceId: z
+                  .string()
+                  .check(z.trim())
+                  .check(z.minLength(1))
+                  .check(z.maxLength(240)),
+                properties: z
+                  .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)))
+                  .check(z.maxLength(100))
+              })
+            )
           })
         )
         .check(z.minLength(1))

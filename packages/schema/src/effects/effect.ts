@@ -14,6 +14,7 @@ import {
   triggerCodeSchema
 } from '../shared/enums.js'
 import { activationDtoSchema } from './activation.js'
+import { facetDtoSchema } from '../shared/facet.js'
 import { checkDtoSchema } from './check.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
@@ -264,20 +265,25 @@ export const featureEffectDtoSchema = lazySchema(() =>
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
 export const equipmentEffectDtoSchema = lazySchema(() =>
   (
-    z.extend(createEffectDtoSchema(pathDtoSchema), { grip: z.nullable(equipmentGripSchema) }).check(
-      z.superRefine((effect, context) => {
-        const weaponAttack = isWeaponAttack(effect)
-        if ((effect.grip !== null) !== weaponAttack)
-          context.addIssue({
-            code: 'custom',
-            path: ['grip'],
-            message:
-              effect.grip === null
-                ? 'A weapon attack effect requires a grip.'
-                : 'Only weapon attack effects have a grip.'
-          })
+    z
+      .extend(createEffectDtoSchema(pathDtoSchema), {
+        grip: z.nullable(equipmentGripSchema),
+        requirements: z.optional(facetDtoSchema)
       })
-    ) as z.ZodMiniType<EquipmentEffectAuthored>
+      .check(
+        z.superRefine((effect, context) => {
+          const weaponAttack = isWeaponAttack(effect)
+          if ((effect.grip !== null) !== weaponAttack)
+            context.addIssue({
+              code: 'custom',
+              path: ['grip'],
+              message:
+                effect.grip === null
+                  ? 'A weapon attack effect requires a grip.'
+                  : 'Only weapon attack effects have a grip.'
+            })
+        })
+      ) as z.ZodMiniType<EquipmentEffectAuthored>
   ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
 )
 
