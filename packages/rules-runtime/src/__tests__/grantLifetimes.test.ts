@@ -743,6 +743,23 @@ describe('effectsEndedBy on an end event', () => {
     }
     expect(effectsEndedBy([both], 'ON_ATTACK_ROLL')).toEqual([both])
   })
+
+  it('lists an effect once when it ends on several of the events an action is', () => {
+    const attacking = ending(0xc353, ['ON_INCAPACITATED'])
+    const both = {
+      ...attacking,
+      definition: {
+        ...attacking.definition,
+        recurrence: {
+          ...attacking.definition.recurrence,
+          endOnEvents: ['ON_ATTACK_ROLL' as const, 'ON_CAST_SPELL' as const]
+        }
+      }
+    }
+    expect(effectsEndedBy([both], 'ON_ATTACK_ROLL', 'ON_CAST_SPELL')).toEqual([both])
+    expect(effectsEndedBy([both], 'ON_CAST_SPELL')).toEqual([both])
+    expect(effectsEndedBy([both], 'ON_ABILITY_CHECK', 'ON_INCAPACITATED')).toEqual([])
+  })
 })
 
 describe('planDepartedSourceGrantRemovals', () => {

@@ -1087,7 +1087,7 @@ describe('Character spell casting in an Encounter', () => {
     }, 180000)
   })
 
-  describe('Invisibility ends on its holder’s attack roll (SPELLS-27.1)', () => {
+  describe('Invisibility ends on its holder’s attack roll or spell cast (SPELLS-27.1)', () => {
     const invisibleId = srdSystemRecord.conditionTypes.find(
       (condition) => condition.code === 'INVISIBLE'
     )?.id
@@ -1190,6 +1190,97 @@ describe('Character spell casting in an Encounter', () => {
         { maintainedEffectStateId: concentration?.id }
       ])
       expect(await conditionIds(fixture)).toContain(invisibleId)
+    }, 240000)
+
+    const RANGE_UNCHECKED: NonNullable<ResolveEncounterActionInputDto['acknowledgedWarnings']> = [
+      'TARGET_RANGE_UNCHECKED'
+    ]
+
+    async function castInvisibleThenHeal(
+      targetsWolf: boolean,
+      source: SpellAuthored = invisibility,
+      choiceLabel = 'Invisibility (2nd level)'
+    ) {
+      const fixture = await setup({
+        known: [concentrationSpell(source), srdSpell(cureWounds)],
+        withOthers: true
+      })
+      const wolf = fixture.wolf
+      if (!wolf || !invisibleId) throw new Error('Missing the Wolf or the Invisible condition.')
+      const invisibleCast = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(fixture, await choiceId(fixture, choiceLabel, 0), 0)
+      })
+      expect(invisibleCast.occurrence?.status).toBe('COMPLETE')
+      const [concentration, ...others] = await maintainedEffects(fixture)
+      expect(others).toEqual([])
+      expect(await conditionIds(fixture)).toContain(invisibleId)
+
+      await resetActionAllowance(fixture)
+      const healed = await executeInRoom(fixture.gm.caller, {
+        command: castCommand(
+          fixture,
+          await choiceId(fixture, 'Cure Wounds (1st level)', invisibleCast.projection.version),
+          invisibleCast.projection.version,
+          undefined,
+          targetsWolf ? wolf.id : undefined,
+          RANGE_UNCHECKED
+        )
+      })
+      expect(healed.occurrence?.status).toBe('COMPLETE')
+      return { fixture, healed, concentration }
+    }
+
+    it.each([
+      ['another creature', true],
+      ['themself', false]
+    ])(
+      'ends on a spell cast at %s: the effect, its condition and its Concentration end, and a GM undo gives all three back',
+      async (_target, targetsWolf) => {
+        const { fixture, healed, concentration } = await castInvisibleThenHeal(targetsWolf)
+        expect(await characterActiveEffects(fixture)).toEqual([])
+        expect(await maintainedEffects(fixture)).toEqual([])
+        expect(await conditionIds(fixture)).not.toContain(invisibleId)
+
+        await revert(fixture, healed.projection.version)
+        expect(await maintainedEffects(fixture)).toEqual([concentration])
+        expect(await characterActiveEffects(fixture)).toEqual([
+          { maintainedEffectStateId: concentration?.id }
+        ])
+        expect(await conditionIds(fixture)).toContain(invisibleId)
+      },
+      240000
+    )
+
+    /** Invisibility as an author builds it in the Spell form: its own id and label, ending on a cast only. */
+    function castOnlyVariant() {
+      const variant = srdSpell(invisibility)
+      variant.label = 'Veil of Shadows'
+      const path = variant.effects?.[0]?.paths?.[0]
+      if (!path || !('resultBlock' in path)) throw new Error('Expected a result block.')
+      path.resultBlock = {
+        ...path.resultBlock,
+        lifecycle: { ...path.resultBlock.lifecycle, endOnEvents: ['ON_CAST_SPELL'] }
+      }
+      return variant
+    }
+
+    // ADR 0038 decision 1: the end trigger is authored from core options, so an author builds what the SRD does.
+    it('keeps the SRD record and an author’s variant through the Spell form, and the variant ends on a cast as the SRD does', async () => {
+      const variant = castOnlyVariant()
+      const { fixture } = await castInvisibleThenHeal(false, variant, 'Veil of Shadows (2nd level)')
+      for (const spell of [invisibility, variant]) {
+        const authored = { ...spell, classIds: [fixture.baseClass.id] }
+        const normalized = await fixture.gm.caller.query(normalizeValues, {
+          mapId: 'spell',
+          systemId: spell.systemId,
+          values: authored
+        })
+        expect(normalized.clearedPaths).toEqual([])
+        expect(normalized.values.effects).toEqual(authored.effects)
+      }
+      expect(await characterActiveEffects(fixture)).toEqual([])
+      expect(await maintainedEffects(fixture)).toEqual([])
+      expect(await conditionIds(fixture)).not.toContain(invisibleId)
     }, 240000)
   })
 

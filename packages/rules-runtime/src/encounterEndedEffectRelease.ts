@@ -46,15 +46,20 @@ export function endedEffectConditionReleases(input: {
 }
 
 /**
- * What an attack roll ends on its roller: the effects that last until the roll, and the conditions
- * only they held. A roll that is not an attack roll ends nothing.
+ * What an action ends on its holder: the effects that last until an attack roll or a spell cast,
+ * and the conditions only they held. An action that is neither ends nothing.
  */
-export function attackRollEndedEffects(input: {
+export function actionEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
   makesAttackRoll: boolean
+  castsSpell?: boolean
 }) {
-  const consumedGrants = input.makesAttackRoll ? effectsEndedBy(input.held, 'ON_ATTACK_ROLL') : []
+  const consumedGrants = effectsEndedBy(
+    input.held,
+    ...(input.makesAttackRoll ? (['ON_ATTACK_ROLL'] as const) : []),
+    ...(input.castsSpell ? (['ON_CAST_SPELL'] as const) : [])
+  )
   return {
     consumedGrants,
     sourceReleases: endedEffectConditionReleases({

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { mend, unlimitedCureWounds } from './mendSpell.js'
 import {
@@ -184,6 +185,33 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     // The reaction is back: the same cast offers it again.
     await cast(room)
     await offered(room)
+  })
+
+  it('uses up the caster’s grants that end on a cast even when the cast is countered, and one undo gives them back (SPELLS-27.1)', async () => {
+    const room = await counterspellRoom({
+      seed: seedModifierGrant({
+        sourceActorId: CASTER_ACTOR_ID,
+        holderActorId: CASTER_ACTOR_ID,
+        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] }
+      })
+    })
+    const grantIds = async () =>
+      (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    const held = await grantIds()
+    expect(held).toHaveLength(1)
+    await cast(room)
+    const { decision, pending } = await offered(room)
+    expect(await grantIds()).toEqual(held)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds()).toEqual([])
+
+    await undoLastAction(room)
+    expect(await grantIds()).toEqual(held)
   })
 
   it('lets the cast resolve when declined, spending nothing of the reactor', async () => {

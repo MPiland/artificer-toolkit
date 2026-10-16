@@ -27,6 +27,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
 
@@ -60,6 +61,7 @@ function healerRoom(config: {
   /** The Character's level; it is 1 when unset. */
   characterLevel?: number
   autoRoll?: 'BOTH'
+  seed?: Parameters<typeof actionRoom>[0]['seed']
 }) {
   const wolfIds = config.wolfIds ?? WOLF_IDS.slice(0, 3)
   return actionRoom({
@@ -87,7 +89,8 @@ function healerRoom(config: {
     characterAction: (action) => action.label === config.label,
     rolls: config.rolls,
     fallbackRoll: 5,
-    ...(config.autoRoll && { autoRoll: config.autoRoll })
+    ...(config.autoRoll && { autoRoll: config.autoRoll }),
+    ...(config.seed && { seed: config.seed })
   })
 }
 
@@ -154,6 +157,34 @@ describe('room cast on chosen creatures (D118)', () => {
     await undoLastAction(room)
     expect(await hitPointsOf(room)).toEqual(before)
     expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('ends the caster’s grants that end on a spell cast, and one undo gives them back (SPELLS-27.1)', async () => {
+    const castEnds = await healerRoom({
+      spell: massHealingWord,
+      label: 'Mass Healing Word (3rd level)',
+      rolls: [2],
+      seed: seedModifierGrant({
+        sourceActorId: CHARACTER_ACTOR_ID,
+        holderActorId: CHARACTER_ACTOR_ID,
+        lifecycle: { endOnEvents: ['ON_CAST_SPELL'] }
+      })
+    })
+    const grantIds = async () =>
+      (await readRoomHistory(castEnds.room.base.stub)).characterEffects.map(({ id }) => id)
+    const held = await grantIds()
+    expect(held).toHaveLength(1)
+
+    const { answer } = await castEnds.startActorsAction(
+      WOLF_IDS.slice(0, 3),
+      RANGE_UNCHECKED,
+      false
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await grantIds()).toEqual([])
+
+    await undoLastAction(castEnds)
+    expect(await grantIds()).toEqual(held)
   }, 120000)
 
   it('rolls the scaled dice once when cast with a higher slot', async () => {

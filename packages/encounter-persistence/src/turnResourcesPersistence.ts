@@ -29,7 +29,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
-import { attackRollEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -190,7 +190,7 @@ export async function persistEncounterTurnResources(
     const ownerEffects = await createActiveRuleEffectStore(ctx).list(
       turnEffectOwner(owner, state.id)
     )
-    const { consumedGrants, sourceReleases } = attackRollEndedEffects({
+    const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: ownerId,
       held: ownerEffects,
       makesAttackRoll: attackRoll
