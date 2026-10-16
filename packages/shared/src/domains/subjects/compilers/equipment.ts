@@ -81,7 +81,10 @@ export type ResolvedEquipment = Omit<BaseEquipmentAuthored, 'category' | 'proper
   variant?: ResolvedEquipmentVariantMeta
 }
 
-export type CompiledEquipmentEffectGroup = CompiledEffectGroup & { grip: EquipmentGrip | null }
+export type CompiledEquipmentEffectGroup = CompiledEffectGroup & {
+  grip: EquipmentGrip | null
+  requirements?: EquipmentEffectAuthored['requirements']
+}
 
 export type CompiledEquipmentBase = {
   id: string
@@ -137,7 +140,8 @@ function compileEquipmentBase(
   const effects = authored.effects?.length
     ? authored.effects.map((effect: EquipmentEffectAuthored): CompiledEquipmentEffectGroup => ({
         ...compileEffect(effect),
-        grip: effect.grip
+        grip: effect.grip,
+        ...(effect.requirements ? { requirements: effect.requirements } : {})
       }))
     : undefined
 

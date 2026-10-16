@@ -1,6 +1,8 @@
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
+import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterBasicActionRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
@@ -61,6 +63,28 @@ export async function refuseUnmetBasicActionRestrictions(
       prepared.source.capability.restrictions,
       await encounterHolderState(holder)
     )
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+      message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
+    })
+}
+
+/** An item action with authored requirements is taken only once they hold (an off-hand attack). */
+export function refuseUnmetItemActionRequirements(
+  prepared: Pick<Prepared, 'source' | 'actor'>,
+  state: { turnSequence: number }
+) {
+  const equipment =
+    prepared.source.kind === 'CHARACTER_ACTION' ? prepared.source.candidate.equipment : null
+  if (
+    equipment &&
+    !encounterActionRequirementsHold(equipment.requirements, {
+      attackAction: encounterAttackActionState(prepared.actor),
+      turnSequence: state.turnSequence,
+      actingItemInstanceId: equipment.itemInstanceId
+    })
   )
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
