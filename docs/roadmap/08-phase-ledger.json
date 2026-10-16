@@ -660,8 +660,13 @@
             {
               "id": "PLATFORM-13.7",
               "text": "The slowest Convex test files from the 2026-10-14 top-20 (the corpus-scale journeys, media/* fixture setup and module import) are profiled and made faster without replacing real-code proof; the per-file timing record shows each file before and after.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge 2573adb64 (commits 3485f1d72, 40310628f, 3d6276ab0, 32c544804)",
+                "docs/validation/platform-13-t5-test-timings-2026-10-15.md (builder parity 65.4 s -> 30.4 s serial; mixed custody driver 11.9 s -> 8.6 s, bounded test 2.8 s; no timeout changed)",
+                "CI runs 38821517298 (1 worker), 38823259068 (3 workers), 38824510858 (final head) green; 38816855225 red before the split",
+                "merge review: every old assertion survives the split (verified against c34ffc212)"
+              ],
               "origin": [],
               "note": "Registered 2026-10-14 from the PLATFORM-13.T1 serial baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). Re-scored 2026-10-15 after the user-approved CI trial of 3 Convex file workers per shard (run 38775641398): shard wall time fell from about 14 to 7-8 minutes, but developmentCustody.test.ts \"runs the public mixed Character custody driver...\" timed out at its 30 s limit; it takes 23 s with one worker (run 38769788109), so it is near its limit even serially. Per the PLATFORM-13.T4 rule (a run that times out rejects the setting, no per-test timeout raised) CI stays at one worker until these journeys are slimmed; then re-run the 3-worker trial."
             },
@@ -681,8 +686,12 @@
             {
               "id": "PLATFORM-13.9",
               "text": "Convex tests and live-backend proofs never fail by chance on generated account data: every generated username passes the real username policy, proved by the account journeys and local auth helpers using a username that the imported validateUsername accepts.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge 2573adb64 (commit 5ec76403f)",
+                "apps/apis/tests/fixtures/generatedUsername.ts (bounded 50 draws, imports the real validateUsername); generatedUsername.test.ts",
+                "red run: 3 accountJourneys tests failed on the old shape; green after"
+              ],
               "origin": "CI run 38778258014 attempt 1 (SPELLS-8, Convex 1/4): accountJourneys.test.ts:97 got INVALID_USERNAME instead of EMAIL_PASSWORD_SIGN_UP_DISABLED. The random Journey_<12 hex> suffix can contain a profanity substring (for example a55 reads as \"ass\" after the digit swap). apps/apis/tests/localAuth.ts generates Auth_<12 hex> the same way.",
               "note": "Product question Q22 (substring profanity match rejects ordinary names) is open; this AC fixes the test data either way."
             },
@@ -784,7 +793,7 @@
             {
               "id": "PLATFORM-13.T5",
               "text": "Convex-suite speed work from the 2026-10-14 top-20: the corpus-scale journeys (equipmentLimits, developmentLifecycleProof, commitReferencedContext, seed, seedAudit, builderSnapshotParity, equipmentCharacter, catalogueReadBudget, developmentCustody: 970 s of 2808 s), media/* per-test fixture setup (profile first) and module import (688 s across 380 files). Per-file timings only; proofs keep running real code.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.7"
               ],
@@ -793,8 +802,7 @@
                 "tc": 5,
                 "rr": 5,
                 "size": 5
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
+              }
             },
             {
               "id": "PLATFORM-13.T6",
@@ -813,7 +821,7 @@
             {
               "id": "PLATFORM-13.T7",
               "text": "Make generated test usernames (accountJourneys.test.ts signupInput, tests/localAuth.ts) always valid under the real imported validateUsername, without copying the policy, and prove the journey red with a known-rejected suffix first.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.9"
               ],
@@ -822,8 +830,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 1
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
+              }
             },
             {
               "id": "PLATFORM-13.T8",
@@ -855,7 +862,7 @@
             },
             {
               "id": "PLATFORM-13.T10",
-              "text": "Route validatePreStagingLocal.mjs through convexCliArguments/convexCliEnvironment and make the generated-file drift check use git status --porcelain (untracked included), each with a red-first test.",
+              "text": "Route validatePreStagingLocal.mjs through convexCliArguments/convexCliEnvironment and make the generated-file drift check use git status --porcelain (untracked included), each with a red-first test. Also: developmentDrafts.ts and developmentCampaignMembershipLifecycle.ts draw usernames through generateValidUsername; restore the durable Vehicle receipt check to a live proof (lost from --campaign-custody in the T5 split) and give verifyCharacterCustody cursor-advance assertions a caller with more than one page.",
               "status": "TODO",
               "closes": [
                 "PLATFORM-13.12"
