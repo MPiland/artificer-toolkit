@@ -8227,7 +8227,8 @@
               "text": "Every SRD spell that targets chosen creatures (CHOSEN_CREATURES with maxTargets) compiles and resolves per target through core options, including split projectiles (a repeated target entry is one Magic Missile dart, Scorching Ray ray or Eldritch Blast beam, each its own damage instance, the count scaled by cast or character level) and per-creature saves; a corpus test derived from the real compiler fails on any such spell that does not compile, unless it fails for the same reason as a SINGLE_TARGET cast (its outcome is owned elsewhere: SPELLS-8.T4, SPELLS-4.T2, SPELLS-28, or ADR 0018 manual adjudication).",
               "status": "TODO",
               "proof": [
-                "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488"
+                "T1 (Magic Missile darts): apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts (room cast of projectiles on chosen creatures), packages/rules-runtime/src/__tests__/spellCastLevels.test.ts; CI Tests 38858767374 and Live backend 38858767391 on 8baeda488",
+                "T2 (per-creature saves for a chosen list: Acid Splash, Chain Lightning): compile tests and apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts; CI Tests 38877818014 and Live backend 38877818009 on 132bf12de"
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the REACTION-4 design review: the compiler accepts only SINGLE_TARGET or AREA_CONTENTS (effectActionCompiler.ts), so 31 SRD spells authoring CHOSEN_CREATURES, Magic Missile among them, are not castable. Amended 2026-10-16 after the SPELLS-26 survey (docs/handoffs/slice-spells-26.md): projectiles use allowRepeatedTargets and maxTargetsScaling, not a new target-count contract; outcome gaps go to their owning PBIs."
@@ -8255,7 +8256,7 @@
             {
               "id": "SPELLS-26.T2",
               "text": "Per-creature saves for a chosen list (Acid Splash, Chain Lightning) through the area save-and-commit flow: one sealed save per distinct creature, damage rolled once.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8263,13 +8264,12 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-26.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-26.md"
+              }
             },
             {
               "id": "SPELLS-26.T3",
               "text": "An attack roll per ray or beam (Scorching Ray, Eldritch Blast): one attack and, on a hit, one damage instance per entry; Eldritch Blast re-authored with beam count via maxTargetsScaling; resolutionCount and resolutionCountScaling deleted.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-26.1"],
               "wsjf": {
                 "bv": 8,
@@ -8677,7 +8677,9 @@
             {
               "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574"
+              ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
               "id": "REACTION-4.1"
@@ -8780,9 +8782,8 @@
             {
               "id": "REACTION-4.T3b",
               "text": "CAST_REACTION pause, SPENT_NO_EFFECT terminal result and the cast apply path, wiring discoverCastReactionActions and executionCancelsTriggeringEvent; narrow the attack-path pin types to exclude SPELL_CAST; a Counterspell on a cast of level at or below its slot cancels it (no roll), with undo, replay and the web drawer; web authoring parity for a SPELL_CAST reaction.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8794,7 +8795,7 @@
             {
               "id": "REACTION-4.T3c",
               "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -8802,7 +8803,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T3d",
@@ -8815,6 +8817,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3e",
+              "text": "Cast reactions for creature-capability casts, chosen-creature (ACTORS) casts and area casts: the same CAST_REACTION pause and countered-cast terminal as a Character single-target cast.",
+              "status": "TODO",
+              "closes": ["REACTION-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["REACTION-4.T3b"]
               }
             },
             {
@@ -10136,9 +10151,9 @@
         {
           "id": "RELIABILITY-16",
           "title": "Snapshot drift is regenerated in CI",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -10150,8 +10165,12 @@
             {
               "id": "RELIABILITY-16.1",
               "text": "When a ci/** Tests run fails only on Vitest snapshot mismatches, the workflow reruns the failing test files with snapshot update and uploads the changed __snapshots__ files as an `updated-snapshots` artifact; scripts/watchCi.ps1 prints the download command, and slice-workbook-rules.md tells sessions to commit the artifact instead of regenerating snapshots locally. A deliberately stale snapshot on a ci/ branch proves it red then green.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "scripts/snapshotDrift.test.mjs",
+                "Red: ci/reliability-16-proof Tests 38877347249 on bb4e1d230 fails Convex shard 2 on a deliberately stale snapshot and uploads updated-snapshots byte-identical to the corrected file",
+                "Green: ci/reliability-16-proof Tests 38879476375 on 8af4aa98d with the artifact committed; branch CI Tests 38877351838 on a712089e1"
+              ],
               "origin": [],
               "note": "Snapshot conflicts after merging a batch need a light-lane -u run, and the light lane is starved while many sessions run (AvailableMBytes ~490 on 2026-10-16 against a 1 GB gate). Mirrors the live-backend generated-files artifact."
             }
@@ -10160,15 +10179,53 @@
             {
               "id": "RELIABILITY-16.T1",
               "text": "Add the snapshot-regeneration step and `updated-snapshots` artifact to tests.yml for the Convex shards and package tests, teach watchCi.ps1 to print its download command, and update slice-workbook-rules.md and AGENTS.md Validation; prove with a deliberately stale snapshot on a ci/ branch.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-16.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
                 "size": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-17",
+          "title": "Unseen-target Worker test is deterministic",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/session-worker/test/nativeRoomUnseenTarget.test.ts"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-17.1",
+              "text": "nativeRoomUnseenTarget.test.ts \"takes a creature the map draws, with nothing revealed\" (ATTACK-17.3) passes deterministically: the cause of its intermittent empty target list is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-16: failed with \"expected [] to deep equally contain ObjectContaining{…}\" on ci/reaction-4-t3b Tests 38877353496 attempt 1 (3fcee9574) and passed on attempt 2; the branch does not touch targeting."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-17.T1",
+              "text": "Find why the unseen-target journey intermittently lists no targets (Scene token write timing, vision read or fog order), fix the cause, and prove it with a forced red on a ci/ -red branch.",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-17.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
               },
-              "activeWorkbook": "docs/handoffs/slice-reliability-16.md"
+              "activeWorkbook": "docs/handoffs/slice-reliability-17.md"
             }
           ]
         }

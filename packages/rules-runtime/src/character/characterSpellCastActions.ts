@@ -17,8 +17,9 @@ import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFact
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import {
-  getExplicitSpellCastLevels,
+  getCastLevelReaderSpellIds,
   getOwnedSpellSlotLevels,
+  getSpellCastLevels,
   getSpellSourcesBySpellId,
   isActiveSpellSource
 } from './sheetProjection.js'
@@ -70,8 +71,9 @@ export function readSpellCastSlot(
 
 /**
  * The cast candidates the Sheet lists as castable: a spell from each of its active sources (per
- * class, always prepared or granted) at its own level and at every level it scales at that the
- * Character owns a slot for. Read through the Sheet's own source and cast-level logic.
+ * class, always prepared or granted) at its own level and at every higher level the Character
+ * owns a slot for; a spell whose effects do not read their cast level lists only its own level. Read
+ * through the Sheet's own source and cast-level logic.
  */
 export function listCastableSpellCandidateIds(input: {
   character: CharacterAuthored
@@ -85,6 +87,7 @@ export function listCastableSpellCandidateIds(input: {
     projectCharacterSpellAccess(input.ruleEvaluation)
   )
   const ownedSlotLevels = getOwnedSpellSlotLevels(output.spellSlots)
+  const castLevelReaderSpellIds = getCastLevelReaderSpellIds(output.spellReferenceMechanics)
   const spellLevelById = new Map(
     facts.spellCastCandidates.map((cast) => [cast.spellId, cast.spellLevel])
   )
@@ -92,16 +95,10 @@ export function listCastableSpellCandidateIds(input: {
   for (const [spellId, sources] of sourcesBySpellId) {
     const level = spellLevelById.get(spellId)
     if (level === undefined) continue
-    const mechanics = output.spellReferenceMechanics
-      .filter((entry) => entry.spellId === spellId)
-      .flatMap((entry) => entry.mechanics)
     for (const source of sources) {
       if (!isActiveSpellSource(level, source)) continue
-      for (const castLevel of getExplicitSpellCastLevels(
-        { level, mechanics },
-        source,
-        ownedSlotLevels
-      ))
+      const spell = { level, readsCastLevel: castLevelReaderSpellIds.has(spellId) }
+      for (const castLevel of getSpellCastLevels(spell, source, ownedSlotLevels))
         candidateIds.add(createCharacterSpellCastCandidateId(source.source, castLevel))
     }
   }

@@ -1,6 +1,7 @@
 import { persistEncounterActionPending } from '@artificer-toolkit/encounter-persistence/actionPendingPersistence'
 import { persistEncounterActionCommit } from '@artificer-toolkit/encounter-persistence/actionCommitPersistence'
 import { persistEncounterAreaCommit } from '@artificer-toolkit/encounter-persistence/areaCommitPersistence'
+import { persistEncounterCounteredCastCommit } from '@artificer-toolkit/encounter-persistence/counteredCastCommitPersistence'
 import {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -22,6 +23,7 @@ import {
   buildNativeLiveEncounterActionPendingInput,
   buildNativeLiveEncounterActionCommitInput
 } from './nativeEncounterRules.js'
+import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncounterCastReaction.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
@@ -93,9 +95,11 @@ export async function executeRoomEncounterAction(input: {
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
       : plan.kind === 'AREA_COMMIT'
         ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
-        : plan.kind === 'PENDING'
+        : plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING'
           ? buildNativeLiveEncounterActionPendingInput(scope, plan)
-          : buildNativeLiveEncounterActionCommitInput(scope, plan)
+          : plan.kind === 'COUNTERED'
+            ? buildNativeLiveEncounterCounteredCastCommitInput(scope, plan)
+            : buildNativeLiveEncounterActionCommitInput(scope, plan)
   const ids = new Set(
     plan.prepared.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
@@ -160,7 +164,13 @@ export async function executeRoomEncounterAction(input: {
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
       }
     )
-  return plan.kind === 'PENDING'
+  if (plan.kind === 'COUNTERED')
+    return persistEncounterCounteredCastCommit(
+      ctx,
+      { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
+      callbacks
+    )
+  return plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING'
     ? persistEncounterActionPending(
         ctx,
         {

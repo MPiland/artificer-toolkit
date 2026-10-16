@@ -18,6 +18,7 @@ import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjec
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import {
   authoredRouteStoryRecords,
@@ -72,6 +73,7 @@ const smiteFeatures = paladin.features?.filter(({ label }) =>
 const smiteEffects = smiteFeatures?.map(({ effects }) => effects)
 const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
 const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
+const COUNTERSPELL_SCENARIO_LABEL = 'spell user-authored Counterspell'
 
 const scenarios = createBranchScenarios()
 // One case per resolved context: rendering a whole scenario in a single test made the
@@ -121,6 +123,15 @@ const absorbCases = registrationCases.filter(
 const absorbScenario = scenarios.find(({ label }) => label === ABSORB_SCENARIO_LABEL)
 if (!absorbScenario) throw new Error('Expected the Absorb Elements spell scenario.')
 const absorbFormValues = toActualFormValues('spell', parseScenarioRecord(absorbScenario))
+const counterspellCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === COUNTERSPELL_SCENARIO_LABEL
+)
+const counterspellScenario = scenarios.find(({ label }) => label === COUNTERSPELL_SCENARIO_LABEL)
+if (!counterspellScenario) throw new Error('Expected the Counterspell spell scenario.')
+const counterspellFormValues = toActualFormValues(
+  'spell',
+  parseScenarioRecord(counterspellScenario)
+)
 const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValues: {} })
 
 afterEach(cleanup)
@@ -441,6 +452,50 @@ describe('user-authored Absorb Elements reaction authoring parity (ADR 0038)', (
   })
 })
 
+describe('user-authored Counterspell reaction authoring parity (ADR 0038)', () => {
+  it('authors the reaction shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(counterspell.effects)
+    for (const shape of ['SPELL_CAST', 'CANCEL_TRIGGERING_EVENT', 'REACTION']) {
+      expect(authored).toContain(shape)
+    }
+  })
+
+  it('keeps every Counterspell value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'spell',
+      values: counterspellFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(counterspellFormValues)
+  })
+
+  for (const [index, { context }] of counterspellCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Counterspell context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the spell as the Counterspell effect', async () => {
+    const rootContext = counterspellCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Counterspell spell root context.')
+    await renderUntilRegistered(rootContext.model, counterspellFormValues)
+
+    const session = createScenarioSession('spell', parseScenarioRecord(counterspellScenario))
+    const submitted = spellAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(counterspell.effects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
 const isTriggerPayload = ({ damageTypeSource }: Record<string, unknown>) =>
   damageTypeSource === 'TRIGGER'
 
@@ -747,6 +802,16 @@ function createBranchScenarios(): BranchScenario[] {
         id: 'story-absorb-elements',
         label: 'Test Absorb Elements',
         effects: absorbElementsSpell(['FIRE', 'COLD']).effects
+      }
+    },
+    {
+      domain: 'spell',
+      label: COUNTERSPELL_SCENARIO_LABEL,
+      record: {
+        ...fireball,
+        id: 'story-counterspell',
+        label: 'Test Counterspell',
+        effects: counterspell.effects
       }
     },
     {

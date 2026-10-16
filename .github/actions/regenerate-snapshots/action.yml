@@ -1,0 +1,33 @@
+name: Regenerate snapshots
+description: After a Vitest run failed, rerun the files that failed on a snapshot mismatch with -u and upload the changed snapshot files as an updated-snapshots-<name> artifact. The calling job stays failed; the collected files are for the slice to commit.
+inputs:
+  name:
+    description: Distinguishes this job's artifact (one artifact name per job; the updated-snapshots job merges them).
+    required: true
+  config:
+    description: The Vitest config the failed run used.
+    required: true
+  reports:
+    description: Glob of the JSON reports the failed run wrote (--reporter=json --outputFile.json=...).
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Rerun failed snapshot files with -u
+      shell: bash
+      run: |
+        shopt -s nullglob
+        reports=(${{ inputs.reports }})
+        [ ${#reports[@]} -gt 0 ] || exit 0
+        mapfile -t files < <(node scripts/snapshotDrift.mjs failed "${reports[@]}")
+        [ ${#files[@]} -gt 0 ] || exit 0
+        printf 'Snapshot mismatches in:\n%s\n' "${files[@]}"
+        # A file that also fails for another reason still fails here; only its snapshots are rewritten.
+        yarn vitest run --config ${{ inputs.config }} "${files[@]}" --update || true
+        node scripts/snapshotDrift.mjs collect updated-snapshots
+    - uses: actions/upload-artifact@v4
+      with:
+        name: updated-snapshots-${{ inputs.name }}
+        path: updated-snapshots/
+        retention-days: 7
+        if-no-files-found: ignore

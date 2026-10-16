@@ -37,6 +37,7 @@ import type {
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
+import { castReactionAnswerContinues } from './actionPending.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 
@@ -96,6 +97,7 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
+    (resume && !castReactionAnswerContinues(resume.pending.context, input.response, {})) ||
     command.optionalCombatIntent != null ||
     command.target.kind !== 'ACTOR'
   )

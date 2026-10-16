@@ -208,6 +208,12 @@ export interface MovementRoomConfig {
   characterSpellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
   /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
   outsideCasterCharacterId?: string
+  /** A second Character of the Run (a CHARACTER actor with this `characterId`), owned by the room's second player. */
+  secondCharacter?: {
+    characterId: string
+    spellcasting?: Parameters<typeof characterRoomInputs>[0]['spellcasting']
+    play?: CharacterPlayOverrides
+  }
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
   rolls?: readonly number[]
   fallbackRoll?: number
@@ -219,6 +225,25 @@ export interface MovementRoomConfig {
     encounterId: string
     occurredAt: string
   }) => Promise<void>
+}
+
+/** The page fixture gives every Character the same row ids; a further Character needs its own. */
+function withOwnRowIds<
+  Part extends Awaited<ReturnType<typeof characterRoomInputs>>['parts'][number]
+>(part: Part, suffix: string): Part {
+  if (part.status !== 'ASSIGNED' || !part.inputs) return part
+  return {
+    ...part,
+    inputs: {
+      ...part.inputs,
+      owner: {
+        ...part.inputs.owner,
+        _id: `${part.inputs.owner._id}:${suffix}`,
+        play: { ...part.inputs.owner.play, _id: `${part.inputs.owner.play._id}:${suffix}` }
+      }
+    },
+    documents: part.documents.map((document) => ({ ...document, id: `${document.id}:${suffix}` }))
+  }
 }
 
 /**
@@ -280,7 +305,14 @@ export async function movementRoom(config: MovementRoomConfig) {
   const base = await fixture(scene)
   base.room.systemId = SRD_SYSTEM_ID
   base.capture.sceneEncounterId = encounterId
-  if (config.otherPlayerControlledActorIds)
+  if (config.secondCharacter && config.outsideCasterCharacterId)
+    throw new Error('A second player seats one extra Character: pass only one.')
+  // A player is assigned one Character per Campaign, so an extra Character joins a second player.
+  const seatsOtherPlayer =
+    config.otherPlayerControlledActorIds ||
+    config.secondCharacter ||
+    config.outsideCasterCharacterId
+  if (seatsOtherPlayer)
     base.authorization.members.push({
       membershipEpoch: base.capture.origin.membershipEpoch,
       role: 'PLAYER',
@@ -296,11 +328,13 @@ export async function movementRoom(config: MovementRoomConfig) {
 
   const character = actors.find((actor) => actor.kind === 'CHARACTER')
   const characterId = character?.sourceId ?? null
+  // The outside caster is the room's player's Character, so the Run's own Character is not.
+  const runCharacterOwnerId = config.outsideCasterCharacterId ? base.otherPlayerId : base.playerId
   const characterPage = characterId
     ? await characterRoomInputs({
         campaignId,
         characterId,
-        ownerUserId: base.playerId,
+        ownerUserId: runCharacterOwnerId,
         darkvision: config.characterDarkvision,
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
@@ -315,10 +349,22 @@ export async function movementRoom(config: MovementRoomConfig) {
         ownerUserId: base.playerId
       })
     : null
+  const secondCharacterPage = config.secondCharacter
+    ? await characterRoomInputs({
+        campaignId,
+        characterId: config.secondCharacter.characterId,
+        ownerUserId: base.otherPlayerId,
+        play: config.secondCharacter.play,
+        spellcasting: config.secondCharacter.spellcasting
+      })
+    : null
   const assignments = [
-    ...(characterId ? [{ characterId, userId: base.playerId }] : []),
+    ...(characterId ? [{ characterId, userId: runCharacterOwnerId }] : []),
     ...(config.outsideCasterCharacterId
       ? [{ characterId: config.outsideCasterCharacterId, userId: base.playerId }]
+      : []),
+    ...(config.secondCharacter
+      ? [{ characterId: config.secondCharacter.characterId, userId: base.otherPlayerId }]
       : [])
   ]
 
@@ -428,29 +474,12 @@ export async function movementRoom(config: MovementRoomConfig) {
   const characterInputs = {
     parts: [
       ...(characterPage?.parts ?? []).map((part) => ({ part, holdsDependents: true })),
-      // The page fixture gives every Character the same row ids; the second one needs its own.
       ...(outsideCasterPage?.parts ?? []).map((part) => ({
-        part:
-          part.status === 'ASSIGNED' && part.inputs
-            ? {
-                ...part,
-                inputs: {
-                  ...part.inputs,
-                  owner: {
-                    ...part.inputs.owner,
-                    _id: `${part.inputs.owner._id}:outside`,
-                    play: {
-                      ...part.inputs.owner.play,
-                      _id: `${part.inputs.owner.play._id}:outside`
-                    }
-                  }
-                },
-                documents: part.documents.map((document) => ({
-                  ...document,
-                  id: `${document.id}:outside`
-                }))
-              }
-            : part,
+        part: withOwnRowIds(part, 'outside'),
+        holdsDependents: false
+      })),
+      ...(secondCharacterPage?.parts ?? []).map((part) => ({
+        part: withOwnRowIds(part, 'second'),
         holdsDependents: false
       }))
     ].map(({ part, holdsDependents }) => {
@@ -518,6 +547,14 @@ export async function movementRoom(config: MovementRoomConfig) {
                   {
                     characterId: config.outsideCasterCharacterId!,
                     revision: outsideCasterPage.characterRevision
+                  }
+                ]
+              : []),
+            ...(secondCharacterPage
+              ? [
+                  {
+                    characterId: config.secondCharacter!.characterId,
+                    revision: secondCharacterPage.characterRevision
                   }
                 ]
               : [])
