@@ -101,7 +101,8 @@ function oneDamageBite(save?: { ability: 'CONSTITUTION'; poison: boolean }) {
         resultBlock: {
           ...path.resultBlock,
           outcomes: path.resultBlock.outcomes.map((outcome) => {
-            if (outcome.effectKind !== 'DAMAGE') throw new Error('Expected Bite damage.')
+            if (outcome.effectKind !== 'DAMAGE' || outcome.damageTypeId === undefined)
+              throw new Error('Expected Bite damage.')
             return {
               id: outcome.id,
               effectKind: 'DAMAGE' as const,
