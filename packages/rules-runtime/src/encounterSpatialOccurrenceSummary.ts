@@ -24,8 +24,8 @@ export function projectEncounterSpatialOccurrenceSummary(
     pendingSnapshot: ServerRuleExecutionPendingSnapshotDto | null
   },
   encounterVersion: number,
-  /** The Run actors the viewer may act for (every actor for the GM). */
-  viewer: { controlledActorIds: ReadonlySet<string> },
+  /** The Run actors the viewer may act for (every actor for the GM); the GM sees the true roll mode. */
+  viewer: { controlledActorIds: ReadonlySet<string>; isOwner: boolean },
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): EncounterRuleOccurrenceSummaryDto {
   const controls = (actorId: string) => viewer.controlledActorIds.has(actorId)
@@ -182,6 +182,9 @@ export function projectEncounterSpatialOccurrenceSummary(
         null)
       : null
     if (context.phase.kind === 'ACTION_EVIDENCE') {
+      const { d20Policy, d20Belief, heldD20 } = context.phase
+      // A roller that does not own the Encounter sees the sight it believes, never the true one.
+      const shown = !viewer.isOwner && d20Belief ? d20Belief : d20Policy
       if (!actionEvidenceOption || !controls(context.phase.rollerActorId)) {
         return {
           occurrenceId: occurrence.id,
@@ -195,7 +198,7 @@ export function projectEncounterSpatialOccurrenceSummary(
         occurrenceVersion: occurrence.version,
         status: 'PENDING',
         pending:
-          context.phase.d20Policy === null
+          shown === null
             ? {
                 kind: 'ACTION_OUTCOME_EVIDENCE',
                 occurrenceId: occurrence.id,
@@ -219,11 +222,22 @@ export function projectEncounterSpatialOccurrenceSummary(
                   requestId: pendingSnapshot.request.requestId,
                   min: 1,
                   max: 20,
-                  rollMode: context.phase.d20Policy.rollMode,
-                  derivedRollModeReasons: reasons({
-                    rollMode: context.phase.d20Policy.rollMode,
-                    contributors: context.phase.d20Policy.contributors
-                  })
+                  ...(heldD20
+                    ? {
+                        rollMode: 'NORMAL' as const,
+                        derivedRollModeReasons: [],
+                        heldD20: {
+                          faces: heldD20.faces,
+                          caption: viewer.isOwner ? heldD20.gmReason : heldD20.playerCaption
+                        }
+                      }
+                    : {
+                        rollMode: shown.rollMode,
+                        derivedRollModeReasons: reasons({
+                          rollMode: shown.rollMode,
+                          contributors: shown.contributors
+                        })
+                      })
                 },
                 allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
               }

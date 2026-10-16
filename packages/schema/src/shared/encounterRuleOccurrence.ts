@@ -312,6 +312,24 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
+        kind: z.literal('ON_HIT_CHOICE'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        attackerActorId: uuidSchema,
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              riderId: uuidSchema,
+              slotLevel: z.number().check(z.int()).check(z.positive())
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
+        allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
+      z.strictObject({
         kind: z.literal('LEGENDARY_ACTION_CHOICE'),
         occurrenceId: uuidSchema,
         occurrenceVersion: versionSchema,
