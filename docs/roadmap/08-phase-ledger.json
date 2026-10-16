@@ -8383,7 +8383,7 @@
         {
           "id": "SPELLS-23",
           "title": "Aiming a directed area on the map",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8410,7 +8410,21 @@
             "tc": 2,
             "rr": 3,
             "size": 3
-          }
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-23.T1",
+              "text": "Directed-area aiming on the map: press, drag and release aims a cone, line or Self cube and commits exactly the drawn origin and direction; a point for a directed area, or a direction for a point area, is refused room-side with its own message; a Self cube snaps to the grid on the caster's chosen side, centered along it, for every side and size. Proved through the renderer gesture and the room refusals.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-23.1", "SPELLS-23.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-24",
