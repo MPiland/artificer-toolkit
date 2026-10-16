@@ -68,7 +68,7 @@ jobs:
           if [ -n "$STEPS" ]; then args+=(--steps="$STEPS"); fi
           node scripts/liveBackendValidation.mjs "${args[@]}"
       - name: Generated files match the commit
-        run: node scripts/generatedDrift.mjs apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated
+        run: node scripts/generatedDrift.mjs apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
       - name: Step durations
         if: always()
         run: |

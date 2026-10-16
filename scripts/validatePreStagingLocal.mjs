@@ -101,6 +101,7 @@ const generatedFiles = [
 // Where codegen writes: a file it newly adds there is untracked, so only the status of these roots sees it.
 const generatedRoots = [
   'apps/apis/convex/_generated',
+  'apps/apis/convex/betterAuth/_generated',
   'apps/apis/convex/betterAuth/schema.ts',
   'apps/apis/convex/content/srdManifest.generated.ts'
 ]
@@ -220,6 +221,9 @@ async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefau
         'The local environment file must not store CONVEX_SELF_HOSTED_ADMIN_KEY; it is generated at run time.'
       )
     }
+    if (name === 'CONVEX_DEPLOY_KEY') {
+      throw new Error('The local environment file must not store CONVEX_DEPLOY_KEY.')
+    }
     if (isRemoteOnlyEnvironmentName(name)) {
       assertLoopbackUrl(name, value)
       loopbackRemoteNames.push(name)
@@ -229,6 +233,7 @@ async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefau
     process.env[name] = value
   }
   delete process.env.CONVEX_DEPLOYMENT
+  delete process.env.CONVEX_DEPLOY_KEY
   process.env.YARN_INJECT_ENVIRONMENT_FILES = resolvedPath
   const localEnvironment = {
     loopbackRemoteNames: loopbackRemoteNames.sort(),
