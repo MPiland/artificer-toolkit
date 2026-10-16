@@ -7,6 +7,8 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
@@ -1162,19 +1164,20 @@ describe('room area commit with Legendary Resistance', () => {
   })
 })
 
-describe('room area action that leaves a condition behind (SPELLS-19.1)', () => {
-  const frightenedId = () => {
-    const condition = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
-    if (!condition) throw new Error('The SRD vocabulary has no Frightened condition.')
-    return condition.id
-  }
-  const conditionsOf = (history: RoomHistory, id: string) =>
-    (
-      (vitalsOf(history).find((vitals) => vitals.id === id)?.conditions ?? []) as {
-        conditionTypeId: string
-      }[]
-    ).map(({ conditionTypeId }) => conditionTypeId)
+function frightenedId() {
+  const condition = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
+  if (!condition) throw new Error('The SRD vocabulary has no Frightened condition.')
+  return condition.id
+}
 
+const conditionsOf = (history: RoomHistory, id: string) =>
+  (
+    (vitalsOf(history).find((vitals) => vitals.id === id)?.conditions ?? []) as {
+      conditionTypeId: string
+    }[]
+  ).map(({ conditionTypeId }) => conditionTypeId)
+
+describe('room area action that leaves a condition behind (SPELLS-19.1)', () => {
   it('leaves Frightened and its lasting effect on each creature that fails, and one undo takes them from every one', async () => {
     const creature = frightenOnFailedSave(fireballWolf())
     const room = await actionRoom({
@@ -1233,6 +1236,75 @@ describe('room area action that leaves a condition behind (SPELLS-19.1)', () => 
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect((await readRoomHistory(room.room.base.stub)).characterEffects).toEqual([])
+  })
+})
+
+/** Acid Splash whose failed save frightens for two rounds instead of burning. */
+function frighteningSplash(): SpellAuthored {
+  return {
+    ...acidSplash,
+    effects: acidSplash.effects.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) =>
+        !('resultBlock' in path)
+          ? path
+          : {
+              ...path,
+              resultBlock: {
+                id: '00000000-0000-4000-8000-0000000000c1',
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: '00000000-0000-4000-8000-0000000000c2',
+                  durationKind: 'ROUND' as const,
+                  amount: 2
+                },
+                outcomes: [
+                  {
+                    id: '00000000-0000-4000-8000-0000000000c3',
+                    effectKind: 'CONDITION' as const,
+                    conditionId: frightenedId()
+                  }
+                ]
+              }
+            }
+      )
+    }))
+  }
+}
+
+describe('room cast on chosen creatures that leaves a condition (SPELLS-19.1)', () => {
+  it('leaves Frightened and its lasting effect on the creature that fails, and one undo takes it back', async () => {
+    const spell = frighteningSplash()
+    const room = await actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+        srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
+      ],
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterAction: (action) => action.label === spell.label,
+      rolls: []
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    const { answer } = await room.startActorsAction([CAUGHT_IDS[0]!, CAUGHT_IDS[1]!], [], true)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room, { [CAUGHT_IDS[1]!]: 20 })
+
+    const committed = await readRoomHistory(room.room.base.stub)
+    expect(conditionsOf(committed, CAUGHT_IDS[0]!)).toContain(frightenedId())
+    expect(conditionsOf(committed, CAUGHT_IDS[1]!)).not.toContain(frightenedId())
+    expect(committed.activeEffects.map((effect) => effect.targetActorId)).toEqual([CAUGHT_IDS[0]!])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const reverted = await readRoomHistory(room.room.base.stub)
+    expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
+    expect(reverted.activeEffects).toEqual([])
   })
 })
 

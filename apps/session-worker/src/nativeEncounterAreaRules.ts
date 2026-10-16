@@ -1042,13 +1042,14 @@ function leadActiveEffectPlan(prepared: AreaPrepared) {
 
 /**
  * Refuses an area outcome that a Concentration maintains: one maintained state would have to span
- * every creature the area caught, which an area does not commit yet. Without `maintenance` it
- * checks the action's effect plan (at open); with it, what the settled outcome produced (at commit).
+ * every creature the area caught, which an area does not commit yet. By default it checks the
+ * action's effect plan (at open); at commit the caller passes what the settled outcome produced.
  */
-export function refuseAreaMaintainedEffect(prepared: AreaPrepared, maintenance?: unknown) {
-  const maintained =
-    maintenance === undefined ? leadActiveEffectPlan(prepared)?.maintenance : maintenance
-  if (maintained)
+export function refuseAreaMaintainedEffect(
+  prepared: AreaPrepared,
+  maintenance: object | null | undefined = leadActiveEffectPlan(prepared)?.maintenance
+) {
+  if (maintenance)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
