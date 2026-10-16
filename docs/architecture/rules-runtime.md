@@ -599,6 +599,14 @@ options (ADR 0038); nothing in code names Hide.
 - **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
   receipt, undone by `REVERT_LAST_ACTION`). It is the override for lighting and other circumstances the engine does not
   derive.
+- **GM projection (D116, AC 10.6).** The GM's actor projection carries `concealment` (`listConcealment` in `encounterConcealment.ts`,
+  filled by `withActiveGrants` in `encounter-persistence/nativeProjection.ts`): the effect id the command targets, the frozen
+  `concealmentTotal` and `observerActorIds`, or `null` when the actor hides from no one. It is `omit`ted from the stored Run actor
+  state (`encounterRunState.ts`) and absent from the player actor contract (`encounterPlayerActorDtoSchema`), whose projector copies
+  fields one by one, so no projection read or room frame to a player names an observer or the effect. The turn-order drawer lists every other actor as "Hidden from" (button: Stop hiding) or
+  "Noticed by" (button: Hide) and sends the command; the set members are the observers the creature is hidden from. Proofs: the
+  per-viewer unit test in `encounterPlayerProjection.test.ts`, the room test in `nativeRoomHideAction.test.ts` (the GM's commit delta
+  has it, a player's messages never do) and the live journey `apps/web/tests/live-backend/encounterHide.ts`.
 
 ### Condition mechanics (D94, current)
 

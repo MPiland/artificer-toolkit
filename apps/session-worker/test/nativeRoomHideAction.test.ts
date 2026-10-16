@@ -463,6 +463,41 @@ describe('who learns whom the hider is hidden from, in the room', () => {
   })
 })
 
+describe('who is shown the observers a hider is hidden from, in the room', () => {
+  it('lists them on the GM’s projection of the hider and on no player’s, whatever the GM changes (D116)', async () => {
+    const fixture = await hideRoom()
+    const player = await connectPlayer(fixture.room.room.base)
+    await hide(fixture, 10)
+    const id = await effectId(fixture)
+    const changed = await setObservers(fixture, id, { add: [ALERT_ID], remove: [] })
+    expect(changed.type, JSON.stringify(changed)).toBe('COMMAND_COMMITTED')
+    if (changed.type !== 'COMMAND_COMMITTED' || changed.delta?.scope !== 'ENCOUNTER')
+      throw new Error('Missing the GM’s Encounter answer.')
+    const hider = changed.delta.result.projection.actors.find(
+      ({ id: actorId }) => actorId === HIDER_ID
+    )
+    expect(hider).toMatchObject({
+      concealment: {
+        effectId: id,
+        concealmentTotal: 15,
+        observerActorIds: [SHARP_ID, ALERT_ID].sort()
+      }
+    })
+
+    await vi.waitFor(() =>
+      expect(
+        player.messages.some(
+          (message) =>
+            message.type === 'COMMAND_COMMITTED' && message.commandId === changed.commandId
+        )
+      ).toBe(true)
+    )
+    const seen = JSON.stringify(player.messages)
+    for (const hidden of ['concealment', 'observerActorIds', 'concealedFromActorIds', id])
+      expect(seen).not.toContain(hidden)
+  })
+})
+
 describe('who sees the Hide and Search rolls, in the room', () => {
   const secretKeys = ['concealedFromActorIds', 'concealmentTotal', 'hiddenFromActorIds']
   const framesOf = (player: Awaited<ReturnType<typeof connectPlayer>>) =>

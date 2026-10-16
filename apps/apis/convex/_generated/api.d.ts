@@ -113548,6 +113548,11 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concealment?: {
+                    concealmentTotal: number;
+                    effectId: string;
+                    observerActorIds: Array<string>;
+                  } | null;
                   concentration?: {
                     label: string | null;
                     sourceHidden: boolean;
@@ -114350,6 +114355,11 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concealment?: {
+                    concealmentTotal: number;
+                    effectId: string;
+                    observerActorIds: Array<string>;
+                  } | null;
                   concentration?: {
                     label: string | null;
                     sourceHidden: boolean;
@@ -115173,6 +115183,11 @@ export declare const api: {
                 remainingTicks: number | null;
                 sourceHidden: boolean;
               }>;
+              concealment?: {
+                concealmentTotal: number;
+                effectId: string;
+                observerActorIds: Array<string>;
+              } | null;
               concentration?: {
                 label: string | null;
                 sourceHidden: boolean;
@@ -115461,6 +115476,11 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concealment?: {
+                    concealmentTotal: number;
+                    effectId: string;
+                    observerActorIds: Array<string>;
+                  } | null;
                   concentration?: {
                     label: string | null;
                     sourceHidden: boolean;
@@ -115962,6 +115982,11 @@ export declare const api: {
               remainingTicks: number | null;
               sourceHidden: boolean;
             }>;
+            concealment?: {
+              concealmentTotal: number;
+              effectId: string;
+              observerActorIds: Array<string>;
+            } | null;
             concentration?: {
               label: string | null;
               sourceHidden: boolean;
