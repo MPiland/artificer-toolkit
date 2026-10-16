@@ -8,6 +8,7 @@ import {
 import { absorbElementsSpell } from '@artificer-toolkit/rules-runtime/testing/absorbElementsSpell'
 import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltingGauntlet'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -682,5 +683,128 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
     await strike(room, 0, ['ACTION_ECONOMY_UNAVAILABLE'])
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+  })
+})
+
+/**
+ * REACTION-4.2: a hit offers every reaction its target can use, as a menu (a Character has one
+ * reaction a round), so Shield and Absorb Elements both appear on one elemental hit.
+ */
+describe('room reaction menu for one hit (REACTION-4.2)', () => {
+  const absorbElements = absorbElementsSpell(['FIRE'])
+  const fireBite = biteWolf('ATTACK', {
+    damage: 10,
+    save: { ability: 'DEXTERITY', damageTypeCode: 'FIRE' }
+  })
+  const menuRoom = () =>
+    actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: fireBite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(fireBite, 'Bite').id,
+      characterSpellcasting: {
+        spells: [shield, absorbElements],
+        prepared: [shield.id, absorbElements.id]
+      }
+    })
+
+  /** The held offer, with the option that uses the reaction of each trigger. */
+  async function offeredMenu(room: Awaited<ReturnType<typeof menuRoom>>) {
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'REACTION_CHOICE') throw new Error('Expected the reaction menu.')
+    const context = await readPendingActionContext(room.room.base.stub)
+    if (context.kind !== 'ENCOUNTER_ACTION' || !context.reactionChoice)
+      throw new Error('Expected a held reaction offer.')
+    const optionFor = (trigger: 'ATTACKED_SELF' | 'DAMAGE_TAKEN') => {
+      const reaction = context.reactionChoice?.reactions.find((pin) => pin.trigger === trigger)
+      if (!reaction) throw new Error(`The menu offers no ${trigger} reaction.`)
+      return { kind: 'OPTION' as const, optionId: reaction.useOptionId }
+    }
+    return { decision, pending: decision.pending, context, optionFor }
+  }
+
+  it('offers Shield and Absorb Elements together for one fire hit', async () => {
+    const room = await menuRoom()
+    await strike(room, 0)
+    const { pending, context } = await offeredMenu(room)
+
+    expect(pending.options).toHaveLength(2)
+    expect(pending.options.map(({ optionId }) => optionId)).toEqual(
+      context.reactionChoice?.reactions.map(({ useOptionId }) => useOptionId)
+    )
+    expect(context.reactionChoice?.reactions.map(({ trigger }) => trigger).sort()).toEqual([
+      'ATTACKED_SELF',
+      'DAMAGE_TAKEN'
+    ])
+    expect(await readSpellSlots(room)).toEqual([])
+  })
+
+  it('uses the reaction chosen and leaves the other unspent', async () => {
+    const room = await menuRoom()
+    await strike(room, 0)
+    const { decision, optionFor } = await offeredMenu(room)
+
+    const used = await room.resolve(decision, optionFor('DAMAGE_TAKEN'))
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    const batch = characterBatch(history)
+    expect(hitPointsLost(batch)).toBe(5)
+    expect(batch.reaction).toMatchObject({
+      selection: 'USE',
+      reaction: { trigger: 'DAMAGE_TAKEN' },
+      spellCastConsumption: { spellId: absorbElements.id }
+    })
+    expect(history.characterEffects).toHaveLength(1)
+    expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+  })
+
+  it('uses the other reaction when that is the one chosen', async () => {
+    const room = await menuRoom()
+    await strike(room, 0)
+    const { decision, optionFor } = await offeredMenu(room)
+
+    const used = await room.resolve(decision, optionFor('ATTACKED_SELF'))
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    expect(hitPointsLost(batch)).toBe(0)
+    expect(batch.reaction).toMatchObject({
+      selection: 'USE',
+      reaction: { trigger: 'ATTACKED_SELF' },
+      spellCastConsumption: { spellId: shield.id }
+    })
+  })
+
+  it('declines every offered reaction at once, spending nothing', async () => {
+    const room = await menuRoom()
+    await strike(room, 0)
+    const { decision } = await offeredMenu(room)
+
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(hitPointsLost(characterBatch(history))).toBe(10)
+    expect(history.characterEffects).toEqual([])
+    expect(await readSpellSlots(room)).toEqual([])
+  })
+
+  it('seals only reactions that belong to the creature the hit lands on', async () => {
+    const room = await menuRoom()
+    await strike(room, 0)
+    const { context } = await offeredMenu(room)
+
+    const parses = (value: unknown) =>
+      encounterActionPendingContextDtoSchema.safeParse(value).success
+    expect(parses(context)).toBe(true)
+    const [first, second] = context.reactionChoice!.reactions
+    expect(
+      parses({
+        ...context,
+        reactionChoice: {
+          ...context.reactionChoice,
+          reactions: [first, { ...second, reactorActorId: WOLF_ID }]
+        }
+      })
+    ).toBe(false)
   })
 })
