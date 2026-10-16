@@ -629,6 +629,8 @@ describe('native Campaign custody deletion', () => {
         expect(rowString(balances[0], 'denominationId')).toBe(produced.denominationIds.unused)
       }
       const expectedSnapshot = expectedAfter(before, target, base.other.userId)
+      // RED REPRODUCTION: outlast the 2 s snapshot-build delay so the build fires before deletion.
+      await new Promise((resolve) => setTimeout(resolve, 2_500))
       const nativeTimeMs = Date.now()
       vi.useFakeTimers()
       const clock = vi.spyOn(Date, 'now').mockReturnValue(nativeTimeMs)
