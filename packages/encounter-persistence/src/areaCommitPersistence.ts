@@ -17,7 +17,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   encounterAreaTargetCommandId,
-  encounterAreaTargetOccurrenceId
+  encounterAreaTargetOccurrenceId,
+  encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -25,7 +26,6 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import {
-  areaActionPendingContext,
   requireAreaActionAnswer,
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot,
@@ -95,11 +95,23 @@ function carriesCasterSpend(batch: TargetBatch, root: AreaRoot, merged: boolean)
   )
 }
 
+/** What a commit is verified against: the creatures it keeps and the scope the root sealed. */
+type CommitScope = {
+  /** The kept creatures in commit order, and whether the caster perceives each. */
+  targets: readonly { actorId: string; perceivedByCaster: boolean }[]
+  caughtChecksum: string
+  removedActorIds: readonly string[]
+  /** The Scene the commit places its zone on; null when it places none. */
+  zoneSceneId: string | null
+}
+
 /**
- * Commits a point-area action in the transaction of the answer that settled it: the root with the
- * caster's one spend, each kept creature's outcome as its own child receipt, and the Concentration
- * checks the damage asks for. The area's final snapshot is validated against the stored area, so a
- * planner can neither skip a creature's save nor settle an undecided Legendary Resistance.
+ * Commits a point-area action in the transaction of the answer that settled it, or a cast on a list
+ * of chosen creatures (D118) in the one transaction that ran it: the root with the caster's one
+ * spend, each kept creature's outcome as its own child receipt, and the Concentration checks the
+ * damage asks for. A pending area's final snapshot is validated against the stored area, so a
+ * planner can neither skip a creature's save nor settle an undecided Legendary Resistance; a chosen
+ * list never pends, so its creatures are the ones the command named, in order.
  */
 export async function persistEncounterAreaCommit(
   ctx: EncounterCharacterWriteTransaction & {
@@ -142,7 +154,6 @@ export async function persistEncounterAreaCommit(
     })
   const { resume, removal, initiatorUserId } = admission
   const command = admission.input
-  const { target: areaTarget } = command
   // The pending area this commit settles: a creature's answer resumes it, and so does the GM's
   // removal of the last creature it waited on.
   const pendingOccurrence = resume?.occurrence ?? removal?.occurrence ?? null
@@ -150,73 +161,99 @@ export async function persistEncounterAreaCommit(
   const rootExecution = input.execution
   if (
     command.type !== 'RESOLVE_ACTION' ||
-    areaTarget.kind === 'ACTOR' ||
+    command.target.kind === 'ACTOR' ||
     command.optionalCombatIntent != null ||
     rootExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_AREA_ACTION' ||
     rootExecution.occurrenceVersion !== occurrenceVersion ||
-    rootExecution.occurrenceId !== input.area.occurrenceId ||
     (pendingOccurrence && rootExecution.occurrenceId !== pendingOccurrence.id)
   )
     throw new Error('Live Session terminal action is not an ordinary completed area.')
   const root = rootExecution.applicationOutputs
   const areaOccurrenceId = rootExecution.occurrenceId
-  // The area's final snapshot is the stored one with exactly the answer or removal that settled it.
-  if (removal) {
-    if (input.removal?.actorId.toLowerCase() !== removal.input.actorId)
-      throw new Error('Live Session pending area removal mismatch.')
-    requireAreaActionRemoval({
-      stored: removal.snapshot,
-      next: input.area,
-      actorId: removal.input.actorId
-    })
-  }
-  if (resume) {
-    if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
-    if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
-      requireAreaActionLegendaryResistance({
-        stored: resume.area.snapshot,
-        next: input.area,
-        actorId: resume.area.actorId
-      })
-    else
-      requireAreaActionAnswer({
-        stored: resume.area.snapshot,
-        next: input.area,
-        requestId: resume.pending.snapshot.request.requestId
-      })
-  }
-  const context = await requireAreaActionPendingRoot(
-    {
-      snapshot: input.area,
-      command: { ...command, target: areaTarget },
-      fingerprint,
-      initiatorUserId,
-      state
-    },
-    callbacks.readAreaSceneInputs
-  )
-  if (
-    context.targets.some(
-      (target) =>
-        target.testedJson === undefined ||
-        (target.legendaryResistance !== undefined &&
-          target.legendaryResistance.decision === undefined)
+  const { target } = command
+  let scope: CommitScope
+  if (input.area === null) {
+    // A chosen list never waits on anyone, so nothing resumes or is removed.
+    if (
+      target.kind !== 'ACTORS' ||
+      pendingOccurrence ||
+      input.response ||
+      input.removal ||
+      target.actorIds.some((actorId) => !state.actorIds.includes(actorId))
     )
-  )
-    throw new Error('Live Session area has an unanswered save or undecided choice.')
-  const kept = context.targets.map((target) => ({
-    actorId: target.actorId,
-    occurrenceId: encounterAreaTargetOccurrenceId(areaOccurrenceId, target.actorId)
+      throw new Error('Live Session chosen creatures scope mismatch.')
+    scope = {
+      targets: target.actorIds.map((actorId) => ({ actorId, perceivedByCaster: true })),
+      caughtChecksum: encounterChosenActorsChecksum(target.actorIds),
+      removedActorIds: [],
+      zoneSceneId: null
+    }
+  } else {
+    const { area } = input
+    if (target.kind === 'ACTORS' || rootExecution.occurrenceId !== area.occurrenceId)
+      throw new Error('Live Session terminal action is not an ordinary completed area.')
+    // The area's final snapshot is the stored one with exactly the answer or removal that settled it.
+    if (removal) {
+      if (input.removal?.actorId.toLowerCase() !== removal.input.actorId)
+        throw new Error('Live Session pending area removal mismatch.')
+      requireAreaActionRemoval({
+        stored: removal.snapshot,
+        next: area,
+        actorId: removal.input.actorId
+      })
+    }
+    if (resume) {
+      if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
+      if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
+        requireAreaActionLegendaryResistance({
+          stored: resume.area.snapshot,
+          next: area,
+          actorId: resume.area.actorId
+        })
+      else
+        requireAreaActionAnswer({
+          stored: resume.area.snapshot,
+          next: area,
+          requestId: resume.pending.snapshot.request.requestId
+        })
+    }
+    const context = await requireAreaActionPendingRoot(
+      {
+        snapshot: area,
+        command: { ...command, target },
+        fingerprint,
+        initiatorUserId,
+        state
+      },
+      callbacks.readAreaSceneInputs
+    )
+    if (
+      context.targets.some(
+        (sealed) =>
+          sealed.testedJson === undefined ||
+          (sealed.legendaryResistance !== undefined &&
+            sealed.legendaryResistance.decision === undefined)
+      )
+    )
+      throw new Error('Live Session area has an unanswered save or undecided choice.')
+    scope = {
+      targets: context.targets,
+      caughtChecksum: context.caughtChecksum,
+      removedActorIds: context.removedActorIds,
+      zoneSceneId: context.placesZone ? context.scene.sceneId : null
+    }
+  }
+  const kept = scope.targets.map(({ actorId }) => ({
+    actorId,
+    occurrenceId: encounterAreaTargetOccurrenceId(areaOccurrenceId, actorId)
   }))
   if (
-    areaActionPendingContext(input.area) === null ||
     root.sourceActorId !== command.actorId ||
-    root.caughtChecksum !== context.caughtChecksum ||
+    root.caughtChecksum !== scope.caughtChecksum ||
     root.placedSpatialEffectId !== (input.placedZone?.id ?? null) ||
-    context.placesZone !== (input.placedZone !== null) ||
-    checksumCanonicalJson(root.removedActorIds) !==
-      checksumCanonicalJson(context.removedActorIds) ||
+    (scope.zoneSceneId !== null) !== (input.placedZone !== null) ||
+    checksumCanonicalJson(root.removedActorIds) !== checksumCanonicalJson(scope.removedActorIds) ||
     checksumCanonicalJson(root.targetOccurrenceIds) !==
       checksumCanonicalJson(kept.map(({ occurrenceId }) => occurrenceId)) ||
     checksumCanonicalJson(input.targets.map(({ actorId }) => actorId)) !==
@@ -423,10 +460,10 @@ export async function persistEncounterAreaCommit(
     resume: pendingOccurrence ? { occurrence: pendingOccurrence } : null,
     occurredAt: input.occurredAt
   })
-  if (input.placedZone)
+  if (input.placedZone && scope.zoneSceneId !== null)
     await createPlacedSpatialEffect(ctx, {
       encounterId: state.id,
-      sceneId: context.scene.sceneId,
+      sceneId: scope.zoneSceneId,
       zone: input.placedZone
     })
   for (const { execution, actor, occurrenceId } of children)
@@ -499,7 +536,7 @@ export async function persistEncounterAreaCommit(
       source,
       target: rollerAsPerceivedByCaster(
         actor,
-        context.targets.find((target) => target.actorId === actor.id)?.perceivedByCaster ?? true
+        scope.targets.find((target) => target.actorId === actor.id)?.perceivedByCaster ?? true
       ),
       initiatorUserId,
       visibility: command.visibility,
@@ -538,16 +575,18 @@ export async function persistEncounterAreaCommit(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       issuerLines: children.flatMap(({ actor, batch }) => {
+        // A cast on chosen creatures asks no save, so it has nothing to report per creature.
+        if (!batch.d20) return []
         // The rolled d20 keeps its failed path when Legendary Resistance turned it into a success.
         const failed =
           batch.d20?.resultPath === 'ON_SAVE_FAIL' &&
           !(batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' && batch.legendaryResistance?.use)
-        if (context.targets.find((target) => target.actorId === actor.id)?.perceivedByCaster)
+        if (scope.targets.find((target) => target.actorId === actor.id)?.perceivedByCaster)
           return [`${actor.label} ${failed ? 'failed its save' : 'succeeded on its save'}`]
         // An unperceived creature reaches the caster only by failing, and then unnamed.
         return failed ? ['An unseen creature failed its save'] : []
       }),
-      gmLines: context.removedActorIds.map((actorId) => {
+      gmLines: scope.removedActorIds.map((actorId) => {
         const removed = actors.find((actor) => actor.id === actorId)
         if (!removed) throw new Error('Live Session area removed an unknown creature.')
         return `GM removed ${removed.label} from the area`

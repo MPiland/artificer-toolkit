@@ -51,7 +51,8 @@ const isMeasuredRange = (range: PolicyRange): range is MeasuredRange =>
  * What the single-target evaluator measures: its user for a Self range, otherwise a measurable
  * range with the disposition it checks. Null is a policy it refuses: a shaped or path-overridden
  * policy (an area or movement action), a range it cannot measure (sight, special), or targeting
- * that is not a single target with a disposition and no excluded creature types.
+ * that is not a single target or a list of chosen creatures (each measured on its own) with a
+ * disposition and no excluded creature types.
  */
 export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
   | { kind: 'SELF' }
@@ -70,21 +71,27 @@ export function singleTargetMeasure(policy: CompiledActionTargetPolicy):
       >['self']
     }
   | null {
-  if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
+  if (policy.pathOverrides.length !== 0) return null
   const { range, targeting } = policy
+  // A list of chosen creatures inside an area is held to the area, whose picked point carries the
+  // range; the creatures themselves are only checked for their disposition.
+  const inArea = policy.shape !== null
+  if (inArea && targeting?.selectionKind !== 'CHOSEN_CREATURES') return null
   if (range.rangeKind === 'SELF') return { kind: 'SELF' }
   if (
     !isMeasuredRange(range) ||
-    targeting?.selectionKind !== 'SINGLE_TARGET' ||
+    (targeting?.selectionKind !== 'SINGLE_TARGET' &&
+      targeting?.selectionKind !== 'CHOSEN_CREATURES') ||
     targeting.dispositionKind === undefined ||
     targeting.excludedCreatureTypeIds?.length
   )
     return null
   return {
     kind: 'MEASURED',
-    range,
+    range: inArea ? { rangeKind: 'UNLIMITED' } : range,
     dispositionKind: targeting.dispositionKind,
-    self: targeting.self
+    // A list of chosen creatures may include its user freely.
+    self: targeting.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
   }
 }
 

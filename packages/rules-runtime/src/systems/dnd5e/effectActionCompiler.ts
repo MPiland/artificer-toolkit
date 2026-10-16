@@ -59,7 +59,11 @@ import type {
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
-import { encounterAreaTargetKind } from '../../encounterAreaAction.js'
+import {
+  chosenCreaturesAreaSupported,
+  chosenCreaturesMaxTargets,
+  encounterAreaTargetKind
+} from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
@@ -2270,20 +2274,32 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
+  const supportsTargetRange =
+    invocation.range.rangeKind === 'UNLIMITED' ||
+    invocation.range.rangeKind === 'TOUCH' ||
+    (invocation.range.rangeKind === 'DISTANCE' &&
+      Number.isSafeInteger(invocation.range.amount) &&
+      invocation.range.amount > 0 &&
+      invocation.range.longAmount === undefined)
+  // Excluded creature types stay on the invocation: the room warns for an excluded target and the
+  // table can override it, so they never make an action unsupported.
   const supportsSingleTarget =
-    (invocation.range.rangeKind === 'UNLIMITED' ||
-      invocation.range.rangeKind === 'TOUCH' ||
-      (invocation.range.rangeKind === 'DISTANCE' &&
-        Number.isSafeInteger(invocation.range.amount) &&
-        invocation.range.amount > 0 &&
-        invocation.range.longAmount === undefined)) &&
-    // Excluded creature types stay on the invocation: the room warns for an excluded target and the
-    // table can override it, so they never make an action unsupported.
+    supportsTargetRange &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
     // and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
+  // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
+  // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
+  // once the outcome is read.
+  const supportsChosenCreatures =
+    supportsTargetRange &&
+    invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
+    invocation.targeting.dispositionKind === 'ANY' &&
+    chosenCreaturesMaxTargets(invocation.targeting) !== null &&
+    (!invocation.shape ||
+      chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
@@ -2302,8 +2318,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (invocation.triggerCode !== 'ACTIVATED' &&
       !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'FIXED')) ||
     !supportedActivation ||
-    (!supportsSelf && !supportsSingleTarget) ||
-    invocation.shape
+    (!supportsSelf && !supportsSingleTarget && !supportsChosenCreatures) ||
+    (invocation.shape && !supportsChosenCreatures)
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
   const entry = effect.entries[0]
@@ -2332,6 +2348,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const outcome = entry.outcome
   if (checkAction && outcome.effectKind !== 'STABILIZE')
     unsupported('D&D check action outcome is not supported yet.')
+  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL')
+    unsupported('D&D chosen-creature action outcome must be a heal.')
   // A resolution names no check choice, so the action must list exactly one.
   if (
     invocation.triggerCode === 'CHECK' &&

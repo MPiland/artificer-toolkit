@@ -5,27 +5,21 @@
  * level (the Sheet) chooses its own fallback.
  */
 export function selectScalingRow<
-  Row extends { readonly level?: unknown; readonly order?: unknown },
+  Row extends { readonly level?: unknown; readonly order?: unknown }
 >(rows: readonly Row[], boundLevel: number): Row | null {
-  let selected:
-    (Row & { readonly level: number; readonly order: number }) | null = null;
+  let selected: (Row & { readonly level: number; readonly order: number }) | null = null
   for (const row of rows) {
-    const { level, order } = row;
-    if (
-      typeof level !== "number" ||
-      typeof order !== "number" ||
-      level > boundLevel
-    )
-      continue;
+    const { level, order } = row
+    if (typeof level !== 'number' || typeof order !== 'number' || level > boundLevel) continue
     if (
       selected === null ||
       level > selected.level ||
       (level === selected.level && order < selected.order)
     )
       selected = row as Row & {
-        readonly level: number;
-        readonly order: number;
-      };
+        readonly level: number
+        readonly order: number
+      }
   }
-  return selected;
+  return selected
 }

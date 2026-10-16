@@ -91,6 +91,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
+import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
 import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
@@ -262,7 +263,9 @@ export async function planNativeLiveEncounterAction(
     state.gameSystemId !== system.id ||
     new Set(state.actorIds).size !== state.actorIds.length ||
     !state.actorIds.includes(command.actorId) ||
-    (command.target.kind === 'ACTOR' && !state.actorIds.includes(command.target.actorId))
+    (command.target.kind === 'ACTOR' && !state.actorIds.includes(command.target.actorId)) ||
+    (command.target.kind === 'ACTORS' &&
+      command.target.actorIds.some((actorId) => !state.actorIds.includes(actorId)))
   )
     throw new Error('Encounter rules input binding mismatch.')
   if (state.automationMode === 'MANUAL')
@@ -301,6 +304,28 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
+  if (command.target.kind === 'ACTORS') {
+    if (removalCommand || responseCommand) throw new Error('A chosen-creature action never pends.')
+    return {
+      ...(await planNativeLiveEncounterActorsAction({
+        initial,
+        command: { ...command, target: command.target },
+        fingerprint: admission.fingerprint,
+        state,
+        system,
+        actors,
+        activeEffectsByActorId,
+        loadTarget,
+        capture,
+        runtime: executionOptions.runtime,
+        random: executionOptions.random,
+        requireAutoRoll,
+        autoRollByActorId
+      })),
+      dependencies,
+      revisions
+    }
+  }
   if (command.target.kind !== 'ACTOR') {
     const areaInput = {
       initial,

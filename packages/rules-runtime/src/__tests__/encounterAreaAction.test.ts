@@ -110,6 +110,75 @@ describe('encounter action target kind', () => {
   })
 })
 
+describe('chosen creatures target', () => {
+  const chosen = (
+    targeting: Partial<
+      Omit<
+        Extract<
+          NonNullable<CompiledActionTargetPolicy['targeting']>,
+          { selectionKind: 'CHOSEN_CREATURES' }
+        >,
+        'selectionKind'
+      >
+    >,
+    shape: CompiledActionTargetPolicy['shape'] = null
+  ) =>
+    policy({
+      shape,
+      targeting: { selectionKind: 'CHOSEN_CREATURES', dispositionKind: 'ANY', ...targeting }
+    })
+
+  it('takes a list of actors for a shapeless selection with an authored cap', () => {
+    expect(encounterActionTargetKind(chosen({ maxTargets: 6 }))).toBe('ACTORS')
+    expect(encounterActionChoiceTarget(chosen({ maxTargets: 6 }))).toEqual({
+      kind: 'ACTORS',
+      maxTargets: 6,
+      area: null
+    })
+  })
+
+  it('takes the list inside a round area picked at a point within range', () => {
+    for (const shape of [SHAPES.SPHERE, SHAPES.CYLINDER, SHAPES.CIRCLE])
+      expect(encounterActionTargetKind(chosen({ maxTargets: 6 }, shape)), shape.shapeKind).toBe(
+        'ACTORS'
+      )
+    expect(encounterActionChoiceTarget(chosen({ maxTargets: 6 }, SHAPES.SPHERE))).toEqual({
+      kind: 'ACTORS',
+      maxTargets: 6,
+      area: { kind: 'RADIUS', radius: feet(20) }
+    })
+  })
+
+  it('refuses a list inside an area it cannot aim at a point', () => {
+    for (const shape of [SHAPES.CUBE, SHAPES.CONE, SHAPES.LINE, SHAPES.WALL, SHAPES.DOME])
+      expect(
+        encounterActionTargetKind(chosen({ maxTargets: 6 }, shape)),
+        shape.shapeKind
+      ).toBeNull()
+    expect(
+      encounterActionTargetKind({
+        ...chosen({ maxTargets: 6 }, SHAPES.SPHERE),
+        range: { id: 'range', rangeKind: 'SELF' }
+      })
+    ).toBeNull()
+  })
+
+  it('refuses a selection with no cap, or one this path does not resolve', () => {
+    const scaling = {
+      scalingKind: 'BREAKPOINTS' as const,
+      scalingSource: 'CHARACTER_LEVEL' as const,
+      breakpoints: [{ id: 'breakpoint', level: 5, order: 0, value: { amount: 8 } }]
+    }
+    for (const targeting of [
+      {},
+      { maxTargets: 6, allowRepeatedTargets: true },
+      { maxTargets: 6, resolutionCount: 2 },
+      { maxTargets: 6, maxTargetsScaling: scaling }
+    ])
+      expect(encounterActionTargetKind(chosen(targeting)), JSON.stringify(targeting)).toBeNull()
+  })
+})
+
 describe('encounter action choice target', () => {
   const single = (self: 'ALLOWED' | 'WARN' | 'REFUSED') =>
     encounterActionChoiceTarget(
