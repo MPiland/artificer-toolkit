@@ -501,7 +501,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'bonusMin',
         number(['min'], 'Min', {
           constraints: { minimum: 0 },
-          showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+          showIf: or([
+            parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
+            parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
+          ])
         })
       )
       .set(
@@ -514,7 +517,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'bonusMax',
         number(['max'], 'Max', {
           constraints: { minimum: 0 },
-          showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+          showIf: or([
+            parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
+            parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
+          ])
         })
       )
       .set(

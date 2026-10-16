@@ -1,5 +1,6 @@
 import {
   ABILITY_CODE,
+  ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   MODIFIER_KIND,
@@ -165,6 +166,76 @@ export function duelingRestriction(makeId: (entry: number) => string): FacetAuth
       }
     ]
   }
+}
+
+/**
+ * Two-Weapon Fighting: "add your ability modifier to the damage of the second attack". One grant
+ * per ability restores the positive modifier (`min: 0`) to a Light weapon's bonus-action attack
+ * made with that ability. `makeGrantId(0..1)` names the grants and `makeId(g * 8 + 0..5)` the
+ * restriction of grant `g`.
+ */
+export function twoWeaponFightingGrants(
+  makeGrantId: (entry: number) => string,
+  makeId: (entry: number) => string
+): ModifierGrantAuthored[] {
+  return [ABILITY_CODE.STRENGTH, ABILITY_CODE.DEXTERITY].map((ability, index) => {
+    const id = (entry: number) => makeId(index * 8 + entry)
+    return {
+      id: makeGrantId(index),
+      grantKind: GRANT_KIND.MODIFIER_GRANT,
+      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+      domain: { attackDomain: 'MELEE' as const },
+      modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      payload: { ability, min: 0 },
+      order: index,
+      restrictions: {
+        id: id(0),
+        groups: [
+          {
+            id: id(1),
+            order: 0,
+            contexts: [
+              {
+                id: id(2),
+                order: 0,
+                subject: 'EQUIPMENT' as const,
+                authoringModeKind: 'ALL' as const,
+                conditions: [
+                  {
+                    id: id(3),
+                    order: 0,
+                    kind: 'PREDICATE' as const,
+                    constraint: 'INCLUDE' as const,
+                    predicateCode: 'EQUIPMENT_PROPERTY' as const,
+                    authoringModeKind: 'SELECTED' as const,
+                    properties: ['LIGHT' as const]
+                  },
+                  {
+                    id: id(4),
+                    order: 1,
+                    kind: 'PREDICATE' as const,
+                    constraint: 'INCLUDE' as const,
+                    predicateCode: 'ATTACK_ACTIVATION' as const,
+                    activation: ACTIVATION_CODE.BONUS_ACTION
+                  },
+                  {
+                    id: id(5),
+                    order: 2,
+                    kind: 'PREDICATE' as const,
+                    constraint: 'INCLUDE' as const,
+                    predicateCode: 'ATTACK_ABILITY' as const,
+                    ability
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  })
 }
 
 const ABILITY_SCORE_IMPROVEMENT_ABILITIES = [

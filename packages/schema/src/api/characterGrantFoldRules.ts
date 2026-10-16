@@ -84,6 +84,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'ITEM_SOLE_WEAPON',
       /** The attack uses the ability named by `abilityId`. */
       'ITEM_ATTACK_ABILITY',
+      /** The attack is made with an activation in `requiredIds` (the bonus action of an off-hand attack). */
+      'ITEM_ACTIVATION',
       'UNAVAILABLE',
       'UNSUPPORTED'
     ]),

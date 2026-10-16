@@ -31,8 +31,17 @@ SRD: "...attack with a different light melee weapon that you're holding in the o
 - **Record.** `attacks[].item?: { itemInstanceId, properties[] }`, written by the worker from the candidate's equipment. Only ACTION attacks fill the record; a `BONUS_ACTION` attack is untracked and spends the bonus-action allowance.
 - **Offer and refusal.** `actionChoiceReads.ts` hides an action whose requirement fails; the worker refuses with `SOURCE_REQUIREMENTS_NOT_MET` (the basic-action restriction pattern).
 
+## Design (T5b, implementer choices inside the ruling)
+
+- **Negative-only is the existing clamp.** `resolveAbilityModifierBonus` already clamps `modifier * multiplier` to the payload's `min`/`max`, so "negative only" is `max: 0` and "restore" is `min: 0`; no new mode or enum. The one gap was the optional (finesse) kind, whose payload had only `abilities`: it gains optional `min`/`max` (core type, schema, resolver, form fields), so a finesse weapon's damage grant can be clamped the same way.
+- **Scoping predicate.** A bonus attack needs its damage grants to differ by activation, so one generic EQUIPMENT-context predicate `ATTACK_ACTIVATION` (payload `activation`) joins `ATTACK_ABILITY`. It folds to the restriction condition `ITEM_ACTIVATION` (reusing `requiredIds`), and `Dnd5eModifierTarget` carries the action's `activation` (read from the candidate's invocation). Like `ATTACK_ABILITY`, it needs no item.
+- **Weapon grants (authored in T5c).** A Light weapon's damage grant is EXCLUDE-gated on `BONUS_ACTION`; a copy clamped `max: 0` is INCLUDE-gated. The Action attack keeps the full modifier; the bonus attack gets it only while negative.
+- **Style.** Two-Weapon Fighting is a core grant, not a closed rule: per ability (Strength, Dexterity) a GLOBAL melee-damage `ABILITY_MODIFIER_BONUS` with `min: 0`, gated on LIGHT + `ATTACK_ACTIVATION` BONUS_ACTION + `ATTACK_ABILITY` = that ability, so the restored modifier follows the ability the attack uses. Fighter, Ranger and Champion share `twoWeaponFightingGrants`; the three `CLASS_*TWO_WEAPON*` closed rule kinds are deleted.
+
 ## Log
 
 - T5a started. Red tests first, pushed to a `ci/attack-9-t5a-red` branch; run ids recorded below.
 - T5a red: Tests 38905082156 on `ci/attack-9-t5a-red` @07affe3dc failed on the three intended files (bonus-action compile, requirement module missing, attack record item).
 - T5a green: Tests 38918177360 and Live backend 38918177250 on `ci/attack-9-t5` @bd973edd4 (merged with `ci/merge-batch-ai`).
+- T5b started (base 2e1b67be5). Red tests first: `twoWeaponFightingDamage.test.ts`.
+- T5b red: Tests 38923270291 on `ci/attack-9-t5b-red` @7f52b3fae failed on the new file (five damage assertions, plus two typing errors in the test's own authoring that the implementation commit fixes).

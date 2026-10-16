@@ -104,7 +104,7 @@ function offHandWeapon(
   base: EquipmentAuthored,
   index: number,
   modifiers: EquipmentAuthored['modifiers'],
-  properties = base.properties
+  properties = base.properties ?? []
 ): EquipmentAuthored {
   const [attack] = meleeWeaponEffects(equipId(index), 'PIERCING', '1d6', EQUIPMENT_GRIP.ONE_HANDED)
   const [bonus] = meleeWeaponEffects(
@@ -122,7 +122,7 @@ function offHandWeapon(
       activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 }
     },
     requirements: otherLightMeleeAttack
-  }
+  } as EquipmentEffectAuthored
   const damage = (modifiers ?? []).find((modifier) => modifier.valueDomainCode === 'DAMAGE')
   if (!damage?.restrictions) throw new Error('The weapon builder authors no damage modifier.')
   return {
@@ -182,7 +182,9 @@ const damage = (
   weapon: EquipmentAuthored,
   activation: 'ACTION' | 'BONUS_ACTION'
 ) =>
-  damageExpression(itemAction(character, weapon.label, { attackKind: 'MELEE', activation }).decision)
+  damageExpression(
+    itemAction(character, weapon.label, { attackKind: 'MELEE', activation }).decision
+  )
 
 describe('the off-hand attack’s damage ability modifier (two-weapon fighting)', () => {
   it('adds a positive modifier only to the Action attack, and a negative one to both', () => {
