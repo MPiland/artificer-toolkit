@@ -561,6 +561,8 @@ export interface CharacterActionRuleEntryPoint {
   compiledEffect: CompiledEffectGroup
   /** The level a spell cast is made at, which selects the scaling row the compiler rolls. */
   spellCastLevel?: number
+  /** The Character's level, which selects a cap scaled by it (Eldritch Blast's beams). */
+  characterLevel?: number
 }
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 
