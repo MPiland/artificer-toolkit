@@ -22,7 +22,7 @@ import { seedTurnSaveEffect } from './turnEvidenceFixture.js'
 /**
  * ROOM-6.3, 6.5, 6.6: the maintenance variants the real room settles. A Fighter's Targeted Surge
  * replaces the prior maintained state the Fighter already owns; the prior state's dependents sit on
- * Characters of the Run, on a Character outside the Run, or on a Creature that expires first.
+ * Characters of the Run or on a Creature that expires first.
  */
 
 const FIGHTER_ACTOR_ID = testUuid(0xe00)
@@ -90,34 +90,23 @@ function priorMaintenance(input: {
   }
 }
 
-/**
- * The Fighter beside the Wolf the Surge targets, and the Cleric: a second player's Character in the
- * Run, or with `clericSeat: 'OUTSIDE'` one the Run does not hold.
- */
+/** The Fighter and the Cleric (a second player's Character) beside the Wolf the Surge targets. */
 function maintenanceRoom(
-  config: Pick<ActionRoomConfig, 'automationMode' | 'seed' | 'rolls' | 'definitions'> & {
-    clericSeat?: 'OUTSIDE'
-  }
+  config: Pick<ActionRoomConfig, 'automationMode' | 'seed' | 'rolls' | 'definitions'>
 ) {
-  const { clericSeat, ...roomConfig } = config
-  const fighter = characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })
   return actionRoom({
-    ...roomConfig,
+    ...config,
     // Assisted rooms wait for the player's roll; the others roll for the player or the GM.
     ...(config.automationMode !== 'ASSISTED' && { autoRoll: 'BOTH' as const }),
     // Each action's one d4 shows 1.
     rolls: config.rolls ?? [0, 0],
     characterPlay: { currentHitPoints: 5 },
-    ...(clericSeat === 'OUTSIDE'
-      ? {
-          actors: [fighter, wolf],
-          outsideCasterCharacterId: CLERIC_ID,
-          outsideCasterActorId: CLERIC_ACTOR_ID
-        }
-      : {
-          actors: [fighter, characterActor({ id: CLERIC_ACTOR_ID, characterId: CLERIC_ID }), wolf],
-          secondCharacter: { characterId: CLERIC_ID }
-        }),
+    actors: [
+      characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
+      characterActor({ id: CLERIC_ACTOR_ID, characterId: CLERIC_ID }),
+      wolf
+    ],
+    secondCharacter: { characterId: CLERIC_ID },
     characterClassFeatures: [targetedSurge],
     definitions: config.definitions ?? [maintenanceDefinition],
     characterAction: (action) => action.label.includes(targetedSurge.label)
@@ -234,28 +223,6 @@ describe('a replaced maintained state whose dependents sit on several Characters
     })
   })
 
-  it('ends the dependent of a Character the Run does not hold and advances that Character (detached owner)', async () => {
-    const room = await maintenanceRoom({
-      clericSeat: 'OUTSIDE',
-      seed: priorMaintenance({
-        emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY',
-        dependentActorIds: bothCharacters
-      })
-    })
-    expect((await maintained(room)).characterEffects).toHaveLength(2)
-
-    const { command, answer } = await room.startAction(WOLF_ID)
-    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-
-    const { history, execution } = await settledBy(room, command.commandId)
-    expect(history.characterEffects).toEqual([])
-    expect(history.maintainedStates).toHaveLength(1)
-    expect(history.maintainedStates[0]!.id).not.toBe(PRIOR_STATE_ID)
-    expect(execution.applicationOutputs).toMatchObject({
-      maintenanceTransition: { characterOwnerTransitions: bothOwnersAdvanced }
-    })
-  })
-
   it('still ends the dependent of a Character the GM removed from the Run (D82, not departed)', async () => {
     const room = await maintenanceRoom({ seed })
     await room.commit({
@@ -302,7 +269,7 @@ describe('a prior state whose last dependent expired before the next action (ROO
           ticks: 1,
           damage: 1,
           occurredAt,
-          maintainedEffectStateId: PRIOR_STATE_ID
+          maintainedBy: { stateId: PRIOR_STATE_ID, sourceActorId: FIGHTER_ACTOR_ID }
         })
         definitions.push(dependent.definition)
       }

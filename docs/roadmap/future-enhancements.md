@@ -88,6 +88,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
+- **A maintained-state owner Character that is not a Run actor has no room fixture (ROOM-6.T2, D-pending-room-6-t2).** The room test covers a GM-removed Character (D82; still a Run actor) but not a Character absent from the Run's actors: the memory store's `effects.create` requires the target actor in the Run, and the fixture lists Character dependents only through Run actors. Production loads such an owner through `maintenanceCharacterOwnersAtLoad`, the same path the GM-removed case exercises. Fix by seeding a `CHARACTER`-owned effect when the fixture gains a Character table.
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
