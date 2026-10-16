@@ -83,6 +83,8 @@ export function prepareEncounterActionEffectPlans(input: {
    * null when it beats none. Omitted for every action that plans no concealment.
    */
   concealment?: { concealmentTotal: number; observerActorIds: readonly string[] } | null
+  /** The creatures a bonding action settled on, itself included; omitted for every other action. */
+  link?: { memberActorIds: readonly string[] }
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -233,6 +235,11 @@ function prepareRecurringActiveEffect(
   if (plan.concealmentContribution && input.concealment === undefined)
     throw new EncounterActionEffectPlanError('A concealment plan requires its settled check.')
   const concealment = plan.concealmentContribution ? (input.concealment ?? null) : null
+  const linkContribution = plan.actorLinkContribution ?? null
+  if (linkContribution && !input.link)
+    throw new EncounterActionEffectPlanError('A link plan requires the creatures it bonds.')
+  const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
+  if (linkContribution && linkMemberActorIds.length < 2) return null
   if (plan.concealmentContribution && !concealment?.observerActorIds.length) return null
   const grantLabel = input.sourceLabel?.trim() ?? ''
   if (grantContribution && !grantLabel)
@@ -355,7 +362,13 @@ function prepareRecurringActiveEffect(
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion:
-      conditionContribution || relationshipContribution || grantContribution || concealment ? 2 : 1,
+      conditionContribution ||
+      relationshipContribution ||
+      grantContribution ||
+      concealment ||
+      linkContribution
+        ? 2
+        : 1,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -386,7 +399,9 @@ function prepareRecurringActiveEffect(
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.
       lifetimeScope:
-        grantContribution || conditionContribution ? input.target.lifetimeScope : 'ENCOUNTER',
+        grantContribution || conditionContribution || linkContribution
+          ? input.target.lifetimeScope
+          : 'ENCOUNTER',
       expiration:
         initialRemaining === null
           ? { kind: 'INDEFINITE' }
@@ -397,9 +412,23 @@ function prepareRecurringActiveEffect(
               anchor: tickAnchor
             }
     },
-    ...(conditionContribution || relationshipContribution || grantContribution || concealment
+    ...(conditionContribution ||
+    relationshipContribution ||
+    grantContribution ||
+    concealment ||
+    linkContribution
       ? {
           stateContributions: [
+            ...(linkContribution
+              ? [
+                  {
+                    kind: 'ACTOR_LINK' as const,
+                    linkOutcomeId: linkContribution.linkOutcomeId,
+                    linkKind: linkContribution.linkKind,
+                    memberActorIds: [...linkMemberActorIds].sort()
+                  }
+                ]
+              : []),
             ...(concealment
               ? [
                   {

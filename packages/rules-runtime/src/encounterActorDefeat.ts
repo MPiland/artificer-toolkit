@@ -1,3 +1,4 @@
+import type { EncounterActorAbsenceDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
   isCharacterDead,
   isCharacterDying,
@@ -87,22 +88,22 @@ export function defeatedEncounterActorIds(
 }
 
 /**
- * The actors whose turns initiative skips: the defeated (D63, D96) and the Characters the GM took
- * out of initiative (D82). Both keep their place in the round.
+ * The actors whose turns initiative skips: the defeated (D63, D96) and the absent (D82, D125). All
+ * keep their place in the round.
  */
 export function skippedEncounterActorIds(
-  actors: readonly ({ id: string } & (
-    | { kind: 'CHARACTER'; sourceId: string; outOfInitiative: boolean }
+  actors: readonly ({ id: string; absence: EncounterActorAbsenceDto | null } & (
+    | { kind: 'CHARACTER'; sourceId: string }
     | { kind: 'CREATURE' | 'CUSTOM'; defeated: boolean }
   ))[],
   deadCharacterIds: DeadCharacterIds
 ): ReadonlySet<string> {
   return new Set(
     actors
-      .filter((actor) =>
-        actor.kind === 'CHARACTER'
-          ? actor.outOfInitiative || deadCharacterIds.has(actor.sourceId)
-          : actor.defeated
+      .filter(
+        (actor) =>
+          actor.absence !== null ||
+          (actor.kind === 'CHARACTER' ? deadCharacterIds.has(actor.sourceId) : actor.defeated)
       )
       .map((actor) => actor.id)
   )

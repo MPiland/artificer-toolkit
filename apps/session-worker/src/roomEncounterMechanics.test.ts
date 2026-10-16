@@ -87,7 +87,7 @@ it('settles Character and Creature mechanics from native play with private recei
     kind: 'CHARACTER',
     sourceId: owner.id,
     frozenState: null,
-    outOfInitiative: false,
+    absence: null,
     stableTieKey: uuid(0xb04)
   })
   const creatureActor = encounterRunActorStateSchema.parse({
@@ -102,7 +102,8 @@ it('settles Character and Creature mechanics from native play with private recei
     maxHitPoints: 2,
     tempHitPoints: 0,
     conditions: [],
-    defeated: false
+    defeated: false,
+    absence: null
   })
   const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: owner.systemId, definitions: [] }
   const run = encounterRunStateSchema.parse({

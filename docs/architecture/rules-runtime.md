@@ -1078,9 +1078,16 @@ An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGr
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
 applied in `cleanupRemovedActorEffects` and listed in `removedEffects`). A skipped (defeated or
-out-of-initiative) actor's turn still ticks both boundaries in the turn commit that skips it, so a
+absent (`absence`) actor's turn still ticks both boundaries in the turn commit that skips it, so a
 Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
 through its skipped turns.
+
+**Departure (D125, SPELLS-28.T1).** A TELEPORT outcome with an off-Scene destination (`LINKED_LOCATION` or
+`SPECIAL`) compiles to a target-only `dnd5e.depart-proposal`. Its `DEPART` application sets the chosen actor's
+`absence` to `DEPARTED` (any Run actor kind) in the action commit; revert restores it by the before-state. The
+skip set and the Tabletop stage read `absence`, so initiative skips the actor and its bound token is hidden
+without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. Spatial occupancy and targeting of
+an absent token are not modeled (a defeated token behaves the same). In-Scene destinations are T1b.
 
 **Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
 (`endCompletedRunCharacterEffects`: Encounter-scoped grants), alongside the Creature effects ADR 0035
@@ -1123,6 +1130,14 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 `REACTION_COUNT SET_VALUE 0` grant suppresses the reaction-allowance capability
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
+
+**Actor links (D126, SPELLS-28.T3).** A `TELEPATHIC_LINK` outcome compiles to `dnd5e.actor-link-proposal`
+and an `actorLinkContribution` on the active-effect plan (link kind, outcome id, Intelligence floor, duration
+counted at the end of the target's turn). The plan has no members of its own: the chosen-creature commit
+(`completeAreaCommit`) supplies the creatures the cast reached, and `prepareEncounterActionEffectPlans` writes
+one `ACTOR_LINK` state contribution (members sorted) per target, or none when fewer than two were reached. The
+effects are persisted per child in `areaCommitPersistence.ts` and deleted with it on revert. The contribution
+has no gameplay effect; it is provenance that ends at the duration.
 
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`

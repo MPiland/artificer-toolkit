@@ -81,6 +81,8 @@ import {
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { nativeEffectOwner } from './nativeEncounterSettlement.js'
 import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
@@ -99,6 +101,7 @@ import {
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
+  snapshotAbilityScore,
   snapshotCreatureTypeId,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -996,32 +999,43 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
 
 type AreaPrepared = Awaited<ReturnType<typeof prepareAreaTarget>>['prepared']
 
+function leadActiveEffectPlan(prepared: AreaPrepared) {
+  return encounterActiveEffectPlan(
+    prepared,
+    prepared.plan.kind === 'SINGLE_GRAPH' ? prepared.plan.published : prepared.plan.test.published
+  )
+}
+
 /**
- * Refuses an area outcome that would leave anything behind on a creature: a condition, a lasting or
- * recurring effect, or a maintained effect. An area commits each creature's damage and nothing else
- * yet. Without `effects` it checks the action's effect plan (at open); with them, what the settled
- * outcome actually produced (at commit).
+ * Refuses an area outcome that would leave anything behind on a creature other than an actor link:
+ * a condition, a recurring effect, or a maintained effect. An area commits each creature's damage
+ * and its link yet. Without `effects` it checks the action's effect plan (at open); with them, what
+ * the settled outcome actually produced (at commit).
  */
 export function refuseAreaEffectOutcomes(
   prepared: AreaPrepared,
   effects?: {
     stateEffect: unknown
-    recurringEffect: unknown
+    recurringEffect: Pick<ActiveRuleEffectRecord, 'definition'> | null
     relationshipConditionApplications: readonly unknown[]
     maintenance: unknown
   }
 ) {
   const leavesEffect = effects
     ? effects.stateEffect !== null ||
-      effects.recurringEffect !== null ||
+      (effects.recurringEffect !== null &&
+        !(
+          effects.recurringEffect.definition.schemaVersion === 2 &&
+          effects.recurringEffect.definition.stateContributions.every(
+            ({ kind }) => kind === 'ACTOR_LINK'
+          )
+        )) ||
       effects.relationshipConditionApplications.length > 0 ||
       effects.maintenance !== null
-    : encounterActiveEffectPlan(
-        prepared,
-        prepared.plan.kind === 'SINGLE_GRAPH'
-          ? prepared.plan.published
-          : prepared.plan.test.published
-      ) !== null
+    : (() => {
+        const plan = leadActiveEffectPlan(prepared)
+        return plan !== null && !plan.actorLinkContribution
+      })()
   if (leavesEffect)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
@@ -1067,8 +1081,12 @@ export function reachRuleOverrides(input: {
               sceneContext
             },
             targetDefeated: isEncounterActorDefeated(prepared.target, deadCharacterIds),
-            targetCreatureTypeId: snapshotCreatureTypeId(prepared.target)
-          }))
+            targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
+            targetIntelligence: snapshotAbilityScore(prepared.target, 'INTELLIGENCE')
+          })),
+          linkIntelligenceFloor:
+            leadActiveEffectPlan(input.lead)?.actorLinkContribution
+              ?.excludesIntelligenceAtOrBelow ?? null
         })
       : evaluateEncounterAreaRuleWarnings(shared)
   if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
@@ -1324,6 +1342,7 @@ export async function completeAreaCommit(args: {
   const occurredAt = new Date().toISOString()
   const userId = input.initial.expectedUserId
   const children = []
+  const createdEffects = new Map<string, ActiveRuleEffectRecord>()
   const entries = encounterChosenActorEntries(
     areaOccurrenceId,
     kept.map(({ actor }) => actor.id)
@@ -1341,9 +1360,21 @@ export async function completeAreaCommit(args: {
       execution: complete,
       occurrenceId,
       commandId,
-      activeEffectsByActorId: input.activeEffectsByActorId
+      activeEffectsByActorId: input.activeEffectsByActorId,
+      link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] }
     })
     refuseAreaEffectOutcomes(prepared, effects)
+    const linked = effects.recurringEffect
+      ? prepareActiveRuleEffectRecord({
+          id: crypto.randomUUID(),
+          owner: nativeEffectOwner(prepared.target, state.id),
+          definition: effects.recurringEffect.definition,
+          lifecycle: effects.recurringEffect.lifecycle,
+          currentEffects: input.activeEffectsByActorId.get(actor.id) ?? [],
+          occurredAt
+        })
+      : null
+    if (linked) createdEffects.set(actor.id, linked)
     refuseSpatialInterpretation(prepared, {
       execution: complete.execution,
       occurrenceId,
@@ -1396,6 +1427,7 @@ export async function completeAreaCommit(args: {
       carriesSpend,
       complete,
       mechanics,
+      createdEffects: linked ? [linked] : [],
       resistance,
       execution: buildEncounterActionStoredExecution({
         prepared,
@@ -1405,7 +1437,7 @@ export async function completeAreaCommit(args: {
         settled: mechanics,
         effects: projectNativeActionEffectTransitions({
           state: null,
-          recurring: null,
+          recurring: linked,
           targetActorId: actor.id
         }),
         maintainedState: null,
@@ -1528,6 +1560,12 @@ export async function completeAreaCommit(args: {
     ReturnType<typeof planNativeEncounterActionMechanics>['targetPlan'] | null
   >(children.map((child) => [child.actorId, child.mechanics.targetPlan] as const))
   if (sourceSpend && !plans.has(caster.id)) plans.set(caster.id, sourceSpend.sourceResourcePlan)
+  const activeEffectsByActorId = new Map(input.activeEffectsByActorId)
+  for (const [actorId, effect] of createdEffects)
+    activeEffectsByActorId.set(actorId, [
+      ...(input.activeEffectsByActorId.get(actorId) ?? []),
+      effect
+    ])
   const projectedTargets = new Map(
     [...movementTargets].map(([actorId, target]) => {
       const actor = settledActors.get(actorId)
@@ -1537,7 +1575,7 @@ export async function completeAreaCommit(args: {
         projectEncounterActionTarget({
           target: {
             ...target,
-            activeEffects: input.activeEffectsByActorId.get(actorId) ?? []
+            activeEffects: activeEffectsByActorId.get(actorId) ?? []
           },
           actor,
           plan: plans.get(actorId) ?? null,
@@ -1564,10 +1602,10 @@ export async function completeAreaCommit(args: {
     settlement: {
       actors: actors.map((actor) => settledActors.get(actor.id)!),
       projectedTargets,
-      activeEffectsByActorId: input.activeEffectsByActorId,
+      activeEffectsByActorId,
       maintenanceOwners: [],
       maintainedState: null,
-      createdEffects: []
+      createdEffects: [...createdEffects.values()]
     },
     capture: input.capture,
     runtime: input.runtime,
@@ -1596,9 +1634,10 @@ export async function completeAreaCommit(args: {
       children[0]?.complete.initialPublished.id ??
       (lead.plan.kind === 'SINGLE_GRAPH' ? lead.plan.published.id : lead.plan.test.published.id),
     execution,
-    targets: children.map(({ actorId, execution: targetExecution }) => ({
+    targets: children.map(({ actorId, execution: targetExecution, createdEffects: created }) => ({
       actorId,
-      execution: targetExecution
+      execution: targetExecution,
+      createdEffects: created
     })),
     rollsPerTarget,
     rules,
