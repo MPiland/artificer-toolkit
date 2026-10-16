@@ -1,53 +1,22 @@
-import {
-  SRD_ABILITIES,
-  SRD_CONDITION_TYPES,
-  SRD_SYSTEM_ID
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
-import {
-  buildCompiledActionCompilerSource,
-  compileCharacterActionEntryPoints
-} from '../encounterActionEntryPointCompiler.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
-import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { testUuid } from '../testing/dnd5eSrdEncounter.js'
-import {
-  OPTIONAL_SMITE_EFFECT_ID,
-  OPTIONAL_SMITE_FEATURE_ID,
-  optionalSmite
-} from '../testing/optionalSmite.js'
-import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from './dnd5eSrdCharacter.js'
+import { OPTIONAL_SMITE_EFFECT_ID } from '../testing/optionalSmite.js'
 import { outcomeDice, srdDamageTypeId } from './encounterCreatureAction.js'
+import {
+  HIT,
+  NATURAL_20,
+  SMITE_OCCURRENCE_ID,
+  damage,
+  scriptedRolls,
+  smiteRuntime,
+  smiteTargetBinding,
+  smiterWeaponAttack
+} from './optionalSmiteAttack.js'
 
-const TARGET_ID = testUuid(0xc2)
-/** Ordinary and natural-20 d20 faces (0-based), against the target's Armor Class 11. */
-const HIT = 14
-const NATURAL_20 = 19
-const FIGHTER = srdByLabel(SRD.classes, 'Fighter')
 const RADIANT = srdDamageTypeId('RADIANT')
 const SLASHING = srdDamageTypeId('SLASHING')
-
-/** A Fighter wielding an equipped Longsword who carries the optional smite rider. */
-function smiter() {
-  return evaluateSrdCharacter({
-    abilities: { STRENGTH: 16 },
-    classes: [{ label: 'Fighter', level: 5 }],
-    items: [{ label: 'Longsword', equipped: true }],
-    extraFeatures: [optionalSmite()],
-    features: [
-      {
-        acquisitionId: 'acquired:optional-smite',
-        featureId: OPTIONAL_SMITE_FEATURE_ID,
-        source: { kind: 'CLASS', classId: FIGHTER.id, classLevel: 1 },
-        timing: { kind: 'CLASS_LEVEL', classId: FIGHTER.id, classLevel: 1 }
-      }
-    ]
-  })
-}
 
 /** The Longsword hit with the player's choice (the rider and the slot level paid), or none. */
 async function longswordHit(input: {
@@ -55,101 +24,31 @@ async function longswordHit(input: {
   smite?: { castLevel: number }
   resistantTo?: string
 }) {
-  const character = smiter()
-  const { candidate, decision } = itemAction(character, 'Longsword', {
+  const { plan, actionMechanic, decision } = smiterWeaponAttack('Longsword', {
     attackKind: 'MELEE',
     grip: 'ONE_HANDED'
   })
-  const descriptors = discoverCharacterActionCapabilities({
-    gameSystemId: SRD_SYSTEM_ID,
-    candidates: character.facts.actionCandidates,
-    conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
-    abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
-    entryPoints: character.entryPoints
-  })
-  const index = character.facts.actionCandidates.indexOf(candidate)
-  const action = descriptors[index]
-  const entry = compileCharacterActionEntryPoints({
-    gameSystemId: SRD_SYSTEM_ID,
-    candidates: character.facts.actionCandidates,
-    descriptors
-  })[index]
-  if (!action || entry?.kind !== 'CHARACTER_ACTION' || entry.schemaVersion !== 4)
-    throw new Error('The Longsword hit must compile to a v4 Character action.')
-  if (entry.compilation.kind !== 'COMPILED') throw new Error('The Longsword hit must compile.')
-  const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
-    action,
-    compilerSource: buildCompiledActionCompilerSource(action)
-  })
-  if (!plan) throw new Error('The Longsword hit has no execution plan.')
-  const { actionMechanic } = prepareNativeCharacterActionState({
-    entry: { ...entry, compilation: entry.compilation },
-    candidate,
-    policyOutput: character.output,
-    resourceUsage: [],
-    inventory: [],
-    itemUsage: [],
-    characterId: 'srd-character',
-    expectedStreamVersion: 0,
-    classLevels: character.facts.grantFoldFacts.base.classes,
-    automationMode: 'ASSISTED',
-    overridable: false
-  })
-  const rolls = [...input.rolls]
+  const rolls = scriptedRolls(input.rolls)
   const execution = await executeNativeActionGraphs({
-    runtime: createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(32).fill(1),
-      definitions: {
-        async requireCurrent() {
-          throw new Error('Definitions are not used by sealed graphs.')
-        }
-      }
-    }),
+    runtime: smiteRuntime(),
     adapter: dnd5eCharacterRuleActionSystemAdapter,
     plan,
-    occurrenceId: testUuid(0xc3),
-    binding: {
-      actionMechanic: input.smite
+    occurrenceId: SMITE_OCCURRENCE_ID,
+    binding: smiteTargetBinding(
+      input.smite
         ? {
             ...actionMechanic,
             spellCastLevel: input.smite.castLevel,
             selectedOptionalRiderIds: [OPTIONAL_SMITE_EFFECT_ID]
           }
         : actionMechanic,
-      sourceDerivedFacts: {},
-      targetActorId: TARGET_ID,
-      targetDerivedFacts: { statBlock: { armorClass: 11 } },
-      targetConditionIds: [],
-      currentHitPoints: 59,
-      temporaryHitPoints: 0,
-      maximumHitPoints: 59,
-      targetScalarValues: {},
-      defenses: input.resistantTo ? [{ kind: 'RESISTANCE', damageTypeId: input.resistantTo }] : []
-    },
+      { resistantTo: input.resistantTo }
+    ),
     afterTest: async () => undefined,
-    random: (maxExclusive) => {
-      const value = rolls.shift()
-      if (value === undefined || value >= maxExclusive)
-        throw new Error(`Unexpected random call (max ${maxExclusive}).`)
-      return value
-    }
+    random: rolls.next
   })
-  expect(rolls).toEqual([])
+  expect(rolls.remaining()).toEqual([])
   return { execution, decision }
-}
-
-function damage(execution: Awaited<ReturnType<typeof longswordHit>>['execution']) {
-  return execution.applications.flatMap((application) =>
-    application.kind === 'DAMAGE'
-      ? [
-          {
-            requested: application.requestedAmount,
-            resolved: application.resolvedAmount,
-            damageTypeId: application.damageTypeId
-          }
-        ]
-      : []
-  )
 }
 
 describe('an optional on-hit rider joins the weapon hit only when chosen (D123)', () => {

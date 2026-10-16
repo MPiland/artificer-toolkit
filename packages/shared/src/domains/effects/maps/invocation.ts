@@ -63,46 +63,25 @@ const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes })
 })
 
 const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label: string }[] = [
-  { code: 'SPELL_SLOT', label: 'A spell slot of a level you choose' },
-  { code: 'RESOURCE_POOL', label: 'A use of a resource pool' }
+  { code: 'SPELL_SLOT', label: 'A spell slot of a level you choose' }
 ]
 
 const optionalOnHit = buildNodeMap<OptionalOnHitAuthored>()
 
 const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define(
   'optionalOnHit',
-  ({ map, nodes, cond }) => {
-    const { selectSingle, text, number } = nodes
-    const local = cond.local()
-    const isResourcePool = local.field(['kind']).eq('RESOURCE_POOL')
+  ({ map, nodes }) => {
+    const { selectSingle } = nodes
 
-    map
-      .set(
-        'kind',
-        selectSingle(
-          ['kind'],
-          'Cost',
-          { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
-          { order: 1, requiredIf: true }
-        )
+    map.set(
+      'kind',
+      selectSingle(
+        ['kind'],
+        'Cost',
+        { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
+        { order: 1, requiredIf: true }
       )
-      .set(
-        'chargeId',
-        text(['chargeId'], 'Charge ID', {
-          order: 2,
-          requiredIf: isResourcePool,
-          showIf: isResourcePool
-        })
-      )
-      .set(
-        'cost',
-        number(['cost'], 'Uses', {
-          order: 3,
-          constraints: { minimum: 1 },
-          requiredIf: isResourcePool,
-          showIf: isResourcePool
-        })
-      )
+    )
   }
 )
 

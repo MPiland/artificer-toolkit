@@ -24,7 +24,8 @@ import { buildCharacterGrantFoldModifierFacts } from '../../character/characterG
 import { abilityModifier } from './abilityModifier.js'
 import type {
   ActorRelationshipAuthored,
-  HitPointMaximumReductionAuthored
+  HitPointMaximumReductionAuthored,
+  OptionalOnHitAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
@@ -6643,6 +6644,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       },
       outcomes: testOutcomeTemplateIdentities(source)
     }
+  },
+  optionalOnHitRiders: ({ compilerSource }) => {
+    const riders = new Map<string, OptionalOnHitAuthored>()
+    for (const entry of dndSourceFromCompilerSource(compilerSource).compiledEffect.entries)
+      if ('optionalRider' in entry && entry.optionalRider)
+        riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
+    return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
   },
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({

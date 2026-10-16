@@ -36,9 +36,7 @@ export type ResourceUseAuthored = {
  * add the rider's damage to it. A spell slot lets the player pick the slot level, which keys the
  * rider's `SPELL_CAST_LEVEL` rows (D118, D123).
  */
-export type OptionalOnHitAuthored =
-  | { kind: 'SPELL_SLOT' }
-  | ({ kind: 'RESOURCE_POOL' } & ResourceUseAuthored)
+export type OptionalOnHitAuthored = { kind: 'SPELL_SLOT' }
 
 export type ReactionMovementTriggerBindingAuthored = {
   kind: 'MOVEMENT'
