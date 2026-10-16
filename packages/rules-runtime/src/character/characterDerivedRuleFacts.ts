@@ -9,6 +9,7 @@ import {
   normalizeAbilityKey,
   resolveAbilityAlias,
   resolveSkillAlias,
+  resolveSystemSkillAbilities,
   SKILL_ABILITY_MAP
 } from '@artificer-toolkit/shared/character'
 
@@ -191,36 +192,9 @@ export function buildCharacterDerivedRuleFacts(
 
   const systemSkills =
     registry.system?.schemaVersion === 4
-      ? (() => {
-          const abilitiesById = new Map<string, string>()
-          const skillCodes = new Set<string>()
-          for (const ability of registry.system.abilities ?? []) {
-            const abilityCode = normalizeAbilityKey(ability.code)
-            if (!abilityCode || abilitiesById.has(ability.id)) {
-              throw new Error(`System ability definition "${ability.id}" is ambiguous.`)
-            }
-            abilitiesById.set(ability.id, abilityCode)
-          }
-          return [...(registry.system.skills ?? [])]
-            .sort((left, right) => left.id.localeCompare(right.id))
-            .flatMap((skill) => {
-              if (skill.governingAbilityDefinitionId === null) return []
-              if (!skill.governingAbilityDefinitionId) {
-                throw new Error(`System check definition "${skill.id}" has no governing ability.`)
-              }
-              const skillId = skill.code
-                ?.toLowerCase()
-                .trim()
-                .replace(/_/g, '-')
-                .replace(/\s+/g, '-')
-              const governingAbilityId = abilitiesById.get(skill.governingAbilityDefinitionId)
-              if (!skillId || !governingAbilityId || skillCodes.has(skillId)) {
-                throw new Error(`System check definition "${skill.id}" has an invalid mapping.`)
-              }
-              skillCodes.add(skillId)
-              return [[skillId, governingAbilityId] as const]
-            })
-        })()
+      ? resolveSystemSkillAbilities(registry.system).map(
+          ({ canonicalId, abilityCode }) => [canonicalId, abilityCode] as const
+        )
       : Object.entries(SKILL_ABILITY_MAP)
 
   const skills: DerivedFacts['skills'] = systemSkills.map(([skillId, defaultAbilityId]) => {

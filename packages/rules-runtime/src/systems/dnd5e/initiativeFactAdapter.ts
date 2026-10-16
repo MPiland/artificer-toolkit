@@ -1,3 +1,4 @@
+import { readInitiativeSourceRoll } from '../../encounterInitiativeRoll.js'
 import type { InitiativeFactAdapter } from '../../initiativeFactAdapter.js'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
@@ -293,48 +294,22 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
 export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   bindActor(source) {
-    switch (source.kind) {
-      case 'CHARACTER':
-        return {
-          automatic: true,
-          facts: {
-            [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
-            [DND5E_INITIATIVE_FACT_KEYS.modifier]: (
-              source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput
-            ).derivedStats.initiative.effective,
-            [DND5E_INITIATIVE_FACT_KEYS.rollMode]: (
-              source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput
-            ).rollModes.initiative
-          }
-        }
-      case 'CREATURE':
-        return {
-          automatic: true,
-          facts: {
-            [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
-            [DND5E_INITIATIVE_FACT_KEYS.modifier]: source.actorRule.initiativeModifier,
-            [DND5E_INITIATIVE_FACT_KEYS.rollMode]: 'NORMAL'
-          }
-        }
-      case 'CUSTOM':
-        return { automatic: false }
+    if (source.kind === 'CUSTOM') return { automatic: false }
+    const { modifier, rollMode } = readInitiativeSourceRoll(source)
+    return {
+      automatic: true,
+      facts: {
+        [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
+        [DND5E_INITIATIVE_FACT_KEYS.modifier]: modifier,
+        [DND5E_INITIATIVE_FACT_KEYS.rollMode]: rollMode
+      }
     }
   },
   bindDeclaredActor(source, declaration) {
     if (!declarationMatchesSource(source, declaration)) return { automatic: false }
     const modifier = speedFactorModifier(declaration)
     if (modifier === null) return { automatic: false }
-    const baseModifier =
-      source.kind === 'CHARACTER'
-        ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput).derivedStats
-            .initiative.effective
-        : source.kind === 'CREATURE'
-          ? source.actorRule.initiativeModifier
-          : 0
-    const rollMode =
-      source.kind === 'CHARACTER'
-        ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput).rollModes.initiative
-        : 'NORMAL'
+    const { modifier: baseModifier, rollMode } = readInitiativeSourceRoll(source)
     return {
       automatic: true,
       facts: {

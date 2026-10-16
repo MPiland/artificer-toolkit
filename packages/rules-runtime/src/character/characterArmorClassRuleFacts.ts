@@ -34,7 +34,6 @@ export function buildCharacterArmorClassRuleFacts(
 
   return {
     armorClassFacts: {
-      dexterityAbilityId: abilityIds[dexterityAbilityIndex] ?? 'DEXTERITY',
       dexterityAbilityIndex: dexterityAbilityIndex < 0 ? null : dexterityAbilityIndex,
       equipment
     }

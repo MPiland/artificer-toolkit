@@ -14,6 +14,7 @@ import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { writeRunActor } from './documents.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
 import type { EncounterWriteContext } from './store.js'
 
 type SourceSpendReceipts = Pick<
@@ -111,6 +112,8 @@ export async function settleActionSourceSpend(
       'featureResourceConsumption' | 'actionEconomyTransition' | 'attackActionTransition'
     >
     economyOverridden: boolean
+    /** The source attacked a hostile creature: an actor armed for an idle-bound grant is marked engaged. */
+    engages?: boolean
   }
 ) {
   const { source, spend } = input
@@ -141,6 +144,7 @@ export async function settleActionSourceSpend(
       settledSource,
       spend.attackActionTransition
     )
+  if (input.engages) settledSource = engageIdleTurnActor(settledSource)
   if (checksumCanonicalJson(settledSource) !== checksumCanonicalJson(source)) {
     const row = await ctx.db
       .query('encounterRunActors')

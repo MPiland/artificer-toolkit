@@ -26,7 +26,7 @@ import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
-import { attackRollEndedEffects } from './encounterEndedEffectRelease.js'
+import { actionEndedEffects } from './encounterEndedEffectRelease.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import {
   projectEncounterActionTarget,
@@ -319,7 +319,7 @@ export async function prepareTurnLegendaryActions<
         commandId: root.rootCommandId,
         occurredAt: input.updatedAt,
         applications: result.applications,
-        sourceReleases: attackRollEndedEffects({
+        sourceReleases: actionEndedEffects({
           holderActorId: actor.id,
           held: prepared.movementTargets.get(actor.id)?.activeEffects ?? [],
           makesAttackRoll

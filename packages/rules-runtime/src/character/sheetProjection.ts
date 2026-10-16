@@ -28,7 +28,6 @@ import {
   type CharacterResourceOwnerRef,
   type CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
-import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/character'
 import type {
   CharacterAuthored,
   CreatureAuthored,
@@ -46,12 +45,9 @@ import {
   DND5E_2014_EXHAUSTION_PRESENTATION,
   getAbilityDerivedTotal,
   isAbilityCode,
-  resolveAbilityCode,
   classSpellSelectionKey,
   createSkillReference,
-  getClassSpellSelectionSources,
-  toSkillFallbackCode,
-  toSkillFallbackLabel
+  getClassSpellSelectionSources
 } from './characterSheetVocabulary.js'
 import {
   clamp,
@@ -179,8 +175,6 @@ function formatSenseRange(sense: CharacterRuleSense): string {
   if (sense.range.rangeKind === 'UNLIMITED') return 'Unlimited'
   return formatLengthMeasurement(sense.range)
 }
-
-type OverviewSkillRow = CharacterSheetResponseDto['overview']['skills'][number]
 
 type CharacterBuilderGrantFeature = CharacterBuilderResolution['grants']['features'][number]
 
@@ -916,7 +910,7 @@ export function projectCharacterSheetBundle(
       currency.label
     ])
   )
-  const skillReference = createSkillReference(resolution.registry.system?.skills)
+  const skillReference = createSkillReference(resolution.registry.system)
   const spellSlots = [
     ...ruleEvaluation.output.spellSlots.maxByLevel.map((slot) => ({
       slotKey: getSpellSlotKey(slot.spellLevel),
@@ -1089,20 +1083,21 @@ export function projectCharacterSheetBundle(
             }
           ]
   )
-  const overviewSkills = Object.entries(ruleProjection.derivedStats.skillBonuses)
-    .map(([skill, total]) => {
+  const overviewSkills = Object.entries(ruleProjection.derivedStats.skillBonuses).map(
+    ([skill, total]) => {
       const metadata = skillReference.metadataByCanonical.get(skill)
+      if (!metadata) throw new Error(`Skill "${skill}" has no System definition.`)
       return {
-        skillId: metadata?.skillId ?? skill,
-        code: metadata?.code ?? toSkillFallbackCode(skill),
-        label: metadata?.label ?? toSkillFallbackLabel(skill),
-        ability: metadata?.ability ?? resolveAbilityCode(SKILL_ABILITY_MAP[skill] ?? 'DEXTERITY'),
+        skillId: metadata.skillId,
+        code: metadata.code,
+        label: metadata.label,
+        ability: metadata.ability,
         total,
         rollMode: ruleProjection.rollModes.skillChecks[skill],
         proficiency: ruleProjection.calculations.skillProficiencyLevels[skill]?.effective ?? 'NONE'
       }
-    })
-    .filter((row): row is OverviewSkillRow => row.ability !== undefined)
+    }
+  )
   const passiveFacts = buildPassiveOverviewFacts({
     passives: resolution.registry.system?.passives,
     passiveChecks: ruleProjection.derivedStats.passiveChecks

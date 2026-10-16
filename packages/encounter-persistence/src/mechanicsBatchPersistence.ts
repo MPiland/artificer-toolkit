@@ -15,6 +15,7 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
+import { engageIdleTurnActor } from './idleTurnMark.js'
 import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
@@ -135,6 +136,13 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     throw new Error('Encounter mechanics target belongs to another transaction.')
   const { input, actor, actorRow, campaign } = target
   const { plan, character } = prepared
+  const { before, after } = plan.targetTransition
+  // Damage engages an actor armed for an idle-bound grant (SRD Rage); every other actor is untouched.
+  const updatedActor =
+    after.currentHitPoints < before.currentHitPoints ||
+    after.temporaryHitPoints < before.temporaryHitPoints
+      ? engageIdleTurnActor(plan.updatedActor)
+      : plan.updatedActor
   const [currentRun, currentActor] = await Promise.all([
     ctx.db.get(target.runRow._id),
     ctx.db.get(actorRow._id)
@@ -165,9 +173,10 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       plan.itemUseStateTransition
     )
       throw new Error('Encounter non-Character plan contains Character state.')
-    if (plan.stateChanged) await writeRunActor(ctx, actorRow._id, plan.updatedActor)
+    if (plan.stateChanged || updatedActor !== plan.updatedActor)
+      await writeRunActor(ctx, actorRow._id, updatedActor)
     return {
-      updatedActor: plan.updatedActor,
+      updatedActor,
       receiptApplications: plan.receiptApplications,
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
@@ -221,10 +230,10 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       sourceContext: prepared.sourceContext
     })
   }
-  if (checksumRunActorPlayState(plan.updatedActor) !== actorRow.stateChecksum)
-    await writeRunActor(ctx, actorRow._id, plan.updatedActor)
+  if (checksumRunActorPlayState(updatedActor) !== actorRow.stateChecksum)
+    await writeRunActor(ctx, actorRow._id, updatedActor)
   return {
-    updatedActor: plan.updatedActor,
+    updatedActor,
     receiptApplications: plan.receiptApplications,
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,

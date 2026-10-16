@@ -193,7 +193,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
 /**
  * The terminal outcome of a cast that another creature countered: the caster's one spend and the
  * reactor's, recorded on one root. Nothing of the spell applies, so it creates no effect, damage or
- * Concentration and consumes no grant.
+ * Concentration. Casting it still uses up the caster's grants that end on a cast.
  */
 export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
@@ -205,7 +205,6 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'concentrationEnds'
   | 'endedGrants'
   | 'cleaving'
-  | 'consumedGrants'
   | 'turnUses'
 >
 
@@ -226,7 +225,10 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
         spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
-        ruleOverrides: encounterRuleWarningsDtoSchema
+        ruleOverrides: encounterRuleWarningsDtoSchema,
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
       }
     )
   )
@@ -265,7 +267,6 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'createdEffects'
   | 'maintainedState'
   | 'cleaving'
-  | 'consumedGrants'
   | 'turnUses'
   | 'reactionSpellConsumption'
 > & {
@@ -318,6 +319,9 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
         ruleOverrides: encounterRuleWarningsDtoSchema,
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
         ...liveSessionEncounterConcentrationFields()
       }
     )

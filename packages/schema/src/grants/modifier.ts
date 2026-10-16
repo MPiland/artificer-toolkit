@@ -735,7 +735,8 @@ const buildModifierDomainUnions = () => {
  * Authorable modifiers that no System consumer applies yet and the SRD does not use. Publication
  * and import reject them rather than store a mechanic that silently does nothing.
  * `REACTION_COUNT SET_VALUE` stays authorable: SRD Shocking Grasp applies it through a granted
- * effect, which Phase 8.3 applies.
+ * effect, which Phase 8.3 applies. So does `ACTION_COUNT SET_VALUE`: SRD Fighter Action Surge sets the
+ * holder's Action maximum for the turn, which the action economy reads.
  */
 const UNSUPPORTED_MODIFIERS = new Set([
   'SAVE_DC SET_VALUE',
@@ -755,7 +756,6 @@ const UNSUPPORTED_MODIFIERS = new Set([
   'SPELLS_PREPARED BONUS',
   'SPELLS_PREPARED SET_VALUE',
   'ACTION_COUNT BONUS',
-  'ACTION_COUNT SET_VALUE',
   'BONUS_ACTION_COUNT BONUS',
   'BONUS_ACTION_COUNT SET_VALUE',
   'REACTION_COUNT BONUS'

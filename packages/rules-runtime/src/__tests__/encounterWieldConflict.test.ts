@@ -7,7 +7,6 @@ import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWield
 
 const shieldId = 'shield-instance'
 const armorClassFacts = {
-  dexterityAbilityId: 'DEXTERITY',
   dexterityAbilityIndex: 1,
   equipment: [
     {

@@ -14,10 +14,13 @@ import { importedSubject } from './publication'
 export async function readyCharacterFixture(
   {
     base: sourceClass = fighter,
+    classLevel = 1,
     ...options
   }: Partial<Pick<typeof fighter | ClassAuthoredDto, 'resources' | 'spellcasting' | 'features'>> & {
     /** The SRD base Class the Character takes; defaults to the Fighter. */
     base?: typeof fighter
+    /** The Character's level in that Class; defaults to 1. */
+    classLevel?: number
   } = {},
   equipment = club,
   existing?: Awaited<ReturnType<typeof fixture>>
@@ -94,7 +97,7 @@ export async function readyCharacterFixture(
         ...draft.payload.character.intent,
         race: { raceId: human.id },
         background: { backgroundId: background.id },
-        classes: [{ classId: baseClass.id, classLevel: 1 }],
+        classes: [{ classId: baseClass.id, classLevel }],
         abilities: {
           method: 'STANDARD_ARRAY',
           assignments: [
@@ -108,7 +111,12 @@ export async function readyCharacterFixture(
         },
         hitpoints: {
           method: 'FIXED',
-          levels: [{ level: 1, classId: baseClass.id, classLevel: 1, value: 10 }]
+          levels: Array.from({ length: classLevel }, (_, index) => ({
+            level: index + 1,
+            classId: baseClass.id,
+            classLevel: index + 1,
+            value: index === 0 ? 10 : 6
+          }))
         },
         startingEquipment: {
           class: {
