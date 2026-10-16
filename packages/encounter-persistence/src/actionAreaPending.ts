@@ -195,10 +195,15 @@ export async function requireAreaActionPendingRoot(
     ...targets.map((sealedTarget) => sealedTarget.actorId),
     ...context.removedActorIds
   ]
+  // A creature named for several rays is sealed once for each.
   if (
     target.kind === 'ACTORS' &&
     (sealed.length !== target.actorIds.length ||
-      !target.actorIds.every((actorId) => sealed.includes(actorId)))
+      !target.actorIds.every(
+        (actorId) =>
+          sealed.filter((sealedId) => sealedId === actorId).length ===
+          target.actorIds.filter((namedId) => namedId === actorId).length
+      ))
   )
     throw new Error('Live Session pending area action root mismatch.')
   const scene = aimed
@@ -374,7 +379,8 @@ export function projectNativeAreaActionPending(
   )
   const saves = pending.targets.flatMap((target) => {
     if (target.testedJson !== undefined) return []
-    if (!answers(target.actorId)) return []
+    const rollerActorId = target.context.rollerActorId
+    if (!answers(rollerActorId)) return []
     const summary = projectNativeActionPending(
       occurrence,
       { snapshot: target.snapshot, context: target.context },
@@ -382,7 +388,7 @@ export function projectNativeAreaActionPending(
       reasons
     )
     if (summary.kind !== 'D20_EVIDENCE') throw new Error('Stored area save evidence is invalid.')
-    return [{ actorId: target.actorId, request: summary.request }]
+    return [{ actorId: rollerActorId, targetActorId: target.actorId, request: summary.request }]
   })
   return saves.length === 0 && legendaryResistance.length === 0 && caught.length === 0
     ? null

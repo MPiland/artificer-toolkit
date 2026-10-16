@@ -1,6 +1,5 @@
-import type { CharacterHitPointOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
-import { createFrozenRollTape } from './encounterAreaActionExecution.js'
+import { bindingAfterHitPoints, createFrozenRollTape } from './encounterAreaActionExecution.js'
 import { encounterChosenActorEntries } from './encounterAreaPending.js'
 import { nextRollInt } from './random.js'
 
@@ -35,28 +34,18 @@ export async function executeEncounterActorsAction(
   const settled = []
   for (const [index, target] of input.targets.entries()) {
     const { occurrenceId } = entries[index]!
+    const binding = bindings.get(target.actorId) ?? target.binding
     const result = await advanceNativeActionGraphs({
       ...input,
       occurrenceId,
-      binding: bindings.get(target.actorId) ?? target.binding,
+      binding,
       autoRoll: { SOURCE: true, TARGET: false },
       afterTest: async () => undefined,
       random: input.rollsPerTarget ? createFrozenRollTape(random)() : sharedRolls()
     })
     if (result.kind !== 'COMPLETE')
       throw new Error('A chosen-creature outcome cannot ask for evidence beyond its dice.')
-    const lastHitPointOutcome = result.applications
-      .filter(
-        (application): application is CharacterHitPointOutcomeApplication =>
-          'afterCurrentHitPoints' in application
-      )
-      .pop()
-    if (lastHitPointOutcome)
-      bindings.set(target.actorId, {
-        ...(bindings.get(target.actorId) ?? target.binding),
-        currentHitPoints: lastHitPointOutcome.afterCurrentHitPoints,
-        temporaryHitPoints: lastHitPointOutcome.afterTemporaryHitPoints
-      })
+    bindings.set(target.actorId, bindingAfterHitPoints(binding, result.applications))
     settled.push({ actorId: target.actorId, occurrenceId, complete: result })
   }
   return settled

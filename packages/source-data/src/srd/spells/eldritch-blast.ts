@@ -7,6 +7,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALABLE_SCALING_KIND,
+  SCALING,
   SCALING_SOURCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -58,16 +59,6 @@ export const eldritchBlast: SpellAuthored = {
               value: { amount: index + 1 }
             }))
           },
-          resolutionCountScaling: {
-            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
-            scalingSource: SCALING_SOURCE.CHARACTER_LEVEL,
-            breakpoints: [1, 5, 11, 17].map((level, index) => ({
-              id: spellChildId(SPELL_IDS.ELDRITCH_BLAST, 0x215, index + 1),
-              level,
-              order: index + 1,
-              value: { amount: index + 1 }
-            }))
-          },
           allowRepeatedTargets: true
         }
       },
@@ -88,14 +79,8 @@ export const eldritchBlast: SpellAuthored = {
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('FORCE'),
                 valueKind: 'DICE',
-                scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
-                scalingSource: SCALING_SOURCE.CHARACTER_LEVEL,
-                breakpoints: [1, 5, 11, 17].map((level, index) => ({
-                  id: spellChildId(SPELL_IDS.ELDRITCH_BLAST, 0x216, index + 1),
-                  level,
-                  order: index + 1,
-                  value: { diceConfig: '1d10' }
-                }))
+                scalingKind: SCALING.NONE,
+                diceConfig: '1d10'
               }
             ]
           }

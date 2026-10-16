@@ -96,6 +96,7 @@ async function settle(
       occurrenceId,
       commandId: base.command.commandId,
       sourceCommandId: base.command.commandId,
+      sourceApplications: [],
       userId: base.owner.userId,
       occurredAt: new Date().toISOString()
     })

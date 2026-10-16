@@ -25,7 +25,7 @@
 ### Consumers (all in `encounterGrantLifetimes.ts` plus callers)
 
 - **`consumableGrants(effects, event)`** matches `consumeOnFirstEvents` for effects that are a modifier grant (`isModifierGrant`) or a concealment (widened by ATTACK-10.T1, D116). Callers:
-  - attack roll: `nativeEncounterRules.ts:463`, `nativeEncounterMovement.ts:242`, `nativeDisarm.ts:362`, and the Legendary window commit `deleteHeldAttackRollGrants`;
+  - attack roll: `nativeEncounterRules.ts:463`, `nativeEncounterMovement.ts:242`, `nativeDisarm.ts:362`, and the Legendary window commit (now `persistEncounterTurnResources`);
   - ability checks: `encounterBasicActionCheck`, `encounterEscapeCheck`, `encounterConcealmentCheck`, `encounterMovementPassageResponse`.
 - **`grantsEndedBy(effects, event)`** matches `endOnEvents` for modifier grants only. Its only real caller is `endGrantsOnHitPointsRegained` (`mechanicsBatchPersistence.ts:114`, `commands.ts:448`). There is no `ON_ATTACK_ROLL` or `ON_CAST_SPELL` call site (confirmed: `grantsEndedBy(held, 'ON_ATTACK_ROLL')` is asserted `[]` in `encounterZonePlacementCompilation.test.ts:247`).
 - **`grantsEndedByHolderState`** (D95/D113): `ON_INCAPACITATED` and `endOnConditionIds`, detected at the D95 point; the ended grants travel as `endedGrants`.
@@ -171,6 +171,6 @@ Decided as D125.
 
 ### Split
 
-- **T2a (this slice):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skip condition-owning effects (`!ownsCondition` fences in `deleteHeldAttackRollGrants`, `nativeDisarm.ts`, `nativeEncounterMovement.ts`), so no intermediate merge strands a condition.
-- **T2b:** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch; the three fences are removed.
+- **T2a (done):** action and reaction attack rolls, schema, persistence and undo. The Legendary window, movement opportunity attack and Disarm skipped condition-owning effects meanwhile, so no intermediate merge stranded a condition.
+- **T2b (done):** the Legendary window, movement opportunity attack and Disarm release their conditions through the same source batch (`attackRollEndedEffects` is the one helper every attack-roll root calls); the three fences are gone. The Disarm receipt carries the release in a required `sourceApplications` on `CONTESTED_ACTION`; the Legendary window applies it in `persistEncounterTurnResources`; the movement reaction applies it in `liveMovementReactionPersistence`. Disarm and the Legendary window have no GM undo, so nothing restores these.
 - AC 27.1 closes only when T3 (the cast half) is in.

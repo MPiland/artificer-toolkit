@@ -1,3 +1,4 @@
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import type { LiveSessionMovementSettlement } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import {
@@ -18,6 +19,7 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { listActiveRuleEffects } from './effectStore.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
@@ -137,26 +139,38 @@ export async function persistLiveMovementReaction(
     sourceCommandId: input.sourceCommandId,
     occurredAt: input.occurredAt
   }
-  const sourceMechanics = resource
-    ? await callbacks.applyMechanics({
-        ...common,
-        targetActorId: source.id,
-        commandId: deriveEncounterCharacterMechanicsEventCommandId({
-          occurrenceId: input.occurrenceId,
-          sourceCommandId: input.sourceCommandId,
-          phase: 'MOVEMENT_REACTION_RESOURCE',
-          ordinal: receipt.ordinal,
-          targetCharacterId: resource.characterId
-        }),
-        applications: [],
-        effectiveMaximumHitPoints:
-          source.kind === 'CHARACTER'
-            ? await readLiveCharacterMaximumHitPoints(ctx, state, source.sourceId)
-            : source.maxHitPoints,
-        forceVersionAdvance: false,
-        characterResourceConsumption: resource
-      })
-    : null
+  // The reactor's own batch carries its spend and the conditions its ended effects released.
+  const sourceMechanics =
+    resource || batch.sourceApplications.length
+      ? await callbacks.applyMechanics({
+          ...common,
+          targetActorId: source.id,
+          commandId: deriveEncounterCharacterMechanicsEventCommandId({
+            occurrenceId: input.occurrenceId,
+            sourceCommandId: input.sourceCommandId,
+            phase: 'MOVEMENT_REACTION_RESOURCE',
+            ordinal: receipt.ordinal,
+            targetCharacterId: source.kind === 'CHARACTER' ? source.sourceId : source.id
+          }),
+          applications: batch.sourceApplications.map((application) => ({
+            ...application,
+            targetActorId: source.id
+          })),
+          effectiveMaximumHitPoints:
+            source.kind === 'CHARACTER'
+              ? await readLiveCharacterMaximumHitPoints(ctx, state, source.sourceId)
+              : effectiveHitPointMaximum(
+                  source.maxHitPoints,
+                  await listActiveRuleEffects(
+                    ctx,
+                    { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: source.id },
+                    { ownerVerified: true }
+                  )
+                ),
+          forceVersionAdvance: false,
+          ...(resource ? { characterResourceConsumption: resource } : {})
+        })
+      : null
   const mechanics = await callbacks.applyMechanics({
     ...common,
     targetActorId: target.id,
@@ -183,6 +197,8 @@ export async function persistLiveMovementReaction(
       checksumCanonicalJson(batch.applications) ||
     checksumCanonicalJson(mechanics.targetTransition) !==
       checksumCanonicalJson(batch.targetTransition) ||
+    checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
+      checksumCanonicalJson(batch.sourceApplications) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
       batch.targetCharacterStreamVersion !== mechanics.characterStreamVersion)
   )

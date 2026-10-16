@@ -1,20 +1,11 @@
-import {
-  effectsEndedBy,
-  ownsCondition
-} from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type { EncounterIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
-import type {
-  EncounterCharacterWriteTransaction,
-  EncounterPersistenceTransaction
-} from './ports.js'
+import type { EncounterPersistenceTransaction } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
 /** Deletes grants a roll used up or a holder's state ended, with the versions they were planned against. */
@@ -73,28 +64,6 @@ export async function restoreEndedMaintainedStates(
 ) {
   const store = createActiveRuleEffectStore(ctx)
   for (const state of states) await store.restoreMaintainedState(state)
-}
-
-/**
- * Ends the one-roll grants these actors hold right now, for an attack roll whose settlement is
- * read at commit (a Legendary Action window), where the room planned no per-grant versions.
- */
-export async function deleteHeldAttackRollGrants(
-  ctx: EncounterCharacterWriteTransaction,
-  input: { state: EncounterRunState; actorIds: ReadonlySet<string> }
-) {
-  const store = createActiveRuleEffectStore(ctx)
-  for (const actor of (await readRunActors(ctx, input.state)).filter(({ id }) =>
-    input.actorIds.has(id)
-  ))
-    // A Legendary window releases no condition yet (SPELLS-27.T2b), so an effect that owns one outlasts the roll.
-    await deleteGrants(
-      ctx,
-      effectsEndedBy(
-        await store.list(turnEffectOwner(actor, input.state.id)),
-        'ON_ATTACK_ROLL'
-      ).filter((effect) => !ownsCondition(effect))
-    )
 }
 
 /**
