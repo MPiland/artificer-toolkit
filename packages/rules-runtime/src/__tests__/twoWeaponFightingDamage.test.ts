@@ -22,7 +22,9 @@ const throwingDagger = dagger
 /** A Club that is not Light: the style restores the modifier only to a Light weapon's bonus attack. */
 const heavyClub: EquipmentAuthored = {
   ...club,
-  properties: club.properties?.filter((property) => property !== EQUIPMENT_PROPERTY_CODE.LIGHT)
+  properties: (club.properties ?? []).filter(
+    (property) => property !== EQUIPMENT_PROPERTY_CODE.LIGHT
+  )
 }
 
 const twoWeaponFighting = srdFeature({
