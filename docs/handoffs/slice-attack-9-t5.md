@@ -38,6 +38,13 @@ SRD: "...attack with a different light melee weapon that you're holding in the o
 - **Weapon grants (authored in T5c).** A Light weapon's damage grant is EXCLUDE-gated on `BONUS_ACTION`; a copy clamped `max: 0` is INCLUDE-gated. The Action attack keeps the full modifier; the bonus attack gets it only while negative.
 - **Style.** Two-Weapon Fighting is a core grant, not a closed rule: per ability (Strength, Dexterity) a GLOBAL melee-damage `ABILITY_MODIFIER_BONUS` with `min: 0`, gated on LIGHT + `ATTACK_ACTIVATION` BONUS_ACTION + `ATTACK_ABILITY` = that ability, so the restored modifier follows the ability the attack uses. Fighter, Ranger and Champion share `twoWeaponFightingGrants`; the three `CLASS_*TWO_WEAPON*` closed rule kinds are deleted.
 
+## Design (T5c, implementer choices inside the ruling)
+
+- **Builders are generic transforms.** `withOffHandAttack(childId, effects)` clones the weapon's melee attack as a `BONUS_ACTION` effect carrying the `ATTACK_ACTION_OTHER_WEAPON` (`LIGHT`, `MELEE`) requirement; `withOffHandDamage(childId, modifiers)` splits each melee damage ability-modifier grant into the Action grant (EXCLUDE `ATTACK_ACTIVATION` BONUS_ACTION) and a `max: 0` copy (INCLUDE). Both are in `dnd5eEquipmentBuilders.ts`, so the SRD (via `srdChildId`) and any import share them; the seven SRD Light melee weapons apply them. Nodes of the clone take ids from fresh buckets (`0x240` effect nodes, `0x250` requirement, `0x260/0x261` activation context, `0x270` damage clone).
+- **Form.** `EQUIPMENT_EFFECT_NODE_MAP` gains `requirements` (the same character facet editor as item `restrictions`), so an author can build the identical effect; the parity proof publishes the SRD Club, Shortsword and Dagger and the Fighter through `normalizeNodeRuntimeValues` and requires an equal document with nothing cleared.
+- **Choices name the activation.** Item attack choices now carry `actionCost` (it was spell-only), so the Action and the off-hand attack of one weapon are told apart in the offer, and the drawer shows the cost.
+- **Not done.** The homebrew import path (`importedWeaponAttack.ts`, `importedEquipmentTerms.ts`) still builds only the Action attack; routing a Light melee import through the same two builders is a follow-up.
+
 ## Log
 
 - T5a started. Red tests first, pushed to a `ci/attack-9-t5a-red` branch; run ids recorded below.
@@ -46,3 +53,5 @@ SRD: "...attack with a different light melee weapon that you're holding in the o
 - T5b started (base 2e1b67be5). Red tests first: `twoWeaponFightingDamage.test.ts`.
 - T5b red: Tests 38923270291 on `ci/attack-9-t5b-red` @7f52b3fae failed on the new file (five damage assertions, plus two typing errors in the test's own authoring that the implementation commit fixes).
 - T5b green: Tests 38927082342 and Live backend 38927082404 on `ci/attack-9-t5` @864f57a1f (SRD manifest regenerated from the Live `generated-files` artifact). T5b DONE; T5c next.
+- T5c started. Red tests first: `offHandAttack.test.ts` (source-data), `twoWeaponFightingDamage.test.ts` (rules-runtime, real SRD weapons), `offHandAttackAuthoringParity.test.ts` (authoring), `nativeRoomTwoWeaponFighting.test.ts` (journey).
+- T5c red: Tests 38931895848 on `ci/attack-9-t5c-red` @2a6d99876 failed on `offHandAttack.test.ts` (15 assertions: no bonus effect, no split damage grants); the step stops there, so the other three files first run in the green push.

@@ -12,8 +12,11 @@ export const club: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
     S.EQUIPMENT_PROPERTY_CODE.LIGHT
   ],
-  modifiers: S.meleeWeaponAbilityModifiers(S.equipId(1)),
-  effects: S.meleeWeaponEffects(S.equipId(1), 'BLUDGEONING', '1d4', S.EQUIPMENT_GRIP.ONE_HANDED),
+  modifiers: S.withOffHandDamage(S.equipId(1), S.meleeWeaponAbilityModifiers(S.equipId(1))),
+  effects: S.withOffHandAttack(
+    S.equipId(1),
+    S.meleeWeaponEffects(S.equipId(1), 'BLUDGEONING', '1d4', S.EQUIPMENT_GRIP.ONE_HANDED)
+  ),
   cost: S.sp(1),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

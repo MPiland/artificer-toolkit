@@ -47,7 +47,9 @@ import {
   thrownMagicWeaponModifiers as sharedThrownMagicWeaponModifiers,
   thrownVersatileWeaponEffects as sharedThrownVersatileWeaponEffects,
   thrownWeaponAbilityModifiers as sharedThrownWeaponAbilityModifiers,
-  thrownWeaponEffects as sharedThrownWeaponEffects
+  thrownWeaponEffects as sharedThrownWeaponEffects,
+  withOffHandAttack as sharedWithOffHandAttack,
+  withOffHandDamage as sharedWithOffHandDamage
 } from '@artificer-toolkit/shared'
 import type {
   AbilityCode,
@@ -402,6 +404,14 @@ export function thrownMagicWeaponModifiers(equipmentId: string, bonus: number) {
 }
 export function magicArmorModifiers(equipmentId: string, bonus: number) {
   return sharedMagicArmorModifiers(srdChildId(equipmentId), bonus)
+}
+/** A Light melee weapon's bonus-action attack for two-weapon fighting. */
+export function withOffHandAttack(equipmentId: string, effects: EquipmentEffectAuthored[]) {
+  return sharedWithOffHandAttack(srdChildId(equipmentId), effects)
+}
+/** A Light melee weapon's damage modifiers split for the off-hand attack. */
+export function withOffHandDamage(equipmentId: string, modifiers: ModifierGrantAuthored[]) {
+  return sharedWithOffHandDamage(srdChildId(equipmentId), modifiers)
 }
 export function magicAmmoModifiers(equipmentId: string, bonus: number) {
   return rangedMagicWeaponModifiers(equipmentId, bonus)
