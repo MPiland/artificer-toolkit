@@ -274,7 +274,7 @@ export async function persistEncounterActionCommit(
   const targetEngagedByGrant =
     target.id === state.currentActorId &&
     !encounterActorEngaged(mechanics.updatedActor) &&
-    input.createdEffects.some((effect) => grantsEndedBy([effect], 'ON_IDLE_TURN').length > 0)
+    grantsEndedBy(input.createdEffects, 'ON_IDLE_TURN').length > 0
   const settledTarget =
     targetCharge || reaction?.actionEconomyTransition || targetEngagedByGrant
       ? await settleActionSourceSpend(ctx, {
