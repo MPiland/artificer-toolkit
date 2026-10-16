@@ -7015,9 +7015,6 @@
               }
             },
             {
-              "id": "ATTACK-9.T2",
-              "text": "Sneak Attack once-per-turn ON_HIT rider.",
-              "status": "TODO",
               "closes": [
                 "ATTACK-9.2"
               ],
@@ -7029,7 +7026,62 @@
                 "after": [
                   "ATTACK-9.T1"
                 ]
-              }
+              },
+              "id": "ATTACK-9.T2a",
+              "status": "TODO",
+              "text": "Sneak Attack shapes (a)-(c) per D119: PASSIVE Feature ON_HIT damage merged into the weapon outcome, class-level dice through the shared row selector, triggering-weapon damage type; an unconditional Rogue rider proved end to end including a critical hit.",
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+            },
+            {
+              "closes": [
+                "ATTACK-9.2"
+              ],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "ATTACK-9.T1"
+                ]
+              },
+              "id": "ATTACK-9.T2b",
+              "status": "TODO",
+              "text": "D119 (d): net roll-mode facet predicate (ADVANTAGE, NOT_DISADVANTAGE) and any-of composition if missing."
+            },
+            {
+              "closes": [
+                "ATTACK-9.2"
+              ],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "ATTACK-9.T1"
+                ]
+              },
+              "id": "ATTACK-9.T2c",
+              "status": "TODO",
+              "text": "D119 (e): hostile-of-target-within-N-ft predicate from scene positions, planned by the room and re-verified by persistence."
+            },
+            {
+              "closes": [
+                "ATTACK-9.2"
+              ],
+              "wsjf": {
+                "bv": 13,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": [
+                  "ATTACK-9.T1"
+                ]
+              },
+              "id": "ATTACK-9.T2d",
+              "status": "TODO",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof."
             },
             {
               "id": "ATTACK-9.T3",
