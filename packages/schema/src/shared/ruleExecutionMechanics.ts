@@ -263,12 +263,19 @@ export const sourceApplicationsDtoSchema = lazySchema(() =>
   )
 )
 
-/** Whether a source's applications changed its own state, so its Character stream version moved. */
+/**
+ * Whether a source's applications moved its Character stream version. A Creature source has no
+ * stream, so its releases change only the Run actor.
+ */
 export function sourceApplicationsChangeState(
-  applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[]
+  applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[],
+  sourceCharacterId: string | null
 ) {
-  return applications.some(
-    (application) => application.kind === 'CONDITION_REMOVE' && application.applied
+  return (
+    sourceCharacterId !== null &&
+    applications.some(
+      (application) => application.kind === 'CONDITION_REMOVE' && application.applied
+    )
   )
 }
 
