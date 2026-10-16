@@ -29,11 +29,13 @@ afterEach(() => {
 })
 
 /** The player's wolf bites; one wolf is drawn on the map beside it and one has its token hidden. */
-function squareRoom(rolls: readonly number[] = [15]) {
+function squareRoom(rolls: readonly number[] = [15], gmRolls = false) {
   const wolf = biteWolf('ATTACK')
   return actionRoom({
     rolls,
-    playerControlledActorIds: [ATTACKER_ID],
+    ...(gmRolls
+      ? { autoRoll: 'GAME_MASTER' as const }
+      : { playerControlledActorIds: [ATTACKER_ID] }),
     hiddenActorIds: [HIDDEN_ID],
     actors: [ATTACKER_ID, SEEN_ID, HIDDEN_ID].map((id) =>
       srdCreatureActor({ id, creature: wolf, disposition: 'HOSTILE' })
@@ -43,9 +45,9 @@ function squareRoom(rolls: readonly number[] = [15]) {
 }
 type Room = Awaited<ReturnType<typeof squareRoom>>
 
-/** What the player's own socket is shown of the Encounter: the pending decision and who it waits on. */
-async function playerSession(room: Room) {
-  const player = await connectPlayer(room.room.base)
+/** What the player's own socket (the one given, else a new one) is shown: the pending decision and who it waits on. */
+async function playerSession(room: Room, socket?: Awaited<ReturnType<typeof connectPlayer>>) {
+  const player = socket ?? (await connectPlayer(room.room.base))
   const first = player.messages.length
   player.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
   return vi.waitFor(() => {
@@ -275,7 +277,22 @@ describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
     const rolled = await room.sendAsPlayer(await heldPlayerRoll(room))
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const roots = await emptySquareRoots(room)
-    expect(roots).toHaveLength(1)
+    const summary = await rulesHistory(room)
+    expect(
+      roots,
+      JSON.stringify({
+        rolled,
+        receipts: summary.receipts.map((receipt) => {
+          const execution = parseReceiptExecution(receipt)
+          return [
+            receipt.commandType,
+            execution.status,
+            'applicationOutputs' in execution ? execution.applicationOutputs.kind : null
+          ]
+        }),
+        occurrences: summary.occurrences.map((o) => [o.rootCommandId, o.state, o.version])
+      })
+    ).toHaveLength(1)
     expect(roots[0]).toMatchObject({
       sourceActorId: ATTACKER_ID,
       d20: { resultPath: 'ON_MISS' }
@@ -291,7 +308,7 @@ describe('an attack aimed at an empty square (ATTACK-17.4)', () => {
   })
 
   it('rolls at once for a GM attacker, who is also the one ruling', async () => {
-    const room = await squareRoom([3])
+    const room = await squareRoom([3], true)
     await room.startSquareAction(emptySquare, 'GM')
 
     expect((await answerEmpty(room)).type).toBe('COMMAND_COMMITTED')
@@ -361,10 +378,10 @@ describe('what the attacker’s player can tell about an empty square (ATTACK-17
     else await answerEmpty(room)
 
     const prompt = await readPendingActionDecision(room.room.base.stub, false)
-    const sessionBefore = await playerSession(room)
+    const sessionBefore = await playerSession(room, player)
     const cardsBefore = await readRoomRollCards(room.room.base.stub)
     await room.sendAsPlayer(await heldPlayerRoll(room))
-    const sessionAfter = await playerSession(room)
+    const sessionAfter = await playerSession(room, player)
     return withoutIdentity({
       prompt: prompt?.pending,
       sessionBefore,
