@@ -98,6 +98,11 @@ Logs under `local-validation/attack-9-t2b/` (not committed).
 - [x] Conformance snapshot gains the `dnd5e.attack-roll-mode` contract.
 - [ ] CI typecheck, Convex shards, web and worker tests on `ci/attack-9-t2b`.
 
+### T2b reviewer triage (independent opus read-only review)
+
+- Fixed: an empty restrictions facet silently dropped the entry (now unrestricted, as in the grant fold); the reducer failed open on `EXCLUDE` of checks it cannot answer and on non-Equipment contexts (now any non-item check or context fails its group); restrictions were authorable on save paths (schema: `ON_HIT`/`ON_CRIT` only, tested at Effect level); the identity memo in `reduceEffectRestrictions` removed; tests added for AND within a group, empty facet and the fail-closed cases.
+- Deferred (Deferred edge cases): restrictions ignored outside the general attack branch and on non-equipment actions; derived vs rolled mode (architect question); Sheet shows a gated rider unconditionally; `ATTACK_ROLL_MODE` offered on every Equipment facet; follow-up-save weapon plus rider ordering.
+
 ### Proposed ledger edits
 
 ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.2 stays open for T2c-T2d.

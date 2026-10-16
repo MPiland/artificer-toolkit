@@ -1,4 +1,4 @@
-import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import type { EffectAuthored, FacetAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { describe, expect, it } from 'vitest'
 
@@ -120,6 +120,47 @@ describe('path restrictions on a compiled attack Effect', () => {
     const effect = reduceEffectRestrictions(restrictedEffect(riderGate([ADVANTAGE])), null)
     expect(effect.entries).toHaveLength(1)
   })
+
+  it('treats a facet without groups as unrestricted', () => {
+    const effect = reduceEffectRestrictions(restrictedEffect(riderGate()), rapier)
+    expect(restrictionsOf(effect)).toEqual([undefined])
+  })
+
+  const oneCondition = (
+    subject: 'EQUIPMENT' | 'CHARACTER',
+    condition: Record<string, unknown>
+  ): FacetAuthored =>
+    ({
+      id: testUuid(0xe01),
+      groups: [
+        {
+          id: testUuid(0xe02),
+          order: 0,
+          contexts: [
+            {
+              id: testUuid(0xe03),
+              order: 0,
+              subject,
+              ...(subject === 'EQUIPMENT' ? { authoringModeKind: 'ALL' } : {}),
+              conditions: [
+                { id: testUuid(0xe04), order: 0, kind: 'PREDICATE', ...condition }
+              ]
+            }
+          ]
+        }
+      ]
+    }) as FacetAuthored
+
+  it.each([
+    ['an excluded attack ability the weapon cannot answer', 'EQUIPMENT', { constraint: 'EXCLUDE', predicateCode: 'ATTACK_ABILITY', ability: 'DEX' }],
+    ['an excluded Character check', 'CHARACTER', { constraint: 'EXCLUDE', predicateCode: 'CAN_ACT' }]
+  ] as const)('fails a group holding %s, whatever its constraint', (_name, subject, condition) => {
+    const effect = reduceEffectRestrictions(
+      restrictedEffect(oneCondition(subject, condition)),
+      rapier
+    )
+    expect(effect.entries).toEqual([])
+  })
 })
 
 describe('roll-mode checks of reduced restrictions', () => {
@@ -145,6 +186,12 @@ describe('roll-mode checks of reduced restrictions', () => {
     ['DISADVANTAGE', false]
   ] as const)('requires no disadvantage: %s -> %s', (rollMode, expected) => {
     expect(attackRestrictionsMet(reducedOf([NOT_DISADVANTAGE]), rollMode)).toBe(expected)
+  })
+
+  it('needs every check of a group, not any', () => {
+    const restrictions = reducedOf([ADVANTAGE, NOT_DISADVANTAGE])
+    expect(attackRestrictionsMet(restrictions, 'NORMAL')).toBe(false)
+    expect(attackRestrictionsMet(restrictions, 'ADVANTAGE')).toBe(true)
   })
 
   it('inverts an excluded check', () => {

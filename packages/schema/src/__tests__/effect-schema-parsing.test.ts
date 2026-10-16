@@ -657,6 +657,67 @@ describe('effect schema parsing', () => {
     expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE' })).success).toBe(false)
   })
 
+  it('lets only an ON_HIT or ON_CRIT path carry restrictions', () => {
+    const restrictions = {
+      id: 'gate',
+      groups: [
+        {
+          id: 'gate-group',
+          order: 0,
+          contexts: [
+            {
+              id: 'gate-context',
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [
+                {
+                  id: 'gate-condition',
+                  order: 0,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'ATTACK_ROLL_MODE',
+                  rollMode: 'ADVANTAGE'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    const effect = (pathCode: string) =>
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000f2',
+        order: 1,
+        invocation: {
+          kind: 'PASSIVE',
+          triggerCode: 'MELEE_WEAPON_ATTACK',
+          range: { id: 'gate-range', rangeKind: 'SPECIAL' }
+        },
+        paths: [
+          fixedPath(
+            'gated-path',
+            1,
+            pathCode,
+            singleResultBlock('gated-result', {
+              id: 'gated-damage',
+              effectKind: 'DAMAGE',
+              damageTypeId: 'fire',
+              valueKind: 'DICE',
+              scalingKind: 'NONE',
+              diceConfig: '1d6'
+            }),
+            { restrictions }
+          )
+        ]
+      }).success
+
+    expect(effect('ON_HIT')).toBe(true)
+    expect(effect('ON_CRIT')).toBe(true)
+    expect(effect('ON_SAVE_FAIL')).toBe(false)
+    expect(effect('ON_MISS')).toBe(false)
+  })
+
   it('accepts repeat roll influence only on a target-turn-end repeated follow-up save', () => {
     const followUpSave = {
       id: '00000000-0000-4000-8000-0000000000e4',

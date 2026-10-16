@@ -30,18 +30,26 @@ function rollModeContexts(group: Group): Context[] {
   })
 }
 
+const WEAPON_CHECK_KINDS: ReadonlySet<string> = new Set([
+  'ITEM_IDENTITY',
+  'ITEM_CATEGORY',
+  'ITEM_PROPERTY',
+  'ITEM_SOLE_WEAPON'
+])
+
 /**
  * Resolves the weapon checks of an attack's restrictions against the weapon it is made with,
  * leaving only the roll-mode checks, which are decided when the attack rolls. A group whose weapon
- * checks fail can never hold and is dropped; a group with nothing left to decide always holds.
- * Returns `null` when the restrictions can never be met and `undefined` when they always are.
- * Only Equipment contexts are evaluated: a weapon check the attacking item cannot answer (such as
- * `ATTACK_ABILITY`, or any other subject's check) fails its group.
+ * checks fail can never hold and is dropped; a group with nothing left to decide always holds, as
+ * does a facet without groups. Returns `null` when the restrictions can never be met and `undefined`
+ * when they always are. Only the attacking item's own checks are evaluated: a check the item cannot
+ * answer (`ATTACK_ABILITY`, another subject's check) fails its group whatever its constraint.
  */
 function reduceRestrictions(
   restrictions: Restrictions,
   item: Dnd5eAttackingItem | null
 ): Restrictions | null | undefined {
+  if (restrictions.groups.length === 0) return undefined
   const groups: Group[] = []
   for (const group of restrictions.groups) {
     const weaponChecks = normalizeCharacterGrantRestrictions({
@@ -49,6 +57,11 @@ function reduceRestrictions(
       groups: [{ ...group, contexts: group.contexts.map(withoutRollModeConditions) }]
     })
     const [{ conditions }] = weaponChecks as [(typeof weaponChecks)[number]]
+    if (
+      group.contexts.some((context) => context.subject !== 'EQUIPMENT') ||
+      conditions.some((condition) => !WEAPON_CHECK_KINDS.has(condition.kind))
+    )
+      continue
     if (conditions.length > 0 && !dnd5eItemRequirementsMet(weaponChecks, item, null)) continue
     const contexts = rollModeContexts(group)
     if (contexts.length === 0) return undefined
@@ -67,12 +80,9 @@ export function reduceEffectRestrictions<TEffect extends CompiledEffectGroup>(
   item: Dnd5eAttackingItem | null
 ): TEffect {
   if (!effect.entries.some((entry) => 'restrictions' in entry && entry.restrictions)) return effect
-  const reduced = new Map<Restrictions, Restrictions | null | undefined>()
   const entries = effect.entries.flatMap((entry) => {
     if (!('restrictions' in entry) || !entry.restrictions) return [entry]
-    if (!reduced.has(entry.restrictions))
-      reduced.set(entry.restrictions, reduceRestrictions(entry.restrictions, item))
-    const restrictions = reduced.get(entry.restrictions)
+    const restrictions = reduceRestrictions(entry.restrictions, item)
     if (restrictions === null) return []
     const { restrictions: _settled, ...unrestricted } = entry
     return [restrictions === undefined ? unrestricted : { ...unrestricted, restrictions }]
