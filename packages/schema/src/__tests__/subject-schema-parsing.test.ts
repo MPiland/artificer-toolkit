@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { effectDtoSchema } from '../effects/effect.js'
+import { effectDtoSchema, invocationDtoSchema } from '../effects/effect.js'
 import { backgroundListResponseDtoSchema, spellResponseDtoSchema } from '../api/content.js'
 import {
   resourceIdParamsDtoSchema,
@@ -209,6 +209,23 @@ describe('subject schema parsing', () => {
       excludedCreatureTypeIds: ['undead', 'construct']
     })
   })
+
+  it.each(['SINGLE_TARGET', 'CHOSEN_CREATURES', 'AREA_CONTENTS'] as const)(
+    'parses the creature types a %s effect is restricted to',
+    (selectionKind) => {
+      const { targeting } = invocationDtoSchema.parse({
+        triggerCode: 'RANGED_SPELL_ATTACK',
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: 'hold-person-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+        targeting: {
+          selectionKind,
+          dispositionKind: 'ANY',
+          allowedCreatureTypeIds: ['humanoid']
+        }
+      })
+      expect(targeting).toMatchObject({ selectionKind, allowedCreatureTypeIds: ['humanoid'] })
+    }
+  )
 
   it('rejects legacy placeholder values once nested enums are tightened', () => {
     expect(() =>

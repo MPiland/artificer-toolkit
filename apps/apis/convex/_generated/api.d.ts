@@ -3305,6 +3305,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               };
               resourceCost?: number;
@@ -3979,6 +3980,7 @@ export declare const api: {
                       | "WISDOM";
                     dc?: number;
                   };
+                  targetCountLevels?: Array<number>;
                   trigger: string;
                 }>;
                 primaryEffect?: string;
@@ -4100,6 +4102,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               }>;
               prepared?: boolean;
@@ -18443,6 +18446,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               };
               resourceCost?: number;
@@ -19117,6 +19121,7 @@ export declare const api: {
                       | "WISDOM";
                     dc?: number;
                   };
+                  targetCountLevels?: Array<number>;
                   trigger: string;
                 }>;
                 primaryEffect?: string;
@@ -19238,6 +19243,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               }>;
               prepared?: boolean;
@@ -21112,6 +21118,7 @@ export declare const api: {
                         | "WISDOM";
                       dc?: number;
                     };
+                    targetCountLevels?: Array<number>;
                     trigger: string;
                   };
                   resourceCost?: number;
@@ -21368,6 +21375,7 @@ export declare const api: {
                           | "WISDOM";
                         dc?: number;
                       };
+                      targetCountLevels?: Array<number>;
                       trigger: string;
                     }>;
                     primaryEffect?: string;
@@ -21478,6 +21486,7 @@ export declare const api: {
                         | "WISDOM";
                       dc?: number;
                     };
+                    targetCountLevels?: Array<number>;
                     trigger: string;
                   }>;
                   prepared?: boolean;
@@ -21758,6 +21767,7 @@ export declare const api: {
                           | "WISDOM";
                         dc?: number;
                       };
+                      targetCountLevels?: Array<number>;
                       trigger: string;
                     }>;
                     primaryEffect?: string;
@@ -21885,6 +21895,7 @@ export declare const api: {
                         | "WISDOM";
                       dc?: number;
                     };
+                    targetCountLevels?: Array<number>;
                     trigger: string;
                   }>;
                   prepared?: boolean;
@@ -25578,6 +25589,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -25585,6 +25597,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -25676,6 +25689,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -26698,6 +26712,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -26705,6 +26720,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -26796,6 +26812,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -27881,6 +27898,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -27888,6 +27906,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -27979,6 +27998,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -29087,6 +29107,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -29094,6 +29115,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -29185,6 +29207,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -30229,6 +30252,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -30236,6 +30260,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -30327,6 +30352,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -31354,6 +31380,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -31361,6 +31388,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -31452,6 +31480,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -32518,6 +32547,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -32525,6 +32555,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -32616,6 +32647,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -35335,6 +35367,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -35342,6 +35375,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -35433,6 +35467,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -36455,6 +36490,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -36462,6 +36498,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -36553,6 +36590,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -37638,6 +37676,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -37645,6 +37684,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -37736,6 +37776,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -38844,6 +38885,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -38851,6 +38893,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -38942,6 +38985,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -39986,6 +40030,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -39993,6 +40038,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -40084,6 +40130,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -41111,6 +41158,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -41118,6 +41166,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -41209,6 +41258,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -42275,6 +42325,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -42282,6 +42333,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -42373,6 +42425,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -45101,6 +45154,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -45108,6 +45162,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -45199,6 +45254,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -46221,6 +46277,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -46228,6 +46285,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -46319,6 +46377,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -47404,6 +47463,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -47411,6 +47471,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -47502,6 +47563,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -48610,6 +48672,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -48617,6 +48680,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -48708,6 +48772,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -49752,6 +49817,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -49759,6 +49825,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -49850,6 +49917,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -50877,6 +50945,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -50884,6 +50953,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -50975,6 +51045,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -52041,6 +52112,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -52048,6 +52120,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -52139,6 +52212,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -54858,6 +54932,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -54865,6 +54940,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -54956,6 +55032,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -55978,6 +56055,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -55985,6 +56063,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -56076,6 +56155,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -57161,6 +57241,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -57168,6 +57249,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -57259,6 +57341,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -58367,6 +58450,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -58374,6 +58458,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -58465,6 +58550,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -59509,6 +59595,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -59516,6 +59603,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -59607,6 +59695,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -60634,6 +60723,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -60641,6 +60731,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -60732,6 +60823,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -61798,6 +61890,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -61805,6 +61898,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -61896,6 +61990,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -64650,6 +64745,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -64657,6 +64753,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -64748,6 +64845,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -65770,6 +65868,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -65777,6 +65876,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -65868,6 +65968,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -66953,6 +67054,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -66960,6 +67062,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -67051,6 +67154,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -68159,6 +68263,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -68166,6 +68271,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -68257,6 +68363,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -69301,6 +69408,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -69308,6 +69416,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -69399,6 +69508,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -70426,6 +70536,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -70433,6 +70544,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -70524,6 +70636,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -71590,6 +71703,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -71597,6 +71711,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -71688,6 +71803,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -74407,6 +74523,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -74414,6 +74531,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -74505,6 +74623,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -75527,6 +75646,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -75534,6 +75654,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -75625,6 +75746,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -76710,6 +76832,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -76717,6 +76840,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -76808,6 +76932,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -77916,6 +78041,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -77923,6 +78049,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -78014,6 +78141,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -79058,6 +79186,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -79065,6 +79194,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -79156,6 +79286,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -80183,6 +80314,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -80190,6 +80322,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -80281,6 +80414,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -81347,6 +81481,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -81354,6 +81489,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -81445,6 +81581,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -84133,6 +84270,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -84140,6 +84278,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -84231,6 +84370,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -85241,6 +85381,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -85248,6 +85389,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -85339,6 +85481,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -86406,6 +86549,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -86413,6 +86557,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -86504,6 +86649,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -87590,6 +87736,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -87597,6 +87744,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -87688,6 +87836,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -88720,6 +88869,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -88727,6 +88877,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -88818,6 +88969,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -89833,6 +89985,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -89840,6 +89993,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -89931,6 +90085,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -90981,6 +91136,7 @@ export declare const api: {
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
@@ -90988,6 +91144,7 @@ export declare const api: {
                             }
                           | {
                               allowRepeatedTargets?: boolean;
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               maxTargets?: number;
@@ -91079,6 +91236,7 @@ export declare const api: {
                               selectionKind: "CHOSEN_CREATURES";
                             }
                           | {
+                              allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "AREA_CONTENTS";
@@ -93793,6 +93951,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -93800,6 +93959,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -93891,6 +94051,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -94913,6 +95074,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -94920,6 +95082,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -95011,6 +95174,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -96096,6 +96260,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -96103,6 +96268,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -96194,6 +96360,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -97302,6 +97469,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -97309,6 +97477,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -97400,6 +97569,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -98444,6 +98614,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -98451,6 +98622,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -98542,6 +98714,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -99569,6 +99742,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -99576,6 +99750,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -99667,6 +99842,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -100733,6 +100909,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -100740,6 +100917,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -100831,6 +101009,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -103550,6 +103729,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -103557,6 +103737,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -103648,6 +103829,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -104670,6 +104852,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -104677,6 +104860,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -104768,6 +104952,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -105853,6 +106038,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -105860,6 +106046,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -105951,6 +106138,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -107059,6 +107247,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -107066,6 +107255,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -107157,6 +107347,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -108201,6 +108392,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -108208,6 +108400,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -108299,6 +108492,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -109326,6 +109520,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -109333,6 +109528,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -109424,6 +109620,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -110490,6 +110687,7 @@ export declare const api: {
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
@@ -110497,6 +110695,7 @@ export declare const api: {
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 maxTargets?: number;
@@ -110588,6 +110787,7 @@ export declare const api: {
                                 selectionKind: "CHOSEN_CREATURES";
                               }
                             | {
+                                allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "AREA_CONTENTS";
@@ -112267,6 +112467,7 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  allowRepeatedTargets?: true;
                   area: {
                     kind: "RADIUS";
                     radius: {
@@ -112988,6 +113189,7 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  allowRepeatedTargets?: true;
                   area: {
                     kind: "RADIUS";
                     radius: {
@@ -113695,6 +113897,7 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  reveal?: "UNNAMED" | "NAMED" | null;
                   sourceId: string | null;
                   sourceRevision: number | null;
                   stableTieKey: string;
@@ -114528,6 +114731,7 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  reveal?: "UNNAMED" | "NAMED" | null;
                   sourceId: string | null;
                   sourceRevision: number | null;
                   stableTieKey: string;
@@ -115364,6 +115568,7 @@ export declare const api: {
                 | null
                 | Array<any>
                 | Record<string, any>;
+              reveal?: "UNNAMED" | "NAMED" | null;
               sourceId: string | null;
               sourceRevision: number | null;
               stableTieKey: string;
@@ -115662,6 +115867,7 @@ export declare const api: {
                     | null
                     | Array<any>
                     | Record<string, any>;
+                  reveal?: "UNNAMED" | "NAMED" | null;
                   sourceId: string | null;
                   sourceRevision: number | null;
                   stableTieKey: string;
@@ -116176,6 +116382,7 @@ export declare const api: {
               | null
               | Array<any>
               | Record<string, any>;
+            reveal?: "UNNAMED" | "NAMED" | null;
             sourceId: string | null;
             sourceRevision: number | null;
             stableTieKey: string;
@@ -123171,7 +123378,7 @@ export declare const internal: {
             id: string;
           }>;
         },
-        { inserted: number; reused: number }
+        { inserted: number; replaced: number; reused: number }
       >;
       importDefinitions: FunctionReference<
         "mutation",
@@ -123193,7 +123400,7 @@ export declare const internal: {
             label: string;
           }>;
         },
-        { inserted: number; reused: number }
+        { inserted: number; replaced: number; reused: number }
       >;
       importSubjects: FunctionReference<
         "mutation",
@@ -123283,6 +123490,26 @@ export declare const internal: {
             projectionSchemaVersion: 1;
           };
           parentClassId: string | null;
+        }
+      >;
+      readDefinitionChecksums: FunctionReference<
+        "query",
+        "internal",
+        {
+          contentSourceId: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{ checksum: string; id: string }>;
         }
       >;
       readDefinitions: FunctionReference<

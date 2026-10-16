@@ -41,13 +41,15 @@ it('proves V14 native RESOLVE_ACTION contention through public commands', async 
   const policies = createEncounterLifecyclePolicyFixture(base.owner.userId)
   expect(await base.t.mutation(internal.content.import.bootstrap, policies.bootstrap)).toEqual({
     inserted: 2,
-    reused: 1
+    reused: 1,
+    replaced: 0
   })
   expect(
     await base.t.mutation(internal.content.import.importDefinitions, policies.imported)
   ).toEqual({
     inserted: 6,
-    reused: 0
+    reused: 0,
+    replaced: 0
   })
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,

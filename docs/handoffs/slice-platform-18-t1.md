@@ -65,3 +65,11 @@ Built to the rulings.
 - Hook false positive: the "Node API without use node" hook blocked writes of test files importing `node:zlib` (`seed.test.ts`, `seedReplace.test.ts`); they are vitest-only, like the existing `seed.test.ts`.
 
 Proposed ledger edits (main session): reword AC 18.1 per ruling 5; add PLATFORM-18.T2 for canonical definitions, Systems, sources and catalogues (still insert-or-identical).
+
+### PLATFORM-18.T2 (AC 18.2): definitions, Systems, sources and catalogues (2026-10-15)
+
+- Design and rulings are in D120 (extension). `bootstrap` and `importDefinitions` now report `replaced`; the shared `mutableChanges` helper in `import.ts` splits identity fields (conflict on mismatch) from mutable ones (patched). `systemVocabulary.ts` gains `advanceSystemVocabularySnapshot` and `removedVocabularyIds`; the seed checks removed definitions before any write (`requireNoneRemoved`, shared with the subject check).
+- Red: five tests failed with `Canonical content conflict.` on the pre-fix code (import.test.ts System/source/catalogue and definition replace, corpusReplaceJourney.test.ts, seedReplace.test.ts); the removal-message test failed on the wording.
+- Changed expectation: the old `rejects conflicting bootstrap metadata` test changed a content source label and expected a conflict. A label change is now a replace (D120), so it became `rejects an identity change in bootstrap metadata` (a changed `code` still conflicts). No assertion was weakened otherwise; existing `{inserted, reused}` expectations gained `replaced: 0`.
+- Play data: the journey test readies a Character, changes the System, source, catalogue and one SRD condition definition, and the Sheet is unchanged. Nothing resolves old `systemVocabularySnapshots` rows, which is why earlier versions are kept but never read.
+- Live proof: the `replace` step also replaces and restores the System, content source and catalogue (`bootstrap`) and one definition (`importDefinitions`) and prints the timings; the `reseed` then runs seed N+1 over the left-changed Background.

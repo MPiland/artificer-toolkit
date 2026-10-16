@@ -96,14 +96,35 @@ Logs under `local-validation/attack-9-t2b/` (not committed).
 - [x] Red then green: `red-filter-off.log` (filter disabled: 5 journey tests fail) then `green-rules-runtime.log` (39 tests) and `t1-schema-shared.log` (54 tests).
 - [x] Builds shared, schema, source-data, authoring (`build-*.log`, empty = success).
 - [x] Conformance snapshot gains the `dnd5e.attack-roll-mode` contract.
-- [ ] CI typecheck, Convex shards, web and worker tests on `ci/attack-9-t2b`.
+- [x] CI typecheck, Convex shards, web and worker tests on `ci/attack-9-t2b` (Tests run 38844169883, green).
 
 ### T2b reviewer triage (independent opus read-only review)
 
 - Fixed: an empty restrictions facet silently dropped the entry (now unrestricted, as in the grant fold); the reducer failed open on `EXCLUDE` of checks it cannot answer and on non-Equipment contexts (now any non-item check or context fails its group); restrictions were authorable on save paths (schema: `ON_HIT`/`ON_CRIT` only, tested at Effect level); the identity memo in `reduceEffectRestrictions` removed; tests added for AND within a group, empty facet and the fail-closed cases.
 - Deferred (Deferred edge cases): restrictions ignored outside the general attack branch and on non-equipment actions; derived vs rolled mode (architect question); Sheet shows a gated rider unconditionally; `ATTACK_ROLL_MODE` offered on every Equipment facet; follow-up-save weapon plus rider ordering.
 
+## T2c (shape e, position predicate, D119)
+
+Built (generic, no feature-specific kind):
+
+- `ENEMY_NEAR_TARGET {feet}` circumstance predicate in shared (`facetPredicate`, facet node map `predicateFeet`) and schema (`enums`, `facet`; `feet > 0`).
+- `systems/dnd5e/attackRestrictions`: `attackRestrictionsMet(restrictions, { rollMode, enemyProximity })`; `effectReadsEnemyProximity`. An unmeasured Scene (no fact) fails the check whatever its constraint (an unanswerable check fails its group, as in T2b).
+- `encounterEnemyProximity.nearestAbleEnemyProximity`: another creature hostile to the target (`encounterActorRelationship`, NEUTRAL is never hostile), not defeated and not `encounterActorCannotAct`, nearest first by `measureSceneTokenFootprintDistance` converted to feet; the attacker and the target never count. `canAct` runs lazily, nearest first.
+- `prepareEncounterActionMechanics` takes an optional `loadEnemyProximity`, called only for an attack whose compiled Effect reads the predicate; the answer rides `binding.sourceDerivedFacts.attackEnemyProximity`, which `bindFacts` emits as the `dnd5e.attack-enemy-proximity` TEXT fact. The Session Worker's `nativeAttackEnemyProximity` (passed by `prepareAttack` only) re-reads the locked Scene and loads each consulted actor through `loadTarget`.
+
+"Persistence re-verifies and refuses a mismatch" (ADR 0035 reading): persistence never re-runs rules in the room-authoritative model. The mismatch is refused by the fences the supplier joins: `Action Scene context is stale.` on a changed Scene version, the read fence over every consulted actor's revision, the Encounter version, and the currentness checksum over the binding for a paused action.
+
+Architect questions: derived vs rolled roll mode (still open from T2b); opportunity attacks and reactions load no proximity (conservative fail; Deferred edge cases).
+
+### T2c checklist and proof logs
+
+Logs under `local-validation/attack-9-t2c/` (not committed).
+
+- [x] Red then green; scoped tests: `attackRestrictions`, `characterOnHitRiders`, `encounterEnemyProximity`, schema parse, node-map inventory, room journey `nativeRoomEnemyProximity` (Fighter Club hit: rider owed beside an able enemy, not 20 ft off, not for an incapacitated enemy, not without a Scene). Green: `t1-rr.log`/`t3.log`, `t1-ss.log`, `t2-room.log`; red: `t4-red.log` (room journey fails with the `prepareAttack` supplier removed).
+- [x] Typecheck shared, schema, rules-runtime, session-worker (`*-tc.log`, `summary2.txt`).
+- [ ] CI Tests and Live backend green on `ci/attack-9-t2c`.
+
 ### Proposed ledger edits
 
-ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.2 stays open for T2c-T2d.
+ATTACK-9.T2a done (shapes a-c); ATTACK-9.T2b (shape d) built; ATTACK-9.T2c (shape e) built; ATTACK-9.2 stays open for T2d.
 

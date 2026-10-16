@@ -295,17 +295,23 @@ the viewer sees inside; the room still decides who is caught.
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
-Healing, Mass Cure Wounds) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
-`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area }` (`area` is the `RADIUS` the
+Healing, Mass Cure Wounds, Magic Missile) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
 spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
-accepts uses it. The compiler accepts one only when the outcome is a heal, the cap is authored and fixed (no
-scaling, `resolutionCount` or `allowRepeatedTargets`), and the shape is absent or a sphere, cylinder or circle
+accepts uses it. The compiler accepts one only when the outcome is a heal or unscaled dice damage, the cap is authored (fixed, or
+scaled by the cast level and resolved first by `resolveChosenCreaturesTargeting`; no `resolutionCount`), and the shape is absent or a sphere, cylinder or circle
 whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
 spend, one undo; one action per creature is rejected because it breaks undo atomicity).
 
-The schema rejects a duplicated creature and the room (`nativeEncounterActorsRules.ts`) refuses an over-cap list, then rolls once: the frozen roll
-tape is shared, so every creature gets the same heal, and `executeEncounterActorsAction` builds one occurrence
-per creature. A shaped list needs `scene.point`; the room prepares the point as a point area
+The room (`nativeEncounterActorsRules.ts`) refuses an over-cap list, and a creature named twice unless the
+targeting allows repeated targets, then rolls: a list that names each creature once shares one frozen roll tape, so
+every creature gets the same heal, and `executeEncounterActorsAction` builds one occurrence per entry
+(`encounterChosenActorEntries`). **Projectiles (current, SPELLS-26):** when the targeting allows repeated targets, each
+entry is one projectile (Magic Missile's dart): it rolls on its own tape, resolves as its own child with its own
+occurrence, lands on the hit points the creature's earlier entries left (the executor and the room chain the
+binding and the prepared facts per creature), and carries its own concentration check. The slot is spent with the
+caster's first entry only; the transport allows a repeated id and leaves the rule to the action. `rollsPerTarget`
+travels from the room to persistence so every projectile gets a roll card. A shaped list needs `scene.point`; the room prepares the point as a point area
 (`prepareAreaScene`, so range and sight warnings are the area's) and refuses a chosen creature outside the
 sphere (`catchEncounterAreaActorIds`). An unshaped list takes no point. Warnings are gathered across the list
 and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped list is not range-checked
@@ -406,7 +412,7 @@ is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANG
 point-area policy advertises its origin range, which `evaluateEncounterAreaTargetPolicy` measures
 (`pointAreaOriginRange`): `WITHIN` the distance (never `RANGED`, the area evaluator ignores a long range) or `UNLIMITED`.
 A policy neither evaluator measures leaves it off: a sight or special range, targeting that is not a single target with a
-disposition (excluded creature types only warn; neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions still do), the room raises the overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning, only for a Creature target, since a Character's facts carry no creature type), an area with no supported shape, a path override, or no policy.
+disposition (creature type restrictions only warn: `allowedCreatureTypeIds` names the only types the action affects and `excludedCreatureTypeIds` the types it does not, and `targetingExcludesCreatureType` reads both. Neither the compiler nor the single-target action evaluators refuse a single-target policy for them (movement reactions and area saves still do), the room raises the one overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning for either list, only for a Creature target, since a Character's facts carry no creature type. The compiler refuses an area restriction, so an area spell has no per-target type gate), an area with no supported shape, a path override, or no policy.
 `encounterActionChoiceRange` (`encounterActionRange.ts`) is the one mapping. `rangeLabel` is not derived from `range`:
 it words the authored range with `rangeLabel` (`rangeLabel.ts`), the formatter the Sheet uses, so Touch reads "Touch"
 (its 5 ft geometry stays in `range`) and a ranged weapon reads "150/600 ft" on both surfaces. Only a choice without a
@@ -725,15 +731,21 @@ one action choice per offered candidate, so upcasting is choosing the higher-lev
 has no cast-level field. The action id is `spell-cast:<uuid v5 of the candidate id>`, a fixed length however
 long the candidate id grows. The choices travel beside the Character's other actions as
 `characterSpellCast` on the Encounter source facts (`encounterMovementTargets.ts`), so the Sheet's own
-actions and the movement reactions never see spells.
+actions and the movement reactions never see spells. Attack reactions do read them (a spell with a REACTION
+activation and an attack or damage trigger is offered like a Feature reaction).
 
 A candidate is offered through the Sheet's own logic, not a copy of it: the spell must come from an active
 source (`isActiveSpellSource`: prepared per preparing class, learned for the others, always prepared and
 granted spells included) and the candidate must be one of the cast levels the Sheet lists
 (`getExplicitSpellCastLevels`): the spell's own level plus every higher level its authored damage or heal
 scaling reaches for which the Character owns a standard slot. A Warlock's pact slot is offered for the spell's
-own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE`, or it is a
-ritual, a limited-use cast or a pool-backed fixed-level cast. A spell is offered only with exactly one active
+own level and spent whatever its level. A candidate is dropped when its decision is not `AVAILABLE` or it is a
+ritual. A leveled cast paid from a spell-source pool (`LIMITED_USE`, or a `FIXED_LEVEL` grant with `charges`,
+SPELLS-8.T8) carries a `resourceUse` of one use of that pool and spends no slot, as on the Sheet
+(`sheetResourceUsage.ts`); a cantrip is free, and so is a `FIXED_LEVEL` grant without charges. The pool spend
+is the ordinary `resourceBinding` of the compiled entry and GM undo restores it by the pool's owner key. A
+`CAST_AT_LEVEL` grant casts at its `castAtLevel` even when it is also `LIMITED_USE`. The Worker does not offer
+an attack reaction whose prepared state spends a pool, because the reaction receipt carries no pool spend. A spell is offered only with exactly one active
 Effect (a PASSIVE Effect is ignored): one cast is one action and the compiler executes one Effect group per
 action. A cast is offered only when the System adapter compiles its entry (`COMPILED`), since choosing one that
 stays `MANUAL` could only be refused as stale. The dnd5e Effect-action compiler does not yet execute a group that
@@ -940,7 +952,7 @@ Smite (`source-data/srd/classes/paladin`) are authored from core options only. I
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only `ATTACK_ROLL_MODE` and `CREATURE_TYPE` checks (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
 roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
 d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
@@ -951,6 +963,24 @@ so it is the same whichever the roll owes; the published graph is what differs. 
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
 edge cases in `docs/roadmap/future-enhancements.md`).
+
+**Enemy near the target (D119 e).** `ENEMY_NEAR_TARGET {feet}` is the second circumstance check: another
+creature hostile to the target, able to act (not defeated, not incapacitated), within `feet` of the target,
+measured by `measureSceneTokenFootprintDistance` between the target's token and the candidate's and converted
+to feet (`encounterEnemyProximity`, `nearestAbleEnemyProximity`). The attacker and the target never count;
+a NEUTRAL actor is never hostile. `prepareEncounterActionMechanics` asks its optional `loadEnemyProximity`
+supplier only for an attack whose compiled Effect reads the predicate (`effectReadsEnemyProximity`), and puts
+the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFacts` emits it as the TEXT fact
+`dnd5e.attack-enemy-proximity` (`{"nearestFeet": number | null}`). An attack without the fact (no Scene
+context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
+the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
+(`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
+consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
+moved Scene version (`Action Scene context is stale.`) while planning, the commit's read fence covers the
+consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
+binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
+unavailable token refuses the attack, as for an area action. Persistence never
+re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm

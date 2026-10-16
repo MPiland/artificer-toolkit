@@ -6,7 +6,9 @@ import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   encounterActionLongRangeContributor,
   encounterActorRelationship,
-  evaluateEncounterActionTargetPolicy
+  evaluateEncounterActionTargetPolicy,
+  targetingExcludesCreatureType,
+  withoutCreatureTypeRestrictions
 } from '../encounterActionTargetPolicy.js'
 import {
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
@@ -610,6 +612,15 @@ describe('encounter action target range', () => {
         targeting: {
           selectionKind: 'SINGLE_TARGET',
           dispositionKind: 'ANY',
+          allowedCreatureTypeIds: ['00000000-0000-4000-8000-0000000000aa']
+        }
+      })
+    ).toBeNull()
+    expect(
+      rangeWarnings({
+        targeting: {
+          selectionKind: 'SINGLE_TARGET',
+          dispositionKind: 'ANY',
           excludedCreatureTypeIds: ['00000000-0000-4000-8000-0000000000aa']
         }
       })
@@ -624,5 +635,59 @@ describe('encounter action target range', () => {
         scene: { source: token(0, 0), target: token(1, 0) }
       })
     ).toEqual([])
+  })
+})
+
+describe('creature type restrictions on an action', () => {
+  const humanoid = '00000000-0000-4000-8000-0000000000a1'
+  const beast = '00000000-0000-4000-8000-0000000000a2'
+  const undead = '00000000-0000-4000-8000-0000000000a3'
+  const single = (restriction: {
+    allowedCreatureTypeIds?: string[]
+    excludedCreatureTypeIds?: string[]
+  }): CompiledActionTargetPolicy['targeting'] => ({
+    selectionKind: 'SINGLE_TARGET',
+    dispositionKind: 'ANY',
+    ...restriction
+  })
+
+  it('has no effect on an excluded type, or on a type the action does not name as affected', () => {
+    expect(
+      targetingExcludesCreatureType(single({ excludedCreatureTypeIds: [undead] }), undead)
+    ).toBe(true)
+    expect(
+      targetingExcludesCreatureType(single({ excludedCreatureTypeIds: [undead] }), beast)
+    ).toBe(false)
+    expect(
+      targetingExcludesCreatureType(single({ allowedCreatureTypeIds: [humanoid] }), beast)
+    ).toBe(true)
+    expect(
+      targetingExcludesCreatureType(single({ allowedCreatureTypeIds: [humanoid] }), humanoid)
+    ).toBe(false)
+    expect(
+      targetingExcludesCreatureType(
+        single({ allowedCreatureTypeIds: [humanoid, beast], excludedCreatureTypeIds: [beast] }),
+        beast
+      )
+    ).toBe(true)
+  })
+
+  it('restricts nothing when no types are named, and never a Self action', () => {
+    expect(targetingExcludesCreatureType(single({}), beast)).toBe(false)
+    expect(targetingExcludesCreatureType(single({ allowedCreatureTypeIds: [] }), beast)).toBe(false)
+    expect(targetingExcludesCreatureType({ selectionKind: 'SELF' }, beast)).toBe(false)
+    expect(targetingExcludesCreatureType(null, beast)).toBe(false)
+  })
+
+  it('is checked against the policy with both lists cleared, which is the target gate', () => {
+    const policy: CompiledActionTargetPolicy = {
+      range: { id: 'range', rangeKind: 'UNLIMITED' },
+      targeting: single({ allowedCreatureTypeIds: [humanoid], excludedCreatureTypeIds: [undead] }),
+      shape: null,
+      pathOverrides: []
+    }
+    expect(withoutCreatureTypeRestrictions(policy).targeting).toEqual(
+      single({ allowedCreatureTypeIds: [], excludedCreatureTypeIds: [] })
+    )
   })
 })

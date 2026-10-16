@@ -103,7 +103,7 @@ export function buildCharacterSpellCastRuleFacts(params: {
       spell.level,
       mode,
       spellPoolByAccessId.get(access.accessId) ?? null,
-      mode === 'FIXED_LEVEL' ? (access.castAtLevel ?? spell.level) : undefined
+      access.attributes.includes('CAST_AT_LEVEL') ? (access.castAtLevel ?? undefined) : undefined
     )
   }
 

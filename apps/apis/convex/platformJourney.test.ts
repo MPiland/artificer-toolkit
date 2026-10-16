@@ -127,13 +127,15 @@ describe('Platform bootstrap and bounded read journeys (PLATFORM-2)', () => {
     // 3. The paired SRD bootstrap admits exactly one System and replays idempotently.
     expect(await t.mutation(internal.content.import.bootstrap, srdBootstrap)).toEqual({
       inserted: 3,
-      reused: 0
+      reused: 0,
+      replaced: 0
     })
     const admitted = { systems: 1, contentSources: 1, rulesCatalogues: 1 }
     expect(await rowCounts()).toEqual(admitted)
     expect(await t.mutation(internal.content.import.bootstrap, srdBootstrap)).toEqual({
       inserted: 0,
-      reused: 3
+      reused: 3,
+      replaced: 0
     })
     expect(await rowCounts()).toEqual(admitted)
 

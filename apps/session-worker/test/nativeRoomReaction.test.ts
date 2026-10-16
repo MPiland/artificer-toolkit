@@ -18,6 +18,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
+import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, fireballWolf } from './actionRoomFixture.js'
 import { areaReceipts } from './areaRoomReads.js'
@@ -497,6 +498,55 @@ describe('room homebrew reaction authored from core options (ADR 0038)', () => {
     })
     // The roll beat the old armor class by 2, so +3 turns the hit into a miss.
     expect(hitPointsLost(batch)).toBe(0)
+  })
+})
+
+/** Shield's reaction authored as a Fighter Feature that spends one of its two charges. */
+const chargedWard = (() => {
+  const chargeId = testUuid(0x7d5)
+  return {
+    id: testUuid(0x7d6),
+    label: 'Charged Ward',
+    description: 'A reaction paid from a charge pool.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: chargeId,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 2
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: shield.effects!.map((effect) => ({
+      ...effect,
+      invocation: { ...effect.invocation, resourceUse: { chargeId, cost: 1 } }
+    }))
+  } satisfies ClassFeature
+})()
+
+describe('room reaction paid from a pool', () => {
+  const wardRoom = (feature: ClassFeature) =>
+    actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: attackBite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+      characterClassFeatures: [feature]
+    })
+
+  it('is offered when it spends nothing', async () => {
+    const room = await wardRoom({ ...chargedWard, effects: shield.effects })
+    await strike(room, 0)
+    await offeredReaction(room)
+  })
+
+  // A reaction's receipt carries no pool spend, so offering one would let it be used without limit.
+  it('is not offered when it spends a charge, since the use could not be spent', async () => {
+    const room = await wardRoom(chargedWard)
+    await strike(room, 0)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 })
 

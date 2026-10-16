@@ -1,6 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
+  EncounterGmProjectionDto,
+  EncounterPlayerProjectionDto
+} from '@artificer-toolkit/schema/api/encounters'
+import type {
   SceneEncounterBinding,
   SceneEncounterBindingInput,
   SceneRecipientEncounterBindingsInput,
@@ -10,7 +14,7 @@ import type {
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import {
   bindPresentedScene,
   createEncounterSceneFixture as setup
@@ -27,6 +31,11 @@ const encounterBindings = makeFunctionReference<
   SceneRecipientEncounterBindingsInput,
   SceneRecipientEncounterBindingsPage
 >('scenes/recipientActions:encounterBindings')
+const getEncounter = makeFunctionReference<
+  'query',
+  { encounterId: string },
+  EncounterGmProjectionDto | EncounterPlayerProjectionDto
+>('encounters/projectionReads:get')
 const recipientHeader = makeFunctionReference<'query', { sceneId: string }, SceneRecipientHeader>(
   'scenes/recipientReads:header'
 )
@@ -306,5 +315,61 @@ describe('native Encounter recipient bindings', () => {
         expectedRecipientRevision: '0'.repeat(64)
       })
     ).rejects.toThrow()
+  }, 60000)
+})
+
+describe('the Encounter a player reads on a bound Scene, where Convex cannot read fog (ATTACK-17.3, D121)', () => {
+  const listed = async (
+    base: Awaited<ReturnType<typeof prepare>>,
+    caller: typeof base.owner.caller
+  ) =>
+    (await caller.query(getEncounter, { encounterId: base.run.id })).actors
+      .map(({ id, label }) => ({ id, label }))
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+
+  it('lists a creature only once the GM reveals it, whether or not it has a token', async () => {
+    const base = await prepare()
+    await base.t.run((ctx) =>
+      updateFixtureRunActors(ctx, base.run.id, (actor) => ({ ...actor, public: true }))
+    )
+    const [staged, bound] = base.run.actors
+    await bindActorToken(base, 1, 0)
+    const reveal = (actorId: string | undefined, level: 'UNNAMED' | 'NAMED' | null) =>
+      base.t.run((ctx) =>
+        updateFixtureRunActors(ctx, base.run.id, (actor) =>
+          actor.id === actorId ? { ...actor, reveal: level } : actor
+        )
+      )
+
+    // The GM sees both; the player sees neither: one is staged off-map, one's token is unreadable here.
+    expect((await listed(base, base.other.caller)).map(({ id }) => id)).toEqual(
+      [staged!.id, bound!.id].sort()
+    )
+    expect(await listed(base, base.owner.caller)).toEqual([])
+
+    await reveal(staged?.id, 'UNNAMED')
+    await reveal(bound?.id, 'NAMED')
+    expect(await listed(base, base.owner.caller)).toEqual(
+      [
+        { id: staged!.id, label: 'Unseen creature' },
+        { id: bound!.id, label: bound!.label }
+      ].sort((a, b) => (a.id < b.id ? -1 : 1))
+    )
+  }, 60000)
+
+  it('lists every public creature when the Encounter has no Scene', async () => {
+    const base = await prepare()
+    await base.t.run(async (ctx) => {
+      await updateFixtureRunActors(ctx, base.run.id, (actor) => ({ ...actor, public: true }))
+      const binding = await ctx.db
+        .query('encounterSceneBindings')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
+        .unique()
+      if (!binding) throw new Error('Missing Encounter Scene binding.')
+      await ctx.db.delete(binding._id)
+    })
+    expect((await listed(base, base.owner.caller)).map(({ id }) => id)).toEqual(
+      base.run.actors.map(({ id }) => id).sort()
+    )
   }, 60000)
 })

@@ -63,6 +63,7 @@ import { CharacterRuleActionUnsupportedCompilationError } from '../../characterR
 import {
   chosenCreaturesAreaSupported,
   chosenCreaturesMaxTargets,
+  resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
@@ -80,7 +81,11 @@ import {
   REACTION_CHOICE_OPERATION_KEY
 } from '../../reactionChoiceDefinition.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
-import { attackRestrictionsMet, type Dnd5eAttackRollMode } from './attackRestrictions.js'
+import {
+  attackRestrictionsMet,
+  type Dnd5eAttackRollMode,
+  type Dnd5eEnemyProximity
+} from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
@@ -188,6 +193,8 @@ const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 const DND5E_ATTACK_ROLL_MODE_FACT_KEY = 'dnd5e.attack-roll-mode'
 /** The attacked creature's type, which a path restriction reads when its outcome specializes. */
 const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
+/** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
+const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -281,6 +288,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   selectedOptionalRiderIds?: readonly string[]
   attackRollMode?: Dnd5eAttackRollMode
   targetCreatureTypeId?: string
+  attackEnemyProximity?: Dnd5eEnemyProximity
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -318,6 +326,7 @@ function dndScalingFactsFromRuleValues(
       typeof facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY] === 'string'
         ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
         : undefined,
+    attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -348,6 +357,24 @@ function parseAttackRollMode(value: RuleValue | undefined): Dnd5eAttackRollMode 
   if (value !== 'NORMAL' && value !== 'ADVANTAGE' && value !== 'DISADVANTAGE')
     unsupported('D&D attack roll mode is malformed.')
   return value
+}
+
+function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') unsupported('D&D enemy proximity is malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D enemy proximity is malformed.')
+  }
+  const nearestFeet =
+    typeof parsed === 'object' && parsed !== null && 'nearestFeet' in parsed
+      ? parsed.nearestFeet
+      : undefined
+  if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
+    unsupported('D&D enemy proximity is malformed.')
+  return { nearestFeet }
 }
 
 function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
@@ -526,6 +553,7 @@ function isSupportedTestArea(
     !shape ||
     targeting?.selectionKind !== 'AREA_CONTENTS' ||
     targeting.dispositionKind !== 'ANY' ||
+    targeting.allowedCreatureTypeIds?.length ||
     targeting.excludedCreatureTypeIds?.length ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     invocation.activation.code !== 'ACTION' ||
@@ -656,11 +684,13 @@ function pinnedSaveDc(
 ): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
   if (savingThrow?.dcMethod === 'SOURCE_SAVE_DC')
     return { adapterFacts: {}, castSaveDcFactKey: DND5E_SAVE_DC_FACT_KEY }
-  if (savingThrow?.dcMethod === 'FIXED_DC' && Number.isSafeInteger(savingThrow.baseDc))
-    return {
-      adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: savingThrow.baseDc! },
-      castSaveDcFactKey: null
-    }
+  const baseDc = savingThrow?.baseDc
+  if (
+    savingThrow?.dcMethod === 'FIXED_DC' &&
+    typeof baseDc === 'number' &&
+    Number.isSafeInteger(baseDc)
+  )
+    return { adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: baseDc }, castSaveDcFactKey: null }
   return null
 }
 
@@ -2497,13 +2527,15 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       (invocation.targeting.dispositionKind === 'WILLING' &&
         (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
-  // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
-  // once the outcome is read.
+  // (Mass Cure Wounds), resolves the one outcome on each; only a heal or dice damage that needs no
+  // test (Magic Missile) is supported, checked below once the outcome is read.
   const supportsChosenCreatures =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     invocation.targeting.dispositionKind === 'ANY' &&
-    chosenCreaturesMaxTargets(invocation.targeting) !== null &&
+    chosenCreaturesMaxTargets(
+      resolveChosenCreaturesTargeting(invocation.targeting, action.spellCastLevel)
+    ) !== null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
@@ -2568,8 +2600,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL')
-    unsupported('D&D chosen-creature action outcome must be a heal.')
+  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
+    unsupported('D&D chosen-creature action outcome must be a heal or damage.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2625,6 +2657,15 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     )
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
+  }
+  // Dice damage with no attack or save to decide it (Magic Missile's dart): one roll of the authored
+  // dice, which a bonus or a scaling row would have to be bound to facts to read.
+  if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
+    if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || outcome.halfHitPointsDice)
+      unsupported('D&D direct dice damage must be one unscaled roll with no bonuses.')
+    parseBoundedDiceConfiguration(outcome.dice)
+    uuid(outcome.damageTypeId, 'D&D damage type identity')
+    return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
   }
   if (
     outcome.valueKind !== 'FIXED' ||
@@ -3470,6 +3511,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ROLL_MODE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -3555,7 +3597,7 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
-  const id =`proposal-${pathCode.toLowerCase()}`
+  const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
@@ -4795,7 +4837,7 @@ function mergedOutcomeGraphDefinition(input: {
   }
 }
 
-/** An entry reduced to roll-time checks is owed only to an attack whose roll mode and target meet them. */
+/** An entry reduced to circumstance checks is owed only to an attack whose circumstances meet them. */
 function pathRestrictionsMet(
   entry: CompiledEffectGroup['entries'][number],
   facts: Dnd5eEffectScalingFacts
@@ -4803,11 +4845,11 @@ function pathRestrictionsMet(
   if (!('restrictions' in entry) || !entry.restrictions) return true
   if (facts.attackRollMode === undefined)
     unsupported('D&D path restrictions need the roll mode of an attack.')
-  return attackRestrictionsMet(
-    entry.restrictions,
-    facts.attackRollMode,
-    facts.targetCreatureTypeId ?? null
-  )
+  return attackRestrictionsMet(entry.restrictions, {
+    rollMode: facts.attackRollMode,
+    enemyProximity: facts.attackEnemyProximity ?? null,
+    targetCreatureTypeId: facts.targetCreatureTypeId ?? null
+  })
 }
 
 function specializeDnd5eEffectActionOutcomeBody(input: {
@@ -5157,8 +5199,29 @@ function compileDnd5eEffectAction({
       })
     })
   }
-  if (outcome.kind === 'DICE_DAMAGE')
-    unsupported('D&D direct dice damage requires an authored test phase.')
+  if (outcome.kind === 'DICE_DAMAGE') {
+    const entry = action.compiledEffect.entries[0]
+    if (
+      recurringPlan ||
+      !entry ||
+      !('outcome' in entry) ||
+      entry.outcome.effectKind !== 'DAMAGE' ||
+      entry.outcome.valueKind !== 'DICE' ||
+      entry.outcome.scalingKind !== 'NONE'
+    )
+      unsupported('D&D direct dice damage must retain one exact unrecurring authored outcome.')
+    const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
+    return bindMovementInterruptionOutput({
+      action,
+      published: serverPublishedRuleDefinitionDtoSchema.parse({
+        id: definition.id,
+        gameSystemId: definition.gameSystemId,
+        definitionFamilyKey: definition.definitionFamilyKey,
+        checksum: checksumRuleDocument(definition),
+        definition
+      })
+    })
+  }
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   const operation =
@@ -7245,6 +7308,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ? 'DISADVANTAGE'
           : 'NORMAL'
       const contributorChecksum = checksumRuleDocument(allContributors)
+      const enemyProximity = sourceDerivedFacts.attackEnemyProximity as
+        | Dnd5eEnemyProximity
+        | undefined
       return {
         facts: {
           ...baseFacts,
@@ -7253,6 +7319,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ATTACK_ROLL_MODE_FACT_KEY]: rollMode,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
+            : {}),
+          ...(enemyProximity
+            ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
             : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical

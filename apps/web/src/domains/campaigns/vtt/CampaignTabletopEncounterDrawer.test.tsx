@@ -300,6 +300,90 @@ describe('CampaignTabletopEncounterDrawer', () => {
     )
   })
 
+  describe('revealing a creature the map hides (ATTACK-17.3)', () => {
+    const warden = tabletopGmEncounter.actors[1]!
+    const gmDrawer = (encounter: EncounterGmProjectionDto, onCommand = vi.fn()) =>
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={encounter}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          onCommand={onCommand}
+          onEndCharacterConcentration={() => undefined}
+        />
+      )
+
+    it('lets the GM reveal an actor named', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      gmDrawer(tabletopGmEncounter, onCommand)
+
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      await user.click(screen.getByRole('combobox', { name: 'Reveal Vault Warden to players' }))
+      // Every actor row carries its own reveal list, so the option is read from this actor's.
+      const levels = await screen.findByRole('listbox', {
+        hidden: true,
+        name: 'Reveal Vault Warden to players'
+      })
+      await user.click(within(levels).getByRole('option', { hidden: true, name: 'Reveal named' }))
+
+      expect(onCommand).toHaveBeenCalledWith({
+        actorId: warden.id,
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        reveal: 'NAMED',
+        type: 'UPDATE_ACTOR'
+      })
+    })
+
+    it('shows the GM the level an actor is revealed at', async () => {
+      const user = userEvent.setup()
+      gmDrawer({
+        ...tabletopGmEncounter,
+        actors: tabletopGmEncounter.actors.map((actor) =>
+          actor.id === warden.id ? { ...actor, reveal: 'UNNAMED' as const } : actor
+        )
+      })
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      expect(screen.getByRole('combobox', { name: 'Reveal Vault Warden to players' })).toHaveValue(
+        'Reveal unnamed'
+      )
+    })
+
+    it('lists a creature revealed unnamed to a player as an unseen creature, with no controls', async () => {
+      const user = userEvent.setup()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine={false}
+          encounter={{
+            ...tabletopPlayerEncounter,
+            actors: tabletopPlayerEncounter.actors.map((actor) =>
+              actor.id === warden.id ? { ...actor, label: 'Unseen creature' } : actor
+            )
+          }}
+          memberships={createTabletopCampaign('PLAYER').memberships}
+          pending={false}
+          role='PLAYER'
+          scene={tabletopLiveScene}
+          onCommand={vi.fn()}
+          onEndCharacterConcentration={() => undefined}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      expect(await screen.findByText('Unseen creature')).toBeVisible()
+      expect(screen.queryByText('Vault Warden')).toBeNull()
+      expect(screen.queryByLabelText(/^Reveal .* to players$/)).toBeNull()
+    })
+  })
+
   describe('active grants (D99)', () => {
     const shown = {
       effectId: '44444444-4444-4444-8444-444444444401',

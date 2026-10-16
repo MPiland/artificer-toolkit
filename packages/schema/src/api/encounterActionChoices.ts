@@ -83,14 +83,17 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
       /**
        * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word);
        * `area` is the sphere the picks must stand in, centered on a point the user also picks,
-       * null when the spell names creatures without a shape.
+       * null when the spell names creatures without a shape. With `allowRepeatedTargets` each pick
+       * is one projectile (Magic Missile's dart), so the same creature may be picked up to
+       * `maxTargets` times.
        */
       z.strictObject({
         kind: z.literal('ACTORS'),
         maxTargets: z.number().check(z.int()).check(z.positive()),
         area: z.nullable(
           z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
-        )
+        ),
+        allowRepeatedTargets: z.optional(z.literal(true))
       }),
       z.strictObject({
         kind: z.literal('POINT'),

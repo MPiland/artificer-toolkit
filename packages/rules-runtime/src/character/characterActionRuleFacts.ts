@@ -114,6 +114,10 @@ function normalizeInvocation(
       : null
 
   const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
+  const targetCount =
+    invocation.targeting?.selectionKind === 'CHOSEN_CREATURES'
+      ? invocation.targeting.maxTargetsScaling
+      : undefined
 
   return {
     triggerCode: invocation.triggerCode,
@@ -123,7 +127,10 @@ function normalizeInvocation(
     reactionTrigger:
       trigger?.kind === 'MOVEMENT'
         ? { ...trigger, movementInterruption: trigger.movementInterruption ?? null }
-        : (trigger ?? null)
+        : (trigger ?? null),
+    ...(targetCount?.scalingSource === 'SPELL_CAST_LEVEL'
+      ? { targetCountLevels: targetCount.breakpoints.map(({ level }) => level) }
+      : {})
   }
 }
 

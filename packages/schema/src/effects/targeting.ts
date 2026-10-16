@@ -17,6 +17,9 @@ export const targetingDtoSchema = lazySchema(() =>
       selectionKind: z.literal('SINGLE_TARGET'),
       dispositionKind: z.optional(z.enum(['ANY', 'WILLING', 'HOSTILE'])),
       self: z.optional(targetingSelfDtoSchema),
+      allowedCreatureTypeIds: z.optional(
+        authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      ),
       excludedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       )
@@ -41,6 +44,9 @@ export const targetingDtoSchema = lazySchema(() =>
         )
       ),
       allowRepeatedTargets: z.optional(z.boolean()),
+      allowedCreatureTypeIds: z.optional(
+        authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      ),
       excludedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       )
@@ -48,6 +54,9 @@ export const targetingDtoSchema = lazySchema(() =>
     z.object({
       selectionKind: z.literal('AREA_CONTENTS'),
       dispositionKind: z.optional(z.enum(['ANY', 'WILLING', 'HOSTILE'])),
+      allowedCreatureTypeIds: z.optional(
+        authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      ),
       excludedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       )

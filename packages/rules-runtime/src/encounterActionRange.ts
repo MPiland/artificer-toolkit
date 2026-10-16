@@ -5,7 +5,7 @@ import { encounterActionTargetKind, pointAreaOriginRange } from './encounterArea
 import {
   singleTargetMeasure,
   TOUCH_RANGE,
-  withoutCreatureTypeExclusions
+  withoutCreatureTypeRestrictions
 } from './encounterActionTargetPolicy.js'
 import { rangeLabel } from './rangeLabel.js'
 
@@ -26,7 +26,7 @@ function enforcedRange(policy: CompiledActionTargetPolicy): EncounterActionRange
       ? { kind: 'UNLIMITED' }
       : { kind: 'WITHIN', distance: { amount: origin.amount, unit: origin.unit } }
   }
-  const measure = singleTargetMeasure(withoutCreatureTypeExclusions(policy))
+  const measure = singleTargetMeasure(withoutCreatureTypeRestrictions(policy))
   if (measure === null) return null
   if (measure.kind === 'SELF') return { kind: 'SELF' }
   const { range } = measure

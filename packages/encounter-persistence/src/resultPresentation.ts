@@ -7,7 +7,7 @@ import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runti
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readPendingRunDecision } from './pendingReads.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
-import { readEncounterHealthViewer } from './healthViewer.js'
+import { readEncounterPlayerViewer } from './playerViewer.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -52,7 +52,7 @@ export async function presentEncounterResultForMember(
         ? projection
         : projectPlayerEncounterProjection(
             projection,
-            await readEncounterHealthViewer(ctx, projection, membership.userId)
+            await readEncounterPlayerViewer(ctx, projection, membership)
           ),
     occurrence: result.occurrence && { ...result.occurrence, pending }
   })
