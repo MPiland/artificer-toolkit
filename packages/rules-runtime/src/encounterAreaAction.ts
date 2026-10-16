@@ -230,24 +230,22 @@ export function compileEncounterPointArea(
  * Resolves a directed area action from its policy: the area to catch creatures with, aimed from
  * `origin` toward `toward`. Every creature in the area is caught, so the single-target disposition
  * rules (D99) do not apply, and the origin is on the caster so no range or sight is checked. A
- * refusal is hard and says why: the policy takes no direction or its size is unsupported, the
- * caster has no token on the map, or the origin and direction do not start the area on the caster's
- * token as the shape requires.
+ * refusal is hard and says why: the policy takes no direction or its size is unsupported, or the
+ * origin and direction do not start the area on the caster's token as the shape requires.
  */
 export function evaluateEncounterDirectedAreaTarget(input: {
   targetPolicy: CompiledActionTargetPolicy
   origin: ScenePoint
   toward: ScenePoint
   grid: SceneGrid
-  /** The caster's token; null when it is not on the map. */
-  sourceToken: SpatialTokenFootprint | null
+  /** The caster's token. */
+  sourceToken: SpatialTokenFootprint
 }):
   | { shape: SpatialDirectedAreaShape; warnings: EncounterRuleWarningDto[] }
-  | { refusal: 'UNSUPPORTED_AREA' | 'NO_CASTER_TOKEN' | 'ORIGIN_OFF_CASTER' } {
+  | { refusal: 'UNSUPPORTED_AREA' | 'ORIGIN_OFF_CASTER' } {
   const area = authoredDirectedArea(input.targetPolicy)
   const shape = area && directedAreaInSceneCoordinates(area, input.toward, input.grid)
   if (!shape) return { refusal: 'UNSUPPORTED_AREA' }
-  if (input.sourceToken === null) return { refusal: 'NO_CASTER_TOKEN' }
   return isDirectedAreaOriginOnToken({ token: input.sourceToken, origin: input.origin, shape })
     ? { shape, warnings: [] }
     : { refusal: 'ORIGIN_OFF_CASTER' }
@@ -257,24 +255,19 @@ export function evaluateEncounterDirectedAreaTarget(input: {
  * Resolves a caster-centered area action from its policy: the radius to catch creatures with, drawn
  * around the caster's token. No aim is taken, so no range or sight is checked, and every creature in
  * the area is caught, so the single-target disposition rules (D99) do not apply. A refusal is hard
- * and says why: the policy takes no centered area or its size is unsupported, or the caster has no
- * token on the map.
+ * and says why: the policy takes no centered area or its size is unsupported.
  */
 export function evaluateEncounterCasterCenteredAreaTarget(input: {
   targetPolicy: CompiledActionTargetPolicy
   grid: SceneGrid
-  /** The caster's token; null when it is not on the map. */
-  sourceToken: Pick<SceneToken, 'position'> | null
 }):
   | { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] }
-  | { refusal: 'UNSUPPORTED_AREA' | 'NO_CASTER_TOKEN' } {
+  | { refusal: 'UNSUPPORTED_AREA' } {
   const shape =
     encounterActionTargetKind(input.targetPolicy) === 'CASTER_CENTERED'
       ? compileEncounterPointArea(input.targetPolicy, input.grid)
       : null
-  if (!shape) return { refusal: 'UNSUPPORTED_AREA' }
-  if (input.sourceToken === null) return { refusal: 'NO_CASTER_TOKEN' }
-  return { shape, warnings: [] }
+  return shape ? { shape, warnings: [] } : { refusal: 'UNSUPPORTED_AREA' }
 }
 
 /**

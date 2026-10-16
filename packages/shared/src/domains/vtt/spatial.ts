@@ -385,8 +385,9 @@ export function pointCubeOutline(origin: ScenePoint, edgeLength: number): SceneP
  * A directed area in Scene units. Its point of origin lies on the caster's footprint and it extends
  * toward `toward`. A cone is as wide as it is long and a line is a rectangle centered on its axis.
  * A cube extends one full edge out from the side of the footprint `toward` mostly faces, with its
- * face flush against that side: the origin picks where along the side the face sits, in steps of
- * `cellSize`, so the cube stays on the grid and never starts inside the caster's space.
+ * face flush against that side: the origin picks where along the side the face sits, on the Scene
+ * grid's lines (`gridOrigin` plus whole `cellSize` steps), so the cube stays on the grid and never
+ * starts inside the caster's space.
  */
 export type SpatialDirectedAreaShape =
   | { readonly kind: 'CONE'; readonly length: number; readonly toward: ScenePoint }
@@ -400,6 +401,7 @@ export type SpatialDirectedAreaShape =
       readonly kind: 'CUBE_FROM_SIDE'
       readonly edgeLength: number
       readonly cellSize: number
+      readonly gridOrigin: ScenePoint
       readonly toward: ScenePoint
     }
 
@@ -438,11 +440,14 @@ export function directedAreaSizeInSceneCoordinates(
 ): SpatialDirectedAreaSize | null {
   if (area.kind === 'CUBE_FROM_SIDE') {
     const edgeLength = coordinateLength(area.edgeLength, grid)
-    // A gridless Scene has no cells, so the cube snaps to the 5 ft square of the rules.
-    const cellSize = grid.kind === 'GRIDLESS' ? coordinateLength(FIVE_FEET, grid) : grid.cellSize
+    // A gridless Scene has no cells, so the cube snaps to the 5 ft squares of the rules from (0, 0).
+    const [cellSize, gridOrigin] =
+      grid.kind === 'GRIDLESS'
+        ? [coordinateLength(FIVE_FEET, grid), { x: 0, y: 0 }]
+        : [grid.cellSize, grid.origin]
     return edgeLength === null || cellSize === null
       ? null
-      : { kind: 'CUBE_FROM_SIDE', edgeLength, cellSize }
+      : { kind: 'CUBE_FROM_SIDE', edgeLength, cellSize, gridOrigin }
   }
   const length = coordinateLength(area.length, grid)
   if (length === null) return null
@@ -463,8 +468,9 @@ export function directedAreaInSceneCoordinates(
 
 /**
  * The cube that extends from the side of `caster` the direction mostly faces, on the grid. Its face
- * is flush against that side and sits in one of the snapped places that still share the side with
- * the caster; where the origin lies along the side picks the place, from one end to the other.
+ * is flush against that side and starts on one of the Scene's grid lines, in a place that still
+ * shares some of the side with the caster. The places run in order along the side and where the
+ * origin lies picks one: each place owns an equal share of the side.
  */
 function cubeFromSideOutline(
   caster: SpatialTokenFootprint,
@@ -478,16 +484,19 @@ function cubeFromSideOutline(
   const [depthHalf, slideHalf] = faceX
     ? [space.halfWidth, space.halfHeight]
     : [space.halfHeight, space.halfWidth]
-  const [depthCenter, slideCenter, slideOrigin] = faceX
-    ? [space.center.x, space.center.y, origin.y]
-    : [space.center.y, space.center.x, origin.x]
+  const [depthCenter, slideCenter, slideOrigin, gridLine] = faceX
+    ? [space.center.x, space.center.y, origin.y, shape.gridOrigin.y]
+    : [space.center.y, space.center.x, origin.x, shape.gridOrigin.x]
   const { edgeLength, cellSize } = shape
   const sideLength = slideHalf * 2
   const sideStart = slideCenter - slideHalf
-  const earliest = cellSize - edgeLength
-  const places = Math.max(0, Math.round((sideLength - cellSize - earliest) / cellSize))
+  // The grid lines a face may start on share positive length with the side: past `sideStart -
+  // edgeLength` and before the side's end.
+  const first = Math.floor((sideStart - edgeLength - gridLine) / cellSize + EPSILON) + 1
+  const last = Math.ceil((sideStart + sideLength - gridLine) / cellSize - EPSILON) - 1
   const along = Math.min(Math.max((slideOrigin - sideStart) / sideLength, 0), 1)
-  const start = sideStart + earliest + Math.round(along * places) * cellSize
+  const place = Math.min(Math.floor(along * (last - first + 1)), last - first)
+  const start = gridLine + (first + place) * cellSize
   const near = depthCenter + out * depthHalf
   const far = near + out * edgeLength
   const corner = (depth: number, slide: number): ScenePoint =>
