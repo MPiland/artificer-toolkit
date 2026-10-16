@@ -5917,6 +5917,20 @@
               "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
             },
             {
+              "id": "ATTACK-9.T6b",
+              "text": "Complete the Rage engaged mark: one shared helper sets it at every attack-roll site (opportunity attacks, Disarm, Grapple, Shove, spell and area attack rolls, reaction attacks) and every damage site (including Sheet and GM HP decreases), and every undo clears what it set; an armed marker on the actor (set where an idle-bound grant is created, cleared where it ends) keeps damage paths from reading effects for actors without one; legendary-action damage at the holder END_OF_TURN counts before the idle check; skipped-turn ticks never idle-check an actor that had no turn; the activation-turn exemption applies on every activation path. Red-first per site.",
+              "status": "TODO",
+              "closes": ["ATTACK-9.6"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": ["ATTACK-9.T6"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t3-t6.md"
+            },
+            {
               "id": "ATTACK-9.T7",
               "text": "Rage merge-review fixes: defeated-holder plan/persistence agreement, completeness check of ended grants, recorded attack ability, MANUAL/non-ACTIVE holder end, turn-commit and edit ends, undo when Rage ends Concentration, movement-pass end, heavy-armor predicate, nits.",
               "status": "DONE",
