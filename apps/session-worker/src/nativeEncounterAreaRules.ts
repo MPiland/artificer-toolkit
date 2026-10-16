@@ -135,7 +135,9 @@ type ChosenActorsCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
   target: Extract<ResolveEncounterActionTargetDto, { kind: 'ACTORS' }>
 }
 /** A command that opens or resumes a multi-creature action: a point area or a list of chosen creatures. */
-type ReachCommand = AreaCommand | ChosenActorsCommand
+type ReachCommand = Omit<ResolveEncounterActionInputDto, 'target'> & {
+  target: AreaCommand['target'] | ChosenActorsCommand['target']
+}
 type MovementTargets = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
 /** What every multi-creature plan (a point area, a list of chosen creatures) reads from the room. */

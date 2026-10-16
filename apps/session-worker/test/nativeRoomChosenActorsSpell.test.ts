@@ -468,12 +468,12 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
     if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
     return { decision, saves: decision.pending.saves }
   }
-  /** `actorId`'s own save answered with one natural d20 face. */
+  /** `actorId`'s own save answered with one natural d20 face; the answer must commit. */
   async function answerSave(room: HealerRoom, actorId: string, face: number) {
     const { decision, saves } = await pendingSaves(room)
     const save = saves.find((entry) => entry.actorId === actorId)
     if (!save) throw new Error('The creature has no pending save.')
-    return room.send(
+    const answer = await room.send(
       room.resolveCommand(decision, {
         kind: 'ENTER_DICE',
         requestId: save.request.requestId,
@@ -481,6 +481,7 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
         rollMode: save.request.rollMode
       })
     )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   }
   const splash = (config: { rolls?: readonly number[]; autoRoll?: 'BOTH' } = {}) =>
     healerRoom({
@@ -509,9 +510,9 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
     expect(saves.map((save) => save.actorId).sort()).toEqual([first, second].sort())
     expect(await hitPointsOf(room)).toEqual(before)
 
-    expect((await answerSave(room, first, FAIL)).type).toBe('COMMAND_COMMITTED')
+    await answerSave(room, first, FAIL)
     expect(await hitPointsOf(room)).toEqual(before)
-    expect((await answerSave(room, second, SAVE)).type).toBe('COMMAND_COMMITTED')
+    await answerSave(room, second, SAVE)
 
     expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 20 - 3 })
     const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
@@ -532,8 +533,8 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect((await pendingSaves(room)).saves).toHaveLength(2)
 
-    expect((await answerSave(room, first, SAVE)).type).toBe('COMMAND_COMMITTED')
-    expect((await answerSave(room, second, FAIL)).type).toBe('COMMAND_COMMITTED')
+    await answerSave(room, first, SAVE)
+    await answerSave(room, second, FAIL)
     expect(await hitPointsOf(room)).toEqual({ ...before, [second]: 20 - 3 })
   }, 120000)
 
@@ -554,7 +555,7 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
     expect((await room.startActorsAction([first, second], [], true)).answer.type).toBe(
       'COMMAND_COMMITTED'
     )
-    expect((await answerSave(room, first, FAIL)).type).toBe('COMMAND_COMMITTED')
+    await answerSave(room, first, FAIL)
 
     const removal = await room.send(
       room.removeAreaTargetCommand(await room.pendingDecision(), second)
@@ -573,9 +574,9 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
 
-    expect((await answerSave(room, first, FAIL)).type).toBe('COMMAND_COMMITTED')
-    expect((await answerSave(room, second, SAVE)).type).toBe('COMMAND_COMMITTED')
-    expect((await answerSave(room, third, FAIL)).type).toBe('COMMAND_COMMITTED')
+    await answerSave(room, first, FAIL)
+    await answerSave(room, second, SAVE)
+    await answerSave(room, third, FAIL)
 
     expect(await hitPointsOf(room)).toEqual({
       ...before,
