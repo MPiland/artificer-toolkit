@@ -8557,7 +8557,7 @@
             {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8565,8 +8565,21 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T2a"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T3b",
+              "text": "Every cast raises ON_CAST_SPELL: a Character reactor cast (Shield, Counterspell as reactor) and Creature and Legendary casts end the caster’s own cast-ended effects; proofs for an area cast catching its own invisible caster, replay after a declined Counterspell offer, and a cantrip whose only Sheet change is the release; the authoring-parity test asserts an invalid end event is cleared.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-27-t3.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-27-t3b.md"
             },
             {
               "id": "SPELLS-27.T4",
