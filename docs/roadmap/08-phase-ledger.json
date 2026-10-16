@@ -9058,8 +9058,8 @@
             },
             {
               "id": "REACTION-4.T3f",
-              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure.",
-              "status": "IN_PROGRESS",
+              "text": "Counterspell check hardening: a failed or passed spellcasting check posts its chat roll card like any other check; a below-level slot is not offered to a reactor with no spellcasting ability (no throw); the check pause evidence receipt records pending D20_EVIDENCE; room tests for two reactors failing in sequence, a failure followed by another reactor successful counter, and undo after an auto-roll failure. (Red: ci/reaction-4-t3f-red Tests 38919882836 on d93fa13b6, the two-holder counter test fails without the failed-counter economy fix. Green: ci/reaction-4-t3c Tests 38917616069 and Live backend 38917616671 on 2dbaf27c1.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 5,
@@ -9067,13 +9067,12 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["REACTION-4.T3c"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3d",
               "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -9081,7 +9080,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T3e",
