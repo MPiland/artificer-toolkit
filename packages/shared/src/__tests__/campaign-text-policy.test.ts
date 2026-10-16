@@ -45,6 +45,10 @@ describe('Campaign text policy', () => {
     expect(maskStandardPlainText('sh1t and fuuuck')).toBe('**** and ****')
   })
 
+  it('masks the whole word of an inflected profanity', () => {
+    expect(maskStandardPlainText('Fucking Coins, he fucked it')).toBe('**** Coins, he **** it')
+  })
+
   it('masks short ambiguous terms only as whole words and leaves ordinary words alone', () => {
     expect(maskStandardPlainText('kick his ass, you dumbass')).toBe('kick his ****, you ****')
     const ordinary = 'Cassandra of Scunthorpe met Dickens and an Assassin near a Compass in Essex.'

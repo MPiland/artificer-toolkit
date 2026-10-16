@@ -36,6 +36,9 @@ const profaneCompounds = [
   'cumdump',
   'shithead'
 ]
+// Inflected forms the dataset covers only by their stem, so Standard campaign text masks the whole
+// word (`Fucking` -> `****`) instead of leaving `****ing`.
+const profaneInflections = ['fucking', 'fucked', 'fucker', 'fuckers', 'fucks']
 // Known false positives of the matcher.
 export const allowedProfanityTerms = [
   'penistone',
@@ -66,7 +69,7 @@ export const allowedProfanityTerms = [
 const englishAnchoredTerms: string[] = []
 const dataset = [
   ...wholePartPhrases,
-  ...profaneCompounds.map((term) => ({ term, patterns: [term] }))
+  ...[...profaneCompounds, ...profaneInflections].map((term) => ({ term, patterns: [term] }))
 ].reduce(
   (set, { term, patterns }) =>
     set.addPhrase((phrase) =>
