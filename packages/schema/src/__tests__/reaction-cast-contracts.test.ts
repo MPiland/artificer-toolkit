@@ -1,6 +1,7 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { describe, expect, it } from 'vitest'
 
+import { MAX_ENCOUNTER_REACTION_OPTIONS } from '../shared/authoredLimits.js'
 import {
   encounterCastReactionOfferDtoSchema,
   encounterCastReactionPinDtoSchema,
@@ -51,15 +52,20 @@ describe('cast reaction pins', () => {
 })
 
 describe('cast reaction offers', () => {
-  it('holds one to eight reactions and the reactors that declined', () => {
+  it('holds up to the limit of reactions and the reactors that declined', () => {
     const offer = (count: number) => ({
       reactions: Array.from({ length: count }, (_, index) => castPin(index + 1)),
       declinedReactorActorIds: [uuid(900)]
     })
     expect(encounterCastReactionOfferDtoSchema.safeParse(offer(1)).success).toBe(true)
-    expect(encounterCastReactionOfferDtoSchema.safeParse(offer(8)).success).toBe(true)
+    expect(
+      encounterCastReactionOfferDtoSchema.safeParse(offer(MAX_ENCOUNTER_REACTION_OPTIONS)).success
+    ).toBe(true)
     expect(encounterCastReactionOfferDtoSchema.safeParse(offer(0)).success).toBe(false)
-    expect(encounterCastReactionOfferDtoSchema.safeParse(offer(9)).success).toBe(false)
+    expect(
+      encounterCastReactionOfferDtoSchema.safeParse(offer(MAX_ENCOUNTER_REACTION_OPTIONS + 1))
+        .success
+    ).toBe(false)
   })
 
   it('refuses a missing decline record', () => {
