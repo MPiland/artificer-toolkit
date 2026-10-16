@@ -22,8 +22,6 @@ export type TargetingAuthored =
       dispositionKind?: TargetDispositionKind
       maxTargets?: number
       maxTargetsScaling?: ScalableValueAuthored<{ amount: number }>
-      resolutionCount?: number
-      resolutionCountScaling?: ScalableValueAuthored<{ amount: number }>
       allowRepeatedTargets?: boolean
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]

@@ -14,7 +14,7 @@ import {
   endedMaintenanceConditions,
   planEncounterMaintenanceOwner
 } from './encounterActionMaintenance.js'
-import { consumableGrants } from './encounterGrantLifetimes.js'
+import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { actorContestFacts } from './encounterMovementPassagePreparation.js'
@@ -158,7 +158,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       contributorChecksum: checksumRuleDocument(facts.contributors),
       modifier: facts.modifier
     },
-    consumedGrants: consumableGrants(holder.activeEffects, 'ON_ABILITY_CHECK')
+    consumedGrants: effectsEndedBy(holder.activeEffects, 'ON_ABILITY_CHECK')
   })
 }
 

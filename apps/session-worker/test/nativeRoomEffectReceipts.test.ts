@@ -282,6 +282,7 @@ describe('effect and resource receipts of Creature actions in the room', () => {
     const outputs = await settle(room, CHARACTER_ACTOR_ID)
     expect(outputs).toMatchObject({
       kind: 'CHARACTER_MECHANICS_BATCH',
+      sourceApplications: [],
       sourceActorId: SOURCE_ID,
       sourceCharacterId: null,
       targetActorId: CHARACTER_ACTOR_ID,

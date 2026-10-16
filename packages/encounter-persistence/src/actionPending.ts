@@ -83,15 +83,42 @@ export async function canControlEvidenceRoller(
 
 type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
-/** The use options a paused action offers its decider: a Legendary Resistance, every reaction (innermost first), or every on-hit rider. */
+type CastReactionOffer = { declinedReactorActorIds: readonly string[] } | null
+
+/**
+ * A held cast leaves its pause only by a decline; using the reaction commits a countered cast instead.
+ * When another reactor is offered next, the declined list is exactly the earlier declines plus the answerer.
+ */
+export function castReactionAnswerContinues(
+  previous: { rollerActorId?: string; castReaction?: CastReactionOffer },
+  response: { resolution: { kind: string } } | null | undefined,
+  next: { castReaction?: CastReactionOffer }
+): boolean {
+  if (!previous.castReaction) return true
+  if (response?.resolution.kind !== 'DECLINE') return false
+  if (!next.castReaction) return true
+  const expected = new Set([
+    ...previous.castReaction.declinedReactorActorIds,
+    ...(previous.rollerActorId ? [previous.rollerActorId] : [])
+  ])
+  const declined = next.castReaction.declinedReactorActorIds
+  return declined.length === expected.size && declined.every((actorId) => expected.has(actorId))
+}
+
+/** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {
   legendaryResistance?: { resistance: { useOptionId: string } } | null
   reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
+  castReaction?: { reactions: readonly { useOptionId: string }[] } | null
   onHitChoice?: { options: readonly { useOptionId: string }[] } | null
 }): string[] {
   if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
   if (context.onHitChoice) return context.onHitChoice.options.map((option) => option.useOptionId)
-  return context.reactionChoice?.reactions.map((reaction) => reaction.useOptionId) ?? []
+  return (
+    (context.reactionChoice ?? context.castReaction)?.reactions.map(
+      (reaction) => reaction.useOptionId
+    ) ?? []
+  )
 }
 
 /**
@@ -115,14 +142,15 @@ export function projectNativeActionPending(
       options: [{ optionId: context.legendaryResistance.resistance.useOptionId }],
       allowedResponses: ['DECLINE', 'OPTION']
     }
-  if (context.reactionChoice)
+  const reactionOffer = context.reactionChoice ?? context.castReaction
+  if (reactionOffer)
     return {
       kind: 'REACTION_CHOICE',
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       encounterVersion: occurrence.expectedEncounterVersion,
       targetActorId: context.rollerActorId,
-      options: context.reactionChoice.reactions.map(({ useOptionId, actionId }) => ({
+      options: reactionOffer.reactions.map(({ useOptionId, actionId }) => ({
         optionId: useOptionId,
         actionId
       })),

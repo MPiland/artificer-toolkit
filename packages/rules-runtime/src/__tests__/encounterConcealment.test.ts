@@ -13,7 +13,7 @@ import {
   observersHiddenFrom,
   passiveSkillDefinitionId
 } from '../encounterConcealment.js'
-import { consumableGrants } from '../encounterGrantLifetimes.js'
+import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
 import { concealmentRecord } from '../testing/concealmentFixture.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -108,14 +108,20 @@ describe('concealment rules', () => {
 
   it('is used up by the first attack roll and by nothing else', () => {
     const record = hiddenFrom(FOOLED_ID)
-    expect(consumableGrants([record], 'ON_ATTACK_ROLL')).toEqual([record])
-    expect(consumableGrants([record], 'ON_ABILITY_CHECK')).toEqual([])
+    expect(effectsEndedBy([record], 'ON_ATTACK_ROLL')).toEqual([record])
+    expect(effectsEndedBy([record], 'ON_ABILITY_CHECK')).toEqual([])
   })
 
-  it('leaves an effect that is neither a grant nor a concealment (Invisibility) unconsumed by an attack', () => {
+  it('leaves an effect that lists neither event unconsumed by an attack', () => {
     const record = hiddenFrom(FOOLED_ID)
-    const condition = { ...record, definition: { ...record.definition, stateContributions: [] } }
-    expect(consumableGrants([condition], 'ON_ATTACK_ROLL')).toEqual([])
+    const unlisted = {
+      ...record,
+      definition: {
+        ...record.definition,
+        recurrence: { ...record.definition.recurrence, consumeOnFirstEvents: [], endOnEvents: [] }
+      }
+    }
+    expect(effectsEndedBy([unlisted], 'ON_ATTACK_ROLL')).toEqual([])
   })
 })
 

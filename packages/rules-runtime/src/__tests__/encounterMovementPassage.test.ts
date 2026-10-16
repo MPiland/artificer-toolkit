@@ -257,6 +257,7 @@ function creature(input: {
     maxHitPoints: 10,
     tempHitPoints: 0,
     defeated: false,
+    absence: null,
     resources: {},
     gmNotes: null,
     sideId: ids.side,

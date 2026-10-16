@@ -11,6 +11,7 @@ import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 import { canonicalCharacterAbility, characterPolicyRecord } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
+  DND5E_ITEM_CONDITION_KINDS,
   dnd5eAcceptedModifierApplicability,
   dnd5eModifierApplies
 } from './modifierApplicability.js'
@@ -53,12 +54,12 @@ function totalClassLevel(input: CharacterGrantFoldInput): number {
   return input.base.classes.reduce((sum, entry) => sum + entry.level, 0)
 }
 
-const ITEM_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set([
-  'ITEM_IDENTITY',
-  'ITEM_CATEGORY',
-  'ITEM_PROPERTY',
-  'ITEM_SOLE_WEAPON',
-  'ITEM_ATTACK_ABILITY'
+/** The conditions only a modifier's consumer can decide: the attacking item and the holder's state. */
+const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set([
+  ...DND5E_ITEM_CONDITION_KINDS,
+  'CAN_ACT',
+  'SPEED_ABOVE_ZERO',
+  'FREE_HAND'
 ])
 
 /**
@@ -246,10 +247,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
   ): boolean =>
     condition.kind !== 'UNSUPPORTED' &&
     condition.kind !== 'UNAVAILABLE' &&
-    condition.kind !== 'CAN_ACT' &&
-    condition.kind !== 'SPEED_ABOVE_ZERO' &&
-    condition.kind !== 'FREE_HAND' &&
-    !ITEM_CONDITION_KINDS.has(condition.kind) &&
+    !DEFERRED_CONDITION_KINDS.has(condition.kind) &&
     (condition.constraint === 'INCLUDE'
       ? conditionMatches(condition, sourceState)
       : !conditionMatches(condition, sourceState))
@@ -264,26 +262,26 @@ export function evaluateDnd5e2014CharacterGrantFold(
     )
 
   /**
-   * A modifier's attacking-item conditions cannot be decided here, so they are returned for its
-   * consumer: [] when some group passes outright, the residual item groups when only item
-   * conditions remain, and null when no group can pass.
+   * A modifier's attacking-item and holder-state conditions cannot be decided here, so they are
+   * returned for its consumer: [] when some group passes outright, the residual groups when only
+   * those conditions remain, and null when no group can pass.
    */
-  const modifierItemRequirements = (
+  const modifierDeferredRequirements = (
     groups: CharacterGrantFoldRestriction,
     sourceState: SourceState | undefined
   ): CharacterGrantFoldRestriction | null => {
     if (groups.length === 0) return []
     const residual: CharacterGrantFoldRestriction = []
     for (const group of groups) {
-      const itemConditions = group.conditions.filter((condition) =>
-        ITEM_CONDITION_KINDS.has(condition.kind)
+      const deferredConditions = group.conditions.filter((condition) =>
+        DEFERRED_CONDITION_KINDS.has(condition.kind)
       )
       const characterConditionsPass = group.conditions
-        .filter((condition) => !ITEM_CONDITION_KINDS.has(condition.kind))
+        .filter((condition) => !DEFERRED_CONDITION_KINDS.has(condition.kind))
         .every((condition) => conditionPasses(condition, sourceState))
       if (!characterConditionsPass) continue
-      if (itemConditions.length === 0) return []
-      residual.push({ conditions: itemConditions })
+      if (deferredConditions.length === 0) return []
+      residual.push({ conditions: deferredConditions })
     }
     return residual.length === 0 ? null : residual
   }
@@ -309,11 +307,11 @@ export function evaluateDnd5e2014CharacterGrantFold(
     sourceState: SourceState | undefined
   ): void => {
     for (const modifier of modifiers) {
-      const itemRequirements = modifierItemRequirements(
+      const deferredRequirements = modifierDeferredRequirements(
         modifier.restrictions,
         drawnSourceState(modifier, sourceState)
       )
-      if (itemRequirements === null) continue
+      if (deferredRequirements === null) continue
       const domainKey = buildModifierDomainKey(
         modifier.valueDomainCode,
         modifier.modifierKind,
@@ -326,7 +324,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
         sourceId,
         source: mechanicSource,
         ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),
-        itemRequirements
+        deferredRequirements
       }
       const acceptedModifierIndex = acc.modifiers.length
       acc.modifiers.push(accepted)

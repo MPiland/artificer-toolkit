@@ -16,7 +16,11 @@ import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/viciou
 
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
-import { aidAtSecondLevel, grantPublishedIdentity } from '../testing/modifierGrantFixture.js'
+import {
+  aidAtSecondLevel,
+  grantPublishedIdentity,
+  sourceSightSaveAuthoredEffect
+} from '../testing/modifierGrantFixture.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -224,5 +228,14 @@ export function shimmeringShieldEffect(input: { id: string; holderActorId: strin
     ...input,
     effect: option?.effects?.[0],
     sourceLabel: option?.label ?? 'Shimmering Shield'
+  })
+}
+
+/** The active effect the real compiler plans for a sight-gated Dexterity-save advantage grant. */
+export function sourceSightSaveEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: sourceSightSaveAuthoredEffect(),
+    sourceLabel: 'Sight-gated save'
   })
 }

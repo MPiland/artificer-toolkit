@@ -3,7 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { postgresUuidSchema } from './postgresUuid.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 
 const uuidSchema = lazySchema(() =>
@@ -204,11 +204,18 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           caught: z
             .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
             .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-          /** The saves this viewer may answer: all of them for the GM, otherwise the viewer's own creatures'. */
+          /**
+           * The rolls this viewer may answer: all of them for the GM, otherwise those of the creatures
+           * the viewer controls. A creature rolls its own save; the caster rolls each attack ray aimed
+           * at a creature, so a creature several rays are aimed at appears once for each.
+           */
           saves: z
             .array(
               z.strictObject({
+                /** Whoever rolls it. */
                 actorId: uuidSchema,
+                /** The creature the roll is made against: the one the area caught or the ray is aimed at. */
+                targetActorId: uuidSchema,
                 request: d20EvidenceRequestDtoSchema
               })
             )
@@ -308,7 +315,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             })
           )
           .check(z.minLength(1))
-          .check(z.maxLength(8)),
+          .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
@@ -443,6 +450,19 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.minLength(2))
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         allowedResponses: z.tuple([z.literal('INITIATIVE_ENTITY')])
+      }),
+      /** GM-only: the creatures standing on the square an attack was aimed at. */
+      z.strictObject({
+        kind: z.literal('ATTACK_SQUARE_RESOLUTION'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        attackerActorId: uuidSchema,
+        candidateActorIds: z
+          .array(uuidSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('ATTACK_SQUARE_OCCUPANT')])
       })
     ])
     .check(

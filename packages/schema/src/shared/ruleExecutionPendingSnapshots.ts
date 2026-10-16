@@ -499,17 +499,21 @@ export type EncounterAreaActionPendingContextDto = {
   casterActorId: string
   /** Whether the action leaves a zone at the origin; such an area catches no creature by itself. */
   placesZone: boolean
-  scene: { sceneId: string; sceneVersion: number }
-  /** The origin and the compiled shape (a directed shape holds its direction), in Scene units. */
-  area: { origin: { x: number; y: number }; shape: EncounterAreaShapeDto }
+  /** The Scene the action was read against; null for a list of chosen creatures that read none. */
+  scene: { sceneId: string; sceneVersion: number } | null
+  /**
+   * The origin and the compiled shape (a directed shape holds its direction), in Scene units; null
+   * for a list of chosen creatures that names no area, whose creatures are the ones it chose.
+   */
+  area: { origin: { x: number; y: number }; shape: EncounterAreaShapeDto } | null
   /** Binds the Scene version, the area, and every creature still caught with its token footprint. */
   caughtChecksum: string
   /** Creatures the GM took out of the area while the saves were pending. */
   removedActorIds: string[]
   targets: {
     actorId: string
-    /** The footprint of the creature's token when the area caught it. */
-    token: EncounterAreaTokenDto
+    /** The footprint of the creature's token when the area caught it; null when it has none on the Scene read. */
+    token: EncounterAreaTokenDto | null
     /** Sealed against this creature's own source and target facts, so its save resumes only if they hold. */
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     /** Whether the caster perceived the creature when the area opened; sealed, so it cannot drift. */
@@ -567,15 +571,19 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       initiatorUserId: uuidSchema,
       casterActorId: uuidSchema,
       placesZone: z.boolean(),
-      scene: z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema }),
-      area: z.strictObject({ origin: spatialPointDtoSchema, shape: encounterAreaShapeDtoSchema }),
+      scene: z.nullable(
+        z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema })
+      ),
+      area: z.nullable(
+        z.strictObject({ origin: spatialPointDtoSchema, shape: encounterAreaShapeDtoSchema })
+      ),
       caughtChecksum: checksumSchema,
       removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       targets: z
         .array(
           z.strictObject({
             actorId: uuidSchema,
-            token: encounterAreaTokenDtoSchema,
+            token: z.nullable(encounterAreaTokenDtoSchema),
             perceivedByCaster: z.boolean(),
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
             testedJson: z.optional(z.string()),
@@ -586,24 +594,49 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((value, context) => {
+        if ((value.area !== null || value.placesZone) && value.scene === null)
+          context.addIssue({
+            code: 'custom',
+            path: ['scene'],
+            message: 'An area and a placed zone are read against a Scene.'
+          })
+        if (value.placesZone && value.area === null)
+          context.addIssue({
+            code: 'custom',
+            path: ['area'],
+            message: 'A placed zone fills an area.'
+          })
         const seen = new Set<string>()
+        const seenOccurrences = new Set<string>()
         for (const [index, target] of value.targets.entries()) {
           const inner = target.snapshot.applicationContext
+          if (target.token !== null && value.scene === null)
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'token'],
+              message: 'A token footprint is sealed only against a Scene that was read.'
+            })
+          // A creature's own save is rolled by the creature, once. An attack ray is rolled by the
+          // caster, and a creature several rays are aimed at has an entry for each.
+          const casterRolls =
+            inner.kind === 'ENCOUNTER_ACTION' && inner.rollerActorId === value.casterActorId
           if (
-            seen.has(target.actorId) ||
-            value.removedActorIds.includes(target.actorId) ||
             inner.kind !== 'ENCOUNTER_ACTION' ||
+            seenOccurrences.has(target.snapshot.occurrenceId) ||
+            (seen.has(target.actorId) && !casterRolls) ||
+            value.removedActorIds.includes(target.actorId) ||
             inner.commandFingerprint !== value.commandFingerprint ||
             inner.initiatorUserId !== value.initiatorUserId ||
-            inner.rollerActorId !== target.actorId
+            (inner.rollerActorId !== target.actorId && !casterRolls)
           )
             context.addIssue({
               code: 'custom',
               path: ['targets', index],
               message:
-                'Each area save must be a unique, kept creature whose sealed continuation shares the area root.'
+                'Each area roll must be a distinct, kept creature whose sealed continuation shares the area root and is rolled by the creature or the caster.'
             })
           seen.add(target.actorId)
+          seenOccurrences.add(target.snapshot.occurrenceId)
           if (target.legendaryResistance) {
             if (
               target.testedJson === undefined ||
@@ -629,6 +662,30 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
     )
 )
 
+/**
+ * An attack aimed at a square waits for the GM to say which creature stands there. The candidates
+ * are computed on the server from the Scene, hidden creatures included; only the GM is ever shown them.
+ */
+const encounterAttackSquarePendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_ATTACK_SQUARE'),
+    schemaVersion: z.literal(1),
+    commandJson: z.string(),
+    commandFingerprint: checksumSchema,
+    initiatorUserId: uuidSchema,
+    attackerActorId: uuidSchema,
+    scene: z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema }),
+    sourceTokenId: uuidSchema,
+    candidates: z
+      .array(z.strictObject({ actorId: uuidSchema, tokenId: uuidSchema }))
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
+export type EncounterAttackSquarePendingContextDto = z.infer<
+  typeof encounterAttackSquarePendingContextDtoSchema
+>
+
 export type ServerAggregateChoicePendingSnapshotDto = {
   snapshotKind: 'AGGREGATE_CHOICE'
   schemaVersion: 1
@@ -640,6 +697,7 @@ export type ServerAggregateChoicePendingSnapshotDto = {
     | OptionalCombatCleavingChoicePendingContextDto
     | OptionalCombatPassageChoicePendingContextDto
     | EncounterAreaActionPendingContextDto
+    | EncounterAttackSquarePendingContextDto
 }
 
 const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
@@ -653,7 +711,8 @@ const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
       initiativeDeclarationAggregateChoicePendingContextDtoSchema,
       optionalCombatCleavingChoicePendingContextDtoSchema,
       optionalCombatPassageChoicePendingContextDtoSchema,
-      encounterAreaActionPendingContextDtoSchema
+      encounterAreaActionPendingContextDtoSchema,
+      encounterAttackSquarePendingContextDtoSchema
     ])
   })
 )

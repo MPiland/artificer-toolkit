@@ -7,11 +7,12 @@ export const ACTION_EFFECT_ID = '00000000-0000-4000-8000-000000000010'
 
 /**
  * A Character action capability wrapping one compiled Effect, as discovery would describe it; a
- * spell cast with a slot also names the level it was cast at.
+ * spell cast with a slot also names the level it was cast at, and a Character's action its level.
  */
 export function characterActionDescriptor(
   compiledEffect: ReturnType<typeof compileEffect>,
-  spellCastLevel?: number
+  spellCastLevel?: number,
+  characterLevel?: number
 ): CharacterActionCapabilityDescriptor {
   return {
     kind: 'CHARACTER_ACTION',
@@ -30,6 +31,7 @@ export function characterActionDescriptor(
     mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
     activationSourceKind: 'ACTIVE_SOURCE',
     compiledEffect,
-    ...(spellCastLevel === undefined ? {} : { spellCastLevel })
+    ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
+    ...(characterLevel === undefined ? {} : { characterLevel })
   } as CharacterActionCapabilityDescriptor
 }

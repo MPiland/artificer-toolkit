@@ -15,7 +15,7 @@ import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionTargetKind } from '../encounterAreaAction.js'
-import { grantsEndedBy } from '../encounterGrantLifetimes.js'
+import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
 import {
@@ -200,7 +200,7 @@ describe('the zone an area action leaves at its chosen point', () => {
   })
 
   it('leaves the zone itself standing when hit points are regained: only the grant it hands out ends', () => {
-    expect(grantsEndedBy([grantRecordFor(placedCaltropsZone())], 'ON_HIT_POINTS_REGAINED')).toEqual(
+    expect(effectsEndedBy([grantRecordFor(placedCaltropsZone())], 'ON_HIT_POINTS_REGAINED')).toEqual(
       []
     )
   })
@@ -243,9 +243,9 @@ describe('a creature that fails the zone’s entry save', () => {
     const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
     if (!grant) throw new Error('A failed save must grant the penalty.')
     const held = [grantRecordFor(grant)]
-    expect(grantsEndedBy(held, 'ON_HIT_POINTS_REGAINED')).toEqual(held)
-    expect(grantsEndedBy(held, 'ON_ATTACK_ROLL')).toEqual([])
-    expect(grantsEndedBy(held, 'ON_CAST_SPELL')).toEqual([])
+    expect(effectsEndedBy(held, 'ON_HIT_POINTS_REGAINED')).toEqual(held)
+    expect(effectsEndedBy(held, 'ON_ATTACK_ROLL')).toEqual([])
+    expect(effectsEndedBy(held, 'ON_CAST_SPELL')).toEqual([])
   })
 })
 

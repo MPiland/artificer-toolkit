@@ -82,7 +82,7 @@ export async function readEncounterActionTargetModifiers(
         movementTargets,
         sceneContext,
         // The prompt's belief is what this read shows, so believed sight is both sights here.
-        loadAttackPerception: async ({ sourceFacts, targetFacts }) => {
+        loadAttackPerception: async ({ sourceFacts, targetFacts, roller }) => {
           const believed = await resolveEncounterBelievedAttackPerception({
             gameSystemId: state.gameSystemId,
             loadDefinition: async (definitionId) => {
@@ -100,7 +100,8 @@ export async function readEncounterActionTargetModifiers(
             },
             loadSystem: async () => system,
             attacker: sourceFacts,
-            target: targetFacts
+            target: targetFacts,
+            roller
           })
           return { actual: believed, believed }
         }

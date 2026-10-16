@@ -20,6 +20,8 @@ import {
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
   resolveDispositionDamage,
+  sourceApplicationsChangeState,
+  sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
   validateMaintainedEffectCreation,
   validateStateEffectTransitions
@@ -43,7 +45,10 @@ import {
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
-import { encounterActionReactionReceiptDtoSchema } from './ruleExecutionReactionChoice.js'
+import {
+  encounterActionReactionReceiptDtoSchema,
+  encounterCounteredCastApplicationOutputDtoSchema
+} from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionChecksumSchema as checksumSchema,
@@ -105,7 +110,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       }),
       applications: z
         .array(characterMechanicsApplicationDtoSchema)
-        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+      /** The source's own conditions released by effects its action ended; empty when none. */
+      sourceApplications: sourceApplicationsDtoSchema
     })
     .check(
       z.superRefine((value, context) => {
@@ -210,6 +217,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             }
             continue
           }
+          if (application.kind === 'DEPART') continue
           if (application.kind === 'STABILIZE') {
             const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
             if (application.applied !== dying)
@@ -410,7 +418,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           value.resourceConsumption !== null ||
           stow !== null ||
           consumption !== null ||
-          spell !== null
+          spell !== null ||
+          sourceApplicationsChangeState(value.sourceApplications)
         if (
           spell &&
           (value.sourceCharacterId === null || spell.characterId !== value.sourceCharacterId)
@@ -508,6 +517,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof concentrationCheckApplicationOutputDtoSchema>
   | z.infer<typeof concentrationEndApplicationOutputDtoSchema>
   | z.infer<typeof encounterAreaActionApplicationOutputDtoSchema>
+  | z.infer<typeof encounterCounteredCastApplicationOutputDtoSchema>
   | z.infer<typeof encounterActorMechanicsBatchApplicationOutputDtoSchema>
   | z.infer<typeof basicActionCheckApplicationOutputDtoSchema>
   | z.infer<typeof escapeCheckApplicationOutputDtoSchema>
@@ -523,6 +533,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       concentrationCheckApplicationOutputDtoSchema,
       concentrationEndApplicationOutputDtoSchema,
       encounterAreaActionApplicationOutputDtoSchema,
+      encounterCounteredCastApplicationOutputDtoSchema,
       encounterActorMechanicsBatchApplicationOutputDtoSchema,
       basicActionCheckApplicationOutputDtoSchema,
       escapeCheckApplicationOutputDtoSchema,

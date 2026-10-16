@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   encounterAreaCaughtChecksum,
+  encounterChosenActorEntries,
   encounterChosenActorsChecksum,
   removeEncounterAreaTarget
 } from '../encounterAreaPending.js'
@@ -66,6 +67,34 @@ describe('removing a creature from a pending area', () => {
     expect(removeEncounterAreaTarget({ ...before, ...removed }, FIRST)).toEqual({
       kind: 'NOT_CAUGHT'
     })
+  })
+})
+
+describe('removing a creature that several rays are aimed at', () => {
+  it('drops every ray aimed at it, remembering it once for each', () => {
+    const before = context([{ actorId: FIRST }, { actorId: SECOND }, { actorId: FIRST }])
+    const removed = removeEncounterAreaTarget(before, FIRST)
+    if (removed.kind !== 'REMOVED') throw new Error('Expected the creature to be removed.')
+    expect(removed.targets.map((target) => target.actorId)).toEqual([SECOND])
+    expect(removed.removedActorIds).toEqual([FIRST, FIRST])
+  })
+
+  it('refuses the creature once any ray aimed at it has been answered', () => {
+    const before = context([{ actorId: FIRST }, { actorId: FIRST, testedJson: '{}' }])
+    expect(removeEncounterAreaTarget(before, FIRST)).toEqual({ kind: 'ANSWERED' })
+  })
+})
+
+describe('the entries of a list of chosen creatures', () => {
+  const AREA = '00000000-0000-4000-8000-0000000000d1'
+
+  it('gives each ray its own occurrence, keeping the first one a creature has when named once', () => {
+    const entries = encounterChosenActorEntries(AREA, [FIRST, SECOND, FIRST, FIRST])
+    expect(new Set(entries.map((entry) => entry.occurrenceId)).size).toBe(4)
+    expect(entries.map((entry) => entry.actorId)).toEqual([FIRST, SECOND, FIRST, FIRST])
+    expect(encounterChosenActorEntries(AREA, [FIRST])[0]?.occurrenceId).toBe(
+      entries[0]?.occurrenceId
+    )
   })
 })
 

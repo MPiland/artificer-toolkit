@@ -124,6 +124,8 @@ T3:
 - 2026-10-14: workbook written; waiting on ATTACK-9.T1 and SPELLS-22.
 - 2026-10-15: T2 built on `ci/attack-17-t2` under D121 (Option A). Shared predicate `unseenEncounterActorIds` in rules-runtime; Convex passes `visibleTokenIds: null` (fail closed, never reads fog), the room passes the tokens the viewer's map draws. Found and fixed a write-path bug: `roomEncounterWriteTransaction` dropped `sceneTokens`, so live admission and results used null vision (live hid a drawn Wolf that replay listed).
 
+- 2026-10-16: T4a built on `ci/attack-17-t4` (T4 split into T4a, the occupied square, and T4b, the empty square, both closing AC 17.4). New `SQUARE` target, `ENCOUNTER_ATTACK_SQUARE` pending owned by `ATTACK_SQUARE`, GM-only `ATTACK_SQUARE_RESOLUTION`, `ATTACK_SQUARE_OCCUPANT` ruling and the drawer branch. Proofs: `packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts`, `packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts`, `apps/session-worker/test/nativeRoomAttackSquare.test.ts` and `CampaignTabletopDecisionDrawer.test.tsx`. T4b (dedicated target-less root, Map picker, indistinguishability test) follows.
+
 ## Proposed ledger edits (filled by the slice session)
 
 - ATTACK-17.3: close with proofs `packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts` (D121 predicate table), `apps/session-worker/test/nativeLiveSessionRoom.test.ts` (hidden-token journey), `apps/session-worker/test/nativeRoomUnseenTarget.test.ts` (TARGET_UNAVAILABLE), `apps/apis/convex/encounters/recipientBindings.test.ts` (fallback bindings and the Convex over-hiding proof), and the drawer tests in `apps/web/src/domains/campaigns/vtt/` (reveal control, Target select drops a refused self).

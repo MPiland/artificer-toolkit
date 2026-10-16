@@ -33,6 +33,7 @@ import {
   requireAreaActionRemoval
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
+import { persistEncounterActionEffects } from './actionEffectPersistence.js'
 import { receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
@@ -108,11 +109,12 @@ type CommitScope = {
 
 /**
  * Commits a point-area action in the transaction of the answer that settled it, or a cast on a list
- * of chosen creatures (D118) in the one transaction that ran it: the root with the caster's one
+ * of chosen creatures (D118) that asked for no save in the one transaction that ran it: the root with the caster's one
  * spend, each kept creature's outcome as its own child receipt, and the Concentration checks the
  * damage asks for. A pending area's final snapshot is validated against the stored area, so a
- * planner can neither skip a creature's save nor settle an undecided Legendary Resistance; a chosen
- * list never pends, so its creatures are the ones the command named, in order.
+ * planner can neither skip a creature's save nor settle an undecided Legendary Resistance. A chosen
+ * list that asked for no save has no pending area, so its creatures are the ones the command named, in
+ * order; one that asked for saves pends and settles like a point area.
  */
 export async function persistEncounterAreaCommit(
   ctx: EncounterCharacterWriteTransaction & {
@@ -163,6 +165,7 @@ export async function persistEncounterAreaCommit(
   if (
     command.type !== 'RESOLVE_ACTION' ||
     command.target.kind === 'ACTOR' ||
+    command.target.kind === 'SQUARE' ||
     command.optionalCombatIntent != null ||
     rootExecution.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_AREA_ACTION' ||
@@ -175,7 +178,7 @@ export async function persistEncounterAreaCommit(
   const { target } = command
   let scope: CommitScope
   if (input.area === null) {
-    // A chosen list never waits on anyone, so nothing resumes or is removed.
+    // A chosen list that asked for no save waits on no one, so nothing resumes or is removed.
     if (
       target.kind !== 'ACTORS' ||
       pendingOccurrence ||
@@ -192,7 +195,7 @@ export async function persistEncounterAreaCommit(
     }
   } else {
     const { area } = input
-    if (target.kind === 'ACTORS' || rootExecution.occurrenceId !== area.occurrenceId)
+    if (rootExecution.occurrenceId !== area.occurrenceId)
       throw new Error('Live Session terminal action is not an ordinary completed area.')
     // The area's final snapshot is the stored one with exactly the answer or removal that settled it.
     if (removal) {
@@ -242,7 +245,7 @@ export async function persistEncounterAreaCommit(
       targets: context.targets,
       caughtChecksum: context.caughtChecksum,
       removedActorIds: context.removedActorIds,
-      zoneSceneId: context.placesZone ? context.scene.sceneId : null
+      zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
     }
   }
   const kept = encounterChosenActorEntries(
@@ -274,7 +277,7 @@ export async function persistEncounterAreaCommit(
     input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
   )
     throw new Error('Live Session area output scope mismatch.')
-  const children = input.targets.map(({ actorId, execution }, index) => {
+  const children = input.targets.map(({ actorId, execution, createdEffects }, index) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const batch = execution.status === 'COMPLETE' ? execution.applicationOutputs : null
     const initial = execution.status === 'COMPLETE' ? execution : null
@@ -290,7 +293,7 @@ export async function persistEncounterAreaCommit(
       batch.parentOccurrenceId !== areaOccurrenceId ||
       batch.sourceActorId !== source.id ||
       batch.targetActorId !== actor.id ||
-      batch.activeEffectTransitions.length > 0 ||
+      batch.activeEffectTransitions.length !== createdEffects.length ||
       batch.stateEffectTransitions.length > 0 ||
       batch.maintenanceTransition !== undefined ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
@@ -304,7 +307,8 @@ export async function persistEncounterAreaCommit(
       actor,
       batch,
       execution: initial,
-      occurrenceId: execution.occurrenceId
+      occurrenceId: execution.occurrenceId,
+      createdEffects
     }
   })
   const casterIsCharacter = source.kind === 'CHARACTER'
@@ -473,7 +477,7 @@ export async function persistEncounterAreaCommit(
       sceneId: scope.zoneSceneId,
       zone: input.placedZone
     })
-  for (const { execution, actor, occurrenceId } of children)
+  for (const { execution, actor, occurrenceId, createdEffects } of children) {
     await persistCompletedChild(ctx, {
       state: nextState,
       result: execution,
@@ -497,6 +501,25 @@ export async function persistEncounterAreaCommit(
       },
       occurredAt: input.occurredAt
     })
+    if (createdEffects.length > 0)
+      await persistEncounterActionEffects(ctx, {
+        state: nextState,
+        command: {
+          encounterId: state.id,
+          actorId: source.id,
+          target: { kind: 'ACTOR', actorId: actor.id },
+          actionId: command.actionId,
+          commandId: encounterAreaTargetCommandId(occurrenceId)
+        },
+        execution,
+        maintainedState: null,
+        maintenance: null,
+        createdEffects: [...createdEffects],
+        actors: nextActors,
+        authorizedCharacterIds: characterIds,
+        occurredAt: input.occurredAt
+      })
+  }
   // One Concentration check per damaged creature, against the damage the root recorded.
   const damage = nativeConcentrationDamageApplications(
     children.map(({ actor, batch }) => ({
@@ -583,6 +606,7 @@ export async function persistEncounterAreaCommit(
         ...input,
         endedGrants: [...input.endedGrants, ...healEndedGrants]
       }),
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null,

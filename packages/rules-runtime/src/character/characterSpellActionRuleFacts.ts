@@ -2,7 +2,10 @@ import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/cha
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
-import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
+import {
+  effectReadsSpellCastLevel,
+  normalizeCharacterActionMechanicFacts
+} from './characterActionRuleFacts.js'
 
 export function buildCharacterSpellActionRuleFacts(params: {
   spellIds: readonly string[]
@@ -17,14 +20,16 @@ export function buildCharacterSpellActionRuleFacts(params: {
       if (!spell) {
         throw new Error(`Character spell action facts are missing spell "${spellId}".`)
       }
+      const effects = (compileSpell(spell).effects ?? []).filter(
+        (effect) => effect.invocation.kind !== 'PASSIVE'
+      )
       return {
         spellId,
-        effects: (compileSpell(spell).effects ?? [])
-          .filter((effect) => effect.invocation.kind !== 'PASSIVE')
-          .map((effect) => ({
-            effectId: effect.id,
-            mechanicFacts: normalizeCharacterActionMechanicFacts(effect)
-          }))
+        readsCastLevel: effects.some(effectReadsSpellCastLevel),
+        effects: effects.map((effect) => ({
+          effectId: effect.id,
+          mechanicFacts: normalizeCharacterActionMechanicFacts(effect)
+        }))
       }
     })
   }

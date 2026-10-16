@@ -328,7 +328,8 @@ function movementReactionSettlement<
           d20: execution.d20,
           nestedD20: execution.nestedD20,
           targetTransition: settled.mechanics.targetTransition,
-          applications: settled.mechanics.receiptApplications
+          applications: settled.mechanics.receiptApplications,
+          sourceApplications: settled.sourceApplications
         }
       : {
           kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -336,15 +337,15 @@ function movementReactionSettlement<
           occurrenceId: input.occurrenceId,
           sourceActorId: prepared.prepared.actor.id,
           targetActorId: prepared.prepared.target.id,
-          ...(maintenance
+          ...(maintenance || settled.sourceApplications.length
             ? {
                 sourceCharacterId:
                   prepared.prepared.source.kind === 'CHARACTER_ACTION'
                     ? prepared.prepared.source.characterId
-                    : null,
-                maintenanceTransition: maintenance.transition
+                    : null
               }
             : {}),
+          ...(maintenance ? { maintenanceTransition: maintenance.transition } : {}),
           sourceCharacterStreamVersion,
           resourceConsumption: settled.resourceReceipt,
           featureResourceConsumption: settled.featureResourceReceipt,
@@ -365,7 +366,8 @@ function movementReactionSettlement<
           activeEffectTransitions: effects.activeEffectTransitions,
           stateEffectTransitions: effects.stateEffectTransitions,
           targetTransition: settled.mechanics.targetTransition,
-          applications: settled.mechanics.receiptApplications
+          applications: settled.mechanics.receiptApplications,
+          sourceApplications: settled.sourceApplications
         }
   )
   const characterTransitions = [

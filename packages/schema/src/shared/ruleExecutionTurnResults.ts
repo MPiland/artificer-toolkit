@@ -500,7 +500,8 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                   activeEffectTransitions: [],
                   d20: execution.d20,
                   targetTransition: execution.targetTransition,
-                  applications: execution.applications
+                  applications: execution.applications,
+                  sourceApplications: []
                 }
               : {
                   kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -515,7 +516,8 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                   actionEconomyTransition: null,
                   d20: execution.d20,
                   targetTransition: execution.targetTransition,
-                  applications: execution.applications
+                  applications: execution.applications,
+                  sourceApplications: []
                 }
           )
           if (
@@ -615,7 +617,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
                 (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
                   ? trace.outputs.conditionId === application.conditionId
-                  : application.kind === 'STABILIZE'
+                  : application.kind === 'STABILIZE' || application.kind === 'DEPART'
                     ? true
                     : application.kind === 'SCALAR_REDUCTION'
                       ? trace.outputs.amount === application.reductionAmount

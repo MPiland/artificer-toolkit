@@ -344,7 +344,7 @@ const actionModifierGroupSchema = lazySchema(() =>
           ability: z.nullable(identitySchema),
           state: z.enum(['APPLIED', 'SUPPRESSED']),
           scope: modifierScopeKindSchema,
-          itemRequirements: characterGrantFoldRestrictionSchema,
+          deferredRequirements: characterGrantFoldRestrictionSchema,
           scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
         })
       )
@@ -561,6 +561,8 @@ export interface CharacterActionRuleEntryPoint {
   compiledEffect: CompiledEffectGroup
   /** The level a spell cast is made at, which selects the scaling row the compiler rolls. */
   spellCastLevel?: number
+  /** The Character's level, which selects a cap scaled by it (Eldritch Blast's beams). */
+  characterLevel?: number
 }
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 
@@ -586,6 +588,8 @@ export const characterSpellActionFactsSchema = lazySchema(() =>
     .array(
       z.strictObject({
         spellId: identitySchema,
+        /** Whether a higher cast level changes what the spell does, so the Character may list those levels. */
+        readsCastLevel: booleanSchema,
         effects: z
           .array(
             z.strictObject({
@@ -799,6 +803,7 @@ export const characterSpellReferenceMechanicsSchema = lazySchema(() =>
       z.strictObject({
         sequence: integerSchema.check(z.gte(0)).check(z.lte(999)),
         spellId: identitySchema,
+        readsCastLevel: booleanSchema,
         mechanics: z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100))
       })
     )

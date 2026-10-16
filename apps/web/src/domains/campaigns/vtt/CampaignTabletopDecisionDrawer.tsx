@@ -388,6 +388,23 @@ export function CampaignTabletopDecisionDrawer({
                 Decline cleaving
               </Button>
             </Stack>
+          ) : pending.kind === 'ATTACK_SQUARE_RESOLUTION' ? (
+            <Stack gap='xs'>
+              <Text size='sm'>
+                {encounter.actors.find((actor) => actor.id === pending.attackerActorId)?.label ??
+                  'A combatant'}{' '}
+                attacked a square. Who stands there?
+              </Text>
+              {pending.candidateActorIds.map((actorId) => (
+                <Button
+                  disabled={disabled}
+                  key={actorId}
+                  onClick={() => void resolve({ kind: 'ATTACK_SQUARE_OCCUPANT', actorId })}
+                >
+                  {encounter.actors.find((actor) => actor.id === actorId)?.label ?? actorId}
+                </Button>
+              ))}
+            </Stack>
           ) : pending.kind === 'INITIATIVE_ORDER' ? (
             <Stack gap='xs'>
               {pending.optionIds.map((optionId) => (
@@ -488,14 +505,14 @@ function AreaSavesControls({
       ) : null}
       {pending.saves.map((save) => (
         <Stack
-          aria-label={labelOf(save.actorId)}
+          aria-label={labelOf(save.targetActorId)}
           gap='xs'
           key={save.request.requestId}
           role='group'
         >
           <Group justify='space-between'>
             <Text fw={600} size='sm'>
-              {labelOf(save.actorId)}
+              {labelOf(save.targetActorId)}
             </Text>
             {canRemove ? (
               <Button
@@ -503,7 +520,7 @@ function AreaSavesControls({
                 disabled={disabled}
                 size='compact-sm'
                 variant='subtle'
-                onClick={() => onRemove(save.actorId)}
+                onClick={() => onRemove(save.targetActorId)}
               >
                 Remove from area
               </Button>

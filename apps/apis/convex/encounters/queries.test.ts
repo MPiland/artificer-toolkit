@@ -279,7 +279,7 @@ describe('native Encounter reads', () => {
       // Only an actor's controllers see its Concentration (SPELLS-5.11).
       concentration: null,
       defeated: false,
-      outOfInitiative: false,
+      absence: null,
       controllerUserIds: [],
       disposition: 'HOSTILE',
       // Hidden by default (ADR 0034 decision 5).
