@@ -132,6 +132,7 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **`ENEMY_NEAR_TARGET` is offered on every Equipment facet (ATTACK-9.T2c):** it is meaningful only in path restrictions; elsewhere it normalizes to `UNSUPPORTED` and never applies.
 - **An unmeasured Scene fails an `ENEMY_NEAR_TARGET` check with no way to acknowledge it (ATTACK-9.T2c):** an attack that names no Scene (a Table without positions) never earns the rider. A GM-acknowledgeable "Scene unmeasured" warning, as for an unchecked reach (D11), would let the table apply it by hand.
 - **A follow-up-save weapon plus an appended rider is rejected (ATTACK-9.T2a/T2b):** `mergeOnHitRiders` appends riders last and `immediateFollowUpSaveEntries` requires the save entry last, so a weapon with an on-hit save and Sneak Attack does not compile as a follow-up save. Order riders before the save when such a weapon exists.
+- **No settled roll card for a sight-adjusted movement reaction or Disarm (ATTACK-10.T3):** an opportunity attack or Disarm whose attack d20 settled in a different mode than the roller entered posts no `D20_MODE_ADJUSTED` card, and Disarm does not store `modeAdjustment`. Movement reactions and Disarm contests post no roll card at all today; the held die and the GM caption still show at the prompt.
 
 ### Shared live cursors (Q19)
 

@@ -541,6 +541,7 @@ describe('room Disarm commands', () => {
 
     const answer = (
       pending: {
+        encounterVersion: number
         occurrenceId: string
         occurrenceVersion: number
         request: { requestId: string }
@@ -550,7 +551,7 @@ describe('room Disarm commands', () => {
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: base.run.id,
       commandId: crypto.randomUUID(),
-      expectedVersion: base.command.expectedVersion,
+      expectedVersion: pending.encounterVersion,
       correlationId: null,
       occurrenceId: pending.occurrenceId,
       expectedOccurrenceVersion: pending.occurrenceVersion,
