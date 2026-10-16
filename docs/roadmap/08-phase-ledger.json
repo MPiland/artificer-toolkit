@@ -8302,7 +8302,7 @@
             {
               "id": "SPELLS-20.T2a",
               "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -8310,7 +8310,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T2b",
