@@ -75,7 +75,9 @@ export function validateUsername(username: string): { username: string; message:
   const isAllowed =
     isUsernameFormatValid(normalizedUsername) &&
     !reservedUsernames.has(normalizedUsername.toLowerCase()) &&
-    !usernameModerationCandidates(normalizedUsername).some((text) => profanityMatcher.hasMatch(text))
+    !usernameModerationCandidates(normalizedUsername).some((text) =>
+      profanityMatcher.hasMatch(text)
+    )
 
   return {
     username: normalizedUsername,

@@ -720,6 +720,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **When:** only at sign-up and rename (Better Auth `before` hook on `/sign-up/email` and `/update-user`, both `username` and `displayUsername`). Sign-in checks format only, so tightening the list never locks an existing account out.
   - **Compound rule (server):** a name is refused when it reads as a blocked term plus dictionary words and no reading as non-blocked dictionary words uses fewer pieces. A tie refuses (`asslicker`). Accepted cost: contrived ties such as `titangel` or `cuminside` are refused; the user picks another name.
   - **Real names** that contain a blocked term (Titus, Dickerson, Pettit, Cockburn, Annalise, Shital, Shittu, Shiitake) are on the allowlist, and an allowlisted name counts as one dictionary word.
+  - **Campaign text (ACCOUNTS-7.T2):**
+    - Standard-maturity campaign text uses the same matcher and allowlist (`packages/shared/src/domains/moderation/profanityMatcher.ts`). It masks only the matched term, so "Fucking Coin" reads "****ing Coin".
+    - Accepted: there are no inflection or suffix rules, because the remaining stem shows that text was masked.
+    - `@2toad/profanity` is removed.
 * **D118** (2026-10-15) Multi-target chosen-creature spells (SPELLS-8.T12; Mass Cure Wounds, Mass Healing Word, Prayer of Healing). Decided by the main session.
   - **Ruling:** one `RESOLVE_ACTION` carries a reusable list-of-actors target kind, bounded by authored `maxTargets`. Each target is resolved within one transaction, so one cast is one commit, one slot spend and one undo.
   - **Rejected:** one action per target. It would split a cast into several commits and slot checks, which breaks undo atomicity.

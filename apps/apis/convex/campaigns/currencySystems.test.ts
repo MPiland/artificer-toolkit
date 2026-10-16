@@ -540,7 +540,11 @@ describe('native Campaign currency systems', () => {
       JSON.parse(rawAfterFirst.events.find((event) => event.inventoryAudit)!.payloadJson)
     ).toMatchObject({ denominationLabel: 'Fucking Coin' })
     expect((await gm.caller.query(partyCurrencies, pageInput(campaign.id))).page).toEqual([
-      expect.objectContaining({ kind: 'CAMPAIGN', denominationId: collision, label: '****ing Coin' })
+      expect.objectContaining({
+        kind: 'CAMPAIGN',
+        denominationId: collision,
+        label: '****ing Coin'
+      })
     ])
     await expect(
       gm.caller.mutation(partyMutate, { input: partyAdjust(campaign.id, 1, collision, -9) })

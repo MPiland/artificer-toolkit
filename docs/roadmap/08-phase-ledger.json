@@ -1222,7 +1222,7 @@
         {
           "id": "ACCOUNTS-7",
           "title": "Choose a username",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/auth.test.ts"],
           "journeyStatus": "verified",
           "origin": ["F09"],
@@ -1264,8 +1264,13 @@
             {
               "id": "ACCOUNTS-7.5",
               "text": "Campaign text moderation (campaignTextPolicy) uses the same maintained profanity library and tiers as usernames; @2toad/profanity is removed from the repo and the web bundle carries one profanity library.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/campaign-text-policy.test.ts",
+                "apps/apis/convex/authInvitations.test.ts",
+                "apps/apis/convex/campaigns/currencySystems.test.ts",
+                "CI 38830977457 (red proof 38828244457); merged 2026-10-15, D117"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the ACCOUNTS-7.T1 merge review (S5)."
             }
@@ -1292,7 +1297,7 @@
             {
               "id": "ACCOUNTS-7.T2",
               "text": "Move campaignTextPolicy to obscenity with the username tiers (no dictionary on the web), remove @2toad/profanity, keep campaign text tests red-first. Also: a test that /invitation/redeem (authInvitations.ts signUpEmail) refuses a blocked username through the before hook.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ACCOUNTS-7.5"],
               "wsjf": {
                 "bv": 2,
@@ -1300,8 +1305,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ACCOUNTS-7.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-accounts-7-t1.md"
+              }
             }
           ]
         },
