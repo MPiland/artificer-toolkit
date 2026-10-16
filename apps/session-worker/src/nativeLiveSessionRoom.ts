@@ -110,7 +110,11 @@ import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
-import { NoSceneMoveToUndoError, publishRoomSceneUndo } from './roomSceneUndo.js'
+import {
+  NoSceneMoveToUndoError,
+  SceneMoveSettledMechanicsError,
+  publishRoomSceneUndo
+} from './roomSceneUndo.js'
 import { restoreRoomConcealmentPrune } from './roomConcealmentPrune.js'
 import {
   publishRoomSceneFog,
@@ -1969,11 +1973,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                   userId: admission.userId,
                   sceneId: command.sceneId.toLowerCase(),
                   undoneCommandId
-                })
+                }),
+              settledEncounterMechanics: async (moveCommandId) =>
+                (await this.#roomStore.store
+                  .query('encounterRuleReceipts')
+                  .withIndex('by_campaignId_commandId', (q) =>
+                    q.eq('campaignId', value.campaignId).eq('commandId', moveCommandId)
+                  )
+                  .first()) !== null
             })
         )
       } catch (error) {
-        if (error instanceof NoSceneMoveToUndoError)
+        if (
+          error instanceof NoSceneMoveToUndoError ||
+          error instanceof SceneMoveSettledMechanicsError
+        )
           this.#rejectCommand(socket, commandId, 'INVALID_COMMAND', error.message)
         else this.#rejectSceneCommand(socket, commandId, error, correction())
       }
