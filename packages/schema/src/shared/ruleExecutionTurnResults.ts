@@ -426,9 +426,20 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 ? 'ON_SAVE_SUCCESS'
                 : 'ON_SAVE_FAIL')
           const removal = execution.applications[0]
+          // A failed repeat that ends the effect may leave a second condition in place of the held one.
+          const escalation = execution.applications[1]
+          const removalWithOptionalEscalation =
+            execution.applications.length === 1 ||
+            (execution.applications.length === 2 &&
+              escalation?.kind === 'CONDITION_APPLY' &&
+              escalation.sourceNodeId === execution.definition.frozenGraphNodeId &&
+              escalation.sourceOperationKey === 'dnd5e.save-test-resolution' &&
+              escalation.authoredPath === 'ON_SAVE_FAIL' &&
+              escalation.resolvedPath === 'ON_SAVE_FAIL' &&
+              execution.d20?.resultPath === 'ON_SAVE_FAIL')
           const repeatedSaveTerminal =
             repeatedSaveTrace &&
-            execution.applications.length === 1 &&
+            removalWithOptionalEscalation &&
             removal?.kind === 'CONDITION_REMOVE' &&
             removal.sourceActiveEffectId === execution.activeEffectId &&
             removal.sourceNodeId === execution.definition.frozenGraphNodeId &&
