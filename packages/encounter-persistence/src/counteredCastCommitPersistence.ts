@@ -21,7 +21,7 @@ import { endEffects } from './consumedGrantPersistence.js'
 import { readRunActors } from './documents.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 
 /**
@@ -30,7 +30,9 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
  * and nothing of the spell. The sealed offer the answer resumed must be the one the counter used.
  */
 export async function persistEncounterCounteredCastCommit(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+  },
   input: LiveSessionEncounterCounteredCastCommitInput,
   callbacks: {
     validateReadFence(
