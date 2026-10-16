@@ -255,7 +255,9 @@ const activeRuleEffectConditionContributionDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CONDITION_OWNERSHIP'),
     conditionId: uuidSchema,
-    baselinePresent: z.boolean()
+    baselinePresent: z.boolean(),
+    /** The creature whose action applied the condition, when it authored `recordsSource`. */
+    sourceActorId: z.optional(uuidSchema)
   })
 )
 

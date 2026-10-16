@@ -693,7 +693,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     while (
       'continuation' in result &&
       d20 &&
-      isDamageDieRequest(result.continuation) &&
+      isDamageDieRequest(result.continuation, result.evidencePolicy) &&
       input.autoRoll[spatialPendingRollerActorId({ candidate, diceStage: d20 })] === true
     )
       result = await resolveAutomaticDie({ effectInput, paused: result, d20, random: input.random })
@@ -1245,7 +1245,7 @@ async function resumeSpatial(input: {
   } = input.pendingSnapshot
   if (request.requestId !== resolution.requestId || request.kind !== 'INTEGER_RANGE')
     throw new EncounterConflictError('The spatial evidence request is stale.')
-  if (isDamageDieRequest(continuation)) {
+  if (isDamageDieRequest(continuation, policy)) {
     const d20 = input.pending.diceStage
     if (!d20) throw new EncounterConflictError('The spatial evidence request is stale.')
     const value = resolveEncounterIntegerAnswer({

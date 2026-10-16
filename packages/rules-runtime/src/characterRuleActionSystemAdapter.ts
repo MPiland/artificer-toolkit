@@ -67,6 +67,8 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   conditionContribution?: null | {
     conditionId: string
+    /** The acting creature is the condition's source; its active effect records it. */
+    recordsSource: boolean
     /** The events whose first occurrence uses the condition up, sorted and unique. */
     consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
     /** The events whose first occurrence ends the condition, sorted and unique. */
@@ -442,16 +444,25 @@ export interface CharacterRuleActionSystemAdapter {
     observerActorId: string
   }): readonly CombatPerceptionCapabilityInstance[]
   /**
-   * Reads one immutable recurring-effect perception dependency. The System
-   * owns adapter-fact interpretation; application code never parses it.
+   * Reads one immutable recurring-effect perception dependency: it either influences the
+   * recurring d20 or gates whether it is attempted. The System owns adapter-fact
+   * interpretation; application code never parses it.
    */
   activeEffectPerceptionRequirement?(input: {
     definition: ActiveRuleEffectDefinitionDto
     lifecycle: ActiveRuleEffectLifecycleDto
-  }): {
-    requirement: CombatPerceptionRequirementDto
-    influence: 'ADVANTAGE' | 'DISADVANTAGE'
-  } | null
+  }):
+    | {
+        kind: 'ROLL_INFLUENCE'
+        requirement: CombatPerceptionRequirementDto
+        influence: 'ADVANTAGE' | 'DISADVANTAGE'
+      }
+    | {
+        kind: 'ATTEMPT_GATE'
+        requirement: CombatPerceptionRequirementDto
+        allow: 'WHEN_MET' | 'WHEN_UNMET'
+      }
+    | null
   bindFacts(input: {
     /** Exact current source mechanic selected under the aggregate lock. */
     actionMechanic: Readonly<Record<string, unknown>> & {

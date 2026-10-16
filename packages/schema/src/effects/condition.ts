@@ -5,7 +5,9 @@ export const conditionDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
     effectKind: z.literal('CONDITION'),
-    conditionId: authoredIdentifierSchema
+    conditionId: authoredIdentifierSchema,
+    /** The creature taking the action is this condition's source (Frightened's "source of its fear"). */
+    recordsSource: z.optional(z.boolean())
   })
 )
 

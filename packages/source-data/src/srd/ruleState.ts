@@ -160,7 +160,11 @@ const BEYOND_5_FEET = { kind: 'BEYOND', distance: { amount: 5, unit: 'FEET' } } 
 const SPEED_ZERO = { kind: 'SPEED', numerator: 0, denominator: 1 } as const
 const disadvantageOn = (
   roll: Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }>['roll']
-): ConditionMechanicRule => ({ kind: 'D20_ROLL_MODE', influence: 'DISADVANTAGE', roll })
+): Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }> => ({
+  kind: 'D20_ROLL_MODE',
+  influence: 'DISADVANTAGE',
+  roll
+})
 const advantageOn = (
   roll: Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }>['roll']
 ): ConditionMechanicRule => ({ kind: 'D20_ROLL_MODE', influence: 'ADVANTAGE', roll })
@@ -188,9 +192,13 @@ const mechanicsByConditionCode: Readonly<
   Record<string, readonly (ConditionMechanicRule & { minimumLevel?: number })[]>
 > = {
   POISONED: [disadvantageOn({ kind: 'ATTACKS_BY' }), disadvantageOn({ kind: 'ABILITY_CHECKS' })],
-  // The source of fear is not tracked, so the disadvantage applies while Frightened, whether or
-  // not the source is in sight (D94).
-  FRIGHTENED: [disadvantageOn({ kind: 'ATTACKS_BY' }), disadvantageOn({ kind: 'ABILITY_CHECKS' })],
+  // Disadvantage while the source of its fear is in sight, and no willing move closer to it; a
+  // Frightened with no recorded source keeps the disadvantage always (SPELLS-29).
+  FRIGHTENED: [
+    { ...disadvantageOn({ kind: 'ATTACKS_BY' }), requiresHolderSeesSource: true },
+    { ...disadvantageOn({ kind: 'ABILITY_CHECKS' }), requiresHolderSeesSource: true },
+    { kind: 'APPROACH_SOURCE_FORBIDDEN' }
+  ],
   PRONE: [
     disadvantageOn({ kind: 'ATTACKS_BY' }),
     advantageOn({ kind: 'ATTACKS_AGAINST', range: WITHIN_5_FEET }),

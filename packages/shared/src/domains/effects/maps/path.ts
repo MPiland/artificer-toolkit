@@ -6,6 +6,8 @@ import type {
   DamageAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
+  FollowUpSaveRepeatAttemptGateAuthored,
+  FollowUpSaveRepeatPerceptionAuthored,
   FollowUpSaveRepeatRollInfluenceAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
@@ -110,7 +112,6 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
-type FollowUpSaveRepeatRollInfluenceWhenNode = FollowUpSaveRepeatRollInfluenceAuthored['when']
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
@@ -238,7 +239,8 @@ const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
 const actionEffectId = buildNodeMap<{ value: string }>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
-const followUpSaveRepeatRollInfluenceWhen = buildNodeMap<FollowUpSaveRepeatRollInfluenceWhenNode>()
+const followUpSaveRepeatAttemptGate = buildNodeMap<FollowUpSaveRepeatAttemptGateAuthored>()
+const followUpSaveRepeatPerception = buildNodeMap<FollowUpSaveRepeatPerceptionAuthored>()
 
 const OUTCOME_BREAKPOINT_VALUE_NODE_MAP: NodeMap<OutcomeBreakpointValueNode> =
   outcomeBreakpointValue.define('outcomeBreakpointValue', ({ map, nodes, cond }) => {
@@ -959,47 +961,46 @@ const SCALAR_REDUCTION_AMOUNT_NODE_MAP = scalarReductionAmount.define(
   }
 )
 
-const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_WHEN_NODE_MAP =
-  followUpSaveRepeatRollInfluenceWhen.define(
-    'followUpSaveRepeatRollInfluenceWhen',
-    ({ map, nodes }) => {
-      const { selectSingle } = nodes
-      map
-        .set(
-          'kind',
-          selectSingle(['kind'], 'Condition', {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'PERCEPTION', label: 'Perception' }]
-          })
-        )
-        .set(
-          'observer',
-          selectSingle(['observer'], 'Observer', {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'TARGET', label: 'Target' }]
-          })
-        )
-        .set(
-          'subject',
-          selectSingle(['subject'], 'Subject', {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'SOURCE', label: 'Source' }]
-          })
-        )
-        .set(
-          'requirement',
-          selectSingle(['requirement'], 'Requirement', {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'DETECT', label: 'Detect' },
-              { code: 'LOCATE', label: 'Locate' },
-              { code: 'PRECISE', label: 'Precisely Locate' },
-              { code: 'SEE', label: 'See' }
-            ]
-          })
-        )
-    }
-  )
+const FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP = followUpSaveRepeatPerception.define(
+  'followUpSaveRepeatPerception',
+  ({ map, nodes }) => {
+    const { selectSingle } = nodes
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'Condition', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'PERCEPTION', label: 'Perception' }]
+        })
+      )
+      .set(
+        'observer',
+        selectSingle(['observer'], 'Observer', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'TARGET', label: 'Target' }]
+        })
+      )
+      .set(
+        'subject',
+        selectSingle(['subject'], 'Subject', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'SOURCE', label: 'Source' }]
+        })
+      )
+      .set(
+        'requirement',
+        selectSingle(['requirement'], 'Requirement', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'DETECT', label: 'Detect' },
+            { code: 'LOCATE', label: 'Locate' },
+            { code: 'PRECISE', label: 'Precisely Locate' },
+            { code: 'SEE', label: 'See' }
+          ]
+        })
+      )
+  }
+)
 
 const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfluence.define(
   'followUpSaveRepeatRollInfluence',
@@ -1018,7 +1019,31 @@ const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfl
       )
       .set(
         'when',
-        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_WHEN_NODE_MAP, {
+        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+  }
+)
+
+const FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP = followUpSaveRepeatAttemptGate.define(
+  'followUpSaveRepeatAttemptGate',
+  ({ map, nodes }) => {
+    const { selectSingle, groupObject } = nodes
+    map
+      .set(
+        'allow',
+        selectSingle(['allow'], 'Attempt', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'WHEN_MET', label: 'Only When Met' },
+            { code: 'WHEN_UNMET', label: 'Only When Unmet' }
+          ]
+        })
+      )
+      .set(
+        'when',
+        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP, {
           presentation: 'inline'
         })
       )
@@ -1325,6 +1350,18 @@ function registerOutcomeFields(
         ['repeatRollInfluence'],
         'Repeat Roll Influence',
         () => FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'followUpSaveRepeatAttemptGate',
+      groupObject(
+        ['repeatAttemptGate'],
+        'Repeat Attempt Gate',
+        () => FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
         {
           presentation: 'inline',
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
@@ -1686,6 +1723,12 @@ function registerOutcomeFields(
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
         }
       )
+    )
+    .set(
+      'recordsSource',
+      toggle(['recordsSource'], 'The Acting Creature Is Its Source', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
+      })
     )
     .set(
       'grants',

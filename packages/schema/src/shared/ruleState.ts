@@ -127,7 +127,12 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
       ...conditionMechanicFields(),
       kind: z.literal('D20_ROLL_MODE'),
       influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
-      roll: conditionMechanicRollScopeDtoSchema
+      roll: conditionMechanicRollScopeDtoSchema,
+      /**
+       * Applies only while the holder can see a recorded source of the condition; a holding with no
+       * recorded source applies it always. Not on SAVES, which fold into the actor at load.
+       */
+      requiresHolderSeesSource: z.optional(z.literal(true))
     }),
     z.strictObject({
       ...conditionMechanicFields(),
@@ -145,6 +150,11 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
       ...conditionMechanicFields(),
       kind: z.literal('HITS_AGAINST_CRITICAL'),
       range: conditionMechanicAttackRangeDtoSchema
+    }),
+    /** A voluntary move that ends closer to a recorded source is a rule warning (ADR 0034). */
+    z.strictObject({
+      ...conditionMechanicFields(),
+      kind: z.literal('APPROACH_SOURCE_FORBIDDEN')
     })
   ])
 )
@@ -192,6 +202,17 @@ export const conditionRuleStateReusableDefinitionDocumentDtoSchema = lazySchema(
               })
           }
         }
+        for (const [index, mechanic] of document.mechanics.entries())
+          if (
+            mechanic.kind === 'D20_ROLL_MODE' &&
+            mechanic.requiresHolderSeesSource &&
+            mechanic.roll.kind === 'SAVES'
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['mechanics', index, 'requiresHolderSeesSource'],
+              message: 'A save mode folds into the actor at load and cannot depend on sight.'
+            })
       })
     )
 )
