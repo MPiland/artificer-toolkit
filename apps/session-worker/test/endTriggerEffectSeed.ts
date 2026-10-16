@@ -32,7 +32,12 @@ export function endTriggerEffectSeed(input: {
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.holderActorId },
       definition: {
         ...planned.definition,
-        recurrence: { ...planned.definition.recurrence, endOnTriggers: [...input.triggers] }
+        recurrence: {
+          ...planned.definition.recurrence,
+          consumeOnFirstEvents: [],
+          endOnEvents: [],
+          endOnTriggers: [...input.triggers]
+        }
       },
       lifecycle: planned.lifecycle,
       occurredAt

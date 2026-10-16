@@ -14,6 +14,7 @@ import { movementRoom } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
   readActorConditionIds,
+  readActorHitPoints,
   readRoomHistory,
   readRoomRollCards
 } from './roomHistoryReads.js'
@@ -622,21 +623,24 @@ describe('ongoing damage that reaches the holder of a damage-triggered effect (S
     const history = await readRoomHistory(room.base.stub)
     return {
       triggerEffectHeld: history.activeEffects.some(({ id }) => id === EFFECT_ID),
-      invisible: readActorConditionIds(history, FIRST_ID).includes(INVISIBLE_ID)
+      invisible: readActorConditionIds(history, FIRST_ID).includes(INVISIBLE_ID),
+      hitPoints: readActorHitPoints(history, FIRST_ID)
     }
   }
 
   it('ends the effect, and releases its condition, when the damage lands', async () => {
     expect(await endTurnOfInvisibleCreature(null)).toEqual({
       triggerEffectHeld: false,
-      invisible: false
+      invisible: false,
+      hitPoints: plainWolf.hitPoints - 2
     })
   })
 
   it('keeps the effect when the damage is of a type the trigger does not name', async () => {
     expect(await endTurnOfInvisibleCreature([FIRE_ID])).toEqual({
       triggerEffectHeld: true,
-      invisible: true
+      invisible: true,
+      hitPoints: plainWolf.hitPoints - 2
     })
   })
 })

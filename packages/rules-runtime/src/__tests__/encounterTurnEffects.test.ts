@@ -8,6 +8,7 @@ import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/s
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { prepareEncounterTurnEffects } from '../encounterTurnEffects.js'
@@ -21,6 +22,7 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import {
+  activeEffect,
   GOBLIN,
   GOBLIN_SCALARS,
   turnSaveDamageEffect,
@@ -142,6 +144,8 @@ function scriptedD20(faces: readonly number[]) {
 
 function prepare(input: {
   effects: readonly ActiveRuleEffectRecord[]
+  /** The turn's creature; the plain Goblin by default. */
+  actor?: EncounterRunActorState
   state?: EncounterRunState
   autoRoll?: boolean
   faces?: readonly number[]
@@ -149,7 +153,8 @@ function prepare(input: {
   pending?: ServerRuleExecutionPendingSnapshotDto
   resolution?: EncounterResponseAnswer
 }) {
-  const state = input.state ?? srdEncounterState({ actors: [goblin], currentActorId: GOBLIN_ID })
+  const actor = input.actor ?? goblin
+  const state = input.state ?? srdEncounterState({ actors: [actor], currentActorId: GOBLIN_ID })
   const d20 = scriptedD20(input.faces ?? [])
   const calls = { listEffects: 0, createRuntime: 0 }
   const result = prepareEncounterTurnEffects({
@@ -162,7 +167,7 @@ function prepare(input: {
     loadMaintainedState: () => Promise.reject(new Error('No maintained state is loaded.')),
     loadTarget: async (actorId) => {
       expect(actorId).toBe(GOBLIN_ID)
-      return srdCreatureTarget(goblin, [...input.effects])
+      return srdCreatureTarget(actor, [...input.effects])
     },
     createRuntime: async () => {
       calls.createRuntime += 1
@@ -174,7 +179,7 @@ function prepare(input: {
     autoRoll: input.autoRoll ?? true,
     root,
     occurrenceId: OCCURRENCE_ID,
-    actors: [goblin],
+    actors: [actor],
     boundary: input.boundary ?? BOUNDARY,
     ...(input.pending ? { pending: input.pending } : {}),
     ...(input.resolution ? { resolution: input.resolution } : {})
@@ -291,6 +296,30 @@ describe('prepareEncounterTurnEffects', () => {
     expect(result.plan?.executions.map((execution) => execution.lifecycle)).toMatchObject([
       { kind: 'UPDATE', beforeRemainingTicks: 3, afterRemainingTicks: 2 }
     ])
+  })
+
+  it('ends the holder’s damage-triggered effect, releasing its condition, when the damage lands (SPELLS-27.T4b)', async () => {
+    const invisible = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
+    const ticking = await effect(1, { damage: 2 })
+    const sleeper = activeEffect({
+      id: testUuid(0x2f1),
+      owner: OWNER,
+      createdOrdinal: 9,
+      endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }],
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: invisible, baselinePresent: false }
+      ]
+    })
+    const unseen = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN, conditionIds: [invisible] })
+
+    const result = await complete(
+      prepare({ actor: unseen, effects: [ticking, sleeper], faces: [10] })
+    )
+
+    const [execution] = result.plan?.executions ?? []
+    expect(execution?.applications.map(({ kind }) => kind)).toEqual(['DAMAGE', 'CONDITION_REMOVE'])
+    expect(execution?.targetTransition.after.conditionIds).not.toContain(invisible)
+    expect(execution?.targetTransition.after.currentHitPoints).toBe(5)
   })
 
   it('auto-rolls each failed save in createdOrdinal order and chains the damage through both effects', async () => {

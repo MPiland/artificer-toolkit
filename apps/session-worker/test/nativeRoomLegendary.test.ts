@@ -34,6 +34,7 @@ import { movementRoom } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
   readActorConditionIds,
+  readActorHitPoints,
   readRoomHistory,
   readRoomRollCards
 } from './roomHistoryReads.js'
@@ -636,16 +637,25 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
     const history = await readRoomHistory(room.base.stub)
     return {
       effectIds: history.activeEffects.map(({ id }) => id),
-      invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID)
+      invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID),
+      hitPoints: readActorHitPoints(history, WOLF_ID)
     }
   }
 
   it('ends the effect, and releases its condition, when the attack damages its holder', async () => {
-    expect(await strikeInvisibleWolf(20)).toEqual({ effectIds: [], invisible: false })
+    expect(await strikeInvisibleWolf(20)).toEqual({
+      effectIds: [],
+      invisible: false,
+      hitPoints: plainWolf.hitPoints - 10
+    })
   })
 
   it('keeps the effect when the attack misses', async () => {
-    expect(await strikeInvisibleWolf(1)).toEqual({ effectIds: [EFFECT_ID], invisible: true })
+    expect(await strikeInvisibleWolf(1)).toEqual({
+      effectIds: [EFFECT_ID],
+      invisible: true,
+      hitPoints: plainWolf.hitPoints
+    })
   })
 })
 

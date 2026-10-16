@@ -55,6 +55,16 @@ export function readActorConditionIds(history: RoomHistory, actorId: string) {
   return readEncounterActorConditionState(actor.conditions).ids
 }
 
+/** The current hit points a Creature actor holds in the room's stored Run. */
+export function readActorHitPoints(history: RoomHistory, actorId: string) {
+  const row = history.actors.find(({ id }) => id === actorId)
+  if (!row) throw new Error('Expected the actor in the stored Run.')
+  const actor = readStoredRunActor(row)
+  if (actor.kind === 'CHARACTER')
+    throw new Error('A Character holds its hit points on the Character.')
+  return actor.currentHitPoints
+}
+
 /** A stored receipt's rule execution, parsed by the shared contract. */
 export function parseReceiptExecution(receipt: { resultJson: string }) {
   return storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
