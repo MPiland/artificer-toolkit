@@ -8113,10 +8113,12 @@
           "origin": [],
           "acs": [
             {
-              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, a relationship condition, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
+              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
+              "origin": [
+                "2026-10-16 main ruling on the SPELLS-19.T2 escalation: relationship conditions dropped from this AC. An area resolves by saves, and a relationship (Grappled, D105) comes only from a hit, so no area can author one. Frightened of the caster moved to SPELLS-29."
+              ],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
             },
@@ -8150,7 +8152,7 @@
             },
             {
               "id": "SPELLS-19.T2",
-              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Proves a relationship condition end to end with Fear (frightened of the caster on each creature that fails), authoring it from core options if save outcomes cannot yet carry one.",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them. Fear proves it end to end: each creature that fails is Frightened, maintained by the caster's Concentration.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.1"],
               "wsjf": {
@@ -8699,6 +8701,47 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T3", "REACTION-4.T3"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-29",
+          "title": "Frightened follows its source",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 3,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "SPELLS-29.1",
+              "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
+              "status": "TODO",
+              "origin": [
+                "SPELLS-19.T2 escalation 2026-10-16; awaiting the user's confirmation of this AC text"
+              ]
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-29.T1",
+              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
+              "status": "TODO",
+              "closes": ["SPELLS-29.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T2"]
               }
             }
           ]
