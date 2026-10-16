@@ -328,8 +328,9 @@ export const characterItemConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterIt
 /** One spell slot (or the pact slot) a cast spent: the slot's used count rises by one. */
 export type CharacterSpellSlotConsumptionReceiptDto = {
   characterId: string
-  spellId: string
-  candidateId: string
+  /** The spell cast and its cast candidate; both null when the slot paid for an optional on-hit rider. */
+  spellId: string | null
+  candidateId: string | null
   slotKey: string
   beforeUsed: number
   afterUsed: number
@@ -337,8 +338,10 @@ export type CharacterSpellSlotConsumptionReceiptDto = {
 export const characterSpellSlotConsumptionFieldsSchema = lazySchema(() =>
   z.strictObject({
     characterId: uuidSchema,
-    spellId: uuidSchema,
-    candidateId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
+    spellId: z.nullable(uuidSchema),
+    candidateId: z.nullable(
+      z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
+    ),
     slotKey: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
     beforeUsed: nonNegativeIntegerSchema,
     afterUsed: positiveIntegerSchema
@@ -353,6 +356,12 @@ export const characterSpellSlotConsumptionReceiptDtoSchema: z.ZodMiniType<Charac
           context.addIssue({
             code: 'custom',
             message: 'A spell slot consumption spends exactly one slot.'
+          })
+        if ((value.spellId === null) !== (value.candidateId === null))
+          context.addIssue({
+            code: 'custom',
+            path: ['candidateId'],
+            message: 'A spell slot consumption names its spell and cast candidate together.'
           })
       })
     )

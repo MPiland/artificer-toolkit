@@ -478,6 +478,8 @@ export async function evaluateEncounterMovementActionResponse<
               ? option.candidate.reactorActorId
               : option.candidate.movingActorId,
           d20Policy: execution.d20Policy,
+          ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
+          ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
         }),

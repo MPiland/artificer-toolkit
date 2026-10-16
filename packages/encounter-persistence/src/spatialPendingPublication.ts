@@ -197,7 +197,8 @@ export async function publishSpatialPending<TSettlement, TGeometry extends Spati
     viewer: 'MEMBER' | 'OWNER'
   ) =>
     projectEncounterSpatialOccurrenceSummary(occurrence, encounterVersion, {
-      controlledActorIds: viewer === 'OWNER' ? ownerActorIds : memberActorIds
+      controlledActorIds: viewer === 'OWNER' ? ownerActorIds : memberActorIds,
+      isOwner: viewer === 'OWNER' || membership.role === 'OWNER'
     })
   const initialMovement = movementHistory(context)
   const initialAppliedSpatialPrefix = initialMovement?.appliedSpatialPrefix ?? null

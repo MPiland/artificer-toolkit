@@ -320,6 +320,11 @@ export function retainEncounterMovementReactionActionEvidence(input: {
     MovementReactionPendingContext['phase'],
     { kind: 'ACTION_EVIDENCE' }
   >['d20Policy']
+  d20Belief?: Extract<
+    MovementReactionPendingContext['phase'],
+    { kind: 'ACTION_EVIDENCE' }
+  >['d20Belief']
+  heldD20?: Extract<MovementReactionPendingContext['phase'], { kind: 'ACTION_EVIDENCE' }>['heldD20']
   twoPhase?: Extract<
     MovementReactionPendingContext['phase'],
     { kind: 'ACTION_EVIDENCE' }
@@ -394,6 +399,8 @@ export function retainEncounterMovementReactionActionEvidence(input: {
         selectedOptionId: input.selectedOptionId,
         rollerActorId: input.rollerActorId,
         d20Policy: input.d20Policy,
+        ...(input.d20Belief ? { d20Belief: input.d20Belief } : {}),
+        ...(input.heldD20 ? { heldD20: input.heldD20 } : {}),
         ...(input.twoPhase !== undefined ? { twoPhase: input.twoPhase } : {})
       }
     }

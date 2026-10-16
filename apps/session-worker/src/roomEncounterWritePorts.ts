@@ -49,7 +49,8 @@ export async function roomEncounterWriteTransaction(
     campaignId,
     epoch,
     userId,
-    observed
+    observed,
+    sceneTokens: input.sceneTokens
   })
   const postedChatEntries: CampaignChatEntryDto[] = []
   const retainedPrivateRolls: { userId: string; roll: RollHistoryEntryDto }[] = []

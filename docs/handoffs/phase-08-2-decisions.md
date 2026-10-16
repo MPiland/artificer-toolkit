@@ -549,7 +549,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **UNKNOWN (retired by D111):** it covered a Creature observer with authored free-text senses whose ordinary sight fails. Creature Senses are now structured, so every sight is definitive.
   - **Never inputs:** fog and viewer projection (an actor public or hidden from players). The "Unseen source" redaction of player roll prompts is viewer redaction and unrelated to this rule.
   - **Not automated:** "hidden" through the Hide action (a Stealth check, with the hidden state ending on attack) stays unautomated.
-  - **Not wired (current):** Convex action preparation, Disarm, and opportunity attacks (movement-owned; the movement reaction's perception also doesn't pass condition contributions).
+  - **Opportunity attacks (current, ATTACK-10.T3a/b):** the movement reaction's perception gate applies condition contributions. The Worker's reaction prepare supplies `loadAttackPerception` with the reactor at its token and the mover at the contact point, so the roll follows the believed/true rule below. The retained `ACTION_EVIDENCE` phase stores `d20Belief` and `heldD20`; replay re-enters the roller's own dice (`modeAdjustment.rolledFaces`, then the held die's added face), never a fabricated system roll. `projectEncounterSpatialOccurrenceSummary` takes `viewer.isOwner`: a non-owner sees the believed mode and the held die's `playerCaption`, the owner the true mode and `gmReason`. Movement reactions post no settled roll card, so there is no `D20_MODE_ADJUSTED` card for them.
+  - **Not wired (current):** Convex action preparation and Disarm (ATTACK-10.T3c).
   - **Believed vs true mode (user ruling 2026-10-09; the interpretation below is Claude's):** a roller is never told sight facts their Character can't know.
     - **Prompt:** the player's roll prompt shows the _believed_ mode. The GM (Campaign owner) sees the true mode.
     - **Believed sight (`encounterAttackBelief.ts`, `resolveEncounterBelievedAttackPerception`):** uses only the attacker's own facts on the neutral environment.
@@ -753,6 +754,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Removed subject:** the seed fails loudly and lists the ids. Real removal is deferred (future-enhancements, Deferred edge cases).
   - **Downgrade:** no guard. The seed is declarative, so seeding an earlier corpus is just another replace.
   - **Dependents:** a canonical replace runs the same unresolved-dependent check as publish (ADR 0024) and refuses on a hit. The seed has no bypass.
+  - **Extension to definitions, Systems, sources and catalogues (PLATFORM-18.T2):** `bootstrap` and `importDefinitions` replace them in place, with the same identity-or-conflict rule (a changed code, kind, System, family key or content source is a conflict).
+    - **Definition:** patches `label`, `description`, `checksum` and `documentJson` and keeps `version` 1, so the checksum is the revision identity. Homebrew publish bumps `version`; a canonical row does not.
+    - **System:** patches `document` and `checksum` and appends the next `systemVocabularySnapshots` version. Earlier snapshot versions are kept, because nothing resolves them and the append keeps `readSystemVocabularySnapshot` matching the current System.
+    - **Refused, named reason:** a System replace that drops any vocabulary entry `id` of the stored System (stored data may name it), and a Definition removed from the corpus (the seed fails before writing any subject or definition, naming the ids).
+    - **Deferred:** homebrew pins of a replaced canonical definition (future-enhancements, Deferred edge cases).
 * **D121** (2026-10-15) Which creatures a player's Encounter view lists (ATTACK-17.T2; brief [slice-attack-17-t2-t3.md](slice-attack-17-t2-t3.md)). Decided by the main session.
   - **Room:** the room computes exact per-viewer visibility, including fog, through `projectSceneForViewer`.
   - **Convex stored-session reads and admission** (`activeReads`, `projectionReads`, `healthDisplay`) fail closed and never read fog. For a non-GM, a creature with a token on the Encounter's Scene is listed only if the player controls it or the GM revealed it. This takes one bounded, indexed read of the Run's bindings. It may over-hide until the room connects, and it never leaks.

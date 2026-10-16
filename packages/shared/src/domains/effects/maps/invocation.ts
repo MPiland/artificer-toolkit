@@ -2,6 +2,7 @@ import type {
   ActivationAuthored,
   EffectInvocationKind,
   EffectInvocationAuthored,
+  OptionalOnHitAuthored,
   ReactionTriggerBindingAuthored,
   ResourceUseAuthored
 } from '#authored'
@@ -60,6 +61,29 @@ const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes })
     .set('chargeId', text(['chargeId'], 'Charge ID', { requiredIf: true }))
     .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
 })
+
+const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label: string }[] = [
+  { code: 'SPELL_SLOT', label: 'A spell slot of a level you choose' }
+]
+
+const optionalOnHit = buildNodeMap<OptionalOnHitAuthored>()
+
+const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define(
+  'optionalOnHit',
+  ({ map, nodes }) => {
+    const { selectSingle } = nodes
+
+    map.set(
+      'kind',
+      selectSingle(
+        ['kind'],
+        'Cost',
+        { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
+        { order: 1, requiredIf: true }
+      )
+    )
+  }
+)
 
 const REACTION_TRIGGER_KIND_OPTIONS: {
   code: ReactionTriggerBindingAuthored['kind']
@@ -232,22 +256,30 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         })
       )
       .set(
+        'optionalOnHit',
+        groupObject(['optionalOnHit'], 'Optional On Hit', () => OPTIONAL_ON_HIT_NODE_MAP, {
+          presentation: 'inline',
+          order: 7,
+          showIf: local.field(['kind']).eq('PASSIVE')
+        })
+      )
+      .set(
         'range',
         groupObject(['range'], 'Range', () => RANGE_NODE_MAP, {
           presentation: 'inline',
-          order: 7,
+          order: 8,
           requiredIf: true
         })
       )
       .set(
         'shape',
-        groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline', order: 8 })
+        groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline', order: 9 })
       )
       .set(
         'targeting',
         groupObject(['targeting'], 'Targeting', () => TARGETING_NODE_MAP, {
           presentation: 'inline',
-          order: 9
+          order: 10
         })
       )
   }

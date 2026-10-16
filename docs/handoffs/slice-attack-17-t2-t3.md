@@ -122,5 +122,9 @@ T3:
 ## Status log
 
 - 2026-10-14: workbook written; waiting on ATTACK-9.T1 and SPELLS-22.
+- 2026-10-15: T2 built on `ci/attack-17-t2` under D121 (Option A). Shared predicate `unseenEncounterActorIds` in rules-runtime; Convex passes `visibleTokenIds: null` (fail closed, never reads fog), the room passes the tokens the viewer's map draws. Found and fixed a write-path bug: `roomEncounterWriteTransaction` dropped `sceneTokens`, so live admission and results used null vision (live hid a drawn Wolf that replay listed).
 
 ## Proposed ledger edits (filled by the slice session)
+
+- ATTACK-17.3: close with proofs `packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts` (D121 predicate table), `apps/session-worker/test/nativeLiveSessionRoom.test.ts` (hidden-token journey), `apps/session-worker/test/nativeRoomUnseenTarget.test.ts` (TARGET_UNAVAILABLE), `apps/apis/convex/encounters/recipientBindings.test.ts` (fallback bindings and the Convex over-hiding proof), and the drawer tests in `apps/web/src/domains/campaigns/vtt/` (reveal control, Target select drops a refused self).
+- D121 text proposal: "A non-GM's Encounter list is decided by one shared pure predicate (`unseenEncounterActorIds`). Reactive Encounter queries never read fog: Convex treats every creature bound to a token on the Encounter's Scene as unseen until the GM reveals it, and the Worker room narrows that with the exact fog-aware tokens the viewer's map draws, so Convex never lists a creature the room hides unless fog hides it. With a Scene, a non-player creature with no token there is hidden unless revealed; with no Scene everything public is listed. The reveal is a persisted per-actor setting (hidden / unnamed / named) set by the GM only."

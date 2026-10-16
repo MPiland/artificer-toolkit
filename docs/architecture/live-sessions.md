@@ -239,6 +239,24 @@ and the GM see and answer it. Results returned to a non-owner pass through
 player projection. Health display follows ADR 0034 decision 5 (Hidden, Descriptive, Bar, Exact), applied
 by `projectPlayerEncounterProjection`.
 
+**Which creatures a player sees (ATTACK-17.3, D121).** `projectPlayerEncounterProjection` lists a public
+actor for a player only when the viewer controls it, the map draws its token, the GM revealed it, or it
+is not a creature staged off the map. `unseenEncounterActorIds` (rules-runtime) is the one pure
+predicate, used by every host. With no Scene the Encounter lists everything. With a Scene, an actor is
+unseen when its token on that Scene is not drawn for the viewer, or when it has no token there and is
+not a Character (the GM stages creatures off-map by leaving them unbound). The Convex reads never read
+fog (`readViewerSceneTokens` returns null), so every bound creature is unseen there until revealed; the
+room passes the tokens `projectSceneForViewer` draws and only ever lists more, so Convex may over-hide
+and the room narrows exactly. `readEncounterPlayerViewer` (encounter-persistence `playerViewer.ts`) reads
+the Scene binding row and one `by_encounterId_actorId` token binding per actor, then applies the
+predicate. The GM's reveal is the per-actor `reveal` (null, UNNAMED, NAMED), set by a GM-only
+`UPDATE_ACTOR`; UNNAMED lists "Unseen creature" with no name, source, conditions, grants or health. The
+player projection carries no concealment or observer data (D116). `requireTargetSeenByMember`
+(`targetVisibility.ts`) refuses a player command that names an unseen actor with `TARGET_UNAVAILABLE`
+(action, disarm and basic-action admission and the action-choice reads). The Encounter drawer's actor row
+carries the GM reveal control; the Target select drops the acting creature when the action's
+`target.self` is `REFUSED`.
+
 **Flood control.** A PLAYER has at most one Encounter or planned geometry command in flight
 (`ROOM_LIMITS.maxInFlightEncounterCommandsPerPlayer`); a second is refused `UNAVAILABLE` ("Your
 previous action is still resolving."). Each account also has D72 token buckets (below).

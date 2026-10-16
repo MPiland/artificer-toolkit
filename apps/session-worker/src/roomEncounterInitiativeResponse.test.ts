@@ -164,6 +164,7 @@ it('records the answers to an initiative request in the terminal receipt resolut
         recipientUserIds: [gmId],
         command,
         random: () => 0,
+        sceneTokens: async () => null,
         turnExecution: { runtime }
       })
     )

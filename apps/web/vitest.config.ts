@@ -45,7 +45,9 @@ export default defineConfig({
           css: true,
           // jsdom + React tests are CPU-bound. Vitest's default (one worker per logical CPU) puts
           // two busy workers on every physical core, which stretches multi-second tests 3-5x and
-          // trips their timeouts. One worker per physical core is also faster overall.
+          // trips their timeouts. One worker per physical core is also faster overall. Node has no
+          // physical-core API, so half the logical CPUs stands in for it: GitHub runners and
+          // developer machines are two-threads-per-core, and the share scales with the machine.
           maxWorkers: '50%',
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
           exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.browser.test.tsx'],

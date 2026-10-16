@@ -14,6 +14,7 @@ import type {
   ManifestBehaviorAuthored,
   ManifestComponentAuthored,
   ManifestProximityRuleAuthored,
+  OptionalOnHitAuthored,
   ArmorClassFloorAuthored,
   HitPointMaximumReductionAuthored,
   ScalarReductionAuthored,
@@ -65,6 +66,11 @@ export type CompiledEffect = {
   restrictions?: FacetAuthored
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
+  /**
+   * Set on an optional on-hit rider's entry merged into a weapon attack (D123): the entry resolves
+   * only when its rider is among the ones the player chose, paying this cost.
+   */
+  optionalRider?: { riderId: string; cost: OptionalOnHitAuthored }
   outcome: CompiledEffectOutcome
 } & (
   | {

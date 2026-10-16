@@ -1,8 +1,9 @@
-// Replaces canonical subjects in place on a seeded self-hosted Convex backend and times each
-// mutation against Convex's 1 s user-time limit (PLATFORM-18.T1): the worst-case records are the
+// Replaces canonical records in place on a seeded self-hosted Convex backend and times each
+// mutation against Convex's 1 s user-time limit (PLATFORM-18.T1, T2): the worst-case subjects are the
 // largest Class, the Subclass that re-reads its parent, a Race and an Equipment parent that
-// recompile their children, and a Background. Every probe is restored through importSubjects except
-// the Background, which stays changed so the following seed step must replace it.
+// recompile their children, and a Background; the System, content source and catalogue go through
+// bootstrap and a reusable definition through importDefinitions. Every probe is restored except the
+// Background, which stays changed so the following seed step must replace it.
 //   yarn workspace @artificer-toolkit/apis exec tsx scripts/liveBackendReplaceProbe.ts [--container=<name>]
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -69,24 +70,25 @@ function relabelled(subject: Subject): Subject {
   return { ...subject, label, document, checksum: checksumRuleDocument(document) }
 }
 
-async function importSubject(subject: Subject) {
+async function mutate(path: string, args: object) {
   const started = performance.now()
   const response = await fetch(new URL('/api/mutation', localConvex.url), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Convex ${adminKey}` },
-    body: JSON.stringify({
-      path: 'content/import:importSubjects',
-      args: { contentSourceId: manifest.contentSource.id, subjects: [subject] },
-      format: 'json'
-    }),
+    body: JSON.stringify({ path, args, format: 'json' }),
     signal: AbortSignal.timeout(60_000)
   })
   const milliseconds = Math.round(performance.now() - started)
   const body = (await response.json()) as { status: string; value?: unknown; errorMessage?: string }
-  if (body.status !== 'success')
-    throw new Error(`importSubjects ${subject.id}: ${body.errorMessage ?? response.status}`)
+  if (body.status !== 'success') throw new Error(`${path}: ${body.errorMessage ?? response.status}`)
   return { milliseconds, result: JSON.stringify(body.value) }
 }
+
+const importSubject = (subject: Subject) =>
+  mutate('content/import:importSubjects', {
+    contentSourceId: manifest.contentSource.id,
+    subjects: [subject]
+  })
 
 for (const { name, subject, restore } of probes) {
   if (!subject) throw new Error(`No ${name} in the corpus.`)
@@ -104,3 +106,55 @@ for (const { name, subject, restore } of probes) {
     `${name} (${subject.subjectKind} ${Math.round(kib(subject))} KiB): replace ${replaced.milliseconds} ms${restored}${restore ? '' : ' (left changed for the next seed)'}`
   )
 }
+
+const bootstrapInput = {
+  systems: manifest.systems,
+  contentSource: manifest.contentSource,
+  catalogue: manifest.catalogue
+}
+const relabelledSystems = manifest.systems.map((system) => {
+  const document = jsonValueSchema.parse({
+    ...(system.document as Record<string, unknown>),
+    label: `${(system.document as { label: string }).label} (probe)`
+  })
+  return { ...system, document, checksum: checksumRuleDocument(document) }
+})
+const changedBootstrap = {
+  systems: relabelledSystems,
+  contentSource: { ...manifest.contentSource, label: `${manifest.contentSource.label} (probe)` },
+  catalogue: { ...manifest.catalogue, label: `${manifest.catalogue.label} (probe)` }
+}
+const definition = manifest.definitions[0]
+if (!definition) throw new Error('No reusable definition in the corpus.')
+const definitionInput = (label: string) => ({
+  contentSourceId: manifest.contentSource.id,
+  definitions: [{ ...definition, label }]
+})
+
+async function probe(name: string, change: () => ReturnType<typeof mutate>, back: typeof change) {
+  const replaced = await change()
+  const restored = await back()
+  console.log(
+    `${name}: replace ${replaced.milliseconds} ms (${replaced.result}) restore ${restored.milliseconds} ms (${restored.result})`
+  )
+  return [replaced.result, restored.result]
+}
+
+const [systemChange, systemBack] = await probe(
+  'System, content source and catalogue (bootstrap)',
+  () => mutate('content/import:bootstrap', changedBootstrap),
+  () => mutate('content/import:bootstrap', bootstrapInput)
+)
+if (!systemChange?.includes('"replaced":3') || !systemBack?.includes('"replaced":3'))
+  throw new Error(
+    `bootstrap: expected three replaces each way, got ${systemChange} / ${systemBack}.`
+  )
+const [definitionChange, definitionBack] = await probe(
+  `Reusable definition (${definition.definitionFamilyKey})`,
+  () => mutate('content/import:importDefinitions', definitionInput(`${definition.label} (probe)`)),
+  () => mutate('content/import:importDefinitions', definitionInput(definition.label))
+)
+if (!definitionChange?.includes('"replaced":1') || !definitionBack?.includes('"replaced":1'))
+  throw new Error(
+    `importDefinitions: expected one replace each way, got ${definitionChange} / ${definitionBack}.`
+  )

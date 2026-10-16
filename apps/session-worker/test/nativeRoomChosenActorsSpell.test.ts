@@ -6,6 +6,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { massCureWounds } from '@artificer-toolkit/source-data/srd/spells/mass-cure-wounds.js'
 import { massHealingWord } from '@artificer-toolkit/source-data/srd/spells/mass-healing-word.js'
 import { prayerOfHealing } from '@artificer-toolkit/source-data/srd/spells/prayer-of-healing.js'
@@ -18,7 +19,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
 
 const CHARACTER_ACTOR_ID = testUuid(0x7e0)
 const CHARACTER_ID = testUuid(0x7e1)
@@ -45,6 +46,7 @@ function healerRoom(config: {
   label: string
   rolls: readonly number[]
   wolfIds?: readonly string[]
+  wolfHitPoints?: number
   characterHitPoints?: number
 }) {
   const wolfIds = config.wolfIds ?? WOLF_IDS.slice(0, 3)
@@ -55,7 +57,7 @@ function healerRoom(config: {
         srdCreatureActor({
           id,
           creature: plainWolf,
-          currentHitPoints: 1
+          currentHitPoints: config.wolfHitPoints ?? 1
         })
       ),
       srdCreatureActor({ id: FAR_WOLF_ID, creature: plainWolf, currentHitPoints: 1 })
@@ -343,5 +345,112 @@ describe('room cast on chosen creatures inside an area (Mass Cure Wounds, D118)'
     const { answer } = await room.startActorsAction(chosen, ['TARGET_OUT_OF_RANGE'], true, farPoint)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect((await hitPointsOf(room))[FAR_WOLF_ID]).toBe(1 + 1 + 2 + 3 + 1)
+  }, 120000)
+})
+
+describe('room cast of projectiles on chosen creatures (Magic Missile, SPELLS-26)', () => {
+  // Each Wolf has 11 hit points. Magic Missile's dart is 1d4+1, and a raw die is its face less one.
+  const missiles = (level: 1 | 2, rolls: readonly number[]) =>
+    healerRoom({
+      spell: magicMissile,
+      label: `Magic Missile (${level === 1 ? '1st' : '2nd'} level)`,
+      rolls,
+      wolfHitPoints: 11,
+      characterHitPoints: 5
+    })
+  const [first, second] = WOLF_IDS as [string, string]
+  const requestedDamage = (children: ReturnType<typeof areaReceipts>['children']) =>
+    children.flatMap(({ outputs }) =>
+      outputs.applications.flatMap((application) =>
+        'requestedAmount' in application ? [application.requestedAmount] : []
+      )
+    )
+
+  it('rolls each dart on its own, lands them in order, and spends the slot once', async () => {
+    const room = await missiles(1, [0, 3, 1])
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction([first, first, second], RANGE_UNCHECKED, false)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    // Darts of 2, 5 and 3: the first creature takes the first two off its 11, the second the third.
+    expect(await hitPointsOf(room)).toEqual({ ...before, [first]: 11 - 2 - 5, [second]: 11 - 3 })
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(roots[0]?.outputs.targetOccurrenceIds).toHaveLength(3)
+    expect(children.map(({ outputs }) => outputs.targetActorId)).toEqual([first, first, second])
+    expect(requestedDamage(children)).toEqual([2, 5, 3])
+    expect(await readRoomRollCards(room.room.base.stub)).toHaveLength(3)
+    expect((await readCharacterPlayState(room)).spellSlots).toEqual([
+      { slotKey: 'STANDARD:1', used: 1 }
+    ])
+
+    await undoLastAction(room)
+    expect(await hitPointsOf(room)).toEqual(before)
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('fires a further dart for each level of a higher slot', async () => {
+    const room = await missiles(2, [0, 0, 0, 0])
+
+    const { answer } = await room.startActorsAction(
+      [first, second, first, second],
+      RANGE_UNCHECKED,
+      false
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await hitPointsOf(room)).toMatchObject({ [first]: 11 - 4, [second]: 11 - 4 })
+    expect((await readCharacterPlayState(room)).spellSlots).toEqual([
+      { slotKey: 'STANDARD:2', used: 1 }
+    ])
+  }, 120000)
+
+  it('hits the caster with their own darts, the slot spent with the first of them', async () => {
+    const room = await missiles(1, [0, 0, 0])
+
+    const { answer } = await room.startActorsAction(
+      [CHARACTER_ACTOR_ID, CHARACTER_ACTOR_ID, first],
+      RANGE_UNCHECKED,
+      false
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const play = await readCharacterPlayState(room)
+    expect(play.hitpoints.current).toBe(5 - 2 - 2)
+    expect(play.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+    expect((await hitPointsOf(room))[first]).toBe(11 - 2)
+
+    await undoLastAction(room)
+    expect((await readCharacterPlayState(room)).hitpoints.current).toBe(5)
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('refuses more darts than the slot gives, and spends nothing', async () => {
+    const room = await missiles(1, [0, 0, 0, 0])
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction(
+      [first, first, second, second],
+      RANGE_UNCHECKED,
+      false
+    )
+    expect(answer.type).not.toBe('COMMAND_COMMITTED')
+    expect(JSON.stringify(answer)).toContain('at most 3')
+    expect(await hitPointsOf(room)).toEqual(before)
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
+  }, 120000)
+
+  it('refuses a creature named twice by a spell that heals each creature once', async () => {
+    const room = await healerRoom({
+      spell: massHealingWord,
+      label: 'Mass Healing Word (3rd level)',
+      rolls: [2]
+    })
+    const before = await hitPointsOf(room)
+
+    const { answer } = await room.startActorsAction([first, first], RANGE_UNCHECKED, false)
+    expect(answer.type).not.toBe('COMMAND_COMMITTED')
+    expect(JSON.stringify(answer)).toContain('names each creature once')
+    expect(await hitPointsOf(room)).toEqual(before)
+    expect((await readCharacterPlayState(room)).spellSlots ?? []).toEqual([])
   }, 120000)
 })

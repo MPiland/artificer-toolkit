@@ -9,6 +9,10 @@ import {
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
 import {
+  encounterOnHitOfferDtoSchema,
+  validateEncounterOnHitOption
+} from './ruleExecutionOnHitChoice.js'
+import {
   encounterCastReactionOfferDtoSchema,
   encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
@@ -28,15 +32,16 @@ export type EncounterActionHeldD20Dto = {
   gmReason: string | null
 }
 
-const heldD20Schema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(() =>
-  z.strictObject({
-    rolledMode: z.literal('NORMAL'),
-    faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
-    playerCaption: z.nullable(
-      z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
-    ),
-    gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
-  })
+export const encounterActionHeldD20DtoSchema: z.ZodMiniType<EncounterActionHeldD20Dto> = lazySchema(
+  () =>
+    z.strictObject({
+      rolledMode: z.literal('NORMAL'),
+      faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
+      playerCaption: z.nullable(
+        z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+      ),
+      gmReason: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+    })
 )
 
 /** Native action ownership; the command JSON is parsed by its owning command schema on every read. */
@@ -61,7 +66,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.1). */
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
-      heldD20: z.optional(heldD20Schema),
+      heldD20: z.optional(encounterActionHeldD20DtoSchema),
       /**
        * Set while the target's failed save waits on its Legendary Resistance choice. The snapshot's
        * continuation is that choice; the TEST stays unsettled until the answer.
@@ -77,7 +82,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * that creature; the snapshot's continuation is its sealed reaction choice. No cast state is held:
        * the cast replays from the command, and the declined reactors keep the replay deterministic.
        */
-      castReaction: z.optional(encounterCastReactionOfferDtoSchema)
+      castReaction: z.optional(encounterCastReactionOfferDtoSchema),
+      /**
+       * Set while a hit waits on its attacker's choice to add an optional on-hit rider, after any
+       * reaction to the hit has settled. The snapshot's continuation is that choice; the TEST stays
+       * unsettled until the answer.
+       */
+      onHitChoice: z.optional(encounterOnHitOfferDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -125,6 +136,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
           if (
             value.legendaryResistance ||
             value.reactionChoice ||
+            value.onHitChoice ||
             value.twoPhase !== null ||
             value.d20Policy !== null ||
             value.contest ||
@@ -138,6 +150,28 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['castReaction'],
               message: 'A cast reaction offer belongs to a cast held before it executes.'
+            })
+        }
+        if (value.onHitChoice) {
+          for (const [index, option] of value.onHitChoice.options.entries())
+            validateEncounterOnHitOption(option, value.onHitChoice.testExecutionChecksum, context, [
+              'onHitChoice',
+              'options',
+              index
+            ])
+          if (
+            value.legendaryResistance ||
+            value.reactionChoice ||
+            value.castReaction ||
+            value.twoPhase?.phase !== 'TEST' ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['onHitChoice'],
+              message: 'An on-hit offer belongs to a TEST held for the attacker.'
             })
         }
         if (value.heldD20 && value.d20Policy === null)

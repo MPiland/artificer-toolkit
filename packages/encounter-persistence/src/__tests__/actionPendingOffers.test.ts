@@ -24,6 +24,14 @@ describe('offeredDecisionOptionIds', () => {
     ).toEqual(['resist'])
   })
 
+  it('offers each way of paying for an on-hit rider', () => {
+    expect(
+      offeredDecisionOptionIds({
+        onHitChoice: { options: [{ useOptionId: 'first' }, { useOptionId: 'second' }] }
+      })
+    ).toEqual(['first', 'second'])
+  })
+
   it('offers nothing for a pause that holds no decision', () => {
     expect(offeredDecisionOptionIds({})).toEqual([])
   })

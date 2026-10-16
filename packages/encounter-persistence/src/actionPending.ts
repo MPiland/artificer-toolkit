@@ -105,13 +105,15 @@ export function castReactionAnswerContinues(
   return declined.length === expected.size && declined.every((actorId) => expected.has(actorId))
 }
 
-/** The use options a paused action offers its decider: a Legendary Resistance, or every reaction (innermost first). */
+/** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {
   legendaryResistance?: { resistance: { useOptionId: string } } | null
   reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
   castReaction?: { reactions: readonly { useOptionId: string }[] } | null
+  onHitChoice?: { options: readonly { useOptionId: string }[] } | null
 }): string[] {
   if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
+  if (context.onHitChoice) return context.onHitChoice.options.map((option) => option.useOptionId)
   return (
     (context.reactionChoice ?? context.castReaction)?.reactions.map(
       (reaction) => reaction.useOptionId
@@ -151,6 +153,20 @@ export function projectNativeActionPending(
       options: reactionOffer.reactions.map(({ useOptionId, actionId }) => ({
         optionId: useOptionId,
         actionId
+      })),
+      allowedResponses: ['DECLINE', 'OPTION']
+    }
+  if (context.onHitChoice)
+    return {
+      kind: 'ON_HIT_CHOICE',
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      encounterVersion: occurrence.expectedEncounterVersion,
+      attackerActorId: context.rollerActorId,
+      options: context.onHitChoice.options.map(({ useOptionId, riderId, slotLevel }) => ({
+        optionId: useOptionId,
+        riderId,
+        slotLevel
       })),
       allowedResponses: ['DECLINE', 'OPTION']
     }

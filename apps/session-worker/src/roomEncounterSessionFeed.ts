@@ -13,7 +13,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import { admitsRoomMember } from './roomAuthorization.js'
 import type { FeedMember, FeedScope } from './roomCharacterSheetFeed.js'
-import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
+import { roomEncounterReadTransaction, type RoomSceneTokens } from './roomEncounterReadPorts.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
@@ -48,6 +48,7 @@ export class RoomEncounterSessionFeed {
       authorize: (scope: FeedScope) => Promise<LiveSessionRoomAuthorization>
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
+      sceneTokens: (scope: FeedScope) => RoomSceneTokens
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
       remember: (socket: WebSocket) => void
     }
@@ -149,7 +150,8 @@ export class RoomEncounterSessionFeed {
       campaignId: scope.campaignId,
       epoch: scope.authorityEpoch,
       userId: member.userId,
-      observed: inputs.revisions(scope.campaignId, authorization.revisions)
+      observed: inputs.revisions(scope.campaignId, authorization.revisions),
+      sceneTokens: this.dependencies.sceneTokens(scope)
     })
   }
 

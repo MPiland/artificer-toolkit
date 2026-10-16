@@ -509,7 +509,7 @@ export function getOwnedSpellSlotLevels(
   ])
 }
 
-/** The levels a spell is cast at from one source: its own, and each level it scales at that is owned. */
+/** The levels a spell is cast at from one source: its own, and every higher level whose standard slot is owned. */
 export function getSpellCastLevels(
   spell: { level: number },
   source: SheetSpellSource,
