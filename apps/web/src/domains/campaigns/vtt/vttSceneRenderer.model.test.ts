@@ -89,7 +89,12 @@ describe('VTT scene renderer model', () => {
       // The longest cone an SRD spell has: 60 feet.
       { kind: 'CONE', length: sceneDistanceAsCoordinateLength(grid, 60) },
       { kind: 'LINE', length: 6 * cell, width: cell },
-      { kind: 'CUBE_FROM_SIDE', edgeLength: 3 * cell, cellSize: cell }
+      {
+        kind: 'CUBE_FROM_SIDE',
+        edgeLength: 3 * cell,
+        cellSize: cell,
+        gridOrigin: grid.kind === 'SQUARE' ? grid.origin : { x: 0, y: 0 }
+      }
     ]
     const [cone, longCone, line, cube] = sizes as [
       SpatialDirectedAreaSize,

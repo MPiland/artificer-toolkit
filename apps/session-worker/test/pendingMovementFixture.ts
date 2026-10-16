@@ -134,7 +134,8 @@ export async function insertPendingMovementDecision(
               modifier: 0,
               dc: 10
             }
-          : null
+          : null,
+        diceStage: null
       },
       remainingCandidates: []
     }

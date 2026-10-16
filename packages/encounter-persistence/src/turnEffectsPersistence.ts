@@ -1,6 +1,7 @@
 import {
   isTurnEffectEligible,
   requireTurnMaintainedStates,
+  turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
   turnEffectSelectionChecksum,
@@ -11,6 +12,7 @@ import {
   targetTransitionChecksum
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -20,10 +22,11 @@ import {
   type PendingCompletedTurnPhaseDto,
   type StoredRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readRunActor } from './documents.js'
+import { readRunActor, readRunActors } from './documents.js'
 import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -107,6 +110,13 @@ export async function persistEncounterTurnEffects(
     store.findMaintainedStateById({ encounterId: state.id, stateId })
   )
   const expired = new Set<string>()
+  // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
+  const damageEnded = new Map<string, ActiveRuleEffectRecord>()
+  const dispositions = new Map(
+    executions.some(({ applications }) => applications.some(({ kind }) => kind === 'DAMAGE'))
+      ? (await readRunActors(ctx, state)).map(({ id, disposition }) => [id, disposition] as const)
+      : []
+  )
   const applications: CharacterRuleActionApplication[] = []
   let priorAfter: (typeof executions)[number]['targetTransition']['after'] | null = null
   for (const [ordinal, effect] of candidates.entries()) {
@@ -173,19 +183,53 @@ export async function persistEncounterTurnEffects(
       execution.applications.some(
         (application, index) =>
           application.ordinal !== index ||
-          application.sourceNodeId !== definition.frozenGraphNodeId ||
-          ![
-            'HEAL',
-            'TEMPORARY_HIT_POINTS',
-            'DAMAGE',
-            'CONDITION_APPLY',
-            'CONDITION_REMOVE'
-          ].includes(application.kind) ||
-          (application.kind === 'CONDITION_REMOVE' &&
-            application.sourceActiveEffectId !== effect.id)
+          (application.sourceOperationKey !== ENDED_EFFECT_CONDITION_OPERATION_KEY &&
+            (application.sourceNodeId !== definition.frozenGraphNodeId ||
+              ![
+                'HEAL',
+                'TEMPORARY_HIT_POINTS',
+                'DAMAGE',
+                'CONDITION_APPLY',
+                'CONDITION_REMOVE'
+              ].includes(application.kind) ||
+              (application.kind === 'CONDITION_REMOVE' &&
+                application.sourceActiveEffectId !== effect.id)))
       )
     )
       throw new Error('Staged turn effect target transition is invalid.')
+    // The damage this execution dealt ends the holder's other damage-triggered effects; the plan
+    // must have released exactly the conditions only they held.
+    const ended = turnEffectDamageEnded({
+      effect,
+      holderActorId: actor.id,
+      held: effects,
+      excluded: new Set([
+        ...damageEnded.keys(),
+        ...candidates.slice(0, ordinal + 1).map(({ id }) => id)
+      ]),
+      applications: execution.applications.map((application) => ({
+        ...application,
+        targetActorId: actor.id
+      })),
+      dispositions
+    })
+    const releaseKey = (application: { sourceActiveEffectId: string; conditionId: string }) =>
+      `${application.sourceActiveEffectId}:${application.conditionId}`
+    if (
+      !same(
+        execution.applications.flatMap((application) =>
+          application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY &&
+          application.kind === 'CONDITION_REMOVE'
+            ? [releaseKey(application)]
+            : []
+        ),
+        ended.releases.map(releaseKey)
+      )
+    )
+      throw new Error('Staged turn effect damage release is stale.')
+    if (damageEnded.has(effect.id) && lifecycle.kind !== 'EXPIRE')
+      throw new Error('Staged turn effect damage expiry is stale.')
+    for (const endedEffect of ended.endedEffects) damageEnded.set(endedEffect.id, endedEffect)
     priorAfter = transition.after
     applications.push(
       ...execution.applications.map(({ ordinal: _ordinal, ...application }) => ({
@@ -266,9 +310,22 @@ export async function persistEncounterTurnEffects(
         }
       })
   }
+  // A candidate the damage ended has already expired with its own execution.
+  const candidateIds = new Set(candidates.map(({ id }) => id))
+  const damageDeleted = [...damageEnded.values()].filter(({ id }) => !candidateIds.has(id))
+  const endedMaintainedStates = await requireTurnMaintainedStates(
+    state.id,
+    damageDeleted,
+    (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
+  )
+  for (const endedEffect of damageDeleted) {
+    if (endedEffect.maintainedEffectStateId !== null)
+      terminalMaintainedStateIds.add(endedEffect.maintainedEffectStateId)
+    await store.deleteCas({ id: endedEffect.id, owner, expectedVersion: endedEffect.version })
+  }
   const terminatedMaintainedStates = []
   for (const stateId of [...terminalMaintainedStateIds].sort()) {
-    const maintained = maintainedStates.get(stateId)
+    const maintained = maintainedStates.get(stateId) ?? endedMaintainedStates.get(stateId)
     if (!maintained) throw new Error('Maintained turn effect source binding is stale.')
     if (
       !maintainedStateTerminatesWhenEmpty(maintained) ||

@@ -446,7 +446,7 @@ export async function publishMovementResponse(
             throw new Error('Pending spatial target currentness is inconsistent.')
           baselineTargets.set(actorId, target)
           // Neutral currentness hashes loaded baseline state, before staged contacts or dice.
-          return { ...candidate, target, d20Policy: null }
+          return { ...candidate, target, d20Policy: null, diceStage: null }
         })
       })
     }

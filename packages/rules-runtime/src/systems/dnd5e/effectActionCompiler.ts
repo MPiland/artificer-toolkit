@@ -277,6 +277,18 @@ type Outcome =
       recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
       terminalConsequence: 'TARGET_DIED'
     }
+/**
+ * Damage whose dice the test graph itself rolls, only when the test resolves to the authored path
+ * (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
+ */
+type EntryDiceDamageOutcome = {
+  kind: 'ENTRY_DICE_DAMAGE'
+  diceConfig: string
+  damageTypeId: string
+}
+/** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
+const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'
+const ENTRY_DAMAGE_ENABLED_NODE_ID = `${ENTRY_DAMAGE_NODE_PREFIX}enabled`
 /** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
 const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
@@ -566,7 +578,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
 >
 interface TestPlan {
   kind: TestKind
-  branches: ReadonlyMap<string, Outcome>
+  branches: ReadonlyMap<string, Outcome | EntryDiceDamageOutcome>
 }
 
 function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
@@ -1228,6 +1240,30 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
 }
 
 /**
+ * A placed zone's damage on a failed entry save: fixed, or one unscaled, unmodified full-damage dice
+ * roll that the entry graph rolls itself (D133). Half damage and bonuses belong to the zone turn trigger.
+ */
+function zoneDamageOutcome(
+  entry: CompiledEffectGroup['entries'][number]
+): Outcome | EntryDiceDamageOutcome {
+  if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
+  const { outcome } = entry
+  if (outcome.effectKind !== 'DAMAGE' || outcome.valueKind !== 'DICE')
+    return boundedTestOutcome(entry)
+  const authored = specializedTestOutcome(entry)
+  if (authored.kind === 'DAMAGE') return authored
+  if (
+    outcome.scalingKind !== 'NONE' ||
+    outcome.bonuses?.length ||
+    damageMultiplier(outcome) !== 1 ||
+    boundedDiceTerm(outcome.dice).modifier !== 0
+  )
+    unsupported('A placed zone dice damage is one unscaled, unmodified full-damage roll.')
+  uuid(outcome.damageTypeId, 'D&D damage type identity')
+  return { kind: 'ENTRY_DICE_DAMAGE', diceConfig: outcome.dice, damageTypeId: outcome.damageTypeId }
+}
+
+/**
  * TEST/OUTCOME actions select exactly one authored result group.  The TEST
  * phase must therefore reject every reachable result that the bounded
  * OUTCOME compiler cannot construct, rather than quietly retaining the old
@@ -1560,11 +1596,15 @@ function ownsTimedSaveCondition(
 function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
 ): ActiveEffectEndTrigger[] {
-  const compiled = triggers.map(({ event, by, damageTypeIds }) => ({
-    event,
-    by,
-    damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
-  }))
+  const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
+    if (trigger.event !== 'DAMAGE_TAKEN') return trigger
+    const { event, by, damageTypeIds } = trigger
+    return {
+      event,
+      by,
+      damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
+    }
+  })
   const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
   return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
@@ -1973,7 +2013,7 @@ function zonePlacementPlan(
   }
   const saveGraph = compileTestDefinition(
     action,
-    { kind: 'SAVE', branches: new Map([['ON_SAVE_FAIL', boundedTestOutcome(damage)]]) },
+    { kind: 'SAVE', branches: new Map([['ON_SAVE_FAIL', zoneDamageOutcome(damage)]]) },
     entryPlan
   )
   const lingeringPlan = grant
@@ -3920,19 +3960,19 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     )
 }
 
-function testProposalOperationKey(outcome: Outcome): string {
+function testProposalOperationKey(outcome: Outcome | EntryDiceDamageOutcome): string {
   return outcome.kind === 'HEAL'
     ? DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY
     : outcome.kind === 'TEMPORARY_HIT_POINTS'
       ? DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-      : outcome.kind === 'DAMAGE'
+      : outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
         ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
         : outcome.kind === 'SCALAR_REDUCTION'
           ? DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY
           : DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
 }
 
-function proposalNode(pathCode: string, outcome: Outcome) {
+function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome) {
   if (outcome.kind === 'STABILIZE')
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'DEPART')
@@ -4000,8 +4040,11 @@ function proposalNode(pathCode: string, outcome: Outcome) {
               }
             }
           : {
-              amount: { kind: 'LITERAL' as const, value: outcome.amount },
-              ...(outcome.kind === 'DAMAGE'
+              amount:
+                outcome.kind === 'ENTRY_DICE_DAMAGE'
+                  ? entryDiceDamageDice(outcome).subtotal
+                  : { kind: 'LITERAL' as const, value: outcome.amount },
+              ...(outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
                 ? {
                     damageTypeId: {
                       kind: 'LITERAL' as const,
@@ -4012,6 +4055,33 @@ function proposalNode(pathCode: string, outcome: Outcome) {
             })
     }
   }
+}
+
+/** The dice nodes of an entry dice damage outcome: asked for only when the test resolves to its path. */
+function entryDiceDamageDice(outcome: EntryDiceDamageOutcome) {
+  return rolledDiceNodes(boundedDiceTerm(outcome.diceConfig).term, ENTRY_DAMAGE_NODE_PREFIX, {
+    kind: 'NODE_OUTPUT',
+    nodeId: ENTRY_DAMAGE_ENABLED_NODE_ID,
+    port: 'authorized'
+  })
+}
+
+function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
+  return [
+    {
+      id: ENTRY_DAMAGE_ENABLED_NODE_ID,
+      operation: {
+        key: DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
+        contractVersion: 1
+      },
+      inputs: {
+        resultPath: { kind: 'NODE_OUTPUT' as const, nodeId: 'test', port: 'resultPath' },
+        authoredPath: { kind: 'LITERAL' as const, value: pathCode }
+      }
+    },
+    ...entryDiceDamageDice(outcome).nodes,
+    proposalNode(pathCode, outcome)
+  ]
 }
 
 function compileTestDefinition(
@@ -4025,8 +4095,10 @@ function compileTestDefinition(
     plan.kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
   const testOperation =
     plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const proposalNodes = [...plan.branches].map(([pathCode, outcome]) =>
-    proposalNode(pathCode, outcome)
+  const proposalNodes = [...plan.branches].flatMap(([pathCode, outcome]) =>
+    outcome.kind === 'ENTRY_DICE_DAMAGE'
+      ? entryDiceDamageNodes(pathCode, outcome)
+      : [proposalNode(pathCode, outcome)]
   )
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -4366,32 +4438,14 @@ function isCriticalHitDamage(
   )
 }
 
-function diceGraphDefinition(input: {
-  action: Dnd5eCompiledEffectActionSource
-  entry: CompiledEffectGroup['entries'][number]
-  diceConfig: string
-  /** Roll the dice twice for a critical hit; the modifier is still added once. */
-  critical?: boolean
-  modifierFactKey?: string
-  nodePrefix?: string
-  recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
-}): RuleGraphDefinition {
-  if (
-    !('outcome' in input.entry) ||
-    (input.entry.outcome.effectKind !== 'DAMAGE' &&
-      input.entry.outcome.effectKind !== 'HEAL' &&
-      input.entry.outcome.effectKind !== 'SCALAR_REDUCTION')
-  )
-    unsupported('Only direct D&D dice outcomes are currently specialized.')
-  const outcome = input.entry.outcome
-  const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
-  if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
-  const damageTypeId =
-    outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
-  const parsed = parseBoundedDiceConfiguration(input.diceConfig)
+type BoundedDiceTerm = ReturnType<typeof parseBoundedDiceConfiguration>['terms'][number]
+
+/** The one exact dice term a graph can roll, doubled for a critical hit, with the flat modifier it carries. */
+function boundedDiceTerm(diceConfig: string, critical?: boolean) {
+  const parsed = parseBoundedDiceConfiguration(diceConfig)
   const authoredTerm = parsed.terms[0]
   if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  const term = input.critical ? { ...authoredTerm, count: authoredTerm.count * 2 } : authoredTerm
+  const term = critical ? { ...authoredTerm, count: authoredTerm.count * 2 } : authoredTerm
   if (
     term.reroll ||
     term.selection ||
@@ -4401,15 +4455,30 @@ function diceGraphDefinition(input: {
     term.die > 1000
   )
     unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  const prefix = input.nodePrefix ?? ''
+  return { modifier: parsed.modifier, term }
+}
+
+/**
+ * One evidence node per die plus the running sums, and the output that holds the rolled subtotal.
+ * With `enabled` the dice ask for no request (and settle at 1) unless that output is true.
+ */
+function rolledDiceNodes(
+  term: BoundedDiceTerm,
+  prefix: string,
+  enabled?: { kind: 'NODE_OUTPUT'; nodeId: string; port: string }
+) {
   const dieNodeId = (index: number) => `${prefix}die-${index + 1}`
   const sumNodeId = (index: number) => `${prefix}sum-${index + 1}`
   const diceNodes = Array.from({ length: term.count }, (_, index) => ({
     id: dieNodeId(index),
-    operation: { key: 'evidence.integer-range', contractVersion: 1 },
+    operation: {
+      key: enabled ? 'evidence.optional-integer-range' : 'evidence.integer-range',
+      contractVersion: 1
+    },
     inputs: {
       min: { kind: 'LITERAL' as const, value: 1 },
-      max: { kind: 'LITERAL' as const, value: term.die }
+      max: { kind: 'LITERAL' as const, value: term.die },
+      ...(enabled ? { enabled } : {})
     }
   }))
   const sumNodes = Array.from({ length: Math.max(0, term.count - 1) }, (_, index) => ({
@@ -4438,7 +4507,7 @@ function diceGraphDefinition(input: {
       }
     }
   }))
-  const rolledSubtotal =
+  const subtotal =
     term.count === 1
       ? { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(0), port: 'value' }
       : {
@@ -4446,10 +4515,38 @@ function diceGraphDefinition(input: {
           nodeId: sumNodeId(term.count - 2),
           port: 'value'
         }
+  return { nodes: [...diceNodes, ...sumNodes], subtotal }
+}
+
+function diceGraphDefinition(input: {
+  action: Dnd5eCompiledEffectActionSource
+  entry: CompiledEffectGroup['entries'][number]
+  diceConfig: string
+  /** Roll the dice twice for a critical hit; the modifier is still added once. */
+  critical?: boolean
+  modifierFactKey?: string
+  nodePrefix?: string
+  recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
+}): RuleGraphDefinition {
+  if (
+    !('outcome' in input.entry) ||
+    (input.entry.outcome.effectKind !== 'DAMAGE' &&
+      input.entry.outcome.effectKind !== 'HEAL' &&
+      input.entry.outcome.effectKind !== 'SCALAR_REDUCTION')
+  )
+    unsupported('Only direct D&D dice outcomes are currently specialized.')
+  const outcome = input.entry.outcome
+  const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
+  if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
+  const damageTypeId =
+    outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
+  const prefix = input.nodePrefix ?? ''
+  const { modifier: authoredModifier, term } = boundedDiceTerm(input.diceConfig, input.critical)
+  const { nodes: rolledNodes, subtotal: rolledSubtotal } = rolledDiceNodes(term, prefix)
   const modifier = input.modifierFactKey
     ? { kind: 'FACT' as const, factKey: input.modifierFactKey }
-    : { kind: 'LITERAL' as const, value: parsed.modifier }
-  const needsTotal = input.modifierFactKey !== undefined || parsed.modifier !== 0
+    : { kind: 'LITERAL' as const, value: authoredModifier }
+  const needsTotal = input.modifierFactKey !== undefined || authoredModifier !== 0
   const totalNodeId = `${prefix}${outcome.effectKind === 'DAMAGE' ? 'damage' : scalar ? 'scalar' : 'heal'}-total`
   const totalNode = !needsTotal
     ? []
@@ -4511,8 +4608,7 @@ function diceGraphDefinition(input: {
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      ...diceNodes,
-      ...sumNodes,
+      ...rolledNodes,
       ...totalNode,
       ...multiplierNode,
       {
@@ -5684,6 +5780,68 @@ function hitPointStateIsValid(input: {
   )
 }
 
+/**
+ * The dice a zone's entry graph rolls for its damage: the enabling node follows the test result, and
+ * each die either carries the one answered request (the path was authored) or settles at its minimum.
+ */
+function requireEntryDamageTraces(input: {
+  traces: Parameters<
+    CharacterRuleActionSystemAdapter['interpret']
+  >[0]['execution']['evidence']['trace']
+  published: ServerPublishedRuleDefinitionDto
+  occurrenceId: string
+  resultPath: string
+}): void {
+  const { traces, published, occurrenceId, resultPath } = input
+  if (traces.length === 0) return
+  const invalid = () =>
+    new Dnd5eEffectActionCompilerError('The committed D&D zone damage dice topology is invalid.')
+  const nodeIds = published.definition.nodes.map((node) => node.id)
+  const enabledTrace = traces.find((trace) => trace.nodeId === ENTRY_DAMAGE_ENABLED_NODE_ID)
+  const enabledNode = published.definition.nodes.find(
+    (node) => node.id === ENTRY_DAMAGE_ENABLED_NODE_ID
+  )
+  const authoredPath = enabledNode?.inputs.authoredPath
+  if (
+    !enabledTrace ||
+    enabledNode?.operation.key !== DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY ||
+    enabledTrace.operation.key !== enabledNode.operation.key ||
+    authoredPath?.kind !== 'LITERAL' ||
+    typeof authoredPath.value !== 'string' ||
+    !isSpecializedPath(authoredPath.value) ||
+    !isSpecializedPath(resultPath) ||
+    enabledTrace.inputs.resultPath !== resultPath ||
+    enabledTrace.inputs.authoredPath !== authoredPath.value ||
+    enabledTrace.outputs.authorized !==
+      dnd5eMovementInterruptionAuthorizationOperation.execute({
+        resultPath,
+        authoredPath: authoredPath.value
+      }).authorized
+  )
+    throw invalid()
+  for (const trace of traces) {
+    if (trace.operation.key !== 'evidence.optional-integer-range') continue
+    const { min, max, enabled } = trace.inputs
+    const value = trace.outputs.value
+    const answered = trace.evidence
+    if (
+      enabled !== enabledTrace.outputs.authorized ||
+      typeof min !== 'number' ||
+      typeof max !== 'number' ||
+      typeof value !== 'number' ||
+      (enabled === true
+        ? answered?.kind !== 'INTEGER_RANGE' ||
+          answered.value !== value ||
+          answered.requestId !==
+            `${occurrenceId}:${nodeIds.indexOf(trace.nodeId)}:${trace.nodeId}` ||
+          value < min ||
+          value > max
+        : answered !== undefined || value !== min)
+    )
+      throw invalid()
+  }
+}
+
 function testApplications(
   input: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0],
   replacementPath?: 'ON_SAVE_SUCCESS'
@@ -5790,7 +5948,12 @@ function testApplications(
         'The committed D&D test movement interruption topology is invalid.'
       )
   }
-  const proposalTraces = remainingTraces.filter((trace) => trace.nodeId !== 'movement-interruption')
+  const entryDamageTraces = remainingTraces.filter((trace) =>
+    trace.nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX)
+  )
+  const proposalTraces = remainingTraces.filter(
+    (trace) => trace.nodeId !== 'movement-interruption' && !entryDamageTraces.includes(trace)
+  )
   const naturalD20 = testTrace.outputs.naturalD20
   const modifier = testTrace.inputs.modifier
   const threshold = testTrace.inputs.threshold
@@ -5859,6 +6022,12 @@ function testApplications(
       : attack && resultPath === 'ON_CRIT'
         ? ['ON_HIT', 'ON_CRIT']
         : [resultPath]
+  requireEntryDamageTraces({
+    traces: entryDamageTraces,
+    published,
+    occurrenceId: input.occurrenceId,
+    resultPath
+  })
   const directOperationByTestOperation = new Map<string, string>([
     [DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY, DND5E_HEAL_PROPOSAL_OPERATION_KEY],
     [
@@ -5912,6 +6081,19 @@ function testApplications(
       if (
         expected !== undefined &&
         (proposal.inputs[port] !== expected || proposal.outputs[port] !== expected)
+      )
+        throw new Dnd5eEffectActionCompilerError(
+          'The committed D&D test proposal payload is invalid.'
+        )
+    }
+    // An amount rolled by the graph's own dice is the traced output it is bound to.
+    const amountBinding = publishedNode.inputs.amount
+    if (amountBinding?.kind === 'NODE_OUTPUT') {
+      const source = entryDamageTraces.find((trace) => trace.nodeId === amountBinding.nodeId)
+      if (
+        !source ||
+        proposal.inputs.amount !== source.outputs[amountBinding.port] ||
+        proposal.outputs.amount !== proposal.inputs.amount
       )
         throw new Dnd5eEffectActionCompilerError(
           'The committed D&D test proposal payload is invalid.'
