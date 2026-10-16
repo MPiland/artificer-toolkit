@@ -15,7 +15,13 @@ import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { OPTIONAL_SMITE_FEATURE_ID, optionalSmite } from '../testing/optionalSmite.js'
-import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from './dnd5eSrdCharacter.js'
+import {
+  SRD,
+  evaluateSrdCharacter,
+  itemAction,
+  srdByLabel,
+  type SrdCharacter
+} from './dnd5eSrdCharacter.js'
 
 export const SMITE_TARGET_ID = testUuid(0xc2)
 export const SMITE_OCCURRENCE_ID = testUuid(0xc3)
@@ -54,12 +60,15 @@ export function smiteRuntime() {
   })
 }
 
-/** The weapon attack prepared as the Sheet would offer it, before any rider is chosen. */
+/**
+ * The weapon attack prepared as the Sheet would offer it, before any rider is chosen. The wielder is
+ * the Fighter with the homebrew smite unless another Character is given.
+ */
 export function smiterWeaponAttack(
   weaponLabel: string,
-  action: Parameters<typeof itemAction>[2]
+  action: Parameters<typeof itemAction>[2],
+  character: SrdCharacter = smiter(weaponLabel)
 ) {
-  const character = smiter(weaponLabel)
   const { candidate, decision } = itemAction(character, weaponLabel, action)
   const descriptors = discoverCharacterActionCapabilities({
     gameSystemId: SRD_SYSTEM_ID,
@@ -103,13 +112,16 @@ export function smiterWeaponAttack(
 /** The attack's binding against the target (Armor Class 11), the attacker's rider choice not yet made. */
 export function smiteTargetBinding(
   actionMechanic: ReturnType<typeof smiterWeaponAttack>['actionMechanic'],
-  options: { resistantTo?: string } = {}
+  options: { resistantTo?: string; creatureTypeId?: string } = {}
 ) {
   return {
     actionMechanic,
     sourceDerivedFacts: {},
     targetActorId: SMITE_TARGET_ID,
-    targetDerivedFacts: { statBlock: { armorClass: 11 } },
+    targetDerivedFacts: {
+      statBlock: { armorClass: 11 },
+      ...(options.creatureTypeId ? { creatureTypeId: options.creatureTypeId } : {})
+    },
     targetConditionIds: [],
     currentHitPoints: 59,
     temporaryHitPoints: 0,
