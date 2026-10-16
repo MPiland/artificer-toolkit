@@ -1,10 +1,15 @@
 import { z, lazySchema } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
-import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
+import {
+  type ActiveRuleEffectRecord,
+  activeRuleEffectRecordSchema
+} from '../projections/activeRuleEffectPersistence.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
+  type EncounterConcealmentCheckPendingContextDto,
   encounterBasicActionCheckPendingContextDtoSchema,
+  encounterConcealmentCheckPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
 } from '../shared/ruleExecutionDirectActionPendingContexts.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
@@ -30,14 +35,39 @@ const basicActionScope = lazySchema(() =>
   })
 )
 
-/** A settled basic action check: the frozen check, its stored result and the app roll it used. */
-const basicActionCheckSettlementSchema = lazySchema(() =>
+/** A settled stabilizing check (First Aid): the frozen check, its stored result and the app roll it used. */
+const stabilizeCheckSettlementSchema = lazySchema(() =>
   z.strictObject({
     context: encounterBasicActionCheckPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
     /** The recorded app roll the d20 settled with, whose card exists; null for an entered or auto-rolled die. */
     appRollId: z.nullable(postgresUuidSchema)
   })
+)
+
+/**
+ * A settled concealment check (Hide, Search): the frozen check, its stored result, the app roll it
+ * used and the concealment a successful Hide stores on its roller.
+ */
+export type ConcealmentCheckSettlement = {
+  context: EncounterConcealmentCheckPendingContextDto
+  execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
+  appRollId: z.infer<typeof postgresUuidSchema> | null
+  createdEffect: ActiveRuleEffectRecord | null
+}
+
+// Explicitly typed so the commit inputs stay within the compiler's declaration size limit (TS7056).
+const concealmentCheckSettlementSchema: z.ZodMiniType<ConcealmentCheckSettlement> = lazySchema(() =>
+  z.strictObject({
+    context: encounterConcealmentCheckPendingContextDtoSchema,
+    execution: storedRuleExecutionResultDtoSchema,
+    appRollId: z.nullable(postgresUuidSchema),
+    createdEffect: z.nullable(activeRuleEffectRecordSchema)
+  })
+)
+
+const basicActionCheckSettlementSchema = lazySchema(() =>
+  z.union([stabilizeCheckSettlementSchema, concealmentCheckSettlementSchema])
 )
 
 /**
@@ -161,6 +191,7 @@ export type LiveSessionEncounterEndHeldGrantCommitInput = z.infer<
 export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
   typeof liveSessionEncounterEscapeResponseCommitInputSchema
 >
+export type StabilizeCheckSettlement = z.infer<typeof stabilizeCheckSettlementSchema>
 export type LiveSessionEncounterBasicActionCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionCommitInputSchema
 >

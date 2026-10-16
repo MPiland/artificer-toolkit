@@ -198,6 +198,8 @@ export type CompiledEffectOutcome =
   | PlantPortalAuthored
   | TreeStrideAuthored
   | ActorRelationshipAuthored
+  | import('#authored').ConcealFromObserversAuthored
+  | import('#authored').DetectConcealedAuthored
   | ClosedRuleAuthored
   | import('#authored').TeleportAuthored
   | import('#authored').ManualAdjudicationAuthored
@@ -308,6 +310,8 @@ function compileOutcomePayload(
     case EFFECT_KIND.PLANT_PORTAL:
     case EFFECT_KIND.TREE_STRIDE:
     case EFFECT_KIND.ACTOR_RELATIONSHIP:
+    case EFFECT_KIND.CONCEAL_FROM_OBSERVERS:
+    case EFFECT_KIND.DETECT_CONCEALED:
     case EFFECT_KIND.CLOSED_RULE:
     case EFFECT_KIND.MANUAL_ADJUDICATION:
       return [outcome]

@@ -249,6 +249,17 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder's location is unknown to the observers its lifecycle lists. The Stealth total is
+ * frozen here; the observer set is the mutable part and lives in `concealedFromActorIds`.
+ */
+const activeRuleEffectLocationConcealmentContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('LOCATION_CONCEALMENT'),
+    concealmentTotal: z.number().check(z.int())
+  })
+)
+
+/**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
  */
@@ -267,7 +278,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectScalarReductionContributionDtoSchema,
               activeRuleEffectConditionContributionDtoSchema,
               activeRuleEffectActorRelationshipContributionDtoSchema,
-              activeRuleEffectModifierGrantContributionDtoSchema
+              activeRuleEffectModifierGrantContributionDtoSchema,
+              activeRuleEffectLocationConcealmentContributionDtoSchema
             ])
           )
           .check(z.minLength(1))
@@ -376,6 +388,21 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
       z.superRefine((state, context) => {
         const configuredExpiration = state.definition.recurrence.expiration
         const remainingTicks = state.lifecycle.remainingTicks
+        if (
+          state.lifecycle.concealedFromActorIds !== undefined &&
+          !(
+            state.definition.schemaVersion === 2 &&
+            state.definition.stateContributions.some(
+              (contribution) => contribution.kind === 'LOCATION_CONCEALMENT'
+            )
+          )
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['lifecycle', 'concealedFromActorIds'],
+            message: 'Only a location concealment lists the observers it is concealed from.'
+          })
+        }
         if (
           (configuredExpiration.kind === 'INDEFINITE' && remainingTicks !== null) ||
           (configuredExpiration.kind === 'TICKS' &&

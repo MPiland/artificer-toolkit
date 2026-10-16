@@ -28,7 +28,7 @@ concurrency:
 env:
   # The one machine-readable source of the image digest: the digest the local phase82-convex-local-linux
   # container runs (apps/apis/README.md points here).
-  CONVEX_BACKEND_IMAGE: ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8
+  CONVEX_BACKEND_IMAGE: ghcr.io/convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8
 
 jobs:
   live-backend:
@@ -68,7 +68,7 @@ jobs:
           if [ -n "$STEPS" ]; then args+=(--steps="$STEPS"); fi
           node scripts/liveBackendValidation.mjs "${args[@]}"
       - name: Generated files match the commit
-        run: git diff --exit-code -- apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated
+        run: node scripts/generatedDrift.mjs apps/apis/convex/content/srdManifest.generated.ts apps/apis/convex/_generated apps/apis/convex/betterAuth/_generated
       - name: Step durations
         if: always()
         run: |

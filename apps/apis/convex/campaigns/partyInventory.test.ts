@@ -501,7 +501,7 @@ describe('native Campaign party inventory', () => {
       await gm.caller.query(audit, { campaignId: campaign.id, limit: 20 })
     )
     expect(inventoryHistory.events[0]?.payload).toMatchObject({
-      itemLabel: '**** Club'
+      itemLabel: '****ing Club'
     })
     const ownerHistory = decodeCampaignEventPage(
       await gm.caller.query(events, {
@@ -512,7 +512,7 @@ describe('native Campaign party inventory', () => {
     expect(ownerHistory.events.map((event) => event.id)).toContain(result.eventId)
     expect(ownerHistory.events.find((event) => event.id === result.eventId)?.payload).toMatchObject(
       {
-        itemLabel: '**** Club'
+        itemLabel: '****ing Club'
       }
     )
     expect(JSON.stringify(ownerHistory)).not.toMatch(

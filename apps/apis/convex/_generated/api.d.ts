@@ -29205,7 +29205,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -38951,7 +38953,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -48706,7 +48710,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -58452,7 +58458,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -68233,7 +68241,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -77979,7 +77989,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -87642,7 +87654,9 @@ export declare const api: {
                                   skillIds: Array<string>;
                                 };
                                 kind: "CONTEST";
-                              };
+                              }
+                            | { kind: "PASSIVE"; passiveDefinitionId: string }
+                            | { kind: "CONCEALMENT" };
                         };
                         kind?: "ACTION";
                         range:
@@ -97343,7 +97357,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -107089,7 +107105,9 @@ export declare const api: {
                                     skillIds: Array<string>;
                                   };
                                   kind: "CONTEST";
-                                };
+                                }
+                              | { kind: "PASSIVE"; passiveDefinitionId: string }
+                              | { kind: "CONCEALMENT" };
                           };
                           kind?: "ACTION";
                           range:
@@ -111400,6 +111418,7 @@ export declare const api: {
               id: string;
               label: string;
               short?: string | null;
+              skillDefinitionId: string | null;
             }>;
             rarities: Array<{
               code: string;
@@ -113683,7 +113702,7 @@ export declare const api: {
                   | {
                       actionLabel: string;
                       checkLabel: string;
-                      dc: number;
+                      dc: number | null;
                       kind: "BASIC_ACTION_CHECK";
                     };
               }
@@ -113972,7 +113991,7 @@ export declare const api: {
                     | {
                         actionLabel: string;
                         checkLabel: string;
-                        dc: number;
+                        dc: number | null;
                         kind: "BASIC_ACTION_CHECK";
                       };
                 }
@@ -114787,7 +114806,7 @@ export declare const api: {
               | {
                   actionLabel: string;
                   checkLabel: string;
-                  dc: number;
+                  dc: number | null;
                   kind: "BASIC_ACTION_CHECK";
                 };
           }
@@ -115584,7 +115603,7 @@ export declare const api: {
                   | {
                       actionLabel: string;
                       checkLabel: string;
-                      dc: number;
+                      dc: number | null;
                       kind: "BASIC_ACTION_CHECK";
                     };
               }

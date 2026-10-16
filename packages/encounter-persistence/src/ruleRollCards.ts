@@ -15,6 +15,14 @@ type RuleRollRoller = Pick<
 >
 
 /**
+ * `roller` as its card is routed when the roll must stay secret: the GM's and the roller's
+ * controller's alone (D62), whoever the roller is and whatever the GM's roll preference.
+ */
+export function asHiddenRoller<Roller extends RuleRollRoller>(roller: Roller): Roller {
+  return { ...roller, public: false }
+}
+
+/**
  * `roller` as its card is routed when the roll's caster perceives it or not. A creature an area's
  * caster cannot perceive rolls as a hidden one does (D62): its card is the GM's alone and never
  * reaches a table that includes the caster.
@@ -23,7 +31,7 @@ export function rollerAsPerceivedByCaster<Roller extends RuleRollRoller>(
   roller: Roller,
   perceivedByCaster: boolean
 ): Roller {
-  return perceivedByCaster ? roller : { ...roller, public: false }
+  return perceivedByCaster ? roller : asHiddenRoller(roller)
 }
 
 /**

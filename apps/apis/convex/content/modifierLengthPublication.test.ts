@@ -106,9 +106,7 @@ describe('native Spell publication of speed modifier lengths (RELIABILITY-5.1)',
       },
       { payload: { valueKind: 'FIXED', amount: 10 }, message: unitRefusal }
     ])
-      await expect
-        .soft(saveAndPublish(payload), JSON.stringify(payload))
-        .rejects.toThrow(message)
+      await expect.soft(saveAndPublish(payload), JSON.stringify(payload)).rejects.toThrow(message)
 
     await saveAndPublish({ amount: 30, unit: 'FEET' })
     const detail = await first.caller.query(api.content.exports.get, {

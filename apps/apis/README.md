@@ -651,13 +651,16 @@ operations, not public authoring endpoints. Verify public denial with
 `yarn tsx --env-file=apps/apis/.env.local apps/apis/tests/developmentSourceImport.ts` from the root.
 
 The importer validates existing domain schemas, UUIDs, metadata, and checksums before writing.
-Batches are packed to a CPU cost budget (25 per record plus 1 per KiB of UTF-8 input, budget 100;
-`importBatches.ts`), every Class gets a batch alone, and a batch commits atomically. A larger
+Batches are packed to a CPU cost budget (25 per record plus 1 per KiB of UTF-8 input, budget 100,
+so at most 3 records; `importBatches.ts`), every Class gets a batch alone, and a batch commits atomically. A larger
 individual document remains whole. Ten Class records were about 1.27 MB and exceeded the hosted
 mutation CPU limit, and a count-and-size bound still let a loaded host push `importSubjects` past
 1 s (PLATFORM-5.T1: [measurements](../../docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md)),
 so batches are budgeted by measured cost without reducing domain validation or checksum checks. Exact repeats reuse content and may backfill
-missing server-derived Equipment option facts after verifying the unchanged root and version.
+missing server-derived Equipment option facts after verifying the unchanged root and version. A
+replayed subject is compared with the stored root, version and document, and is never canonicalized
+for storage (PLATFORM-5.T2: dropping the stored-document comparison did not lower reseed
+time, so it stays).
 Different stored content or existing option facts are an error, never an overwrite. Interrupted provisioning resumes by rerunning the
 seed. Complete read-back audit is required before the import is accepted.
 
@@ -1056,12 +1059,12 @@ this with manually copied native binaries or a platform-specific image-processin
 
 The Windows local executor failed with `EPERM` while creating a directory symbolic link for external
 dependencies, before any Sharp handler ran. Local verification can use the
-[official self-hosted Linux Docker backend](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md)
+[official self-hosted Linux Docker backend](https://github.com/convex/convex-backend/blob/main/self-hosted/README.md)
 with a pinned image digest, separate persistent volume, loopback-only ports and explicit CLI URL/admin
 key arguments. This requires no OS permission or SDK change. The current isolated backend is
 `phase82-convex-local-linux` at `127.0.0.1:3210` / `127.0.0.1:3211` (instance `phase82-local-linux`,
 volume `phase82-convex-local-linux-data`, image
-`ghcr.io/get-convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
+`ghcr.io/convex/convex-backend@sha256:69885bae73766f625404a5425b22702341e89b43002f1d700864f8364be0d1f8`).
 `scripts/liveBackendValidation.mjs` runs manifest, codegen, deploy, seed and audit against this
 container locally and against an ephemeral container of the same image in CI
 (`.github/workflows/live-backend.yml`, whose `CONVEX_BACKEND_IMAGE` env is the single machine-readable

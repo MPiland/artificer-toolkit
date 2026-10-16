@@ -288,7 +288,8 @@ describe('a caster outside the Run ends a carried Concentration (SPELLS-5.11, Q1
             concentrationCasterCharacterId: stamped ? CASTER_ID : null
           },
           definition:
-            grant?.definition ?? dependentEffectDefinition({ encounterId, sourceActorId: HOLDER_ID }),
+            grant?.definition ??
+            dependentEffectDefinition({ encounterId, sourceActorId: HOLDER_ID }),
           occurredAt
         })
       }

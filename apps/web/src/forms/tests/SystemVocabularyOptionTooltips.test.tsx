@@ -22,7 +22,9 @@ describe('System vocabulary option tooltips in the authoring form', () => {
 
     render(
       <TestRouterProvider>
-        <VocabularyHarness model={await resolveFixtureNodeRuntime({ mapId: 'speed', values: {} })} />
+        <VocabularyHarness
+          model={await resolveFixtureNodeRuntime({ mapId: 'speed', values: {} })}
+        />
       </TestRouterProvider>
     )
 

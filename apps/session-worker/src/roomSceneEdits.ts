@@ -6,6 +6,7 @@ import {
 import { planSceneFogPublication } from '@artificer-toolkit/encounter-persistence/sceneFogPublication'
 import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { LiveSessionCommandRejectionCodeDto } from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
 import {
   sceneFogCommandResultSchema,
@@ -56,6 +57,7 @@ export interface RoomSceneEdit {
 /** One Scene edit the room commits inside its journaled transaction, on the uncomposed Scene. */
 export type RoomSceneEditWork = (base: {
   transaction: RoomTransaction
+  authorization: LiveSessionRoomAuthorization
   scene: CampaignSceneStateDto
   presentation: LiveSessionScenePublicationDto['presentation']
 }) => RoomSceneEdit | Promise<RoomSceneEdit>

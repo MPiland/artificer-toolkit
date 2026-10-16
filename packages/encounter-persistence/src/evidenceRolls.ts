@@ -25,7 +25,8 @@ import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { readAreaTargetPerceivedByCaster } from './actionAreaPending.js'
-import { recordRuleRollCard, rollerAsPerceivedByCaster } from './ruleRollCards.js'
+import { readPendingSnapshot } from './pendingSnapshots.js'
+import { asHiddenRoller, recordRuleRollCard, rollerAsPerceivedByCaster } from './ruleRollCards.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type {
@@ -90,6 +91,17 @@ function pendingEvidenceRequests(pending: PendingEncounterRuleOccurrenceSummaryD
         }
       ]
     : []
+}
+
+/** Whether the pending occurrence is a concealment check (Hide, Search), whose roll no table sees. */
+async function isConcealmentCheck(ctx: EncounterReadTransaction, occurrenceId: string) {
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
+    .unique()
+  const snapshot =
+    occurrence?.state === 'PENDING' ? await readPendingSnapshot(ctx, occurrence) : null
+  return snapshot?.applicationContext.kind === 'ENCOUNTER_CONCEALMENT_CHECK'
 }
 
 /**
@@ -261,10 +273,12 @@ export async function rollEncounterRuleEvidence(
       encounterId: run.id,
       roller:
         roller &&
-        rollerAsPerceivedByCaster(
-          roller,
-          await readAreaTargetPerceivedByCaster(ctx, input.occurrenceId, roller.id)
-        ),
+        ((await isConcealmentCheck(ctx, input.occurrenceId))
+          ? asHiddenRoller(roller)
+          : rollerAsPerceivedByCaster(
+              roller,
+              await readAreaTargetPerceivedByCaster(ctx, input.occurrenceId, roller.id)
+            )),
       initiatorUserId: userId,
       visibility: input.visibility,
       clientNonce: input.commandId,

@@ -117,12 +117,15 @@ export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
       successes: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2)),
       failures: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))
     }),
-    /** The check a basic action asks its helper to make, such as First Aid's Wisdom (Medicine). */
+    /**
+     * The check a basic action asks its roller to make, such as First Aid's Wisdom (Medicine).
+     * `dc` is null for a check against hidden per-observer scores, such as Hide.
+     */
     z.strictObject({
       kind: z.literal('BASIC_ACTION_CHECK'),
       actionLabel: triggerLabelSchema,
       checkLabel: triggerLabelSchema,
-      dc: z.number().check(z.int()).check(z.positive())
+      dc: z.nullable(z.number().check(z.int()).check(z.positive()))
     })
   ])
 )
@@ -297,9 +300,15 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
         targetActorId: uuidSchema,
-        options: z.tuple([
-          z.strictObject({ optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)) })
-        ]),
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(8)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({

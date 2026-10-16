@@ -1,10 +1,4 @@
-import {
-  DataSet,
-  RegExpMatcher,
-  englishDataset,
-  englishRecommendedTransformers,
-  parseRawPattern
-} from 'obscenity'
+import { profanityMatcher } from '../moderation/profanityMatcher.js'
 
 export const USERNAME_NOT_ALLOWED_MESSAGE = "That username isn't allowed."
 
@@ -30,94 +24,6 @@ const moderationDigitSubstitutions: Record<string, string> = {
   '8': 'b',
   '9': 'g'
 }
-
-// Q22 tiers. Short ambiguous terms are refused only as a whole part, so Cassandra, Dickens and
-// Cummings pass; the server also refuses them inside an unbroken compound (usernameServerPolicy).
-const wholePartPhrases = [
-  { term: 'ass', patterns: ['|ass|'] },
-  { term: 'assman', patterns: ['|assman|'] },
-  { term: 'dick', patterns: ['|dick|', '|dicks|', '|dck|'] },
-  { term: 'cum', patterns: ['|cum|', '|cums|'] },
-  // The transformers collapse repeated letters, so `titty` is matched as `tity`.
-  { term: 'tit', patterns: ['|tit|', '|tits|', '|tity', '|titie'] }
-]
-// Dictionary words built on a whole-part term. The server compound check exempts dictionary words.
-const profaneCompounds = [
-  'asshole',
-  'asshat',
-  'asswipe',
-  'assclown',
-  'dumbass',
-  'jackass',
-  'smartass',
-  'fatass',
-  'dickhead',
-  'dickwad',
-  'dickface',
-  'dickweed',
-  'cumshot',
-  'cumslut',
-  'cumdump',
-  'shithead'
-]
-// Known false positives of the matcher.
-export const allowedUsernameTerms = [
-  'penistone',
-  'fukushima',
-  'fukuoka',
-  'fukui',
-  'cockpit',
-  'dickson',
-  'dickinson',
-  'hitchcock',
-  'middlesex',
-  'shuttlecock',
-  'annalise',
-  'analise',
-  'shital',
-  'shittu',
-  'shiitake',
-  'titus',
-  'dickerson',
-  'pettit',
-  'cockburn',
-  'bluetit'
-]
-
-// Terms the matcher anchors to a word boundary on at least one side only match at a part edge. The
-// server compound check looks for them inside an unbroken part, so the set comes from the same dataset.
-const englishAnchoredTerms: string[] = []
-const dataset = [
-  ...wholePartPhrases,
-  ...profaneCompounds.map((term) => ({ term, patterns: [term] }))
-].reduce(
-  (set, { term, patterns }) =>
-    set.addPhrase((phrase) =>
-      patterns
-        .reduce((builder, raw) => builder.addPattern(parseRawPattern(raw)), phrase)
-        .setMetadata({ originalWord: term })
-    ),
-  new DataSet<{ originalWord: string }>()
-    .addAll(englishDataset)
-    .removePhrasesIf(({ metadata, patterns }) => {
-      const term = metadata?.originalWord ?? ''
-      if (wholePartPhrases.some((replaced) => replaced.term === term)) return true
-      if (patterns.some((p) => p.requireWordBoundaryAtStart || p.requireWordBoundaryAtEnd)) {
-        englishAnchoredTerms.push(term)
-      }
-      return false
-    })
-)
-export const anchoredUsernameTerms = [
-  ...wholePartPhrases.map(({ term }) => term),
-  ...englishAnchoredTerms
-]
-const { blacklistedTerms, whitelistedTerms } = dataset.build()
-const matcher = new RegExpMatcher({
-  blacklistedTerms,
-  whitelistedTerms: [...(whitelistedTerms ?? []), ...allowedUsernameTerms],
-  ...englishRecommendedTransformers
-})
 
 const partBoundary = /_|(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/
 const letterDigitBoundary = /(?<=[A-Za-z])(?=[0-9])|(?<=[0-9])(?=[A-Za-z])/
@@ -169,7 +75,9 @@ export function validateUsername(username: string): { username: string; message:
   const isAllowed =
     isUsernameFormatValid(normalizedUsername) &&
     !reservedUsernames.has(normalizedUsername.toLowerCase()) &&
-    !usernameModerationCandidates(normalizedUsername).some((text) => matcher.hasMatch(text))
+    !usernameModerationCandidates(normalizedUsername).some((text) =>
+      profanityMatcher.hasMatch(text)
+    )
 
   return {
     username: normalizedUsername,

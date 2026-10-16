@@ -390,9 +390,15 @@ bypass and the doubled cost apply only to zones the mover can see (`isVisibleHal
 `spatialState.revealed`), so a hidden zone triggers whatever `carefully` says. The tabletop
 learns which fields offer the choice from `halfSpeedFields` on the Encounter session state (visible, scene-absolute
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
-preview offers "Move carefully" and "Move normally" before sending. Not yet: undo of a healing action restores the
-ended grant, healing outside Encounter mechanics batches (Sheet) ends the grant, and hidden or unnoticed zones
-(MOVE-3.3 to 3.5).
+preview offers "Move carefully" and "Move normally" before sending. Every path that raises a holder's hit points ends its
+`ON_HIT_POINTS_REGAINED` grants through one helper, `endGrantsOnHitPointsRegained` (`consumedGrantPersistence.ts`): the
+Encounter mechanics batch (a heal, or a death save's natural 20, keyed on the target's hit points rising),
+a Character's Sheet command that raises hit points (Convex `executeCharacterSheetCommand` and the room's Sheet command path), and
+a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an action or area command hands the ended
+records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
+save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
+receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
+and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
@@ -443,13 +449,15 @@ Order on one attack: TEST, then the reaction choice (`ON_HIT`/`ON_CRIT` only), t
 meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE_FAIL` and a TEST has
 either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
 A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
-grant (D99) all drop the offer through the same discovery as an action. Only the first eligible reaction
-is offered, only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
+grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
+as a menu (a Character has one reaction a round, so one choice), only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
 shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
-(`offeredDecisionOptionIds`) and refuses one it does not as stale; the pending summary and Decision drawer still
-show only the first reaction (transport contract and UI widening belong to the SPELL_CAST chain, REACTION-4.T3). The reaction's effect id is derived from the command and occurrence ids
-(`nativeReactionEffectId`), so replaying the answer mints the same id. A reaction that needs rolls or does not
+(`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
+option was chosen (`chosenEncounterReaction`; a decline answers the innermost), and the Worker re-discovers
+that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary lists every offered option (`REACTION_CHOICE.options`, 1 to 8) and the Decision drawer shows a
+button for each; every pin names the same reactor. The reaction's effect id is derived from the command and occurrence ids
+(`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
@@ -463,11 +471,16 @@ a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense 
 re-evaluated binding hands that defense to the OUTCOME, so the damage is resisted before it applies. The TEST
 is unchanged (`defenseBefore === defenseAfter`), so "the reaction changed the attack" compares the binding's
 defenses as well as the bound facts. The follow-up benefit is an ordinary grant in the same effect (a melee
-`DAMAGE` bonus until the start of the caster's next turn). Limits: only the attack-hit path pauses (save-based
-and area damage do not offer it), a bonus grant applies to every melee hit while it lasts rather than the next
-one only, only the first eligible reaction is offered, and the resistance covers every damage type the
-reaction names rather than only the triggering one (binding the triggering type needs a trigger fact, which the
-SPELL_CAST chain, REACTION-4.T3, introduces).
+`DAMAGE` bonus until the end of the caster's next turn, scaled by the slot level the reaction was cast with).
+
+The resistance names the triggering damage type rather than a fixed one (`damageTypeSource: 'TRIGGER'` on a
+`DAMAGE_RESISTANCE` payload). Discovery returns the authored types the hit dealt (`triggerDamageTypeIds`), and
+`prepareEncounterActionEffectPlans` binds the resistance to each, so a hit of cold resists cold only, though the
+spell names fire and cold. An ON_CRIT type counts only on a critical hit (`attackHitDamageTypeIds`). A grant
+amount that scales by slot level (`SPELL_SLOT_LEVEL`: Absorb Elements' bonus per slot level, Aid) is fixed by the cast level when the compiler builds the effect plan (`modifierGrantEntryPlan`, from the entry point's `spellCastLevel`; a plan without a cast level stays manual). The follow-up
+bonus is consumed by the first attack roll (`ON_ATTACK_ROLL`). Limits: only the attack-hit path pauses
+(save-based and area damage do not offer it), and the follow-up is spent by any attack roll of its holder, not
+only a melee hit (see future enhancements).
 
 ### 0 hit points (D63, current)
 
@@ -534,6 +547,49 @@ saves, restores the consumed grants and keeps the roll on the record; it is refu
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
+Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
+options (ADR 0038); nothing in code names Hide.
+
+- **Authored shape.** Hide checks Dexterity (Stealth) against `dc: { kind: 'PASSIVE', passiveDefinitionId }` (the System passive,
+  for example Passive Perception, whose skill is the passive's authored `skillDefinitionId` in the System) and applies `CONCEAL_FROM_OBSERVERS
+  { observers: 'NON_ALLIES' }` for an `UNTIL_DISPELLED` duration that is consumed by `ON_ATTACK_ROLL`. Search checks Wisdom
+  (Perception) against `dc: { kind: 'CONCEALMENT' }` and applies `DETECT_CONCEALED`. Both compile to the existing check
+  pipeline with a `resolution` discriminant on `BASIC_ACTION_CHECK` (`CONCEAL` or `DETECT`); Escape keeps its own command.
+- **Per-observer DCs freeze at creation.** The pending check context holds each observer's passive score, or each concealment the
+  actor can search, so the settle needs no further loads and the player's pending read keeps `dc: null`.
+- **State.** The stored effect is a `schemaVersion 2` active rule effect whose immutable definition carries
+  `LOCATION_CONCEALMENT { concealmentTotal }`; the observers it still hides the holder from live in the mutable lifecycle
+  (`concealedFromActorIds`, sorted, unique). Search, the GM command and the movement prune change that set through
+  `updateLifecycleCas`. A set that would become empty ends the effect in that same write (`deleteCas`), whichever of Search, the
+  movement prune or the GM command emptied it, and the receipt (root `consumedGrants`, the prune entry, the observer receipt's
+  `endedEffect`) keeps the record so undo re-creates it exactly. A settled Hide replaces the roller's existing concealment the
+  same way: the old effect is deleted in the settlement and recorded in the root receipt, so undoing the Hide restores it.
+- **Ties go to the observer.** An observer notices when its score (passive, or Search total) is at least the Stealth total; the
+  hider is hidden from observers whose score is strictly lower. One rule for both (`encounterConcealment.ts`).
+- **Scene gating.** On a Scene an observer that really sees the hider has noticed it, so a Hide never freezes such an observer
+  into the set (`resolveEncounterObserversSeeing`, read by the Worker per observer on the action's locked Scene) and the Scene's
+  sight decides at attack time. Without a Scene (the neutral environment, where everyone sees everyone, D94) the GM decides the
+  circumstances: the persisted observer set is authoritative.
+- **Attacks.** Off a Scene, `resolveAttackSight` treats a subject as `UNSEEN` by an observer its concealment still hides it from,
+  whatever the observer's Senses (D100); on a Scene the Scene decides. The attack-roll caption and advantage follow the existing
+  unseen-attacker path. The believed
+  mode must not reveal which observers failed, so it treats the hider as hidden from any non-allied target while a concealment
+  exists; the true mode uses the set and may cancel it ("Advantage cancelled: the target can sense you"). The first attack
+  roll consumes the concealment for everyone (`consumableGrants`: modifier grants and concealments only, so the Invisibility
+  condition path is unchanged).
+- **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
+  timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.
+- **Movement prune.** Committing an Encounter-bound token move on a Scene drops from each concealment the observers that now
+  see the hider, when the hider's or an observer's token moved (`planConcealmentPrune` plans it from the predicted Scene and the
+  movement plan's targets; `applyConcealmentPrune` writes it through `updateLifecycleCas`). The dropped ids are recorded in the
+  room's `sceneConcealmentPrunes` evidence row keyed by the move command, and the GM's `UNDO_LAST_SCENE_MOVE` of that move
+  gives them back (`restoreConcealmentPrune`) to a concealment that still exists, and re-creates one the prune ended unless the holder has a newer concealment.
+  A standalone move (no Encounter version) cannot move a token bound to an active Run, so it has no prune. Automation MANUAL
+  plans no movement targets, so it prunes nothing; the GM command is the override there.
+- **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
+  receipt, undone by `REVERT_LAST_ACTION`). It is the override for lighting and other circumstances the engine does not
+  derive.
+
 ### Condition mechanics (D94, current)
 
 A System's condition-rule-state definition authors what a condition does as data, in its `mechanics`
@@ -567,7 +623,7 @@ speed mechanics before Dash. A condition contributor's derived-mode reason names
 generic for players when the holder is hidden.
 
 Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Prone, Petrified damage
+Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
@@ -926,7 +982,7 @@ batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's re
 kernel trace.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
-`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`) can spend the module's
+`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
 authored `activation` to try to break the hold (`findEncounterHolderEscape`). `prepareEncounterEscapeCheck`
 freezes the check for one allowed `skillIds` or `abilityDefinitionIds` entry: a Creature holder's total
 comes from its `checkTotals` or, for an ability check, its score through the shared `abilityModifier`

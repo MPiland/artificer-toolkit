@@ -19,7 +19,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
-import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -47,25 +47,10 @@ afterEach(() => {
 
 /** The helper Wolf, whose Wisdom (Medicine) total is +3. */
 function medicWolf() {
-  const wolf = srdCreatureActor({
-    id: WOLF_ID,
-    creature: biteWolf('ATTACK', { damage: 1, reachFeet: 5 })
-  })
-  if (typeof wolf.snapshot !== 'object' || wolf.snapshot === null || Array.isArray(wolf.snapshot))
-    throw new Error('The fixture Creature snapshot must be an object.')
-  const { ruleFacts } = wolf.snapshot
-  if (typeof ruleFacts !== 'object' || ruleFacts === null || Array.isArray(ruleFacts))
-    throw new Error('The fixture Creature carries rule facts.')
-  return {
-    ...wolf,
-    snapshot: {
-      ...wolf.snapshot,
-      ruleFacts: {
-        ...ruleFacts,
-        checkTotals: { [SRD_MEDICINE_SKILL_ID]: 3, [SRD_ABILITY_DEFINITION_IDS.STRENGTH]: 3 }
-      }
-    }
-  }
+  return withCheckTotals(
+    srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK', { damage: 1, reachFeet: 5 }) }),
+    { [SRD_MEDICINE_SKILL_ID]: 3, [SRD_ABILITY_DEFINITION_IDS.STRENGTH]: 3 }
+  )
 }
 
 /** The Wolf acts and gives First Aid to the Fighter, who is at the given hit points. */

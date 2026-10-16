@@ -25,6 +25,8 @@ import {
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
@@ -80,7 +82,7 @@ function unavailable(message: string): never {
 
 /**
  * GM-only exact undo of the Run's last committed RESOLVE_ACTION and its committed children, or of
- * its last basic action (ADR 0034 decision 2, D45). Every change is inverted from the before-states
+ * its last basic action or concealment-observer change (ADR 0034 decision 2, D45). Every change is inverted from the before-states
  * in its receipts; a later Encounter command, a later write to an affected Character, or a transition without a recorded
  * before-state refuses the undo instead of approximating it. Undoing an undo is not supported.
  */
@@ -156,6 +158,10 @@ export async function revertLastEncounterAction(
   if (root?.commandType === 'ESCAPE_RELATIONSHIP') {
     requireCheckAnswerScan(root.receipt.checkOccurrenceId)
     return revertEscape(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'SET_CONCEALMENT_OBSERVERS') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertConcealmentObservers(ctx, { ...scope, root })
   }
   if (root?.commandType !== 'RESOLVE_ACTION')
     unavailable(
@@ -522,7 +528,7 @@ export async function revertLastEncounterAction(
         (id) => id !== root.addedConcentrationCasterId
       )
     })
-  // The grants the action's rolls used up come back with their remaining count.
+  // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
   await restoreConsumedGrants(ctx, root.consumedGrants)
   // The zone an area action placed leaves the Scene with it.
   if (areaRoot?.placedSpatialEffectId)
@@ -563,7 +569,10 @@ type RevertScope = {
   input: RevertLastEncounterActionInputDto
   fingerprint: string
   userId: string
-  root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' | 'ESCAPE_RELATIONSHIP' }>
+  root: Extract<
+    StoredCommand,
+    { commandType: 'RESOLVE_ACTION' | 'ESCAPE_RELATIONSHIP' | 'SET_CONCEALMENT_OBSERVERS' }
+  >
 }
 
 /** Writes the restored actors, the next Run version and the undo's own timeline entry. */
@@ -649,13 +658,24 @@ async function revertCheckAction(
   // The Help the check used goes back to its holder.
   await restoreConsumedGrants(ctx, root.consumedGrants)
   const updatedAt = new Date().toISOString()
-  const stabilized = receipt.checkOccurrenceId
-    ? await readBasicActionCheckStabilize(ctx, {
+  const outputs = receipt.checkOccurrenceId
+    ? await readCheckReceiptOutputs(ctx, {
         state,
         root,
         occurrenceId: receipt.checkOccurrenceId
       })
     : null
+  if (outputs?.kind === 'CONCEALMENT_CHECK')
+    await revertConcealmentCheck(ctx, state, actors, outputs)
+  else if (outputs && outputs.kind !== 'BASIC_ACTION_CHECK')
+    throw new Error('Stored basic action check receipt is invalid.')
+  const stabilized =
+    outputs?.kind === 'BASIC_ACTION_CHECK' && outputs.targetTransition
+      ? {
+          targetCharacterId: outputs.targetCharacterId,
+          targetTransition: outputs.targetTransition
+        }
+      : null
   // The roll stays on the record; only the dying target's death saves come back.
   if (stabilized)
     await restoreCharacter(ctx, {
@@ -751,21 +771,106 @@ async function readCheckReceiptOutputs(
   return result.applicationOutputs
 }
 
-/** The stabilize a settled basic action check applied, if its roll reached the DC. */
-async function readBasicActionCheckStabilize(
+/**
+ * Undoes a settled concealment check: a Hide's concealment is deleted and a Search's found
+ * concealments get their observers back, each only while nothing touched the effect since.
+ */
+async function revertConcealmentCheck(
   ctx: EncounterCharacterWriteTransaction,
+  state: EncounterRunState,
+  actors: readonly EncounterRunActorState[],
+  outputs: Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CONCEALMENT_CHECK' }>
+) {
+  const { resolution } = outputs
+  if (resolution.kind === 'CONCEAL') {
+    const created = resolution.createdEffect
+    if (created) {
+      const store = createActiveRuleEffectStore(ctx)
+      const owner = concealmentHolderOwner(state, actors, created.targetActorId)
+      const effect = await store.findById(owner, created.activeEffectId)
+      if (!effect || effect.version !== created.afterVersion)
+        unavailable('The concealment changed after this action; adjust manually.')
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+    }
+    return
+  }
+  // A Search that emptied a concealment ended it; the action's receipt gave that record back.
+  for (const found of resolution.found.filter(
+    ({ afterObserverActorIds }) => afterObserverActorIds.length
+  ))
+    await restoreConcealmentObservers(ctx, state, actors, {
+      holderActorId: found.holderActorId,
+      activeEffectId: found.activeEffectId,
+      afterVersion: found.afterVersion,
+      observerActorIds: found.beforeObserverActorIds
+    })
+}
+
+/**
+ * Undoes the GM's observer change: the concealment gets its earlier observers back, only while
+ * nothing touched it since. A change that emptied the set ended the concealment, and undo gives
+ * the ended record back.
+ */
+async function revertConcealmentObservers(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & {
+    root: Extract<StoredCommand, { commandType: 'SET_CONCEALMENT_OBSERVERS' }>
+  }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { receipt } = root
+  const actors = await readRunActors(ctx, state)
+  if (receipt.endedEffect) await restoreConsumedGrants(ctx, [receipt.endedEffect])
+  else
+    await restoreConcealmentObservers(ctx, state, actors, {
+      holderActorId: receipt.holderActorId,
+      activeEffectId: receipt.activeEffectId,
+      afterVersion: receipt.afterVersion,
+      observerActorIds: receipt.beforeObserverActorIds
+    })
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+function concealmentHolderOwner(
+  state: EncounterRunState,
+  actors: readonly EncounterRunActorState[],
+  holderActorId: string
+) {
+  const holder = actors.find((entry) => entry.id === holderActorId)
+  if (!holder) unavailable('The actor left the Encounter; adjust manually.')
+  return turnEffectOwner(holder, state.id)
+}
+
+/** Sets a concealment's observers back to an earlier set, refusing if the effect changed since. */
+async function restoreConcealmentObservers(
+  ctx: EncounterCharacterWriteTransaction,
+  state: EncounterRunState,
+  actors: readonly EncounterRunActorState[],
   input: {
-    state: EncounterRunState
-    root: { version: number }
-    occurrenceId: string
+    holderActorId: string
+    activeEffectId: string
+    afterVersion: number
+    observerActorIds: readonly string[]
   }
 ) {
-  const outputs = await readCheckReceiptOutputs(ctx, input)
-  if (outputs.kind !== 'BASIC_ACTION_CHECK')
-    throw new Error('Stored basic action check receipt is invalid.')
-  const { targetTransition, targetCharacterId } = outputs
-  return targetTransition ? { targetCharacterId, targetTransition } : null
+  const store = createActiveRuleEffectStore(ctx)
+  const owner = concealmentHolderOwner(state, actors, input.holderActorId)
+  const effect = await store.findById(owner, input.activeEffectId)
+  if (!effect || effect.version !== input.afterVersion)
+    unavailable('The concealment changed after this action; adjust manually.')
+  await store.updateLifecycleCas({
+    id: effect.id,
+    owner,
+    expectedVersion: effect.version,
+    lifecycle: concealmentLifecycleFor(effect, input.observerActorIds)
+  })
 }
+
 async function restoreCharacter(
   ctx: EncounterCharacterWriteTransaction,
   input: {

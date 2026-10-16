@@ -40,6 +40,7 @@ import { LiveSessionRouteError } from './liveSessionRoutes.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { prepareNativeLiveMovement } from './nativeEncounterMovement.js'
+import { planConcealmentPrune } from './nativeConcealmentPrune.js'
 import type { LiveEncounterActor } from './nativeRoomEncounterCommand.js'
 
 /**
@@ -69,6 +70,7 @@ type PreparedStagedSceneCommit = {
   | {
       kind: 'MOVEMENT'
       commit: Omit<LiveSessionMovementCommitInput, 'expectedScene'>
+      concealmentPrunes: Awaited<ReturnType<typeof planConcealmentPrune>>
     }
   | {
       kind: 'GEOMETRY'
@@ -258,6 +260,7 @@ export async function prepareStagedSceneCommit(input: {
       settlements: movement.planned.settlementInputs,
       fogLayers: layers,
       ...(command.type === 'VOID_RULE_OCCURRENCE' ? { voidCommand: command } : {})
-    }
+    },
+    concealmentPrunes: await planConcealmentPrune(movement.planned, nextScene)
   }
 }

@@ -131,7 +131,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   chargeBonus: ['chargeBonus'],
   check: ['check'],
   checkChoice: ['checkChoice'],
-  checkDc: ['checkDc'],
+  checkDc: ['checkDc', 'escapeDc'],
   chargeLevelScaling: ['levels'],
   charges: ['charges'],
   classDetail: [

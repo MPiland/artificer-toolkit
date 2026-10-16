@@ -402,6 +402,19 @@ export const removeAreaTargetInputDtoSchema = lazySchema(() =>
     actorId: uuidSchema
   })
 )
+/**
+ * GM-only: adds creatures to or removes them from the observers one concealment (a hidden creature)
+ * is hidden from, for a change the table fiction made that the rules cannot see, such as lighting.
+ * It changes only the observer set of an existing concealment.
+ */
+export const setConcealmentObserversInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('SET_CONCEALMENT_OBSERVERS'),
+    activeEffectId: uuidSchema,
+    add: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+    remove: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
 /** GM-only exact undo of the Run's last committed action and its committed children. */
 export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
@@ -414,6 +427,7 @@ export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
+export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema

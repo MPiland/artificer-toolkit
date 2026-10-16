@@ -84,7 +84,8 @@ A Creature publication change reruns the whole apis `encounters` and `content` f
 - The Hell Hound and Winter Wolf breaths were authored with `CHOSEN_CREATURES` targeting; they now use `AREA_CONTENTS`, as their descriptions ("each creature in that area") print.
 - The Behir's stale comment ("waits on area targeting (D60)") was removed with its row edit.
 - The Young Blue Dragon description reads "an 60-foot line" (existing data typo); size 60 taken, the description left alone.
-- The corpus test asks for an executable plan only from the damage-only breaths; the brief's "every breath compiles" cannot hold for the 22 above. It asserts the non-compiling rows are exactly the 21 shaped non-damage rows plus the Gorgon, each raising `CharacterRuleActionUnsupportedCompilationError` from the real dnd5e adapter, with non-damage rows found by a typed read of outcome kinds.
+- The corpus test asks for an executable plan only from the damage-only breaths; the brief's "every breath compiles" cannot hold for the 22 above.
+  It asserts the non-compiling rows are exactly the 21 shaped non-damage rows plus the Gorgon, each raising `CharacterRuleActionUnsupportedCompilationError` from the real dnd5e adapter, with non-damage rows found by a typed read of outcome kinds.
 - Review fixes added a production change the brief did not expect: `discoverEncounterFeatureActions` compiles every Creature action once per discovery to list unrunnable ones (`compileEncounterFeatureActionPlan` moved to `encounterActionEntryPointCompiler.ts`), `UnavailableCreatureActionError` in `encounterErrors.ts`, and its mapping in `staleCharacterAction.ts`. No new code or transport field.
 
 ### Not run

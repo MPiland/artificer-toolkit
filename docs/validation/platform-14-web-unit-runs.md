@@ -9,6 +9,7 @@ pwsh -NoProfile -File scripts/runWebUnitRuns.ps1 -Runs 3
 ```
 
 The script:
+
 - refuses a dirty tree;
 - holds `local-validation/.validation.lock` for all runs;
 - runs the full `unit` project (`yarn workspace @artificer-toolkit/web test`) once per run, with no file filter, retries or skips;
@@ -17,14 +18,14 @@ The script:
 
 ## Result
 
-| Field | Value |
-|---|---|
-| Commit | _sha from summary.json_ |
-| Date | _yyyy-mm-dd_ |
+| Field    | Value                                             |
+| -------- | ------------------------------------------------- |
+| Commit   | _sha from summary.json_                           |
+| Date     | _yyyy-mm-dd_                                      |
 | Evidence | `local-validation/platform-14/<stamp>/` (ignored) |
 
 | Run | Exit | Test files | Tests | Seconds |
-|---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| --- | ---- | ---------- | ----- | ------- |
+| 1   |      |            |       |         |
+| 2   |      |            |       |         |
+| 3   |      |            |       |         |

@@ -64,7 +64,10 @@ import {
   replayNativeActionReaction,
   resolveNativeActionReaction
 } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
-import type { EncounterReactionSelection } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import {
+  chosenEncounterReaction,
+  type EncounterReactionSelection
+} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   applyNativeAttackReaction,
@@ -90,7 +93,8 @@ import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import { planNativeLiveCheckAction } from './nativeCheckAction.js'
+import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
+import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
 import {
@@ -555,25 +559,48 @@ export async function planNativeLiveEncounterAction(
     const target = movementTargets.get(prepared.target.id)
     if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
       throw new Error('Only a basic action can make a check.')
+    const { capability } = prepared.source
+    // A concealment check compares its roller with every actor in the Run; load them all before the
+    // revisions the plan depends on are read.
+    const concealmentTargets =
+      authoredCheckOf(capability).dc.kind === 'FIXED'
+        ? null
+        : new Map(
+            await Promise.all(
+              actors.map(
+                async (entry) =>
+                  [entry.id, movementTargets.get(entry.id) ?? (await loadTarget(entry))] as const
+              )
+            )
+          )
+    const checkInput = {
+      scope,
+      command,
+      fingerprint: admission.fingerprint,
+      capability,
+      state,
+      system,
+      actors,
+      actor,
+      target,
+      overrides: ruleWarnings.overrides,
+      actionEconomy,
+      autoRoll: requireAutoRoll(prepared.actor.id)
+        ? (executionOptions.random ?? nextRollInt)
+        : null,
+      runtime: executionOptions.runtime,
+      revisions
+    }
     return {
-      ...(await planNativeLiveCheckAction({
-        scope,
-        command,
-        fingerprint: admission.fingerprint,
-        capability: prepared.source.capability,
-        state,
-        system,
-        actors,
-        actor,
-        target,
-        overrides: ruleWarnings.overrides,
-        actionEconomy,
-        autoRoll: requireAutoRoll(prepared.actor.id)
-          ? (executionOptions.random ?? nextRollInt)
-          : null,
-        runtime: executionOptions.runtime,
-        revisions
-      })),
+      ...(concealmentTargets
+        ? await planNativeLiveConcealmentCheckAction({
+            ...checkInput,
+            targets: concealmentTargets,
+            activeEffectsByActorId,
+            sceneContext,
+            capture
+          })
+        : await planNativeLiveCheckAction(checkInput)),
       dependencies,
       revisions
     }
@@ -659,8 +686,8 @@ export async function planNativeLiveEncounterAction(
    * The target's reaction as it is now. A used reaction also carries what it does to the attack it
    * answered: its effect plan and the attack's binding once that effect holds.
    */
-  const currentReaction = async (used: boolean) => {
-    const found = await discoverReaction()
+  const currentReaction = async (used: boolean, answering: string, critical: boolean) => {
+    const [found] = await discoverReaction({ answering, critical })
     if (!found) throw new Error('Reaction evidence is stale.')
     const applied = used
       ? await applyNativeAttackReaction({
@@ -690,7 +717,11 @@ export async function planNativeLiveEncounterAction(
       })
     : null
   const answeredReaction = reactionAnswer
-    ? await currentReaction(reactionAnswer.selection.kind === 'OPTION')
+    ? await currentReaction(
+        reactionAnswer.selection.kind === 'OPTION',
+        chosenEncounterReaction(reactionAnswer.offer, reactionAnswer.selection).actionId,
+        reactionAnswer.offer.originalD20.resultPath === 'ON_CRIT'
+      )
     : null
   const reactionAnswered =
     reactionAnswer && answeredReaction
@@ -712,7 +743,8 @@ export async function planNativeLiveEncounterAction(
       ...(resume ? { resume } : {}),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
-        discover: async () => (await discoverReaction())?.candidate ?? null,
+        discover: async (critical) =>
+          (await discoverReaction({ critical })).map(({ candidate }) => candidate),
         targetStateChecksum
       }
     }))
@@ -734,7 +766,11 @@ export async function planNativeLiveEncounterAction(
       ? retained
       : null
   const replayedReaction = retainedReaction
-    ? await currentReaction(retainedReaction.reaction!.selection === 'USE')
+    ? await currentReaction(
+        retainedReaction.reaction!.selection === 'USE',
+        retainedReaction.reaction!.reaction.actionId,
+        retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
+      )
     : null
   const reaction =
     execution.kind === 'PENDING'

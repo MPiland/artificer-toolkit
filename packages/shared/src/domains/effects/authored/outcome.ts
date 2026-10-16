@@ -21,6 +21,8 @@ import type { PlantPortalAuthored } from './plantPortal.js'
 import type { TreeStrideAuthored } from './treeStride.js'
 import type { ClosedRuleAuthored } from './closedRule.js'
 import type { ActorRelationshipAuthored } from './actorRelationship.js'
+import type { ConcealFromObserversAuthored } from './concealFromObservers.js'
+import type { DetectConcealedAuthored } from './detectConcealed.js'
 
 export type OutcomeRowMetadataAuthored = {
   label?: string
@@ -49,6 +51,8 @@ export type OutcomeAuthored =
   | PlantPortalAuthored
   | TreeStrideAuthored
   | ActorRelationshipAuthored
+  | ConcealFromObserversAuthored
+  | DetectConcealedAuthored
   | ClosedRuleAuthored
   | ManualAdjudicationAuthored
 

@@ -40,6 +40,22 @@ describe('Campaign text policy', () => {
     ).toBe('A **** plan in a ****storm near a shitake mushroom with sexual content.')
   })
 
+  // ACCOUNTS-7.5: the same library and tiers as usernames.
+  it('masks look-alike and padded profanity', () => {
+    expect(maskStandardPlainText('sh1t and fuuuck')).toBe('**** and ****')
+  })
+
+  // The matched term is masked, not the whole word: the same rule that gives `****storm`.
+  it('masks only the matched term of an inflected profanity', () => {
+    expect(maskStandardPlainText('Fucking Coins, he fucked it')).toBe('****ing Coins, he ****ed it')
+  })
+
+  it('masks short ambiguous terms only as whole words and leaves ordinary words alone', () => {
+    expect(maskStandardPlainText('kick his ass, you dumbass')).toBe('kick his ****, you ****')
+    const ordinary = 'Cassandra of Scunthorpe met Dickens and an Assassin near a Compass in Essex.'
+    expect(maskStandardPlainText(ordinary)).toBe(ordinary)
+  })
+
   it('preserves rich-text markup and attributes while masking visible text', () => {
     expect(
       maskStandardRichText('<p class="shit"><a href="https://example.com/shit">shit plan</a></p>')

@@ -29,7 +29,9 @@ describe('SRD speed and sense range modifiers (RELIABILITY-5.1)', () => {
   })
 
   it('authors every one as a length with an amount and a unit', () => {
-    const malformed = grants.filter((grant) => !authoredLengthSchema.safeParse(grant.payload).success)
+    const malformed = grants.filter(
+      (grant) => !authoredLengthSchema.safeParse(grant.payload).success
+    )
     expect(malformed).toEqual([])
   })
 })

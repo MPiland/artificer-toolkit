@@ -1,4 +1,5 @@
 import { encounterBasicActionCheckTrigger } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterConcealmentCheckTrigger } from '@artificer-toolkit/rules-runtime/encounterConcealmentCheck'
 import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
@@ -28,12 +29,18 @@ function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto
   return { snapshot, context, continuation }
 }
 
-/** The frozen check and the paused graph a pending basic action check waits on. */
+/**
+ * The frozen check and the paused graph a pending basic action check waits on: a stabilizing
+ * check (First Aid) or a concealment check (Hide, Search).
+ */
 export function readBasicActionCheckSnapshot(
   snapshot: ServerRuleExecutionPendingSnapshotDto | null
 ) {
   const pending = readKernelCheckSnapshot(snapshot)
-  if (pending?.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK')
+  if (
+    pending?.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
+    pending?.context.kind !== 'ENCOUNTER_CONCEALMENT_CHECK'
+  )
     throw new Error('The basic action check occurrence is unavailable.')
   return {
     snapshot: pending.snapshot,
@@ -102,8 +109,11 @@ export function projectNativeBasicActionCheckPending(
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
     rollerActorId:
-      context.kind === 'ENCOUNTER_ESCAPE_CHECK' ? context.actorId : context.helperActorId,
-    trigger: encounterBasicActionCheckTrigger(context),
+      context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId,
+    trigger:
+      context.kind === 'ENCOUNTER_CONCEALMENT_CHECK'
+        ? encounterConcealmentCheckTrigger(context)
+        : encounterBasicActionCheckTrigger(context),
     request: {
       requestId: snapshot.request.requestId,
       min: 1,

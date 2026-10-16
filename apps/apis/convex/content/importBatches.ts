@@ -3,6 +3,7 @@
 // docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md) fit mutation
 // time as about 25 ms per record plus 1 ms per KiB of document; a loaded host ran
 // 3-6x slower. Costs are in idle milliseconds and the budget leaves that headroom.
+// Every record costs more than 25, so a batch holds at most 3 records.
 const RECORD_COST = 25
 export const SOURCE_IMPORT_BATCH_COST_BUDGET = 100
 

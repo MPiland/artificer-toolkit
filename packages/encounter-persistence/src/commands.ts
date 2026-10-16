@@ -27,12 +27,14 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterActorControllerCandidates } from './actorController.js'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { endChosenConcentration } from './concentrationChosenEnd.js'
 import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
+import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
 import { endEncounterActorGrant } from './grantEndPersistence.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
@@ -41,6 +43,7 @@ import { replaceActorEquipment } from './actorEquipment.js'
 import { removeEncounterActor } from './actorRemovalCommand.js'
 import { reorderEncounterActors } from './actorReorderCommand.js'
 import { reinforceEncounterActors } from './actorReinforcementCommand.js'
+import { setConcealmentObservers } from './concealmentObserverCommand.js'
 import { revertLastEncounterAction } from './actionRevert.js'
 import { enemyActionRollLabel, readNativeEncounterCommandReplay } from './commandReplay.js'
 import { rejectDomain } from './domainRejections.js'
@@ -104,6 +107,8 @@ export async function recordEncounterCommand(
   if (command.type === 'REORDER') return reorderEncounterActors(ctx, command, userId)
   if (command.type === 'REINFORCE') return reinforceEncounterActors(ctx, command, userId)
   if (command.type === 'REVERT_LAST_ACTION') return revertLastEncounterAction(ctx, command, userId)
+  if (command.type === 'SET_CONCEALMENT_OBSERVERS')
+    return setConcealmentObservers(ctx, command, userId)
   if (
     command.type !== 'UPSERT_REMINDER' &&
     command.type !== 'REMOVE_REMINDER' &&
@@ -401,6 +406,7 @@ async function recordEncounterToolCommand(
         roll
       })
     }
+    const previousHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.currentHitPoints
     actor = encounterRunActorStateSchema.parse(
       input.type === 'SET_INITIATIVE' || input.type === 'ROLL_ACTOR_INITIATIVE'
         ? {
@@ -436,6 +442,10 @@ async function recordEncounterToolCommand(
           }
     )
     await writeRunActor(ctx, actorRow._id, actor)
+    // A GM edit that raises a creature's hit points ends its "until healed" grants (D63's revive
+    // edit included). Like the edit itself, the ending is not undoable.
+    if (actor.kind !== 'CHARACTER' && actor.currentHitPoints > previousHitPoints)
+      await endGrantsOnHitPointsRegained(ctx, turnEffectOwner(actor, state.id))
     if (
       input.type === 'UPDATE_ACTOR' &&
       input.endActiveEffectId !== undefined &&

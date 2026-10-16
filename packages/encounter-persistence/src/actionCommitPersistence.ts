@@ -379,7 +379,10 @@ export async function persistEncounterActionCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: receiptConsumedGrants(input),
+      consumedGrants: receiptConsumedGrants({
+        consumedGrants: input.consumedGrants,
+        endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
+      }),
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null
     },

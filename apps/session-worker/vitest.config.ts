@@ -20,5 +20,9 @@ export default defineConfig({
       wrangler: { configPath: './wrangler.jsonc' }
     })
   ],
-  test: { include: ['test/native*.test.ts'] }
+  test: {
+    include: ['test/native*.test.ts'],
+    // obscenity ships a CommonJS build behind an ESM wrapper that workerd cannot link.
+    deps: { optimizer: { ssr: { enabled: true, include: ['obscenity'] } } }
+  }
 })

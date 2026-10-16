@@ -120,7 +120,10 @@ export function projectNativeActionPending(
       occurrenceVersion: occurrence.version,
       encounterVersion: occurrence.expectedEncounterVersion,
       targetActorId: context.rollerActorId,
-      options: [{ optionId: context.reactionChoice.reactions[0].useOptionId }],
+      options: context.reactionChoice.reactions.map(({ useOptionId, actionId }) => ({
+        optionId: useOptionId,
+        actionId
+      })),
       allowedResponses: ['DECLINE', 'OPTION']
     }
   const common = {
