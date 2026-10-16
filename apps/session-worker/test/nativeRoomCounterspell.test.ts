@@ -362,6 +362,24 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       expect(await slotsOf(failing, REACTOR_ID)).toEqual(SLOT_SPENT(3))
     })
 
+    it('spends a failing holder’s slot through its own Character write when the holder is the cast’s target', async () => {
+      const room = await highCast()
+      const before = await readRoomHistory(room.room.base.stub)
+      const { answer } = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext(1))
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect((await counterWithLowestSlot(room)).type).toBe('COMMAND_COMMITTED')
+
+      expect((await rollTheCheck(room, 1)).type).toBe('COMMAND_COMMITTED')
+      await healWithLowestDice(room)
+      expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
+      expect(await slotsOf(room, REACTOR_ID)).toEqual(SLOT_SPENT(3))
+
+      await undoLastAction(room)
+      expect(await slotsOf(room, CASTER_ID)).toEqual([])
+      expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+      expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+    })
+
     it('owes no roll from a slot at the cast’s level or higher', async () => {
       const room = await highCast()
       await cast(room)
