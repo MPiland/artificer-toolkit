@@ -1005,6 +1005,16 @@ describe('native initiative declarations', () => {
         finalResponderUserId = role === 'PLAYER' ? base.player.userId : base.owner.userId
         break
       }
+      throw new Error(
+        'PROBE ' +
+          firstRole +
+          JSON.stringify(
+            (await storedInitiative(base)).participants.map((row) => [
+              row.actorId === characterActor.id ? 'CHARACTER' : 'ENEMY',
+              row.initiativeScore
+            ])
+          )
+      )
       expect(ownerDeclarations).toBe(1)
       expect(playerDeclarations).toBe(1)
       expect(pendingCommits).toBe(1)
