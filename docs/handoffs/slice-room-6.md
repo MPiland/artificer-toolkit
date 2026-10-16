@@ -35,3 +35,37 @@ Independent opus review of 81a17637c..32a0a0eb4.
 - Stands: the refused player answer in `nativeMovementPlayerSocket.test.ts` asserts `COMMAND_REJECTED` only (precedent `nativeRoomReaction.test.ts:325`); the GM's identical answer is then accepted, so only the sender differs.
 - Stands: the Legendary test reuses one `commandId` for the refused and accepted attempt (precedent `turnConcentration.test.ts:367`).
 - Stands: `RoomChannel` and `actionRoomFixture`'s own socket-pair type are the same shape (nit).
+
+# Slice ROOM-6.T4: a player cannot move a bound token they do not control
+
+## Scope
+
+- ROOM-6.14: a player cannot move an Encounter-bound token their user does not control, in the Worker room and on Convex: the move is refused and nothing is written, proved room-side and on Convex.
+- Iterate in CI (`ci/room-6-t4`; red on `ci/room-6-t4-red`).
+
+## Finding
+
+The refusal already exists; no production change. A bound token follows its actor's controllers (ADR 0034), and one predicate decides it on both paths:
+
+- `requireBoundTokenMoveControl` (`packages/encounter-persistence/src/actorController.ts`) runs at `roomSceneGeometryStaging.ts` (Worker, before the staged geometry is written) and `sceneGeometryPublication.ts` (Convex publication). It refuses with the domain rejection `NOT_ACTOR_CONTROLLER`.
+- `readLiveMovementAdmission` (`liveMovementAdmission.ts`) calls `requireEncounterActorControl` for a new movement commit: the same code.
+- `planLiveSceneCommand` skips the Scene token's own control list for a bound token on purpose; the actor-control seam above is where it is judged.
+
+## Acceptance proof
+
+| AC | Proof | Red first |
+| --- | --- | --- |
+| ROOM-6.14 (room) | `apps/session-worker/test/nativeMovementController.test.ts`: the room's player moves the GM's Wolf, and the second player moves the first player's Character, each on its own socket; both get `COMMAND_REJECTED` / `DOMAIN_REJECTED` / `NOT_ACTOR_CONTROLLER`, and the Run's version, receipts and pending decision are unchanged. The controller's own move of the same Character commits. | Red run 38905531310 (`ci/room-6-t4-red`, 16088dba7) was green: the gap the assignment suspected does not exist, so there is no failing-before clause. |
+| ROOM-6.14 (Convex) | `apps/apis/convex/liveSessions/encounterMovementAdmission.test.ts`: a player moves the token bound to an actor they do not control through the real room; refused with `NOT_ACTOR_CONTROLLER` and, after a checkpoint, the runs, occurrences, receipts, Scene definition saves, entities and live states are unchanged. The existing first test and `playerControl.test.ts` (owner/player/other predicate matrix) stay. | As above. |
+
+## Log
+
+- Green on `ci/room-6-t4` 51c427bf9: Tests 38908244077, Live backend 38908244041.
+- Independent opus review of the test diff (merge-batch-af..51c427bf9) triaged below; merged `ci/merge-batch-ag` before the final push.
+
+## Review triage
+
+- Fixed (high): the Worker "writes nothing" snapshot covered only the Run version, receipts and pending, which a plain move never touches. It now compares the Run documents, turn movements, every `SCENE_CHECKPOINT_ROW` and `SCENE_EVIDENCE_ROW` record, receipts and pending, and the controller's committed move asserts the Scene evidence snapshot changes, so the comparison is shown to detect a write.
+- Fixed (low): the Convex snapshot adds `sceneLiveEntities` and `encounterTurnMovements`.
+- Stands: `sceneGeometryPublication.ts` runs only in the Worker, so the Convex test proves nothing reaches Convex after the room checkpoints, not a separate Convex check; this satisfies the AC's wording and the finding is recorded above.
+- Stands: `otherPlayerControlledActorIds: []` seats the second player by truthiness (the fixture's existing contract); the asserted `NOT_ACTOR_CONTROLLER` reason fails loudly if it broke.

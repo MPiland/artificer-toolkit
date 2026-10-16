@@ -102,7 +102,9 @@ it('writes nothing when a player moves a token bound to an actor they do not con
       receipts: await ctx.db.query('encounterRuleReceipts').collect(),
       definitionSaves: await ctx.db.query('sceneDefinitionSaves').collect(),
       definitionEntities: await ctx.db.query('sceneDefinitionEntities').collect(),
-      liveStates: await ctx.db.query('sceneLiveStates').collect()
+      liveStates: await ctx.db.query('sceneLiveStates').collect(),
+      liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
+      turnMovements: await ctx.db.query('encounterTurnMovements').collect()
     }))
   }
   const before = await written()

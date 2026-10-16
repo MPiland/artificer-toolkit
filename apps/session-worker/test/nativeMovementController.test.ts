@@ -6,7 +6,7 @@ import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import { RoomEncounterStore } from '../src/roomEncounterStore.js'
+import { RoomEncounterStore, SCENE_EVIDENCE_ROW } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
@@ -52,12 +52,21 @@ function characterRoom() {
 
 type Room = Awaited<ReturnType<typeof wolfRoom>>
 
-/** What the room holds after a refused move: the Run's version, its receipts and any pending decision. */
+/**
+ * What the room holds: the Run, its receipts and turn movement, any pending decision, and every
+ * Scene row, command receipt and geometry save a committed move would add.
+ */
 async function stored(room: Room) {
   return {
-    runVersion: await runInDurableObject(room.base.stub, async (_instance, context) => {
-      return new RoomEncounterStore(context.storage).documents('encounterRuns')[0]!.version
-    }),
+    ...(await runInDurableObject(room.base.stub, async (_instance, context) => {
+      const store = new RoomEncounterStore(context.storage)
+      return {
+        runs: store.documents('encounterRuns'),
+        turnMovements: store.documents('encounterTurnMovements'),
+        sceneRows: store.records('SCENE_CHECKPOINT_ROW'),
+        sceneEvidence: store.records(SCENE_EVIDENCE_ROW)
+      }
+    })),
     receipts: await room.receipts(),
     pending: await room.pending()
   }
@@ -93,8 +102,11 @@ it("refuses a second player's move of another player's Character and writes noth
 
 it("takes the controller's own move of the same Character", async () => {
   const room = await characterRoom()
+  const before = await stored(room)
 
   const walk = await (await room.asPlayer()).move(EAST(CHARACTER_START))
 
   expect(walk.type).toBe('COMMAND_COMMITTED')
+  // The refusal tests compare this same snapshot, so it must register a committed move.
+  expect((await stored(room)).sceneEvidence).not.toEqual(before.sceneEvidence)
 })
