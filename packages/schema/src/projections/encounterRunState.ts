@@ -26,6 +26,7 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       conditions: true,
       activeGrants: true,
       concentration: true,
+      concealment: true,
       defeated: true,
       outOfInitiative: true
     }),

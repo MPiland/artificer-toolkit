@@ -1,5 +1,6 @@
 import type {
   DurationAuthored,
+  FacetAuthored,
   OutcomeAuthored,
   OutcomeRowMetadataAuthored,
   RangeAuthored,
@@ -77,6 +78,11 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   pathCode: PathCodesByTrigger<TTrigger>
   groupType: PathGroupType
   originKind?: PathOriginKind
+  /**
+   * The path's result is owed only while this facet holds for the attack it rides on (a passive
+   * Effect's `ON_HIT` damage). Groups are OR-ed, each group's conditions AND-ed.
+   */
+  restrictions?: FacetAuthored
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
 }
