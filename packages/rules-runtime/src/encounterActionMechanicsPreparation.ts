@@ -42,12 +42,14 @@ import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
-import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   effectReadsEnemyProximity,
+  effectReadsTurnUses,
+  spentTurnUses,
   type Dnd5eEnemyProximity
 } from './systems/dnd5e/attackRestrictions.js'
+import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
@@ -214,6 +216,11 @@ export async function prepareEncounterActionMechanics<
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<Dnd5eEnemyProximity | null>
+  /**
+   * The once-per-turn uses the attacker has spent this turn (sorted usage keys), for an attack with
+   * a path limited that way (Sneak Attack). Called only for such an attack.
+   */
+  loadTurnUses?: () => Promise<readonly string[]>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -363,12 +370,23 @@ export async function prepareEncounterActionMechanics<
     attackKind !== null && input.loadAttackPerception
       ? await input.loadAttackPerception({ sourceFacts, targetFacts })
       : null
+  const compiledEffect =
+    plan.kind === 'TEST_OUTCOME'
+      ? dndSourceFromCompilerSource(plan.compilerSource).compiledEffect
+      : null
   const enemyProximity =
     attackKind !== null &&
     input.loadEnemyProximity &&
-    plan.kind === 'TEST_OUTCOME' &&
-    effectReadsEnemyProximity(plan.compilerSource.compiledEffect as CompiledEffectGroup)
+    compiledEffect &&
+    effectReadsEnemyProximity(compiledEffect)
       ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
+      : null
+  const turnUses =
+    attackKind !== null &&
+    input.loadTurnUses &&
+    compiledEffect &&
+    effectReadsTurnUses(compiledEffect)
+      ? await input.loadTurnUses()
       : null
   const attackSight: EncounterPreparedAttackSight | null = perception && {
     ...perception,
@@ -441,6 +459,7 @@ export async function prepareEncounterActionMechanics<
           ? source.effectivePolicyOutput
           : sourceFacts.targetDerivedFacts),
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
+        ...(turnUses ? { attackTurnUses: turnUses } : {}),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(
@@ -497,4 +516,21 @@ export async function prepareEncounterActionMechanics<
       conditionImmunityIds: targetFacts.conditionImmunityIds
     }
   }
+}
+
+/**
+ * The once-per-turn uses an executed attack spent: those of its entries whose damage the final
+ * phase dealt, which its evidence binds by entry (D119). A miss or an unmet gate binds none.
+ */
+export function encounterActionSpentTurnUses(
+  prepared: { plan: Awaited<ReturnType<typeof prepareEncounterActionSource>>['plan'] },
+  evidence: { sourceEntryBindings?: readonly { sourceEntryId: string }[] }
+): string[] {
+  const { plan } = prepared
+  return plan.kind === 'TEST_OUTCOME'
+    ? spentTurnUses(
+        dndSourceFromCompilerSource(plan.compilerSource).compiledEffect,
+        new Set((evidence.sourceEntryBindings ?? []).map((binding) => binding.sourceEntryId))
+      )
+    : []
 }

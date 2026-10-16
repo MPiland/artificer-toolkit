@@ -322,6 +322,7 @@ export async function persistEncounterDisarmCommit(
       consumedGrants: input.consumedGrants,
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
+      turnUses: null,
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,
       version: nextState.version,

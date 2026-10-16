@@ -20,7 +20,7 @@ import { isDepartedCharacterActor } from './characterStates.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'
-import type { EncounterDocument, EncounterWriteContext } from './store.js'
+import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
 type RunTurnState = Pick<EncounterRunState, 'id' | 'status' | 'round' | 'currentActorId'>
@@ -30,6 +30,22 @@ function currentTurn(state: RunTurnState) {
   return state.status === 'ACTIVE' && state.currentActorId !== null
     ? { encounterId: state.id, round: state.round, turnActorId: state.currentActorId }
     : null
+}
+
+type CurrentTurn = NonNullable<ReturnType<typeof currentTurn>>
+
+/** An actor's record for the given turn, if it has one. */
+function readTurnRow(ctx: EncounterReadContext, turn: CurrentTurn, actorId: string) {
+  return ctx.db
+    .query('encounterTurnMovements')
+    .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
+      q
+        .eq('encounterId', turn.encounterId)
+        .eq('round', turn.round)
+        .eq('turnActorId', turn.turnActorId)
+        .eq('actorId', actorId)
+    )
+    .unique()
 }
 
 /** Adds to an actor's record for the current turn, creating it at zero (D38). */
@@ -45,16 +61,7 @@ async function addTurnMovement(
 ) {
   const turn = currentTurn(input.state)
   if (!turn) throw new Error('Turn movement needs a current turn.')
-  const row = await ctx.db
-    .query('encounterTurnMovements')
-    .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
-      q
-        .eq('encounterId', turn.encounterId)
-        .eq('round', turn.round)
-        .eq('turnActorId', turn.turnActorId)
-        .eq('actorId', input.actorId)
-    )
-    .unique()
+  const row = await readTurnRow(ctx, turn, input.actorId)
   if (row)
     await ctx.db.patch(row._id, {
       usedFeet: row.usedFeet + input.usedFeet,
@@ -106,18 +113,70 @@ export async function removeTurnSpeedBonus(
   ctx: EncounterWriteContext,
   input: { encounterId: string; round: number; turnActorId: string; actorId: string }
 ) {
-  const row = await ctx.db
-    .query('encounterTurnMovements')
-    .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
-      q
-        .eq('encounterId', input.encounterId)
-        .eq('round', input.round)
-        .eq('turnActorId', input.turnActorId)
-        .eq('actorId', input.actorId)
-    )
-    .unique()
+  const row = await readTurnRow(ctx, input, input.actorId)
   if (!row || row.speedBonuses < 1) throw new Error('The turn speed bonus record is unavailable.')
   await ctx.db.patch(row._id, { speedBonuses: row.speedBonuses - 1 })
+}
+
+/** The once-per-turn usage keys an actor has spent in the current turn (D119); none between turns. */
+export async function readTurnUses(
+  ctx: EncounterReadContext,
+  input: { state: RunTurnState; actorId: string }
+): Promise<string[]> {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  return [...(row?.usedOncePerTurn ?? [])].sort()
+}
+
+/**
+ * Spends once-per-turn usage keys from an actor's record for the current turn (D119). A key the
+ * record already holds means the plan read a stale record, so the commit fails. Returns the turn
+ * the keys were spent in for the command record's undo, or null when nothing was spent.
+ */
+export async function spendTurnUses(
+  ctx: EncounterWriteContext,
+  input: { state: RunTurnState; actorId: string; keys: readonly string[] }
+) {
+  const turn = currentTurn(input.state)
+  if (!turn || input.keys.length === 0) return null
+  const row = await readTurnRow(ctx, turn, input.actorId)
+  const spent = row?.usedOncePerTurn ?? []
+  if (input.keys.some((key) => spent.includes(key)))
+    throw new Error('A once-per-turn use was already spent this turn.')
+  const usedOncePerTurn = [...spent, ...input.keys].sort()
+  if (row) await ctx.db.patch(row._id, { usedOncePerTurn })
+  else
+    await ctx.db.insert(
+      'encounterTurnMovements',
+      encounterStoredTurnMovementSchema.parse({
+        ...turn,
+        actorId: input.actorId,
+        usedFeet: 0,
+        speedId: null,
+        speedBonuses: 0,
+        usedOncePerTurn
+      })
+    )
+  return { round: turn.round, turnActorId: turn.turnActorId, keys: [...input.keys] }
+}
+
+/** Gives back the once-per-turn uses an action spent (the GM's undo of it). */
+export async function restoreTurnUses(
+  ctx: EncounterWriteContext,
+  input: {
+    encounterId: string
+    round: number
+    turnActorId: string
+    actorId: string
+    keys: readonly string[]
+  }
+) {
+  const row = await readTurnRow(ctx, input, input.actorId)
+  if (!row || input.keys.some((key) => !row.usedOncePerTurn.includes(key)))
+    throw new Error('The once-per-turn record is unavailable.')
+  await ctx.db.patch(row._id, {
+    usedOncePerTurn: row.usedOncePerTurn.filter((key) => !input.keys.includes(key))
+  })
 }
 /** Each actor's record for the current turn; an actor without one has moved none and has no bonus. */
 async function readTurnMovementByActorId(

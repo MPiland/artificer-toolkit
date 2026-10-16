@@ -71,6 +71,13 @@ describe('authoredSourceFacts', () => {
     expect(sourceBytes).toBeLessThan(documentBytes)
   })
 
+  it('projects a triggering-weapon damage outcome with no fixed damage type', () => {
+    const rogue = srdBaselineContent.subjects.classes.find(({ label }) => label === 'Rogue')
+    const damages = authoredSourceFacts(version('CLASS', rogue)).rows.damages ?? []
+
+    expect(damages.some(({ damage_type_id }) => damage_type_id === null)).toBe(true)
+  })
+
   it('rejects rows with unsupported columns', () => {
     expect(() =>
       authoredNodeRuntimeSourceFactsSchema.parse({

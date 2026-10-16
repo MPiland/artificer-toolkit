@@ -742,6 +742,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **(d) Roll mode:** a facet predicate on the attack's net roll mode (`ADVANTAGE`, `NOT_DISADVANTAGE`). Sneak Attack's gate is "advantage, or an enemy of the target within 5 ft and no disadvantage", which needs any-of composition of predicates. If the facet model has none, add one generic any-of, not a Sneak Attack shape.
   - **(e) Position:** a predicate "another creature hostile to the target, not incapacitated, within N ft of the target", fed by scene positions. The room plans with it; persistence re-verifies from stored positions and refuses a mismatch, like other planned facts.
   - **(f) Once per turn:** a usage limit `ONCE_PER_TURN`, where "turn" is any creature's turn (Sneak Attack can land on a reaction). It is backed by one per-turn record keyed by (Encounter, round, turn actor, actor). Unlike D38's movement record it is enforced, so the commit transaction reads and writes it, replay derives the same entry, and GM undo restores it. ATTACK-9.T6 reads the same record for its attacked-hostile and took-damage flags.
+    - **Built (T2d):** the record is not a new table: D38's `encounterTurnMovements` row gains `usedOncePerTurn` (key ids). The key is the compiled effect id, or the Feature id for a passive Feature rider merged onto an attack. Movement opportunity attacks supply the once-per-turn record and the Scene's enemy proximity. Character on-hit riders keep merging only onto equipment-sourced attacks, so a Feature-sourced attack gets no rider. Sneak Attack is applied automatically: the first qualifying hit spends the use (RAW says "you can"; a choice to hold it is not offered). D46's revival caveat stands: the key (round, turn actor) is revived if the GM re-sets the same current actor.
 * **D120** (2026-10-15) Re-publishing a changed canonical corpus (PLATFORM-18.T1; survey in [slice-platform-18-t1.md](slice-platform-18-t1.md)). Decided by the main session.
   - **Ruling (design A):** when a seeded subject's checksum changes, it is replaced in place, through the same steps as homebrew publish (`commitPublication`):
     1. insert the next version;
@@ -778,6 +779,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Cost:** `optionalOnHit` is generic over the existing spend kinds. A spell slot with a level choice binds `spellCastLevel` for the shared row selector (D118). A resource-pool use lets Stunning Strike (ki) reuse it. It is not slot-only.
   - **Creature type:** a predicate kind in D119's rider predicate union, owned by ATTACK-9.T2b. It is not a condition on a damage row. It reuses the creature-type ids from SPELLS-8.T13's `allowedCreatureTypeIds`. It is added after T2b merges, and the offer phase is built in the meantime.
   - **Improved Divine Smite:** a mandatory D119(a) rider with no offer.
+* **D124** (2026-10-16) A path's `ATTACK_ROLL_MODE` check reads the settled d20 (ATTACK-9.T2e; packet in [slice-attack-9-t2.md](slice-attack-9-t2.md)). Decided by the main session (option B). Refines D119(d).
+  - **Rule:** the check gates on the mode the TEST d20 was settled in (the evidence `rollMode`), not on the mode the rules derived from roll contributors. A GM-adjudicated advantage the app has no contributor for unlocks the rider; a roller who flattens a derived advantage forgoes it, as at the table.
+  - **Sight:** a sight-governed d20 (a Blinded or unseen target) settles in the true mode whatever the roller chose (D100), so the check follows the true mode. The evidence `rollMode` already holds it.
+  - **Seal:** the OUTCOME template checksum is unchanged (it hashes the authored groups, restricted or not). Only the published graph depends on the TEST result, and `resolveEncounterActionPhaseExecution` is the sole place that reads it.
+  - **Removed:** the `dnd5e.attack-roll-mode` bound fact. Nothing else read it.
 
 ## Approved implementation decisions
 

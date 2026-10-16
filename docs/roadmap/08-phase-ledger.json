@@ -5727,9 +5727,11 @@
             {
               "id": "ATTACK-9.2",
               "text": "Sneak Attack adds its level-scaled dice once per turn to a hit with a finesse or ranged weapon when the attack has advantage or an enemy of the target is within 5 feet of it and the attacker has no disadvantage; critical hits double the dice. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts; closes after T2b-T2d"
+                "partial: T2a (CI 38838173590 at 56db035bd, merged 2026-10-15) merges PASSIVE ON_HIT riders, CLASS_LEVEL dice and the triggering weapon damage type: packages/rules-runtime/src/__tests__/characterOnHitRiders.test.ts, characterOnHitRiderMerge.test.ts",
+                "T2d: ONCE_PER_TURN and the real SRD Rogue Sneak Attack: packages/source-data srdSneakAttack.test.ts, packages/encounter-persistence turnUses.test.ts, apps/session-worker nativeRoomOncePerTurn.test.ts, nativeMovementOncePerTurnRider.test.ts, nativeRoomEnemyProximity.test.ts; authored parity: apps/web src/forms/tests/AuthoredDomainFieldParity.test.tsx",
+                "T2e (D124): the roll-mode gate reads the settled d20: apps/session-worker/test/nativeRoomSettledRollMode.test.ts"
               ],
               "origin": [],
               "note": "D58: extra-dice riders are CLOSED_RULE until this AC."
@@ -5842,14 +5844,13 @@
                 "after": ["ATTACK-9.T1"]
               },
               "id": "ATTACK-9.T2d",
-              "status": "IN_PROGRESS",
-              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack).",
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t2.md"
+              "status": "DONE",
+              "text": "D119 (f): ONCE_PER_TURN usage limit backed by the enforced per-turn record (Encounter, round, turn actor, actor), replay-safe and undoable; finishes AC 9.2 with the full Sneak Attack proof. Includes enemy proximity for opportunity attacks and reactions (Sneak Attack on an opportunity attack)."
             },
             {
               "id": "ATTACK-9.T2e",
               "text": "Sneak Attack and other roll-mode-gated paths gate on the settled roll mode (TEST evidence rolledMode), not the derived mode, so hand-rolled and GM-adjudicated advantage count (architect ruling: option B; D-entry and rules-runtime guide).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-9.2"],
               "wsjf": {
                 "bv": 5,

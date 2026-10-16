@@ -764,6 +764,41 @@ describe('effect schema parsing', () => {
     expect(effect('ON_MISS')).toBe(false)
   })
 
+  it('lets only an ON_HIT or ON_CRIT path carry a once-per-turn usage limit', () => {
+    const effect = (pathCode: string, usage: string) =>
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000f3',
+        order: 1,
+        invocation: {
+          kind: 'PASSIVE',
+          triggerCode: 'MELEE_WEAPON_ATTACK',
+          range: { id: 'usage-range', rangeKind: 'SPECIAL' }
+        },
+        paths: [
+          fixedPath(
+            'limited-path',
+            1,
+            pathCode,
+            singleResultBlock('limited-result', {
+              id: 'limited-damage',
+              effectKind: 'DAMAGE',
+              damageTypeId: 'fire',
+              valueKind: 'DICE',
+              scalingKind: 'NONE',
+              diceConfig: '1d6'
+            }),
+            { usage }
+          )
+        ]
+      }).success
+
+    expect(effect('ON_HIT', 'ONCE_PER_TURN')).toBe(true)
+    expect(effect('ON_CRIT', 'ONCE_PER_TURN')).toBe(true)
+    expect(effect('ON_HIT', 'TWICE_PER_TURN')).toBe(false)
+    expect(effect('ON_SAVE_FAIL', 'ONCE_PER_TURN')).toBe(false)
+    expect(effect('ON_MISS', 'ONCE_PER_TURN')).toBe(false)
+  })
+
   it('accepts repeat roll influence only on a target-turn-end repeated follow-up save', () => {
     const followUpSave = {
       id: '00000000-0000-4000-8000-0000000000e4',

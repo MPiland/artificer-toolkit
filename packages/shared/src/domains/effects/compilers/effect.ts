@@ -37,7 +37,8 @@ import {
   type PathRollTableKind,
   type Trigger,
   type PathCode,
-  type PathGroupType
+  type PathGroupType,
+  type PathUsage
 } from '#core'
 import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 import {
@@ -64,6 +65,13 @@ export type CompiledEffect = {
   duration?: CompiledDuration
   lifecycle?: PathLifecycleAuthored
   restrictions?: FacetAuthored
+  usage?: PathUsage
+  /**
+   * What a once-per-turn entry spends. Set when a passive Feature's rider is merged into an attack
+   * (the Feature's id, so every Effect of that Feature shares one use); absent, the entry's own
+   * Effect is the key.
+   */
+  usageKey?: string
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
   /**
@@ -390,6 +398,7 @@ function compileResultBlock(
         ...(duration ? { duration } : {}),
         ...(resultBlock.lifecycle ? { lifecycle: resultBlock.lifecycle } : {}),
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
+        ...(path.usage ? { usage: path.usage } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),
         ...(path.targetingOverride ? { targetingOverride: path.targetingOverride } : {})
       }
