@@ -8677,7 +8677,9 @@
             {
               "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574"
+              ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
               "id": "REACTION-4.1"
@@ -8780,9 +8782,8 @@
             {
               "id": "REACTION-4.T3b",
               "text": "CAST_REACTION pause, SPENT_NO_EFFECT terminal result and the cast apply path, wiring discoverCastReactionActions and executionCancelsTriggeringEvent; narrow the attack-path pin types to exclude SPELL_CAST; a Counterspell on a cast of level at or below its slot cancels it (no roll), with undo, replay and the web drawer; web authoring parity for a SPELL_CAST reaction.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -8794,7 +8795,7 @@
             {
               "id": "REACTION-4.T3c",
               "text": "Counterspell level gate: TRIGGER_FACT cast level plus the ability-check test kind (option A), so a higher-level cast needs a successful check.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -8802,7 +8803,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T3d",
@@ -8815,6 +8817,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3e",
+              "text": "Cast reactions for creature-capability casts, chosen-creature (ACTORS) casts and area casts: the same CAST_REACTION pause and countered-cast terminal as a Character single-target cast.",
+              "status": "TODO",
+              "closes": ["REACTION-4.1"],
+              "wsjf": {
+                "bv": 6,
+                "tc": 2,
+                "rr": 4,
+                "size": 3,
+                "after": ["REACTION-4.T3b"]
               }
             },
             {
