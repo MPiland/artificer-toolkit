@@ -1,3 +1,4 @@
+import { jsonValueSchema } from '../projections/identity.js'
 import { z, lazySchema } from '../zod.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -19,6 +20,20 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
      * cast it, `null` when a Creature did. Another Concentration of that Character ends the grant.
      */
     concentrationCasterCharacterId: z.optional(z.nullable(postgresUuidSchema)),
+    /**
+     * Only on a `CREATURE_FORM` effect carried out of its Run (D99, SPELLS-28.T4b): the form's
+     * Creature and hit points, which the next Run's actor for the Character resumes.
+     */
+    carriedCreatureForm: z.optional(
+      z.strictObject({
+        sourceId: postgresUuidSchema,
+        sourceRevision: z.number().check(z.int()).check(z.positive()),
+        snapshot: jsonValueSchema,
+        currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+        maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+        tempHitPoints: z.number().check(z.int()).check(z.nonnegative())
+      })
+    ),
     /**
      * Only on a `LOCATION_CONCEALMENT` effect: the observers its holder's location is unknown to,
      * sorted and unique. Search, the GM and a token move shrink it; the definition stays immutable.
