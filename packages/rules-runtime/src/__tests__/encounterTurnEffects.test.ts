@@ -282,6 +282,17 @@ describe('prepareEncounterTurnEffects', () => {
     expect(run.remainingFaces()).toBe(0)
   })
 
+  it('counts down an effect that also ends on an event, leaving the event to its consumer', async () => {
+    const ending = await effect(1, { ticks: 3, endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL'] })
+    const run = prepare({ effects: [ending], faces: [10] })
+
+    const result = await complete(run)
+
+    expect(result.plan?.executions.map((execution) => execution.lifecycle)).toMatchObject([
+      { kind: 'UPDATE', beforeRemainingTicks: 3, afterRemainingTicks: 2 }
+    ])
+  })
+
   it('auto-rolls each failed save in createdOrdinal order and chains the damage through both effects', async () => {
     const [heavier, lighter] = await effectPair({ damage: 2 }, { damage: 1 })
     const run = prepare({ effects: [lighter, heavier], faces: [10, 4] })

@@ -377,8 +377,9 @@ function prepareRecurringActiveEffect(
       consumeOnFirstEvents:
         grantContribution?.consumeOnFirstEvents ??
         plan.concealmentContribution?.consumeOnFirstEvents ??
+        conditionContribution?.consumeOnFirstEvents ??
         [],
-      endOnEvents: grantContribution?.endOnEvents ?? [],
+      endOnEvents: grantContribution?.endOnEvents ?? conditionContribution?.endOnEvents ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
       // A grant outlasts the Encounter when the target's lifetime scope says so. A Concentration
