@@ -330,6 +330,28 @@ describe('excluded creature types in a compiled save', () => {
     ).toBe('TEST_OUTCOME')
   })
 
+  it('compiles a single-target save restricted to a creature type, which the room warns about', () => {
+    expect(
+      compile({
+        range: { rangeKind: 'TOUCH' },
+        shape: undefined,
+        targeting: { ...singleTarget, allowedCreatureTypeIds: [UNDEAD] }
+      } as Partial<Invocation>).plan?.kind
+    ).toBe('TEST_OUTCOME')
+  })
+
+  it('still refuses an area restricted to a creature type', () => {
+    expect(() =>
+      compile({
+        targeting: {
+          selectionKind: 'AREA_CONTENTS',
+          dispositionKind: 'ANY',
+          allowedCreatureTypeIds: [UNDEAD]
+        }
+      } as Partial<Invocation>)
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  })
+
   it('still refuses an area that excludes a creature type', () => {
     expect(() =>
       compile({

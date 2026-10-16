@@ -16,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const planarBinding: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.PLANAR_BINDING,
@@ -53,7 +53,13 @@ export const planarBinding: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          allowedCreatureTypeIds: [
+            creatureTypeId('CELESTIAL'),
+            creatureTypeId('ELEMENTAL'),
+            creatureTypeId('FEY'),
+            creatureTypeId('FIEND')
+          ]
         }
       },
       paths: [

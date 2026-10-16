@@ -16,6 +16,7 @@ import {
 import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import {
   authoredRouteStoryRecords,
   authoredRouteStorySystem,
@@ -61,6 +62,7 @@ const SYSTEM_MANAGED_PATH_KEYS = new Set([
 const DISPLAY_COPY_KEYS = new Set(['description', 'label'])
 const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
 const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
+const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
 const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
 
 const scenarios = createBranchScenarios()
@@ -87,6 +89,12 @@ const rageCases = registrationCases.filter(
 const rageScenario = scenarios.find(({ label }) => label === RAGE_SCENARIO_LABEL)
 if (!rageScenario) throw new Error('Expected the SRD Rage class scenario.')
 const rageFormValues = toActualFormValues('class', parseScenarioRecord(rageScenario))
+const holdPersonCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === HOLD_PERSON_SCENARIO_LABEL
+)
+const holdPersonScenario = scenarios.find(({ label }) => label === HOLD_PERSON_SCENARIO_LABEL)
+if (!holdPersonScenario) throw new Error('Expected the SRD Hold Person spell scenario.')
+const holdPersonFormValues = toActualFormValues('spell', parseScenarioRecord(holdPersonScenario))
 const absorbCases = registrationCases.filter(
   ({ scenarioLabel }) => scenarioLabel === ABSORB_SCENARIO_LABEL
 )
@@ -187,6 +195,42 @@ describe('SRD Rage feature effect authoring parity', () => {
 
     expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
       stripKeys(rageEffects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
+describe('SRD Hold Person creature type restriction authoring parity', () => {
+  it('authors the creature type restriction this parity gate is meant to prove', () => {
+    expect(holdPerson.effects?.[0]?.invocation.targeting).toMatchObject({
+      selectionKind: 'SINGLE_TARGET',
+      allowedCreatureTypeIds: [expect.any(String)]
+    })
+  })
+
+  it('keeps the allowed creature types through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'spell',
+      values: holdPersonFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(holdPersonFormValues)
+  })
+
+  it('submits the form values of the spell as the SRD Hold Person effect', async () => {
+    const rootContext = holdPersonCases.find(
+      ({ context }) => context.model.mapId === 'spell'
+    )?.context
+    if (!rootContext) throw new Error('Expected the resolved Hold Person spell root context.')
+    await renderUntilRegistered(rootContext.model, holdPersonFormValues)
+
+    const session = createScenarioSession('spell', parseScenarioRecord(holdPersonScenario))
+    const submitted = spellAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(holdPerson.effects, NON_STRUCTURAL_KEYS)
     )
   })
 })
@@ -543,6 +587,16 @@ function createBranchScenarios(): BranchScenario[] {
       }
     },
     { domain: 'spell', label: 'spell material and deep effects', record: fireball },
+    {
+      domain: 'spell',
+      label: HOLD_PERSON_SCENARIO_LABEL,
+      record: {
+        ...fireball,
+        id: 'story-hold-person',
+        label: 'Hold Person Test Spell',
+        effects: holdPerson.effects
+      }
+    },
     {
       domain: 'spell',
       label: ABSORB_SCENARIO_LABEL,
