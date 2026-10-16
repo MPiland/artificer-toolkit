@@ -23,14 +23,14 @@ Idle fit before the fix, from `usageStats` regression: about 25 ms per record pl
 
 Maximum `userExecutionTime` per mutation, in ms. Limit 1000.
 
-| Mutation | Before idle | Before loaded (16 burners) | After idle | After loaded (12 burners) |
-| --- | --- | --- | --- | --- |
-| `bootstrap` | 199 | 322 | 76 | 160 |
-| `importSubjects` | 377 | **1005, timed out** | 151 | 308 |
-| `importDefinitions` | 101 | not reached | 85 | 98 |
-| `syncClassDerived` | 60 | not reached | 37 | 53 |
-| `raceRelationships.syncDerived` | 85 | not reached | 60 | 93 |
-| `syncEquipmentDerived` | 212 | not reached | 97 | 222 |
+| Mutation                        | Before idle | Before loaded (16 burners) | After idle | After loaded (12 burners) |
+| ------------------------------- | ----------- | -------------------------- | ---------- | ------------------------- |
+| `bootstrap`                     | 199         | 322                        | 76         | 160                       |
+| `importSubjects`                | 377         | **1005, timed out**        | 151        | 308                       |
+| `importDefinitions`             | 101         | not reached                | 85         | 98                        |
+| `syncClassDerived`              | 60          | not reached                | 37         | 53                        |
+| `raceRelationships.syncDerived` | 85          | not reached                | 60         | 93                        |
+| `syncEquipmentDerived`          | 212         | not reached                | 97         | 222                       |
 
 - **Margin reached:** the largest mutation after the fix is `importSubjects` at 151 ms idle (6.6 times under the limit, from 377) and 308 ms loaded (3.2 times under; the loaded run completed and audited green).
 - **Before, loaded:** 16 busy-loop processes on 16 logical CPUs. The seed failed at the 121st `importSubjects` call.

@@ -36,7 +36,9 @@ const blockedWords = anchoredUsernameTerms.flatMap((term) => [term, `${term}s`])
 const blockedTerms = indexByRuns(blockedWords)
 
 // Built on the first compound check so isolates that only import the auth options do not pay for it.
-let lexicon: { words: ReadonlySet<string>; cleanWordsByRuns: ReadonlyMap<string, string[]> } | undefined
+let lexicon:
+  | { words: ReadonlySet<string>; cleanWordsByRuns: ReadonlyMap<string, string[]> }
+  | undefined
 function getLexicon(): NonNullable<typeof lexicon> {
   if (!lexicon) {
     const words = new Set([...usernameWordList.split(' '), ...allowedUsernameTerms])
@@ -66,7 +68,10 @@ function isBlockedCompound(candidate: string): boolean {
     for (let start = 0; start < end; start++) {
       const piece = candidate.slice(start, end)
       if (findsPaddedWord(piece, cleanWordsByRuns)) {
-        cleanPieces[end] = Math.min(cleanPieces[end] ?? Infinity, (cleanPieces[start] ?? Infinity) + 1)
+        cleanPieces[end] = Math.min(
+          cleanPieces[end] ?? Infinity,
+          (cleanPieces[start] ?? Infinity) + 1
+        )
         blockedPieces[end] = Math.min(
           blockedPieces[end] ?? Infinity,
           (blockedPieces[start] ?? Infinity) + 1

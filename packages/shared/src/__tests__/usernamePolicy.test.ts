@@ -105,15 +105,12 @@ describe('validateUsername', () => {
     'Tittie',
     'TittyLover',
     'Titty_Fan'
-  ])(
-    'refuses the unambiguous term in %s',
-    (username) => {
-      expect(validateUsername(username)).toEqual({
-        username,
-        message: USERNAME_NOT_ALLOWED_MESSAGE
-      })
-    }
-  )
+  ])('refuses the unambiguous term in %s', (username) => {
+    expect(validateUsername(username)).toEqual({
+      username,
+      message: USERNAME_NOT_ALLOWED_MESSAGE
+    })
+  })
 
   it('leaves the unbroken compound to the server check', () => {
     expect(validateUsername('assmuncher')).toEqual({ username: 'assmuncher', message: null })
