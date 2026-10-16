@@ -1,6 +1,6 @@
 # Slice SPELLS-27.T3b: every cast ends cast-ended effects
 
-Status: IN_PROGRESS (workbook session SPELLS-8.T1).
+Status: DONE (workbook session SPELLS-8.T1), green on `ci/spells-27-t3b`.
 
 Scope: part of AC SPELLS-27.1. Character reactor casts (Shield, Counterspell as reactor) and Creature and Legendary casts raise ON_CAST_SPELL and end the caster's own cast-ended effects. Proofs: an area cast that catches its own invisible caster, replay after a declined Counterspell offer, a cantrip whose only Sheet change is the release. The authoring-parity test asserts an invalid end event is cleared.
 
@@ -31,4 +31,7 @@ Branch: `ci/spells-27-t3b`, based on `ci/merge-batch-ae`. Parent: [slice-spells-
 
 ## Log
 
-- Red run on `ci/spells-27-t3b-red` (`a41282184`): Tests 38905397540, Live backend 38905397838.
+- Red run on `ci/spells-27-t3b-red` (`a41282184`): Tests 38905397540 failed (typecheck: missing `preparedCastsSpell`; the nine `preparedCastsSpell` unit tests; the strengthened parity test); Live backend 38905397838 green (tests only). Several room proofs (area-catches-caster, declined replay, cantrip) cover paths T3 already handled and pass before the fix.
+- Green attempt 1 on `995f80db9`: Tests 38907163874 failed. Typecheck `cast.reactor` possibly undefined (a COUNTERED cast carries `found`, not `reactor`), which threw in the four Counterspell room tests; and my parity assertion compared the cleaned effects with a variant built by another call (fresh ids). Fixed in `01580d020`.
+- Green on `01580d020`: Tests 38909640064, Live backend 38909640413.
+- Independent opus review: one HIGH fixed (Legendary evidence `castsSpell`), one HIGH deferred, one MEDIUM stands (see Disclosures).
