@@ -8260,8 +8260,8 @@
               }
             },
             {
-              "id": "SPELLS-27.T2",
-              "text": "One consumer effectsEndedBy over both event lists for any v2 effect; Invisibility ends on its holder's attack roll after granting advantage; GM undo restores it (journey).",
+              "id": "SPELLS-27.T2a",
+              "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D124); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
@@ -8274,6 +8274,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
+              "id": "SPELLS-27.T2b",
+              "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T2a"]
+              }
+            },
+            {
               "id": "SPELLS-27.T3",
               "text": "ON_CAST_SPELL fact on cast commits feeds the consumer; Invisibility ends on a cast; authoring parity through the real form.",
               "status": "TODO",
@@ -8283,7 +8296,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T2"]
+                "after": ["SPELLS-27.T2a"]
               }
             },
             {
@@ -8296,7 +8309,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T2"]
+                "after": ["SPELLS-27.T2a"]
               }
             },
             {
@@ -9805,6 +9818,44 @@
             "rr": 5,
             "size": 5
           }
+        },
+        {
+          "id": "RELIABILITY-13",
+          "title": "Development fixture cleanup is deterministic",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "id": "RELIABILITY-13.1",
+              "text": "developmentLifecycleProof.test.ts passes deterministically: scenes/developmentScene:removeFixtureState never throws \"Fixture Scene bounds or ownership mismatch\" for a fixture the test created, and a test reproduces the failing order or state before the fix.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-16: intermittent failure in Convex suite shard 3/4 (run 38848532122 on ci/attack-17-t2 at 3c20a8a0d), passing on the next run with only an error-message change; ATTACK-17.T2 session found it pre-existing (error raised only in post-test cleanup). The cleanup error now names the failing bound counts."
+            }
+          ],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 2
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-13.T1",
+              "text": "Find the nondeterminism in fixture Scene cleanup (bound counts in the error), reproduce it deterministically, fix the root cause.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-13.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              }
+            }
+          ]
         }
       ]
     },
