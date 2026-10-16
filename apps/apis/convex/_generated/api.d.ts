@@ -28103,6 +28103,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -31580,6 +31581,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -37851,6 +37853,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -41328,6 +41331,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -47608,6 +47612,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -51085,6 +51090,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -57356,6 +57362,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -60833,6 +60840,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -67139,6 +67147,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -70616,6 +70625,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -76887,6 +76897,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -80364,6 +80375,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -86558,6 +86570,7 @@ export declare const api: {
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
                           | { kind: "ATTACKED_SELF" }
+                          | { kind: "SPELL_CAST" }
                           | {
                               damageTypeIds: Array<string>;
                               kind: "DAMAGE_TAKEN";
@@ -89989,6 +90002,7 @@ export declare const api: {
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
                           | { kind: "ATTACKED_SELF" }
+                          | { kind: "SPELL_CAST" }
                           | {
                               damageTypeIds: Array<string>;
                               kind: "DAMAGE_TAKEN";
@@ -96255,6 +96269,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -99732,6 +99747,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -106003,6 +106019,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
@@ -109480,6 +109497,7 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | { kind: "ATTACKED_SELF" }
+                            | { kind: "SPELL_CAST" }
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
