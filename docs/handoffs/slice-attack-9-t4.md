@@ -1,13 +1,13 @@
 # Workbook: ATTACK-9.T4 Divine Smite and Improved Divine Smite (AC ATTACK-9.4)
 
-**Status:** D123 ruled Option A on 2026-10-15; building in increments I1-I4 (below). Branch `claude/stoic-hypatia-f53439`, CI branch `ci/attack-9-t4`.
+**Status:** D123 ruled Option A on 2026-10-15; I1-I4 built, waiting on CI (below). Branch `claude/stoic-hypatia-f53439`, CI branch `ci/attack-9-t4`.
 **Base:** phase branch `codex/phase-08-2-convex-cutover`, T2a (`6fb948a36`, riders) merged in.
 
 ## Brief
 
 AC ATTACK-9.4: after a Paladin hits with a melee weapon attack, the player may spend a spell slot to add 2d8 radiant (+1d8 per slot level above 1st, max 5d8; +1d8 against undead or fiends), doubled on a critical hit; Improved Divine Smite adds 1d8 radiant to every melee weapon hit. Authored only from core authoring options; an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.
 
-Today both Paladin Features (`packages/source-data/src/srd/classes/paladin.ts` ~815 and ~964) are inert `CLOSED_RULE` effects (`CLASS_PALADIN_DIVINE_SMITE`, `CLASS_PALADIN_IMPROVED_DIVINE_SMITE`).
+Before this slice both Paladin Features (`packages/source-data/src/srd/classes/paladin.ts`) were inert `CLOSED_RULE` effects; they are now authored from core options and the two closed-rule kinds are deleted.
 
 ## Survey findings
 
@@ -51,7 +51,7 @@ D107 (as cited in the brief) covers hand slots and the off-hand default; it defi
 
 ## Settled runtime shape (D123)
 
-- **Authoring.** `optionalOnHit` is a field of a `PASSIVE` weapon-attack invocation: `{ cost: { kind: 'SPELL_SLOT' } | { kind: 'RESOURCE_POOL', chargeId, cost } }`. Nothing else marks a rider optional. The rider's damage rows are keyed by `SPELL_CAST_LEVEL` (D118), so the level the player picks selects the row.
+- **Authoring.** `optionalOnHit` is a field of a `PASSIVE` weapon-attack invocation: `{ kind: 'SPELL_SLOT' }` (the `RESOURCE_POOL` cost was dropped: nothing needs it and only the slot exists in the cost model). Nothing else marks a rider optional. The rider's damage rows are keyed by `SPELL_CAST_LEVEL` (D118), so the level the player picks selects the row.
 - **Merge.** `collectOnHitRiders` carries the rider's effect id and `optionalOnHit`; `mergeOnHitRiders` appends an optional rider's entries to the weapon's compiled effect through the same path, stamped `optionalRider: { riderId, cost }`. They stay in `compiledEffect`, so TEST, `compilerSourceChecksum` and the plan are stable whether or not the rider is chosen.
 - **Selection.** The OUTCOME specialization drops every entry stamped `optionalRider` unless its `riderId` is in the bound fact `dnd5e.selected-optional-riders`; the cast level rides in the existing `dnd5e.spell-cast-level` fact. The Sheet's action card (`normalizeCharacterActionMechanicFacts`) never lists an optional rider.
 - **Pause.** After a hit (and after any `reactionChoice` resolves) the attacker's riders it can pay for hold the occurrence with `applicationContext.onHitChoice`, mirroring `reactionChoice`: choice graph via `startReactionChoice`, a pin, an audit in the OUTCOME `twoPhase`. A choice rebuilds the TEST under an adjusted binding (`reconstructNativeActionTest` without `execution`), as a used reaction does, then `continueNativeActionAfterTest` with the audit.
@@ -63,3 +63,9 @@ D107 (as cited in the brief) covers hand slots and the off-hand default; it defi
 - I2: `onHitChoice` pause (schema, runtime, persistence, Worker), slot/pool spend and undo; Worker journey.
 - I3: SRD Paladin Features from core options, closed-rule kinds deleted, authoring parity test, Improved Divine Smite.
 - I4: decision drawer, docs, creature-type predicate after T2b merges.
+
+## Status
+
+- I1-I3 built and pushed to `ci/attack-9-t4`: authoring option, merge, selection, `onHitChoice` pause across schema/runtime/persistence/Worker/drawer, SRD Paladin Features from core options (creature-type restriction added to the D119 roll-time checks via `dnd5e.target-creature-type`), closed-rule kinds deleted.
+- Proofs: `rules-runtime/src/__tests__/srdDivineSmite.test.ts` (variants: cap 5d8, undead/fiend, crit, ranged, Improved), `encounterOnHitChoice.test.ts`, `characterOptionalOnHitRiders.test.ts`, `attackRestrictions.test.ts`; Worker `nativeRoomOnHitChoice.test.ts` (offer, 3d8, crit, decline, slot spend, GM undo, SRD ghoul); web `AuthoredDomainFieldParity.test.tsx` (SRD Divine Smite features versus the real form).
+- Not covered: a Shield-then-Smite chain in one Worker room (the room fixture supports one Character; the ordering is `reactionChoice` first, enforced by mutual exclusion in the pending schema and by `nativeEncounterRules`). Recorded as a risk.
