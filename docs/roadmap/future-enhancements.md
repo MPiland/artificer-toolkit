@@ -89,6 +89,11 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 These are rare paths, roughly under 5% of sessions, whose failure is visible and recoverable (user direction, 2026-10-15). Fix one when real use shows it happening.
 
+- **A free GM pick for an attack on a square (ATTACK-17.T4):** the GM chooses only among the creatures whose token covers the square. Letting the GM name any creature (a creature that dodged into the square, a large creature the token footprint misses) is a larger rule and is deferred.
+- **Square attack answer after the pending index is lost (ATTACK-17.T4a):** a retried GM answer replays by its derived child command id; if the room journal has forgotten the pending and the occurrence index, the retry is rejected as stale rather than replayed. Rare and recoverable by aiming again.
+- **Square attack range is checked on the GM answer (ATTACK-17.T4a):** the aim seals the candidates, and the ordinary attack run on the named creature raises its normal range warning then, so the player learns of an out-of-range target only after the GM answers.
+- **A Scene edit while a square attack pends (ATTACK-17.T4a):** the candidates are sealed with the Scene version; a token moved afterwards does not change them, and the child attack re-reads the Scene as any attack does.
+- **An empty square is refused until T4b (ATTACK-17.T4a):** a player who aims at a square with nobody on it gets `TARGET_UNAVAILABLE`, which tells them it is empty. T4b replaces it with the guaranteed-miss root.
 - **Live-backend script spawn failure:** if `yarn` can't start, `scripts/liveBackendValidation.mjs` throws an unhandled rejection instead of a step error. This is dev tooling; the run still fails, just with a noisier log.
 - **`--fresh` guard:** `liveBackendValidation.mjs --fresh` checks the container by name only. A different container given the same name would be reset.
 - **Chosen-creature list and a moved Scene (SPELLS-8.T12):** the list commit (`areaCommitPersistence.ts`, `input.area === null`) does not re-read the Scene, so a token moved between planning and commit (the sphere membership or range was checked at plan time) is not re-checked. Single-target commits re-read it. Only a Scene edit landing inside one command's await gap triggers it, and the GM can undo the cast.

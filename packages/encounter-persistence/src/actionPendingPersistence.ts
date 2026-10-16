@@ -15,6 +15,7 @@ import {
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot
 } from './actionAreaPending.js'
+import { requireAttackSquarePendingRoot } from './attackSquarePending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
@@ -85,7 +86,23 @@ export async function persistEncounterActionPending(
     | null = null
   // A cast on chosen creatures never waits for anyone: it commits whole or not at all.
   if (target.kind === 'ACTORS') throw new Error('Live Session pending action root mismatch.')
-  if (target.kind !== 'ACTOR') {
+  // An attack on a square waits for the GM to name who stands there, and is never itself resumed.
+  if (target.kind === 'SQUARE') {
+    if (input.command.optionalCombatIntent != null || resume)
+      throw new Error('Live Session pending action root mismatch.')
+    await requireAttackSquarePendingRoot(
+      ctx,
+      {
+        snapshot,
+        command: { ...admission.input, target },
+        fingerprint,
+        initiatorUserId,
+        state,
+        actors
+      },
+      callbacks.readAreaSceneInputs
+    )
+  } else if (target.kind !== 'ACTOR') {
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume) {
