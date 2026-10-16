@@ -1195,8 +1195,8 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
   const breathArea = { kind: 'CONE' as const, length: { amount: 15, unit: 'FEET' as const } }
   const breath = validatedChoice({
     ...actions[0]!,
-    id: 'creature-dragon:breath',
-    label: 'Breath',
+    id: 'creature-wolf:cone',
+    label: 'Cone',
     sourceLabel: 'Creature',
     rangeLabel: 'Self',
     attackBonus: undefined,
@@ -1298,7 +1298,7 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
     const burst = validatedChoice({
       ...breath,
-      id: 'creature-dragon:burst',
+      id: 'creature-wolf:burst',
       label: 'Burst',
       target: {
         kind: 'CASTER_CENTERED' as const,
