@@ -8062,7 +8062,60 @@
             "rr": 3,
             "size": 5
           },
-          "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+          "tasks": [
+            {
+              "id": "SPELLS-19.T1",
+              "text": "A point-area outcome commits conditions, lasting or recurring effects and relationship conditions on each caught creature through the single-target settlement path; GM undo removes them from every one.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-19.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5
+              }
+            },
+            {
+              "id": "SPELLS-19.T2",
+              "text": "One maintained (Concentration) effect spans every caught creature of a point-area action; ending Concentration or GM undo removes it from all of them.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T3",
+              "text": "Timed and repeat-save condition breaths compile in the dnd5e System compiler and resolve through the area executor: Silver (5), Dust Mephit, Brass Sleep (4), Copper Slowing (4), Gold Weakening (4), and Gorgon Petrifying Breath with its repeat save authored; the corpus test pins each row red first.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-19.T1"]
+              }
+            },
+            {
+              "id": "SPELLS-19.T4",
+              "text": "Bronze Repulsion Breath (4): an area pushes each creature that fails 30 ft away from the breather through the forced-movement path; the SPELLS-21 corpus list of non-compiling breaths is empty.",
+              "status": "TODO",
+              "closes": ["SPELLS-19.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-19.T1"]
+              }
+            }
+          ]
         },
         {
           "id": "SPELLS-20",
