@@ -9,6 +9,9 @@ export { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORED_LIMITS }
 
 export const MAX_ENCOUNTER_ACTORS = AUTHORED_LIMITS.nestedCollectionItems
 
+/** The reactions one pause offers: a few reaction spells, each at every slot level (a Character's menu). */
+export const MAX_ENCOUNTER_REACTION_OPTIONS = 36
+
 export const authoredIdentifierSchema = lazySchema(() =>
   z.string().check(z.maxLength(AUTHORED_LIMITS.shortTextCharacters))
 )

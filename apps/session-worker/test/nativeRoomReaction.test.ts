@@ -795,13 +795,14 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
     await strike(room, 0)
     const { pending, context } = await offeredMenu(room)
 
-    expect(pending.options).toHaveLength(2)
+    // Each reaction spell is offered once for each slot level the Character owns (five here), lowest first.
+    expect(pending.options).toHaveLength(10)
     expect(pending.options.map(({ optionId }) => optionId)).toEqual(
       context.reactionChoice?.reactions.map(({ useOptionId }) => useOptionId)
     )
-    expect(context.reactionChoice?.reactions.map(({ trigger }) => trigger).sort()).toEqual([
-      'ATTACKED_SELF',
-      'DAMAGE_TAKEN'
+    expect(context.reactionChoice?.reactions.map(({ trigger }) => trigger)).toEqual([
+      ...Array(5).fill('ATTACKED_SELF'),
+      ...Array(5).fill('DAMAGE_TAKEN')
     ])
     expect(await readSpellSlots(room)).toEqual([])
   })

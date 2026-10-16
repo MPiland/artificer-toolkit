@@ -9,6 +9,7 @@ import {
 
 const range = { rangeKind: 'DISTANCE', amount: 60, longAmount: null, unit: 'FEET' }
 
+let nextSequence = 0
 const candidate = (
   actionId: string,
   activation: string | null,
@@ -16,6 +17,7 @@ const candidate = (
   effectKind = 'CANCEL_TRIGGERING_EVENT'
 ) => ({
   actionId,
+  sequence: nextSequence++,
   effectId: `${actionId}-effect`,
   mechanicFacts: {
     invocation: {
@@ -34,7 +36,8 @@ const reactor = (candidates: ReturnType<typeof candidate>[]) =>
   }) as unknown as Parameters<typeof discoverCastReactionActions>[0]
 
 describe('cast reaction discovery', () => {
-  it('offers only reaction actions bound to SPELL_CAST, in action id order', () => {
+  it('offers only reaction actions bound to SPELL_CAST, in the order the Character lists them', () => {
+    nextSequence = 0
     const found = discoverCastReactionActions(
       reactor([
         candidate('spell:counterspell:b', 'REACTION', { kind: 'SPELL_CAST' }),
@@ -44,8 +47,8 @@ describe('cast reaction discovery', () => {
       ])
     )
     expect(found.map((action) => action.actionId)).toEqual([
-      'spell:counterspell:a',
-      'spell:counterspell:b'
+      'spell:counterspell:b',
+      'spell:counterspell:a'
     ])
     expect(found[0]?.range).toEqual(range)
   })

@@ -15,22 +15,21 @@ type CastReactionAction = Pick<CharacterActionCandidate, 'actionId' | 'effectId'
 export function discoverCastReactionActions(
   reactor: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>
 ): readonly CastReactionAction[] {
+  // In the Character's own listing order, so a spell's casts run from its lowest level up.
   const candidates: readonly CharacterActionCandidate[] = [
     ...(reactor.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
     ...(reactor.characterSpellCast?.candidates ?? [])
-  ]
-  return candidates
-    .flatMap<CastReactionAction>(
-      ({ actionId, effectId, mechanicFacts: { invocation, outcomes } }) =>
-        invocation.activation?.code === 'REACTION' &&
-        invocation.reactionTrigger?.kind === 'SPELL_CAST' &&
-        outcomes.some(
-          (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'CANCEL_TRIGGERING_EVENT'
-        )
-          ? [{ actionId, effectId, range: invocation.range }]
-          : []
-    )
-    .sort((left, right) => left.actionId.localeCompare(right.actionId))
+  ].sort((left, right) => left.sequence - right.sequence)
+  return candidates.flatMap<CastReactionAction>(
+    ({ actionId, effectId, mechanicFacts: { invocation, outcomes } }) =>
+      invocation.activation?.code === 'REACTION' &&
+      invocation.reactionTrigger?.kind === 'SPELL_CAST' &&
+      outcomes.some(
+        (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'CANCEL_TRIGGERING_EVENT'
+      )
+        ? [{ actionId, effectId, range: invocation.range }]
+        : []
+  )
 }
 
 /**

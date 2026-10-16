@@ -738,7 +738,10 @@ describe('Character spell casting in an Encounter', () => {
   it('casts a 1st-level spell with a 3rd-level pact slot and spends that pact slot, undone to nothing', async () => {
     const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
     const fixture = await setup({ pactLevel: 3, known: [mend] })
-    expect((await spellChoices(fixture, 0)).map(({ label }) => label)).toEqual(['Mend (1st level)'])
+    expect((await spellChoices(fixture, 0)).map(({ label }) => label)).toEqual([
+      'Mend (1st level)',
+      'Mend (3rd level)'
+    ])
     const actionId = await choiceId(fixture, 'Mend (1st level)', 0)
     const cast = await executeInRoom(fixture.player.caller, {
       command: castCommand(fixture, actionId, 0)

@@ -1,6 +1,6 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { z, lazySchema } from '../zod.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import {
   characterSpellSlotConsumptionReceiptDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
@@ -140,7 +140,10 @@ export const encounterReactionOfferDtoSchema: z.ZodMiniType<EncounterReactionOff
       d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
       originalExecutionChecksum: checksumSchema,
       targetStateChecksum: checksumSchema,
-      reactions: z.array(encounterReactionPinDtoSchema).check(z.minLength(1)).check(z.maxLength(8))
+      reactions: z
+        .array(encounterReactionPinDtoSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS))
     })
 )
 /**
@@ -159,7 +162,7 @@ export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastRea
       reactions: z
         .array(encounterCastReactionPinDtoSchema)
         .check(z.minLength(1))
-        .check(z.maxLength(8)),
+        .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
       declinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     })
   )
