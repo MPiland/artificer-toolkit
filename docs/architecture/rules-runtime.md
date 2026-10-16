@@ -944,7 +944,7 @@ a NEUTRAL actor is never hostile. `prepareEncounterActionMechanics` asks its opt
 supplier only for an attack whose compiled Effect reads the predicate (`effectReadsEnemyProximity`), and puts
 the answer in the binding's `sourceDerivedFacts.attackEnemyProximity`; `bindFacts` emits it as the TEXT fact
 `dnd5e.attack-enemy-proximity` (`{"nearestFeet": number | null}`). An attack without the fact (no Scene
-context, or a path that supplies no loader: opportunity attacks, reactions) leaves the check unanswerable, so
+context, or a path that supplies no loader) leaves the check unanswerable, so
 the group fails whether the constraint is INCLUDE or EXCLUDE. The Session Worker's supplier
 (`nativeAttackEnemyProximity`) re-reads the locked Scene through `ACTION_AREA_SCENE` and loads every actor it
 consults through `loadTarget`, so the room's existing fences are what refuse a mismatch: the capture refuses a
@@ -952,7 +952,25 @@ moved Scene version (`Action Scene context is stale.`) while planning, the commi
 consulted actors' revisions and the Encounter version, and the currentness and bound-facts checksums over the
 binding refuse a resumed paused attack whose fact changed. The capture reads every bound actor's token, so an
 unavailable token refuses the attack, as for an area action. Persistence never
-re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies".
+re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies". A movement
+opportunity attack supplies the same fact: the Session Worker places the mover at the contact point of its
+planned path and measures the Scene with the same helper (`measureNativeEnemyProximity`).
+
+**Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
+(Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own
+Effect and the Feature id for a passive Feature rider merged onto the attack (`oncePerTurnUsageKey`; a
+compiled Effect has one entry per scaling row, so keys are deduplicated). The record is the D38 row
+`encounterTurnMovements`, keyed (Encounter, round, turn actor, actor), extended with `usedOncePerTurn`
+(sorted key ids); there is no second table. `loadTurnUses` (`encounterActionMechanicsPreparation`) reads it
+only for an attack whose Effect reads it (`effectReadsTurnUses`), and `bindFacts` emits it as the
+`dnd5e.attack-turn-uses` TEXT fact; `pathOwed` refuses a limited entry whose key is spent. After the roll
+`spentTurnUses` derives the spent keys from the final evidence `sourceEntryBindings`. The commit writes
+them in the same transaction (`spendTurnUses`; spending an already spent key throws), the command record keeps
+`turnUses {round, turnActorId, keys}`, a replayed command returns the stored result before any spend (so it
+never spends twice), and `REVERT_LAST_ACTION` gives them back (`restoreTurnUses`). A movement opportunity attack carries `turnUses` on
+its reaction settlement and spends them for the reactor. ATTACK-9.T6 reads the same row. Character on-hit
+riders merge only onto equipment-sourced attacks (`collectOnHitRiders`), so a Feature-sourced attack, such as
+a creature-style Bite Feature, gets no rider.
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm

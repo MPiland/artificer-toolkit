@@ -48,7 +48,10 @@ import { evaluateEncounterMovementActionResponse } from '@artificer-toolkit/rule
 import { evaluateEncounterMovementPassageResponse } from '@artificer-toolkit/rules-runtime/encounterMovementPassageResponse'
 import { evaluateEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassageExecution'
 import { prepareEncounterMovementPassageContest } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
-import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  encounterActionSpentTurnUses,
+  prepareEncounterActionMechanics
+} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -64,6 +67,8 @@ import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rule
 import type { MovementConcentrationSettlement } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
+import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
+import { readNativeLiveTurnUses } from './nativeTurnUses.js'
 import {
   prepareNativeLiveMovementConcentration,
   readNativeLiveMovementConcentrationState
@@ -189,6 +194,39 @@ export async function prepareNativeLiveMovement(
           ...mechanics,
           overridable: false,
           loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+          // The reaction attack is made from where the mover is in contact with the reactor.
+          loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
+            measureNativeEnemyProximity({
+              state,
+              actors: captured.actors,
+              attackerActorId: sourceFacts.actor.id,
+              targetActorId: targetFacts.actor.id,
+              grid: scene.grid,
+              tokens: scene.tokens.flatMap((token) => {
+                const actorId = captured.actorIdByTokenId.get(token.id)
+                return actorId
+                  ? [
+                      {
+                        actorId,
+                        position:
+                          token.id === captured.token.id
+                            ? reaction.option.candidate.contact
+                            : token.position,
+                        height: token.height,
+                        width: token.width,
+                        rotationDegrees: token.rotationDegrees
+                      }
+                    ]
+                  : []
+              }),
+              loadTarget: async (actor) => {
+                const loaded = reaction.targets.get(actor.id)
+                if (!loaded) throw new Error('Movement reaction target is unavailable.')
+                return loaded
+              },
+              definitions
+            }),
+          loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
           loadRelationshipFacts: async (relationship) => {
             return lockedRelationshipActionFacts({
               actionEffectId: relationship.actionEffectId,
@@ -244,6 +282,10 @@ export async function prepareNativeLiveMovement(
               'ON_ATTACK_ROLL'
             )
           : [],
+      turnUses: encounterActionSpentTurnUses(
+        plan.prepared.prepared,
+        result.reactionExecution.execution.evidence
+      ),
       execution: result.reactionExecution,
       resourceConsumption: plan.prepared.prepared.characterActionState?.resourceConsumption ?? null,
       createdEffects: result.effects.createdEffects,

@@ -16,6 +16,7 @@ import {
 import { spellAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import {
   authoredRouteStoryRecords,
@@ -62,6 +63,7 @@ const SYSTEM_MANAGED_PATH_KEYS = new Set([
 const DISPLAY_COPY_KEYS = new Set(['description', 'label'])
 const NON_STRUCTURAL_KEYS = new Set([...DISPLAY_COPY_KEYS, 'id'])
 const RAGE_SCENARIO_LABEL = 'class SRD Rage feature'
+const SNEAK_ATTACK_SCENARIO_LABEL = 'class SRD Sneak Attack feature'
 const HOLD_PERSON_SCENARIO_LABEL = 'spell SRD Hold Person'
 const ABSORB_SCENARIO_LABEL = 'spell user-authored Absorb Elements'
 
@@ -89,6 +91,12 @@ const rageCases = registrationCases.filter(
 const rageScenario = scenarios.find(({ label }) => label === RAGE_SCENARIO_LABEL)
 if (!rageScenario) throw new Error('Expected the SRD Rage class scenario.')
 const rageFormValues = toActualFormValues('class', parseScenarioRecord(rageScenario))
+const sneakAttackCases = registrationCases.filter(
+  ({ scenarioLabel }) => scenarioLabel === SNEAK_ATTACK_SCENARIO_LABEL
+)
+const sneakAttackScenario = scenarios.find(({ label }) => label === SNEAK_ATTACK_SCENARIO_LABEL)
+if (!sneakAttackScenario) throw new Error('Expected the SRD Sneak Attack class scenario.')
+const sneakAttackFormValues = toActualFormValues('class', parseScenarioRecord(sneakAttackScenario))
 const holdPersonCases = registrationCases.filter(
   ({ scenarioLabel }) => scenarioLabel === HOLD_PERSON_SCENARIO_LABEL
 )
@@ -195,6 +203,52 @@ describe('SRD Rage feature effect authoring parity', () => {
 
     expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
       stripKeys(rageEffects, NON_STRUCTURAL_KEYS)
+    )
+  })
+})
+
+describe('SRD Sneak Attack feature effect authoring parity', () => {
+  const sneakAttackEffects = rogue.features?.find(({ label }) => label === 'Sneak Attack')?.effects
+
+  it('authors the once-per-turn and gate shapes this parity gate is meant to prove', () => {
+    const authored = JSON.stringify(sneakAttackEffects)
+    for (const shape of ['"usage":"ONCE_PER_TURN"', 'ENEMY_NEAR_TARGET', 'ATTACK_ROLL_MODE', 'FINESSE']) {
+      expect(authored).toContain(shape)
+    }
+  })
+
+  it('keeps every Sneak Attack value through node-runtime normalization', async () => {
+    const normalized = await normalizeFixtureNodeRuntimeValues({
+      mapId: 'class',
+      values: sneakAttackFormValues
+    })
+
+    expect(normalized.clearedPaths).toEqual([])
+    expect(normalized.values).toEqual(sneakAttackFormValues)
+  })
+
+  for (const [index, { context }] of sneakAttackCases.entries()) {
+    it(`keeps the values of ${context.model.mapId} Sneak Attack context ${index} once its field controls mount`, async () => {
+      await renderUntilRegistered(context.model, context.values)
+
+      expect(stripKeys(readOutput('form-values'), DISPLAY_COPY_KEYS)).toEqual(
+        stripKeys(context.values, DISPLAY_COPY_KEYS)
+      )
+    })
+  }
+
+  it('submits the form values of the Rogue class as the SRD Sneak Attack effects', async () => {
+    const rootContext = sneakAttackCases[0]?.context
+    if (!rootContext) throw new Error('Expected the resolved Sneak Attack class root context.')
+    await renderUntilRegistered(rootContext.model, sneakAttackFormValues)
+
+    const session = createScenarioSession('class', parseScenarioRecord(sneakAttackScenario))
+    const submitted = classAuthoringInputDtoSchema.parse(
+      session.normalizeForSubmit(readOutput('form-values'))
+    )
+
+    expect(stripKeys(submitted.features?.[0]?.effects, NON_STRUCTURAL_KEYS)).toEqual(
+      stripKeys(sneakAttackEffects, NON_STRUCTURAL_KEYS)
     )
   })
 })
@@ -419,6 +473,17 @@ function createBranchScenarios(): BranchScenario[] {
         attributes: [],
         features: barbarian.features?.filter(({ label }) => label === 'Rage'),
         resources: barbarian.resources
+      }
+    },
+    {
+      domain: 'class',
+      label: SNEAK_ATTACK_SCENARIO_LABEL,
+      record: {
+        ...wizard,
+        id: 'story-sneak-attack-class',
+        label: 'Sneak Attack Test Class',
+        attributes: [],
+        features: rogue.features?.filter(({ label }) => label === 'Sneak Attack')
       }
     },
     {

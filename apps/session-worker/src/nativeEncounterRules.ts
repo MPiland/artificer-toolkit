@@ -13,6 +13,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   encounterActionCurrentnessChecksum,
+  encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
@@ -54,6 +55,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
+import { readNativeLiveTurnUses } from './nativeTurnUses.js'
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -482,6 +484,7 @@ export async function planNativeLiveEncounterAction(
           definitions,
           capture
         }),
+      loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const prepared = await prepareAttack(movementTargets)
@@ -1017,6 +1020,10 @@ export async function planNativeLiveEncounterAction(
     nextState,
     nextRules,
     storedExecution,
+    turnUses:
+      storedExecution.status === 'COMPLETE'
+        ? encounterActionSpentTurnUses(prepared, storedExecution.evidence)
+        : [],
     cleaving,
     reactionUse,
     revisions
@@ -1085,6 +1092,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentrationEnds: plan.concentration.concentrationEnds,
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
-    consumedGrants: plan.consumedGrants
+    consumedGrants: plan.consumedGrants,
+    turnUses: plan.turnUses
   })
 }

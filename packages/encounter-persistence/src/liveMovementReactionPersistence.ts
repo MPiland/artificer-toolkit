@@ -17,6 +17,7 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
 import {
   prepareEncounterActionMaintenance,
@@ -359,5 +360,6 @@ export async function persistLiveMovementReaction(
   )
     throw new Error('Live movement reaction Character transition receipt is incomplete.')
   await deleteGrants(ctx, step.consumedGrants)
+  await spendTurnUses(ctx, { state, actorId: source.id, keys: step.turnUses })
   return actors
 }

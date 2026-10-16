@@ -5,12 +5,19 @@ import { describe, expect, it } from 'vitest'
 import {
   attackRestrictionsMet,
   effectReadsEnemyProximity,
+  effectReadsTurnUses,
+  oncePerTurnUsageKey,
   reduceEffectRestrictions,
+  spentTurnUses,
   type Dnd5eAttackCircumstances
 } from '../systems/dnd5e/attackRestrictions.js'
 import type { Dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { riderGate, type RiderGateCondition } from '../testing/unconditionalSneakAttack.js'
+import {
+  oncePerTurnSneakAttack,
+  riderGate,
+  type RiderGateCondition
+} from '../testing/unconditionalSneakAttack.js'
 
 const ADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' } as const
 const NOT_DISADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' } as const
@@ -288,5 +295,37 @@ describe('circumstance checks of reduced restrictions', () => {
     expect(() => attackRestrictionsMet(riderGate([FINESSE]), circumstances('NORMAL'))).toThrow(
       'Attack restrictions must be reduced to circumstance checks.'
     )
+  })
+})
+
+describe('once-per-turn paths of a compiled attack Effect', () => {
+  const limited = () => {
+    const [authored] = oncePerTurnSneakAttack(testUuid(0xc01)).effects ?? []
+    if (!authored) throw new Error('Expected the rider Effect.')
+    return compileEffect(authored)
+  }
+
+  it('reports that the Effect reads the turn record, for the planner to load it', () => {
+    expect(effectReadsTurnUses(limited())).toBe(true)
+    expect(effectReadsTurnUses(restrictedEffect(undefined))).toBe(false)
+  })
+
+  it('keys a limited entry by its own Effect', () => {
+    const effect = limited()
+    expect(new Set(effect.entries.map((entry) => oncePerTurnUsageKey(entry, effect.id)))).toEqual(new Set([effect.id]))
+    expect(oncePerTurnUsageKey(restrictedEffect(undefined).entries[0]!, effect.id)).toBeNull()
+  })
+
+  it('keys a rider merged from a Feature by that Feature, so its Effects share one use', () => {
+    const effect = limited()
+    const merged = effect.entries.map((entry) => ({ ...entry, usageKey: 'feature-1' }))
+    expect(new Set(merged.map((entry) => oncePerTurnUsageKey(entry, effect.id)))).toEqual(new Set(['feature-1']))
+  })
+
+  it('spends a use only for an entry the attack dealt', () => {
+    const effect = limited()
+    const [entry] = effect.entries
+    expect(spentTurnUses(effect, new Set([entry!.entryId]))).toEqual([effect.id])
+    expect(spentTurnUses(effect, new Set())).toEqual([])
   })
 })

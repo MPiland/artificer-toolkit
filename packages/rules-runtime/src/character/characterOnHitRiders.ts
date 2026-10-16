@@ -18,12 +18,19 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
   )
 }
 
-/** The `ON_HIT` damage of each passive Effect: it rides on the attack its trigger names. */
+/**
+ * The `ON_HIT` damage of each passive Effect: it rides on the attack its trigger names. A rider
+ * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
+ * every Effect of that owner shares one.
+ */
 export function collectOnHitRiders(
-  effects: readonly CompiledEffectGroup[] | undefined
+  effects: readonly CompiledEffectGroup[] | undefined,
+  ownerId: string
 ): OnHitRider[] {
   return (effects ?? []).flatMap((effect) => {
-    const entries = effect.entries.filter(isOnHitDamage)
+    const entries = effect.entries
+      .filter(isOnHitDamage)
+      .map((entry) => (entry.usage ? { ...entry, usageKey: ownerId } : entry))
     return effect.invocation.kind === 'PASSIVE' && entries.length > 0
       ? [{ triggerCode: effect.invocation.triggerCode, entries }]
       : []

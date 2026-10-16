@@ -132,13 +132,20 @@ export const encounterStoredEvidenceRollSchema = lazySchema(() =>
 )
 export type EncounterStoredEvidenceRoll = z.infer<typeof encounterStoredEvidenceRollSchema>
 
+/** The usage keys of once-per-turn damage an attack spent: the id of the Feature or Effect that grants it. */
+export const encounterTurnUseKeysSchema = lazySchema(() =>
+  z.array(authoredIdentifierSchema).check(z.maxLength(16))
+)
+
 /**
- * The voluntary movement an actor spent during one turn, in feet (D38). The turn is the Run's round
- * and current actor, so a new turn reads a new key and starts at zero. It sits outside the Run's
- * version and checksum: the budget is displayed, never enforced, so no fence reads it.
- * `speedBonuses` counts the basic actions this turn that each added the actor's speed to its
- * budget (Dash, D38). `speedId` is the speed type the actor's latest move this turn named
- * (SPELLS-5.6); null until a move names one.
+ * What an actor did during one turn (D38, D119). The turn is the Run's round and current actor, so
+ * a new turn reads a new key and starts empty. It sits outside the Run's version and checksum.
+ * `usedFeet` is the voluntary movement spent, in feet; the budget is displayed, never enforced, so
+ * no fence reads it. `speedBonuses` counts the basic actions this turn that each added the actor's
+ * speed to its budget (Dash, D38). `speedId` is the speed type the actor's latest move this turn
+ * named (SPELLS-5.6); null until a move names one. `usedOncePerTurn` lists the usage keys of the
+ * once-per-turn damage the actor has dealt this turn (Sneak Attack, D119); unlike the movement it
+ * is enforced, so the commit transaction reads and writes it.
  */
 export const encounterStoredTurnMovementSchema = lazySchema(() =>
   z.strictObject({
@@ -148,7 +155,8 @@ export const encounterStoredTurnMovementSchema = lazySchema(() =>
     actorId: postgresUuidSchema,
     usedFeet: z.number().check(z.nonnegative()),
     speedId: z.nullable(authoredIdentifierSchema),
-    speedBonuses: z.number().check(z.int()).check(z.nonnegative())
+    speedBonuses: z.number().check(z.int()).check(z.nonnegative()),
+    usedOncePerTurn: z._default(encounterTurnUseKeysSchema, [])
   })
 )
 
@@ -288,6 +296,17 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           round: z.number().check(z.int()).check(z.positive()),
           turnActorId: postgresUuidSchema
         })
+      ),
+      /** The once-per-turn uses this action spent from the actor's turn record; its undo gives them back. */
+      turnUses: z._default(
+        z.nullable(
+          z.strictObject({
+            round: z.number().check(z.int()).check(z.positive()),
+            turnActorId: postgresUuidSchema,
+            keys: encounterTurnUseKeysSchema
+          })
+        ),
+        null
       ),
       /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
       issuerLines: z._default(

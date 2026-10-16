@@ -188,6 +188,7 @@ describe('node map inventory', () => {
     for (const mapId of ['effectPath', 'manifestBehaviorPath']) {
       const pathMap = registry.get(mapId)
       expect(pathMap?.nodes.restrictions, mapId).toMatchObject({ kind: 'GROUP', groupKind: 'OBJECT' })
+      expect(pathMap?.nodes.usage, mapId).toMatchObject({ type: 'SELECT_SINGLE' })
     }
   })
 

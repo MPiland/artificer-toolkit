@@ -401,7 +401,7 @@ export function buildCharacterActionRuleFacts(params: {
     const folded = grantFoldFacts.features[index]
     if (!folded) continue
     if (definition && folded.definition) {
-      onHitRiders.push(...collectOnHitRiders(definition.effects))
+      onHitRiders.push(...collectOnHitRiders(definition.effects, feature.featureId))
       appendActions({
         candidates: actionCandidates,
         entryPoints,
@@ -423,7 +423,7 @@ export function buildCharacterActionRuleFacts(params: {
           candidate.mechanicSource.definitionId === option.id
       )
       if (!source) continue
-      onHitRiders.push(...collectOnHitRiders(option.effects))
+      onHitRiders.push(...collectOnHitRiders(option.effects, option.id))
       appendActions({
         candidates: actionCandidates,
         entryPoints,
@@ -437,7 +437,7 @@ export function buildCharacterActionRuleFacts(params: {
       })
     }
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
-      onHitRiders.push(...collectOnHitRiders(registry.feats[feature.source.featId]?.effects))
+      onHitRiders.push(...collectOnHitRiders(registry.feats[feature.source.featId]?.effects, feature.source.featId))
       appendActions({
         candidates: actionCandidates,
         entryPoints,
