@@ -8,3 +8,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - T2 (after ATTACK-2.T1, ATTACK-17.T3 and REACTION-4.T3b) closes the rest: a browser journey on the player client in which a player, on their own Character, casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.
 
 ## Log
+
+- T1 matrix: `apps/session-worker/test/nativeRoomPlayerParity.test.ts`. Command types come from `encounterCommandInputDtoSchema` and `encounterActorTokenBindingCommandInputDtoSchema` (30 types); a drift test fails when a type has no classification. Each type is `CONTROLLER` (the controlling player is treated as the GM is; another player and an uncontrolled actor get `NOT_ACTOR_CONTROLLER`), `GM_ONLY` (with the covering decision, or `null` for an open question pinned in a list) or `CREATURE_ONLY` (the GM cannot issue it for a Character either; the Sheet owns Character play state). Refusals assert the Run version is unchanged.
+- Covering decisions: undo/void and stuck prompts, ADR 0034 decision 2 (`REVERT_LAST_ACTION`, `VOID_RULE_OCCURRENCE`); D103 (`REMOVE_AREA_TARGET`); D116 (`SET_CONCEALMENT_OBSERVERS`); D87 (`UPDATE_ACTOR`).
+- Suspected gaps (blanket GM gate in `recordEncounterToolCommand`): `ROLL_ACTOR_INITIATIVE`, `SET_INITIATIVE`.
