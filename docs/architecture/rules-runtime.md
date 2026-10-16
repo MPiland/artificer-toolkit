@@ -1303,6 +1303,21 @@ same `resolveSave` path every save-trigger plan uses) under that fact when the a
 graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
 after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
 
+`repeatingDirectFollowUpSavePlan` takes a `CONDITION` or an `APPLY_GRANT` as its lead entry. A grant lead plans
+its contribution through `modifierGrantEntryPlan` and marks it `countedByTurnEffects`: the repeat-save kernel
+rolls, counts and ends it, so the grant tick planner neither adds its extra tick nor sets a recurrence stage. In
+either case the lead applies only on `ON_SAVE_FAIL` (`reachesAuthoredPath`), so an area breath leaves nothing on a
+creature that passes. Gold Dragon Weakening Breath is the grant-led case: Strength check, Strength save and
+Strength attack disadvantage, ended by the repeated Strength save.
+
+**Ability-scoped and fractional grants (SPELLS-19.T3b).** `ATTACK_ROLL` may name an `ability`; a grant naming one
+covers only attacks made with it. A Character folds it through `dnd5eAttackRollContributors` (the action's
+`attackAbility`); a Creature reads `creatureAttackAbility` (the first damage outcome's `ABILITY_BONUS`). Plain
+`SAVING_THROW_MODIFIER` advantage and disadvantage naming an ability join every save row of that ability for a
+Creature holder (`withCreatureActiveGrantSaves`). `SPEED` takes a `MULTIPLY` fraction payload (`n/d`), optionally
+for one speed: `speedAfterFractions` multiplies the fractions and rounds down once (D94) after bonuses, for both
+the Creature (`withActiveGrantSpeeds`) and Character (`characterMovementAndSenses`) folds.
+
 **Chosen end (D101, SPELLS-5.11).** The caster ends their own Concentration at any time with no action
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it
 (`endChosenConcentration` in `packages/encounter-persistence`, a `CONCENTRATION_END` child receipt with

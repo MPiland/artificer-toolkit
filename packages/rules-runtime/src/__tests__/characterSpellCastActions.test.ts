@@ -75,6 +75,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackAbility: null,
     attackBonus: null,
     attackRollMode: null,
     save: null,

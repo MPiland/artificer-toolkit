@@ -191,28 +191,32 @@ export function speedFractionEffect(input: {
     holderActorId: input.holderActorId,
     effect: {
       ...effect,
-      paths: effect.paths.map((path) => ({
-        ...path,
-        resultBlock: {
-          ...path.resultBlock,
-          outcomes: path.resultBlock.outcomes.map((outcome) =>
-            outcome.effectKind === 'APPLY_GRANT'
-              ? {
-                  ...outcome,
-                  grants: {
-                    ...outcome.grants,
-                    modifiers: outcome.grants.modifiers?.map((modifier) => ({
-                      ...modifier,
-                      domain: input.speedId === undefined ? {} : { speedId: input.speedId },
-                      modifierKind: 'MULTIPLY' as const,
-                      payload: input.fraction
-                    }))
-                  }
-                }
-              : outcome
-          )
-        }
-      }))
+      paths: effect.paths.map((path) =>
+        'resultBlock' in path
+          ? {
+              ...path,
+              resultBlock: {
+                ...path.resultBlock,
+                outcomes: path.resultBlock.outcomes.map((outcome) =>
+                  outcome.effectKind === 'APPLY_GRANT'
+                    ? {
+                        ...outcome,
+                        grants: {
+                          ...outcome.grants,
+                          modifiers: outcome.grants.modifiers?.map((modifier) => ({
+                            ...modifier,
+                            domain: input.speedId === undefined ? {} : { speedId: input.speedId },
+                            modifierKind: 'MULTIPLY' as const,
+                            payload: input.fraction
+                          }))
+                        }
+                      }
+                    : outcome
+                )
+              }
+            }
+          : path
+      )
     },
     sourceLabel: 'Speed fraction'
   })
@@ -256,15 +260,19 @@ export function goldWeakeningEffect(input: { id: string; holderActorId: string }
     effect: grantOnly(
       {
         ...mockery,
-        paths: mockery.paths.map((path) => ({
-          ...path,
-          resultBlock: {
-            ...path.resultBlock,
-            outcomes: path.resultBlock.outcomes.map((outcome) =>
-              outcome.effectKind === 'APPLY_GRANT' ? { ...outcome, grants } : outcome
-            )
-          }
-        }))
+        paths: mockery.paths.map((path) =>
+          'resultBlock' in path
+            ? {
+                ...path,
+                resultBlock: {
+                  ...path.resultBlock,
+                  outcomes: path.resultBlock.outcomes.map((outcome) =>
+                    outcome.effectKind === 'APPLY_GRANT' ? { ...outcome, grants } : outcome
+                  )
+                }
+              }
+            : path
+        )
       },
       { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }, consumeOnFirstEvents: [] }
     ),
