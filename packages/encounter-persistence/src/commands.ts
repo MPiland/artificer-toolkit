@@ -215,28 +215,28 @@ async function recordEncounterToolCommand(
   if (!row) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(row.campaignId, userId)
   const state = readRunState(row)
-  // A player enters their own actor's initiative while it is collected, before the Run starts
-  // (ADR 0034 decision 1); the hand-rolled value and the roll are both visible to the table. Once
-  // the order is settled, and for any tie-break order, correcting it is the GM's (`REORDER`).
+  // A player enters their own actor's initiative once, rolled or hand-entered, while it is
+  // collected, before the Run starts (ADR 0034 decision 1); the value and the roll are visible to
+  // the table. Every later change, a re-roll, a tie-break order or a settled order, is the GM's.
   const playerInitiative =
-    input.type === 'ROLL_ACTOR_INITIATIVE' ||
-    (input.type === 'SET_INITIATIVE' &&
-      input.manualOrder === undefined &&
-      state.status === 'PREPARED')
+    state.status === 'PREPARED' &&
+    (input.type === 'ROLL_ACTOR_INITIATIVE' ||
+      (input.type === 'SET_INITIATIVE' && input.manualOrder === undefined))
   if (membership.role !== 'OWNER' && !playerInitiative) rejectDomain('GM_ONLY')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  if (membership.role !== 'OWNER' && playerInitiative)
-    await requireEncounterActorControl(ctx, {
-      campaign,
-      membership,
-      actor: (await readRunActorWithRow(ctx, state, input.actorId)).actor
-    })
+  const playerInitiativeActor =
+    membership.role !== 'OWNER' && playerInitiative
+      ? (await readRunActorWithRow(ctx, state, input.actorId)).actor
+      : null
+  if (playerInitiativeActor)
+    await requireEncounterActorControl(ctx, { campaign, membership, actor: playerInitiativeActor })
   const { fingerprint: commandFingerprint, result: replayResult } =
     await readNativeEncounterCommandReplay(ctx, { input, row, campaign, userId })
   if (replayResult)
     return presentEncounterResultForMember(ctx, { campaign, membership, result: replayResult })
+  if (playerInitiativeActor && playerInitiativeActor.initiative !== null) rejectDomain('GM_ONLY')
   const actorIds = new Set(state.actorIds)
   const pendingOccurrences = await ctx.db
     .query('encounterRuleOccurrences')

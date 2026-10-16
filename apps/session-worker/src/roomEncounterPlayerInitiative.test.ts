@@ -9,8 +9,8 @@ import { preparedEncounterRoom } from './testing/preparedEncounterRoom.js'
 import { uuid } from './testing/roomAggregateFixture.js'
 
 /**
- * ADR 0034 decision 1 for initiative: a player enters or rolls their own actor's initiative while it
- * is collected, through the room's real command path; the order, once settled, is the GM's.
+ * ADR 0034 decision 1 for initiative: a player enters or rolls their own actor's initiative once,
+ * while it is collected, through the room's real command path; every later change is the GM's.
  */
 
 const GM_ID = uuid(0xf01)
@@ -99,8 +99,15 @@ describe('SET_INITIATIVE while initiative is collected', () => {
   })
 
   it('is the GM’s once the order is settled', async () => {
-    const { execute, setInitiative, refusal, startAndSettleInitiative, version, initiativeOf } =
-      await room()
+    const {
+      execute,
+      setInitiative,
+      rollInitiative,
+      refusal,
+      startAndSettleInitiative,
+      version,
+      initiativeOf
+    } = await room()
     await startAndSettleInitiative({
       gmId: GM_ID,
       startCommandId: crypto.randomUUID(),
@@ -109,10 +116,28 @@ describe('SET_INITIATIVE while initiative is collected', () => {
     const settled = version()
     const before = initiativeOf(OWN_ACTOR_ID)
     expect(await refusal(execute(PLAYER_ID, setInitiative(OWN_ACTOR_ID)))).toBe('GM_ONLY')
+    expect(await refusal(execute(PLAYER_ID, rollInitiative(OWN_ACTOR_ID)))).toBe('GM_ONLY')
     expect(version()).toBe(settled)
     expect(initiativeOf(OWN_ACTOR_ID)).toBe(before)
     // The GM's correction is unchanged.
     await execute(GM_ID, setInitiative(OWN_ACTOR_ID))
+    expect(initiativeOf(OWN_ACTOR_ID)).toBe(14)
+  })
+
+  it('is one entry: a second value is the GM’s', async () => {
+    const { execute, setInitiative, refusal, version, initiativeOf } = await room()
+    await execute(PLAYER_ID, setInitiative(OWN_ACTOR_ID))
+    expect(await refusal(execute(PLAYER_ID, setInitiative(OWN_ACTOR_ID)))).toBe('GM_ONLY')
+    expect(version()).toBe(1)
+    await execute(GM_ID, { ...setInitiative(OWN_ACTOR_ID), initiative: 3 })
+    expect(initiativeOf(OWN_ACTOR_ID)).toBe(3)
+  })
+
+  it('refuses a roll after the player entered a value', async () => {
+    const { execute, setInitiative, rollInitiative, refusal, version, initiativeOf } = await room()
+    await execute(PLAYER_ID, setInitiative(OWN_ACTOR_ID))
+    expect(await refusal(execute(PLAYER_ID, rollInitiative(OWN_ACTOR_ID)))).toBe('GM_ONLY')
+    expect(version()).toBe(1)
     expect(initiativeOf(OWN_ACTOR_ID)).toBe(14)
   })
 })
@@ -124,6 +149,27 @@ describe('ROLL_ACTOR_INITIATIVE', () => {
     const roll = answer.recipients.get(PLAYER_ID)?.roll
     expect(roll).toBeTruthy()
     expect(initiativeOf(OWN_ACTOR_ID)).toBe(roll?.evidence.total)
+    expect(version()).toBe(1)
+  })
+
+  it('is one entry: a second roll, or a value after a roll, is the GM’s', async () => {
+    const { execute, rollInitiative, setInitiative, refusal, version, initiativeOf } = await room()
+    await execute(PLAYER_ID, rollInitiative(OWN_ACTOR_ID))
+    const rolled = initiativeOf(OWN_ACTOR_ID)
+    expect(await refusal(execute(PLAYER_ID, rollInitiative(OWN_ACTOR_ID)))).toBe('GM_ONLY')
+    expect(await refusal(execute(PLAYER_ID, setInitiative(OWN_ACTOR_ID)))).toBe('GM_ONLY')
+    expect(version()).toBe(1)
+    expect(initiativeOf(OWN_ACTOR_ID)).toBe(rolled)
+    // The GM's re-roll is unchanged.
+    await execute(GM_ID, rollInitiative(OWN_ACTOR_ID))
+    expect(version()).toBe(2)
+  })
+
+  it('replays a retried first roll instead of refusing it', async () => {
+    const { execute, rollInitiative, version } = await room()
+    const command = rollInitiative(OWN_ACTOR_ID)
+    await execute(PLAYER_ID, command)
+    await execute(PLAYER_ID, command)
     expect(version()).toBe(1)
   })
 

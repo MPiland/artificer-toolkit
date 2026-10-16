@@ -134,14 +134,17 @@ const UNDO_VOID = table('ADR 0034 decision 2: the GM can undo or void results an
 
 const PARITY: Record<CommandType, Entry> = {
   ROLL_ACTOR_INITIATIVE: {
-    access: 'PLAYER',
+    access: 'TABLE',
+    rule: table(
+      'ADR 0034 decision 1: a player rolls their own actor once while initiative is collected (proved in roomEncounterPlayerInitiative.test.ts); in a live Run a re-roll is the GM’s'
+    ),
     actorScoped: true,
     build: (probe) => ({ ...base(probe), type: 'ROLL_ACTOR_INITIATIVE', actorId: probe.actorId })
   },
   SET_INITIATIVE: {
     access: 'TABLE',
     rule: table(
-      'ADR 0034 decision 1: once the order is settled the GM reorders it; a player enters their own value only while it is collected'
+      'ADR 0034 decision 1: a player enters their own value once while initiative is collected (proved in roomEncounterPlayerInitiative.test.ts); in a live Run the GM corrects it'
     ),
     actorScoped: true,
     build: (probe) => ({
@@ -518,7 +521,6 @@ describe('registry', () => {
       'ESCAPE_RELATIONSHIP',
       'RESOLVE_ACTION',
       'RESOLVE_RULE_OCCURRENCE',
-      'ROLL_ACTOR_INITIATIVE',
       'ROLL_RULE_EVIDENCE'
     ])
     expect(typesOf('SHEET')).toEqual(['ADJUST_FEATURE_RESOURCE'])
