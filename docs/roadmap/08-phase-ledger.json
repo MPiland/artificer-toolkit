@@ -8856,8 +8856,21 @@
               }
             },
             {
+              "id": "SPELLS-29.T1a",
+              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-29.1", "SPELLS-29.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-29.T1"]
+              }
+            },
+            {
               "id": "SPELLS-29.T2",
-              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; a turn-end save when the creature has no line of sight to the source; authored for SRD Fear and Eyebite Panicked; authoring parity from core options.",
+              "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; authored for SRD Fear and Eyebite Panicked; authoring parity from core options. (The turn-end out-of-sight save moved to T1a.)",
               "status": "TODO",
               "closes": ["SPELLS-29.2"],
               "wsjf": {
@@ -8865,7 +8878,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-29.T1"]
+                "after": ["SPELLS-29.T1a"]
               }
             }
           ]
