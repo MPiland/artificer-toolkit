@@ -462,10 +462,16 @@ export async function movementRoom(config: MovementRoomConfig) {
     kind: 'RUN',
     encounterVersion: state.version,
     activeEncounterId: null,
-    maintenanceCharacterOwners: characterDependents.map((row) => ({
-      maintainedStateId: CONCENTRATION_STATE_ID,
-      characterId: characterOfActor.get(row.targetActorId)!
-    })),
+    maintenanceCharacterOwners: characterDependents.flatMap((row) =>
+      row.maintainedEffectStateId
+        ? [
+            {
+              maintainedStateId: row.maintainedEffectStateId,
+              characterId: characterOfActor.get(row.targetActorId)!
+            }
+          ]
+        : []
+    ),
     documents: memoryRoomDocuments(memory, [
       'encounterRuns',
       'encounterRunActors',
@@ -483,41 +489,44 @@ export async function movementRoom(config: MovementRoomConfig) {
   }
   const characterInputs = {
     parts: [
-      ...(characterPage?.parts ?? []).map((part) => ({ part, holdsDependents: true })),
+      ...(characterPage?.parts ?? []).map((part) => ({ part, partCharacterId: characterId })),
       ...(outsideCasterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'outside'),
-        holdsDependents: false
+        partCharacterId: config.outsideCasterCharacterId
       })),
       ...(secondCharacterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'second'),
-        holdsDependents: false
+        partCharacterId: config.secondCharacter?.characterId
       }))
-    ].map(({ part, holdsDependents }) => {
+    ].map(({ part, partCharacterId }) => {
       if (part.status !== 'ASSIGNED') throw new Error('The Character fixture part is not assigned.')
       return {
         ...part,
         documents: [
           ...part.documents,
-          ...(holdsDependents ? characterDependents : []).map((row) => ({
-            table: 'characterActiveRuleEffects' as const,
-            id: row._id,
-            creationTime: row._creationTime,
-            fields: characterActiveRuleEffectStoredSchema.parse({
-              id: row.id,
-              characterId: characterOfActor.get(row.targetActorId),
-              concentrationCasterCharacterId: row.lifecycle.concentrationCasterCharacterId ?? null,
-              sourceEncounterId: encounterId,
-              maintainedEffectStateId: row.maintainedEffectStateId,
-              createdOrdinal: row.createdOrdinal,
-              version: row.version,
-              definitionJson: row.definitionJson,
-              definitionChecksum: row.definitionChecksum,
-              lifecycle: row.lifecycle,
-              lifecycleChecksum: row.lifecycleChecksum,
-              createdAt: row.createdAt,
-              updatedAt: row.updatedAt
-            })
-          }))
+          ...characterDependents
+            .filter((row) => characterOfActor.get(row.targetActorId) === partCharacterId)
+            .map((row) => ({
+              table: 'characterActiveRuleEffects' as const,
+              id: row._id,
+              creationTime: row._creationTime,
+              fields: characterActiveRuleEffectStoredSchema.parse({
+                id: row.id,
+                characterId: characterOfActor.get(row.targetActorId),
+                concentrationCasterCharacterId:
+                  row.lifecycle.concentrationCasterCharacterId ?? null,
+                sourceEncounterId: encounterId,
+                maintainedEffectStateId: row.maintainedEffectStateId,
+                createdOrdinal: row.createdOrdinal,
+                version: row.version,
+                definitionJson: row.definitionJson,
+                definitionChecksum: row.definitionChecksum,
+                lifecycle: row.lifecycle,
+                lifecycleChecksum: row.lifecycleChecksum,
+                createdAt: row.createdAt,
+                updatedAt: row.updatedAt
+              })
+            }))
         ]
       }
     }),
