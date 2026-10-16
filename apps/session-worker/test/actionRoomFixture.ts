@@ -574,6 +574,37 @@ export async function actionRoom(config: ActionRoomConfig) {
         answer: sender === 'PLAYER' ? await this.sendAsPlayer(command) : await send(command)
       }
     },
+    /**
+     * The acting actor's action on the chosen creatures `actorIds`, read against the Scene or not;
+     * `point` is the Scene point an action that names an area is aimed at.
+     */
+    async startActorsAction(
+      actorIds: readonly string[],
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
+      withScene = true,
+      point: { x: number; y: number } | null = null
+    ) {
+      const command: ResolveEncounterActionInputDto = {
+        type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
+        acknowledgedWarnings,
+        encounterId: room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await version(),
+        actorId: source.id,
+        target: {
+          kind: 'ACTORS',
+          actorIds: [...actorIds],
+          scene: withScene
+            ? { sceneId: room.scene.id, expectedSceneVersion: room.scene.version, point }
+            : null
+        },
+        actionId,
+        optionalCombatIntent: null,
+        sceneContext: null
+      }
+      return { command, answer: await send(command) }
+    },
     /** The GM's command taking `actorId` out of the pending area `decision` shows. */
     removeAreaTargetCommand(
       decision: NonNullable<Awaited<ReturnType<typeof readPendingActionDecision>>>,

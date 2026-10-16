@@ -7114,7 +7114,8 @@
               "status": "TODO",
               "proof": [
                 "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
-                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)"
+                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
+                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts"
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
@@ -7313,7 +7314,7 @@
             {
               "id": "SPELLS-8.T12",
               "text": "T6b: Mass Cure Wounds, Mass Healing Word and Prayer of Healing cast in an Encounter through one RESOLVE_ACTION with a reusable list-of-actors target kind and authored maxTargets (D118: one cast = one commit, one slot spend, one undo). Heals scale in the compiler from the bound spellCastLevel fact like damage, through one shared row selector used by the compiler and the Sheet selectValue; remove the effectAtCastLevel pre-flattening.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 8,
@@ -7321,8 +7322,7 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-8.T6"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
+              }
             },
             {
               "id": "SPELLS-8.T13",
@@ -7335,7 +7335,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-8.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t1.md"
             }
           ]
         },
@@ -8330,10 +8331,11 @@
             },
             {
               "text": "A user can author a reaction spell such as Absorb Elements: triggered when its caster takes damage of chosen types, it applies before that damage (resistance to the triggering type) and grants a follow-up benefit; it resolves through the same trigger model as the SRD reactions.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "partial: merge of c9cda1489 (REACTION-4.T2) adds the DAMAGE_TAKEN trigger with damageTypeIds and the user-authored Absorb Elements fixture (packages/rules-runtime/src/testing/absorbElementsSpell.ts); resistance currently covers every named type until the caster's next turn, so \"resistance to the triggering type\" waits for the trigger fact bound in REACTION-4.T3",
-                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER"
+                "partial: T3 increment A1 (CI 38837833587 at 1409a6e1a, merged 2026-10-15) binds resistance to the triggering type and the slot-scaled follow-up: packages/rules-runtime/src/__tests__/plannedAbsorbElements.test.ts, apps/session-worker/test/nativeRoomReaction.test.ts; waits on the authoring parity proof for damageTypeSource TRIGGER",
+                "apps/web/src/forms/tests/AuthoredDomainFieldParity.test.tsx (Absorb Elements built through the real node map, node-runtime resolver and form adapter matches testing/absorbElementsSpell.ts; choosing TRIGGER clears the fixed damage type), CI 38841723366 at 4c96ce0cd; merged 2026-10-15"
               ],
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",
