@@ -186,7 +186,7 @@ function parseEnvironment(source) {
   return values
 }
 
-async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefault) {
+export async function loadLocalEnvironment(localEnvironmentFile = localEnvironmentDefault) {
   const path = resolve(root, '.env.local')
   if (!existsSync(path)) throw new Error('Root .env.local is required.')
   const removedRemoteEnvironmentNames = new Set()
@@ -262,7 +262,7 @@ function isRemoteOnlyEnvironmentName(name) {
   )
 }
 
-function assertLocalLifecycleTarget(environment = process.env) {
+export function assertLocalLifecycleTarget(environment = process.env) {
   for (const name of requiredLocalUrlNames) assertLoopbackUrl(name, environment[name])
   for (const name of optionalLocalUrlNames) {
     if (environment[name]) assertLoopbackUrl(name, environment[name])
@@ -286,7 +286,7 @@ function assertLocalLifecycleTarget(environment = process.env) {
   }
 }
 
-async function useGeneratedLocalAdminKey() {
+export async function useGeneratedLocalAdminKey() {
   const url = process.env.CONVEX_SELF_HOSTED_URL
   if (!url || new URL(url).href !== new URL(localConvex.url).href) {
     throw new Error(
@@ -320,7 +320,7 @@ function localTargetMetadata(name, value) {
   return { host: url.hostname, name, port: url.port || null, protocol: url.protocol }
 }
 
-function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {
+export function run(command, args, { environment = {}, logPath, sensitiveArgs = [] }) {
   return new Promise((resolveRun, rejectRun) => {
     const childEnvironment = localChildEnvironment(environment)
     const commandArgs = [...args, ...sensitiveArgs]
@@ -477,7 +477,7 @@ async function startLocalService({
 }
 
 // The documented local Worker, with its secrets read in memory from the local Convex deployment.
-async function startLocalSessionWorker(artifactDirectory) {
+export async function startLocalSessionWorker(artifactDirectory) {
   const { allowedOrigins, host, port, secretNames } = localSessionWorker
   const secrets = Object.fromEntries(
     secretNames.map((name) => [name, localConvexEnvironmentValue(name)])
@@ -521,7 +521,7 @@ async function startLocalSessionWorker(artifactDirectory) {
 // environment, so Vite serves the local Convex, Worker and media URLs; it never sees the admin key.
 // Browser proofs exercise the production bundle: the dev server's React development runtime and
 // devtools load the browser enough to skew V15 timings. The `proof` mode reads no `.env` files.
-async function startLocalWebApp(artifactDirectory) {
+export async function startLocalWebApp(artifactDirectory) {
   const environment = localChildEnvironment()
   delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
   await run('yarn', ['workspace', '@artificer-toolkit/web', 'vite', 'build', '--mode', 'proof'], {
@@ -554,7 +554,7 @@ async function startLocalWebApp(artifactDirectory) {
 // Map uploads, browser proofs and local email delivery need the fixtures the Convex container serves
 // (scripts/localConvexFixtures.ps1: R2 substitute and email sink). Starting is idempotent; they stay
 // running afterwards because scheduled fixture deletions still reach them after the lifecycle ends.
-async function ensureLocalConvexFixtures(artifactDirectory) {
+export async function ensureLocalConvexFixtures(artifactDirectory) {
   const logPath = resolve(artifactDirectory, 'local-convex-fixtures.log')
   await run(
     'pwsh.exe',
