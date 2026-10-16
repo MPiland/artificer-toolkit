@@ -875,7 +875,8 @@
                 "after": [
                   "PLATFORM-13.T9"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-13-t5.md"
             }
           ]
         },
