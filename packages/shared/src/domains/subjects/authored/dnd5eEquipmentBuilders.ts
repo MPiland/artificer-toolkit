@@ -5,6 +5,7 @@ import {
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
   EQUIPMENT_GRIP,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -935,4 +936,142 @@ export function rangedFixedDamageWeaponEffects(
       paths: [fixedDamagePath(childId, 0x212, damageTypeId, amount)]
     }
   ]
+}
+
+// ─── Off-hand attack (two-weapon fighting) ───────────────────────────────────
+// Buckets: 0x240 = the off-hand effect's cloned nodes, 0x250 = its requirement facet,
+// 0x260/0x261 = a damage grant's activation context and condition, 0x270 = the off-hand damage
+// grant's cloned nodes.
+
+/** Copies `value` with every `id` replaced by the next id, so a clone shares no node with its source. */
+function withFreshIds<T>(value: T, nextId: () => string): T {
+  if (Array.isArray(value)) return value.map((entry) => withFreshIds(entry, nextId)) as T
+  if (typeof value !== 'object' || value === null) return value
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      key === 'id' ? nextId() : withFreshIds(entry, nextId)
+    ])
+  ) as T
+}
+
+/**
+ * Two-weapon fighting (SRD 5.1): after the Attack action with a Light melee weapon, the wielder may
+ * attack with another Light melee weapon as a bonus action. Clones the weapon's melee attack as a
+ * bonus action offered only after an Attack action made with a different Light melee weapon.
+ */
+export function withOffHandAttack(
+  childId: EquipmentChildId,
+  effects: EquipmentEffectAuthored[]
+): EquipmentEffectAuthored[] {
+  const mainHand = effects.find(
+    ({ invocation }) =>
+      invocation.kind === 'ACTION' && invocation.triggerCode === TRIGGER.MELEE_WEAPON_ATTACK
+  )
+  if (!mainHand) throw new Error('An off-hand attack needs a melee weapon attack to copy.')
+  let node = 0
+  const copy = withFreshIds(mainHand, () => childId(0x240, ++node))
+  return [
+    ...effects,
+    {
+      ...copy,
+      order: Math.max(...effects.map(({ order }) => order)) + 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+        activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+        range: copy.invocation.range,
+        targeting: copy.invocation.targeting
+      },
+      requirements: {
+        id: childId(0x250, 1),
+        groups: [
+          {
+            id: childId(0x251, 1),
+            order: 0,
+            contexts: [
+              {
+                id: childId(0x252, 1),
+                order: 0,
+                subject: 'CHARACTER' as const,
+                conditions: [
+                  {
+                    id: childId(0x253, 1),
+                    order: 0,
+                    kind: 'PREDICATE' as const,
+                    constraint: 'INCLUDE' as const,
+                    predicateCode: 'ATTACK_ACTION_OTHER_WEAPON' as const,
+                    authoringModeKind: 'SELECTED' as const,
+                    properties: [EQUIPMENT_PROPERTY_CODE.LIGHT, EQUIPMENT_PROPERTY_CODE.MELEE]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+
+/**
+ * The off-hand attack adds no ability modifier to damage unless it is negative (SRD 5.1). Splits
+ * each melee damage ability modifier into the Action attack's and a bonus-action attack's that
+ * keeps only a negative modifier (`max: 0`); the Two-Weapon Fighting style restores the rest.
+ */
+export function withOffHandDamage(
+  childId: EquipmentChildId,
+  modifiers: ModifierGrantAuthored[]
+): ModifierGrantAuthored[] {
+  const bonusActionOnly = (
+    modifier: ModifierGrantAuthored,
+    entry: number,
+    constraint: 'INCLUDE' | 'EXCLUDE'
+  ) =>
+    ({
+      ...modifier,
+      restrictions: {
+        ...modifier.restrictions!,
+        groups: modifier.restrictions!.groups.map((group) => ({
+          ...group,
+          contexts: [
+            ...group.contexts,
+            {
+              id: childId(0x260, entry),
+              order: group.contexts.length,
+              subject: 'EQUIPMENT' as const,
+              authoringModeKind: 'ALL' as const,
+              conditions: [
+                {
+                  id: childId(0x261, entry),
+                  order: 0,
+                  kind: 'PREDICATE' as const,
+                  constraint,
+                  predicateCode: 'ATTACK_ACTIVATION' as const,
+                  activation: ACTIVATION_CODE.BONUS_ACTION
+                }
+              ]
+            }
+          ]
+        }))
+      }
+    }) as ModifierGrantAuthored
+  let node = 0
+  return modifiers
+    .flatMap((modifier, index) => {
+      const abilityModifier =
+        modifier.valueDomainCode === VALUE_DOMAIN_CODE.DAMAGE &&
+        modifier.domain.attackDomain === ATTACK_DOMAIN_CODE.MELEE &&
+        (modifier.modifierKind === MODIFIER_KIND.ABILITY_MODIFIER_BONUS ||
+          modifier.modifierKind === MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS)
+      if (!abilityModifier) return [modifier]
+      const offHand = withFreshIds(bonusActionOnly(modifier, 2 * index + 2, 'INCLUDE'), () =>
+        childId(0x270, ++node)
+      )
+      return [
+        bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'),
+        { ...offHand, payload: { ...offHand.payload, max: 0 } } as ModifierGrantAuthored
+      ]
+    })
+    .map((modifier, index) => ({ ...modifier, order: index + 1 }))
 }

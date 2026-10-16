@@ -5747,9 +5747,13 @@
         {
           "id": "ATTACK-9",
           "title": "Class-feature resolvers",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomOncePerTurn.test.ts",
+            "apps/session-worker/test/nativeRoomOnHitChoice.test.ts",
+            "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -5810,8 +5814,13 @@
             {
               "id": "ATTACK-9.5",
               "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/offHandAttack.test.ts",
+                "packages/rules-runtime/src/__tests__/twoWeaponFightingDamage.test.ts",
+                "packages/authoring/src/nodeRuntime/offHandAttackAuthoringParity.test.ts",
+                "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+              ],
               "origin": [],
               "note": "D107."
             },
@@ -5968,8 +5977,8 @@
             },
             {
               "id": "ATTACK-9.T5c",
-              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
-              "status": "IN_PROGRESS",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options. (Red: ci/attack-9-t5c-red Tests 38931895848 on 2a6d99876 failed on the off-hand light weapon tests. Green: ci/attack-9-t5 Tests 38948782259 and Live backend 38948782326 on 1e80ebb09.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5977,8 +5986,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T6",
@@ -8873,6 +8881,71 @@
                 "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            },
+            {
+              "id": "SPELLS-27.T7",
+              "text": "Sanctuary from core options: a ward that makes a creature targeting the warded creature with an attack or harmful spell make a Wisdom save first (on a fail it picks a new target or loses the attack or spell), and the ward ends when the warded creature attacks, casts a spell on an enemy or deals damage to another creature (D132 against-enemy arms). Converts the closed-rule Sanctuary into a real v2 effect, with GM undo (D122 amendment of 2026-10-16). Closes AC 27.2 with T5.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T8",
+              "text": "Sleep from core options: roll the hit-point pool, put creatures in the area to sleep from lowest current HP up, and the unconscious condition ends when the sleeper takes damage or a creature uses an action to wake it. GM undo restores both (D122 amendment of 2026-10-16).",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T9",
+              "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T10",
+              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T11",
+              "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
             },
             {
               "id": "SPELLS-27.T6",
