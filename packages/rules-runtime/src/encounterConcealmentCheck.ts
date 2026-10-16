@@ -98,9 +98,6 @@ export function prepareEncounterConcealmentCheck<
   })
   if (facts.modifier === null)
     throw new EncounterValidationError('This actor has no total for the check.')
-  // An actor holds at most one concealment, so a hider cannot hide again until it is revealed.
-  if (input.dc.kind === 'PASSIVE' && encounterConcealmentOf(roller.activeEffects))
-    throw new EncounterValidationError('The actor is already hidden.')
   const resolution: ConcealmentResolution =
     input.dc.kind === 'PASSIVE'
       ? {

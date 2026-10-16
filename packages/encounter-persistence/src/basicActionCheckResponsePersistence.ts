@@ -7,6 +7,7 @@ import type {
   LiveSessionEncounterEscapeResponseCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunStateSchema,
   type EncounterRunActorState,
@@ -26,6 +27,7 @@ import {
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
+import { addEndedGrantsToRoot } from './consumedGrantPersistence.js'
 import {
   isConcealmentCheckSettlement,
   settleEncounterConcealmentCheck
@@ -64,7 +66,7 @@ type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
       occurredAt: string
       occurrenceVersion: number
     }
-  ): Promise<{ actors: EncounterRunActorState[] }>
+  ): Promise<{ actors: EncounterRunActorState[]; endedEffects?: ActiveRuleEffectRecord[] }>
   validateReadFence(
     state: EncounterRunState,
     characterIds: readonly string[],
@@ -178,6 +180,12 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     initiatorUserId: admission.initiatorUserId,
     occurredAt: input.occurredAt,
     occurrenceVersion
+  })
+  // The effects the check ended come back with the action's undo.
+  await addEndedGrantsToRoot(ctx, {
+    campaignId: campaign.id,
+    actionOccurrenceId: occurrence.id,
+    endedGrants: settled.endedEffects ?? []
   })
   const nextState = encounterRunStateSchema.parse({
     ...state,

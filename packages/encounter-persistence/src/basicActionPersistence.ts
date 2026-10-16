@@ -16,6 +16,7 @@ import {
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
@@ -30,7 +31,7 @@ import {
   readEncounterBasicActionEffect
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { deleteGrants } from './consumedGrantPersistence.js'
+import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
@@ -133,6 +134,7 @@ export async function persistEncounterBasicAction(
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
   await deleteGrants(ctx, input.consumedGrants)
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
+  let endedEffects: ActiveRuleEffectRecord[] = []
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -149,14 +151,18 @@ export async function persistEncounterBasicAction(
       occurrenceVersion: 0
     }
     const { settlement } = check
-    const settled = isConcealmentCheckSettlement(settlement)
-      ? await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
-      : await settleEncounterBasicActionCheck(ctx, {
-          ...settleInput,
-          settlement,
-          applyMechanics: callbacks.applyMechanics
-        })
-    nextActors = settled.actors
+    if (isConcealmentCheckSettlement(settlement)) {
+      const settled = await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
+      nextActors = settled.actors
+      endedEffects = settled.endedEffects
+    } else {
+      const settled = await settleEncounterBasicActionCheck(ctx, {
+        ...settleInput,
+        settlement,
+        applyMechanics: callbacks.applyMechanics
+      })
+      nextActors = settled.actors
+    }
   }
   const storedOccurrence = check
     ? await insertCheckOccurrence(ctx, {
@@ -222,7 +228,10 @@ export async function persistEncounterBasicAction(
         }
       },
       ruleOverrides: input.ruleOverrides,
-      consumedGrants: input.consumedGrants,
+      consumedGrants: receiptConsumedGrants({
+        consumedGrants: input.consumedGrants,
+        endedGrants: endedEffects
+      }),
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       commandFingerprint: fingerprint,

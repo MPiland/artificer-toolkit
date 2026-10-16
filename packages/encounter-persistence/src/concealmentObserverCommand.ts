@@ -96,12 +96,20 @@ export async function setConcealmentObservers(
   if (sameObserverActorIds(after, before))
     rejectDomain('TARGET_UNAVAILABLE', 'That does not change who the creature is hidden from.')
 
-  const updated = await store.updateLifecycleCas({
-    id: concealment.effect.id,
-    owner: turnEffectOwner(holder, state.id),
-    expectedVersion: concealment.effect.version,
-    lifecycle: concealmentLifecycleFor(concealment.effect, after)
-  })
+  const { effect } = concealment
+  const owner = turnEffectOwner(holder, state.id)
+  // Taking the last observer away ends the concealment: it hides its holder from no one.
+  let afterVersion = effect.version
+  if (after.length)
+    afterVersion = (
+      await store.updateLifecycleCas({
+        id: effect.id,
+        owner,
+        expectedVersion: effect.version,
+        lifecycle: concealmentLifecycleFor(effect, after)
+      })
+    ).version
+  else await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
   const now = new Date().toISOString()
   const version = run.version + 1
   const nextState = encounterRunStateSchema.parse({ ...state, version, updatedAt: now })
@@ -125,11 +133,12 @@ export async function setConcealmentObservers(
       commandId: input.commandId,
       commandType: 'SET_CONCEALMENT_OBSERVERS',
       receipt: {
-        activeEffectId: updated.id,
+        activeEffectId: effect.id,
         holderActorId: holder.id,
         beforeObserverActorIds: before,
         afterObserverActorIds: after,
-        afterVersion: updated.version
+        afterVersion,
+        endedEffect: after.length ? null : effect
       },
       commandFingerprint: fingerprint,
       actorUserId: userId,

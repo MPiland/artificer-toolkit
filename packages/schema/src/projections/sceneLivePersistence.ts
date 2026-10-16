@@ -1,6 +1,7 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
+import { activeRuleEffectRecordSchema } from './activeRuleEffectPersistence.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
   sceneLiveEntityChangeSchema,
@@ -112,7 +113,9 @@ export const sceneStoredConcealmentPruneSchema = lazySchema(() =>
             .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
           afterObserverActorIds: z
             .array(postgresUuidSchema)
-            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /** The concealment as it was when the prune left it no observers and ended it; undo gives it back. */
+          endedEffect: z.nullable(activeRuleEffectRecordSchema)
         })
       )
       .check(z.minLength(1))

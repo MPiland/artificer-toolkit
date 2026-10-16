@@ -1435,7 +1435,7 @@ function concealmentPlan(
     },
     adapterFacts: {},
     perceptionContributions: [],
-    maintenance: maintenancePlan(entry)
+    maintenance: maintenancePlan(action, entry)
   }
 }
 

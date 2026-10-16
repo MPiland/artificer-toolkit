@@ -29,7 +29,7 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         .check(
           z.superRefine((ids, ctx) => {
-            if (ids.some((id, index) => index > 0 && ids[index - 1]! >= id))
+            if (ids.slice(1).some((id, index) => ids[index]! >= id))
               ctx.addIssue({
                 code: 'custom',
                 message: 'Concealed observers must be unique and sorted.'

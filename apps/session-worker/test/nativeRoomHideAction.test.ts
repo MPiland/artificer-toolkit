@@ -1,9 +1,13 @@
 import {
   creatureFeature,
+  currentSrdDefinition,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
@@ -81,10 +85,16 @@ const sightWall = { ...wall, blocksMovement: false }
 /**
  * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
  * `walled` puts a wall of the Scene between the hider and the two Wolves further away;
- * `playerHider` makes the hider a player's creature and the Sharp Wolf another player's; `rolls` feeds the room's own dice.
+ * `playerHider` makes the hider a player's creature and the Sharp Wolf another player's; `rolls` feeds the room's own dice;
+ * `definitions` adds published definitions to the System's.
  */
 function hideRoom(
-  options: { walled?: boolean | 'SIGHT_ONLY'; playerHider?: boolean; rolls?: number[] } = {}
+  options: {
+    walled?: boolean | 'SIGHT_ONLY'
+    playerHider?: boolean
+    rolls?: number[]
+    definitions?: ReturnType<typeof currentSrdDefinition>[]
+  } = {}
 ) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
     [SRD_STEALTH_SKILL_ID]: 5
@@ -94,6 +104,7 @@ function hideRoom(
       ? { sceneOverrides: { barriers: [options.walled === 'SIGHT_ONLY' ? sightWall : wall] } }
       : {}),
     rolls: options.rolls ?? [],
+    ...(options.definitions ? { definitions: options.definitions } : {}),
     ...(options.playerHider
       ? { playerControlledActorIds: [HIDER_ID], otherPlayerControlledActorIds: [SHARP_ID] }
       : {}),
@@ -130,11 +141,16 @@ async function answerD20(fixture: Fixture, face: number) {
 }
 
 /** The hider hides, rolling `face` (Stealth +5 adds to it); `onScene` hides it on the Scene. */
-async function hide(fixture: Fixture, face: number, onScene = false) {
+async function hide(fixture: Fixture, face: number, onScene = false, sceneMoves = 0) {
   const { answer } = await fixture.room.startAction(
     HIDER_ID,
     [],
-    onScene ? fixture.room.sceneContext(0) : null,
+    onScene
+      ? {
+          ...fixture.room.sceneContext(0),
+          expectedSceneVersion: fixture.room.room.scene.version + sceneMoves
+        }
+      : null,
     null,
     hideActionId,
     HIDER_ID
@@ -173,6 +189,37 @@ async function revertLast(fixture: Fixture) {
     expectedVersion: await fixture.room.version()
   })
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+}
+
+const setObservers = async (
+  fixture: Fixture,
+  activeEffectId: string,
+  change: { add: string[]; remove: string[] },
+  sender: 'GM' | 'PLAYER' = 'GM'
+) => {
+  const command = {
+    type: 'SET_CONCEALMENT_OBSERVERS',
+    encounterId: fixture.room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await fixture.room.version(),
+    activeEffectId,
+    ...change
+  }
+  return sender === 'GM' ? fixture.room.send(command) : fixture.room.sendAsPlayer(command)
+}
+/** The stored effects without their row identity, which a restored effect gets anew. */
+const activeEffects = async (fixture: Fixture) =>
+  (await readRoomHistory(fixture.room.room.base.stub)).activeEffects.map(
+    ({ _id, _creationTime, ...effect }) => effect
+  )
+const effectId = async (fixture: Fixture) => (await activeEffects(fixture))[0]!.id
+
+/** Passes the turn on, from `fromId`'s turn, through the other creatures back to the hider's next turn. */
+async function advanceToHiderTurn(fixture: Fixture, fromId = HIDER_ID) {
+  const position = 1 + OBSERVER_PERCEPTION.findIndex(([id]) => id === fromId)
+  const turns = OBSERVER_PERCEPTION.length + 1
+  for (let turn = fromId === HIDER_ID ? 0 : position; turn < turns; turn += 1)
+    await fixture.room.advanceTurn()
 }
 
 describe('Hide, a System basic action with a per-observer check, in the room', () => {
@@ -260,7 +307,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     expect(await concealments(fixture)).toEqual([])
   })
 
-  it('refuses to undo the Hide once a token move pruned its observers, and keeps the concealment', async () => {
+  it('ends the concealment when a token move prunes its last observers, and refuses to undo the Hide', async () => {
     const fixture = await hideRoom({ walled: 'SIGHT_ONLY' })
     await hide(fixture, 20, true)
     expect(await concealments(fixture)).toMatchObject([{ observers: [KEEN_ID, ALERT_ID].sort() }])
@@ -274,7 +321,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
       await fixture.room.version()
     )
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
-    expect(await concealments(fixture)).toMatchObject([{ observers: [] }])
+    expect(await concealments(fixture)).toEqual([])
 
     const refused = await fixture.room.send({
       type: 'REVERT_LAST_ACTION',
@@ -283,8 +330,8 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
       expectedVersion: await fixture.room.version()
     })
     expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
-    expect(JSON.stringify(refused)).toContain('The concealment changed after this action')
-    expect(await concealments(fixture)).toMatchObject([{ observers: [] }])
+    expect(refused).toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
+    expect(await concealments(fixture)).toEqual([])
   })
 })
 
@@ -311,9 +358,8 @@ describe('Search, a System basic action against concealments, in the room', () =
     const found = await hideRoom()
     // Sharp has Perception +0: a d20 of 15 totals 15, level with the Stealth total.
     await search(found, SHARP_ID, 15)
-    expect(await concealments(found)).toEqual([
-      { holder: HIDER_ID, observers: [], concealmentTotal: 15 }
-    ])
+    // The only creature it was hidden from found it, so the concealment is over.
+    expect(await concealments(found)).toEqual([])
     expect(await concealmentOutputs(found)).toMatchObject([
       { resolution: { kind: 'CONCEAL' } },
       { resolution: { kind: 'DETECT', found: [{ holderActorId: HIDER_ID }] } }
@@ -339,7 +385,7 @@ describe('Search, a System basic action against concealments, in the room', () =
   it('restores the searcher to the hider’s observers when the GM undoes the Search', async () => {
     const fixture = await hideRoom()
     await search(fixture, SHARP_ID, 20)
-    expect((await concealments(fixture))[0]?.observers).toEqual([])
+    expect(await concealments(fixture)).toEqual([])
     await revertLast(fixture)
     expect(await concealments(fixture)).toEqual([
       { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
@@ -348,25 +394,6 @@ describe('Search, a System basic action against concealments, in the room', () =
 })
 
 describe('the observers a hider is hidden from, in the room', () => {
-  const setObservers = async (
-    fixture: Fixture,
-    activeEffectId: string,
-    change: { add: string[]; remove: string[] },
-    sender: 'GM' | 'PLAYER' = 'GM'
-  ) => {
-    const command = {
-      type: 'SET_CONCEALMENT_OBSERVERS',
-      encounterId: fixture.room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await fixture.room.version(),
-      activeEffectId,
-      ...change
-    }
-    return sender === 'GM' ? fixture.room.send(command) : fixture.room.sendAsPlayer(command)
-  }
-  const effectId = async (fixture: Fixture) =>
-    (await readRoomHistory(fixture.room.room.base.stub)).activeEffects[0]!.id
-
   it('lets the GM add and remove observers, records it, and undoes it', async () => {
     const fixture = await hideRoom()
     await hide(fixture, 10)
@@ -385,6 +412,21 @@ describe('the observers a hider is hidden from, in the room', () => {
 
     await revertLast(fixture)
     expect((await concealments(fixture))[0]?.observers).toEqual([SHARP_ID])
+  })
+
+  it('ends the concealment when the GM takes its last observer away, and undoes that', async () => {
+    const fixture = await hideRoom()
+    await hide(fixture, 10)
+    const before = await activeEffects(fixture)
+    const changed = await setObservers(fixture, await effectId(fixture), {
+      add: [],
+      remove: [SHARP_ID]
+    })
+    expect(changed.type, JSON.stringify(changed)).toBe('COMMAND_COMMITTED')
+    expect(await concealments(fixture)).toEqual([])
+
+    await revertLast(fixture)
+    expect(await activeEffects(fixture)).toEqual(before)
   })
 
   it('refuses a player, and a change that names the hider or an unknown creature', async () => {
@@ -505,5 +547,125 @@ describe('who sees the Hide and Search rolls, in the room', () => {
     expect(framesOf(otherPlayer)).not.toContain('privateRoll')
     for (const player of [hiderPlayer, otherPlayer])
       for (const key of secretKeys) expect(framesOf(player)).not.toContain(key)
+  })
+})
+
+describe('hiding again, in the room', () => {
+  it('hides anew after a Search ended the concealment, and undoes only that Hide', async () => {
+    const fixture = await hideRoom()
+    await search(fixture, SHARP_ID, 20)
+    expect(await concealments(fixture)).toEqual([])
+
+    await advanceToHiderTurn(fixture, SHARP_ID)
+    await hide(fixture, 20)
+    expect(await concealments(fixture)).toEqual([
+      {
+        holder: HIDER_ID,
+        observers: [SHARP_ID, KEEN_ID, ALERT_ID].sort(),
+        concealmentTotal: 25
+      }
+    ])
+
+    await revertLast(fixture)
+    expect(await concealments(fixture)).toEqual([])
+  })
+
+  it('hides anew after a token move ended the concealment, and undoes only that Hide', async () => {
+    const fixture = await hideRoom({ walled: 'SIGHT_ONLY' })
+    await hide(fixture, 20, true)
+    // Crossing the wall brings the hider into plain sight of both observers it was hidden from.
+    const moved = await fixture.room.room.move(
+      [
+        { x: 150, y: 150 },
+        { x: 320, y: 300 }
+      ],
+      await fixture.room.version()
+    )
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    expect(await concealments(fixture)).toEqual([])
+
+    // From (320, 300) the wall hides it from the Sharp Wolf alone.
+    await advanceToHiderTurn(fixture)
+    await hide(fixture, 20, true, 1)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 25 }
+    ])
+
+    await revertLast(fixture)
+    expect(await concealments(fixture)).toEqual([])
+  })
+
+  it('replaces a concealment still hiding the hider from some, and undo gives the old one back', async () => {
+    const fixture = await hideRoom()
+    await hide(fixture, 20)
+    const outcome = await setObservers(fixture, await effectId(fixture), {
+      add: [],
+      remove: [SHARP_ID]
+    })
+    expect(outcome.type, JSON.stringify(outcome)).toBe('COMMAND_COMMITTED')
+    const partial = await activeEffects(fixture)
+    expect(await concealments(fixture)).toMatchObject([{ observers: [KEEN_ID, ALERT_ID].sort() }])
+
+    await advanceToHiderTurn(fixture)
+    await hide(fixture, 10)
+    // One concealment at a time: the new Hide, hiding the hider from the Sharp Wolf alone.
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
+    ])
+    expect((await activeEffects(fixture))[0]!.id).not.toBe(partial[0]!.id)
+
+    await revertLast(fixture)
+    expect(await activeEffects(fixture)).toEqual(partial)
+  })
+
+  it('takes Hide as a bonus action, as a Rogue’s Cunning Action does, through the same path', async () => {
+    const regularHide = SRD_BASIC_ACTION_DEFINITIONS.find(
+      ({ id }) => id === SRD_BASIC_ACTION_IDS.HIDE
+    )!
+    const cunningId = testUuid(0xe20)
+    // The System's Hide with the Bonus Action as its cost: published content, not code.
+    const document = basicActionReusableDefinitionDocumentDtoSchema.parse(
+      JSON.parse(
+        JSON.stringify(regularHide.document)
+          .replaceAll(regularHide.id.slice(-8), cunningId.slice(-8))
+          .replaceAll(regularHide.id, cunningId)
+          .replaceAll('"code":"ACTION"', '"code":"BONUS_ACTION"')
+      )
+    )
+    const fixture = await hideRoom({
+      definitions: [
+        currentSrdDefinition({
+          id: cunningId,
+          definitionFamilyKey: BASIC_ACTION_DEFINITION_FAMILY_KEY,
+          label: 'Cunning Action: Hide',
+          description: 'Hide as a bonus action.',
+          document,
+          checksum: checksumRuleDocument(document)
+        })
+      ]
+    })
+    const { answer } = await fixture.room.startAction(
+      HIDER_ID,
+      [],
+      null,
+      null,
+      encounterBasicActionId(HIDER_ID, cunningId, document.effects[0]!.id),
+      HIDER_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerD20(fixture, 10)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
+    ])
+
+    // The Action is still unspent, so the same turn's Hide replaces the bonus action's.
+    await hide(fixture, 20)
+    expect(await concealments(fixture)).toEqual([
+      {
+        holder: HIDER_ID,
+        observers: [SHARP_ID, KEEN_ID, ALERT_ID].sort(),
+        concealmentTotal: 25
+      }
+    ])
   })
 })

@@ -10,6 +10,7 @@ import {
   sameObserverActorIds
 } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { restoreConsumedGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterWriteContext } from './store.js'
 
@@ -24,8 +25,8 @@ type PruneScope = {
 
 /**
  * Sets one concealment's observers to what `change` makes of the current ones, only while the
- * effect still hides its holder. An ended effect is never re-created; a change that leaves the
- * set as it is writes nothing.
+ * effect still hides its holder. A set left empty ends the effect, and the entry keeps the ended
+ * record; a change that leaves the set as it is writes nothing.
  */
 async function changeObservers(
   ctx: EncounterWriteContext,
@@ -43,17 +44,20 @@ async function changeObservers(
   const before = [...concealment.observerActorIds]
   const after = normalizeObserverActorIds(change(before))
   if (sameObserverActorIds(after, before)) return null
-  await store.updateLifecycleCas({
-    id: effect.id,
-    owner,
-    expectedVersion: effect.version,
-    lifecycle: concealmentLifecycleFor(effect, after)
-  })
+  if (after.length)
+    await store.updateLifecycleCas({
+      id: effect.id,
+      owner,
+      expectedVersion: effect.version,
+      lifecycle: concealmentLifecycleFor(effect, after)
+    })
+  else await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
   return {
     activeEffectId: effect.id,
     holderActorId: holder.id,
     beforeObserverActorIds: before,
-    afterObserverActorIds: after
+    afterObserverActorIds: after,
+    endedEffect: after.length ? null : effect
   }
 }
 
@@ -83,15 +87,24 @@ export async function applyConcealmentPrune(
 
 /**
  * Gives back the observers a move's prune dropped, to the concealments that still exist. They
- * rejoin the observers the effect holds now, so a GM's later change is kept.
+ * rejoin the observers the effect holds now, so a GM's later change is kept. A concealment the
+ * prune ended returns unless its holder has hidden again since.
  */
 export async function restoreConcealmentPrune(
   ctx: EncounterWriteContext,
   scope: PruneScope & { entries: readonly ConcealmentPruneEntry[] }
 ) {
-  for (const entry of scope.entries)
+  const store = createActiveRuleEffectStore(ctx)
+  for (const entry of scope.entries) {
+    const { endedEffect } = entry
+    if (endedEffect) {
+      if (!encounterConcealmentOf(await store.list(endedEffect.owner)))
+        await restoreConsumedGrants(ctx, [endedEffect])
+      continue
+    }
     await changeObservers(ctx, scope, entry, (current) => [
       ...current,
       ...entry.beforeObserverActorIds.filter((id) => !entry.afterObserverActorIds.includes(id))
     ])
+  }
 }

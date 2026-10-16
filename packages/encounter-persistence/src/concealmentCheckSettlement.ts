@@ -2,6 +2,7 @@ import type {
   ConcealmentCheckSettlement,
   StabilizeCheckSettlement
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -31,8 +32,10 @@ export const isConcealmentCheckSettlement = (
 /**
  * Settles a concealment check (Hide, Search). The room planned the result from the roller's total;
  * this re-derives it from the frozen check and the concealments held now, refuses any difference,
- * then stores a Hide's concealment on its roller or narrows the concealments a Search found. It
- * posts the roller's roll card unless the app already carded that die.
+ * then stores a Hide's concealment on its roller, replacing the one it held, or narrows the
+ * concealments a Search found. A concealment left with no observers ends. The records it ended come
+ * back so the action's undo can restore them. It posts the roller's roll card unless the app
+ * already carded that die.
  */
 export async function settleEncounterConcealmentCheck(
   ctx: EncounterWriteTransaction,
@@ -46,7 +49,11 @@ export async function settleEncounterConcealmentCheck(
     occurredAt: string
     occurrenceVersion: number
   }
-): Promise<{ actors: EncounterRunActorState[]; output: ConcealmentCheckOutput }> {
+): Promise<{
+  actors: EncounterRunActorState[]
+  output: ConcealmentCheckOutput
+  endedEffects: ActiveRuleEffectRecord[]
+}> {
   const { state, actors, settlement } = input
   const { context, execution } = settlement
   const output =
@@ -81,6 +88,7 @@ export async function settleEncounterConcealmentCheck(
     )
   )
   const held = heldConcealments(effectsByActorId)
+  const endedEffects: ActiveRuleEffectRecord[] = []
   const decision = decideEncounterConcealmentCheck({
     context,
     total: output.d20.total,
@@ -93,12 +101,10 @@ export async function settleEncounterConcealmentCheck(
   )
     throw new Error('Live Session concealment check differs from its plan.')
   if (resolution.kind === 'CONCEAL' && decision.kind === 'CONCEAL') {
-    // An actor holds at most one concealment, so a settled Hide never stacks a second.
     if (
       checksumCanonicalJson(resolution.hiddenFromActorIds) !==
         checksumCanonicalJson(decision.hiddenFromActorIds) ||
-      (settlement.createdEffect === null) !== (decision.hiddenFromActorIds.length === 0) ||
-      held.some(({ holderActorId }) => holderActorId === roller.id)
+      (settlement.createdEffect === null) !== (decision.hiddenFromActorIds.length === 0)
     )
       throw new Error('Live Session concealment check differs from its plan.')
     const planned = settlement.createdEffect
@@ -131,6 +137,16 @@ export async function settleEncounterConcealmentCheck(
         receipt.lifecycleChecksum !== created.lifecycleChecksum
       )
         throw new Error('Live Session concealment differs from its plan.')
+      // An actor holds at most one concealment: the Hide that hides it anew replaces the old one.
+      const replaced = held.find(({ holderActorId }) => holderActorId === roller.id)?.effect
+      if (replaced) {
+        await store.deleteCas({
+          id: replaced.id,
+          owner: replaced.owner,
+          expectedVersion: replaced.version
+        })
+        endedEffects.push(replaced)
+      }
     }
   } else if (resolution.kind === 'DETECT' && decision.kind === 'DETECT') {
     if (
@@ -148,12 +164,19 @@ export async function settleEncounterConcealmentCheck(
     for (const { effect, holderActorId, afterObserverActorIds } of decision.found) {
       const holder = actors.find((actor) => actor.id === holderActorId)
       if (!holder) throw new Error('Live Session concealment holder is unavailable.')
-      await store.updateLifecycleCas({
-        id: effect.id,
-        owner: turnEffectOwner(holder, state.id),
-        expectedVersion: effect.version,
-        lifecycle: concealmentLifecycleFor(effect, afterObserverActorIds)
-      })
+      const owner = turnEffectOwner(holder, state.id)
+      if (afterObserverActorIds.length) {
+        await store.updateLifecycleCas({
+          id: effect.id,
+          owner,
+          expectedVersion: effect.version,
+          lifecycle: concealmentLifecycleFor(effect, afterObserverActorIds)
+        })
+      } else {
+        // A concealment that hides its holder from no one is over.
+        await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+        endedEffects.push(effect)
+      }
     }
   }
   // The app already carded the die an app roll settled with; any other die gets the roller's card.
@@ -179,5 +202,5 @@ export async function settleEncounterConcealmentCheck(
       roll
     })
   }
-  return { actors: [...actors], output }
+  return { actors: [...actors], output, endedEffects }
 }

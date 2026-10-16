@@ -794,7 +794,10 @@ async function revertConcealmentCheck(
     }
     return
   }
-  for (const found of resolution.found)
+  // A Search that emptied a concealment ended it; the action's receipt gave that record back.
+  for (const found of resolution.found.filter(
+    ({ afterObserverActorIds }) => afterObserverActorIds.length
+  ))
     await restoreConcealmentObservers(ctx, state, actors, {
       holderActorId: found.holderActorId,
       activeEffectId: found.activeEffectId,
@@ -805,7 +808,8 @@ async function revertConcealmentCheck(
 
 /**
  * Undoes the GM's observer change: the concealment gets its earlier observers back, only while
- * nothing touched it since.
+ * nothing touched it since. A change that emptied the set ended the concealment, and undo gives
+ * the ended record back.
  */
 async function revertConcealmentObservers(
   ctx: EncounterCharacterWriteTransaction,
@@ -816,12 +820,14 @@ async function revertConcealmentObservers(
   const { state, root } = input
   const { receipt } = root
   const actors = await readRunActors(ctx, state)
-  await restoreConcealmentObservers(ctx, state, actors, {
-    holderActorId: receipt.holderActorId,
-    activeEffectId: receipt.activeEffectId,
-    afterVersion: receipt.afterVersion,
-    observerActorIds: receipt.beforeObserverActorIds
-  })
+  if (receipt.endedEffect) await restoreConsumedGrants(ctx, [receipt.endedEffect])
+  else
+    await restoreConcealmentObservers(ctx, state, actors, {
+      holderActorId: receipt.holderActorId,
+      activeEffectId: receipt.activeEffectId,
+      afterVersion: receipt.afterVersion,
+      observerActorIds: receipt.beforeObserverActorIds
+    })
   return commitRevert(ctx, {
     ...input,
     actors,

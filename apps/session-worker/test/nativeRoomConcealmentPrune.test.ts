@@ -46,8 +46,11 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** A Run whose hider holds a seeded concealment from both observers; `mover` acts first. */
-function pruneRoom(mover: 'HIDER' | 'NEAR') {
+/** A Run whose hider holds a seeded concealment from `observerActorIds`; `mover` acts first. */
+function pruneRoom(
+  mover: 'HIDER' | 'NEAR',
+  observerActorIds: readonly string[] = [NEAR_ID, FAR_ID]
+) {
   const hider = srdCreatureActor({ id: HIDER_ID, creature: bite })
   const near = srdCreatureActor({ id: NEAR_ID, creature: bite, disposition: 'FRIENDLY' })
   const far = srdCreatureActor({ id: FAR_ID, creature: bite, disposition: 'FRIENDLY' })
@@ -63,7 +66,7 @@ function pruneRoom(mover: 'HIDER' | 'NEAR') {
         id: EFFECT_ID,
         encounterId,
         holderActorId: HIDER_ID,
-        observerActorIds: [NEAR_ID, FAR_ID],
+        observerActorIds,
         concealmentTotal: STEALTH_TOTAL
       })
       await effects.create({
@@ -123,6 +126,19 @@ describe('a token move that brings an observer into sight of a concealed hider',
     const undone = await undoLastMove(room, room.room.scene.version + 1)
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(await observers(room)).toEqual([NEAR_ID, FAR_ID].sort())
+  })
+
+  it('ends the concealment when the move drops its last observer, and the GM undo of the move gives it back', async () => {
+    const room = await pruneRoom('HIDER', [NEAR_ID])
+    expect(await observers(room)).toEqual([NEAR_ID])
+
+    const moved = await room.room.move([HIDER_AT, { x: 350, y: 150 }])
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    expect(await observers(room)).toBeNull()
+
+    const undone = await undoLastMove(room, room.room.scene.version + 1)
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await observers(room)).toEqual([NEAR_ID])
   })
 
   it('leaves the concealment ended when the GM undoes the move after the hider attacked', async () => {

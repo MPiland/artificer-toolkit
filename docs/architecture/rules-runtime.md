@@ -523,7 +523,10 @@ options (ADR 0038); nothing in code names Hide.
 - **State.** The stored effect is a `schemaVersion 2` active rule effect whose immutable definition carries
   `LOCATION_CONCEALMENT { concealmentTotal }`; the observers it still hides the holder from live in the mutable lifecycle
   (`concealedFromActorIds`, sorted, unique). Search, the GM command and the movement prune change that set through
-  `updateLifecycleCas`. An empty set stays stored and inert until consumed.
+  `updateLifecycleCas`. A set that would become empty ends the effect in that same write (`deleteCas`), whichever of Search, the
+  movement prune or the GM command emptied it, and the receipt (root `consumedGrants`, the prune entry, the observer receipt's
+  `endedEffect`) keeps the record so undo re-creates it exactly. A settled Hide replaces the roller's existing concealment the
+  same way: the old effect is deleted in the settlement and recorded in the root receipt, so undoing the Hide restores it.
 - **Ties go to the observer.** An observer notices when its score (passive, or Search total) is at least the Stealth total; the
   hider is hidden from observers whose score is strictly lower. One rule for both (`encounterConcealment.ts`).
 - **Scene gating.** On a Scene an observer that really sees the hider has noticed it, so a Hide never freezes such an observer
@@ -543,7 +546,7 @@ options (ADR 0038); nothing in code names Hide.
   see the hider, when the hider's or an observer's token moved (`planConcealmentPrune` plans it from the predicted Scene and the
   movement plan's targets; `applyConcealmentPrune` writes it through `updateLifecycleCas`). The dropped ids are recorded in the
   room's `sceneConcealmentPrunes` evidence row keyed by the move command, and the GM's `UNDO_LAST_SCENE_MOVE` of that move
-  gives them back (`restoreConcealmentPrune`) to a concealment that still exists; an ended concealment is never re-created.
+  gives them back (`restoreConcealmentPrune`) to a concealment that still exists, and re-creates one the prune ended unless the holder has a newer concealment.
   A standalone move (no Encounter version) cannot move a token bound to an active Run, so it has no prune. Automation MANUAL
   plans no movement targets, so it prunes nothing; the GM command is the override there.
 - **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
