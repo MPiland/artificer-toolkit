@@ -317,8 +317,7 @@ describe('used automatic reactions of a Creature walking east', () => {
 
     const pending = await room.pending()
     expect(pending?.context).toMatchObject({
-      kind: 'ENCOUNTER_MOVEMENT_REACTION',
-      phase: { kind: 'SPATIAL_EVIDENCE' }
+      kind: 'ENCOUNTER_SPATIAL_MOVEMENT'
     })
     expect((await room.receipts()).length).toBe(receiptsBefore + 1)
     const receipt = await receiptOf(room, 'MOVE_SCENE_TOKEN')
