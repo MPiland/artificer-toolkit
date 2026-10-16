@@ -118,11 +118,12 @@ async function frightenedWolfBiteMode(room: FearRoom) {
   return decision.pending.request.rollMode
 }
 
-/** The frightened Wolf's token walks `path` on the GM's socket, acknowledging `acknowledged`. */
+/** The frightened Wolf's token moves along `path` on the GM's socket, acknowledging `acknowledged`. */
 async function moveFrightenedWolf(
   room: FearRoom,
   path: readonly ScenePoint[],
-  acknowledged: readonly EncounterRuleWarningCodeDto[] = []
+  acknowledged: readonly EncounterRuleWarningCodeDto[] = [],
+  movementKind: 'VOLUNTARY' | 'FORCED' | 'TELEPORT' = 'VOLUNTARY'
 ) {
   const token = room.room.scene.tokens[1]
   if (!token) throw new Error('The frightened Wolf has a token.')
@@ -135,7 +136,7 @@ async function moveFrightenedWolf(
       correlationId: null,
       expectedEncounterVersion: await room.version(),
       expectedSceneVersion: room.room.scene.version,
-      movementKind: 'VOLUNTARY',
+      movementKind,
       path,
       sceneId: room.room.scene.id,
       tokenId: token.id,
@@ -207,6 +208,21 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
       type: 'COMMAND_COMMITTED',
       delta: { result: { delta: { kind: 'TOKEN_MOVE_UNDONE', position: sidewaysStart } } }
     })
+  })
+
+  it('warns on a teleport that ends closer to the caster, never on a forced move', async () => {
+    const room = await fearRoom()
+    await castFear(room)
+    await room.advanceTurn()
+
+    const teleport = await moveFrightenedWolf(room, [WOLF_START, { x: 350, y: 150 }], [], 'TELEPORT')
+    expect(teleport).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: APPROACH }]
+    })
+    const forced = await moveFrightenedWolf(room, [WOLF_START, { x: 350, y: 150 }], [], 'FORCED')
+    expect(forced.type, JSON.stringify(forced)).toBe('COMMAND_COMMITTED')
   })
 
   it('takes the source with the cast when the GM undoes Fear: the move no longer warns', async () => {

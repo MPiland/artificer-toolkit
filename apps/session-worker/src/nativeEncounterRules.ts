@@ -528,8 +528,17 @@ export async function planNativeLiveEncounterAction(
           sceneContext,
           capture
         }),
-      loadSourcesSeen: ({ holder, sources }) =>
-        readNativeLiveSourcesSeen({ state, system, holder, sources, sceneContext, capture }),
+      loadSourcesSeen: ({ holder, sourceActorIds }) =>
+        readNativeLiveSourcesSeen({
+          state,
+          system,
+          holder,
+          sourceActorIds,
+          actors,
+          loadTarget: async (actor) => targets.get(actor.id) ?? loadTarget(actor),
+          sceneContext,
+          capture
+        }),
       loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
         readNativeLiveEnemyProximity({
           state,

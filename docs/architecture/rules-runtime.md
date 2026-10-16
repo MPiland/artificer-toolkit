@@ -665,11 +665,14 @@ every SRD Creature action that frightens author it. `encounterConditionSources` 
 sources; a condition held before its effect, applied by hand, or owned by any effect without a source is
 unsourced, and an unsourced condition's sight-gated modes always apply. Action preparation
 (`prepareEncounterActionMechanics`) filters the attacker's and target's mechanics by sight through the
-injected `loadSourcesSeen` (the Worker's `readNativeLiveSourcesSeen`, the attack-perception rules; a source
-with no token beside the holder's is unseen); a flow that injects none keeps the modes always on. The
-room's initial move (`prepareNativeLiveMovement`) refuses an unacknowledged approach with `RULE_WARNINGS`
-(`CONDITION_SOURCE_APPROACH`), which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows
-"Do it anyway". Undoing the action that applied the condition removes its effect and so its source.
+injected `loadSourcesSeen` (the Worker's `readNativeLiveSourcesSeen`, the attack-perception rules). Any
+Encounter actor can be a source, not only the action's actor and target; a source no longer in the
+Encounter, or with no token beside the holder's on the Scene, is unseen. A flow that injects none keeps
+the modes always on. The room's initial voluntary or teleport move (`prepareNativeLiveMovement`; forced
+moves never warn) refuses an unacknowledged approach with `RULE_WARNINGS` (`CONDITION_SOURCE_APPROACH`),
+which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do it anyway". The move
+receipt records no override yet. Undoing the action that applied the condition removes its effect and so
+its source.
 
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and

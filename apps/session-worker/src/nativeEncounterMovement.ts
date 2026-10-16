@@ -528,7 +528,7 @@ export async function prepareNativeLiveMovement(
             )
           })
         : []
-    const { acknowledgedWarnings } = save.input
+    const acknowledgedWarnings = save.input.acknowledgedWarnings ?? []
     if (!warnings.every((warning) => acknowledgedWarnings.includes(warning.code)))
       throw new LiveSessionDomainRejectionError(422, {
         code: 'DOMAIN_REJECTED',

@@ -116,19 +116,20 @@ export async function planNativeLiveDisarm(
   const actor = actors.find((entry) => entry.id === root.actorId)
   const target = actors.find((entry) => entry.id === targetActorId)
   if (!actor || !target) throw new Error('Disarm actors are unavailable.')
+  const loadTarget = async (entry: (typeof actors)[number]) => {
+    const prepared = await prepareNativeLiveMovementTarget({
+      scope: initial,
+      state,
+      actor: entry,
+      activeEffectsByActorId,
+      captures: executionOptions.captures
+    })
+    reads.observe(prepared.revisions)
+    return prepared.target
+  }
   const movementTargets = new Map(
     await Promise.all(
-      [actor, target].map(async (entry) => {
-        const prepared = await prepareNativeLiveMovementTarget({
-          scope: initial,
-          state,
-          actor: entry,
-          activeEffectsByActorId,
-          captures: executionOptions.captures
-        })
-        reads.observe(prepared.revisions)
-        return [entry.id, prepared.target] as const
-      })
+      [actor, target].map(async (entry) => [entry.id, await loadTarget(entry)] as const)
     )
   )
   const definition = requireEncounterDisarmDefinition({
@@ -186,8 +187,17 @@ export async function planNativeLiveDisarm(
         sceneContext,
         capture
       }),
-    loadSourcesSeen: ({ holder, sources }) =>
-      readNativeLiveSourcesSeen({ state, system, holder, sources, sceneContext, capture }),
+    loadSourcesSeen: ({ holder, sourceActorIds }) =>
+      readNativeLiveSourcesSeen({
+        state,
+        system,
+        holder,
+        sourceActorIds,
+        actors,
+        loadTarget: async (entry) => movementTargets.get(entry.id) ?? loadTarget(entry),
+        sceneContext,
+        capture
+      }),
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
       lockedRelationshipActionFacts({

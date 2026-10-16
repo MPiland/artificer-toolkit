@@ -217,12 +217,13 @@ export async function prepareEncounterActionMechanics<
     roller: EncounterPerceptionRoller
   }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
   /**
-   * The ids of the sources the holder of a sourced, sight-gated condition sees now (Frightened).
-   * Called only when the source or the target has one; a source no longer in the Encounter is unseen.
+   * Which of a sourced, sight-gated condition's recorded sources its holder sees now (Frightened).
+   * Called only when the source or the target has one; any Encounter actor can be a source, and
+   * one no longer in the Encounter is unseen.
    */
   loadSourcesSeen?: (input: {
     holder: MovementTarget<TCharacterFacts>
-    sources: readonly MovementTarget<TCharacterFacts>[]
+    sourceActorIds: readonly string[]
   }) => Promise<ReadonlySet<string>>
   /**
    * How near an enemy stands to the target on the Scene, for an attack with a path that asks
@@ -278,7 +279,7 @@ export async function prepareEncounterActionMechanics<
         sources,
         seenActorIds: await input.loadSourcesSeen({
           holder: facts,
-          sources: [...gatedSourceIds].flatMap((id) => currentTargets.get(id) ?? [])
+          sourceActorIds: [...gatedSourceIds].sort()
         })
       })
     }

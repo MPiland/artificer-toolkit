@@ -845,8 +845,8 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
        * skipped. Absent or false is moving normally, with the save. Only voluntary movement can choose.
        */
       carefully: z.optional(z.boolean()),
-      /** The rule warnings the mover overrides with "Do it anyway" (ADR 0034). */
-      acknowledgedWarnings: z._default(encounterAcknowledgedRuleWarningsDtoSchema, []),
+      /** The rule warnings the mover overrides with "Do it anyway" (ADR 0034); absent is none. */
+      acknowledgedWarnings: z.optional(encounterAcknowledgedRuleWarningsDtoSchema),
       tokenId: uuidSchema,
       path: z
         .array(scenePointDtoSchema)
