@@ -649,7 +649,7 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
       effectIds: history.activeEffects.map(({ id }) => id),
       invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID),
       hitPoints: readActorHitPoints(history, WOLF_ID),
-      diag: { occurrences: history.occurrences.map(({ state, kind }: { state: string; kind?: string }) => `${state}:${kind}`), rolls: history.evidenceRolls.length, receipts: history.receipts.map((r) => `${r.commandId === commandId ? 'ADV' : 'other'}:${parseReceiptExecution(r).status}`), strike: JSON.stringify(strike?.resolution ?? null), receiptJson: JSON.stringify(receipt?.resultJson ?? null).slice(0, 1500), answer: JSON.stringify(answer).slice(0, 600) }
+      diag: { occurrences: history.occurrences.map(({ state, kind }: { state: string; kind?: string }) => `${state}:${kind}`), rolls: history.evidenceRolls.length, receipts: history.receipts.map((r) => `${r.commandId === commandId ? 'ADV' : 'other'}:${parseReceiptExecution(r).status}`), strike: JSON.stringify(strike?.resolution ?? null), receiptJson: (receipt?.resultJson ?? '').slice((receipt?.resultJson ?? '').indexOf('"resolution"'), (receipt?.resultJson ?? '').indexOf('"resolution"') + 1800), answer: JSON.stringify(answer).slice(0, 600) }
     }
   }
 
