@@ -193,7 +193,7 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     })
 
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
-    expect(causes).toContain('Only a Creature with a frozen source can replace Equipment.')
+    expect(causes).toEqual(['Only a Creature with a frozen source can replace Equipment.'])
     expect(await room.runVersion()).toBe(versionBefore)
   })
 })
