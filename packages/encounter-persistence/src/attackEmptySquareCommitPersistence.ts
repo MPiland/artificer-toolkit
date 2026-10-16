@@ -236,6 +236,7 @@ export async function persistEncounterAttackEmptySquareCommit(
         consumedGrants: input.consumedGrants,
         endedGrants: []
       }),
+      endedMaintainedStates: [],
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       turnUses: null
