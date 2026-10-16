@@ -6402,7 +6402,7 @@
               "id": "ATTACK-17.3"
             },
             {
-              "text": "A player can attack an empty square in range; the GM sees which creature, if any, is there and resolves it, a wrong square is a miss, and the player learns only the outcome.",
+              "text": "Players target only tokens or the target list; there is no square attack. In targeting mode, creatures the GM has revealed but the player cannot see are listed first, marked hidden or invisible with an unknown distance, and the visible creatures follow, nearest first.",
               "status": "TODO",
               "proof": [
                 "T4a (occupied square): packages/schema/src/__tests__/encounter-attack-square-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterAttackSquare.test.ts, apps/session-worker/test/nativeRoomAttackSquare.test.ts, CampaignTabletopDecisionDrawer.test.tsx; CI Tests 38875764975 and Live backend 38875765093 on acf721dec"
@@ -6484,7 +6484,7 @@
             },
             {
               "id": "ATTACK-17.T4a",
-              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding.",
+              "text": "Attack a square: a SQUARE target on RESOLVE_ACTION for single-target attack-roll actions; the server computes the candidates (token overlap, hidden tokens included) and opens a GM-only ATTACK_SQUARE_RESOLUTION decision; a chosen occupant continues through the existing ACTOR attack flow; the attacker sees only that the GM is deciding. (Superseded 2026-10-16: the user ruled out square attacks; ATTACK-17.T4b removes this code.)",
               "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
@@ -6497,7 +6497,7 @@
             },
             {
               "id": "ATTACK-17.T4b",
-              "text": "Empty square: the GM answers nobody and the attacker still rolls through a dedicated miss path composed from the shared d20, card and economy primitives; the controller view of an empty-square miss equals an occupant miss except for the roll values; the map offers \"pick an empty square\".",
+              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
