@@ -34,3 +34,5 @@ SRD: "...attack with a different light melee weapon that you're holding in the o
 ## Log
 
 - T5a started. Red tests first, pushed to a `ci/attack-9-t5a-red` branch; run ids recorded below.
+- T5a red: Tests 38905082156 on `ci/attack-9-t5a-red` @07affe3dc failed on the three intended files (bonus-action compile, requirement module missing, attack record item).
+- T5a green: Tests 38918177360 and Live backend 38918177250 on `ci/attack-9-t5` @bd973edd4 (merged with `ci/merge-batch-ai`).
