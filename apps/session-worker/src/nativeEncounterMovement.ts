@@ -139,7 +139,6 @@ export async function prepareNativeLiveMovement(
       return { facts, resolvePerception: captured.resolvePerception }
     const resolvePerception = await createEncounterMovementReactionPerception({
       state,
-      actors: facts.encounter.actors,
       targets,
       movingTokenId: captured.token.id,
       actorIdByTokenId: captured.actorIdByTokenId,
