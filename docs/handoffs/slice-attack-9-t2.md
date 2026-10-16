@@ -59,3 +59,25 @@ Proof (real code, `characterOnHitRiders.test.ts`): a Rogue's unconditional Sneak
 
 Placement rule (reviewer finding): the flag is valid only on a `PASSIVE` Effect's fixed `ON_HIT` path (`checkWeaponDamageTypeChoices` in the Effect DTO schemas), so an unmerged flag cannot reach `normalizeCharacterActionMechanicFacts`, whose throw is now only an invariant. A rider acquired twice merges once (dedupe by outcome id), and the class rows are chosen from the Rogue levels alone (Fighter 5 / Rogue 1 rolls 1d6).
 
+### T2a checklist and proof logs
+
+Logs under `local-validation/attack-9-t2a/` (not committed).
+
+- [x] (a) merge: `characterOnHitRiders.test.ts` (journey), `characterOnHitRiderMerge.test.ts` (unit); green `b8-tests.log` (14 files, 190 tests).
+- [x] (b) class-level dice: journey rows at Rogue 1/3/4/5, Fighter 5 / Rogue 1 rolls 1d6; `b8-tests.log`.
+- [x] (c) weapon type: schema (`effect-schema-parsing`), compile (`effect-compiler`), node map (`authoring-node-map-visibility`); `b8-tests.log`.
+- [x] Critical doubling and resistance, SRD Sneak Attack still inert: journey test.
+- [x] Placement rule red then green: `red-placement.log` (1 failed) then `b8-tests.log`. The exclusive-union schema bug was red in `light-schema-shared.log` (overwritten by the green rerun).
+- [x] Typecheck: rules-runtime, apis, web (`b8-tc-*.log`, all 0). Builds shared/schema/rules-runtime (`b8-build-*.log`). apis tests (`b8-apis-tests.log`), web parity (`b8-web.log`), local `convex codegen` (`b8-codegen.log`).
+- Earlier red-to-green: `b3-rr-tests.log` (stale `dist` made two Hold Person tests fail; green after the rebuild in `b4-tests.log`).
+
+### T2a reviewer triage (independent opus read-only review)
+
+- Fixed: `actionCharacterResources.test.ts` and the conformance snapshot lacked `classLevels` / the `dnd5e.class-levels` contract; the flag was authorable outside a rider placement (now a schema rule, runtime throw kept as an invariant); duplicate rider acquisition (dedupe by outcome id); multiclass row selection (test); result-block id fixture.
+- Deferred (Deferred edge cases in `docs/roadmap/future-enhancements.md`): riders reach equipment attacks only; riders from equipment-granted Features; "first authored" weapon-type pick; a passive CHOICE path's `ON_HIT` damage is collected.
+- Stands: the visibility test widens `VisibilityNode` but evaluates the real `PATH_NODE_MAP`; `exactDiceConfiguration` fails closed when the Character lacks the rider's class, while the sheet's `selectValue` falls back to the first row (a Feature without its class is not a supported grant).
+
+### Proposed ledger edits
+
+ATTACK-9.T2a done (shapes a-c); ATTACK-9.2 stays open for T2b-T2d.
+
