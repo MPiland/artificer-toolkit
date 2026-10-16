@@ -7,6 +7,7 @@ import {
   withEncounterRuleUsageUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -108,15 +109,14 @@ describe('a Fighter’s Attack action in the room', () => {
           {
             actionId: room.actionId,
             targetIds: [WOLF_ID],
-            // The Club is a Light weapon; the record names it for the off-hand requirement.
-            item: {
-              itemInstanceId: expect.any(String),
-              properties: expect.arrayContaining(['LIGHT'])
-            }
+            // The record names the Club it was made with, for the off-hand requirement.
+            item: { itemInstanceId: expect.any(String), properties: club.properties }
           }
         ]
       }
     })
+    const clubItem = firstOutputs.attackActionTransition?.after.attacks[0]?.item
+    if (!clubItem) throw new Error('The first attack recorded no item.')
     const afterFirst = await room.actionChoices()
     expect(afterFirst.openAttackAction).toEqual({
       made: 1,
@@ -135,8 +135,14 @@ describe('a Fighter’s Attack action in the room', () => {
     const secondOutputs = await settledAttack(room, second.commandId)
     expect(secondOutputs.actionEconomyTransition).toBeNull()
     expect(secondOutputs.attackActionTransition).toMatchObject({
-      before: { attacks: [{ actionId: room.actionId }] },
-      after: { total: 2, attacks: [{ actionId: room.actionId }, { actionId: room.actionId }] }
+      before: { attacks: [{ actionId: room.actionId, item: clubItem }] },
+      after: {
+        total: 2,
+        attacks: [
+          { actionId: room.actionId, item: clubItem },
+          { actionId: room.actionId, item: clubItem }
+        ]
+      }
     })
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
 
@@ -160,8 +166,13 @@ describe('a Fighter’s Attack action in the room', () => {
     const overrideOutputs = await settledAttack(room, override.commandId)
     expect(overrideOutputs.actionEconomyTransition).toMatchObject({ beforeUsed: 1, afterUsed: 2 })
     expect(overrideOutputs.attackActionTransition).toMatchObject({
-      before: { attacks: [{ actionId: room.actionId }, { actionId: room.actionId }] },
-      after: { total: 2, attacks: [{ actionId: room.actionId }] }
+      before: {
+        attacks: [
+          { actionId: room.actionId, item: clubItem },
+          { actionId: room.actionId, item: clubItem }
+        ]
+      },
+      after: { total: 2, attacks: [{ actionId: room.actionId, item: clubItem }] }
     })
     await undo(room)
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
