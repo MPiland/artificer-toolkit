@@ -18,7 +18,7 @@ function paralyzingTouch(spellCast?: { castLevel: number }) {
         ? {
             ...feature,
             effects: feature.effects?.map((effect) =>
-              effect.invocation.kind === 'ACTION' ? { ...effect, spellCast } : effect
+              effect.invocation.kind === 'ACTION' ? { ...effect, ...(spellCast && { spellCast }) } : effect
             )
           }
         : feature
