@@ -143,7 +143,8 @@ import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   refuseSpatialInterpretation,
-  refuseUnmetBasicActionRestrictions
+  refuseUnmetBasicActionRestrictions,
+  refuseUnmetItemActionRequirements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -556,6 +557,7 @@ export async function planNativeLiveEncounterAction(
     definitions,
     speedDefinitions: system.speeds
   })
+  refuseUnmetItemActionRequirements(prepared, state)
   const triggerLevel = preparedSpellCastLevel(prepared)
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')

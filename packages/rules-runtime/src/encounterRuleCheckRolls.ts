@@ -249,6 +249,8 @@ export function initiativeRollRecord(input: {
  */
 export function basicActionCheckRollRecord(input: {
   occurrenceId: string
+  /** The card's id where the occurrence cards more than one check. */
+  rollId?: string
   d20: Omit<ReturnType<typeof basicActionCheckApplicationOutputDtoSchema.parse>['d20'], 'dc'>
   actionLabel: string
   checkLabel: string
@@ -268,7 +270,7 @@ export function basicActionCheckRollRecord(input: {
   if (evaluated.evidence.total !== d20.total)
     throw new Error('The basic action roll record does not match its check.')
   return rollRecordDtoSchema.parse({
-    id: ruleCheckRollId(input.occurrenceId, 0),
+    id: input.rollId ?? ruleCheckRollId(input.occurrenceId, 0),
     ...evaluated,
     characterId: null,
     characterLabel: input.rollerLabel,

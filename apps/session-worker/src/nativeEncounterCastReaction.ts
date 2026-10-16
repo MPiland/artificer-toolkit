@@ -49,6 +49,7 @@ import {
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import {
+  castReactionCheckAbility,
   castReactionCheckRequirement,
   prepareEncounterCastReactionCheck,
   type CastReactionCheckRequirement
@@ -170,6 +171,8 @@ export function discoverNativeCastReactions(input: {
           triggerLevel: input.triggerLevel
         })
         if (counterLevel < input.triggerLevel && !check) continue
+        // A reactor with no ability to roll cannot answer the check, so the slot is not on offer.
+        if (check && castReactionCheckAbility(check, reactorTarget) === undefined) continue
         const warnings = evaluateEncounterActionTargetPolicy({
           actor: prepared.actor,
           target: prepared.target,
@@ -587,7 +590,10 @@ export function buildNativeLiveEncounterCounteredCastCommitInput(
     itemConsumption: prepared.characterActionState?.itemConsumption ?? null,
     spellConsumption: prepared.characterActionState?.spellConsumption ?? null,
     reactionSpellConsumption: countered.reactionSpellConsumption,
-    failedCounters: countered.failedCounters,
+    failedCounters: countered.failedCounters.map(({ receipt, spellConsumption }) => ({
+      receipt,
+      spellConsumption
+    })),
     consumedGrants: countered.consumedGrants,
     label: encounterActionSourceLabel(prepared.source),
     ruleOverrides: plan.ruleOverrides

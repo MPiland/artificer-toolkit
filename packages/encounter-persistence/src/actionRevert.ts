@@ -376,6 +376,10 @@ export async function revertLastEncounterAction(
     return next
   }
   const store = createActiveRuleEffectStore(ctx)
+  const createdStates = new Map<
+    string,
+    NonNullable<ActionBatch['maintenanceTransition']>['createdState']
+  >()
   /** Gives back what an ended effect released from `actor`: on the Sheet for a Character, in the Run otherwise. */
   const restoreReleasedConditions = (
     actor: NonNullable<typeof source>,
@@ -526,15 +530,17 @@ export async function revertLastEncounterAction(
         expectedVersion: effect.afterVersion
       })
     const created = action.maintenanceTransition?.createdState
-    if (created)
-      await store.deleteMaintainedStateCas({
-        id: created.id,
-        encounterId: state.id,
-        ownerActorId: created.sourceActorId,
-        expectedVersion: created.version
-      })
+    if (created) createdStates.set(created.id, created)
   }
   for (const action of targetBatches.toReversed()) await invertTarget(action)
+  // Every creature of an area shares the one state, so it goes once, after the last dependent.
+  for (const created of createdStates.values())
+    await store.deleteMaintainedStateCas({
+      id: created.id,
+      encounterId: state.id,
+      ownerActorId: created.sourceActorId,
+      expectedVersion: created.version
+    })
 
   // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
   const sourceCharacterId =
