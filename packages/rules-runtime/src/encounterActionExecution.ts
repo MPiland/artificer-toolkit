@@ -685,7 +685,12 @@ export async function prepareNativeActionTest(
         continuation: pending.continuation,
         d20Policy: policy,
         twoPhase: pending.twoPhase,
-        roller: pending.roller,
+        roller: actionRequestRoller({
+          continuation: pending.continuation,
+          policy,
+          bound: current.bound,
+          twoPhase: null
+        }),
         ...(pending.d20Belief ? { d20Belief: pending.d20Belief } : {}),
         heldD20: heldStageD20(response.heldFace, sight)
       }
