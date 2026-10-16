@@ -95,7 +95,7 @@ describe('useCharacterPreparationCatalogue', () => {
       wrapper: wrapper()
     })
     await waitFor(() =>
-      expect(result.current.spells).toEqual([{ spellId: id(4), label: '**** Fire', level: 1 }])
+      expect(result.current.spells).toEqual([{ spellId: id(4), label: '****ing Fire', level: 1 }])
     )
     expect(fetchObject).toHaveBeenCalledTimes(1)
     expect(fetchObject.mock.calls[0]?.[0]).toContain(`/spell/list/${list.sha256}.json`)
@@ -109,7 +109,7 @@ describe('useCharacterPreparationCatalogue', () => {
     expect(result.current.isError).toBe(true)
     expect(fetchObject).toHaveBeenCalledTimes(1)
     rerender({ data: options(list) })
-    await waitFor(() => expect(result.current.spells?.[0]?.label).toBe('**** Fire'))
+    await waitFor(() => expect(result.current.spells?.[0]?.label).toBe('****ing Fire'))
     expect(fetchObject).toHaveBeenCalledTimes(2)
   })
 

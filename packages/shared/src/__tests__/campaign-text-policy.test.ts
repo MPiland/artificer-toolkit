@@ -45,8 +45,9 @@ describe('Campaign text policy', () => {
     expect(maskStandardPlainText('sh1t and fuuuck')).toBe('**** and ****')
   })
 
-  it('masks the whole word of an inflected profanity', () => {
-    expect(maskStandardPlainText('Fucking Coins, he fucked it')).toBe('**** Coins, he **** it')
+  // The matched term is masked, not the whole word: the same rule that gives `****storm`.
+  it('masks only the matched term of an inflected profanity', () => {
+    expect(maskStandardPlainText('Fucking Coins, he fucked it')).toBe('****ing Coins, he ****ed it')
   })
 
   it('masks short ambiguous terms only as whole words and leaves ordinary words alone', () => {
