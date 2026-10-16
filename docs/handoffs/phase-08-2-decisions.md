@@ -716,6 +716,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **D26 amended:** the room holds the Scene for any pending reaction decision ("Waiting on a reaction decision."), not only movement decisions.
   - **D99 fix:** the action economy honours `REACTION_COUNT 0` grant suppressions through the one shared `activeEffectCapabilitySuppressions`.
   - **Follow-ups:** REACTION-4.T5 (merge-review hardening), plus the slice's registered gaps: opportunity-attack and area callers, Creature reactors, more than one eligible reaction, dice-bearing reactions.
+* **D117** (2026-10-15) Username moderation runs the Q22 tiers (ACCOUNTS-7.T1). Decided by the main session at merge; workbook [slice-accounts-7-t1.md](slice-accounts-7-t1.md).
+  - **When:** only at sign-up and rename (Better Auth `before` hook on `/sign-up/email` and `/update-user`, both `username` and `displayUsername`). Sign-in checks format only, so tightening the list never locks an existing account out.
+  - **Compound rule (server):** a name is refused when it reads as a blocked term plus dictionary words and no reading as non-blocked dictionary words uses fewer pieces. A tie refuses (`asslicker`). Accepted cost: contrived ties such as `titangel` or `cuminside` are refused; the user picks another name.
+  - **Real names** that contain a blocked term (Titus, Dickerson, Pettit, Cockburn, Annalise, Shital, Shittu, Shiitake) are on the allowlist, and an allowlisted name counts as one dictionary word.
 * **D118** (2026-10-15) Multi-target chosen-creature spells (SPELLS-8.T12; Mass Cure Wounds, Mass Healing Word, Prayer of Healing). Decided by the main session.
   - **Ruling:** one `RESOLVE_ACTION` carries a reusable list-of-actors target kind, bounded by authored `maxTargets`. Each target is resolved within one transaction, so one cast is one commit, one slot spend and one undo.
   - **Rejected:** one action per target. It would split a cast into several commits and slot checks, which breaks undo atomicity.
