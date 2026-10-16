@@ -123,10 +123,19 @@ Synced to the lane first. One helper now ends "until healed" grants: `endGrantsO
 - **Proof:** Convex `mechanicsBatch.test.ts` "ends a grant that lasts until healed only when hit points rise": a damage batch on a creature holding the grant ends nothing; a heal batch ends it. Existing `actionCommands.test.ts` ("refuses after the turn advanced, so a turn commit that ended grants needs no undo receipt") is the same refusal for a non-action command.
 - **Suggested AC wording:** no remaining mechanics-batch caller can end a grant outside an undoable root.
 
+## SPELLS-17.T3 (AC 17.4): the board drag across a half-speed field
+
+**Status:** done on the branch; no production change. Closes AC 17.4 (Phase 8 owns the ledger).
+
+`CampaignVttStage.carefulMove.test.tsx` renders the real `CampaignVttStage` with the room, Scene and token bindings answered by the room read, and the canvas renderer faked as the platform. A drag is simulated by calling the renderer's `onTokenCommit` as a finished drag does.
+
+- **Proof:** a drag that enters a half-speed field holds back and shows "This path enters the Caltrop field."; "Move carefully" sends one `MOVE_SCENE_TOKEN` with `carefully: true`, "Move normally" sends `carefully: false`, Cancel sends nothing; a drag that stays out of the field sends once with no choice and no `carefully`.
+- **Red check:** with the stage's `carefully` line removed from the command, the careful and normal tests fail (the other two pass); restored.
+
 ## Proposed ledger edits (filled by the slice session)
 
 - Close AC SPELLS-17.1 (creator, entry, end event, careful crossing, journey).
 - New follow-up: ruling on `ENTER_SPACE` versus pass-through for Caltrops (authoring/semantics; possibly `ENTER_OR_PASS_THROUGH` in source data).
-- New follow-up: stage-level test for the careful-move choice in `CampaignVttStage`.
+- Done in SPELLS-17.T3 (AC 17.4): stage-level test of the careful-move choice in `CampaignVttStage`.
 - Done in SPELLS-17.T2 (AC 17.3): Sheet healing ends `ON_HIT_POINTS_REGAINED` grants and GM undo of a heal restores them.
 - Hidden/unnoticed zones stay MOVE-3.3 to 3.5; client drawing of zones stays SPELLS-20 / VTT_UI-3.1.
