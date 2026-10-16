@@ -589,6 +589,14 @@ options (ADR 0038); nothing in code names Hide.
 - **GM command.** `SET_CONCEALMENT_OBSERVERS` adds or removes observer ids on an existing concealment (GM only, recorded in the
   receipt, undone by `REVERT_LAST_ACTION`). It is the override for lighting and other circumstances the engine does not
   derive.
+- **GM projection (D116, AC 10.6).** The GM's actor projection carries `concealment` (`listConcealment` in `encounterConcealment.ts`,
+  filled by `withActiveGrants` in `encounter-persistence/nativeProjection.ts`): the effect id the command targets, the frozen
+  `concealmentTotal` and `observerActorIds`, or `null` when the actor hides from no one. It is `omit`ted from the stored Run actor
+  state (`encounterRunState.ts`) and absent from the player actor contract (`encounterPlayerActorDtoSchema`), whose projector copies
+  fields one by one, so no projection read or room frame to a player names an observer or the effect. The turn-order drawer lists every other actor as "Hidden from" (button: Stop hiding) or
+  "Noticed by" (button: Hide) and sends the command; the set members are the observers the creature is hidden from. Proofs: the
+  per-viewer unit test in `encounterPlayerProjection.test.ts`, the room test in `nativeRoomHideAction.test.ts` (the GM's commit delta
+  has it, a player's messages never do) and the live journey `apps/web/tests/live-backend/encounterHide.ts`.
 
 ### Condition mechanics (D94, current)
 
@@ -903,6 +911,20 @@ rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.cla
 `exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
 other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
 `ADD_BONUS_DIE` stays non-executable.
+
+**Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
+conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
+`buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
+identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
+leaves only `ATTACK_ROLL_MODE` checks (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
+roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
+d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
+(`attackRestrictionsMet`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`-context
+checks are evaluated; any other subject fails its group. A path whose every group is restricted away
+produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
+edge cases in `docs/roadmap/future-enhancements.md`).
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm

@@ -5,6 +5,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { listActiveGrantListings } from '@artificer-toolkit/rules-runtime/activeGrantListings'
+import { listConcealment } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   projectCurrentEncounterGm,
@@ -25,8 +26,8 @@ function readCurrentInitiativeRound(ctx: EncounterReadContext, state: EncounterR
 }
 
 /**
- * Lists each actor's active grants and the Concentration it maintains on its projection (D99,
- * SPELLS-5.11). A finished Run lists none: its view
+ * Lists each actor's active grants, the Concentration it maintains and the concealment it holds on
+ * its projection (D99, SPELLS-5.11, D116). A finished Run lists none: its view
  * reads only the Run's own documents (ADR 0035 Amendment 30), and the effects an owner holds then
  * may be later, carried over or unrelated.
  */
@@ -42,7 +43,8 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
       actors: projection.actors.map((actor) => ({
         ...actor,
         activeGrants: [],
-        concentration: null
+        concentration: null,
+        concealment: null
       }))
     }
   const listingsByActorId = new Map(
@@ -56,7 +58,8 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
           actor.id,
           {
             activeGrants: listActiveGrantListings(effects),
-            concentration: await readActorConcentration(ctx, { encounterId: state.id, actor })
+            concentration: await readActorConcentration(ctx, { encounterId: state.id, actor }),
+            concealment: listConcealment(effects)
           }
         ] as const
       })
@@ -67,7 +70,8 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
     actors: projection.actors.map((actor) => ({
       ...actor,
       activeGrants: listingsByActorId.get(actor.id)?.activeGrants ?? [],
-      concentration: listingsByActorId.get(actor.id)?.concentration ?? null
+      concentration: listingsByActorId.get(actor.id)?.concentration ?? null,
+      concealment: listingsByActorId.get(actor.id)?.concealment ?? null
     }))
   }
 }
