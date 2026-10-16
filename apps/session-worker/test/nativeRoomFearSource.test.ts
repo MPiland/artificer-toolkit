@@ -122,7 +122,8 @@ async function frightenedWolfBiteMode(room: FearRoom) {
   if (!bite) throw new Error('The Wolf has a Bite.')
   const { answer } = await room.startAction(
     OTHER_WOLF_ID,
-    [],
+    // The Bite names no Scene context, so its range goes unchecked.
+    ['TARGET_RANGE_UNCHECKED'],
     null,
     null,
     room.featureActionId(wolves[0]!, bite.id),
@@ -157,7 +158,8 @@ async function moveFrightenedWolf(
   room: FearRoom,
   path: readonly ScenePoint[],
   acknowledged: readonly EncounterRuleWarningCodeDto[] = [],
-  movementKind: 'VOLUNTARY' | 'FORCED' | 'TELEPORT' = 'VOLUNTARY'
+  movementKind: 'VOLUNTARY' | 'FORCED' | 'TELEPORT' = 'VOLUNTARY',
+  expectedSceneVersion = room.room.scene.version
 ) {
   const token = room.room.scene.tokens[1]
   if (!token) throw new Error('The frightened Wolf has a token.')
@@ -169,7 +171,7 @@ async function moveFrightenedWolf(
       commandId,
       correlationId: null,
       expectedEncounterVersion: await room.version(),
-      expectedSceneVersion: room.room.scene.version,
+      expectedSceneVersion,
       movementKind,
       path,
       sceneId: room.room.scene.id,
@@ -225,7 +227,13 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
     expect(sideways.type, JSON.stringify(sideways)).toBe('COMMAND_COMMITTED')
 
     const sidewaysStart = { x: 450, y: 250 }
-    const overridden = await moveFrightenedWolf(room, [sidewaysStart, closer], [APPROACH])
+    const overridden = await moveFrightenedWolf(
+      room,
+      [sidewaysStart, closer],
+      [APPROACH],
+      'VOLUNTARY',
+      room.room.scene.version + 1
+    )
     expect(overridden.type, JSON.stringify(overridden)).toBe('COMMAND_COMMITTED')
 
     const commandId = crypto.randomUUID()
