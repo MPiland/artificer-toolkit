@@ -656,11 +656,13 @@ describe('internal canonical source import', () => {
     const t = convexTest(schema, modules)
     expect(await t.mutation(internal.content.import.bootstrap, bootstrap)).toEqual({
       inserted: 3,
-      reused: 0
+      reused: 0,
+      replaced: 0
     })
     expect(await t.mutation(internal.content.import.bootstrap, bootstrap)).toEqual({
       inserted: 0,
-      reused: 3
+      reused: 3,
+      replaced: 0
     })
     const input = { contentSourceId: sourceId, subjects: [subject()] }
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
@@ -690,11 +692,13 @@ describe('internal canonical source import', () => {
     }
     expect(await t.mutation(internal.content.import.importDefinitions, definitions)).toEqual({
       inserted: 1,
-      reused: 0
+      reused: 0,
+      replaced: 0
     })
     expect(await t.mutation(internal.content.import.importDefinitions, definitions)).toEqual({
       inserted: 0,
-      reused: 1
+      reused: 1,
+      replaced: 0
     })
     expect((await t.query(internal.content.import.readSubjects, page)).page).toEqual(
       input.subjects.map((value) => ({
@@ -914,13 +918,140 @@ describe('internal canonical source import', () => {
     ])
   })
 
-  it('rejects conflicting bootstrap metadata and leaves the original untouched', async () => {
+  it('replaces a changed System, content source and catalogue in place and advances the vocabulary snapshot', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const revised = jsonValueSchema.parse({ ...systemDocument, description: 'Revised SRD' })
+    const next = {
+      systems: [
+        { id: srdSystemRecord.id, document: revised, checksum: checksumRuleDocument(revised) }
+      ],
+      contentSource: { ...SRD_CONTENT_SOURCE, label: 'Revised source' },
+      catalogue: { ...SRD_RULES_CATALOGUE, description: 'Revised catalogue' }
+    }
+    expect(await t.mutation(internal.content.import.bootstrap, next)).toEqual({
+      inserted: 0,
+      reused: 0,
+      replaced: 3
+    })
+    const stored = await t.run(async (ctx) => ({
+      system: await ctx.db
+        .query('systems')
+        .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
+        .unique(),
+      source: await ctx.db
+        .query('contentSources')
+        .withIndex('by_publicId', (q) => q.eq('id', sourceId))
+        .unique(),
+      catalogue: await ctx.db
+        .query('rulesCatalogues')
+        .withIndex('by_publicId', (q) => q.eq('id', SRD_RULES_CATALOGUE.id))
+        .unique(),
+      snapshots: await ctx.db
+        .query('systemVocabularySnapshots')
+        .withIndex('by_systemId_snapshotVersion', (q) => q.eq('systemId', srdSystemRecord.id))
+        .collect()
+    }))
+    expect(stored.system?.document).toEqual(revised)
+    expect(stored.system?.checksum).toBe(next.systems[0].checksum)
+    expect(stored.source?.label).toBe('Revised source')
+    expect(stored.catalogue?.description).toBe('Revised catalogue')
+    // Earlier snapshot versions stay as the record Encounters pinned them against.
+    expect(stored.snapshots.map((snapshot) => snapshot.snapshotVersion)).toEqual([1, 2])
+    expect(stored.snapshots[1]?.document).toEqual(revised)
+    expect(await t.mutation(internal.content.import.bootstrap, next)).toEqual({
+      inserted: 0,
+      reused: 3,
+      replaced: 0
+    })
+    expect(await t.run((ctx) => ctx.db.query('systemVocabularySnapshots').take(10))).toHaveLength(2)
+  })
+
+  it('refuses a System replacement that removes a vocabulary entry stored data may name', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const removed = srdSystemRecord.languages[0]
+    const trimmed = jsonValueSchema.parse({
+      ...systemDocument,
+      languages: srdSystemRecord.languages.slice(1)
+    })
+    await expect(
+      t.mutation(internal.content.import.bootstrap, {
+        ...bootstrap,
+        systems: [
+          { id: srdSystemRecord.id, document: trimmed, checksum: checksumRuleDocument(trimmed) }
+        ]
+      })
+    ).rejects.toThrow(`removes vocabulary entries stored data may name: ${removed.id}`)
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('systems')
+          .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
+          .unique()
+      )
+    ).toMatchObject({ document: systemDocument })
+  })
+
+  it('replaces a changed definition in place and refuses to change its identity', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const input = { contentSourceId: sourceId, definitions: [definition] }
+    await t.mutation(internal.content.import.importDefinitions, input)
+    const document = jsonValueSchema.parse({
+      ...(definition.document as Record<string, unknown>),
+      capabilities: (
+        definition.document as { capabilities: Record<string, unknown>[] }
+      ).capabilities.map((capability) => ({ ...capability, perceivesInvisible: true }))
+    })
+    const next = sourceImportDefinitionDtoSchema.parse({
+      ...definition,
+      label: 'Revised sense',
+      description: 'Revised description',
+      checksum: checksumRuleDocument(document),
+      document
+    })
+    expect(
+      await t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: sourceId,
+        definitions: [next]
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 1 })
+    const [row] = await t.run((ctx) => ctx.db.query('reusableDefinitions').take(10))
+    expect(row).toMatchObject({
+      id: definition.id,
+      label: 'Revised sense',
+      description: 'Revised description',
+      checksum: next.checksum,
+      version: 1
+    })
+    expect(await t.query(internal.content.import.readDefinitions, page)).toMatchObject({
+      page: [{ id: definition.id, checksum: checksumRuleDocument(next) }]
+    })
+    expect(
+      await t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: sourceId,
+        definitions: [next]
+      })
+    ).toEqual({ inserted: 0, reused: 1, replaced: 0 })
+    await t.run(async (ctx) => {
+      await ctx.db.patch(row._id, { definitionFamilyKey: 'rule-capability' })
+    })
+    await expect(
+      t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: sourceId,
+        definitions: [{ ...next, label: 'Another label' }]
+      })
+    ).rejects.toThrow('Canonical content conflict.')
+  })
+
+  it('rejects an identity change in bootstrap metadata and leaves the original untouched', async () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     await expect(
       t.mutation(internal.content.import.bootstrap, {
         ...bootstrap,
-        contentSource: { ...SRD_CONTENT_SOURCE, label: 'Changed' }
+        contentSource: { ...SRD_CONTENT_SOURCE, code: 'CHANGED' }
       })
     ).rejects.toThrow('Canonical content conflict')
     expect(
