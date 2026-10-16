@@ -34,12 +34,16 @@ export const encounterOnHitOptionDtoSchema = lazySchema(() =>
 )
 export type EncounterOnHitOptionDto = z.infer<typeof encounterOnHitOptionDtoSchema>
 
-export function encounterOnHitUseOptionId(input: {
+export function encounterOnHitUseOptionId({
+  testExecutionChecksum,
+  riderId,
+  slotLevel
+}: {
   testExecutionChecksum: string
   riderId: string
   slotLevel: number
 }): string {
-  return checksumRuleDocument({ kind: 'ON_HIT_USE', ...input })
+  return checksumRuleDocument({ kind: 'ON_HIT_USE', testExecutionChecksum, riderId, slotLevel })
 }
 
 /** An option's use option identity is derived from the hit and the way of paying it is offered for, never free-standing. */
