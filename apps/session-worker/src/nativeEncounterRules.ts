@@ -1095,6 +1095,7 @@ export async function planNativeLiveEncounterAction(
     ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
   )
   const failedTargetEconomy = failedTarget?.economy ?? null
+  const targetFailedCounterSpend = Boolean(failedTarget?.spellConsumption)
   refuseSpatialInterpretation(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -1120,7 +1121,7 @@ export async function planNativeLiveEncounterAction(
         (preparedEffects.stateEffect !== null ||
           preparedEffects.recurringEffect !== null ||
           reactionUse !== null ||
-          Boolean(failedTarget?.spellConsumption))
+          targetFailedCounterSpend)
     },
     initial.expectedUserId
   )
@@ -1223,7 +1224,8 @@ export async function planNativeLiveEncounterAction(
         economy: reactionUse.economy,
         activeEffectTransitions: settlement.reactionActiveEffectTransitions
       }
-    }
+    },
+    targetFailedCounterSpend
   })
   const cleavingRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
   const cleaving =

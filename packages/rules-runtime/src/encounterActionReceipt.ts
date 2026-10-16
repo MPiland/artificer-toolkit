@@ -66,6 +66,8 @@ export function buildEncounterActionStoredExecution(input: {
       >['activeEffectTransitions']
     } | null
   } | null
+  /** The target also failed a counter against this cast, so its slot spend rides in this batch (D127). */
+  targetFailedCounterSpend?: boolean
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -142,6 +144,7 @@ export function buildEncounterActionStoredExecution(input: {
                   ).map((transition) => characterEffectReceipt(transition, null))
                 }
               : null,
+            targetFailedCounterSpend: input.targetFailedCounterSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
               : {}),
