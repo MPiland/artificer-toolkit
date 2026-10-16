@@ -3305,6 +3305,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               };
               resourceCost?: number;
@@ -3979,6 +3980,7 @@ export declare const api: {
                       | "WISDOM";
                     dc?: number;
                   };
+                  targetCountLevels?: Array<number>;
                   trigger: string;
                 }>;
                 primaryEffect?: string;
@@ -4100,6 +4102,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               }>;
               prepared?: boolean;
@@ -18443,6 +18446,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               };
               resourceCost?: number;
@@ -19117,6 +19121,7 @@ export declare const api: {
                       | "WISDOM";
                     dc?: number;
                   };
+                  targetCountLevels?: Array<number>;
                   trigger: string;
                 }>;
                 primaryEffect?: string;
@@ -19238,6 +19243,7 @@ export declare const api: {
                     | "WISDOM";
                   dc?: number;
                 };
+                targetCountLevels?: Array<number>;
                 trigger: string;
               }>;
               prepared?: boolean;
@@ -21112,6 +21118,7 @@ export declare const api: {
                         | "WISDOM";
                       dc?: number;
                     };
+                    targetCountLevels?: Array<number>;
                     trigger: string;
                   };
                   resourceCost?: number;
@@ -21368,6 +21375,7 @@ export declare const api: {
                           | "WISDOM";
                         dc?: number;
                       };
+                      targetCountLevels?: Array<number>;
                       trigger: string;
                     }>;
                     primaryEffect?: string;
@@ -21478,6 +21486,7 @@ export declare const api: {
                         | "WISDOM";
                       dc?: number;
                     };
+                    targetCountLevels?: Array<number>;
                     trigger: string;
                   }>;
                   prepared?: boolean;
@@ -21758,6 +21767,7 @@ export declare const api: {
                           | "WISDOM";
                         dc?: number;
                       };
+                      targetCountLevels?: Array<number>;
                       trigger: string;
                     }>;
                     primaryEffect?: string;
@@ -21885,6 +21895,7 @@ export declare const api: {
                         | "WISDOM";
                       dc?: number;
                     };
+                    targetCountLevels?: Array<number>;
                     trigger: string;
                   }>;
                   prepared?: boolean;
@@ -112393,6 +112404,7 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  allowRepeatedTargets?: true;
                   area: {
                     kind: "RADIUS";
                     radius: {
@@ -113114,6 +113126,7 @@ export declare const api: {
               | { kind: "SELF" }
               | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
               | {
+                  allowRepeatedTargets?: true;
                   area: {
                     kind: "RADIUS";
                     radius: {

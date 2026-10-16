@@ -62,6 +62,7 @@ import { CharacterRuleActionUnsupportedCompilationError } from '../../characterR
 import {
   chosenCreaturesAreaSupported,
   chosenCreaturesMaxTargets,
+  resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
 import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
@@ -2496,13 +2497,15 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       (invocation.targeting.dispositionKind === 'WILLING' &&
         (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
-  // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
-  // once the outcome is read.
+  // (Mass Cure Wounds), resolves the one outcome on each; only a heal or dice damage that needs no
+  // test (Magic Missile) is supported, checked below once the outcome is read.
   const supportsChosenCreatures =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     invocation.targeting.dispositionKind === 'ANY' &&
-    chosenCreaturesMaxTargets(invocation.targeting) !== null &&
+    chosenCreaturesMaxTargets(
+      resolveChosenCreaturesTargeting(invocation.targeting, action.spellCastLevel)
+    ) !== null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A Legendary Action option is free; the Feature charge it spends is its cost.
@@ -2567,8 +2570,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL')
-    unsupported('D&D chosen-creature action outcome must be a heal.')
+  if (supportsChosenCreatures && outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
+    unsupported('D&D chosen-creature action outcome must be a heal or damage.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -2624,6 +2627,15 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     )
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
+  }
+  // Dice damage with no attack or save to decide it (Magic Missile's dart): one roll of the authored
+  // dice, which a bonus or a scaling row would have to be bound to facts to read.
+  if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
+    if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || outcome.halfHitPointsDice)
+      unsupported('D&D direct dice damage must be one unscaled roll with no bonuses.')
+    parseBoundedDiceConfiguration(outcome.dice)
+    uuid(outcome.damageTypeId, 'D&D damage type identity')
+    return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
   }
   if (
     outcome.valueKind !== 'FIXED' ||
@@ -3553,7 +3565,7 @@ function proposalNode(pathCode: string, outcome: Outcome) {
     unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
-  const id =`proposal-${pathCode.toLowerCase()}`
+  const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
@@ -5138,8 +5150,29 @@ function compileDnd5eEffectAction({
       })
     })
   }
-  if (outcome.kind === 'DICE_DAMAGE')
-    unsupported('D&D direct dice damage requires an authored test phase.')
+  if (outcome.kind === 'DICE_DAMAGE') {
+    const entry = action.compiledEffect.entries[0]
+    if (
+      recurringPlan ||
+      !entry ||
+      !('outcome' in entry) ||
+      entry.outcome.effectKind !== 'DAMAGE' ||
+      entry.outcome.valueKind !== 'DICE' ||
+      entry.outcome.scalingKind !== 'NONE'
+    )
+      unsupported('D&D direct dice damage must retain one exact unrecurring authored outcome.')
+    const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
+    return bindMovementInterruptionOutput({
+      action,
+      published: serverPublishedRuleDefinitionDtoSchema.parse({
+        id: definition.id,
+        gameSystemId: definition.gameSystemId,
+        definitionFamilyKey: definition.definitionFamilyKey,
+        checksum: checksumRuleDocument(definition),
+        definition
+      })
+    })
+  }
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   const operation =

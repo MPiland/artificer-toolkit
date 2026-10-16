@@ -49,6 +49,7 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
+import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
   aimedAreaShape,
@@ -619,7 +620,16 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedActionId}
                 />
               ) : null}
-              {actorsTarget ? (
+              {actorsTarget?.allowRepeatedTargets ? (
+                <CampaignTabletopProjectileTargets
+                  // A defeated creature isn't a target (D63); the server still warns if one is named.
+                  creatures={encounter.actors.filter((actor) => !actor.defeated)}
+                  disabled={selectionControlsDisabled}
+                  maxTargets={actorsTarget.maxTargets}
+                  value={pickedActorIds}
+                  onChange={setPickedActorIds}
+                />
+              ) : actorsTarget ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
                   // A defeated creature isn't a target (D63); the server still warns if one is named.

@@ -6,6 +6,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
   SCALING,
   SCALING_SOURCE,
   SUBJECT,
@@ -48,7 +49,17 @@ export const magicMissile: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY,
-          maxTargets: 3
+          maxTargetsScaling: {
+            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            breakpoints: Array.from({ length: 9 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x214, index + 1),
+              level: index + 1,
+              order: index + 1,
+              value: { amount: index + 3 }
+            }))
+          },
+          allowRepeatedTargets: true
         }
       },
       paths: [
@@ -68,64 +79,8 @@ export const magicMissile: SpellAuthored = {
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('FORCE'),
                 valueKind: 'DICE',
-                scalingKind: SCALING.PER_LEVEL,
-                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
-                levels: [
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 2),
-                    level: 1,
-                    order: 1,
-                    diceConfig: '3d4+3'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 3),
-                    level: 2,
-                    order: 2,
-                    diceConfig: '4d4+4'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 4),
-                    level: 3,
-                    order: 3,
-                    diceConfig: '5d4+5'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 5),
-                    level: 4,
-                    order: 4,
-                    diceConfig: '6d4+6'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 6),
-                    level: 5,
-                    order: 5,
-                    diceConfig: '7d4+7'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 7),
-                    level: 6,
-                    order: 6,
-                    diceConfig: '8d4+8'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 8),
-                    level: 7,
-                    order: 7,
-                    diceConfig: '9d4+9'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 9),
-                    level: 8,
-                    order: 8,
-                    diceConfig: '10d4+10'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.MAGIC_MISSILE, 0x212, 10),
-                    level: 9,
-                    order: 9,
-                    diceConfig: '11d4+11'
-                  }
-                ]
+                scalingKind: SCALING.NONE,
+                diceConfig: '1d4+1'
               }
             ]
           }

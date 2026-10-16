@@ -295,17 +295,23 @@ the viewer sees inside; the room still decides who is caught.
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
-Healing, Mass Cure Wounds) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
-`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area }` (`area` is the `RADIUS` the
+Healing, Mass Cure Wounds, Magic Missile) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
 spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
-accepts uses it. The compiler accepts one only when the outcome is a heal, the cap is authored and fixed (no
-scaling, `resolutionCount` or `allowRepeatedTargets`), and the shape is absent or a sphere, cylinder or circle
+accepts uses it. The compiler accepts one only when the outcome is a heal or unscaled dice damage, the cap is authored (fixed, or
+scaled by the cast level and resolved first by `resolveChosenCreaturesTargeting`; no `resolutionCount`), and the shape is absent or a sphere, cylinder or circle
 whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
 spend, one undo; one action per creature is rejected because it breaks undo atomicity).
 
-The schema rejects a duplicated creature and the room (`nativeEncounterActorsRules.ts`) refuses an over-cap list, then rolls once: the frozen roll
-tape is shared, so every creature gets the same heal, and `executeEncounterActorsAction` builds one occurrence
-per creature. A shaped list needs `scene.point`; the room prepares the point as a point area
+The room (`nativeEncounterActorsRules.ts`) refuses an over-cap list, and a creature named twice unless the
+targeting allows repeated targets, then rolls: a list that names each creature once shares one frozen roll tape, so
+every creature gets the same heal, and `executeEncounterActorsAction` builds one occurrence per entry
+(`encounterChosenActorEntries`). **Projectiles (current, SPELLS-26):** when the targeting allows repeated targets, each
+entry is one projectile (Magic Missile's dart): it rolls on its own tape, resolves as its own child with its own
+occurrence, lands on the hit points the creature's earlier entries left (the executor and the room chain the
+binding and the prepared facts per creature), and carries its own concentration check. The slot is spent with the
+caster's first entry only; the transport allows a repeated id and leaves the rule to the action. `rollsPerTarget`
+travels from the room to persistence so every projectile gets a roll card. A shaped list needs `scene.point`; the room prepares the point as a point area
 (`prepareAreaScene`, so range and sight warnings are the area's) and refuses a chosen creature outside the
 sphere (`catchEncounterAreaActorIds`). An unshaped list takes no point. Warnings are gathered across the list
 and deduplicated (`evaluateEncounterActorsRuleWarnings`); a creature in a shaped list is not range-checked

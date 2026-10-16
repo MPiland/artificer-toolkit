@@ -78,6 +78,7 @@ export function projectCharacterRuleActionMechanic(
             ...(mechanic.save.dc === null ? {} : { dc: mechanic.save.dc })
           }
         }),
+    ...(mechanic.targetCountLevels ? { targetCountLevels: mechanic.targetCountLevels } : {}),
     outcomes: mechanic.outcomes.map((outcome) => projectOutcome(outcome, references))
   }
 }
