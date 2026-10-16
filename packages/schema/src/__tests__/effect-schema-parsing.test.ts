@@ -377,6 +377,47 @@ describe('effect schema parsing', () => {
     ).toBe(false)
   })
 
+  it('accepts a SPELL_CAST reaction that cancels the triggering event, only on a REACTION action', () => {
+    const spellCast = {
+      id: '00000000-0000-4000-8000-0000000000ec',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'REACTION', amount: 1 },
+        range: { id: 'spell-cast-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+        reactionTrigger: { kind: 'SPELL_CAST' }
+      },
+      paths: [
+        fixedPath(
+          'spell-cast-path',
+          1,
+          'ON_USE',
+          singleResultBlock('spell-cast-result', {
+            id: 'spell-cast-outcome',
+            effectKind: 'CANCEL_TRIGGERING_EVENT'
+          })
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.parse(spellCast).invocation).toMatchObject({
+      reactionTrigger: { kind: 'SPELL_CAST' }
+    })
+    expect(
+      effectDtoSchema.safeParse({
+        ...spellCast,
+        invocation: { ...spellCast.invocation, activation: { code: 'ACTION', amount: 1 } }
+      }).success
+    ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...spellCast,
+        invocation: { ...spellCast.invocation, reactionTrigger: { kind: 'SPELL_CAST', stage: 'X' } }
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts a DAMAGE_TAKEN reaction trigger naming at least one damage type', () => {
     const fire = '00000000-0000-4000-8000-0000000000f1'
     const cold = '00000000-0000-4000-8000-0000000000f2'

@@ -35,6 +35,7 @@ function requireReactionTargetPolicy(input: {
     !targetPolicy.targeting ||
     targetPolicy.targeting.selectionKind !== 'SINGLE_TARGET' ||
     targetPolicy.targeting.dispositionKind === 'WILLING' ||
+    (targetPolicy.targeting.allowedCreatureTypeIds?.length ?? 0) !== 0 ||
     (targetPolicy.targeting.excludedCreatureTypeIds?.length ?? 0) !== 0 ||
     input.sourceActorId === input.targetActorId
   )
