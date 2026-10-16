@@ -1,0 +1,119 @@
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
+import { z, lazySchema } from '../zod.js'
+import {
+  serverRuleExecutionD20EvidenceDtoSchema,
+  serverRuleExecutionD20PolicyDtoSchema,
+  type ServerRuleExecutionD20EvidenceDto,
+  type ServerRuleExecutionD20PolicyDto
+} from './ruleExecutionEvidence.js'
+import {
+  serverCompletedRuleExecutionDtoSchema,
+  type ServerCompletedRuleExecutionDto
+} from './ruleExecutionProtocol.js'
+import {
+  ruleExecutionChecksumSchema as checksumSchema,
+  ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
+  ruleExecutionUuidSchema as uuidSchema
+} from './ruleExecutionPrimitives.js'
+import {
+  encounterReactionOutcomeAuditDtoSchema,
+  type EncounterReactionOutcomeAuditDto
+} from './ruleExecutionReactionChoice.js'
+
+/**
+ * One way the attacker may pay for an optional on-hit rider: the rider (its authored effect) and, for a
+ * spell-slot cost, the slot level paid. The use option identity is derived from the hit it was offered for.
+ */
+export const encounterOnHitOptionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    riderId: uuidSchema,
+    /** The slot level paid. */
+    slotLevel: positiveIntegerSchema,
+    useOptionId: checksumSchema
+  })
+)
+export type EncounterOnHitOptionDto = z.infer<typeof encounterOnHitOptionDtoSchema>
+
+export function encounterOnHitUseOptionId({
+  testExecutionChecksum,
+  riderId,
+  slotLevel
+}: {
+  testExecutionChecksum: string
+  riderId: string
+  slotLevel: number
+}): string {
+  return checksumRuleDocument({ kind: 'ON_HIT_USE', testExecutionChecksum, riderId, slotLevel })
+}
+
+/** An option's use option identity is derived from the hit and the way of paying it is offered for, never free-standing. */
+export function validateEncounterOnHitOption(
+  option: EncounterOnHitOptionDto,
+  testExecutionChecksum: string,
+  context: z.core.$RefinementCtx,
+  path: readonly (string | number)[]
+) {
+  if (encounterOnHitUseOptionId({ testExecutionChecksum, ...option }) !== option.useOptionId)
+    context.addIssue({
+      code: 'custom',
+      path: [...path, 'useOptionId'],
+      message: 'On-hit use option identity is invalid.'
+    })
+}
+
+/**
+ * A hit held for its attacker's choice to add an optional on-hit rider: the TEST execution that hit (as
+ * it stands after any reaction), the reaction that preceded it, and every way the attacker may pay.
+ * Declining declines them all.
+ */
+export type EncounterOnHitOfferDto = {
+  testExecution: ServerCompletedRuleExecutionDto
+  testD20: ServerRuleExecutionD20EvidenceDto
+  d20: ServerRuleExecutionD20PolicyDto
+  testExecutionChecksum: string
+  /** The target's reaction decision this hit already passed through, when it had one. */
+  reaction: EncounterReactionOutcomeAuditDto | null
+  options: EncounterOnHitOptionDto[]
+}
+
+// Explicitly typed so the pending-context declarations stay within the compiler's size limit (TS7056).
+export const encounterOnHitOfferDtoSchema: z.ZodMiniType<EncounterOnHitOfferDto> = lazySchema(() =>
+  z.strictObject({
+    testExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+    testD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+    d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+    testExecutionChecksum: checksumSchema,
+    reaction: z.nullable(z.lazy(() => encounterReactionOutcomeAuditDtoSchema)),
+    options: z.array(encounterOnHitOptionDtoSchema).check(z.minLength(1)).check(z.maxLength(64))
+  })
+)
+
+export type EncounterOnHitAuditDto = {
+  selection: 'DECLINE' | 'USE'
+  testExecutionChecksum: string
+  /** The option used; present exactly when the rider was used. */
+  option: EncounterOnHitOptionDto | null
+}
+
+/** What the attacker decided about an offered on-hit rider, sealed into the OUTCOME that follows it. */
+export const encounterOnHitAuditDtoSchema: z.ZodMiniType<EncounterOnHitAuditDto> = lazySchema(() =>
+  z
+    .strictObject({
+      selection: z.enum(['DECLINE', 'USE']),
+      testExecutionChecksum: checksumSchema,
+      option: z.nullable(encounterOnHitOptionDtoSchema)
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if ((value.selection === 'USE') !== (value.option !== null))
+          context.addIssue({
+            code: 'custom',
+            message: 'On-hit audit does not match its selection.'
+          })
+        if (value.option)
+          validateEncounterOnHitOption(value.option, value.testExecutionChecksum, context, [
+            'option'
+          ])
+      })
+    )
+)

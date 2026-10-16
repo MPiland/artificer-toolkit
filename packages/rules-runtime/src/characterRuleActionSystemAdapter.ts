@@ -31,7 +31,10 @@ import type {
   CompiledActionCompilerSource,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
-import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  ActorRelationshipModuleAuthored,
+  OptionalOnHitAuthored
+} from '@artificer-toolkit/shared/authored'
 
 /**
  * A System-owned, bounded recurrence declaration. The Encounter coordinator
@@ -342,6 +345,14 @@ export interface CharacterRuleActionSystemAdapter {
   compileTestTemplate?(input: {
     compilerSource: CompiledActionCompilerSource
   }): CharacterRuleActionTestTemplate | null
+  /**
+   * The optional on-hit riders merged into this compiled action, each of which its attacker may
+   * choose to pay for after a hit (D123). The System owns the compiled effect's shape.
+   */
+  optionalOnHitRiders(input: { compilerSource: CompiledActionCompilerSource }): readonly {
+    riderId: string
+    cost: OptionalOnHitAuthored
+  }[]
   /** Specializes the one selected authored result path after TEST evidence is terminal. */
   specializeOutcomeTemplate?(input: {
     compilerSource: CompiledActionCompilerSource
@@ -404,6 +415,8 @@ export interface CharacterRuleActionSystemAdapter {
       spellCastLevel?: number
       /** The actor's level in each class, which selects class-level scaling rows of its outcomes. */
       classLevels?: Readonly<Record<string, number>>
+      /** The optional on-hit riders the player chose (D123), whose merged outcomes then resolve. */
+      selectedOptionalRiderIds?: readonly string[]
     }
     /** Exact published graph selected under the aggregate lock. */
     published: ServerPublishedRuleDefinitionDto

@@ -934,16 +934,32 @@ rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.cla
 other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
 `ADD_BONUS_DIE` stays non-executable.
 
+**Optional on-hit riders (D123, current).** A rider authored with `optionalOnHit: { kind: 'SPELL_SLOT' }` on a
+passive weapon-attack invocation is merged into the weapon's compiled effect like any rider but stamped
+`optionalRider`, and the OUTCOME specialization keeps it only when its effect id is in the bound fact
+`dnd5e.selected-optional-riders`; its level-keyed rows read the paid slot from `dnd5e.spell-cast-level`
+(`selectScalingRow` clamps above the authored rows, which is how Divine Smite caps at 5d8). After a hit, and after
+any `reactionChoice` has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
+`onHitChoice` offer (a third sibling of `legendaryResistance` and `reactionChoice`, mutually exclusive with them,
+`ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
+a rider and a slot level. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
+spend rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
+are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine
+Smite (`source-data/srd/classes/paladin`) are authored from core options only. Improved Divine Smite has no
+`optionalOnHit`, so it is a mandatory rider.
+
 **Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE` and `ENEMY_NEAR_TARGET` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's net
 roll mode (`bindFacts`, `dnd5e.attack-roll-mode`; advantage and disadvantage cancel) is known only after the
 d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining restricted groups then
-(`attackRestrictionsMet`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
-so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`-context
+(`attackRestrictionsMet`); a `CREATURE_TYPE` check reads the target's creature type from
+`dnd5e.target-creature-type`, which the attack TEST binds from the target's derived facts (a `CREATURE` context
+is `authoringModeKind: ALL` or `SELECTED` over `creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`- and `CREATURE`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
 edge cases in `docs/roadmap/future-enhancements.md`).
