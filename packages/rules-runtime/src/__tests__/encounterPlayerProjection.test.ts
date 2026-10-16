@@ -436,7 +436,7 @@ describe('unseenEncounterActorIds (D121)', () => {
     const gm = gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), concealment }])
 
     expect(gm.actors[0]?.concealment).toEqual(concealment)
-    for (const viewer of [{ userId: PLAYER_ID, characters: new Map() }, noCharacters]) {
+    for (const viewer of [{ ...noCharacters, userId: PLAYER_ID }, noCharacters]) {
       const projection = projectPlayerEncounterProjection(gm, viewer)
       expect(projection.actors[0]).not.toHaveProperty('concealment')
       const serialized = JSON.stringify(projection)
