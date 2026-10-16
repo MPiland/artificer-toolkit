@@ -490,7 +490,7 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
 
-#### `SPELL_CAST` (current, REACTION-4.T3b-2; D124)
+#### `SPELL_CAST` (current, REACTION-4.T3b-2; D126)
 
 `reactionTrigger: { kind: 'SPELL_CAST' }` binds a reaction to a creature casting a spell (Counterspell). The
 `CANCEL_TRIGGERING_EVENT` outcome compiles to `dnd5e.cancel-triggering-event-proposal`, a target-only proposal

@@ -8421,7 +8421,9 @@
               "id": "SPELLS-27.1",
               "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "T2a (D125): packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts; CI Tests 38882320928 and Live backend 38882320295 on e5b309425"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
             },
@@ -8456,7 +8458,7 @@
             {
               "id": "SPELLS-27.T2a",
               "text": "One effectsEndedBy consumer over both event lists for any v2 effect; release planned on the source batch (required sourceApplications, D125); action and reaction attack-roll roots; Concentration and the condition restored on GM undo by receipt; authoring fence for non-releasing events on condition-owning effects (journey: cast Invisibility, attack with advantage, effect and condition gone, undo restores both).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8464,13 +8466,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T2b",
               "text": "The Legendary window, movement opportunity attack and Disarm roots release a consumed condition-owning effect the same way; the three !ownsCondition fences come out.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -8478,7 +8479,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-27.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T3",
