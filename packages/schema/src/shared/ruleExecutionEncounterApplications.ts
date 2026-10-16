@@ -764,7 +764,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             consumption !== null ||
             spell !== null ||
             sourceMaintenanceMutation ||
-            sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
+            sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId ?? null)
           )
         )
           context.addIssue({
