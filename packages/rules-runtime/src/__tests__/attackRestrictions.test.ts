@@ -8,7 +8,7 @@ import {
 } from '../systems/dnd5e/attackRestrictions.js'
 import type { Dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { riderGate } from '../testing/unconditionalSneakAttack.js'
+import { riderGate, type RiderGateCondition } from '../testing/unconditionalSneakAttack.js'
 
 const ADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' } as const
 const NOT_DISADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' } as const
@@ -82,7 +82,7 @@ describe('path restrictions on a compiled attack Effect', () => {
     )
     expect(reduced?.groups).toHaveLength(1)
     const conditions = reduced?.groups.flatMap((group) =>
-      group.contexts.flatMap((context) => context.conditions ?? [])
+      group.contexts.flatMap((context) => [...(context.conditions ?? [])])
     )
     expect(conditions).toMatchObject([{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }])
   })
@@ -126,45 +126,60 @@ describe('path restrictions on a compiled attack Effect', () => {
     expect(restrictionsOf(effect)).toEqual([undefined])
   })
 
-  const oneCondition = (
-    subject: 'EQUIPMENT' | 'CHARACTER',
-    condition: Record<string, unknown>
-  ): FacetAuthored =>
-    ({
-      id: testUuid(0xe01),
-      groups: [
-        {
-          id: testUuid(0xe02),
-          order: 0,
-          contexts: [
-            {
-              id: testUuid(0xe03),
-              order: 0,
-              subject,
-              ...(subject === 'EQUIPMENT' ? { authoringModeKind: 'ALL' } : {}),
-              conditions: [
-                { id: testUuid(0xe04), order: 0, kind: 'PREDICATE', ...condition }
-              ]
-            }
-          ]
-        }
-      ]
-    }) as FacetAuthored
+  const unanswerable = (subject: 'EQUIPMENT' | 'CHARACTER'): FacetAuthored => ({
+    id: testUuid(0xe01),
+    groups: [
+      {
+        id: testUuid(0xe02),
+        order: 0,
+        contexts: [
+          subject === 'EQUIPMENT'
+            ? {
+                id: testUuid(0xe03),
+                order: 0,
+                subject,
+                authoringModeKind: 'ALL',
+                conditions: [
+                  {
+                    id: testUuid(0xe04),
+                    order: 0,
+                    kind: 'PREDICATE',
+                    constraint: 'EXCLUDE',
+                    predicateCode: 'ATTACK_ABILITY',
+                    ability: 'DEXTERITY'
+                  }
+                ]
+              }
+            : {
+                id: testUuid(0xe03),
+                order: 0,
+                subject,
+                conditions: [
+                  {
+                    id: testUuid(0xe04),
+                    order: 0,
+                    kind: 'PREDICATE',
+                    constraint: 'EXCLUDE',
+                    predicateCode: 'CAN_ACT'
+                  }
+                ]
+              }
+        ]
+      }
+    ]
+  })
 
   it.each([
-    ['an excluded attack ability the weapon cannot answer', 'EQUIPMENT', { constraint: 'EXCLUDE', predicateCode: 'ATTACK_ABILITY', ability: 'DEX' }],
-    ['an excluded Character check', 'CHARACTER', { constraint: 'EXCLUDE', predicateCode: 'CAN_ACT' }]
-  ] as const)('fails a group holding %s, whatever its constraint', (_name, subject, condition) => {
-    const effect = reduceEffectRestrictions(
-      restrictedEffect(oneCondition(subject, condition)),
-      rapier
-    )
+    ['an excluded attack ability the weapon cannot answer', 'EQUIPMENT'],
+    ['an excluded Character check', 'CHARACTER']
+  ] as const)('fails a group holding %s, whatever its constraint', (_name, subject) => {
+    const effect = reduceEffectRestrictions(restrictedEffect(unanswerable(subject)), rapier)
     expect(effect.entries).toEqual([])
   })
 })
 
 describe('roll-mode checks of reduced restrictions', () => {
-  const reducedOf = (...groups: Parameters<typeof riderGate>) => {
+  const reducedOf = (...groups: (readonly RiderGateCondition[])[]) => {
     const [restrictions] = restrictionsOf(
       reduceEffectRestrictions(restrictedEffect(riderGate(...groups)), rapier)
     )

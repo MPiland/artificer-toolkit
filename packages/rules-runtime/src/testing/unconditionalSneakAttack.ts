@@ -71,7 +71,7 @@ export function unconditionalSneakAttack(rogueClassId: string): FeatureAuthored 
 
 /** One property check of a rider gate group, on the attacking weapon or on the attack's roll. */
 export type RiderGateCondition =
-  | { constraint?: 'EXCLUDE'; predicateCode: 'EQUIPMENT_PROPERTY'; properties: ['FINESSE'] }
+  | { constraint?: 'EXCLUDE'; predicateCode: 'EQUIPMENT_PROPERTY'; properties: readonly ['FINESSE'] }
   | { constraint?: 'EXCLUDE'; predicateCode: 'ATTACK_ROLL_MODE'; rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE' }
 
 /** A gate of the given OR-ed groups, each an AND of checks on the attacking weapon. */
@@ -93,7 +93,11 @@ export function riderGate(...groups: readonly (readonly RiderGateCondition[])[])
             kind: 'PREDICATE' as const,
             constraint: constraint ?? ('INCLUDE' as const),
             ...(condition.predicateCode === 'EQUIPMENT_PROPERTY'
-              ? { ...condition, authoringModeKind: 'SELECTED' as const }
+              ? {
+                  ...condition,
+                  properties: [...condition.properties],
+                  authoringModeKind: 'SELECTED' as const
+                }
               : condition)
           }))
         }
