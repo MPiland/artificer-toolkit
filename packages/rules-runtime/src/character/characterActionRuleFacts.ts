@@ -12,7 +12,6 @@ import {
   compiledEquipmentParentIds,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
-import { zoneEntrySavingThrow } from '../encounterZonePlacement.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
@@ -63,6 +62,24 @@ function nullableNumber(value: number | undefined): number | null {
 
 function nullableLabel(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+/**
+ * The saving throw the entering behavior of a placed or source zone authors. The action's facts carry
+ * it so its DC resolves like any save's; the web bundle reads these facts, so this stays out of the
+ * Encounter zone modules.
+ */
+function zoneEntrySavingThrow(effect: CompiledEffectGroup) {
+  const [entry] = effect.entries
+  const outcome = effect.entries.length === 1 && entry && 'outcome' in entry ? entry.outcome : null
+  if (
+    outcome?.effectKind !== 'MANIFEST' ||
+    outcome.manifestKind !== 'ZONE' ||
+    (outcome.attachmentKind !== 'PLACED_SPACE' && outcome.attachmentKind !== 'SOURCE')
+  )
+    return undefined
+  const invocation = outcome.components?.[0]?.behaviors?.[0]?.invocation
+  return invocation && 'savingThrow' in invocation ? invocation.savingThrow : undefined
 }
 
 function normalizeInvocation(

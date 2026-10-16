@@ -114,17 +114,6 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
   }
 }
 
-/**
- * The saving throw a placed or source zone's entering behavior authors, for the action facts that
- * resolve its DC. Tolerant where {@link placedSpaceZone} refuses: an action whose zone is not
- * modeled has no entering save to expose.
- */
-export function zoneEntrySavingThrow(compiledEffect: CompiledEffectGroup) {
-  const invocation =
-    placedSpaceManifest(compiledEffect)?.components?.[0]?.behaviors?.[0]?.invocation
-  return invocation && 'savingThrow' in invocation ? invocation.savingThrow : undefined
-}
-
 /** The movement a zone component reacts to, in canonical order; null for an unmodeled interaction. */
 export function zoneTriggerModes(
   component: CompiledManifestComponent

@@ -75,7 +75,9 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
       label: 'Spirit Guardians',
       visibility: 'PUBLIC'
     })
-    expect(zone?.definition.adapterFacts[DND5E_SAVE_DC_FACT_KEY]).toBe(WIZARD_SAVE_DC)
+    expect(JSON.parse(zone!.definitionJson)).toMatchObject({
+      adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: WIZARD_SAVE_DC }
+    })
     expect(await room.room.pending()).toBeNull()
     expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
   })
