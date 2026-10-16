@@ -162,22 +162,25 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'A cast reaction offer belongs to a cast held before it executes.'
             })
         }
-        if (value.failedCounters) {
-          const failedReactors = value.failedCounters.map(({ reaction }) => reaction.reactorActorId)
-          if (
-            new Set(failedReactors).size !== failedReactors.length ||
-            (value.castReaction &&
-              !failedReactors.every((actorId) =>
-                value.castReaction?.declinedReactorActorIds.includes(actorId)
-              ))
+        const chain = value.castReaction?.chain?.counters ?? []
+        const failedReactors = (value.failedCounters ?? []).map(
+          ({ reaction }) => reaction.reactorActorId
+        )
+        const chainReactors = chain.map(({ reaction }) => reaction.reactorActorId)
+        const usedReactors = [...failedReactors, ...chainReactors]
+        if (
+          new Set(usedReactors).size !== usedReactors.length ||
+          (value.castReaction && usedReactors.includes(value.rollerActorId)) ||
+          chain.some(
+            ({ againstActorId }, index) => index > 0 && againstActorId !== chainReactors[index - 1]
           )
-            context.addIssue({
-              code: 'custom',
-              path: ['failedCounters'],
-              message:
-                'Each reactor fails one counter against a cast and is not offered the cast again.'
-            })
-        }
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['failedCounters'],
+            message:
+              'Each reactor uses one counter in a cast, is not offered it again, and each standing counter answers the one before it.'
+          })
         if (value.onHitChoice) {
           for (const [index, option] of value.onHitChoice.options.entries())
             validateEncounterOnHitOption(option, value.onHitChoice.testExecutionChecksum, context, [
