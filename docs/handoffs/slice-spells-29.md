@@ -98,3 +98,26 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
 - 2026-10-16: first T1a approach (timed save condition joining TEST/OUTCOME) in `79855ebd9`; merged `ci/merge-batch-an` (`1e94a69a9`). Its red runs ([38936167659](https://github.com/MPiland/artificer-toolkit/actions/runs/38936167659), Live 38936167769) belong to the withdrawn approach.
 - 2026-10-16: ruling A replaced T1a with the repeat attempt gate (see Scope T1a). Reverted `79855ebd9` in `d42974a57`; new red tests in `c5e34a53d`, pushed to `ci/spells-29-t1a-red`; gate implemented in `68d01628f`; merged `ci/merge-batch-aq` (SPELLS-19.T3) cleanly and pushed to `ci/spells-29-t1`.
 - Red Live backend [38939462297](https://github.com/MPiland/artificer-toolkit/actions/runs/38939462297) failed only on generated-file drift (the SRD manifest and `_generated`), which the green tip regenerates.
+- T1a red Tests [38939462225](https://github.com/MPiland/artificer-toolkit/actions/runs/38939462225) (`c5e34a53d`) failed as expected:
+  - Packages: `effect-schema-parsing.test.ts` "accepts a repeat attempt gate only on a target-turn-end repeated save with no roll influence (SPELLS-29.T1a)".
+  - Typecheck: `characterSpellCastActions.test.ts` reads `repeatAttemptGate`, which `FollowUpSaveAuthored` lacked.
+  - Convex 1/4: `seed.test.ts` manifest drift (incidental).
+  - The job stopped at the schema step, so the Fear compile tests and the Worker journey did not reach execution.
+- 2026-10-16: green attempt 7 (`cf8f1f9af`):
+  - Live [38940757701](https://github.com/MPiland/artificer-toolkit/actions/runs/38940757701) reported manifest drift only; its artifact is committed in `81e68bc6c`.
+  - Tests [38940757748](https://github.com/MPiland/artificer-toolkit/actions/runs/38940757748) failed Convex 1/4 on that drift.
+  - It also failed every Fear room test that changes turns: "Encounter initiative actor source identity is stale". The fixture's caster lacked the Character snapshot identity a turn change checks. It now carries one, as in `nativeRoomGiantInsect.test.ts` (`fece0e8f6`). Before this, the journey's turn path had never run in CI.
+- 2026-10-16: T1a opus review (no blockers), triaged:
+  - **Fix now:**
+    - The schema accepted a gate on an immediate save that repeats at turn end, but that plan carries no gate. The schema now requires `timing: TARGET_TURN_END`.
+    - Runtime unit tests on the real executor: allowed and refused for `WHEN_UNMET` (Fear) and `WHEN_MET` (homebrew), and the last tick ending Fear when the gate refuses.
+    - The stale compiled-type comment.
+  - **Defer** (future-enhancements):
+    - A refused attempt's graph still reports the save-test outputs; only `ATTEMPT_REFUSED` counts.
+    - The immediate plan drops roll influence (pre-existing).
+  - **Documented:** unresolvable perception counts as unmet (rules-runtime.md).
+  - **Stands:**
+    - The refused branch adds no new undo state. It writes only the timed tick's `UPDATE` lifecycle, the same write an ungated timed effect makes, and the room journey "makes no repeat save … while it sees the caster" proves that receipt. The AC's GM undo is proved on the cast and the move.
+    - SEE matches the ruling's "can't see".
+    - The generic stale-evidence error and the absent refusal reason in the UI are nits.
+- 2026-10-16: merged `ci/merge-batch-as` (`0d51570d4`). The only conflict was the generated manifest, which CI regenerates.
