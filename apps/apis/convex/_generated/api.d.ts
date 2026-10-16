@@ -111436,6 +111436,12 @@ export declare const api: {
         "public",
         { campaignId: string },
         {
+          auras: Array<{
+            id: string;
+            label: string | null;
+            radius: number;
+            sourceTokenId: string;
+          }>;
           encounter:
             | {
                 actors: Array<{
