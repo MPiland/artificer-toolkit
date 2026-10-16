@@ -781,15 +781,19 @@
         {
           "id": "PLATFORM-14",
           "title": "Fast, reliable web tests and tooling",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/tests.yml"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Web tests reliable: test workers capped to physical cores; 3 full runs, 0 failures",
-              "status": "IN_PROGRESS",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/vitest.config.ts (maxWorkers 50%: logical CPUs halved stand in for physical cores, rationale in place)",
+                "docs/handoffs/slice-platform-14.md (flake survey)",
+                "Three consecutive green full CI web runs on the merge batches: Web tests jobs 116826454007 (run 38855518184, 1dfa8a6d8), 116827337630 (run 38855774749, 8c3671f53), 116829367364 (run 38856437824, 1855512ce)"
+              ],
               "note": "Audit: cap built (020e60aae, maxWorkers 50%); the three clean full runs are not recorded.",
               "origin": ["TST-7"],
               "id": "PLATFORM-14.1"
@@ -821,15 +825,14 @@
             {
               "id": "PLATFORM-14.T1",
               "text": "Cap web test workers to physical cores; three full CI web runs with 0 failures; root-cause any flake.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-14.1"],
               "wsjf": {
                 "bv": 1,
                 "tc": 3,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-14.md"
+              }
             }
           ]
         },
