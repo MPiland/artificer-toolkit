@@ -161,7 +161,6 @@
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/shared/src/__tests__"
   },
   "dependencies": {
-    "@2toad/profanity": "^3.3.0",
     "@artificer-toolkit/design-system": "workspace:^",
     "obscenity": "0.4.6",
     "polygon-clipping": "0.15.7",
