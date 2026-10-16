@@ -9414,8 +9414,8 @@
             },
             {
               "id": "REACTION-4.T3e",
-              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive).",
-              "status": "IN_PROGRESS",
+              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive). (Red: ci/reaction-4-t3e-red Tests 38944702077 on 17dcee0a0. Green: ci/reaction-4-t3e Tests 38964831551 and Live 38964831537 on 0c733d676.)",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9423,8 +9423,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3h",
