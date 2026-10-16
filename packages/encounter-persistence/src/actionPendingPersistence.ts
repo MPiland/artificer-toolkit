@@ -205,6 +205,8 @@ export async function persistEncounterActionPending(
   if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
   const occurrence = await ctx.db.get(id)
   if (!occurrence) throw new Error('The pending action was not stored.')
+  // A counter's check pause rolls the reactor's own d20, which the cast's policy does not hold.
+  const d20Policy = evidence?.d20Policy ?? evidence?.castReaction?.check?.d20
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence,
@@ -222,14 +224,12 @@ export async function persistEncounterActionPending(
         request: resume.area
           ? resume.pending.snapshot.request
           : requireServerKernelRuleExecutionPendingSnapshot(snapshot).request,
-        ...(evidence?.d20Policy
+        ...(d20Policy
           ? {
               pending: {
                 kind: 'D20_EVIDENCE',
                 // The receipt is a recipient-visible record, so it keeps what the roller was shown.
-                rollMode: evidence.heldD20
-                  ? 'NORMAL'
-                  : (evidence.d20Belief ?? evidence.d20Policy).rollMode
+                rollMode: evidence?.heldD20 ? 'NORMAL' : (evidence?.d20Belief ?? d20Policy).rollMode
               }
             }
           : {})
