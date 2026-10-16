@@ -1,6 +1,6 @@
 # Slice workbook: REACTION-4 (non-movement reactions: trigger model)
 
-**Status:** T1 and T5 merged (f875185dc, d98b1264f). Next: T6 (finish AC 4.5: replay test, admission-path test, settle the chosen reaction), then T2, T3, T4 in order.
+**Status:** T1, T5 and T2 merged (f875185dc, d98b1264f, c9cda1489). AC 4.2 is partly met: resistance to only the triggering type, offering every eligible reaction, ON_CRIT filtering and slot-scaled follow-up damage moved into T3. Next: T6 (finish AC 4.5), then T3, T4.
 **Base:** `codex/phase-08-2-convex-cutover` at this workbook's commit.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md).
 

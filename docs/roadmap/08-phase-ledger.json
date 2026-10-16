@@ -9720,7 +9720,9 @@
             {
               "text": "A user can author a reaction spell such as Absorb Elements: triggered when its caster takes damage of chosen types, it applies before that damage (resistance to the triggering type) and grants a follow-up benefit; it resolves through the same trigger model as the SRD reactions.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "partial: merge of c9cda1489 (REACTION-4.T2) adds the DAMAGE_TAKEN trigger with damageTypeIds and the user-authored Absorb Elements fixture (packages/rules-runtime/src/testing/absorbElementsSpell.ts); resistance currently covers every named type until the caster's next turn, so \"resistance to the triggering type\" waits for the trigger fact bound in REACTION-4.T3"
+              ],
               "origin": [],
               "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",
               "id": "REACTION-4.2"
@@ -9786,8 +9788,8 @@
             },
             {
               "id": "REACTION-4.T2",
-              "text": "DAMAGE_TAKEN trigger with a one-instance resistance applied before the damage, and a user-authored Absorb Elements fixture with its follow-up grant.",
-              "status": "TODO",
+              "text": "DAMAGE_TAKEN trigger with authored damageTypeIds, resistance applied before the damage, and a user-authored Absorb Elements fixture with its follow-up melee grant. Resistance to only the triggering type depends on the trigger fact from T3.",
+              "status": "DONE",
               "closes": [
                 "REACTION-4.2"
               ],
@@ -9803,10 +9805,11 @@
             },
             {
               "id": "REACTION-4.T3",
-              "text": "SPELL_CAST trigger, TRIGGER_FACT expressions, CANCEL_TRIGGERING_EVENT and the SPENT_NO_EFFECT settlement; Counterspell converted to core options (COUNTERSPELL closed-rule kind deleted), including the counter-chain.",
+              "text": "SPELL_CAST trigger, TRIGGER_FACT expressions, CANCEL_TRIGGERING_EVENT and the SPENT_NO_EFFECT settlement; Counterspell converted to core options (COUNTERSPELL closed-rule kind deleted), including the counter-chain. Also finishes AC 4.2: bind the triggering damage type as a TRIGGER_FACT so Absorb Elements resists only that type; offer every eligible reaction (not the first by actionId) so Shield and Absorb Elements both appear on one elemental hit; exclude ON_CRIT damage types on a normal hit (encounterAttackReactionDiscovery.ts attackHitDamageTypeIds); scale the follow-up melee damage by slot level and limit it to one hit. Sequence before the user UI review.",
               "status": "TODO",
               "closes": [
-                "REACTION-4.3"
+                "REACTION-4.3",
+                "REACTION-4.2"
               ],
               "wsjf": {
                 "bv": 8,
