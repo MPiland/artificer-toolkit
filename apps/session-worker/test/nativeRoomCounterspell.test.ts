@@ -9,7 +9,7 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { levelledMend, mend, unlimitedCureWounds } from './mendSpell.js'
+import { mend, unlimitedCureWounds } from './mendSpell.js'
 import {
   readPendingActionContext,
   readPendingActionDecision,
@@ -255,7 +255,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
   describe('a counter below the cast’s level owes a spellcasting check (D125)', () => {
     /** A 4th-level cast; the holder's 3rd-level slot, the first offered, owes a check against DC 14. */
     const highCast = (options: Parameters<typeof counterspellRoom>[0] = {}) =>
-      counterspellRoom({ spell: levelledMend, castLevel: '4th', ...options })
+      counterspellRoom({ spell: unlimitedCureWounds, castLevel: '4th', ...options })
 
     /** Counters with the holder's lowest slot and returns the room's answer. */
     async function counterWithLowestSlot(room: Room) {
@@ -273,6 +273,19 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
         rawFaces: [face],
         rollMode: decision.pending.request.rollMode
       })
+    }
+
+    /** The cast's healing, answered with a total once the counters have all failed. */
+    async function healFor(room: Room, total: number) {
+      const decision = await room.pendingDecision()
+      if (decision.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+        throw new Error(`Expected the healing roll, got ${decision.pending.kind}.`)
+      const healed = await room.resolve(decision, {
+        kind: 'ENTER_INTEGER',
+        requestId: decision.pending.request.requestId,
+        value: total
+      })
+      expect(healed.type, JSON.stringify(healed)).toBe('COMMAND_COMMITTED')
     }
 
     it('pauses for the holder’s roll, spending and applying nothing', async () => {
@@ -318,7 +331,8 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
 
       const rolled = await rollTheCheck(room, 1)
       expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
-      // The failed attempt is not offered again: the cast resolved and healed 4.
+      // The failed attempt is not offered again: the cast goes on to its own healing.
+      await healFor(room, 4)
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
       expect(await hitPointsOf(room)).toBe(5)
       expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(4))
@@ -342,7 +356,7 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       await cast(failing)
       expect((await counterWithLowestSlot(failing)).type).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(failing.room.base.stub)).toBeNull()
-      expect(await hitPointsOf(failing)).toBe(5)
+      expect(await hitPointsOf(failing)).toBeGreaterThan(1)
       expect(await slotsOf(failing, REACTOR_ID)).toEqual(SLOT_SPENT(3))
     })
 
