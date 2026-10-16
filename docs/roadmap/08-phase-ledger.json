@@ -8034,7 +8034,7 @@
         {
           "id": "SPELLS-19",
           "title": "Area actions that leave conditions or lasting effects",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -8061,7 +8061,8 @@
             "tc": 3,
             "rr": 3,
             "size": 5
-          }
+          },
+          "activeWorkbook": "docs/handoffs/slice-spells-19.md"
         },
         {
           "id": "SPELLS-20",
@@ -10084,9 +10085,9 @@
         {
           "id": "RELIABILITY-14",
           "title": "Campaign custody deletion test is deterministic",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/campaigns/deletionCustody.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -10098,8 +10099,12 @@
             {
               "id": "RELIABILITY-14.1",
               "text": "deletionCustody.test.ts \"runs the real public custody producers before deleting a ACTIVE Campaign\" passes deterministically: no contentSnapshotObjects remain after deletion, and a test reproduces the failing order or state before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/campaigns/deletionCustody.test.ts (fake setTimeout from the start; AFTER_DELETION leaves the Campaign snapshot build pending, BEFORE_DELETION runs it first and asserts its objects superseded; no Campaign head remains in either)",
+                "Red: ci/reliability-14-red Tests 38870061656 on ffd6a7cf5 (a forced build between the before snapshot and the deletion fails the original test)",
+                "Green: CI Tests 38886014934 and Live backend 38886014969 on 32409c357"
+              ],
               "origin": [],
               "note": "Failed on ledger-only merge batch h (e2d6dc33d, run 38858694893, Convex 3/4) whose code was green on batch g: contentSnapshotObjects expected [] but held 3."
             }
@@ -10108,9 +10113,8 @@
             {
               "id": "RELIABILITY-14.T1",
               "text": "Find the nondeterminism behind leftover contentSnapshotObjects after an ACTIVE Campaign custody deletion, reproduce it red, fix the root cause (no retry, no loosened assertion).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-14.1"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-14.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
@@ -10123,7 +10127,7 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -10149,8 +10153,12 @@
             {
               "id": "RELIABILITY-15.2",
               "text": "Every test in initiativeDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE_ORDER decision (seeded rolls through the existing queued-roll mechanism or explicit tie handling), proved red with a forced tie for each affected case before the fix. Found 2026-10-16: \"shows a Character declaration only to its current controller and the GM\" (CI 38870307348) and \"settles declarations from two assigned Character controllers through the player action entrypoint\" (CI 38872456272) failed with PREPARED on unrelated branches.",
-              "status": "TODO",
-              "proof": []
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts (cases that close the room before the settling declaration re-queue faces 10 apart; the two-controller case was already seeded on the base)",
+                "Red: ci/reliability-15-t2-red3 Tests 38885956580 on d91b8214d (tying primary and roll-off faces per case)",
+                "Green: CI Tests 38886014934 and Live backend 38886014969 on 32409c357"
+              ]
             }
           ],
           "tasks": [
@@ -10169,9 +10177,8 @@
             {
               "id": "RELIABILITY-15.T2",
               "text": "Seed or tie-handle every remaining settling case in initiativeDeclarations.test.ts (no weakened assertion, no retry); red per case on a ci/ -red branch, then green.",
-              "status": "IN_PROGRESS",
-              "closes": ["RELIABILITY-15.2"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-15-t2.md"
+              "status": "DONE",
+              "closes": ["RELIABILITY-15.2"]
             }
           ]
         },
