@@ -1028,3 +1028,25 @@ describe('D&D 5e healing', () => {
     expect(heal).toMatchObject({ kind: 'HEAL', expression: '3' })
   })
 })
+
+describe('D&D 5e spell save DC', () => {
+  const saveDc = (input: Parameters<typeof evaluateSrdCharacter>[0]) =>
+    evaluateSrdCharacter(input).output.derivedStats.spellcasting?.saveDc.effective
+
+  it('is 8 plus the proficiency bonus plus the modifier of the class spellcasting ability', () => {
+    // Intelligence +3 is the only modifier that gives 13: Constitution +2, Wisdom +1, the rest -1 or lower.
+    expect(
+      saveDc({
+        abilities: { INTELLIGENCE: 16, CONSTITUTION: 14, WISDOM: 12, STRENGTH: 8, DEXTERITY: 8, CHARISMA: 8 },
+        classes: [{ label: 'Wizard', level: 1 }]
+      })
+    ).toBe(8 + 2 + 3)
+    // A Cleric casts with Wisdom: the higher Intelligence does not count.
+    expect(
+      saveDc({
+        abilities: { WISDOM: 14, INTELLIGENCE: 18 },
+        classes: [{ label: 'Cleric', level: 1 }]
+      })
+    ).toBe(8 + 2 + 2)
+  })
+})

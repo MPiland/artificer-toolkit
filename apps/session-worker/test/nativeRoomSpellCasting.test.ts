@@ -300,6 +300,7 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
       await answerAllSaves(room)
 
       const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+      expect(roots).toHaveLength(1)
       expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({ slotKey, beforeUsed: 0, afterUsed: 1 })
       expect(children).toHaveLength(CAUGHT_IDS.length + 1)
       expect(children.map(({ outputs }) => outputs.d20?.defenseOrDc)).toEqual(
