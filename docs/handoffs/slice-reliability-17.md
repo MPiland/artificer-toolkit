@@ -9,3 +9,8 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+
+- Cause: the Worker fixtures wait for the room's first reply (the owner's first STATE_SYNC, which the room sends only after it has built the presented Scene inside the Durable Object; the target-list and command answers behind it) with `vi.waitFor`'s 1 s default, and the test itself has Vitest's 5 s default. A loaded runner takes longer than 1 s to build the room, so the wait gave up with no frames received and the assertion saw `[]`. Evidence: the failing run's `messages` were entirely empty after the wait.
+- Fix (test platform only, no product code): `ROOM_REPLY_WAIT` (20 s) in `liveRoomFixture.ts` is passed to every room-reply `vi.waitFor` in `liveRoomFixture.ts`, `actionRoomFixture.ts` and `movementRoomFixture.ts`; `vitest.config.ts` raises the Worker `testTimeout` to 30 s so the wait is bounded by the test. A room that never answers still fails the test. No retry, no assertion changed.
+- Forced red: on `ci/reliability-17-red`, a 1.5 s delay in the fixture's Scene-read mock on the unfixed base failed 627 tests with the exact assertion error, including all four in `nativeRoomUnseenTarget.test.ts` (Tests 38881892455, `f088f07d8`). The same delay with the fix, narrowed to the target file, is green (Tests 38887833062, `38fa1a425`). The first fixed attempt delayed the whole suite and hit the 30-minute job timeout (cancelled Tests 38884216816), which is why the delay was narrowed.
+- Risk: the cause is proved by exact reproduction at the failure site, not by timing observed on the original flaky run. A test that legitimately takes longer than 1 s per reply now passes instead of failing early; a real hang fails at 20 s per wait.
