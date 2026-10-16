@@ -179,7 +179,8 @@ export function evaluateDnd5eCharacterModifiers(
           return {
             ...contribution,
             ability: canonicalCharacterAbility(best),
-            resolvedValue: best === undefined ? 0 : abilityModifierOf(best)
+            resolvedValue:
+              best === undefined ? 0 : resolveAbilityModifierBonus(abilityModifierOf(best), payload)
           }
         })
       : (

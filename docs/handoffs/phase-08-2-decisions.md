@@ -838,6 +838,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rule:** damage counts after resistance and immunity (`resolvedAmount > 0`). The holder's batch applies the condition releases after the outcome, and the action commit deletes the ended effects; GM undo restores both.
   - **Authoring:** `lifecycle.endOnTriggers` on a result block, accepted only by the timed-condition plan, so authoring cannot name a trigger no plan consumes.
   - **Scope:** the single-action damage root. The other damage roots and the Sanctuary and spell-cast arms are SPELLS-27.T4b; T5 authors no damage-ended effect whose damage arrives through an unwired root.
+* **D133** (2026-10-16) Zone damage dice are a roll request owned by the zone source's controller (SPELLS-20.T1; plan in [slice-spells-20.md](slice-spells-20.md)). Decided by the main session under [ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md) §3.
+  - **Rule:** a zone trigger that deals rolled damage raises a `DICE` roll request through the same executor and spatial pending path as zone saves. The roll belongs to the zone's source actor, so it goes to that actor's controllers and honors their auto-roll preference; the GM may roll or enter it as for any roll.
+  - **Determinism:** the rolled dice are recorded in the receipt, so undo and replay never reroll.
+  - **Rejected:** the server rolling from seeded room dice without a prompt, because it bypasses roll ownership and auto-roll preferences.
+  - **Scope:** generic to every zone, proved on an existing damaging placed zone in T1. The Spirit Guardians aura that uses it is SPELLS-20.T1b.
 
 ## Approved implementation decisions
 

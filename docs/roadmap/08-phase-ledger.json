@@ -5952,8 +5952,8 @@
             },
             {
               "id": "ATTACK-9.T5b",
-              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier.",
-              "status": "IN_PROGRESS",
+              "text": "Off-hand damage omits a positive ability modifier but keeps a negative one (negative-only modifier mode); the Two-Weapon Fighting style grant restores the positive modifier. (Red: ci/attack-9-t5b-red Tests 38923270291 on 7f52b3fae failed on 5 twoWeaponFightingDamage tests and the off-hand activation typecheck. Green: ci/attack-9-t5 Tests 38927082342 and Live backend 38927082404 on 864f57a1f.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5961,13 +5961,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T5c",
               "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5975,7 +5974,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
             },
             {
               "id": "ATTACK-9.T6",
@@ -8225,17 +8225,30 @@
           "tasks": [
             {
               "id": "SPELLS-20.T1",
-              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
+              "text": "Rolled damage dice on zone entry, generic to every zone: a DICE roll request through the executor and spatial pending path, owned by the zone source's controller (ADR 0034 roll prompts, auto-roll preference or entered dice), recorded in the receipt so undo and replay stay deterministic. Proved on an existing damaging placed zone (such as Cloud of Daggers on entry) with GM undo.",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": ["SPELLS-17", "SPELLS-25"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T1b",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-20.T1"]
+              }
             },
             {
               "id": "SPELLS-20.T2",
@@ -8247,7 +8260,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8260,7 +8273,7 @@
                 "tc": 5,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8273,7 +8286,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8286,7 +8299,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-20.T1"]
+                "after": ["SPELLS-20.T1b"]
               }
             },
             {
@@ -8558,8 +8571,14 @@
             {
               "id": "SPELLS-28.2",
               "text": "A Character casts Misty Step or Dimension Door in an Encounter and moves its token to a chosen unoccupied point within the spell range with no path and no opportunity attacks; the cast grants a bounded teleport allowance that the move consumes, a teleport by a player without one is refused, and GM undo restores the position.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomTeleportAction.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.teleport.test.tsx",
+                "packages/encounter-persistence/src/__tests__/turnTeleportAllowance.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterTeleportAllowance.test.ts",
+                "packages/shared/src/__tests__/vtt-teleport-destination.test.ts"
+              ],
               "origin": []
             }
           ],
@@ -8584,10 +8603,9 @@
             },
             {
               "id": "SPELLS-28.T1b",
-              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options.",
-              "status": "IN_PROGRESS",
+              "text": "In-Scene TELEPORT (Misty Step, Dimension Door): the cast commits a bounded one-shot teleport allowance (on the existing movement-economy pattern, expiring at the end of the caster turn) that a following MOVE_SCENE_TOKEN TELEPORT consumes; player TELEPORT without an allowance is refused; range, occupancy and visibility enforced at consumption; authored from core options. (Red: ci/spells-28-t1b-red Tests 38923039027 on 2be9ea48f failed on the vtt-teleport-destination typecheck (selectTeleportAllowance missing). Green: ci/spells-28-t1b Tests 38932220927 and Live backend 38932220847 on c3eff99c8.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.2"],
-              "activeWorkbook": "docs/handoffs/slice-spells-28-t1b.md",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -9152,8 +9170,8 @@
             },
             {
               "id": "REACTION-4.T3d",
-              "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast.",
-              "status": "IN_PROGRESS",
+              "text": "Counterspell chain: nested cast-reaction offers resolved innermost first, one occurrence per cast. A standing counter enters the offer's chain and the other holders are offered a counter to it; parity settles a level with nobody left to ask. castCounteredCarriesFailedCounters now owns the whole countered-commit check, so an empty pending is false (no cast to counter). (Red: ci/reaction-4-t3d-red Tests 38924869450 on 18edbb3f8 failed on 9 actionPendingOffers tests and the chain contract typecheck. Green: ci/reaction-4-t3d Tests 38925941960 and Live backend 38925941994 on 1f69bf272.)",
+              "status": "DONE",
               "closes": ["REACTION-4.3"],
               "wsjf": {
                 "bv": 8,
@@ -9161,6 +9179,19 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["REACTION-4.T3b", "REACTION-4.T3c", "REACTION-4.T3f"]
+              }
+            },
+            {
+              "id": "REACTION-4.T3g",
+              "text": "The original caster is offered a counter to a Counterspell cast against their own spell: failedCounterSpends lets the cast's source spend against a counter in the chain (never against their own cast). Record the chain model as a dated D127 amendment and remove the gap from future-enhancements. Ruling W: one actor's spell spends in one terminal commit are one ordered mechanics batch (cast, then counter) with one stream bump; discovery projects the pending cast's spend before offering its source a counter; covers the source-is-target fold.",
+              "status": "IN_PROGRESS",
+              "closes": ["REACTION-4.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["REACTION-4.T3d"]
               },
               "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },

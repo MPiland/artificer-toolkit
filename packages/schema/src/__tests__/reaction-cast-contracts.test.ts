@@ -73,4 +73,16 @@ describe('cast reaction offers', () => {
       false
     )
   })
+
+  it('holds a chain only with a counter standing, and the declines it outranks', () => {
+    const withChain = (chain: unknown) =>
+      encounterCastReactionOfferDtoSchema.safeParse({
+        reactions: [castPin(1)],
+        declinedReactorActorIds: [],
+        chain
+      }).success
+    expect(withChain({ counters: [], castDeclinedReactorActorIds: [], castLevel: 3 })).toBe(false)
+    expect(withChain({ counters: [{}], castDeclinedReactorActorIds: [], castLevel: 3 })).toBe(false)
+    expect(withChain({ castDeclinedReactorActorIds: [], castLevel: 3 })).toBe(false)
+  })
 })
