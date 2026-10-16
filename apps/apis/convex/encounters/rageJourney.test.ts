@@ -1,49 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
-import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
-import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { greataxe } from '@artificer-toolkit/source-data/srd/equipment/greataxe.js'
 import {
-  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
-  SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
-  SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
-  SRD_RULE_STATE_DEFINITIONS
-} from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
-import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import {
-  attachRoomWorker,
   checkpointLiveRoom,
   executeInRoom,
   executeSheetInRoom,
   queueRoomRolls,
   readRoomRollCards,
-  seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { importedSubject } from '../../tests/fixtures/publication'
 import { homebrewCopy } from '../../tests/fixtures/homebrewCopy'
 import { expectUnavailableRefusal, rejection } from '../../tests/fixtures/roomRefusals'
-import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { srdWolf } from '../../tests/fixtures/srdCreatures'
-import { api, internal } from '../_generated/api'
+import { actOnRun, executeOnRun, setupWolfRun } from '../../tests/fixtures/srdWolfRun'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import {
-  createConvexEncounterStore,
-  createConvexEncounterStoreReader
-} from '../lib/convexEncounterStore'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 useLocalRoomWorker()
 
@@ -69,53 +48,14 @@ async function setup(
   source: typeof srdBarbarian,
   automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED'
 ) {
-  const base = await setupCharacterRun({ base: source, features: source.features }, greataxe)
-  await attachRoomWorker(base.t)
-  await equipAllCharacterItems(base)
-  // Table roll cards post to the opened Table chat, which needs a username.
-  await base.player.caller.mutation(api.account.updateProfile, {
-    username: 'RagingHero',
-    bio: null
-  })
-  await base.owner.caller.mutation(api.account.updateProfile, { username: 'RageGm', bio: null })
-  await base.owner.caller.mutation(api.campaigns.conversations.open, {
-    campaignId: base.campaign.id,
-    kind: 'TABLE'
-  })
-  for (const { userId } of [base.player, base.owner]) await setAutoRollDice(base.t, userId, true)
-  await base.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_RULE_STATE_DEFINITIONS.filter(
-      (definition) =>
-        definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID ||
-        definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID ||
-        definition.id === SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
-    )
-  })
-  await base.t.mutation(internal.content.import.importSubjects, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
-  })
-  await seedRoomContentSnapshots(base.campaign.id)
-  const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
-    gameSystemId: base.campaign.gameSystemId,
+  const base = await setupWolfRun({
+    character: { base: source, features: source.features },
+    equipment: greataxe,
     name: 'Rage journey fixture',
-    commandId: crypto.randomUUID(),
-    enemies: [{ kind: 'CREATURE', sourceId: srdWolf.id }]
+    automationMode
   })
-  const run = await base.owner.caller.mutation(api.encounters.runs.create, {
-    campaignId: base.campaign.id,
-    blueprintId: blueprint.id,
-    commandId: crypto.randomUUID()
-  })
-  const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
-  const wolf = run.actors.find((candidate) => candidate.kind === 'CREATURE')
-  if (!actor || !wolf) throw new Error('The Rage fixture actors are missing.')
+  const { actor } = base
   const actions = await base.t.run(async (ctx) => {
-    await activateFixtureRun(ctx, run.id, { automationMode, round: 1, currentActorId: actor.id }, [
-      actor.id,
-      wolf.id
-    ])
     const facts = await loadCharacterSheetFacts(
       ctx,
       base.player.userId,
@@ -149,71 +89,24 @@ async function setup(
       (decision) => decision.actionId === rage.actionId
     )
     if (damage?.kind !== 'DAMAGE') throw new Error('The Greataxe attack has no damage.')
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('The Rage fixture Run is missing.')
-    const bite = discoverEncounterFeatureActionCapabilities({
-      actor: await readRunActor(
-        { db: createConvexEncounterStoreReader(ctx) },
-        readRunState(row),
-        wolf.id
-      ),
-      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
-      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-    }).find(
-      (capability) => capability.mechanicFacts.invocation.triggerCode === 'MELEE_WEAPON_ATTACK'
-    )
-    if (!bite) throw new Error('The Wolf offers no Bite.')
     return {
       rage: {
         actionId: rage.actionId,
         entry,
         activation: rageDecision?.mechanic.activation
       },
-      axe: { actionId: axe.actionId, expression: damage.expression },
-      biteActionId: bite.actionId
+      axe: { actionId: axe.actionId, expression: damage.expression }
     }
   })
-  return { ...base, run, actor, wolf, actions }
+  return { ...base, actions }
 }
 
 type Fixture = Awaited<ReturnType<typeof setup>>
 
-function execute(
-  fixture: Fixture,
-  command: (base: { encounterId: string; commandId: string }) => EncounterExecuteInput['command']
-) {
-  return executeInRoom(fixture.owner.caller, {
-    command: command({ encounterId: fixture.run.id, commandId: crypto.randomUUID() })
-  })
-}
-
-type Result = Awaited<ReturnType<typeof execute>>
-
-/** The actor uses one of its actions on the target; the Run has no Scene, so reach is unchecked (D11). */
-function act(
-  fixture: Fixture,
-  from: Pick<Result, 'projection'> | null,
-  input: { actorId: string; actionId: string; targetActorId: string }
-) {
-  return execute(fixture, (base) => ({
-    ...base,
-    type: 'RESOLVE_ACTION',
-    acceptedWieldConflict: null,
-    acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED'],
-    expectedVersion: from?.projection.version ?? fixture.run.version,
-    actorId: input.actorId,
-    target: { kind: 'ACTOR', actorId: input.targetActorId },
-    actionId: input.actionId,
-    optionalCombatIntent: null,
-    sceneContext: null
-  }))
-}
+type Result = Awaited<ReturnType<typeof executeOnRun>>
 
 function rages(fixture: Fixture) {
-  return act(fixture, null, {
+  return actOnRun(fixture, null, {
     actorId: fixture.actor.id,
     actionId: fixture.actions.rage.actionId,
     targetActorId: fixture.actor.id
@@ -268,7 +161,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
 
     // d20 15 hits the Wolf; the d12 rolls 5.
     await queueRoomRolls(fixture.campaign.id, { rolls: [14, 4] })
-    const hit = await act(fixture, raged, {
+    const hit = await actOnRun(fixture,raged, {
       actorId: fixture.actor.id,
       actionId: fixture.actions.axe.actionId,
       targetActorId: fixture.wolf.id
@@ -281,16 +174,16 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
     ).toEqual([5 + modifier + 2])
 
     // The Wolf's turn: d20 15 hits the Barbarian; 2d4 rolls 1 and 4, so 5 + 2 = 7 piercing, halved to 3.
-    const wolfTurn = await execute(fixture, (base) => ({
+    const wolfTurn = await executeOnRun(fixture, (base) => ({
       ...base,
       type: 'ADVANCE_TURN',
       expectedVersion: hit.projection.version
     }))
     expect(wolfTurn.projection.currentActorId).toBe(fixture.wolf.id)
     await queueRoomRolls(fixture.campaign.id, { rolls: [14, 0, 3] })
-    const bitten = await act(fixture, wolfTurn, {
+    const bitten = await actOnRun(fixture,wolfTurn, {
       actorId: fixture.wolf.id,
-      actionId: fixture.actions.biteActionId,
+      actionId: fixture.biteActionId,
       targetActorId: fixture.actor.id
     })
     expect(bitten.occurrence?.status).toBe('COMPLETE')
@@ -305,12 +198,12 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
       const raged = await rages(fixture)
       const [grantId] = (await barbarianState(fixture)).grantIds
       if (!grantId) throw new Error('Rage granted nothing.')
-      const wolfTurn = await execute(fixture, (base) => ({
+      const wolfTurn = await executeOnRun(fixture, (base) => ({
         ...base,
         type: 'ADVANCE_TURN',
         expectedVersion: raged.projection.version
       }))
-      const barbarianTurn = await execute(fixture, (base) => ({
+      const barbarianTurn = await executeOnRun(fixture, (base) => ({
         ...base,
         type: 'ADVANCE_TURN',
         expectedVersion: wolfTurn.projection.version
@@ -347,7 +240,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
 
       // The end spent the bonus action, so a second Rage this turn has none left.
       const second = await rejection(
-        act(fixture, ended, {
+        actOnRun(fixture, ended, {
           actorId: fixture.actor.id,
           actionId: fixture.actions.rage.actionId,
           targetActorId: fixture.actor.id
@@ -423,7 +316,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
       const raged = await rages(fixture)
       const [grantId] = (await barbarianState(fixture)).grantIds
       if (!grantId) throw new Error('Rage granted nothing.')
-      const wolfTurn = await execute(fixture, (base) => ({
+      const wolfTurn = await executeOnRun(fixture, (base) => ({
         ...base,
         type: 'ADVANCE_TURN',
         expectedVersion: raged.projection.version
@@ -477,7 +370,7 @@ describe.each(BARBARIANS)('$name rages in an Encounter (ATTACK-9.T1)', ({ source
     const raged = await rages(fixture)
     expect((await barbarianState(fixture)).rageChargesUsed).toBe(1)
 
-    await execute(fixture, (base) => ({
+    await executeOnRun(fixture, (base) => ({
       ...base,
       type: 'REVERT_LAST_ACTION',
       expectedVersion: raged.projection.version
