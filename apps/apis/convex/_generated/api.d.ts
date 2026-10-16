@@ -111986,7 +111986,7 @@ export declare const api: {
         { actorId: string; encounterId: string; expectedVersion: number },
         {
           actions: Array<{
-            actionCost?: "ACTION" | "BONUS_ACTION" | "FREE";
+            actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -112707,7 +112707,7 @@ export declare const api: {
           }>;
           actorId: string;
           basicActionChoices: Array<{
-            actionCost?: "ACTION" | "BONUS_ACTION" | "FREE";
+            actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
