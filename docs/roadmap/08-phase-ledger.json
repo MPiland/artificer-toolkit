@@ -6470,15 +6470,16 @@
             },
             {
               "text": "Players target only tokens or the target list; there is no square attack. In targeting mode, creatures the GM has revealed but the player cannot see are listed first, marked hidden or invisible with an unknown distance, and the visible creatures follow, nearest first.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (D131 list order: unseen creatures first, marked Hidden or Invisible, visible nearest first, never measured or targetable on the map)",
                 "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts (unseenReason predicate table, Invisible fact of an unnamed reveal)",
                 "apps/apis/convex/encounters/recipientBindings.test.ts and apps/session-worker/test/nativeLiveSessionRoom.test.ts (Convex and room agree on unseenReason)",
-                "Storybook Domains/Campaigns/VTT/Tabletop Turn Order, Targeting story"
+                "Storybook Domains/Campaigns/VTT/Tabletop Turn Order, Targeting story",
+                "CI Tests 38917023265 and Live backend 38917023326 on 17d2175b2"
               ],
               "origin": [],
-              "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
+              "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide). The Storybook Targeting story runs locally with AC ATTACK-17.1's browser journey.",
               "id": "ATTACK-17.4"
             },
             {
@@ -6567,8 +6568,8 @@
             },
             {
               "id": "ATTACK-17.T4b",
-              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first.",
-              "status": "IN_PROGRESS",
+              "text": "Remove the square attack (the SQUARE target, the ATTACK_SQUARE_RESOLUTION decision and their tests, stories and docs) with no shim, and order the target list with revealed unseen creatures first, marked hidden or invisible with an unknown distance, then visible creatures nearest first. (Red: ci/attack-17-t4b-red Tests 38917408914 on dda334baf failed on the missing unseenReason and invisibleConditionTypeIds and the D131 order test. Green: ci/attack-17-t4b Tests 38917023265 and Live backend 38917023326 on 17d2175b2.)",
+              "status": "DONE",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -6576,8 +6577,7 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T5",
