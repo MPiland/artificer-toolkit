@@ -271,6 +271,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -357,6 +358,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -386,6 +388,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -472,6 +475,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -735,6 +739,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
       "actors": [
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -821,6 +826,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -850,6 +856,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -936,6 +943,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -992,6 +1000,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1078,6 +1087,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1107,6 +1117,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1193,6 +1204,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1457,6 +1469,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1543,6 +1556,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1572,6 +1586,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1658,6 +1673,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -1921,6 +1937,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
       "actors": [
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -2007,6 +2024,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -2036,6 +2054,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
         },
         {
           "activeGrants": [],
+          "concealment": null,
           "concentration": null,
           "conditions": [],
           "controllerUserIds": [],
@@ -2149,6 +2168,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2235,6 +2255,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2264,6 +2285,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2553,6 +2575,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2639,6 +2662,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2668,6 +2692,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2754,6 +2779,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2811,6 +2837,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
         "actors": [
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2897,6 +2924,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -2926,6 +2954,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
@@ -3012,6 +3041,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
           },
           {
             "activeGrants": [],
+            "concealment": null,
             "concentration": null,
             "conditions": [],
             "controllerUserIds": [],
