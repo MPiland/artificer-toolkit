@@ -1439,7 +1439,8 @@ export async function completeAreaCommit(args: {
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
-    const enterForm = linked && formCreature ? actorFormEntry(linked, formCreature) : undefined
+    const enterForm =
+      recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
       {
         prepared,
