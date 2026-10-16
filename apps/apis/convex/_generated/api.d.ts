@@ -110564,6 +110564,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111293,6 +111294,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111323,6 +111325,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111344,6 +111347,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111970,6 +111974,7 @@ export declare const api: {
               label: string;
               speedId: string;
             }>;
+            fleeSourceActorIds: Array<string>;
             speedId: string | null;
             teleport: Array<{
               castCommandId: string;
