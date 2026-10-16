@@ -6329,15 +6329,24 @@
             {
               "text": "Choosing an attack or spell enters targeting mode on the map: a range ring around the actor's token, targetable tokens highlighted, a hover readout of distance and roll modifiers, a click on a token targets it, and Esc cancels.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (targetable flag, distance, bands)",
+                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's targeting review. Today the target is only a dropdown of non-defeated public actors (CampaignTabletopActionDrawer.tsx), with no map targeting. User ruling 2026-10-14: built to DESIGN.md now; the design review is RELEASE-8, after all code is green.",
+              "note": "Open: the browser journey apps/web/tests/live-backend/encounterDisarm.ts (Pick on map, Escape, hover readout, token click, resolve against the picked creature) and the Storybook \"Domains/Campaigns/VTT/Tabletop Turn Order\" Targeting story have not run; neither runs in CI. The main session runs both locally after deploying batch n, then closes this AC.",
               "id": "ATTACK-17.1"
             },
             {
               "text": "In targeting mode the Encounter drawer's actor list becomes the target list: sorted by distance with range shown, out-of-range entries marked, and returning to initiative order when targeting ends; the map and the list share one selection.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/actionCommands.test.ts (believed-mode read equals the roll prompt, unseen targets unlisted, Convex fallback matches the room, long range disadvantage)",
+                "packages/schema/src/__tests__/live-session-contracts.test.ts (ACTION_TARGET_MODIFIERS read contract)",
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (nearest first, distance unknown last, initiative order restored)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (target list buttons, cancel, order restored)",
+                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745"
+              ],
               "origin": [],
               "note": "User decision 2026-10-09: one persistent, collapsible list (the existing Encounter drawer list), not a second pane. The list is the keyboard, screen-reader and no-map path.",
               "id": "ATTACK-17.2"
@@ -6425,7 +6434,7 @@
             {
               "id": "ATTACK-17.T3",
               "text": "Map targeting mode and the distance-sorted target list with one shared selection.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-17.1", "ATTACK-17.2"],
               "wsjf": {
                 "bv": 8,
@@ -6433,13 +6442,12 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-17.T2"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
+              }
             },
             {
               "id": "ATTACK-17.T4",
               "text": "Attack an empty square; the GM resolves who, if anyone, is there.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-17.4"],
               "wsjf": {
                 "bv": 8,
@@ -6447,7 +6455,8 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["ATTACK-17.T3", "ATTACK-10.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-attack-17-t2-t3.md"
             },
             {
               "id": "ATTACK-17.T5",
