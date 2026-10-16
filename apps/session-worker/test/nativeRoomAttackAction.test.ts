@@ -104,7 +104,17 @@ describe('a Fighter’s Attack action in the room', () => {
         kind: 'ATTACK_ACTION',
         turnSequence: expect.any(Number),
         total: 2,
-        attacks: [{ actionId: room.actionId, targetIds: [WOLF_ID] }]
+        attacks: [
+          {
+            actionId: room.actionId,
+            targetIds: [WOLF_ID],
+            // The Club is a Light weapon; the record names it for the off-hand requirement.
+            item: {
+              itemInstanceId: expect.any(String),
+              properties: expect.arrayContaining(['LIGHT'])
+            }
+          }
+        ]
       }
     })
     const afterFirst = await room.actionChoices()
