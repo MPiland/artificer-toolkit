@@ -2481,6 +2481,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
   )
     unsupported('D&D conceal and detect outcomes belong to a check action.')
+  if (
+    outcome.effectKind === 'CANCEL_TRIGGERING_EVENT' &&
+    !('reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'SPELL_CAST')
+  )
+    unsupported('D&D cancel-triggering-event outcome belongs to a spell-cast reaction.')
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (

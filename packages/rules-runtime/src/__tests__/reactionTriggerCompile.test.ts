@@ -118,4 +118,15 @@ describe('a reaction authored with the SPELL_CAST trigger compiles through the d
       CANCEL_TRIGGERING_EVENT_OPERATION_KEY
     )
   })
+
+  it('refuses the cancel outcome on a reaction to any other trigger', () => {
+    const effect = counterspellEffect()
+    if (effect.invocation.kind !== 'ACTION') throw new Error('Counterspell is not an action.')
+    expect(() =>
+      compile({
+        ...effect,
+        invocation: { ...effect.invocation, reactionTrigger: { kind: 'ATTACKED_SELF' } }
+      })
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  })
 })
