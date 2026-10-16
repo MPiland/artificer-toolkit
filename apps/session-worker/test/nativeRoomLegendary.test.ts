@@ -648,7 +648,8 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
           : (strike?.resolution.kind ?? settled?.status),
       effectIds: history.activeEffects.map(({ id }) => id),
       invisible: readActorConditionIds(history, WOLF_ID).includes(INVISIBLE_ID),
-      hitPoints: readActorHitPoints(history, WOLF_ID)
+      hitPoints: readActorHitPoints(history, WOLF_ID),
+      diag: { occurrences: history.occurrences.map(({ state, kind }: { state: string; kind?: string }) => `${state}:${kind}`), rolls: history.evidenceRolls.length, receipts: history.receipts.map((r) => `${r.commandId === commandId ? 'ADV' : 'other'}:${parseReceiptExecution(r).status}`), strike: JSON.stringify(strike?.resolution).slice(0, 600) }
     }
   }
 
