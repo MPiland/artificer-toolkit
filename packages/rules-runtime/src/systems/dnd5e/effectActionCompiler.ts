@@ -2099,7 +2099,8 @@ function zonePlacementPlan(
           senses: [...lingering.senses],
           endOnEvents: [...lingering.endOnEvents]
         }
-      : null
+      : null,
+    maintenance: maintenancePlan(action, damage)
   }
 }
 
@@ -2228,7 +2229,10 @@ function repeatFollowUpSavePublishedGraph(input: {
           max: { kind: 'LITERAL', value: 20 },
           ...(gated
             ? {
-                enabled: { kind: 'FACT' as const, factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY }
+                enabled: {
+                  kind: 'FACT' as const,
+                  factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY
+                }
               }
             : {})
         }
@@ -6284,7 +6288,8 @@ function repeatedFollowUpSaveResultPath(input: {
   }
   const [d20Trace, saveTrace] = input.execution.evidence.trace
   const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
-  const gated = DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts
+  const gated =
+    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts
   const d20OperationKey = gated ? 'evidence.optional-integer-range' : 'evidence.integer-range'
   const attemptAllowed = gated
     ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]

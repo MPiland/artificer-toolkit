@@ -327,6 +327,13 @@ creature's lingering grant takes its end events from the grant template. The are
 `placedSpatialEffectId`, so GM undo deletes it with the commit. The Scene holds at most
 `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE` rows; the next placement is refused with `TARGET_UNAVAILABLE`.
 
+A zone that depends on a Concentration (SPELLS-20.T2a, D135) records `maintainedEffectStateId` on its row. A cast
+whose only Concentration holder is the zone has no creature outcome to carry the state: the area root carries
+`maintenanceTransition` instead, and the area commit replaces the caster's prior state and creates the new one
+(`prepareMaintenanceReplacement`, `applyMaintenanceReplacement`) before it writes the zone. GM undo deletes the
+created state with the zone; undoing a cast that replaced a state stays unsupported. Ending the Concentration
+removes the zone in the same transaction in T2b (current: the link exists, cleanup does not yet act on it).
+
 ## Scene storage
 
 `sceneDefinitions` holds the current settings and save ID of a Scene definition. An owner save uploads typed

@@ -1638,6 +1638,27 @@ export async function completeAreaCommit(args: {
     })
   }
 
+  // A zone-only cast has no creature outcome to hold its Concentration: the area root carries it
+  // and the zone depends on the state (D135).
+  let zoneMaintenanceTransition: ReturnType<typeof buildEncounterMaintenanceTransition> | null =
+    null
+  if (placement?.zone.maintenance && maintenance && !maintainedState) {
+    maintainedState = prepareNativeLiveMaintainedState({
+      completedPolicy: placement.zone.maintenance,
+      maintenance,
+      encounterId: state.id,
+      ownerActorId: caster.id,
+      actionId: command.actionId,
+      sourceOccurrenceId: areaOccurrenceId,
+      occurredAt
+    })
+    zoneMaintenanceTransition = buildEncounterMaintenanceTransition({
+      maintenance,
+      createdState: maintainedState,
+      createdDependentEffectIds: []
+    })
+  }
+
   const merged = children.find((child) => child.carriesSpend)
   const resourceState = lead.characterActionState
   const spends = Boolean(
@@ -1685,6 +1706,7 @@ export async function completeAreaCommit(args: {
     ? planEncounterPlacedZone({
         zone: placement.zone,
         id: crypto.randomUUID(),
+        maintainedEffectStateId: placement.zone.maintenance ? (maintainedState?.id ?? null) : null,
         encounterId: state.id,
         occurrenceId: areaOccurrenceId,
         rootCommandId: command.commandId,
@@ -1704,6 +1726,7 @@ export async function completeAreaCommit(args: {
     removedActorIds,
     targetOccurrenceIds: children.map((child) => child.occurrenceId),
     placedSpatialEffectId: placedZone?.id ?? null,
+    maintenanceTransition: zoneMaintenanceTransition,
     damage,
     spend,
     actionEconomy,

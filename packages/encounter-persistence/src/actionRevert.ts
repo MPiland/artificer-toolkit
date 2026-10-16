@@ -55,6 +55,21 @@ import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
+function replacesMaintainedEffect(
+  maintenance: {
+    priorState: unknown
+    removedDependentEffects: readonly unknown[]
+    endedCarriedGrants: readonly unknown[]
+  } | null
+) {
+  return Boolean(
+    maintenance &&
+    (maintenance.priorState ||
+      maintenance.removedDependentEffects.length ||
+      maintenance.endedCarriedGrants.length)
+  )
+}
+
 type ActionBatch = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'CHARACTER_MECHANICS_BATCH' | 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
@@ -294,15 +309,12 @@ export async function revertLastEncounterAction(
       )
     )
       unsupported.add('a removed condition')
-    const maintenance = action.maintenanceTransition ?? null
-    if (
-      maintenance &&
-      (maintenance.priorState ||
-        maintenance.removedDependentEffects.length ||
-        maintenance.endedCarriedGrants.length)
-    )
+    if (replacesMaintainedEffect(action.maintenanceTransition ?? null))
       unsupported.add('a replaced maintained effect')
   }
+  // A zone-only cast's Concentration rides on the root.
+  if (replacesMaintainedEffect(areaRoot?.maintenanceTransition ?? null))
+    unsupported.add('a replaced maintained effect')
   const spend =
     areaRoot ??
     counteredRoot ??
@@ -557,6 +569,8 @@ export async function revertLastEncounterAction(
     if (created) createdStates.set(created.id, created)
   }
   for (const action of targetBatches.toReversed()) await invertTarget(action)
+  const rootCreated = areaRoot?.maintenanceTransition?.createdState
+  if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
   // Every creature of an area shares the one state, so it goes once, after the last dependent.
   for (const created of createdStates.values())
     await store.deleteMaintainedStateCas({

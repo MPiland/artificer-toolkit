@@ -40,8 +40,10 @@ import {
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
 import {
+  applyMaintenanceReplacement,
   persistEncounterActionEffects,
-  prepareEncounterActionMaintenance
+  prepareEncounterActionMaintenance,
+  prepareMaintenanceReplacement
 } from './actionEffectPersistence.js'
 import {
   readMaintenanceOwnerRequests,
@@ -368,7 +370,15 @@ export async function persistEncounterAreaCommit(
   // The first creature whose outcome a Concentration holds replaces the caster's earlier one and
   // creates the state; the rest depend on it. This reads before any mechanics advance a Character.
   const maintained = children.filter(({ batch }) => batch.maintenanceTransition != null)
-  if (maintained.length > 0 !== (input.maintainedState !== null))
+  // A cast with no creature outcome to hold its Concentration carries it on the root (D135).
+  const rootMaintenance = root.maintenanceTransition ?? null
+  if (
+    (maintained.length > 0 || rootMaintenance !== null) !== (input.maintainedState !== null) ||
+    (maintained.length > 0 && rootMaintenance !== null) ||
+    (input.placedZone &&
+      input.placedZone.maintainedEffectStateId !== null &&
+      input.placedZone.maintainedEffectStateId !== input.maintainedState?.id)
+  )
     throw new Error('Live Session area maintenance scope mismatch.')
   const carrier = maintained[0] ?? null
   const maintenance = carrier
@@ -386,7 +396,17 @@ export async function persistEncounterAreaCommit(
         createdEffects: [...carrier.createdEffects],
         authorizedCharacterIds: characterIds
       })
-    : null
+    : rootMaintenance && input.maintainedState
+      ? await prepareMaintenanceReplacement(ctx, {
+          state,
+          command: { actorId: source.id, actionId: command.actionId },
+          maintainedState: input.maintainedState,
+          sourceOccurrenceId: areaOccurrenceId,
+          transition: rootMaintenance,
+          createdDependentEffectIds: [],
+          authorizedCharacterIds: characterIds
+        })
+      : null
 
   const { spends, mutation: sourceMutation } = sourceSpendMutation({
     source,
@@ -553,6 +573,14 @@ export async function persistEncounterAreaCommit(
     resume: pendingOccurrence ? { occurrence: pendingOccurrence } : null,
     occurredAt: input.occurredAt
   })
+  if (rootMaintenance && maintenance && input.maintainedState)
+    await applyMaintenanceReplacement(ctx, {
+      state: nextState,
+      actorId: source.id,
+      maintenance,
+      created: input.maintainedState,
+      occurredAt: input.occurredAt
+    })
   if (input.placedZone && scope.zoneSceneId !== null)
     await createPlacedSpatialEffect(ctx, {
       encounterId: state.id,
