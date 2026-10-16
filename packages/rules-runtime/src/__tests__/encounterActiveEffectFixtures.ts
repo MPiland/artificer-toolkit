@@ -17,6 +17,7 @@ import {
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import type {
+  ActiveEffectEndEvent,
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -81,6 +82,8 @@ export type TurnSaveDamageEffectInput = {
   sourceActorId?: string | null
   maintainedEffectStateId?: string | null
   conditionOwnership?: readonly { conditionId: string; baselinePresent: boolean }[]
+  /** The events whose first occurrence ends the effect early; the turn kernel still counts it down. */
+  endOnEvents?: readonly ActiveEffectEndEvent[]
   currentEffects?: readonly ActiveRuleEffectRecord[]
 }
 
@@ -196,7 +199,7 @@ export async function turnSaveDamageEffect(
     recurrence: {
       recurrenceStage: stage,
       consumeOnFirstEvents: [],
-      endOnEvents: [],
+      endOnEvents: [...(input.endOnEvents ?? [])],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',

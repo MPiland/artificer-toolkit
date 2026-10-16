@@ -1332,6 +1332,52 @@ function timedImmediateConditionPlan(
   }
 }
 
+/**
+ * A condition applied with no save and a duration (Invisibility, "1 hour"): the target holds it
+ * through an Encounter active effect that counts the target's turns, carries the authored events
+ * that use it up or end it, and removes the condition when it ends. Any other lifecycle stays manual.
+ */
+function timedConditionPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const { entries } = action.compiledEffect
+  const entry = entries[0]
+  if (
+    entries.length !== 1 ||
+    !entry ||
+    !('outcome' in entry) ||
+    entry.outcome.effectKind !== 'CONDITION' ||
+    !entry.duration
+  )
+    return null
+  const { consumeOnFirstEvents = [], endOnEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const initialRemaining = conditionDurationTurns(entry.duration)
+  const { conditionId } = entry.outcome
+  if (
+    initialRemaining === null ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    !(action.conditionDefinitionIds ?? []).includes(conditionId) ||
+    !UUID.test(entry.entryId)
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'condition-duration',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    conditionContribution: {
+      conditionId,
+      consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
+      endOnEvents: [...new Set(endOnEvents)].sort()
+    },
+    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, entry)
+  }
+}
+
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
   return pathLifecycleGrantConsumeEventSchema.safeParse(event).success
 }
@@ -2394,6 +2440,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
+  const conditionPlan = timedConditionPlan(action)
   // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
   // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
   const checkAction = invocation.triggerCode === 'CHECK'
@@ -2412,10 +2459,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const supportsSingleTarget =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
-    // A grant (Help) or a check (First Aid) may ask for a willing target: an unwilling one only warns,
-    // and the table can override it.
+    // A grant (Help), a timed condition (Invisibility) or a check (First Aid) may ask for a willing
+    // target: an unwilling one only warns, and the table can override it.
     (invocation.targeting.dispositionKind === 'ANY' ||
-      (invocation.targeting.dispositionKind === 'WILLING' && (grantPlan !== null || checkAction)))
+      (invocation.targeting.dispositionKind === 'WILLING' &&
+        (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
   // (Mass Cure Wounds), resolves the one outcome on each; only a heal is supported, checked below
   // once the outcome is read.
@@ -2455,10 +2503,14 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     entry.resolutionKind !== 'DIRECT' ||
     entry.groupKind !== 'SINGLE' ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
-    (entry.maintenanceDefinitionId && !supportedRecurringPlan(action) && !grantPlan) ||
+    (entry.maintenanceDefinitionId &&
+      !supportedRecurringPlan(action) &&
+      !grantPlan &&
+      !conditionPlan) ||
     ((entry.duration || entry.lifecycle) &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
+      !conditionPlan &&
       !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
@@ -4962,6 +5014,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
     repeatingDirectFollowUpSavePlan(action) ??
     repeatingImmediateFollowUpSavePlan(action) ??
     timedImmediateConditionPlan(action) ??
+    timedConditionPlan(action) ??
     modifierGrantPlan(action) ??
     relationshipPlan(action) ??
     supportedRecurringPlan(action)
@@ -6724,7 +6777,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
     const timedPlan = repeatPlan
       ? null
-      : (timedImmediateConditionPlan(action) ?? modifierGrantPlan(action))
+      : (timedImmediateConditionPlan(action) ??
+        timedConditionPlan(action) ??
+        modifierGrantPlan(action))
     const relationship = relationshipPlan(action)
     const plan =
       repeatPlan ??

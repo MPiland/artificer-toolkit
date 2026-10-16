@@ -7031,8 +7031,14 @@
             },
             {
               "id": "SPELLS-5.14",
-              "status": "TODO",
-              "text": "When a Run completes, a Character's timed condition-owning effects carry over to the Campaign clock like its grants (D99) and end on it, releasing the condition they own; a Creature's end with the Run. Bug found 2026-10-15 in the SPELLS-27 survey: planCarriedOverGrants carries modifier grants only, so the stored condition stays on the Character forever. Proved by a regression test that fails before the fix."
+              "status": "DONE",
+              "text": "When a Run completes, a Character's timed condition-owning effects carry over to the Campaign clock like its grants (D99) and end on it, releasing the condition they own; a Creature's end with the Run. Bug found 2026-10-15 in the SPELLS-27 survey: planCarriedOverGrants carries modifier grants only, so the stored condition stays on the Character forever. Proved by a regression test that fails before the fix.",
+              "proof": [
+                "apps/apis/convex/encounters/finishedRun.test.ts (carries a Character timed condition effect out of the Run and releases its condition on the clock)",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts",
+                "apps/apis/convex/encounters/movementReactionCharacterEffects.test.ts",
+                "Tests 38847702021 and Live backend 38847702023 on 788db89c4"
+              ]
             }
           ],
           "wsjf": {
@@ -7045,15 +7051,14 @@
             {
               "id": "SPELLS-5.T9",
               "text": "Fix D99 carry-over for condition-owning timed effects (runGrantCarryOver.ts): carry them to the Campaign clock or release their condition at Run completion; red regression test first.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-5.14"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 2
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             }
           ]
         },
