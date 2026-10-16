@@ -179,40 +179,40 @@ describe('an unmodified SRD Gold Dragon Wyrmling leaves its grants with Weakenin
 
   // Zero-based dice: 0 is a natural 1 and 19 a natural 20. The Wolves' Strength saves are DC 13.
   describe("at the end of its holder's turn, the grant rolls its repeating Strength save", () => {
-    /** The breath, its three area saves auto-rolled (the first and third Wolves fail), then two turns end; every later die is `turnSaveDie`. */
+    /**
+     * The breath with all three area saves failing (the room serves the Wolves' saves in no fixed
+     * order, so no die is tied to one Wolf), then two turns end; every later die is `turnSaveDie`.
+     */
     async function breatheThenEndTwoTurns(turnSaveDie: number) {
       const room = await breathRoom(creature, {
         autoRoll: 'GAME_MASTER',
-        rolls: [0, 19, 0],
+        rolls: [0, 0, 0],
         fallbackRoll: turnSaveDie
       })
       const started = await room.startDirectedAreaAction(EAST.origin, EAST.toward)
       expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
       expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
       // The breather's turn ends, then the first Wolf's: its grant's save rolls.
-      console.log('DIAGSTEP afterBreath', JSON.stringify((await readRoomHistory(room.room.base.stub)).activeEffects.map((e) => e.targetActorId)))
       await room.advanceTurn()
-      console.log('DIAGSTEP afterTurn1', JSON.stringify((await readRoomHistory(room.room.base.stub)).activeEffects.map((e) => e.targetActorId)))
       await room.advanceTurn()
       return readRoomHistory(room.room.base.stub)
     }
 
-    it("ends on a passed save, leaving the other creature's grant held", async () => {
-      const history = await breatheThenEndTwoTurns(19)
-      expect(history.activeEffects.map(({ targetActorId }) => targetActorId)).toEqual([THIRD_ID])
+    it("ends on a passed save, leaving the other creatures' grants held", async () => {
+      const { activeEffects } = await breatheThenEndTwoTurns(19)
+      expect(activeEffects.map(({ lifecycle }) => lifecycle)).toEqual([
+        { schemaVersion: 1, remainingTicks: 10 },
+        { schemaVersion: 1, remainingTicks: 10 }
+      ])
     })
 
     it('continues on a failed save, one round shorter', async () => {
-      const history = await breatheThenEndTwoTurns(0)
+      const { activeEffects } = await breatheThenEndTwoTurns(0)
       expect(
-        history.activeEffects
-          .map(({ targetActorId, lifecycle }) => [targetActorId, lifecycle])
+        activeEffects
+          .map(({ lifecycle }) => (lifecycle as { remainingTicks: number }).remainingTicks)
           .sort()
-      ).toEqual(
-        [FIRST_ID, THIRD_ID]
-          .map((id) => [id, { schemaVersion: 1, remainingTicks: id === FIRST_ID ? 9 : 10 }])
-          .sort()
-      )
+      ).toEqual([9, 10, 10])
     })
   })
 })
