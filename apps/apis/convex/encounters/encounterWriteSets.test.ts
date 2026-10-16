@@ -329,7 +329,8 @@ describe.each([11, 100])('Encounter write sets at %i actors', (actors) => {
     // Projections read each actor's small projection facts, never its source snapshot, and keep a
     // tenth of the 250 KiB read budget free: an actor's identity lives in its row columns alone, not
     // again in its stored state.
-    for (const read of Object.values(reads)) expect(read.bytes).toBeLessThanOrEqual(0.9 * 250 * 1024)
+    for (const read of Object.values(reads))
+      expect(read.bytes).toBeLessThanOrEqual(0.9 * 250 * 1024)
     const summaries = [await summaryReadCost(base)]
     for (let run = 0; run < 2; run++) {
       await base.owner.caller.mutation(api.encounters.runs.create, {
