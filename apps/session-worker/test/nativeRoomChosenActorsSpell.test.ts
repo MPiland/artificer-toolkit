@@ -663,40 +663,22 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
         )
       )
       .sort((left, right) => left - right)
-  const traced = async (room: HealerRoom) => {
-    await runInDurableObject(room.room.base.stub, () => {
-      const route = globalThis.fetch
-      globalThis.fetch = async (...args) => {
-        try {
-          return await route(...args)
-        } catch (error) {
-          console.error('TRACE ROUTE FAIL', error)
-          throw error
-        }
-      }
+  const scorchingRay = (config: { rolls: readonly number[]; autoRoll?: 'BOTH' }) =>
+    healerRoom({
+      spell: scorchingRaySpell,
+      label: 'Scorching Ray (2nd level)',
+      rolls: config.rolls,
+      autoRoll: config.autoRoll,
+      wolfHitPoints: 40
     })
-    return room
-  }
-  const scorchingRay = async (config: { rolls: readonly number[]; autoRoll?: 'BOTH' }) =>
-    traced(
-      await healerRoom({
-        spell: scorchingRaySpell,
-        label: 'Scorching Ray (2nd level)',
-        rolls: config.rolls,
-        autoRoll: config.autoRoll,
-        wolfHitPoints: 40
-      })
-    )
-  const blast = async (characterLevel: number, rolls: readonly number[]) =>
-    traced(
-      await healerRoom({
-        spell: eldritchBlast,
-        label: 'Eldritch Blast',
-        rolls,
-        characterLevel,
-        wolfHitPoints: 20
-      })
-    )
+  const blast = (characterLevel: number, rolls: readonly number[]) =>
+    healerRoom({
+      spell: eldritchBlast,
+      label: 'Eldritch Blast',
+      rolls,
+      characterLevel,
+      wolfHitPoints: 20
+    })
 
   it('waits for an attack roll for each ray, rolls each hit on its own, and spends the slot once', async () => {
     // The first ray's 2d6 are the raw 0 and 1 (a 1 and a 2); the critical ray rolls every die as a 6.

@@ -249,6 +249,7 @@ export async function settleEncounterAreaAction(
       ...input,
       occurrenceId: target.occurrenceId,
       binding,
+      testBinding: target.binding,
       // The roller of a nested save would pause here: only the damage may be rolled.
       autoRoll: { SOURCE: true, TARGET: false },
       afterTest: async () => undefined,
