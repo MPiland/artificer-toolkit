@@ -6,10 +6,13 @@ import type {
   DamageAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
+  FollowUpSaveRepeatAttemptGateAuthored,
+  FollowUpSaveRepeatPerceptionAuthored,
   FollowUpSaveRepeatRollInfluenceAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestCreatureFormAuthored,
+  ManifestCreatureFormFilterAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
   ManifestProximityRuleAuthored,
@@ -110,7 +113,6 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
-type FollowUpSaveRepeatRollInfluenceWhenNode = FollowUpSaveRepeatRollInfluenceAuthored['when']
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
@@ -217,6 +219,7 @@ const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
+const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
@@ -238,7 +241,8 @@ const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
 const actionEffectId = buildNodeMap<{ value: string }>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
-const followUpSaveRepeatRollInfluenceWhen = buildNodeMap<FollowUpSaveRepeatRollInfluenceWhenNode>()
+const followUpSaveRepeatAttemptGate = buildNodeMap<FollowUpSaveRepeatAttemptGateAuthored>()
+const followUpSaveRepeatPerception = buildNodeMap<FollowUpSaveRepeatPerceptionAuthored>()
 
 const OUTCOME_BREAKPOINT_VALUE_NODE_MAP: NodeMap<OutcomeBreakpointValueNode> =
   outcomeBreakpointValue.define('outcomeBreakpointValue', ({ map, nodes, cond }) => {
@@ -655,6 +659,62 @@ const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
       )
   })
 
+const MANIFEST_CREATURE_FORM_FILTER_NODE_MAP: NodeMap<ManifestCreatureFormFilterAuthored> =
+  manifestCreatureFormFilter.define('manifestCreatureFormFilter', ({ map, nodes, cond, data }) => {
+    const { text, selectSingle, selectMulti } = nodes
+    const local = cond.local()
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'creatureTypeId',
+        selectSingle(['creatureTypeId'], 'Creature Type', {
+          kind: 'DATA',
+          relationship: table('creature_types', { selectColumns: ['id', 'label', 'description'] })
+        })
+      )
+      .set(
+        'challengeRatingCapKind',
+        selectSingle(
+          ['challengeRatingCapKind'],
+          'Challenge Rating Cap',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'TARGET', label: "Target's Challenge Rating or Level" },
+              { code: 'FIXED', label: 'Fixed Challenge Rating' }
+            ]
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'maxChallengeRatingId',
+        selectSingle(
+          ['maxChallengeRatingId'],
+          'Maximum Challenge Rating',
+          {
+            kind: 'DATA',
+            relationship: table('challenge_ratings', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            requiredIf: local.field(['challengeRatingCapKind']).eq('FIXED'),
+            showIf: local.field(['challengeRatingCapKind']).eq('FIXED')
+          }
+        )
+      )
+      .set(
+        'excludedSpeedIds',
+        selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
+          kind: 'DATA',
+          relationship: table('speeds', { selectColumns: ['id', 'label'] })
+        })
+      )
+  })
+
 const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriterionNode> =
   manifestDestructionCriterion.define(
     'manifestDestructionCriterion',
@@ -959,47 +1019,46 @@ const SCALAR_REDUCTION_AMOUNT_NODE_MAP = scalarReductionAmount.define(
   }
 )
 
-const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_WHEN_NODE_MAP =
-  followUpSaveRepeatRollInfluenceWhen.define(
-    'followUpSaveRepeatRollInfluenceWhen',
-    ({ map, nodes }) => {
-      const { selectSingle } = nodes
-      map
-        .set(
-          'kind',
-          selectSingle(['kind'], 'Condition', {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'PERCEPTION', label: 'Perception' }]
-          })
-        )
-        .set(
-          'observer',
-          selectSingle(['observer'], 'Observer', {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'TARGET', label: 'Target' }]
-          })
-        )
-        .set(
-          'subject',
-          selectSingle(['subject'], 'Subject', {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'SOURCE', label: 'Source' }]
-          })
-        )
-        .set(
-          'requirement',
-          selectSingle(['requirement'], 'Requirement', {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'DETECT', label: 'Detect' },
-              { code: 'LOCATE', label: 'Locate' },
-              { code: 'PRECISE', label: 'Precisely Locate' },
-              { code: 'SEE', label: 'See' }
-            ]
-          })
-        )
-    }
-  )
+const FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP = followUpSaveRepeatPerception.define(
+  'followUpSaveRepeatPerception',
+  ({ map, nodes }) => {
+    const { selectSingle } = nodes
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'Condition', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'PERCEPTION', label: 'Perception' }]
+        })
+      )
+      .set(
+        'observer',
+        selectSingle(['observer'], 'Observer', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'TARGET', label: 'Target' }]
+        })
+      )
+      .set(
+        'subject',
+        selectSingle(['subject'], 'Subject', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'SOURCE', label: 'Source' }]
+        })
+      )
+      .set(
+        'requirement',
+        selectSingle(['requirement'], 'Requirement', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'DETECT', label: 'Detect' },
+            { code: 'LOCATE', label: 'Locate' },
+            { code: 'PRECISE', label: 'Precisely Locate' },
+            { code: 'SEE', label: 'See' }
+          ]
+        })
+      )
+  }
+)
 
 const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfluence.define(
   'followUpSaveRepeatRollInfluence',
@@ -1018,7 +1077,31 @@ const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfl
       )
       .set(
         'when',
-        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_WHEN_NODE_MAP, {
+        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+  }
+)
+
+const FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP = followUpSaveRepeatAttemptGate.define(
+  'followUpSaveRepeatAttemptGate',
+  ({ map, nodes }) => {
+    const { selectSingle, groupObject } = nodes
+    map
+      .set(
+        'allow',
+        selectSingle(['allow'], 'Attempt', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'WHEN_MET', label: 'Only When Met' },
+            { code: 'WHEN_UNMET', label: 'Only When Unmet' }
+          ]
+        })
+      )
+      .set(
+        'when',
+        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP, {
           presentation: 'inline'
         })
       )
@@ -1325,6 +1408,18 @@ function registerOutcomeFields(
         ['repeatRollInfluence'],
         'Repeat Roll Influence',
         () => FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'followUpSaveRepeatAttemptGate',
+      groupObject(
+        ['repeatAttemptGate'],
+        'Repeat Attempt Gate',
+        () => FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
         {
           presentation: 'inline',
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
@@ -1688,6 +1783,21 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'recordsSource',
+      toggle(['recordsSource'], 'The Acting Creature Is Its Source', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
+      })
+    )
+    .set(
+      'fleesSource',
+      toggle(['fleesSource'], 'The Holder Must Dash Away From Its Source', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
+          local.field(['recordsSource']).eq(true)
+        ])
+      })
+    )
+    .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {
         presentation: 'inline',
@@ -1878,6 +1988,16 @@ function registerOutcomeFields(
       'forms',
       groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
         presentation: 'summary',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+        ])
+      })
+    )
+    .set(
+      'formFilter',
+      groupObject(['formFilter'], 'Form Filter', () => MANIFEST_CREATURE_FORM_FILTER_NODE_MAP, {
+        presentation: 'inline',
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
           local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)

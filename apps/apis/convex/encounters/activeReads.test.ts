@@ -71,7 +71,8 @@ const walking = (
   used,
   speedId: null,
   allowances: [expect.objectContaining({ code: 'WALK', budget })],
-  teleport
+  teleport,
+  fleeSourceActorIds: []
 })
 
 /** A Misty Step cast this turn, not yet spent by a move; and a Dimension Door a move already spent. */
@@ -150,7 +151,8 @@ it('reads the active projection and pending decision together with existing visi
     pending: null,
     waitingOn: null,
     turnMovement: [],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   })
   await expect(base.t.query(activeState, input)).rejects.toThrow('Unauthenticated')
   await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
@@ -256,7 +258,8 @@ it('reads the active projection and pending decision together with existing visi
         { castCommandId: unspentMistyStep.castCommandId, maxFeet: 30, destinationKind: 'VISIBLE' }
       ])
     ]),
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   })
   expect(ownerState.turnMovement).toHaveLength(2)
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })
@@ -269,7 +272,8 @@ it('reads the active projection and pending decision together with existing visi
     waitingOn: 'GM',
     // A player sees movement only for actors they control.
     turnMovement: [],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   })
   expect(playerState.pending).toBeNull()
   expect(playerState.encounter?.actors).toHaveLength(1)

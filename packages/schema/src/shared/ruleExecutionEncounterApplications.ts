@@ -25,6 +25,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
+import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from './spatial.js'
 import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
@@ -67,6 +68,7 @@ const concentrationCleanupDtoSchema = lazySchema(() =>
     removedDependentEffectIds: z
       .array(uuidSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
+    removedZoneIds: z.array(uuidSchema).check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
     characterOwnerTransitions: z
       .array(
         z.strictObject({
@@ -1151,7 +1153,12 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
         .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS)),
       ...sourceSpendReceiptShape(),
       /** The spatial effect this action placed in the Scene, which GM undo deletes; null for none. */
-      placedSpatialEffectId: z.nullable(uuidSchema)
+      placedSpatialEffectId: z.nullable(uuidSchema),
+      /**
+       * The Concentration a zone-only cast opens, which no creature outcome carries (D135). Absent
+       * when a creature outcome carries it or the cast maintains nothing.
+       */
+      maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema))
     })
     .check(
       z.superRefine((value, context) => {
@@ -1161,6 +1168,12 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
             code: 'custom',
             path: ['targetOccurrenceIds'],
             message: 'Area target occurrences must be unique.'
+          })
+        if (value.maintenanceTransition && value.placedSpatialEffectId === null)
+          context.addIssue({
+            code: 'custom',
+            path: ['maintenanceTransition'],
+            message: 'An area root carries a maintained effect only for the zone it placed.'
           })
       })
     )
@@ -1177,6 +1190,7 @@ export type EncounterAreaActionApplicationOutputDto = SourceSpendReceipts & {
   targetOccurrenceIds: string[]
   damage: z.infer<typeof concentrationDamageApplicationDtoSchema>[]
   placedSpatialEffectId: string | null
+  maintenanceTransition?: z.infer<typeof maintainedEffectTransitionDtoSchema> | null
 }
 
 /**

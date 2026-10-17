@@ -335,8 +335,9 @@ export type ValueDomainParamByCode = {
    * ROLL SURFACES (parameterized)
    * ────────────────────────────────────────────── */
 
-  // Attack bonus is usually different for melee/ranged/spell/unarmed
-  ATTACK_ROLL: { attackDomain: AttackDomainCode }
+  // Attack bonus is usually different for melee/ranged/spell/unarmed. Only advantage and
+  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength).
+  ATTACK_ROLL: { attackDomain: AttackDomainCode; ability?: AbilityCode }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
   // holder can see (D100).
@@ -378,8 +379,9 @@ export type ValueDomainParamByCode = {
    * MOVEMENT & SENSES
    * ────────────────────────────────────────────── */
 
-  // Speed is per speed type (walk/fly/climb). Use id/code consistent with your vocab.
-  SPEED: { speedId: string }
+  // Speed is per speed type (walk/fly/climb). Use id/code consistent with your vocab. A fraction
+  // (MULTIPLY) may omit it to cover every speed.
+  SPEED: { speedId?: string }
 
   // Set-like: movement modes (fly, swim...). Treat as per-mode set, no param needed.
   MOVEMENT_MODE: EmptyObject
@@ -456,7 +458,8 @@ export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueD
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
   DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
-  DAMAGE_IMMUNITY: { damageTypeId: string }
+  /** `sourceEffectIds` limits the immunity to damage from actions owned by that authored content. */
+  DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
   // Your CONDITION domain is “applied conditions on character”.

@@ -272,6 +272,10 @@ store.
   exactly that id, so an undone Concentration never ends outside grants. Every checkpoint
   (`checkpointRecords`) compares the previous and next Run row and `endOutsideCarriedGrants` ends the
   stamped grants of the newly added ids on Characters outside any ACTIVE Run (D99).
+  A placed zone records the maintained state it depends on (`maintainedEffectStateId`, index
+  `by_state_encounter`) and counts as a dependent: ending, dropping or replacing the state deletes its zones
+  in the same transaction (`maintainedStateZones.ts`; the Concentration cleanup carries `removedZoneIds`),
+  and `deleteMaintainedStateCas` refuses a state a zone still depends on (D135).
   The caster stamp is also a top-level column of `characterActiveRuleEffects`
   (`concentrationCasterCharacterId`, index `by_concentrationCaster`), written with the lifecycle and
   checked against it on read, so a caster's carried grants are found without scanning Characters
@@ -326,6 +330,13 @@ rule, `spatialZoneLabelSchema`), `visibility`, `activation`, `movementKinds`, `t
 creature's lingering grant takes its end events from the grant template. The area receipt names the row as
 `placedSpatialEffectId`, so GM undo deletes it with the commit. The Scene holds at most
 `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE` rows; the next placement is refused with `TARGET_UNAVAILABLE`.
+
+A zone that depends on a Concentration (SPELLS-20.T2a, D135) records `maintainedEffectStateId` on its row. A cast
+whose only Concentration holder is the zone has no creature outcome to carry the state: the area root carries
+`maintenanceTransition` instead, and the area commit replaces the caster's prior state and creates the new one
+(`prepareMaintenanceReplacement`, `applyMaintenanceReplacement`) before it writes the zone. GM undo deletes the
+created state with the zone; undoing a cast that replaced a state stays unsupported. Ending the Concentration
+removes the zone in the same transaction in T2b (current: the link exists, cleanup does not yet act on it).
 
 ## Scene storage
 

@@ -24358,6 +24358,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -24408,6 +24409,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -28015,6 +28022,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -31389,6 +31400,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -32389,6 +32404,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -33861,6 +33877,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -33911,6 +33928,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -37518,6 +37541,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -40892,6 +40919,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -41892,6 +41923,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -43373,6 +43405,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -43423,6 +43456,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -47030,6 +47069,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -50404,6 +50447,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -51404,6 +51451,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -52876,6 +52924,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -52926,6 +52975,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -56533,6 +56588,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -59907,6 +59966,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -60907,6 +60970,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -62414,6 +62478,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -62464,6 +62529,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -66071,6 +66142,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -69445,6 +69520,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -70445,6 +70524,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -71917,6 +71997,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -71967,6 +72048,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -75574,6 +75661,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -78948,6 +79039,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -79948,6 +80043,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -81408,6 +81504,7 @@ export declare const api: {
                       kind: "D20_ROLL_MODE";
                       minimumLevel: number | null;
                       order: number;
+                      requiresHolderSeesSource?: true;
                       roll:
                         | { kind: "ATTACKS_BY" }
                         | {
@@ -81457,6 +81554,12 @@ export declare const api: {
                             };
                             kind: "WITHIN" | "BEYOND";
                           };
+                    }
+                  | {
+                      id: string;
+                      kind: "APPROACH_SOURCE_FORBIDDEN";
+                      minimumLevel: number | null;
+                      order: number;
                     }
                 >;
                 perceptionContributions?: Array<
@@ -85000,6 +85103,10 @@ export declare const api: {
                           | {
                               damageTypeIds: Array<string>;
                               kind: "DAMAGE_TAKEN";
+                            }
+                          | {
+                              kind: "TARGETED_SELF";
+                              sourceEffectIds?: Array<string>;
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         savingThrow:
@@ -88328,6 +88435,10 @@ export declare const api: {
                           | {
                               damageTypeIds: Array<string>;
                               kind: "DAMAGE_TAKEN";
+                            }
+                          | {
+                              kind: "TARGETED_SELF";
+                              sourceEffectIds?: Array<string>;
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         shape?:
@@ -89328,6 +89439,7 @@ export declare const api: {
                       };
                   order: number;
                   paths: Array<any>;
+                  spellCast?: { castLevel: number };
                 }>;
                 gameSystemId: string;
                 id: string;
@@ -90795,6 +90907,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -90845,6 +90958,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -94452,6 +94571,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -97826,6 +97949,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -98826,6 +98953,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -100298,6 +100426,7 @@ export declare const api: {
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
+                        requiresHolderSeesSource?: true;
                         roll:
                           | { kind: "ATTACKS_BY" }
                           | {
@@ -100348,6 +100477,12 @@ export declare const api: {
                               };
                               kind: "WITHIN" | "BEYOND";
                             };
+                      }
+                    | {
+                        id: string;
+                        kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
                       }
                   >;
                   perceptionContributions?: Array<
@@ -103955,6 +104090,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -107329,6 +107468,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -108329,6 +108472,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -110054,6 +110198,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  choosesCreatureForm?: true;
                   forms?: Array<{
                     id: string;
                     label: string;
@@ -110500,6 +110645,8 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -110782,6 +110929,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  choosesCreatureForm?: true;
                   forms?: Array<{
                     id: string;
                     label: string;
@@ -111228,6 +111376,8 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111257,6 +111407,8 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111277,6 +111429,8 @@ export declare const api: {
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -111367,6 +111521,12 @@ export declare const api: {
         "public",
         { campaignId: string },
         {
+          auras: Array<{
+            id: string;
+            label: string | null;
+            radius: number;
+            sourceTokenId: string;
+          }>;
           encounter:
             | {
                 actors: Array<{
@@ -111903,6 +112063,7 @@ export declare const api: {
               label: string;
               speedId: string;
             }>;
+            fleeSourceActorIds: Array<string>;
             speedId: string | null;
             teleport: Array<{
               castCommandId: string;
@@ -121729,6 +121890,36 @@ export declare const internal: {
         any
       >;
     };
+    actorIdentityMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorIdentity: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
     development: {
       removeFixtureBlueprint: FunctionReference<
         "mutation",
@@ -124623,6 +124814,66 @@ export declare const internal: {
         "internal",
         { sourcePublicIds: Array<string>; userId: string },
         null
+      >;
+    };
+  };
+  rules: {
+    modifierOperationMigration: {
+      characterEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      encounterEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      spatialEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
   };

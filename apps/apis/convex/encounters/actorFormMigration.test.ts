@@ -2,7 +2,7 @@ import migrations from '@convex-dev/migrations/test'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import { runActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 
@@ -50,7 +50,7 @@ it('gives stored actors a null form and form-origin checksum, and re-checksums t
   const migrated = await readRows()
   expect(migrated).toHaveLength(current.length)
   for (const row of migrated) {
-    const actor = encounterStoredRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    const actor = readStoredRunActor(row)
     expect(row.formOriginSnapshotChecksum).toBeNull()
     if (actor.kind !== 'CHARACTER') expect(actor.form).toBeNull()
     expect(row.stateChecksum).toBe(checksumCanonicalJson(runActorPlayState(actor)))

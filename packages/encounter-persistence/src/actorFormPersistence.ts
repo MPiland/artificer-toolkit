@@ -1,30 +1,23 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
+  creatureFormContribution,
   revertActorForm,
   type EncounterActorFormCreature
 } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import type { EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
-/** The creature form an effect holds (D130), or null when the effect holds none. */
-function creatureFormOf(definition: ActiveRuleEffectDefinitionDto) {
-  if (definition.schemaVersion !== 2) return null
-  for (const contribution of definition.stateContributions)
-    if (contribution.kind === 'CREATURE_FORM') return contribution
-  return null
-}
-
 /** Whether the effect is the rule that holds a creature form (D130); only its end touches the actor. */
 export function holdsActorForm(definition: ActiveRuleEffectDefinitionDto) {
-  return creatureFormOf(definition) !== null
+  return creatureFormContribution({ definition }) !== null
 }
 
 /** The Creature a created form effect swaps in, or null when the effect holds no form. */
 export function createdFormCreatureId(effect: Pick<ActiveRuleEffectRecord, 'definition'>) {
-  return creatureFormOf(effect.definition)?.creatureId ?? null
+  return creatureFormContribution(effect)?.creatureId ?? null
 }
 
 /**
@@ -63,7 +56,7 @@ export function actorFormEntry(
   effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition'>,
   creature: EncounterActorFormCreature
 ): EncounterMechanicsBatchInput['enterForm'] {
-  const form = creatureFormOf(effect.definition)
+  const form = creatureFormContribution(effect)
   return form
     ? { effectId: effect.id, excessDamageCarriesOver: form.excessDamageCarriesOver, creature }
     : undefined
@@ -83,6 +76,33 @@ export async function endActorFormHeldBy(
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { row, actor } = await readRunActorWithRow(ctx, readRunState(run), input.actorId)
-  if (actor.kind === 'CHARACTER' || actor.form?.effectId !== input.effectId) return
+  if (actor.form?.effectId !== input.effectId) return
   await writeRunActor(ctx, row._id, revertActorForm(actor))
+}
+
+/**
+ * Ends the form a Character-owned effect held (D130 amendment): the effect names its Character, so
+ * the Run actor that wears the form is found among the Encounter's actors.
+ */
+export async function endCharacterFormHeldBy(
+  ctx: EncounterWriteContext,
+  input: { encounterId: string; characterId: string; effectId: string }
+) {
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+    .unique()
+  if (!run) throw new Error('Encounter is unavailable.')
+  const wearer = (await readRunActors(ctx, readRunState(run))).find(
+    (actor) =>
+      actor.kind === 'CHARACTER' &&
+      actor.sourceId === input.characterId &&
+      actor.form?.effectId === input.effectId
+  )
+  if (wearer)
+    await endActorFormHeldBy(ctx, {
+      encounterId: input.encounterId,
+      actorId: wearer.id,
+      effectId: input.effectId
+    })
 }

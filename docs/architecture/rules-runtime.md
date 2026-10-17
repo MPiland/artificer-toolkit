@@ -266,6 +266,9 @@ Each caught creature carries its own sealed single-target save under
 `encounterAreaTargetOccurrenceId(area, actor)`; `prepareEncounterAreaTests` opens them all without rolling
 damage and `answerEncounterAreaTest` answers one whatever the others have done. `removeEncounterAreaTarget`
 (the GM's removal, SPELLS-7.1) refuses a creature that has answered and seals the caught set again.
+An area's maintained state is bound to the area's occurrence, while each creature's effect is bound to its
+own save occurrence. `requireTurnMaintainedStates` therefore accepts either, derived for the creature whose
+turn it is.
 
 Legendary Resistance on an area save is per creature and interstitial. After a failed Creature save
 `afterTest` asks the creature's `discoverLegendaryResistance`, and `offerEncounterAreaLegendaryResistance`
@@ -398,7 +401,10 @@ action opens no area occurrence (`placesZone` on the pending root): it commits t
 `liveSessionPlacedSpatialEffect` in the same transaction as every other area commit. The zone is
 built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored
 through `createPlacedSpatialEffect` (refused with `TARGET_UNAVAILABLE` at `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`), named
-on the area root as `placedSpatialEffectId`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. When a
+on the area root as `placedSpatialEffectId`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. A concentration
+zone compiles `zonePlacement.maintenance` (the same policy shape as `activeEffectPlan.maintenance`);
+`prepareEncounterActionMaintenance` selects it, so a zone-only cast opens Concentration and the zone depends on that
+state (`maintainedEffectStateId`, D135). When a
 creature fails the zone's entry save, `persistLiveMovementSpatial` copies the zone's grant template under the
 movement's origin onto that creature (`planSpatialEntryGrant`, built from the grant entry; it does not stack per
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
@@ -438,6 +444,19 @@ settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice,
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
 
+**Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
+through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
+`zonePlacement.attachment`); no aura-specific zone logic exists. It must be centered on its user (range `SELF` with a
+sphere, so `CASTER_CENTERED`). `planEncounterPlacedZone` anchors it to the user's token (`anchorKind: 'TOKEN'`,
+`TOKEN_LOCAL` circle at the token center), so `collectSpatialMovementCandidates` already handles the caster moving onto a
+creature (`sourceMoved`) and a creature entering the aura. The circle's radius is the authored radius plus half the
+token's width, which equals "from the edge of the caster's space" on-axis and is smaller on diagonals for a square
+token (approximation, recorded in the SPELLS-20 handoff). The caster's spell save DC is known only at the cast and a
+zone cast has no cast d20, so the zone's entering save is exposed in the action facts (`zoneEntrySavingThrow`), the
+sheet resolves `actionMechanic.save.dc`, and the Worker pins it on the zone's `adapterFacts` under
+`DND5E_SAVE_DC_FACT_KEY` when the zone is placed (`castSaveDcFactKey` on the zone entry). Zone limits are refused, never
+partly honored: half damage, bonuses, scaling, per-turn caps and turn-based interactions stay SPELLS-20 T4.
+
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
 is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A
@@ -475,7 +494,7 @@ waits and the Scene is held (D26, text "Waiting on a reaction decision"). The an
 `OPTION`, read as the `REACTION_CHOICE` summary; the room re-opens the choice graph by occurrence id, as
 Legendary Resistance does.
 
-DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeAttackReaction`),
+DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeReactionEffect`),
 prices the reaction through the action economy and the slot through Character mechanics, builds the effect
 it creates on its reactor, and re-evaluates the TEST: `reconstructNativeActionTest` rebinds the recorded
 dice to the attack's defense as the effect leaves it. That rebinding is a sealed `adjustment`
@@ -512,8 +531,12 @@ reaches the caster on the Scene and that the reactor can afford, and
 holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
-Concentration starts. Undo restores both creatures. Creature-capability, ACTORS-target and area casts, and casts
-made without the Scene offer no reaction. The chain is described below (T3d).
+Concentration starts. Undo restores both creatures. Character ACTORS-target and area casts hold the same
+`CAST_REACTION` pause (REACTION-4.T3e-a): the pause is a KERNEL_EVIDENCE `ENCOUNTER_ACTION` occurrence on the area root,
+each answer replays the root command, and the next transition (area pending, area commit or countered cast) continues
+that occurrence; the area commit input carries `failedCounters` and spends them like the single-target commit.
+A Creature capability is offered a counter only when its Feature action effect sets `spellCast` (D136); a spell attack without it is never counterable. Casts made without the Scene offer no reaction. The chain is described
+below (T3d).
 
 **Higher-level check (current, REACTION-4.T3c; D127).** `reactionTrigger.higherLevelCheck` (`{ ability, baseDc }`)
 makes a reaction cast below the triggering cast's level owe an ability check at DC `baseDc` + the cast's level
@@ -692,7 +715,49 @@ is no condition-specific code. Each mechanic is one of:
   beyond a distance), its saving throws (some abilities or all) or its ability checks;
 - `SAVE_AUTO_FAIL`: the holder fails saves of the listed abilities;
 - `SPEED`: the holder's speed times `numerator / denominator`, rounded down (0 sets it to 0);
-- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit.
+- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit;
+- `APPROACH_SOURCE_FORBIDDEN`: a willing move of the holder that ends closer to the condition's source
+  is a rule warning (ADR 0034 soft enforcement).
+
+A `D20_ROLL_MODE` on attacks or checks may set `requiresHolderSeesSource`: it then applies only while the
+holder sees one of the condition's recorded sources (a save mode cannot, since saves fold in at load).
+
+**Condition sources (SPELLS-29, D134).** A condition outcome authored with `recordsSource`
+(the authoring toggle "The Acting Creature Is Its Source", a core option) records the acting creature on
+the `CONDITION_OWNERSHIP` contribution of the effect that owns it (`sourceActorId`). The SRD Fear spell and
+every SRD Creature action that frightens author it. `encounterConditionSources` reads a held condition's
+sources; a condition held before its effect, applied by hand, or owned by any effect without a source is
+unsourced, and an unsourced condition's sight-gated modes always apply. Action preparation
+(`prepareEncounterActionMechanics`) filters the attacker's and target's mechanics by sight through the
+injected `loadSourcesSeen` (the Worker's `readNativeLiveSourcesSeen`, the attack-perception rules). Any
+Encounter actor can be a source, not only the action's actor and target; a source no longer in the
+Encounter, or with no token beside the holder's on the Scene, is unseen. A flow that injects none keeps
+the modes always on. The room's initial voluntary or teleport move (`prepareNativeLiveMovement`; forced
+moves never warn) refuses an unacknowledged approach with `RULE_WARNINGS` (`CONDITION_SOURCE_APPROACH`),
+which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do it anyway". The move
+receipt records no override yet. Undoing the action that applied the condition removes its effect and so
+its source.
+
+**Fleeing a condition's source (SPELLS-29.T2, D134).** A condition outcome authored with `fleesSource`
+(the toggle "The Holder Must Dash Away From Its Source", shown only with `recordsSource`) adds `fleesSource`
+to the effect's `CONDITION_OWNERSHIP` contribution. `encounterConditionFleeSources` lists the recorded
+sources of the held, sourced, fleeing owners. An Action other than Dash taken by such a creature
+(`RESOLVE_ACTION` and area actions; `encounterFleeActionWarnings`) raises the overridable
+`CONDITION_SOURCE_FLEE` warning, and the turn movement projection (`turnMovement[].fleeSourceActorIds`,
+read by `readTurnMovementView`) drives the tabletop's "Dash away from the source" prompt. Shown and
+softly enforced, never blocked. SRD Fear authors it.
+
+**Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
+target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
+`PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter
+facts and makes the frozen graph's `repeat-save-d20` an `evidence.optional-integer-range` enabled by the
+bound fact `dnd5e.repeat-save-attempt-allowed`. When the gate refuses the attempt, the binding requests no
+roll and the effect continues unchanged, or expires on its last tick; the save-test node still runs on
+the settled minimum, so a refused attempt's graph outputs are not a save result and only the interpreted
+`ATTEMPT_REFUSED` counts. Perception the room cannot resolve (no Scene, or a source with no token) is
+unmet, as for `repeatRollInfluence`. SRD Fear authors `WHEN_UNMET` `SEE` (the save is made only out of the
+caster's sight). The schema accepts a gate only on a save first made at the end of the target's turn, since
+the plan for a save made at once on application carries none.
 
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
@@ -713,8 +778,7 @@ suspended at condition speed 0 (the `SPEED_ABOVE_ZERO` predicate), and the table
 speed mechanics before Dash. A condition contributor's derived-mode reason names the condition, and is
 generic for players when the holder is hidden.
 
-Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Unconscious falling Prone, Petrified damage
+Not modeled (registered in the phase ledger): Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
@@ -759,6 +823,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `ITEM_ACTIVATION`, read from `Dnd5eModifierTarget.activation`) lets one weapon's damage grant differ between its Action and bonus-action
   attacks. The Two-Weapon Fighting style (Fighter, Ranger, Champion) is a pair of GLOBAL melee-damage `min: 0` grants, one per ability,
   gated on a Light weapon, the bonus action and that attack ability (`twoWeaponFightingGrants`); there is no closed rule.
+  ATTACK-9.T5c authors the weapons: `withOffHandAttack` and `withOffHandDamage` (shared equipment builders) give each SRD Light melee
+  weapon a `BONUS_ACTION` melee attack gated by the `ATTACK_ACTION_OTHER_WEAPON` requirement and split its melee damage ability
+  modifier into an Action grant (`ATTACK_ACTIVATION` EXCLUDE) and a `max: 0` bonus-action grant (INCLUDE). Item attack choices carry
+  `actionCost`, so the offer names which activation each attack uses.
 - **Rage (ATTACK-9.T1, D113)** is authored data on the compiled path, with no Barbarian executor: a bonus action that spends the
   `rageCharge` binding and applies a 1-minute SELF grant. Four generic shapes carry it. (1) An attack records the ability it used
   (`usedAttackAbility`: the highest ability modifier of the attacking item's own `SOURCE`-scoped modifiers, so a finesse weapon records
@@ -1147,7 +1215,7 @@ An event that ends a condition-owning effect (Invisibility on its holder's attac
 
 A structured end trigger (`recurrence.endOnTriggers`, SPELLS-27.T4) ends an effect on an event that needs a qualifier. Today the one event is `DAMAGE_TAKEN` with `by` (`ANYONE` or `SOURCE_SIDE`, the effect source and its allies) and the same damage-type filter the reaction trigger uses (`damageTypeFilterDtoSchema`). `damageTakenEndedEffects` reads the action's `DAMAGE` applications on the holder (`resolvedAmount > 0`) and returns the ended effects and their condition releases; the single-action path passes the releases to the holder's batch after the outcome (`damageReleases`, beside the Shield-style `targetReleases` that go first) and the effects through `consumedGrants`, so GM undo restores both by receipt: `actionRevert` gives back the target's `CONDITION_REMOVE` applications named `active-effect.ended` (`restoreReleasedConditions`) and refuses (`REVERT_UNAVAILABLE`) any other removed condition. Only the timed-condition plan can author a trigger.
 
-SPELLS-27.T4b wires every other damage root and adds the actions that end an effect against an enemy. `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` joins `endOnTriggers` (Sanctuary): `actionEndedEffects` takes a required `againstEnemy` (`actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor, never `NEUTRAL`) and ends the holder's effect when the action makes an attack roll, or casts a spell (the T3 cast fact), against an enemy; an ally or a neutral target ends nothing. `damageTakenEndedEffects` is called by the area commit (per target, deduped across a creature named twice; `consumedGrants` carries the ended effects, so GM undo restores them), the Legendary window (the planner computes it; `turnResourcesPersistence` recomputes it from live effects and refuses a stored receipt that lacks a planned release), the movement reaction (the mover's ended effects ride the REACTION step's `consumedGrants`) and turn effects (`turnEffectDamageEnded`: an execution's own damage ends the holder's other effects, never the turn's candidates; the releases are `active-effect.ended` `CONDITION_REMOVE` applications on that execution, which `turnEffectsPersistence` recomputes and deletes the effects for). Death-save damage is an ordinary `DAMAGE` application folded by `encounterCharacterMechanicsBatch`, so the roots above already cover it. Legendary, movement reaction and turn effects have no GM undo, so they are proved without it.
+SPELLS-27.T4b wires every other damage root and adds the actions that end an effect against an enemy. `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` joins `endOnTriggers` (Sanctuary): `actionEndedEffects` takes a required `againstEnemy` (`actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor, never `NEUTRAL`) and ends the holder's effect when the action makes an attack roll, or casts a spell (the T3 cast fact), against an enemy; an ally or a neutral target ends nothing. `damageTakenEndedEffects` is called by the area commit (per target, deduped across a creature named twice; `consumedGrants` carries the ended effects, so GM undo restores them), the Legendary window (the planner computes it; `turnResourcesPersistence` recomputes it from live effects and refuses a stored receipt that lacks a planned release), the movement reaction (the mover's ended effects ride the REACTION step's `consumedGrants`) and turn effects (`turnEffectDamageEnded`: an execution's own damage ends the holder's other effects, a later candidate of the same turn expires at its own execution, an earlier one is not ended retroactively; the releases are `active-effect.ended` `CONDITION_REMOVE` applications on that execution, which `turnEffectsPersistence` recomputes and deletes the effects for). Death-save damage is an ordinary `DAMAGE` application folded by `encounterCharacterMechanicsBatch`, so the roots above already cover it. Legendary, movement reaction and turn effects have no GM undo, so they are proved without it.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
@@ -1327,6 +1395,21 @@ helper, `pinnedSaveDc`: a fixed DC is stored in the plan's `dnd5e.save-dc` fact,
 same `resolveSave` path every save-trigger plan uses) under that fact when the active effect is created. The repeat
 graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
 after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
+
+`repeatingDirectFollowUpSavePlan` takes a `CONDITION` or an `APPLY_GRANT` as its lead entry. A grant lead plans
+its contribution through `modifierGrantEntryPlan` and marks it `countedByTurnEffects`: the repeat-save kernel
+rolls, counts and ends it, so the grant tick planner neither adds its extra tick nor sets a recurrence stage. In
+either case the lead applies only on `ON_SAVE_FAIL` (`reachesAuthoredPath`), so an area breath leaves nothing on a
+creature that passes. Gold Dragon Weakening Breath is the grant-led case: Strength check, Strength save and
+Strength attack disadvantage, ended by the repeated Strength save.
+
+**Ability-scoped and fractional grants (SPELLS-19.T3b).** `ATTACK_ROLL` may name an `ability`; a grant naming one
+covers only attacks made with it. A Character folds it through `dnd5eAttackRollContributors` (the action's
+`attackAbility`); a Creature reads `creatureAttackAbility` (the first damage outcome's `ABILITY_BONUS`). Plain
+`SAVING_THROW_MODIFIER` advantage and disadvantage naming an ability join every save row of that ability for a
+Creature holder (`withCreatureActiveGrantSaves`). `SPEED` takes a `MULTIPLY` fraction payload (`n/d`), optionally
+for one speed: `speedAfterFractions` multiplies the fractions and rounds down once (D94) after bonuses, for both
+the Creature (`withActiveGrantSpeeds`) and Character (`characterMovementAndSenses`) folds.
 
 **Chosen end (D101, SPELLS-5.11).** The caster ends their own Concentration at any time with no action
 and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it

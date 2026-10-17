@@ -11,7 +11,14 @@ const movement = (
   used: number,
   allowances: TurnMovementEntry['allowances'],
   speedId: string | null = null
-): TurnMovementEntry => ({ actorId: 'actor', used, speedId, allowances, teleport: [] })
+): TurnMovementEntry => ({
+  actorId: 'actor',
+  used,
+  speedId,
+  allowances,
+  teleport: [],
+  fleeSourceActorIds: []
+})
 
 const walking = (budget: number) => ({ ...walk, budget })
 const flying = (budget: number) => ({ ...fly, budget })
@@ -34,6 +41,18 @@ function renderReadout(
 }
 
 describe('CampaignTabletopMovementReadout', () => {
+  it('prompts the controller to Dash away from the source of a condition it flees (SPELLS-29.T2)', () => {
+    renderReadout({
+      movement: { ...movement(0, [walking(30)]), fleeSourceActorIds: ['source'] }
+    })
+    expect(screen.getByText('Dash away from the source')).toBeInTheDocument()
+  })
+
+  it('shows no prompt for an actor that flees nothing', () => {
+    renderReadout({ movement: movement(0, [walking(30)]) })
+    expect(screen.queryByText('Dash away from the source')).not.toBeInTheDocument()
+  })
+
   it('shows the movement spent against the only speed type’s allowance', () => {
     renderReadout({ movement: movement(15, [walking(30)]) })
     expect(screen.getByText('Movement 15 / 30 ft')).toBeInTheDocument()

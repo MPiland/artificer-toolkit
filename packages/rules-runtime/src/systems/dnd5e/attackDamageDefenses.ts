@@ -4,7 +4,12 @@ import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
 import { isDnd5eSpellAttackKind } from './attackKind.js'
 
-type DamageDefense = { kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'; damageTypeId: string }
+type DamageDefense = {
+  kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
+  damageTypeId: string
+  /** Applies only to damage from actions owned by this authored content; absent or empty: any. */
+  sourceEffectIds?: readonly string[]
+}
 
 /** A defense such as "bludgeoning, piercing, and slashing from nonmagical attacks". */
 export type Dnd5eQualifiedDamageDefense = {
@@ -24,15 +29,25 @@ const TRAIT_BY_BYPASS: Record<DamageDefenseBypassCode, keyof Dnd5eAttackTraits> 
 /**
  * The defenses one damage roll meets. A qualified defense protects only against an attack that has
  * none of its bypassing traits; damage that is not from an attack (`traits` null) is not "from
- * nonmagical attacks", so qualified defenses never apply to it.
+ * nonmagical attacks", so qualified defenses never apply to it. A defense limited to authored
+ * content (`sourceEffectIds`) applies only to damage from an action that content owns
+ * (`sourceId`); it comes back as a plain defense.
  */
 export function dnd5eAttackDamageDefenses(
   defenses: readonly DamageDefense[],
   qualified: readonly Dnd5eQualifiedDamageDefense[],
-  traits: Dnd5eAttackTraits | null
-): DamageDefense[] {
+  traits: Dnd5eAttackTraits | null,
+  sourceId: string | null
+): { kind: DamageDefense['kind']; damageTypeId: string }[] {
   const applicable = new Map(
-    defenses.map((defense) => [`${defense.kind}:${defense.damageTypeId}`, defense])
+    defenses
+      .filter(
+        ({ sourceEffectIds }) =>
+          !sourceEffectIds?.length || (sourceId !== null && sourceEffectIds.includes(sourceId))
+      )
+      .map(
+        ({ kind, damageTypeId }) => [`${kind}:${damageTypeId}`, { kind, damageTypeId }] as const
+      )
   )
   if (traits !== null)
     for (const defense of qualified)

@@ -1139,7 +1139,8 @@ function renderWindow(
       pending: null,
       waitingOn: null,
       turnMovement: [],
-      halfSpeedFields: []
+      halfSpeedFields: [],
+      auras: []
     })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
@@ -1177,7 +1178,8 @@ function renderWindow(
     pending: null,
     waitingOn: null,
     turnMovement: [],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   queryClient.setQueryData(rollPreferencesQuery.queryKey, {
@@ -1191,7 +1193,14 @@ function renderWindow(
     value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
-        return { encounter, pending: null, waitingOn: null, turnMovement: [], halfSpeedFields: [] }
+        return {
+          encounter,
+          pending: null,
+          waitingOn: null,
+          turnMovement: [],
+          halfSpeedFields: [],
+          auras: []
+        }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header
       if (name === getFunctionName(convexApi.encounters.sceneBindings.get)) return sceneBinding

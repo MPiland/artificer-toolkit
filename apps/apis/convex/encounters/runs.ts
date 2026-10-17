@@ -29,6 +29,8 @@ import {
   bindEncounterActorRuleOutputToFacts,
   reconcileEncounterActorRuleOutput
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import { resumeCharacterForm } from '@artificer-toolkit/rules-runtime/encounterActorForm'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import type { MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
@@ -121,35 +123,46 @@ export async function createEncounterRun(
       character.id,
       characterProjectionState(character.state, sheet.overview.maxHitPoints, conditionTypes)
     )
-    actors.push(
-      encounterRunActorStateSchema.parse({
-        id: crypto.randomUUID(),
-        encounterId,
-        sideId: partySideId,
+    const partyActor = encounterRunActorStateSchema.parse({
+      id: crypto.randomUUID(),
+      encounterId,
+      sideId: partySideId,
+      kind: 'CHARACTER',
+      sourceId: character.id,
+      frozenState: null,
+      absence: null,
+      form: null,
+      label: character.label,
+      systemId: character.systemId,
+      stableTieKey: crypto.randomUUID(),
+      public: true,
+      controllerUserIds: [],
+      disposition: 'FRIENDLY',
+      healthDisplay: null,
+      resources: {},
+      gmNotes: null,
+      initiative: null,
+      manualOrder: null,
+      createdAt: now,
+      updatedAt: now,
+      snapshot: {
         kind: 'CHARACTER',
-        sourceId: character.id,
-        frozenState: null,
-        absence: null,
+        id: character.id,
         label: character.label,
-        systemId: character.systemId,
-        stableTieKey: crypto.randomUUID(),
-        public: true,
-        controllerUserIds: [],
-        disposition: 'FRIENDLY',
-        healthDisplay: null,
-        resources: {},
-        gmNotes: null,
-        initiative: null,
-        manualOrder: null,
-        createdAt: now,
-        updatedAt: now,
-        snapshot: {
-          kind: 'CHARACTER',
-          id: character.id,
-          label: character.label,
-          systemId: character.systemId
-        }
-      })
+        systemId: character.systemId
+      }
+    })
+    // D99, SPELLS-28.T4b: a creature form carried out of an earlier Run is worn again.
+    actors.push(
+      partyActor.kind === 'CHARACTER'
+        ? resumeCharacterForm(
+            partyActor,
+            await createActiveRuleEffectStore(encounterWriteTransaction(ctx)).list({
+              kind: 'CHARACTER',
+              characterId: character.id
+            })
+          )
+        : partyActor
     )
   }
   for (const enemy of blueprint.enemies) {

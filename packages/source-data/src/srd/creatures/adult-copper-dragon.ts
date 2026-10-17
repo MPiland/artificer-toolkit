@@ -354,7 +354,8 @@ export const adultCopperDragon: CreatureAuthored = {
                   {
                     id: S.actionId(7, 603),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(7, 604),

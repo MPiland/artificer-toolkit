@@ -189,6 +189,7 @@ export function runActor(input: { id: string; characterId?: string }): Encounter
           sourceId: input.characterId,
           frozenState: null,
           absence: null,
+          form: null,
           disposition: 'FRIENDLY'
         }
       : {

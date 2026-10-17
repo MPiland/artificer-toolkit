@@ -67,6 +67,10 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   conditionContribution?: null | {
     conditionId: string
+    /** The acting creature is the condition's source; its active effect records it. */
+    recordsSource: boolean
+    /** The holder must Dash away from the source; needs `recordsSource`. */
+    fleesSource: boolean
     /** The events whose first occurrence uses the condition up, sorted and unique. */
     consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
     /** The events whose first occurrence ends the condition, sorted and unique. */
@@ -83,6 +87,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     tickAnchor: 'HOLDER' | 'SOURCE'
     /** Whether the duration already counts the turn the grant is made in ("for the turn"). */
     includesCurrentTurn: boolean
+    /**
+     * A grant whose holder repeats a save each turn is rolled, counted and ended by the turn-effect
+     * kernel with the repeat save, not by the grant tick planner.
+     */
+    countedByTurnEffects?: boolean
     /** The events whose first occurrence uses the grant up, sorted and unique. */
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
     /** The events that end the grant early, sorted and unique. */
@@ -120,6 +129,16 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** Whether damage past the form's last hit point reduces the origin's (Polymorph) or is lost. */
     excessDamageCarriesOver: boolean
     forms: readonly { id: string; label: string; creatureId: string; maxTargets: number }[]
+    /**
+     * A rule-filtered choice beside the fixed forms: the cast names the Creature on the command and
+     * it must meet this (Polymorph: a beast no higher than the target's challenge rating).
+     */
+    filter: null | {
+      creatureTypeId: string | null
+      challengeRatingCapKind: 'TARGET' | 'FIXED'
+      maxChallengeRatingId: string | null
+      excludedSpeedIds: readonly string[]
+    }
   }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
@@ -442,16 +461,25 @@ export interface CharacterRuleActionSystemAdapter {
     observerActorId: string
   }): readonly CombatPerceptionCapabilityInstance[]
   /**
-   * Reads one immutable recurring-effect perception dependency. The System
-   * owns adapter-fact interpretation; application code never parses it.
+   * Reads one immutable recurring-effect perception dependency: it either influences the
+   * recurring d20 or gates whether it is attempted. The System owns adapter-fact
+   * interpretation; application code never parses it.
    */
   activeEffectPerceptionRequirement?(input: {
     definition: ActiveRuleEffectDefinitionDto
     lifecycle: ActiveRuleEffectLifecycleDto
-  }): {
-    requirement: CombatPerceptionRequirementDto
-    influence: 'ADVANTAGE' | 'DISADVANTAGE'
-  } | null
+  }):
+    | {
+        kind: 'ROLL_INFLUENCE'
+        requirement: CombatPerceptionRequirementDto
+        influence: 'ADVANTAGE' | 'DISADVANTAGE'
+      }
+    | {
+        kind: 'ATTEMPT_GATE'
+        requirement: CombatPerceptionRequirementDto
+        allow: 'WHEN_MET' | 'WHEN_UNMET'
+      }
+    | null
   bindFacts(input: {
     /** Exact current source mechanic selected under the aggregate lock. */
     actionMechanic: Readonly<Record<string, unknown>> & {

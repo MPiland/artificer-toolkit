@@ -6,11 +6,7 @@ import type {
 
 import { isLengthModifierDomain, modifierLengthFeet } from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
-import {
-  canonicalCharacterAbility,
-  characterPolicyNumber,
-  characterPolicyRecord
-} from './characterPolicyValues.js'
+import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -38,29 +34,35 @@ export function evaluateDnd5eCharacterModifiers(
     resolvedValue: number
     ability?: string | null
   }
-  const additiveAmount = (payload: Record<string, unknown>): number => {
-    if (payload.valueKind == null)
-      return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
-    if (payload.valueKind === 'SKILL_BONUS' || payload.valueKind === 'SPELL_SLOT_LEVEL') return 0
-    if (payload.valueKind === 'PROFICIENCY_BONUS')
-      return proficiencyBonus(input.totalLevel) * characterPolicyNumber(payload.multiplier ?? 1)
-    if (payload.valueKind === 'CHARACTER_LEVEL')
-      return input.totalLevel * characterPolicyNumber(payload.multiplier ?? 1)
-    if (payload.valueKind === 'CLASS_LEVEL') {
-      return (
-        (input.grantFoldFacts.base.classes.find((entry) => entry.classId === payload.classId)
-          ?.level ?? 0) * characterPolicyNumber(payload.multiplier ?? 1)
-      )
+  type Payload = CharacterGrantFoldOutput['modifiers'][number]['payload']
+  const payloadOf = (contribution: Group['contributions'][number]): Payload =>
+    grantFold.modifiers[contribution.acceptedModifierIndex]?.payload
+  const amountOf = (payload: Payload): number =>
+    payload !== undefined && 'amount' in payload ? payload.amount : 0
+  const additiveAmount = (payload: Payload): number => {
+    if (payload === undefined || !('valueKind' in payload)) return amountOf(payload)
+    switch (payload.valueKind) {
+      case 'FIXED':
+        return payload.amount
+      case 'PROFICIENCY_BONUS':
+        return proficiencyBonus(input.totalLevel) * (payload.multiplier ?? 1)
+      case 'CHARACTER_LEVEL':
+        return input.totalLevel * (payload.multiplier ?? 1)
+      case 'CLASS_LEVEL':
+        return (
+          (input.grantFoldFacts.base.classes.find((entry) => entry.classId === payload.classId)
+            ?.level ?? 0) * (payload.multiplier ?? 1)
+        )
+      case 'SKILL_BONUS':
+      case 'SPELL_SLOT_LEVEL':
+        return 0
     }
-    if (payload.valueKind === 'FIXED')
-      return characterPolicyNumber(payload.amount ?? payload.value ?? 0)
-    return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
   }
   const scalarValue = (
     group: Group,
     contribution: Group['contributions'][number]
   ): number | null => {
-    const payload = characterPolicyRecord(characterPolicyRecord(contribution.grant).payload)
+    const payload = payloadOf(contribution)
     // A speed or sense range is a typed length; its contribution is the feet it converts to.
     if (
       isLengthModifierDomain(group.valueDomainCode) &&
@@ -73,7 +75,7 @@ export function evaluateDnd5eCharacterModifiers(
     if (group.modifierKind === 'PENALTY') return -additiveAmount(payload)
     if (group.modifierKind === 'BONUS') return additiveAmount(payload)
     if (group.modifierKind === 'SET_VALUE' || group.modifierKind === 'MODIFY_CHARGE_LIMIT') {
-      return characterPolicyNumber(payload.value ?? payload.amount ?? 0)
+      return amountOf(payload)
     }
     if (
       [
@@ -82,7 +84,9 @@ export function evaluateDnd5eCharacterModifiers(
         'ADD_OPTION',
         'REMOVE_OPTION',
         'ADD_BONUS_DIE',
-        'ENABLE'
+        'ENABLE',
+        // A fraction is read from its payload by the domain that owns it (a speed).
+        'MULTIPLY'
       ].includes(group.modifierKind)
     )
       return 1
@@ -156,8 +160,8 @@ export function evaluateDnd5eCharacterModifiers(
   return grantFold.modifierGroups.map((group): CharacterResolvedModifierGroup => {
     const contributions = isAbilityModifier(group.modifierKind)
       ? group.contributions.map((contribution): Contribution => {
-          const payload = characterPolicyRecord(characterPolicyRecord(contribution.grant).payload)
-          if (group.modifierKind === 'ABILITY_MODIFIER_BONUS') {
+          const payload = payloadOf(contribution)
+          if (payload !== undefined && 'ability' in payload) {
             return {
               ...contribution,
               ability: canonicalCharacterAbility(payload.ability),
@@ -167,15 +171,15 @@ export function evaluateDnd5eCharacterModifiers(
               )
             }
           }
-          const best = Array.isArray(payload.abilities)
-            ? payload.abilities.reduce<unknown>(
-                (chosen, candidate) =>
-                  chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
-                    ? candidate
-                    : chosen,
-                undefined
-              )
-            : undefined
+          if (payload === undefined || !('abilities' in payload) || 'amount' in payload)
+            return { ...contribution, ability: null, resolvedValue: 0 }
+          const best = payload.abilities.reduce<string | undefined>(
+            (chosen, candidate) =>
+              chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
+                ? candidate
+                : chosen,
+            undefined
+          )
           return {
             ...contribution,
             ability: canonicalCharacterAbility(best),
@@ -188,13 +192,13 @@ export function evaluateDnd5eCharacterModifiers(
             ?.contributions ?? []
         ).map((contribution): Contribution => {
           // An armor class formula ("10 + DEX + CON") adds each listed ability modifier.
-          const abilities = characterPolicyRecord(
-            characterPolicyRecord(contribution.grant).payload
-          ).abilities
-          return group.modifierKind === 'SET_VALUE' && Array.isArray(abilities)
+          const payload = payloadOf(contribution)
+          return group.modifierKind === 'SET_VALUE' &&
+            payload !== undefined &&
+            'abilities' in payload
             ? {
                 ...contribution,
-                resolvedValue: abilities.reduce<number>(
+                resolvedValue: payload.abilities.reduce<number>(
                   (sum, ability) => sum + abilityModifierOf(ability),
                   contribution.resolvedValue
                 )

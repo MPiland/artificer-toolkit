@@ -537,6 +537,7 @@ describe('completeNativeConcentrationResult', () => {
         ? {
             maintainedStateId: MAINTAINED_ID,
             removedDependentEffectIds: [],
+            removedZoneIds: [],
             characterOwnerTransitions: []
           }
         : null,

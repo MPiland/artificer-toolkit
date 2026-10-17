@@ -43,7 +43,7 @@ import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { readRunActors, readRunState, replaceRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState, replaceRunActor } from './documents.js'
 import {
   removeTurnSpeedBonus,
   removeTurnTeleportAllowance,
@@ -54,6 +54,21 @@ import { encounterReplayReceipt, replayEncounterCommandResult } from './replayRe
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
+
+function replacesMaintainedEffect(
+  maintenance: {
+    priorState: unknown
+    removedDependentEffects: readonly unknown[]
+    endedCarriedGrants: readonly unknown[]
+  } | null
+) {
+  return Boolean(
+    maintenance &&
+    (maintenance.priorState ||
+      maintenance.removedDependentEffects.length ||
+      maintenance.endedCarriedGrants.length)
+  )
+}
 
 type ActionBatch = Extract<
   ServerRuleExecutionApplicationOutputsDto,
@@ -294,15 +309,12 @@ export async function revertLastEncounterAction(
       )
     )
       unsupported.add('a removed condition')
-    const maintenance = action.maintenanceTransition ?? null
-    if (
-      maintenance &&
-      (maintenance.priorState ||
-        maintenance.removedDependentEffects.length ||
-        maintenance.endedCarriedGrants.length)
-    )
+    if (replacesMaintainedEffect(action.maintenanceTransition ?? null))
       unsupported.add('a replaced maintained effect')
   }
+  // A zone-only cast's Concentration rides on the root.
+  if (replacesMaintainedEffect(areaRoot?.maintenanceTransition ?? null))
+    unsupported.add('a replaced maintained effect')
   const spend =
     areaRoot ??
     counteredRoot ??
@@ -329,12 +341,21 @@ export async function revertLastEncounterAction(
   // (D130), so the inverses below read the actor as it stood before the cast.
   const endedFormEffectIds = new Set<string>()
   for (const action of targetBatches) {
-    if (action.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') continue
-    const owner = {
-      kind: 'ENCOUNTER_ACTOR' as const,
-      encounterId: state.id,
-      targetActorId: action.targetActorId
-    }
+    // A Character's form is held by an effect on the Character, found through its Run actor.
+    const wearer =
+      action.kind === 'CHARACTER_MECHANICS_BATCH'
+        ? (await readRunActorWithRow(ctx, state, action.targetActorId)).actor
+        : null
+    if (wearer && wearer.kind !== 'CHARACTER')
+      throw new Error('Stored Character action target is invalid.')
+    const owner =
+      wearer?.kind === 'CHARACTER'
+        ? { kind: 'CHARACTER' as const, characterId: wearer.sourceId }
+        : {
+            kind: 'ENCOUNTER_ACTOR' as const,
+            encounterId: state.id,
+            targetActorId: action.targetActorId
+          }
     for (const transition of action.activeEffectTransitions) {
       const effect = await store.findById(owner, transition.activeEffectId)
       if (!effect || !holdsActorForm(effect.definition)) continue
@@ -538,7 +559,8 @@ export async function revertLastEncounterAction(
     const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
     for (const effect of [
       ...action.activeEffectTransitions,
-      ...(reaction?.activeEffectTransitions ?? [])
+      ...(reaction?.activeEffectTransitions ?? []),
+      ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : [])
     ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,
@@ -557,6 +579,14 @@ export async function revertLastEncounterAction(
     if (created) createdStates.set(created.id, created)
   }
   for (const action of targetBatches.toReversed()) await invertTarget(action)
+  const rootCreated = areaRoot?.maintenanceTransition?.createdState
+  if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
+  // The zone an area action placed leaves the Scene with it, before the state it depends on goes.
+  if (areaRoot?.placedSpatialEffectId)
+    await deletePlacedSpatialEffect(ctx, {
+      encounterId: state.id,
+      id: areaRoot.placedSpatialEffectId
+    })
   // Every creature of an area shares the one state, so it goes once, after the last dependent.
   for (const created of createdStates.values())
     await store.deleteMaintainedStateCas({
@@ -690,13 +720,6 @@ export async function revertLastEncounterAction(
   // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
   await restoreEndedMaintainedStates(ctx, root.endedMaintainedStates)
   await restoreConsumedGrants(ctx, root.consumedGrants)
-  // The zone an area action placed leaves the Scene with it.
-  if (areaRoot?.placedSpatialEffectId)
-    await deletePlacedSpatialEffect(ctx, {
-      encounterId: state.id,
-      id: areaRoot.placedSpatialEffectId
-    })
-
   const updatedAt = new Date().toISOString()
   for (const [characterId, inverse] of characterInverses)
     await restoreCharacter(ctx, {

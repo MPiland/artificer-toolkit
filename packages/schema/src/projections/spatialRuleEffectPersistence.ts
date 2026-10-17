@@ -21,6 +21,8 @@ export const encounterSpatialRuleEffectStoredSchema = lazySchema(() =>
     sceneId: postgresUuidSchema,
     createdOrdinal: z.number().check(z.int()).check(z.positive()),
     version: z.number().check(z.int()).check(z.positive()),
+    /** The Concentration this zone depends on; its end removes the zone (D135). */
+    maintainedEffectStateId: z.nullable(postgresUuidSchema),
     definitionJson: z.string(),
     definitionChecksum: activeRuleEffectChecksumSchema,
     lifecycle: activeRuleEffectLifecycleDtoSchema,
@@ -41,6 +43,7 @@ export const encounterSpatialRuleEffectRecordSchema = lazySchema(() =>
     sceneId: postgresUuidSchema,
     createdOrdinal: z.number().check(z.int()).check(z.positive()),
     version: z.number().check(z.int()).check(z.positive()),
+    maintainedEffectStateId: z.nullable(postgresUuidSchema),
     definition: activeRuleEffectDefinitionDtoSchema,
     definitionChecksum: activeRuleEffectChecksumSchema,
     lifecycle: activeRuleEffectLifecycleDtoSchema,

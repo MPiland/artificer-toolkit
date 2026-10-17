@@ -1,5 +1,3 @@
-import { characterPolicyNumber } from './characterPolicyValues.js'
-
 /** The 5e modifier of an ability score. */
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2)
@@ -11,13 +9,10 @@ export function abilityModifier(score: number): number {
  */
 export function resolveAbilityModifierBonus(
   modifier: number,
-  payload: Readonly<Record<string, unknown>>
+  payload: { readonly multiplier?: number; readonly min?: number; readonly max?: number }
 ): number {
   return Math.max(
-    characterPolicyNumber(payload.min ?? -999),
-    Math.min(
-      characterPolicyNumber(payload.max ?? 999),
-      modifier * characterPolicyNumber(payload.multiplier ?? 1)
-    )
+    payload.min ?? -999,
+    Math.min(payload.max ?? 999, modifier * (payload.multiplier ?? 1))
   )
 }

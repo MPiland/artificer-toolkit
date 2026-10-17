@@ -26,6 +26,9 @@ const ACTOR_ID = '00000000-0000-4000-8000-0000000c0001'
 const USER_ID = '00000000-0000-4000-8000-0000000c0002'
 const SLOT_ID = '00000000-0000-4000-8000-0000000c0003'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-0000000c0004'
+const SCENE_ID = '00000000-0000-4000-8000-0000000c000a'
+const DEPENDENT_ZONE_ID = '00000000-0000-4000-8000-0000000c000b'
+const INDEPENDENT_ZONE_ID = '00000000-0000-4000-8000-0000000c000c'
 const OWNED_TABLES = [
   'encounterMaintainedEffectStates',
   'encounterActiveRuleEffects',
@@ -220,6 +223,7 @@ describe('persistEncounterConcentrationChildren refuses a forged Concentration e
               cleanup: {
                 maintainedStateId: SLOT_ID,
                 removedDependentEffectIds: [],
+                removedZoneIds: [],
                 characterOwnerTransitions: []
               }
             }
@@ -431,6 +435,7 @@ describe('persistLiveMovementConcentrationEnd refuses a forged movement end', ()
                 cleanup: {
                   maintainedStateId: SLOT_ID,
                   removedDependentEffectIds: [],
+                  removedZoneIds: [],
                   characterOwnerTransitions: []
                 }
               }
@@ -503,6 +508,7 @@ describe('persistLiveMovementConcentrationEnd binds the owner projection to stor
               cleanup: {
                 maintainedStateId: SLOT_ID,
                 removedDependentEffectIds: [],
+                removedZoneIds: [],
                 characterOwnerTransitions: []
               }
             }
@@ -619,6 +625,45 @@ describe('endConcentrationAfterEdit', () => {
         maintainedStateId: SLOT_ID,
         reason: 'DEFEATED'
       }
+    })
+  })
+
+  it('removes the zones that depend on the ended Concentration in the same commit, keeping others (D135)', async () => {
+    const actor = creatureActor(defeated)
+    const { memory, ctx } = await holderFixture(actor)
+    const zone = (id: string, maintainedEffectStateId: string | null, ordinal: number) => ({
+      _id: id,
+      _creationTime: ordinal,
+      id,
+      encounterId: ENCOUNTER_ID,
+      sceneId: SCENE_ID,
+      createdOrdinal: ordinal,
+      version: 1,
+      maintainedEffectStateId
+    })
+    memory.load(
+      'encounterSpatialRuleEffects',
+      [zone(DEPENDENT_ZONE_ID, SLOT_ID, 1), zone(INDEPENDENT_ZONE_ID, null, 2)] as never,
+      { validate: false }
+    )
+    await endConcentrationAfterEdit(
+      ctx as unknown as Parameters<typeof endConcentrationAfterEdit>[0],
+      {
+        state: srdEncounterState({ actors: [actor], currentActorId: null }),
+        actors: [actor],
+        holder: actor,
+        editCommandId: COMMAND_ID,
+        userId: USER_ID,
+        occurredAt: '2026-10-08T00:00:00.000Z'
+      }
+    )
+
+    expect(memory.documents('encounterMaintainedEffectStates')).toEqual([])
+    expect(memory.documents('encounterSpatialRuleEffects').map(({ id }) => id)).toEqual([
+      INDEPENDENT_ZONE_ID
+    ])
+    expect(JSON.parse(memory.documents('encounterRuleReceipts')[0]!.resultJson)).toMatchObject({
+      applicationOutputs: { cleanup: { removedZoneIds: [DEPENDENT_ZONE_ID] } }
     })
   })
 

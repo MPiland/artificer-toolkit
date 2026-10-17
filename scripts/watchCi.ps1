@@ -3,7 +3,10 @@
 # One `gh run list` call per poll, every 120 seconds, to stay inside the shared API rate limit.
 #   pwsh -NoProfile -File scripts/watchCi.ps1 [-Ref HEAD]
 # Exit 0: all green. Exit 1: a run failed (its failed steps are printed, with the download command for
-# generated-file drift or updated snapshots). Exit 2: the latest run was cancelled.
+# updated snapshots, or for generated-file drift the auto-fix could not commit; a type error cancels the
+# Tests run early and counts as a failure). Exit 2: the latest run was cancelled with no failed job.
+# When Live fails on generated-file drift, the workflow's auto-fix job commits the regenerated files to
+# the branch; the script prints AUTO-FIX <sha> and follows that commit (exit codes then refer to it).
 param([string]$Ref = 'HEAD')
 
 $sha = git rev-parse $Ref
@@ -15,12 +18,34 @@ while ($true) {
   $latest = $runs | Group-Object workflowName | ForEach-Object { $_.Group | Sort-Object createdAt -Descending | Select-Object -First 1 }
   if ($latest | Where-Object workflowName -eq 'Tests') { $testsSeenAt ??= Get-Date }
 
-  $failed = $latest | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'failure' }
+  # Tests cancels its own run on a type error (job "Cancel the run on a type error"); a cancelled run with a
+  # failed job is that failure, not a superseded run. An unreadable job list is polled again.
+  $cancelledRuns = @($latest | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'cancelled' })
+  $failedJobs = @{}
+  foreach ($run in $cancelledRuns) {
+    $failedJobs[$run.databaseId] = gh run view $run.databaseId --json jobs --jq '[.jobs[] | select(.conclusion=="failure")] | length'
+  }
+  if ($failedJobs.Values -contains $null) { [Threading.Thread]::Sleep(120000); continue }
+  $failed = $latest | Where-Object {
+    $_.status -eq 'completed' -and ($_.conclusion -eq 'failure' -or ($_.conclusion -eq 'cancelled' -and $failedJobs[$_.databaseId] -ne '0'))
+  }
   foreach ($run in $failed) {
     $steps = gh run view $run.databaseId --json jobs --jq '.jobs[] | select(.conclusion=="failure") | "\(.name): \([.steps[] | select(.conclusion=="failure") | .name] | join(", "))"'
     "FAILED $($run.workflowName) $($run.databaseId)"
     $steps
+    if ($steps -match '^Typecheck') {
+      gh run view $run.databaseId --log-failed | Select-String 'error TS\d+' | Select-Object -First 40 | ForEach-Object Line
+    }
     if ($steps -match 'Generated files match the commit') {
+      # The live-backend auto-fix job commits the regenerated files to the branch (trailer below) and
+      # dispatches Tests and Live on it; the run only finishes after that job, so the commit exists by now.
+      $branch = (gh run view $run.databaseId --json headBranch --jq .headBranch)
+      $tip = gh api "repos/{owner}/{repo}/commits/$branch" | ConvertFrom-Json
+      if ($tip.sha -ne $sha -and $tip.parents.sha -contains $sha -and $tip.commit.message -match '(?m)^Generated-By: live-backend auto-fix$') {
+        "AUTO-FIX $($tip.sha) (regenerated files committed on top of $sha); following it"
+        $autoFix = $tip.sha
+        continue
+      }
       "Fix: gh run download $($run.databaseId) -n generated-files -D local-validation/generated-$($run.databaseId)"
       "     Copy-Item -Recurse -Force local-validation/generated-$($run.databaseId)/* apps/apis/convex; git diff --stat; commit; push"
     }
@@ -30,6 +55,12 @@ while ($true) {
       "Fix: gh run download $($run.databaseId) -n updated-snapshots -D local-validation/snapshots-$($run.databaseId)"
       "     Copy-Item -Recurse -Force local-validation/snapshots-$($run.databaseId)/* .; git diff --stat; review each snapshot diff (a changed snapshot may be the bug); commit; push"
     }
+  }
+  if ($autoFix) {
+    # The branch now holds the auto-fix commit: follow its runs. Pull it locally to continue from it.
+    $sha = $autoFix; $autoFix = $null; $started = Get-Date; $testsSeenAt = $null
+    [Threading.Thread]::Sleep(60000)
+    continue
   }
   if ($failed) { exit 1 }
 

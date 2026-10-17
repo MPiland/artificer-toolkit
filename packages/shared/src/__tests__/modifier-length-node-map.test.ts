@@ -50,7 +50,7 @@ describe('the modifier payload node map for SPEED and SENSE_RANGE (RELIABILITY-5
   it('offers a sense range only the modifier kinds the rules apply', () => {
     // A sense range has no SET_VALUE (publication refuses it) and no PENALTY (the contract has none).
     expect(MODIFIER_KINDS_BY_DOMAIN.SENSE_RANGE).toEqual(['BONUS'])
-    expect(MODIFIER_KINDS_BY_DOMAIN.SPEED).toEqual(['BONUS', 'PENALTY', 'SET_VALUE'])
+    expect(MODIFIER_KINDS_BY_DOMAIN.SPEED).toEqual(['BONUS', 'PENALTY', 'SET_VALUE', 'MULTIPLY'])
   })
 
   it('keeps the value source and plain amount for other domains, with no unit', () => {

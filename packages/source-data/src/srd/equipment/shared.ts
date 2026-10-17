@@ -47,7 +47,9 @@ import {
   thrownMagicWeaponModifiers as sharedThrownMagicWeaponModifiers,
   thrownVersatileWeaponEffects as sharedThrownVersatileWeaponEffects,
   thrownWeaponAbilityModifiers as sharedThrownWeaponAbilityModifiers,
-  thrownWeaponEffects as sharedThrownWeaponEffects
+  thrownWeaponEffects as sharedThrownWeaponEffects,
+  withOffHandAttack as sharedWithOffHandAttack,
+  withOffHandDamage as sharedWithOffHandDamage
 } from '@artificer-toolkit/shared'
 import type {
   AbilityCode,
@@ -55,7 +57,8 @@ import type {
   EquipmentChildId,
   EquipmentEffectAuthored,
   EquipmentGrip,
-  ModifierGrantAuthored
+  ModifierGrantAuthored,
+  WeaponAbilityModifier
 } from '@artificer-toolkit/shared'
 import {
   SRD_CONDITION_TYPES,
@@ -361,16 +364,16 @@ export function fixedMeleeWeaponEffect(
     bucket
   )
 }
-export function meleeWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
+export function meleeWeaponAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
   return sharedMeleeWeaponAbilityModifiers(srdChildId(equipmentId))
 }
 export function rangedWeaponAbilityModifiers(
   equipmentId: string,
   ability: AbilityCode = 'DEXTERITY'
-): ModifierGrantAuthored[] {
+): WeaponAbilityModifier[] {
   return sharedRangedWeaponAbilityModifiers(srdChildId(equipmentId), ability)
 }
-export function thrownWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
+export function thrownWeaponAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
   return sharedThrownWeaponAbilityModifiers(srdChildId(equipmentId))
 }
 export function finesseWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
@@ -402,6 +405,14 @@ export function thrownMagicWeaponModifiers(equipmentId: string, bonus: number) {
 }
 export function magicArmorModifiers(equipmentId: string, bonus: number) {
   return sharedMagicArmorModifiers(srdChildId(equipmentId), bonus)
+}
+/** A Light melee weapon's bonus-action attack for two-weapon fighting. */
+export function withOffHandAttack(equipmentId: string, effects: EquipmentEffectAuthored[]) {
+  return sharedWithOffHandAttack(srdChildId(equipmentId), effects)
+}
+/** A Light melee weapon's damage modifiers split for the off-hand attack. */
+export function withOffHandDamage(equipmentId: string, modifiers: ModifierGrantAuthored[]) {
+  return sharedWithOffHandDamage(srdChildId(equipmentId), modifiers)
 }
 export function magicAmmoModifiers(equipmentId: string, bonus: number) {
   return rangedMagicWeaponModifiers(equipmentId, bonus)

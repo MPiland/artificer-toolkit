@@ -1326,6 +1326,7 @@ describe('spatial movement rule contracts', () => {
       id: ids.effect,
       encounterId: ids.encounter,
       sceneId: ids.scene,
+      maintainedEffectStateId: null,
       createdOrdinal: 1,
       version: 2,
       definition,
@@ -1970,6 +1971,7 @@ describe('Concentration ends in the spatial movement receipt timeline (D95)', ()
             cleanup: {
               maintainedStateId,
               removedDependentEffectIds: [],
+              removedZoneIds: [],
               characterOwnerTransitions: [
                 { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 }
               ]

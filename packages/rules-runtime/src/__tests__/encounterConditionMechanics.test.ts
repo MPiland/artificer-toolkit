@@ -10,10 +10,15 @@ import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   activeEncounterConditionMechanics,
   applyEncounterConditionMechanics,
+  encounterConditionApproachWarnings,
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings,
   encounterConditionAttackContributors,
   encounterConditionHitIsCritical,
   encounterConditionLevels,
+  encounterConditionMechanicsInSourceSight,
   encounterConditionSaveAutoFailAbilityIds,
+  encounterConditionSources,
   encounterConditionSpeed,
   pinEncounterConditionDefinitions,
   withEncounterConditionCheckContributors,
@@ -21,6 +26,7 @@ import {
   type EncounterConditionAttack
 } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
+import { activeEffect } from './encounterActiveEffectFixtures.js'
 import {
   currentConditionDefinition,
   srdConditionDefinitionSource
@@ -385,5 +391,209 @@ describe('encounter condition mechanics (D94)', () => {
     expect(rebuilt.targetDerivedFacts.savingThrowDefinitions).toEqual(
       target([]).targetDerivedFacts.savingThrowDefinitions
     )
+  })
+})
+
+const SOURCE_ID = '33333333-3333-4333-8333-333333333333'
+const OTHER_SOURCE_ID = '33333333-3333-4333-8333-333333333334'
+
+/** An effect on the holder that owns a condition, recording the creature that applied it or none. */
+function owningEffect(
+  id: number,
+  conditionDefinitionId: string,
+  sourceActorId: string | null,
+  baselinePresent = false,
+  fleesSource = false
+) {
+  return activeEffect({
+    id: `44444444-4444-4444-8444-44444444444${id}`,
+    owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: ACTOR_ID },
+    createdOrdinal: id,
+    sourceActorId,
+    stateContributions: [
+      {
+        kind: 'CONDITION_OWNERSHIP',
+        conditionId: conditionDefinitionId,
+        baselinePresent,
+        ...(sourceActorId ? { sourceActorId } : {}),
+        ...(fleesSource ? { fleesSource } : {})
+      }
+    ]
+  })
+}
+
+function holding(conditions: readonly string[], effects: ReturnType<typeof owningEffect>[]) {
+  return { ...target(conditions), activeEffects: effects }
+}
+
+describe('a condition that follows its source (SPELLS-29)', () => {
+  it('a condition is sourced only when every holding of it records the creature that applied it', () => {
+    expect(
+      encounterConditionSources(holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID)]))
+    ).toEqual(new Map([[FRIGHTENED, [SOURCE_ID]]]))
+    expect(
+      encounterConditionSources(
+        holding(
+          [FRIGHTENED],
+          [owningEffect(1, FRIGHTENED, SOURCE_ID), owningEffect(2, FRIGHTENED, OTHER_SOURCE_ID)]
+        )
+      )
+    ).toEqual(new Map([[FRIGHTENED, [SOURCE_ID, OTHER_SOURCE_ID].sort()]]))
+    // Applied by hand, held before the effect, or owned by an effect that records no source.
+    expect(encounterConditionSources(holding([FRIGHTENED], []))).toEqual(new Map())
+    expect(
+      encounterConditionSources(
+        holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID, true)])
+      )
+    ).toEqual(new Map())
+    expect(
+      encounterConditionSources(
+        holding(
+          [FRIGHTENED],
+          [owningEffect(1, FRIGHTENED, SOURCE_ID), owningEffect(2, FRIGHTENED, null)]
+        )
+      )
+    ).toEqual(new Map())
+  })
+
+  it("a sourced Frightened creature has disadvantage on attacks and checks only while it sees a source", async () => {
+    const mechanics = await mechanicsOf([FRIGHTENED])
+    const sources = encounterConditionSources(
+      holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID)])
+    )
+    const inSight = (seen: readonly string[]) =>
+      encounterConditionMechanicsInSourceSight({
+        mechanics,
+        sources,
+        seenActorIds: new Set(seen)
+      })
+    const checkMode = (seen: readonly string[]) =>
+      withEncounterConditionCheckContributors({
+        holderActorId: ACTOR_ID,
+        mechanics: inSight(seen),
+        roll: { contributors: [], rollMode: 'NORMAL' }
+      }).rollMode
+
+    expect(attackContributors({ attacker: inSight([SOURCE_ID]), attack: RANGED })).toEqual([
+      contributor(FRIGHTENED, ATTACKER_ID, 'DISADVANTAGE')
+    ])
+    expect(checkMode([SOURCE_ID])).toBe('DISADVANTAGE')
+    expect(attackContributors({ attacker: inSight([]), attack: RANGED })).toEqual([])
+    expect(checkMode([OTHER_SOURCE_ID])).toBe('NORMAL')
+  })
+
+  it('an unsourced Frightened keeps its disadvantage whatever the creature sees', async () => {
+    const mechanics = await mechanicsOf([FRIGHTENED])
+    const unsighted = encounterConditionMechanicsInSourceSight({
+      mechanics,
+      sources: encounterConditionSources(holding([FRIGHTENED], [])),
+      seenActorIds: new Set()
+    })
+    expect(unsighted).toEqual(mechanics)
+    expect(attackContributors({ attacker: unsighted, attack: RANGED })).toEqual([
+      contributor(FRIGHTENED, ATTACKER_ID, 'DISADVANTAGE')
+    ])
+  })
+
+  it('a move that ends closer to the source of a sourced Frightened warns; equal or farther does not', async () => {
+    const mechanics = await mechanicsOf([FRIGHTENED])
+    const sourced = encounterConditionSources(
+      holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID)])
+    )
+    const move = (from: number, to: number, sources = sourced) =>
+      encounterConditionApproachWarnings({
+        mechanics,
+        sources,
+        grid: FEET_GRID,
+        start: token(from),
+        end: token(to),
+        sourceTokens: new Map([[SOURCE_ID, token(0)]])
+      })
+    expect(move(3, 2)).toEqual([
+      { code: 'CONDITION_SOURCE_APPROACH', message: expect.any(String) }
+    ])
+    expect(move(3, 3)).toEqual([])
+    expect(move(3, 5)).toEqual([])
+    // An unsourced Frightened has no source to approach.
+    expect(move(3, 1, new Map())).toEqual([])
+    // A source with no token on the Scene cannot be approached.
+    expect(
+      encounterConditionApproachWarnings({
+        mechanics,
+        sources: sourced,
+        grid: FEET_GRID,
+        start: token(3),
+        end: token(1),
+        sourceTokens: new Map()
+      })
+    ).toEqual([])
+  })
+
+  it('a sourced condition without the approach mechanic never warns', async () => {
+    const mechanics = await mechanicsOf([POISONED])
+    expect(
+      encounterConditionApproachWarnings({
+        mechanics,
+        sources: encounterConditionSources(
+          holding([POISONED], [owningEffect(1, POISONED, SOURCE_ID)])
+        ),
+        grid: FEET_GRID,
+        start: token(3),
+        end: token(1),
+        sourceTokens: new Map([[SOURCE_ID, token(0)]])
+      })
+    ).toEqual([])
+  })
+})
+
+describe('a condition that flees its source (SPELLS-29.T2)', () => {
+  const fleeing = (...effects: ReturnType<typeof owningEffect>[]) =>
+    holding([FRIGHTENED], effects)
+
+  it('the sources to flee are the recorded sources of the held condition owners that flee', () => {
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID, false, true)))
+    ).toEqual([SOURCE_ID])
+    expect(
+      encounterConditionFleeSources(
+        fleeing(
+          owningEffect(1, FRIGHTENED, OTHER_SOURCE_ID, false, true),
+          owningEffect(2, FRIGHTENED, SOURCE_ID, false, true),
+          owningEffect(3, FRIGHTENED, SOURCE_ID, false, true)
+        )
+      )
+    ).toEqual([SOURCE_ID, OTHER_SOURCE_ID].sort())
+    // A Frightened that does not flee, one held before its effect, an unsourced owner and a
+    // condition the creature no longer holds flee nothing.
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID)))
+    ).toEqual([])
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID, true, true)))
+    ).toEqual([])
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, null, false, true)))
+    ).toEqual([])
+    expect(
+      encounterConditionFleeSources({
+        ...holding([], [owningEffect(1, FRIGHTENED, SOURCE_ID, false, true)])
+      })
+    ).toEqual([])
+  })
+
+  it('an action other than Dash warns for a fleeing creature; Dash and other allowances do not', () => {
+    const warns = [{ code: 'CONDITION_SOURCE_FLEE', message: expect.any(String) }]
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'ACTION', dash: false })
+    ).toEqual(warns)
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'ACTION', dash: true })
+    ).toEqual([])
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'BONUS_ACTION', dash: false })
+    ).toEqual([])
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [], activationCode: 'ACTION', dash: false })
+    ).toEqual([])
   })
 })

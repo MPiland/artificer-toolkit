@@ -1,7 +1,7 @@
 # SPELLS-28: outcome executors for TELEPORT, MANIFEST and TELEPATHIC_LINK
 
 Closes AC SPELLS-28.1 (tasks T1 TELEPORT, T2 MANIFEST, T3 TELEPATHIC_LINK). Status: rulings received; T1 (TELEPORT, off-Scene) on CI; T3 (TELEPATHIC_LINK) built, awaiting T1 green before push.
-Build order: **T1 → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM) → T1b (in-Scene teleport, AC SPELLS-28.2)**, each green before the next. T4 (Polymorph family) is out of scope.
+Build order: **T1 → T3 (TELEPATHIC_LINK) → T2 (MANIFEST/CREATURE_FORM) → T1b (in-Scene teleport, AC SPELLS-28.2)**, each green before the next. T4 (Polymorph family, below) follows T2; T4b (form outlasts the Run, D99 carry-over) follows T4.
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
@@ -74,3 +74,49 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Warning: `encounterActionRuleWarnings.test.ts` (`TARGET_INTELLIGENCE_EXCLUDED`).
 - Journey: `apps/session-worker/test/nativeRoomActorLink.test.ts` (cast bonds every chosen creature, undo removes all; a dull creature warns, overridably).
 - Deferred (registered in `future-enhancements.md`): web bond badge, Character Intelligence.
+
+## T4 plan (D130 amendment, rulings Q1 A, Q2, Q3)
+
+Closes AC SPELLS-28.1. Two stages, each red on `ci/spells-28-t4-red` then green on `ci/spells-28-t4`.
+
+- **Stage 1, creature targets.** A rule-filtered form choice beside the fixed list (core option: creature type, CR cap from target CR/level, caster level or a fixed value, excluded speed modes), validated at cast against the System creature corpus; the command carries the chosen `creatureId`. Form-after-save compile plan (Polymorph, True Polymorph creature to creature). Corpus proof against the real compiler; one journey.
+- **Stage 2, Characters.** `form` on CHARACTER Run actors with the same shape and one revert path; form HP and temp HP live on the actor while the Sheet HP row is untouched; in-Encounter damage and healing route to the form; revert carry-over goes through the normal Sheet damage batch. Shapechange (creature form, self), Wild Shape re-authored as a core option (level-scaled duration and CR cap, no swim below druid level 4, no fly below 8), retained INT/WIS/CHA and save/skill proficiencies (higher bonus wins) as an authored form option, casting refused while in a form that cannot cast (Wild Shape, Polymorph; Concentration kept).
+- **Not in T4:** the form outliving the Run (T4b); known forms, object forms, True Polymorph permanence, Shapechange re-forming (`future-enhancements.md`).
+
+## T4 stage 1 status (2026-10-16)
+
+- Red: `ci/spells-28-t4-red` a13f8cf76, Tests 38944606546, Live 38944606568 (both failed as intended).
+- Green: `ci/spells-28-t4` 2b10ea73f (includes the merge of `codex/phase-08-2-convex-cutover` and the regenerated SRD manifest), Tests 38957200514, Live 38957200558.
+- Proof: `packages/rules-runtime/src/__tests__/encounterFormChoice.test.ts`, `encounterAreaActionCompilation.test.ts`, `packages/schema/src/__tests__/encounter-action-actors-target.test.ts`, `packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts`, `apps/session-worker/test/nativeRoomPolymorph.test.ts`, `CampaignTabletopActionDrawer.test.tsx`.
+- Stage 2 (Character Run actors, retained INT/WIS/CHA and proficiencies, casting refused in form, one revert path) is NOT built; AC SPELLS-28.1 stays open until it is.
+
+## Resume here (2026-10-16)
+
+T1, T3, T2, T1b and T4 stage 1 are merged; T4c (`ci/spells-28-t4c`) and T4b (`ci/spells-28-t4b`, based on it) await merge. **T4c and T4b are done and green** (T4b closes SPELLS-28.1); **T4d is next**: T4d (form action-list swap, form defenses/speeds/senses, creature-proficiency merge).
+
+## T4c status (2026-10-16)
+
+- Red: `ci/spells-28-t4c-red` 8582fe60a, Tests 38964372322, Live 38964372830 (failed as intended).
+- Green: `ci/spells-28-t4c` 23de9c2cd, Tests 38975553592, Live 38977759895.
+- Proof: `packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts` (Creature forms, D130 amendment: baked INT/WIS/CHA, form HP, carry-over to the Sheet in the same batch, one revert), `apps/session-worker/test/nativeRoomPolymorph.test.ts` (Character journey: self-cast, form, no casting, undo ends the form), `apps/session-worker/test/nativeRoomGiantInsect.test.ts` (Character-refused assertion superseded by the amendment).
+- Bug found on the way: ending a Character-owned form effect (undo, expiry) deleted the effect without ending the form; `endCharacterFormHeldBy` now ends it, covered by the Polymorph undo assertions.
+- Deferred: T4d, T4b, per-form authorable retained abilities, undo of an auto-reverted damage application, form-max-HP effect nuance (see `docs/roadmap/future-enhancements.md`).
+
+## D130 amendment, 2026-10-16: a Character takes a creature form (SPELLS-28.T4c)
+
+Approved by the orchestrator (Phase 8) on 2026-10-16. Changes a persisted contract: the `form` field on Run actors, today CREATURE and CUSTOM only (D130), is also carried by CHARACTER actors. T4d (the form's action list replacing the Character's) is out of T4c.
+
+- **Shape.** A CHARACTER actor's `form` is `null | { effectId, excessDamageCarriesOver, sourceId, sourceRevision, snapshot, currentHitPoints, maxHitPoints, tempHitPoints }`. There is no `origin`: the Character's own state stays on the Sheet, untouched while the form lasts. The form creature's snapshot is stored inline in the form (a Character's snapshot is not a shared row). The migration `runActorForm` backfills `form: null` on Character rows too.
+- **Retained abilities.** Intelligence, Wisdom and Charisma are baked into the form's snapshot at entry from the Character's effective scores (a per-System map in `encounterActorForm.ts`; D&D today). Save and skill proficiencies are kept live through the Character's own evaluation. Merging the creature's proficiencies, and the form's defenses, speeds and senses, is T4d. Polymorph's "mental scores are replaced" nuance is deferred: the retained set should become authorable per form.
+- **Hit points.** While `form` is set, the Character actor's current, temporary and maximum hit points are the form's (`sheetMaximumHitPoints` carries the Sheet's maximum for the carry-over). Damage and healing applied in the mechanics batch change the form's hit points and never the Sheet's. Death saves are not touched while in form.
+- **One revert path.** `revertActorForm` also covers a Character actor: it runs when the form's hit points reach 0, when the effect ends, and on cast undo. Excess damage past the form's last hit point, when `excessDamageCarriesOver`, becomes a `DAMAGE` application on the Sheet in the same mechanics batch (the normal Sheet damage fold, with its temporary then current hit points and its 0 hit point rules). Healing never carries over.
+- **Armor class.** While in form, attacks against the Character use the form creature's armor class.
+- **Projection.** The GM sees the form's stat block (with the retained abilities) and the form's hit points; the Character's own sheet panel is unchanged.
+- **Casting.** The Character cannot cast while in a form (Polymorph's form cannot cast); Concentration on a spell cast before the form is kept.
+- **Not in T4c:** the form's actions replacing the Character's (T4d), the form outliving the Run (T4b), object forms, True Polymorph permanence, Shapechange re-form.
+
+## T4b status (2026-10-16)
+
+- Red: `ci/spells-28-t4b-red` 727b9d232, Tests 38980010145, Live 38980010183.
+- Mechanism: the form rides the carried effect's lifecycle (`carriedCreatureForm`: Creature, snapshot and form hit points). `planCarriedOverEffects` (via `carryOverRunGrants`, the one D99 path) stamps it at COMPLETE and refreshes an already carried form effect; `resumeCharacterForm` rebuilds the actor `form` when `runs.create` builds the next Run's Character actor. Ending the effect on the Sheet just deletes it, so no form is resumed.
+- Proof: `packages/rules-runtime/src/__tests__/grantLifetimes.test.ts` (planCarriedOverEffects form cases, resume), `apps/apis/convex/encounters/finishedRun.test.ts` (carry out, next Run wears it, Sheet end).

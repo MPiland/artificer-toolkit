@@ -45,6 +45,8 @@ class CharacterActiveRuleEffectExecutionError extends Error {
 export type ActiveRuleEffectTargetDefense = {
   kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
   damageTypeId: string
+  /** Applies only to damage from actions owned by this authored content; absent or empty: any. */
+  sourceEffectIds?: readonly string[]
 }
 
 const MAX_TARGET_DEFENSES = 128
@@ -369,12 +371,18 @@ type D20Roll = { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
 /**
  * Whether the pause asks for one die of the frozen graph's own damage: an optional integer range
  * from 1 that the graph enables only for the authored result (a placed zone's failed entry save).
+ * The frozen d20 policy's own request node is the d20 evidence, never a damage die, though a gated
+ * d20 is an optional range too.
  */
-export function isDamageDieRequest(continuation: ServerRuleExecutionContinuationDto): boolean {
+export function isDamageDieRequest(
+  continuation: ServerRuleExecutionContinuationDto,
+  policy: ServerRuleExecutionD20PolicyDto | null | undefined
+): boolean {
   const { request, graph } = continuation
   const node = graph.nodes.find((candidate) => candidate.id === request.nodeId)
   return (
     request.kind === 'INTEGER_RANGE' &&
+    request.nodeId !== policy?.requestNodeId &&
     request.min === 1 &&
     node?.operation.key === 'evidence.optional-integer-range' &&
     node.inputs.min?.kind === 'LITERAL' &&
@@ -391,7 +399,7 @@ function requirePolicyContinuationMatch(input: {
   const { policy, continuation } = input
   if (!policy) return
   if (
-    !isDamageDieRequest(continuation) &&
+    !isDamageDieRequest(continuation, policy) &&
     (continuation.request.kind !== 'INTEGER_RANGE' ||
       continuation.request.nodeId !== policy.requestNodeId ||
       continuation.request.min !== 1 ||
@@ -423,7 +431,8 @@ function d20EvidenceForCompletion(input: {
   const trace = execution.evidence.trace.filter(
     (entry) =>
       entry.nodeId === policy.requestNodeId &&
-      entry.operation.key === 'evidence.integer-range' &&
+      (entry.operation.key === 'evidence.integer-range' ||
+        entry.operation.key === 'evidence.optional-integer-range') &&
       entry.operation.contractVersion === 1
   )
   const entry = trace[0]
@@ -655,7 +664,7 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
   const die = 'value' in resolution
   if (
     resolution.requestId !== input.continuation.request.requestId ||
-    die !== isDamageDieRequest(input.continuation)
+    die !== isDamageDieRequest(input.continuation, input.expectedEvidencePolicy)
   )
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect resolution does not answer its pending request.'

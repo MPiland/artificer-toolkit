@@ -2,6 +2,7 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { indefiniteInvisibilityEffect } from './indefiniteInvisibility.js'
 export const sprite: CreatureAuthored = {
   id: S.CREATURE_IDS.SPRITE,
   label: 'Sprite',
@@ -122,16 +123,11 @@ export const sprite: CreatureAuthored = {
       description:
         'Invisibility. The sprite magically turns invisible until it attacks or casts a spell, or until its concentration ends (as if concentrating on a spell). Any equipment the sprite wears or carries is invisible with it.',
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(260, 210),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(260, 211), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPRITE_INVISIBILITY
+        indefiniteInvisibilityEffect({
+          effectId: S.actionId(260, 210),
+          rangeId: S.actionId(260, 211),
+          pathId: S.actionId(260, 221),
+          endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
         })
       ],
       order: 2

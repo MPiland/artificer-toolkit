@@ -142,12 +142,16 @@ export function prepareEncounterActionEffectPlans(input: {
   return { stateEffect, recurringEffect, relationshipConditionApplications }
 }
 
-/** A hit outcome applies on any hit, a critical-hit outcome only on a critical hit. */
-function reachesAuthoredHitPath(
+/**
+ * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, and a failed-save
+ * outcome only on a failed save.
+ */
+function reachesAuthoredPath(
   authoredPath: unknown,
   resultPath: string | undefined,
   outcome: 'grant' | 'relationship'
 ): boolean {
+  if (outcome === 'grant' && authoredPath === 'ON_SAVE_FAIL') return resultPath === 'ON_SAVE_FAIL'
   if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
     throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
   return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
@@ -195,16 +199,8 @@ function bindTriggerDamageTypes(
   modifier: CharacterGrantFoldModifier,
   damageTypeIds: readonly string[]
 ): CharacterGrantFoldModifier[] {
-  const { grant } = modifier
-  if (typeof grant !== 'object' || grant === null || Array.isArray(grant)) return [modifier]
-  const { payload } = grant
-  if (
-    typeof payload !== 'object' ||
-    payload === null ||
-    Array.isArray(payload) ||
-    payload.damageTypeSource !== 'TRIGGER'
-  )
-    return [modifier]
+  const { payload } = modifier
+  if (payload === undefined || !('damageTypeSource' in payload)) return [modifier]
   if (damageTypeIds.length === 0)
     throw new EncounterActionEffectPlanError(
       'A resistance to the triggering damage type needs the damage that triggered the reaction.'
@@ -212,7 +208,7 @@ function bindTriggerDamageTypes(
   return damageTypeIds.map((damageTypeId) => ({
     ...modifier,
     grantId: `${modifier.grantId}:${damageTypeId}`,
-    grant: { ...grant, payload: { damageTypeId } }
+    payload: { damageTypeId }
   }))
 }
 
@@ -243,15 +239,21 @@ function prepareRecurringActiveEffect(
   const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
   if (linkContribution && linkMemberActorIds.length < 2) return null
   const formContribution = plan.creatureFormContribution ?? null
+  // A form after a saving throw (Polymorph) is entered only by a creature that failed it.
+  if (formContribution && plan.adapterFacts['dnd5e.form-authored-path'] === 'ON_SAVE_FAIL') {
+    if (input.d20?.resultPath !== 'ON_SAVE_FAIL') return null
+  }
   if (formContribution) {
     if (!input.form)
       throw new EncounterActionEffectPlanError('A form plan requires its chosen form.')
-    if (!formContribution.forms.some(({ creatureId }) => creatureId === input.form?.creatureId))
-      throw new EncounterActionEffectPlanError('The chosen form is not one the action authors.')
-    // Only Creature and custom actors take a form (Characters wait for Polymorph), and an actor
-    // already in a form keeps it: the new form does not stack on it.
+    // A filtered choice is checked against the System creature corpus where the cast is read.
     if (
-      input.target.lifetimeScope === 'OWNER' ||
+      formContribution.filter === null &&
+      !formContribution.forms.some(({ creatureId }) => creatureId === input.form?.creatureId)
+    )
+      throw new EncounterActionEffectPlanError('The chosen form is not one the action authors.')
+    // An actor already in a form keeps it: the new form does not stack on it.
+    if (
       input.target.activeEffects.some(
         (effect) =>
           effect.definition.schemaVersion === 2 &&
@@ -269,12 +271,12 @@ function prepareRecurringActiveEffect(
     : undefined
   if (
     grantHitPath !== undefined &&
-    !reachesAuthoredHitPath(grantHitPath, input.d20?.resultPath, 'grant')
+    !reachesAuthoredPath(grantHitPath, input.d20?.resultPath, 'grant')
   )
     return null
   if (relationshipContribution) {
     if (
-      !reachesAuthoredHitPath(
+      !reachesAuthoredPath(
         plan.adapterFacts['dnd5e.relationship-authored-path'],
         input.d20?.resultPath,
         'relationship'
@@ -375,6 +377,7 @@ function prepareRecurringActiveEffect(
     plan.initialRemaining !== null &&
     grantContribution &&
     !grantContribution.includesCurrentTurn &&
+    !grantContribution.countedByTurnEffects &&
     plan.recurrenceStage === 'END_OF_TURN' &&
     input.currentActorId ===
       (grantContribution.tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
@@ -406,8 +409,12 @@ function prepareRecurringActiveEffect(
       : plan.adapterFacts,
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
-      // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
-      recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
+      // The grant tick planner counts a grant, so the turn-effect kernel never selects it, unless the
+      // grant repeats a save: the kernel then rolls, counts and ends it.
+      recurrenceStage:
+        grantContribution && !grantContribution.countedByTurnEffects
+          ? 'NONE'
+          : plan.recurrenceStage,
       consumeOnFirstEvents:
         grantContribution?.consumeOnFirstEvents ??
         plan.concealmentContribution?.consumeOnFirstEvents ??
@@ -489,7 +496,11 @@ function prepareRecurringActiveEffect(
                   {
                     kind: 'CONDITION_OWNERSHIP' as const,
                     conditionId: conditionContribution.conditionId,
-                    baselinePresent
+                    baselinePresent,
+                    ...(conditionContribution.recordsSource && {
+                      sourceActorId: input.sourceActorId,
+                      ...(conditionContribution.fleesSource && { fleesSource: true })
+                    })
                   }
                 ]
               : []),

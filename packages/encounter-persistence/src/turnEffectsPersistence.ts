@@ -106,8 +106,11 @@ export async function persistEncounterTurnEffects(
   const executions = phase.plan.executions
   if (executions.length !== candidates.length || executions.length > 128)
     throw new Error('Staged turn effect selection is stale.')
-  const maintainedStates = await requireTurnMaintainedStates(state.id, candidates, (stateId) =>
-    store.findMaintainedStateById({ encounterId: state.id, stateId })
+  const maintainedStates = await requireTurnMaintainedStates(
+    state.id,
+    actor,
+    candidates,
+    (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
   )
   const expired = new Set<string>()
   // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
@@ -315,6 +318,7 @@ export async function persistEncounterTurnEffects(
   const damageDeleted = [...damageEnded.values()].filter(({ id }) => !candidateIds.has(id))
   const endedMaintainedStates = await requireTurnMaintainedStates(
     state.id,
+    actor,
     damageDeleted,
     (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
   )
@@ -329,7 +333,7 @@ export async function persistEncounterTurnEffects(
     if (!maintained) throw new Error('Maintained turn effect source binding is stale.')
     if (
       !maintainedStateTerminatesWhenEmpty(maintained) ||
-      (await store.listDependentEffects({ encounterId: state.id, stateId })).length !== 0
+      (await store.hasDependents({ encounterId: state.id, stateId }))
     )
       continue
     await store.deleteMaintainedStateCas({

@@ -162,6 +162,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     snapshot: {},
     frozenState: null,
     absence: null,
+    form: null,
     createdAt: now,
     updatedAt: now
   })
@@ -670,6 +671,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
         cleanup: {
           maintainedStateId: slot.id,
           removedDependentEffectIds: [dependent.id],
+          removedZoneIds: [],
           characterOwnerTransitions: []
         }
       }

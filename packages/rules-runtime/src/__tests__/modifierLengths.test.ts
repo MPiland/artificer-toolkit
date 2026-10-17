@@ -1,3 +1,4 @@
+import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   SRD_DARKVISION_SENSE_ID,
@@ -5,7 +6,6 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { record } from '../character/activeEffectGrantTotals.js'
 import { withActiveGrantSpeeds, withCharacterActiveGrants } from '../encounterActiveGrants.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { darkvisionEffect, longstriderEffect } from './antitoxinEffectFixture.js'
@@ -22,11 +22,11 @@ const speedId = (code: string) => {
 const WALK = speedId('WALK')
 const FLY = speedId('FLY')
 
-type LengthPayload = Record<string, string | number>
+type LengthPayload = NonNullable<CharacterGrantFoldModifier['payload']>
 type LengthModifier = {
   valueDomainCode: 'SPEED' | 'SENSE_RANGE'
   modifierKind: 'BONUS' | 'PENALTY' | 'SET_VALUE'
-  domain: Record<string, string>
+  domain: CharacterGrantFoldModifier['domain']
   payload: LengthPayload
 }
 const speedModifier = (
@@ -59,19 +59,7 @@ function lengthEffect(
       stateContributions: [
         {
           ...contribution,
-          modifiers: modifiers.map((modifier) => ({
-            ...template,
-            valueDomainCode: modifier.valueDomainCode,
-            modifierKind: modifier.modifierKind,
-            domain: modifier.domain,
-            grant: {
-              ...record(template.grant),
-              valueDomainCode: modifier.valueDomainCode,
-              modifierKind: modifier.modifierKind,
-              domain: modifier.domain,
-              payload: modifier.payload
-            }
-          }))
+          modifiers: modifiers.map((modifier) => ({ ...template, ...modifier }))
         }
       ]
     }
@@ -170,6 +158,8 @@ describe('a Creature holder reads authored speed grants as lengths', () => {
     ).toThrow(/unit/)
     expect(() =>
       withActiveGrantSpeeds(speeds, [
+        // A payload the contract rejects: the read still fails closed if one reaches it.
+        // @ts-expect-error FURLONGS is not a length unit.
         lengthEffect([speedModifier('SET_VALUE', { amount: 60, unit: 'FURLONGS' })])
       ])
     ).toThrow(/unit/)

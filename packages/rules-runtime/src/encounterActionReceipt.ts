@@ -68,6 +68,10 @@ export function buildEncounterActionStoredExecution(input: {
   } | null
   /** The target also failed a counter against this cast, so its slot spend rides in this batch (D127). */
   targetFailedCounterSpend?: boolean
+  /** The effects of reactions the target used on being chosen as this cast's target, which land with its outcome. */
+  reactionEffectTransitions?: ReturnType<
+    typeof projectNativeActionEffectTransitions
+  >['activeEffectTransitions']
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -124,6 +128,9 @@ export function buildEncounterActionStoredExecution(input: {
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions: activeEffectTransitions.map((transition) =>
               characterEffectReceipt(transition, input.maintainedState?.id ?? null)
+            ),
+            reactionEffectTransitions: (input.reactionEffectTransitions ?? []).map((transition) =>
+              characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,
             reaction: input.reaction
@@ -208,6 +215,8 @@ export function buildEncounterAreaStoredExecution(input: {
   targetOccurrenceIds: readonly string[]
   /** The Scene spatial effect this action placed; its undo deletes it. */
   placedSpatialEffectId: string | null
+  /** The Concentration a zone-only cast opens; null when a creature outcome carries it or none opens. */
+  maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
   damage: ReturnType<typeof nativeConcentrationDamageApplications>
   spend: Pick<
     ReturnType<typeof planNativeEncounterAreaSourceSpend>,
@@ -238,6 +247,9 @@ export function buildEncounterAreaStoredExecution(input: {
       removedActorIds: input.removedActorIds,
       targetOccurrenceIds: input.targetOccurrenceIds,
       placedSpatialEffectId: input.placedSpatialEffectId,
+      ...(input.maintenanceTransition
+        ? { maintenanceTransition: input.maintenanceTransition }
+        : {}),
       damage: input.damage,
       sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
       resourceConsumption: spend.resourceReceipt,

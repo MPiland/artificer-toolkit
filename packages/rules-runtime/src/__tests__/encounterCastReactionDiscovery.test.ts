@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   discoverCastReactionActions,
+  discoverTargetedSelfReactionActions,
   preparedCastsSpell,
   preparedSpellCastLevel
 } from '../encounterCastReactionDiscovery.js'
@@ -59,6 +60,53 @@ describe('cast reaction discovery', () => {
   })
 })
 
+describe('targeted-self reaction discovery (REACTION-4.1)', () => {
+  const targeted = (actionId: string, sourceEffectIds?: string[]) =>
+    candidate(
+      actionId,
+      'REACTION',
+      {
+        kind: 'TARGETED_SELF',
+        ...(sourceEffectIds === undefined ? {} : { sourceEffectIds })
+      } as { kind: string },
+      'GRANT_MODIFIER'
+    )
+
+  it('offers an unfiltered reaction for any cast: absent or empty sourceEffectIds', () => {
+    nextSequence = 0
+    const found = discoverTargetedSelfReactionActions(
+      reactor([targeted('spell:absent'), targeted('spell:empty', [])]),
+      'spell:fireball'
+    )
+    expect(found.map((action) => action.actionId)).toEqual(['spell:absent', 'spell:empty'])
+  })
+
+  it('offers a filtered reaction only for a cast of a listed spell', () => {
+    nextSequence = 0
+    const held = reactor([targeted('spell:shield', ['spell:magic-missile'])])
+    expect(
+      discoverTargetedSelfReactionActions(held, 'spell:magic-missile').map(
+        (action) => action.actionId
+      )
+    ).toEqual(['spell:shield'])
+    expect(discoverTargetedSelfReactionActions(held, 'spell:fireball')).toEqual([])
+  })
+
+  it('ignores counters, attack reactions and actions that are not reactions', () => {
+    nextSequence = 0
+    expect(
+      discoverTargetedSelfReactionActions(
+        reactor([
+          candidate('spell:counterspell', 'REACTION', { kind: 'SPELL_CAST' }),
+          candidate('spell:shield', 'REACTION', { kind: 'ATTACKED_SELF' }, 'GRANT_MODIFIER'),
+          candidate('spell:ward', 'ACTION', { kind: 'TARGETED_SELF' }, 'GRANT_MODIFIER')
+        ]),
+        'spell:magic-missile'
+      )
+    ).toEqual([])
+  })
+})
+
 describe('cast reaction discovery by outcome', () => {
   it('skips a SPELL_CAST reaction that does not cancel the cast', () => {
     expect(
@@ -95,6 +143,26 @@ describe('prepared spell cast level', () => {
         prepared({ kind: 'CHARACTER_ACTION', candidate: { mechanicsOwner: { kind: 'SPELL' } } })
       )
     ).toBeNull()
+  })
+})
+
+describe('prepared Creature capability cast level', () => {
+  const creature = (spellCast?: { castLevel: number }, triggerCode = 'ACTIVATED') =>
+    ({
+      source: {
+        kind: 'CREATURE',
+        capability: { spellCast, mechanicFacts: { invocation: { triggerCode } } }
+      },
+      characterActionState: null
+    }) as unknown as Parameters<typeof preparedSpellCastLevel>[0]
+
+  it('is the authored cast level ', () => {
+    expect(preparedSpellCastLevel(creature({ castLevel: 3 }))).toBe(3)
+  })
+
+  it('is null for a capability that casts no spell, a spell attack included', () => {
+    expect(preparedSpellCastLevel(creature())).toBeNull()
+    expect(preparedSpellCastLevel(creature(undefined, 'MELEE_SPELL_ATTACK'))).toBeNull()
   })
 })
 

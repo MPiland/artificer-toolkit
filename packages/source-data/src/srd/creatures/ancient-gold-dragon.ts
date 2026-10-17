@@ -353,7 +353,8 @@ export const ancientGoldDragon: CreatureAuthored = {
                   {
                     id: S.actionId(19, 603),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(19, 604),
@@ -497,7 +498,7 @@ export const ancientGoldDragon: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(19, 39) + '__result',
+                id: S.actionId(19, 900),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(19, 615),
@@ -505,6 +506,64 @@ export const ancientGoldDragon: CreatureAuthored = {
                   amount: 1
                 },
                 outcomes: [
+                  {
+                    id: S.actionId(19, 901),
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(19, 902),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ABILITY_CHECK',
+                          domain: { ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(19, 903),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'SAVING_THROW_MODIFIER',
+                          domain: { ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 2
+                        },
+                        {
+                          id: S.actionId(19, 904),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'MELEE', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 3
+                        },
+                        {
+                          id: S.actionId(19, 905),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'RANGED', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 4
+                        },
+                        {
+                          id: S.actionId(19, 906),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'UNARMED', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 5
+                        }
+                      ]
+                    }
+                  },
                   {
                     id: S.actionId(19, 616),
                     effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
@@ -518,11 +577,6 @@ export const ancientGoldDragon: CreatureAuthored = {
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
                     onSuccess: { kind: 'END' },
                     onFailure: { kind: 'CONTINUE' }
-                  },
-                  {
-                    id: S.actionId(19, 39),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_WEAKENING_BREATH
                   }
                 ]
               }

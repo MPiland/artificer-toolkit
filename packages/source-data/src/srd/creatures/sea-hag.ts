@@ -95,7 +95,8 @@ export const seaHag: CreatureAuthored = {
                   {
                     id: S.actionId(248, 920),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   },
                   {
                     id: S.actionId(248, 928),

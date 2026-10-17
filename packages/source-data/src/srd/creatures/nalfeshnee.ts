@@ -254,7 +254,8 @@ export const nalfeshnee: CreatureAuthored = {
                   {
                     id: S.actionId(203, 14),
                     effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED')
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   }
                 ]
               }

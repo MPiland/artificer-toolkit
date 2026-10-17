@@ -297,7 +297,9 @@ const descriptionOnlyActions = new Set(
         const hasEffect =
           source !== undefined &&
           ('actionReference' in source ||
-            [source, ...(source.options ?? [])].some((entry) => (entry.effects ?? []).length > 0))
+            [source, ...('options' in source ? (source.options ?? []) : [])].some(
+              (entry) => (entry.effects ?? []).length > 0
+            ))
         return source && !hasEffect ? [`${creature.label}|${field} ${name}`] : []
       })
     )

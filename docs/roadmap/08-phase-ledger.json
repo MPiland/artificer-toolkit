@@ -1011,6 +1011,380 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-19",
+          "title": "Generated-file drift on a CI branch fixes itself",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/live-backend.yml"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-19.1",
+              "text": "CI never fails on generated-file drift that it can fix itself: the SRD manifest is not committed and is generated after the package build in every job that needs it (user decision 2026-10-16, option b); when the only live-backend failure on a ci/** push is Convex _generated drift, the workflow commits the regenerated files back to that same ci/** branch and starts Tests and Live on the new commit; it never writes the phase branch or main, never loops on its own commit, and scripts/watchCi.ps1 follows the new sha.",
+              "status": "DONE",
+              "proof": [
+                ".github/actions/setup/action.yml (manifest generation)",
+                ".github/workflows/live-backend.yml (auto-fix job)",
+                "scripts/watchCi.ps1 (AUTO-FIX follow)"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: about a quarter of recent Live runs failed only on drift, each costing a CI cycle plus a manual artifact download and re-push. A local pre-push regeneration was tried and rejected: the manifest generator reads built package dist, and worktrees have no node_modules."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-19.T1",
+              "text": "Stop committing the SRD manifest and generate it in the CI setup action after the build; narrow drift to Convex _generated; live-backend.yml commits regenerated _generated files back to the ci/** branch on drift-only failure and dispatches Tests and Live on the new commit (GITHUB_TOKEN pushes do not trigger workflows); loop guard on its own commit; watchCi.ps1 follows the new sha. (Base: ci/platform-19 Tests 38977513942 and Live 38977513914 on e371ed77c. Drift proof: ci/platform-19-drift Live 38977521997 failed on bf90de31b, auto-fix commit 0a22547dd green on Tests 38978637618 and Live 38978639676.)",
+              "status": "DONE",
+              "closes": ["PLATFORM-19.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-20",
+          "title": "One flat compile stage: no dead or copy-only compilers",
+          "status": "DONE",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 8,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-20.1",
+              "status": "DONE",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller.",
+              "proof": [
+                "Deleted the Character compilers (subjects/compilers/character/*), compileShape/CompiledShape, ForbidIfMissing and compileScalingSource: no production caller in a repo-wide search, and the full build, every typecheck and every suite are green after deletion.",
+                "shared-correctness.test.ts \"preserves stable currency-group identity through compilation\" removed with its deleted subject (an identity check on the Character compiler); orchestrator accepted.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
+            },
+            {
+              "id": "PLATFORM-20.2",
+              "status": "DONE",
+              "origin": [],
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one.",
+              "proof": [
+                "Removed copy-only compileSpeed (SpeedAuthored), compileRange (SenseRangeAuthored), compileStartingEquipment and helpers (StartingEquipmentAuthored) and compileFeatureOption (wrapper of compileFeatureBase); the kept list and reasons are in ADR 0003 \"Compile stage as built\" and docs/handoffs/slice-platform-20.md.",
+                "packages/shared/src/__tests__/compiler-scaling.test.ts, starting-equipment-node-maps.test.ts, modifier-grant-compiler.test.ts; packages/schema/src/__tests__/modifier-grant-authored-parity.test.ts.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
+            },
+            {
+              "id": "PLATFORM-20.3",
+              "status": "DONE",
+              "origin": [],
+              "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold and every fold consumer read those typed fields with no Record<string, unknown> casts, and the persisted fold contract carries typed scope and payload instead of a JSON dump of the grant, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859.",
+              "note": "Run rules/modifierOperationMigration:run once on the local backend after the next local deploy.",
+              "proof": [
+                "packages/schema/src/api/characterGrantFoldRules.ts: modifierOperationSchema carries typed scope, domain (modifierDomainParamsDtoSchema), optional payload (modifierPayloadDtoSchema) and scopeResourceIds; the grant boundedJson dump is gone and fold contributions drop grant. Rules-runtime modifier readers narrow typed fields with no record() casts or jsonFact passthrough; CompiledModifierGrant.payload is narrowed to the reachable payloads; DAMAGE_IMMUNITY sourceEffectIds (REACTION-4.T4) has a strict damageImmunityPayloadDtoSchema.",
+                "Migration: apps/apis/convex/rules/modifierOperationMigration.ts rebuilds frozen operations in characterActiveRuleEffects, encounterActiveRuleEffects and encounterSpatialRuleEffects, validated, re-checksummed and idempotent; modifierOperationMigration.test.ts runs it twice. Rule receipts, pending snapshot parts and room storage are not migrated (the local reset clears them).",
+                "Red 784bb8c4a (Tests 38996674304 failed). Direct single-slice merge fc5388e9d of ci/platform-20-t2 7fa9f620a (Tests 39000902431, Live 39002206361); the merge differs from the slice tip only in the ledger."
+              ]
+            },
+            {
+              "id": "PLATFORM-20.4",
+              "status": "DONE",
+              "origin": [],
+              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed.",
+              "proof": [
+                "ADR 0003 gained the typed fold modifier operation and its migration; docs/architecture engine.md Compile stage names typed scope, domain and payload plus spell and resource ids, not a JSON copy; neither describes compile-once hydration (PLATFORM-21) as current.",
+                "Direct single-slice merge fc5388e9d of ci/platform-20-t2 7fa9f620a (Tests 39000902431, Live 39002206361); the merge differs from the slice tip only in the ledger."
+              ]
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-20.T1",
+              "status": "DONE",
+              "closes": ["PLATFORM-20.1", "PLATFORM-20.2"],
+              "text": "Delete the dead and copy-only compilers; flatten the compiled modifier grant so the fold builds from typed fields; type the SRD builders per domain and remove the union workarounds. (Green: ci/platform-20 57625a799, Tests 38992261820 on attempt 2 after the preexisting nativeRoomEscapeAction flake, Live 38992261797. Merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086).)",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-20.T2",
+              "status": "DONE",
+              "closes": ["PLATFORM-20.3", "PLATFORM-20.4"],
+              "text": "The persisted fold contract is typed: modifierOperationSchema replaces the grant JSON dump with typed scope and payload, the rules-runtime consumers read typed fields (no record() casts), stored development rows are migrated in the same change, and the docs describe the compile stage as built.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-20.T1"]
+              }
+            }
+          ],
+          "journeyTests": [
+            "apps/apis/convex/rules/modifierOperationMigration.test.ts",
+            "packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts"
+          ],
+          "journeyStatus": "verified"
+        },
+        {
+          "id": "PLATFORM-21",
+          "title": "The engine loads compiled content instead of recompiling",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 8,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-21.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "User decision 2026-10-17 (option a): compile once at publish, as ADR 0003 describes, for performance and reliability.",
+              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics."
+            },
+            {
+              "id": "PLATFORM-21.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-21.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
+              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8,
+                "after": ["PLATFORM-20.T1"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-22",
+          "title": "Fewer and faster CI cycles per slice",
+          "status": "DONE",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-22.1",
+              "status": "DONE",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request: about half of the day's failed CI cycles were type errors found only after a 15-20 minute run.",
+              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today.",
+              "proof": [
+                "tests.yml fail-fast typecheck gate: a deliberate type-error push (Tests 38995237121) was cancelled at 6.5 minutes with the remaining jobs stopped, and scripts/watchCi.ps1 printed the type error; across the proof runs a type error cancelled the run in 4.7-7.9 minutes.",
+                "A green run took 18.9 minutes, against 17-20 minutes before the gate.",
+                "Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1."
+              ]
+            },
+            {
+              "id": "PLATFORM-22.2",
+              "status": "DONE",
+              "origin": [],
+              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients.",
+              "proof": [
+                "Worker test harness reports the underlying error of a failed room command; production rejections stay generic UNAVAILABLE.",
+                "Red Tests 38990052509; green Tests 38993716147; harness proof run 38993725207.",
+                "Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1."
+              ]
+            },
+            {
+              "id": "PLATFORM-22.3",
+              "status": "DONE",
+              "origin": [],
+              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md.",
+              "proof": [
+                "AGENTS.md Validation states the rule (commit 1d6b923fc; ledger-only tolerance 0de20a47d).",
+                "First application: PLATFORM-20.T2 7fa9f620a contained the phase tip 8068ab970; merge fc5388e9d on 532ecfd05 differs from the slice tip only in docs/roadmap/08-phase-ledger.json (orchestrator ledger commit); no batch CI run."
+              ]
+            },
+            {
+              "text": "One CI run proves red and green: a parallel job runs the slice's new and changed test files against the phase-branch production code and reports them failing (assertion or import failure, labelled), or \"already passing\" for a test-only slice, while the normal jobs prove green on the tip. Slices no longer push separate red branches.",
+              "status": "DONE",
+              "origin": [],
+              "id": "PLATFORM-22.4",
+              "proof": [
+                "tests.yml red job (scripts/redProof.mjs): the slice's new and changed test files run against the merge-base production code on their own runner and are labelled RED, RED-IMPORT or ALREADY-PASSING; skipped on ci/merge-* batches.",
+                "RED in-run: Tests 38995460725 (ci/platform-22 32d3ee876). ALREADY-PASSING and RED-IMPORT: Tests 38995465195 (ci/platform-22-passing fb895db67). Final tip 9ae03922f Tests 38996867823, Live 38998059441.",
+                "Merged in m64 ea86913af (Tests 38999516387, Live 38999516512)."
+              ]
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-22.T1",
+              "status": "DONE",
+              "closes": ["PLATFORM-22.1", "PLATFORM-22.2"],
+              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections. (Green f826a6429. Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1.)",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-22.T2",
+              "status": "DONE",
+              "closes": ["PLATFORM-22.3"],
+              "text": "Single-slice merge rule in AGENTS.md, applied at the next single-slice merge.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-22.T3",
+              "status": "DONE",
+              "closes": ["PLATFORM-22.4"],
+              "text": "Red job in tests.yml: fail-before proof inside the green run",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              }
+            }
+          ],
+          "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
+          "journeyStatus": "verified"
+        },
+        {
+          "id": "PLATFORM-23",
+          "title": "CI runs exactly the tests a change can affect",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-23.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all.",
+              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test."
+            },
+            {
+              "id": "PLATFORM-23.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions.",
+              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions."
+            },
+            {
+              "id": "PLATFORM-23.3",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them.",
+              "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule."
+            },
+            {
+              "id": "PLATFORM-23.4",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 with the user's approval: Worker room tests import the rules-runtime dist, and the light lane refused every build, so a session that changed a package could not run its Worker test locally and pushed blind (SPELLS-20.T4a, two failed CI runs).",
+              "text": "A session can run its scoped test files locally after changing a package they import: the runner builds only the workspaces those files depend on (Turbo-cached, memory-gated, one build at a time) before the tests, and the light lane stays limited to named test files."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-23.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.2"],
+              "text": "Fix the 12 failing packages/authoring tests at their cause; re-verify the ACs that cite them.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-23.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.1"],
+              "text": "tests.yml: affected-only test selection per slice from the module graph across all packages; full suite on merge batches; remove the hand-kept package list.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["PLATFORM-23.T1"]
+              }
+            },
+            {
+              "id": "PLATFORM-23.T3",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.3"],
+              "text": "Typecheck lane in scripts/withValidationLock.ps1 running the affected typecheck (changed workspaces and dependents against the phase-branch merge-base); AGENTS.md pre-push rule; measured local time against the CI gate.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-23.T4",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.4"],
+              "text": "Scoped dependency build before local test files in scripts/withValidationLock.ps1; AGENTS.md: run the touched test files locally before every push.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": ["PLATFORM-23.T3"]
+              }
+            }
+          ]
         }
       ]
     },
@@ -3835,9 +4209,12 @@
         {
           "id": "ROOM-6",
           "title": "Room tests cover multi-Character and multi-controller scenarios",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/liveSessions/encounterJourneys.test.ts",
+            "apps/session-worker/test/nativeMovementController.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -3855,8 +4232,12 @@
             },
             {
               "text": "A room-side spatial save-effect hazard execution is proved against the real room.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeMovementEvidence.test.ts and nativeRoomPlacedZone.test.ts (room spatial save hazard).",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.2"
             },
@@ -3872,8 +4253,12 @@
             },
             {
               "text": "encounterMovementPending receipts increase by one, asserted room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeMovementEvidence.test.ts: a pause commits one receipt, Run +1 and run commands +1, including the Assisted SPATIAL_EVIDENCE pause.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.4"
             },
@@ -3893,15 +4278,23 @@
             },
             {
               "text": "Character-initiator Disarm is proved room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomDisarm.test.ts \"a Character's room Disarm with a Longsword\". Accepted limit: the GM starts the Disarm and the player answers.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.7"
             },
             {
               "text": "A Longsword EQUIPMENT root is used in the room fixtures (Club is used today).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomDisarm.test.ts uses a Longsword EQUIPMENT root. Accepted limit: the roll is not tied to the Longsword bonus.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.8"
             },
@@ -3919,8 +4312,12 @@
             },
             {
               "text": "equipmentCommands are proved with R2 content seeding in the room fixtures.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomEquipmentReplacement.test.ts with R2 content seeding; refusals pin the logged cause.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.10"
             },
@@ -3938,24 +4335,39 @@
             },
             {
               "text": "Movement coverage includes the concentration advantage case and a shared spatial effect across two targets.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeMovementEvidence.test.ts and nativeRoomPlacedZone.test.ts (concentration advantage; shared spatial effect across two targets).",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.12"
             },
             {
               "text": "Initiative receipt metadata echoes a non-empty resolutionCommands, asserted room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "roomEncounterInitiativeResponse.test.ts. Accepted limit: runs the real room executor on a node-sqlite store, not the socket path.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.13"
             },
             {
               "id": "ROOM-6.14",
               "text": "A player cannot move an Encounter-bound token their user does not control, in the Worker room and on Convex: the move is refused and nothing is written, proved room-side and on Convex.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "ROOM-6.T1 report 2026-10-16: Worker movement planning skips the controller check for Encounter-bound tokens"
+              ],
+              "proof": [
+                "apps/session-worker/test/nativeMovementController.test.ts: a player moving the GM's Wolf and a second player moving the first player's Character are each refused NOT_ACTOR_CONTROLLER with Run documents, turn movements, Scene checkpoint/evidence rows, receipts and pending unchanged; the controller's own move commits and changes the Scene evidence snapshot.",
+                "apps/apis/convex/liveSessions/encounterMovementAdmission.test.ts: a player moving a token bound to an actor they do not control is refused NOT_ACTOR_CONTROLLER through the real room; runs, occurrences, receipts, Scene saves, entities, live states, sceneLiveEntities and encounterTurnMovements are unchanged after a checkpoint.",
+                "Red ci/room-6-t4-red Tests 38905531310 on 16088dba7 was green: the refusal already existed (requireBoundTokenMoveControl), so no failing-before clause and no production change.",
+                "Green ci/room-6-t4 bb6def86a: Tests 38911103026, Live 38911102929; merged with ROOM-6.T4.",
+                "Accepted limit: sceneGeometryPublication.ts runs only in the Worker, so the Convex test proves nothing reaches Convex after the room checkpoints, not a separate Convex check."
               ]
             }
           ],
@@ -3993,7 +4405,7 @@
             {
               "id": "ROOM-6.T3",
               "text": "Remaining room-side proofs: spatial save hazard, movement receipts, Disarm, Longsword and R2 equipment seeding, movement coverage and initiative receipts.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ROOM-6.2",
                 "ROOM-6.4",
@@ -4009,7 +4421,7 @@
                 "rr": 5,
                 "size": 8
               },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              "note": "Projection-budget gate cleared: stored actors keep identity in row columns only (actorIdentityMigration). Red ci/room-6-budget-red 8cf39bdf5 (Tests 38978140021, 255280 > 230400); green 50e365a3f (Tests 38984324373, Live 38984286163); merged in m59 ea6b4a50f (Tests 38986074614, Live 38986074610). 100-actor read 226707 B OWNER / 227378 B PLAYER."
             },
             {
               "id": "ROOM-6.T4",
@@ -5747,9 +6159,13 @@
         {
           "id": "ATTACK-9",
           "title": "Class-feature resolvers",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomOncePerTurn.test.ts",
+            "apps/session-worker/test/nativeRoomOnHitChoice.test.ts",
+            "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -5810,8 +6226,13 @@
             {
               "id": "ATTACK-9.5",
               "text": "Two-weapon fighting: after an Attack action with a light melee weapon, the actor is offered the off-hand light weapon attack as a bonus action (D107), which adds no positive ability modifier to damage unless the actor has the Two-Weapon Fighting style. The feature is authored only from core authoring options (no CLOSED_RULE, no feature-specific kind or executor); an author-built equivalent made through the real authoring form publishes to the same structure and resolves identically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/offHandAttack.test.ts",
+                "packages/rules-runtime/src/__tests__/twoWeaponFightingDamage.test.ts",
+                "packages/authoring/src/nodeRuntime/offHandAttackAuthoringParity.test.ts",
+                "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts"
+              ],
               "origin": [],
               "note": "D107."
             },
@@ -5968,8 +6389,8 @@
             },
             {
               "id": "ATTACK-9.T5c",
-              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options.",
-              "status": "IN_PROGRESS",
+              "text": "Builder data for two-weapon fighting and the Two-Weapon Fighting style, the end-to-end journey, and the authoring-parity proof from core options. (Red: ci/attack-9-t5c-red Tests 38931895848 on 2a6d99876 failed on the off-hand light weapon tests. Green: ci/attack-9-t5 Tests 38948782259 and Live backend 38948782326 on 1e80ebb09.)",
+              "status": "DONE",
               "closes": ["ATTACK-9.5"],
               "wsjf": {
                 "bv": 5,
@@ -5977,8 +6398,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["ATTACK-9.T5b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-attack-9-t5.md"
+              }
             },
             {
               "id": "ATTACK-9.T6",
@@ -8187,7 +8607,7 @@
             {
               "id": "SPELLS-19.T3b",
               "text": "Gold Weakening (4) and the speed and reaction riders of Copper Slowing (4) re-authored from core options as a grant plus repeat save, the grant gated on the failed save (compiler fix), no closed rule. Additive core options: an optional ability scope on the ATTACK_ROLL domain read by Creature and Character folds, plain ability-scoped save advantage/disadvantage read for Creature holders, and a SPEED fraction payload rounded down per D94. Corpus pin updated row by row.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8196,12 +8616,12 @@
                 "size": 5,
                 "after": ["SPELLS-19.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "proof": "Red ci/spells-19-t3b-red 2c8351736 (Tests 38950478150); green ci/spells-19-t3b 05cf244f1 (Tests 38974361848, Live 38974361808); merged with T3c at dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3c",
               "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8209,20 +8629,22 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-19.T3"]
-              }
+              },
+              "proof": "Red ci/spells-19-t3c-red f53086a3f (Tests 38976770402 failed on the three Gorgon assertions); green ci/spells-19-t3c dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3d",
               "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-19.T3b"]
-              }
+                "after": ["SPELLS-19.T3b", "PLATFORM-20.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T4",
@@ -8280,8 +8702,8 @@
             },
             {
               "id": "SPELLS-20.T1b",
-              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it.",
-              "status": "IN_PROGRESS",
+              "text": "Spirit Guardians as a SOURCE zone authored from core options: a 15 ft aura on the caster's token that moves with the caster; a creature it catches on entry, or when the caster moves onto it, makes the save against the caster's spell DC and takes the damage; GM undo removes it. (Red: ci/spells-20-t1b-red Tests 38947417012 and Live 38947417027 on 7ea6348fd failed on nativeRoomSourceAura.test.ts and sourceZoneAuthoringParity.test.ts. Green: ci/spells-20-t1b Tests 38960499458 and Live 38962770319 on f0ae7dce6.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8289,13 +8711,12 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-20.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
-              "id": "SPELLS-20.T2",
-              "text": "Ending, dropping or replacing Concentration removes the zone the spell placed (Concentration-maintained spatial effects, serving every lasting zone).",
-              "status": "TODO",
+              "id": "SPELLS-20.T2a",
+              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians. (Red: ci/spells-20-t2a-red on bac84acaa. Green: ci/spells-20-t2a Tests 38972849265 and Live 38974795282 on 16e4493c7.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -8306,9 +8727,22 @@
               }
             },
             {
+              "id": "SPELLS-20.T2b",
+              "text": "Ending, dropping or replacing Concentration removes the zones dependent on that maintained state in the same transaction (one cleanup path, D135), and GM undo restores them; serves every lasting zone. (Red: ci/spells-20-t2b-red 877ceb4ce, Tests 38989834002 failed as intended. Green: ci/spells-20-t2b 6a67e415b, Tests 38991779131 on attempt 2 after the preexisting nativeRoomEscapeAction flake, Live 38991779168. Merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086).)",
+              "status": "DONE",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T2a"]
+              }
+            },
+            {
               "id": "SPELLS-20.T3",
               "text": "Encounter session state carries each aura's label, radius and source token only to viewers allowed to see the source (Convex and room parity); unblocks VTT_UI-3.1.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8316,19 +8750,60 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              }
+              },
+              "proof": "Red ci/spells-20-t3-red c6f4813bd (Tests 38978456915 failed on the two aura room tests and activeReads); green ci/spells-20-t3 897458fa0 (Tests 38984886789, Live 38984886833); merged in m60 3f46d92b1 (Tests 38987673112, Live 38987673094)."
             },
             {
-              "id": "SPELLS-20.T4",
-              "text": "A start-of-turn and first-entry-per-turn zone trigger consumer shared by all zones: half damage on a made save, slot scaling, designated unaffected creatures, and half speed in the area if a seam exists (otherwise reported for registration).",
-              "status": "TODO",
+              "id": "SPELLS-20.T4a",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
+              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-20.T1b"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones, with one once-per-turn counter per (effect, creature, turn) shared by first entry and start of turn (maxApplicationsPerTurn gets its runtime consumer). Turn-boundary save and damage rolls run as a turn stage through the existing turn pending path (encounterTurnPending), after Recharge and the death save and with the start-of-turn effects, prompted per ADR 0034 like the death save and not undoable like other turn-stage rolls. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-20.T4a"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4c",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T1b"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4d",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Half speed inside a zone: a zone consumer of movement cost shared with terrain (shared pathing, Worker movement inputs, web movement preview), authored from core options; proved on Spirit Guardians.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-20.T4b"]
               }
             },
             {
@@ -8354,7 +8829,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4"]
+                "after": ["SPELLS-20.T4b"]
               }
             }
           ]
@@ -8708,8 +9183,8 @@
             },
             {
               "id": "SPELLS-28.T4",
-              "text": "Polymorph, True Polymorph (creature to creature), Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant, which also applies to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). A rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
-              "status": "IN_PROGRESS",
+              "text": "Polymorph and True Polymorph (creature to creature) authored from core options on the CREATURE_FORM grant, with a rule-filtered form choice beside the fixed list (creature type, CR cap from target CR/level, caster level or fixed, excluded speed modes), validated at cast against the System creature corpus. (Split 2026-10-16: the Character half moved to T4c.) (Red: ci/spells-28-t4-red Tests 38944606546 on a13f8cf76. Green: ci/spells-28-t4 Tests 38957200514 and Live backend 38957200558 on 2b10ea73f.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8717,13 +9192,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T2"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
-              "id": "SPELLS-28.T4b",
-              "text": "A Character's creature form outlasts the Run like its other timed grants (D99 carry-over): at COMPLETE the form grant keeps its form HP and gets a Campaign-minute expiry, the next Run's actor resumes it, and ending it on the Sheet reverts without carry-over.",
-              "status": "TODO",
+              "id": "SPELLS-28.T4c",
+              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey. (Red: ci/spells-28-t4c-red Tests 38964372322 on 8582fe60a. Green: ci/spells-28-t4c Tests 38975553592 and Live 38977759895 on 23de9c2cd.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8732,6 +9206,34 @@
                 "size": 3,
                 "after": ["SPELLS-28.T4"]
               }
+            },
+            {
+              "id": "SPELLS-28.T4d",
+              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-28.T4c"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+            },
+            {
+              "id": "SPELLS-28.T4b",
+              "text": "A Character's creature form outlasts the Run like its other timed grants (D99 carry-over): at COMPLETE the form grant keeps its form HP and gets a Campaign-minute expiry, the next Run's actor resumes it, and ending it on the Sheet reverts without carry-over.",
+              "status": "DONE",
+              "closes": ["SPELLS-28.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-28.T4c"]
+              },
+              "proof": "Red 727b9d232; green ci/spells-28-t4b ca7d2226e (Tests 38988672851, Live success); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
             }
           ]
         },
@@ -8862,8 +9364,8 @@
             },
             {
               "id": "SPELLS-27.T5",
-              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
-              "status": "IN_PROGRESS",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms. (Red: ci/spells-27-t5-red Tests 38956741664 on 21f6e15ca. Green: ci/spells-27-t5 Tests 38967899788 and Live 38967899786 on 7c66e5554.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8871,8 +9373,86 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T7",
+              "text": "Sanctuary from core options: a ward that makes a creature targeting the warded creature with an attack or harmful spell make a Wisdom save first (on a fail it picks a new target or loses the attack or spell), and the ward ends when the warded creature attacks, casts a spell on an enemy or deals damage to another creature (D132 against-enemy arms). Converts the closed-rule Sanctuary into a real v2 effect, with GM undo (D122 amendment of 2026-10-16). Closes AC 27.2 with T5.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T8",
+              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            },
+            {
+              "id": "SPELLS-27.T12",
+              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T8"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T9",
+              "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T10",
+              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo. (Red: ci/spells-27-t10-red Tests 38973682677 on f95bacfe5. Green: ci/spells-27-t10 Tests 38975443036 and Live 38975443035 on 6e993607d.)",
+              "status": "DONE",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-27.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-27.T11",
+              "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-27.T5"]
+              }
             },
             {
               "id": "SPELLS-27.T6",
@@ -8893,8 +9473,7 @@
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["apps/session-worker/test/nativeRoomFearSource.test.ts"],
           "origin": [
             "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
           ],
@@ -8908,9 +9487,15 @@
             {
               "id": "SPELLS-29.1",
               "text": "A Frightened condition applied by an action records the creature that frightened it, authored from core options (no Fear-specific kind). The frightened creature has disadvantage on ability checks and attack rolls only while that source is within its line of sight, and a move that ends closer to the source is a soft-enforcement warning the GM can override (ADR 0034). A Frightened with no recorded source keeps its present always-on disadvantage. Proved for Fear, including GM undo.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "SPELLS-19.T2 escalation 2026-10-16; confirmed by the user 2026-10-16 (a move that ends closer warns, the GM can override)"
+              ],
+              "proof": [
+                "apps/session-worker/test/nativeRoomFearSource.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.moveWarning.test.tsx",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts"
               ]
             },
             {
@@ -8919,14 +9504,21 @@
               "status": "TODO",
               "origin": [
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
-              ]
+              ],
+              "proof": [
+                "apps/session-worker/test/nativeRoomFearSource.test.ts \"room Fear makes its Frightened creatures flee the caster (SPELLS-29.T2)\": the non-Dash action warns and goes ahead when acknowledged; the controller is prompted to Dash away until the GM undoes Fear; Dash runs without a warning, then the move away; the GM undo takes the flee requirement with the cast.",
+                "The out-of-sight repeat save is proved by the two T1a tests in the same file.",
+                "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts (homebrew Panicked from core options), packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts, characterSpellCastActions.test.ts, packages/shared/src/__tests__/effect-compiler.test.ts (fleesSource).",
+                "Red 04e6af8c5 (Tests 38960560081, Live 38960560070); green 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
+              "note": "Reopened 2026-10-16: its cited proof conditionSourceAuthoringParity.test.ts fails on the phase branch (CI never ran authoring tests). Closes again with PLATFORM-23.2."
             }
           ],
           "tasks": [
             {
               "id": "SPELLS-29.T1",
-              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options.",
-              "status": "IN_PROGRESS",
+              "text": "A condition application carries an optional source actor; Frightened's check and attack contributors read line of sight to it; the movement planner warns on a move that ends closer; SRD Fear and every SRD action that frightens authors the source; authoring parity from core options. (Red: ci/spells-29-t1-red Tests 38924777168. Green: ci/spells-29-t1 Tests 38956790464 and Live backend 38956790334 on df9d20bb5.)",
+              "status": "DONE",
               "closes": ["SPELLS-29.1"],
               "wsjf": {
                 "bv": 5,
@@ -8938,8 +9530,8 @@
             },
             {
               "id": "SPELLS-29.T1a",
-              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together.",
-              "status": "IN_PROGRESS",
+              "text": "Fear's out-of-sight repeat save, so real SRD Fear compiles faithfully: a generic perception gate on FOLLOW_UP_SAVE (the attempt is allowed only when the target cannot see its source, beside the existing repeatRollInfluence PERCEPTION), authored on SRD Fear, which then compiles through the existing repeating-save plan (area, Concentration, source recorded per T1, including the Worker room journey). No new timed-save compile rule: SPELLS-19.T3's authored-endOnTriggers rule stays the single rule, and Charm Person, Dominate Person/Beast/Monster and Hold Monster stay refused through what is authored. Authoring parity from core options. Same branch as T1; T1 and T1a merge together. (Red: ci/spells-29-t1a-red on c5e34a53d; merge red Tests 38951912964 on 27de27fde (d20 gate read as a damage die). Green: ci/spells-29-t1 Tests 38956790464 and Live backend 38956790334 on df9d20bb5.)",
+              "status": "DONE",
               "closes": ["SPELLS-29.1", "SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -8952,7 +9544,7 @@
             {
               "id": "SPELLS-29.T2",
               "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; authored for SRD Fear and Eyebite Panicked; authoring parity from core options. (The turn-end out-of-sight save moved to T1a.)",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -9113,16 +9705,22 @@
         {
           "id": "REACTION-4",
           "title": "Non-movement reactions",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCounterspell.test.ts",
+            "apps/session-worker/test/nativeRoomShieldMagicMissile.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574"
+                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574",
+                "T4 (Shield against Magic Missile through a TARGETED_SELF trigger and source-filtered DAMAGE_IMMUNITY, D137): apps/session-worker/test/nativeRoomShieldMagicMissile.test.ts (filtered and unfiltered trigger and immunity; grants apply before the cast resolves; one undo restores slot, reaction and grants), with schema, rules-runtime and persistence tests listed in docs/handoffs/slice-reaction-4.md. The room undo test caught a product bug: actionRevert.ts did not end reactionEffectTransitions; fixed.",
+                "Accepted test change: grantAnchors.test.ts now asserts that every timed APPLY_GRANT block shares one lifecycle instead of exactly one block, because Shield legitimately carries two reaction effects.",
+                "T4 red Tests 38980938831, Live 38980938809; green 7a0083ead (Tests 38995086822, Live 38996188284), tip e168153fe workbook-only (Tests 38996683359). Merged in m64 ea86913af (Tests 38999516387, Live 38999516512)."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
@@ -9295,8 +9893,8 @@
             },
             {
               "id": "REACTION-4.T3e",
-              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive).",
-              "status": "IN_PROGRESS",
+              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive). (Red: ci/reaction-4-t3e-red Tests 38944702077 on 17dcee0a0. Green: ci/reaction-4-t3e Tests 38964831551 and Live 38964831537 on 0c733d676.)",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9304,13 +9902,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3h",
-              "text": "Cast reactions for Creature capability casts: a capability that casts a spell gets its cast level from the referenced System spell, or from an authored cast level on the capability (additive core option, SRD data filled) where no spell is referenced, so Counterspell's higher-level check has its input; a capability that is not a spell is never offered a counter.",
-              "status": "TODO",
+              "text": "Cast reactions for Creature capability casts (D136): a Feature action effect authors spellCast { castLevel: 1..9 } beside grip on ACTION invocations only, and Counterspell is offered only for those; a spell-attack-only action is not counterable; no spellId and no new room-input capture kind. (Red: ci/reaction-4-t3h-red Tests 38970845033 on ad8488c11. Green: ci/reaction-4-t3h Tests 38975904611 and Live 38975904624 on 9cec1d408.)",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9323,7 +9920,7 @@
             {
               "id": "REACTION-4.T4",
               "text": "TARGETED_SELF trigger and the source-filtered damage immunity: Shield against Magic Missile.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 3,

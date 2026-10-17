@@ -50,7 +50,15 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
             showIf: or([
               parent.field(['valueDomainCode']).eq('ABILITY_SCORE'),
               parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
-              parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER')
+              parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
+              // An attack roll's advantage or disadvantage may cover only attacks made with an ability.
+              and([
+                parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+                or([
+                  parent.field(['modifierKind']).eq('ADVANTAGE'),
+                  parent.field(['modifierKind']).eq('DISADVANTAGE')
+                ])
+              ])
             ])
           }
         )
@@ -212,10 +220,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const { table } = data
     const isBonus = parent.field(['modifierKind']).eq('BONUS')
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
-    // A speed or sense range is a typed length, never a value source (D111).
-    const isLength = or([
-      parent.field(['valueDomainCode']).eq('SPEED'),
-      parent.field(['valueDomainCode']).eq('SENSE_RANGE')
+    const isMultiply = parent.field(['modifierKind']).eq('MULTIPLY')
+    // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
+    const isLength = and([
+      or([
+        parent.field(['valueDomainCode']).eq('SPEED'),
+        parent.field(['valueDomainCode']).eq('SENSE_RANGE')
+      ]),
+      not(isMultiply)
     ])
     const usesScalarMultiplier = or([
       local.field(['valueKind']).eq('PROFICIENCY_BONUS'),
@@ -339,6 +351,21 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
               parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY'),
               parent.field(['valueDomainCode']).eq('DAMAGE_VULNERABILITY')
             ]),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'sourceEffectIds',
+        selectMulti(
+          ['sourceEffectIds'],
+          'Only damage from these spells',
+          {
+            kind: 'DATA',
+            relationship: table('spells', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY'),
             hiddenBehavior: 'CLEAR'
           }
         )
@@ -558,6 +585,22 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
+        'numerator',
+        number(['numerator'], 'Numerator', {
+          constraints: { minimum: 1 },
+          showIf: isMultiply,
+          requiredIf: true
+        })
+      )
+      .set(
+        'denominator',
+        number(['denominator'], 'Denominator', {
+          constraints: { minimum: 1 },
+          showIf: isMultiply,
+          requiredIf: true
+        })
+      )
+      .set(
         'unit',
         selectSingle(
           ['unit'],
@@ -688,6 +731,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('BONUS'),
             local.field(['modifierKind']).eq('PENALTY'),
             local.field(['modifierKind']).eq('SET_VALUE'),
+            local.field(['modifierKind']).eq('MULTIPLY'),
             local.field(['modifierKind']).eq('ADD_BONUS_DIE'),
             local.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
             local.field(['modifierKind']).eq('REPLACE_RANGE_KIND'),

@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 
 import { effectDtoSchema } from '../effects/effect.js'
+import { createFollowUpSaveDtoSchema } from '../effects/followUpSave.js'
 import { hitPointMaximumReductionDtoSchema } from '../effects/hitPointMaximumReduction.js'
 import { manifestBehaviorPathDtoSchema, pathDtoSchema } from '../effects/path.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
+import { z } from '../zod.js'
 
 type ParsedEffectForAssertions = {
   invocation: {
@@ -902,6 +904,45 @@ describe('effect schema parsing', () => {
           )
         ]
       }).success
+    ).toBe(false)
+  })
+
+  it('accepts a repeat attempt gate only on a target-turn-end repeated save with no roll influence (SPELLS-29.T1a)', () => {
+    const when = { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+    const followUpSaveDtoSchema = createFollowUpSaveDtoSchema(z.unknown())
+    const followUpSave = (overrides: Record<string, unknown>) =>
+      followUpSaveDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000ea',
+        effectKind: 'FOLLOW_UP_SAVE',
+        timing: 'TARGET_TURN_END',
+        repeatAttemptGate: { allow: 'WHEN_UNMET', when },
+        savingThrow: {
+          id: '00000000-0000-4000-8000-0000000000eb',
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: '00000000-0000-0000-0011-000500000000'
+        },
+        attempts: { kind: 'ONCE', repeatOnFailure: true },
+        onSuccess: { kind: 'END' },
+        onFailure: { kind: 'CONTINUE' },
+        ...overrides
+      }).success
+
+    expect(followUpSave({})).toBe(true)
+    expect(followUpSave({ repeatAttemptGate: { allow: 'WHEN_MET', when } })).toBe(true)
+    expect(followUpSave({ repeatAttemptGate: { allow: 'ALWAYS', when } })).toBe(false)
+    expect(followUpSave({ timing: 'TARGET_TURN_START' })).toBe(false)
+    expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
+    // The immediate-save plan carries no gate, so the schema must not accept one it cannot run.
+    const immediateRepeat = {
+      timing: 'IMMEDIATE',
+      repeatTiming: 'TARGET_TURN_END',
+      onFailure: { kind: 'OUTCOMES', endCurrent: false, resultKind: 'SINGLE', outcomes: [] }
+    }
+    expect(followUpSave({ ...immediateRepeat, repeatAttemptGate: undefined })).toBe(true)
+    expect(followUpSave(immediateRepeat)).toBe(false)
+    // The runtime carries one perception result per repeated save, so one perception rule at most.
+    expect(
+      followUpSave({ repeatRollInfluence: { influence: 'DISADVANTAGE', when } })
     ).toBe(false)
   })
 

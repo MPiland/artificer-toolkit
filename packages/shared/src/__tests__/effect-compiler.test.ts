@@ -18,7 +18,7 @@ import {
   SIZE_CODE,
   TRIGGER
 } from '#core'
-import { compileEffectResult } from '#compilers'
+import { compileConditionEffect, compileEffectResult } from '#compilers'
 import { checksumRuleDocument } from '../domains/rules/checksum.js'
 
 function expectNoUndefined(value: unknown): void {
@@ -35,7 +35,17 @@ function expectNoUndefined(value: unknown): void {
 }
 
 describe('effect compiler', () => {
-  it('preserves repeat roll influence in compiled follow-up saves', () => {
+  const seeSource = {
+    kind: 'PERCEPTION',
+    observer: 'TARGET',
+    subject: 'SOURCE',
+    requirement: 'SEE'
+  } as const
+  it.each([
+    { name: 'repeatRollInfluence', policy: { influence: 'DISADVANTAGE', when: seeSource } },
+    // SPELLS-29.T1a: Fear's repeat save is attempted only while the target can't see its source.
+    { name: 'repeatAttemptGate', policy: { allow: 'WHEN_UNMET', when: seeSource } }
+  ] as const)('preserves $name in compiled follow-up saves', ({ name, policy }) => {
     const result = compileEffectResult({
       id: 'repeat-roll-influence-effect',
       order: 1,
@@ -66,15 +76,7 @@ describe('effect compiler', () => {
                 id: 'repeat-roll-influence-follow-up',
                 effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
                 timing: 'TARGET_TURN_END',
-                repeatRollInfluence: {
-                  influence: 'DISADVANTAGE',
-                  when: {
-                    kind: 'PERCEPTION',
-                    observer: 'TARGET',
-                    subject: 'SOURCE',
-                    requirement: 'SEE'
-                  }
-                },
+                [name]: policy,
                 savingThrow: {
                   id: 'repeat-roll-influence-follow-up-save',
                   dcMethod: 'FIXED_DC',
@@ -97,10 +99,7 @@ describe('effect compiler', () => {
     if (!entry || !('outcome' in entry)) throw new Error('Expected compiled follow-up-save entry.')
     expect(entry.outcome).toMatchObject({
       effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
-      repeatRollInfluence: {
-        influence: 'DISADVANTAGE',
-        when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
-      }
+      [name]: policy
     })
   })
 
@@ -315,7 +314,9 @@ describe('effect compiler', () => {
         outcome: {
           id: 'slowed',
           effectKind: EFFECT_KIND.CONDITION,
-          conditionId: 'slowed'
+          conditionId: 'slowed',
+          recordsSource: false,
+          fleesSource: false
         }
       },
       {
@@ -334,7 +335,9 @@ describe('effect compiler', () => {
         outcome: {
           id: 'poisoned',
           effectKind: EFFECT_KIND.CONDITION,
-          conditionId: 'poisoned'
+          conditionId: 'poisoned',
+          recordsSource: false,
+          fleesSource: false
         }
       }
     ])
@@ -862,5 +865,22 @@ describe('effect compiler', () => {
         actionEconomy: FORCED_MOVEMENT_ACTION_ECONOMY.REACTION
       }
     })
+  })
+})
+
+describe('a condition that flees its source (SPELLS-29.T2)', () => {
+  const authored = {
+    id: 'fear',
+    effectKind: EFFECT_KIND.CONDITION,
+    conditionId: 'frightened'
+  } as const
+
+  it('compiles an authored fleesSource and states false when it is not authored', () => {
+    expect(
+      compileConditionEffect({ ...authored, recordsSource: true, fleesSource: true })
+    ).toMatchObject([{ recordsSource: true, fleesSource: true }])
+    expect(compileConditionEffect({ ...authored, recordsSource: true })).toMatchObject([
+      { fleesSource: false }
+    ])
   })
 })

@@ -8,6 +8,8 @@ import { z, lazySchema } from '../zod.js'
 export const encounterRuleWarningCodeDtoSchema = lazySchema(() =>
   z.enum([
     'ACTION_ECONOMY_UNAVAILABLE',
+    'CONDITION_SOURCE_APPROACH',
+    'CONDITION_SOURCE_FLEE',
     'RESOURCE_UNAVAILABLE',
     'SOURCE_NOT_EQUIPPED',
     'TARGET_DEFEATED',

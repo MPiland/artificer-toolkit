@@ -118,6 +118,7 @@ describe('buildImportedCharacter', () => {
           parsed: {
             externalId: 'external-1',
             label: 'Aria',
+            profile: {},
             references: [],
             customContent: [],
             issues: []

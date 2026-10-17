@@ -25,6 +25,7 @@ import {
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
+import { trackRoom } from './roomTeardown.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import {
   ROOM_INPUTS_PATH,
@@ -277,6 +278,7 @@ export async function fixture(
   /** The Scene Convex serves through the SCENE room-inputs scopes. */
   const rawScene = { current: scene }
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
+  trackRoom(stub)
   const authorityLifecycleCalls: string[] = []
   let currentAuthorityEpoch = authorityEpoch
   /** The last Checkpoint Convex persisted; a re-bootstrapped room must agree with it. */

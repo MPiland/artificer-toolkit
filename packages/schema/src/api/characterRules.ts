@@ -90,6 +90,8 @@ const characterTargetDefenseSchema = lazySchema(() =>
   z.strictObject({
     kind: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
     damageTypeId: serverUuidIdentityDtoSchema,
+    /** Applies only to damage from actions owned by this authored content; absent: any. */
+    sourceEffectIds: z.optional(z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))),
     source: characterMechanicSourceSchema
   })
 )
@@ -103,7 +105,7 @@ const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
         z.superRefine((defenses, ctx) => {
           const keys = new Set<string>()
           defenses.forEach((defense, index) => {
-            const key = `${defense.kind}:${defense.damageTypeId}`
+            const key = `${defense.kind}:${defense.damageTypeId}:${[...(defense.sourceEffectIds ?? [])].sort().join(',')}`
             if (keys.has(key)) {
               ctx.addIssue({
                 code: 'custom',
@@ -116,10 +118,11 @@ const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
         })
       ),
     z.transform((defenses) =>
-      [...defenses].sort((left, right) =>
-        left.damageTypeId === right.damageTypeId
-          ? left.kind.localeCompare(right.kind)
-          : left.damageTypeId.localeCompare(right.damageTypeId)
+      [...defenses].sort(
+        (left, right) =>
+          left.damageTypeId.localeCompare(right.damageTypeId) ||
+          left.kind.localeCompare(right.kind) ||
+          (left.sourceEffectIds ?? []).join(',').localeCompare((right.sourceEffectIds ?? []).join(','))
       )
     )
   )

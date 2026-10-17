@@ -43,7 +43,10 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
+import {
+  readNativeLiveAttackPerception,
+  readNativeLiveSourcesSeen
+} from './nativeAttackPerception.js'
 import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
@@ -116,19 +119,20 @@ export async function planNativeLiveDisarm(
   const actor = actors.find((entry) => entry.id === root.actorId)
   const target = actors.find((entry) => entry.id === targetActorId)
   if (!actor || !target) throw new Error('Disarm actors are unavailable.')
+  const loadTarget = async (entry: (typeof actors)[number]) => {
+    const prepared = await prepareNativeLiveMovementTarget({
+      scope: initial,
+      state,
+      actor: entry,
+      activeEffectsByActorId,
+      captures: executionOptions.captures
+    })
+    reads.observe(prepared.revisions)
+    return prepared.target
+  }
   const movementTargets = new Map(
     await Promise.all(
-      [actor, target].map(async (entry) => {
-        const prepared = await prepareNativeLiveMovementTarget({
-          scope: initial,
-          state,
-          actor: entry,
-          activeEffectsByActorId,
-          captures: executionOptions.captures
-        })
-        reads.observe(prepared.revisions)
-        return [entry.id, prepared.target] as const
-      })
+      [actor, target].map(async (entry) => [entry.id, await loadTarget(entry)] as const)
     )
   )
   const definition = requireEncounterDisarmDefinition({
@@ -183,6 +187,17 @@ export async function planNativeLiveDisarm(
         attacker: sourceFacts,
         target: targetFacts,
         roller,
+        sceneContext,
+        capture
+      }),
+    loadSourcesSeen: ({ holder, sourceActorIds }) =>
+      readNativeLiveSourcesSeen({
+        state,
+        system,
+        holder,
+        sourceActorIds,
+        actors,
+        loadTarget: async (entry) => movementTargets.get(entry.id) ?? loadTarget(entry),
         sceneContext,
         capture
       }),

@@ -96,15 +96,13 @@ const generatedFiles = [
   'apps/apis/convex/_generated/dataModel.d.ts',
   'apps/apis/convex/_generated/server.d.ts',
   'apps/apis/convex/_generated/server.js',
-  'apps/apis/convex/betterAuth/schema.ts',
-  'apps/apis/convex/content/srdManifest.generated.ts'
+  'apps/apis/convex/betterAuth/schema.ts'
 ]
 // Where codegen writes: a file it newly adds there is untracked, so only the status of these roots sees it.
 const generatedRoots = [
   'apps/apis/convex/_generated',
   'apps/apis/convex/betterAuth/_generated',
-  'apps/apis/convex/betterAuth/schema.ts',
-  'apps/apis/convex/content/srdManifest.generated.ts'
+  'apps/apis/convex/betterAuth/schema.ts'
 ]
 const runtimeArtifactPaths = [
   'apps/apis/dist',

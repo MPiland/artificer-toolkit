@@ -34,6 +34,12 @@ vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
   })
 }))
 
+const POLYMORPH_BEAST = { id: '00000000-0000-4000-8000-0000000000b1', label: 'Giant Centipede' }
+
+vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
+  useContentCatalogue: () => ({ items: [POLYMORPH_BEAST] })
+}))
+
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
     configurable: true,
@@ -1089,6 +1095,18 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     }
   })
 
+  const polymorph = validatedChoice({
+    ...healingWord,
+    id: 'spell-polymorph:cast',
+    label: 'Polymorph',
+    target: {
+      kind: 'ACTORS' as const,
+      maxTargets: 1,
+      area: null,
+      choosesCreatureForm: true as const
+    }
+  })
+
   async function chooseTargets(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole('combobox', { name: 'Action' }))
     await user.keyboard('{ArrowDown}{Enter}')
@@ -1144,6 +1162,32 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
           kind: 'ACTORS',
           actorIds: [first.id],
           formId: '00000000-0000-4000-8000-0000000000f2'
+        })
+      })
+    )
+  })
+
+  it('sends the Creature a filtered form turns the target into, and waits for one', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [polymorph] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Targets (up to 1)' }))
+    await user.click(screen.getByRole('option', { name: first.label }))
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+
+    await user.click(screen.getByRole('combobox', { name: 'Creature form' }))
+    await user.click(screen.getByRole('option', { name: POLYMORPH_BEAST.label }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: polymorph.id,
+        target: expect.objectContaining({
+          kind: 'ACTORS',
+          actorIds: [first.id],
+          creatureId: POLYMORPH_BEAST.id
         })
       })
     )

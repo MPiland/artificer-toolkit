@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
@@ -19,8 +20,12 @@ import {
   spellCastActionId
 } from '../character/characterSpellCastActions.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
+import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
+import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
 
 type BuildInput = Parameters<typeof buildCharacterSpellCastActions>[0]
@@ -44,6 +49,8 @@ const HEALING_WORD = spell('Healing Word')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
+const CHARM_PERSON = spell('Charm Person')
+const FEAR = spell('Fear')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -75,6 +82,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackAbility: null,
     attackBonus: null,
     attackRollMode: null,
     save: null,
@@ -177,6 +185,29 @@ const SCORCHED_INVISIBILITY = (() => {
   ]
   return { ...authored, id: '00000000-0000-4000-8000-00000000c003', label: 'Scorched Invisibility' }
 })()
+const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)?.id
+/**
+ * A homebrew spell built from Hold Person's core options: Poisoned for 1 minute, re-saved only
+ * while the target can see its caster, no Concentration. Nothing in it is Fear-specific.
+ */
+const WATCHFUL_MIASMA: SpellAuthored = (() => {
+  const authored = structuredClone(HOLD_PERSON)
+  const path = authored.effects?.[0]?.paths?.[0]
+  const [condition, save] = path && 'resultBlock' in path ? (path.resultBlock.outcomes ?? []) : []
+  if (condition?.effectKind !== 'CONDITION' || save?.effectKind !== 'FOLLOW_UP_SAVE')
+    throw new Error('Hold Person fails into a condition and a repeat save.')
+  condition.conditionId = conditionId('POISONED')!
+  save.repeatAttemptGate = {
+    allow: 'WHEN_MET',
+    when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+  }
+  return {
+    ...authored,
+    id: '00000000-0000-4000-8000-00000000c004',
+    label: 'Watchful Miasma',
+    attributes: []
+  }
+})()
 const authoredById = new Map(
   [
     SCORCHED_INVISIBILITY,
@@ -191,6 +222,9 @@ const authoredById = new Map(
     SHIELD,
     SHIELD_OF_FAITH,
     INVISIBILITY,
+    CHARM_PERSON,
+    FEAR,
+    WATCHFUL_MIASMA,
     GAPPED_HEAL,
     LATE_HEAL
   ].map((entry) => [entry.id, entry])
@@ -582,6 +616,24 @@ describe('the Concentration a cast starts', () => {
     expect(plan?.conditionContribution).not.toBeNull()
   })
 
+  it('plans the Frightened of SRD Fear as recording its caster; Hold Person records none (SPELLS-29)', () => {
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      recordsSource: true
+    })
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      recordsSource: false
+    })
+  })
+
+  it('plans the Frightened of SRD Fear as fleeing its caster; Hold Person flees none (SPELLS-29.T2)', () => {
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      fleesSource: true
+    })
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      fleesSource: false
+    })
+  })
+
   it('starts no Concentration for a spell that is not a Concentration spell', () => {
     const plan = compiledCast(PLAIN_HOLD)?.activeEffectPlan
     expect(plan).toBeDefined()
@@ -630,6 +682,173 @@ describe('the timed condition a cast owns with no save', () => {
       { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] },
       { event: 'SPELL_CAST', against: 'ENEMY' }
     ])
+  })
+})
+
+describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
+  it('owns Charm Person’s one-hour charmed condition and ends it on damage from the caster’s side', () => {
+    const charmedId = SRD_CONDITION_TYPES.find(({ code }) => code === 'CHARMED')?.id
+    expect(compiledCast(CHARM_PERSON)?.activeEffectPlan).toMatchObject({
+      initialRemaining: 600,
+      conditionContribution: {
+        conditionId: charmedId,
+        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+      }
+    })
+  })
+})
+
+describe('a repeat save attempted only by what the target perceives (SPELLS-29.T1a)', () => {
+  /** The d20 node of the frozen repeat-save graph, and the fact that enables it if it is gated. */
+  function repeatD20(authored: SpellAuthored) {
+    const plan = compiledCast(authored)?.activeEffectPlan
+    const node = plan?.frozenGraph.definition.nodes.find(({ id }) => id === 'repeat-save-d20')
+    return { plan, node }
+  }
+
+  it.each([
+    {
+      authored: FEAR,
+      condition: 'FRIGHTENED',
+      recordsSource: true,
+      concentration: true,
+      allow: 'WHEN_UNMET'
+    },
+    {
+      authored: WATCHFUL_MIASMA,
+      condition: 'POISONED',
+      recordsSource: false,
+      concentration: false,
+      allow: 'WHEN_MET'
+    }
+  ])(
+    'runs $authored.label as a turn-end repeat save on $condition, attempted $allow the target sees its caster',
+    ({ authored, condition, recordsSource, concentration, allow }) => {
+      const { plan, node } = repeatD20(authored)
+      expect(plan).toMatchObject({
+        frozenGraphNodeId: 'repeat-save-test',
+        recurrenceStage: 'END_OF_TURN',
+        initialRemaining: 10,
+        conditionContribution: { conditionId: conditionId(condition), recordsSource },
+        adapterFacts: expect.objectContaining({
+          'dnd5e.active-effect-repeat-save-attempt-gate': allow,
+          'dnd5e.active-effect-repeat-save-perception-requirement': 'SEE'
+        })
+      })
+      expect(plan?.maintenance?.definitionId ?? null).toBe(
+        concentration ? SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID : null
+      )
+      // The die is asked for only while the perception gate allows the attempt.
+      expect(node).toMatchObject({
+        operation: { key: 'evidence.optional-integer-range', contractVersion: 1 },
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 },
+          enabled: { kind: 'FACT', factKey: 'dnd5e.repeat-save-attempt-allowed' }
+        }
+      })
+    }
+  )
+
+  /**
+   * One end-of-turn tick of the spell's planned effect on a holder with a +0 Wisdom save, given
+   * whether it sees the caster now.
+   */
+  async function tickGatedSave(input: {
+    authored: SpellAuthored
+    condition: string
+    seesSource: boolean
+    remainingTicks: number
+  }) {
+    const { definition } = plannedTimedCondition({
+      encounterId: testUuid(0xd901),
+      sourceActorId: testUuid(0xd902),
+      holderActorId: testUuid(0xd903),
+      spell: input.authored,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    const lifecycle = { schemaVersion: 1 as const, remainingTicks: input.remainingTicks }
+    return executeTargetBoundActiveRuleEffectWithPause({
+      activeEffectId: testUuid(0xd904),
+      activeEffectVersion: 1,
+      definition,
+      lifecycle,
+      lifecycleChecksum: checksumRuleDocument(lifecycle),
+      occurrenceId: testUuid(0xd905),
+      targetActorId: testUuid(0xd903),
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      targetScalarValues: {},
+      targetConditionIds: [conditionId(input.condition)!],
+      targetDerivedFacts: {
+        savingThrowDefinitions: [
+          {
+            abilityDefinitionId: SRD_ABILITIES.find(({ code }) => code === 'WISDOM')?.id,
+            modifier: 0,
+            rollMode: 'NORMAL',
+            contributors: []
+          }
+        ]
+      },
+      defenses: [],
+      perception: { requirement: 'SEE', satisfied: input.seesSource, checksum: 'a'.repeat(64) },
+      runtime: await createSrdRulesRuntime(),
+      adapters: characterRuleActionSystemAdapterRegistry
+    })
+  }
+
+  it.each([
+    { authored: FEAR, condition: 'FRIGHTENED', seesSource: false },
+    { authored: WATCHFUL_MIASMA, condition: 'POISONED', seesSource: true }
+  ])(
+    'asks $authored.label’s holder for its d20 when the gate allows the attempt',
+    async ({ authored, condition, seesSource }) => {
+      const paused = await tickGatedSave({ authored, condition, seesSource, remainingTicks: 10 })
+      expect(paused).toMatchObject({ evidencePolicy: { requestNodeId: 'repeat-save-d20', dc: 15 } })
+    }
+  )
+
+  it.each([
+    { authored: FEAR, condition: 'FRIGHTENED', seesSource: true },
+    { authored: WATCHFUL_MIASMA, condition: 'POISONED', seesSource: false }
+  ])(
+    'refuses $authored.label’s attempt without a roll and keeps its $condition',
+    async ({ authored, condition, seesSource }) => {
+      const refused = await tickGatedSave({ authored, condition, seesSource, remainingTicks: 10 })
+      expect(refused).toMatchObject({ terminal: false, applications: [], d20: null })
+      expect(refused).not.toHaveProperty('continuation')
+    }
+  )
+
+  it('ends Fear on its last turn even when the gate refuses the attempt', async () => {
+    const expired = await tickGatedSave({
+      authored: FEAR,
+      condition: 'FRIGHTENED',
+      seesSource: true,
+      remainingTicks: 1
+    })
+    expect(expired).toMatchObject({
+      terminal: true,
+      d20: null,
+      applications: [
+        {
+          kind: 'CONDITION_REMOVE',
+          conditionId: conditionId('FRIGHTENED'),
+          authoredPath: null,
+          resolvedPath: null
+        }
+      ]
+    })
+  })
+
+  it('keeps an ungated repeat save on its plain d20: Hold Person', () => {
+    const { plan, node } = repeatD20(HOLD_PERSON)
+    expect(plan?.frozenGraphNodeId).toBe('repeat-save-test')
+    expect(Object.keys(plan?.adapterFacts ?? {})).not.toContain(
+      'dnd5e.active-effect-repeat-save-attempt-gate'
+    )
+    expect(node?.operation).toEqual({ key: 'evidence.integer-range', contractVersion: 1 })
   })
 })
 

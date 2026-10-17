@@ -64,8 +64,27 @@ function nullableLabel(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null
 }
 
+/**
+ * The saving throw the entering behavior of a placed or source zone authors. The action's facts carry
+ * it so its DC resolves like any save's; the web bundle reads these facts, so this stays out of the
+ * Encounter zone modules.
+ */
+function zoneEntrySavingThrow(effect: CompiledEffectGroup) {
+  const [entry] = effect.entries
+  const outcome = effect.entries.length === 1 && entry && 'outcome' in entry ? entry.outcome : null
+  if (
+    outcome?.effectKind !== 'MANIFEST' ||
+    outcome.manifestKind !== 'ZONE' ||
+    (outcome.attachmentKind !== 'PLACED_SPACE' && outcome.attachmentKind !== 'SOURCE')
+  )
+    return undefined
+  const invocation = outcome.components?.[0]?.behaviors?.[0]?.invocation
+  return invocation && 'savingThrow' in invocation ? invocation.savingThrow : undefined
+}
+
 function normalizeInvocation(
-  invocation: CompiledEffectGroup['invocation']
+  invocation: CompiledEffectGroup['invocation'],
+  zoneSavingThrow: ReturnType<typeof zoneEntrySavingThrow>
 ): ActionMechanicFacts['invocation'] {
   const activation =
     'activation' in invocation
@@ -88,30 +107,32 @@ function normalizeInvocation(
           longAmount: null,
           unit: null
         }
-  const savingThrow =
-    invocation.triggerCode === 'SAVING_THROW'
-      ? {
-          dcMethod: invocation.savingThrow.dcMethod,
-          abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
-          baseDc: 'baseDc' in invocation.savingThrow ? invocation.savingThrow.baseDc : null,
-          bonuses:
-            'bonuses' in invocation.savingThrow
-              ? (invocation.savingThrow.bonuses ?? []).map((bonus) => {
-                  switch (bonus.bonusKind) {
-                    case 'ABILITY_MODIFIER':
-                      return {
-                        bonusKind: bonus.bonusKind,
-                        abilityDefinitionId: bonus.abilityDefinitionId
-                      }
-                    case 'PROFICIENCY_BONUS':
-                      return { bonusKind: bonus.bonusKind }
-                    case 'STATIC_BONUS':
-                      return { bonusKind: bonus.bonusKind, amount: bonus.amount }
-                  }
-                })
-              : []
-        }
-      : null
+  // A zone's save is made later by whoever enters it; its DC is the action's to resolve.
+  const authoredSave =
+    invocation.triggerCode === 'SAVING_THROW' ? invocation.savingThrow : zoneSavingThrow
+  const savingThrow = authoredSave
+    ? {
+        dcMethod: authoredSave.dcMethod,
+        abilityDefinitionId: authoredSave.abilityDefinitionId,
+        baseDc: 'baseDc' in authoredSave ? authoredSave.baseDc : null,
+        bonuses:
+          'bonuses' in authoredSave
+            ? (authoredSave.bonuses ?? []).map((bonus) => {
+                switch (bonus.bonusKind) {
+                  case 'ABILITY_MODIFIER':
+                    return {
+                      bonusKind: bonus.bonusKind,
+                      abilityDefinitionId: bonus.abilityDefinitionId
+                    }
+                  case 'PROFICIENCY_BONUS':
+                    return { bonusKind: bonus.bonusKind }
+                  case 'STATIC_BONUS':
+                    return { bonusKind: bonus.bonusKind, amount: bonus.amount }
+                }
+              })
+            : []
+      }
+    : null
 
   const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
   const targetCount =
@@ -305,11 +326,15 @@ export function normalizeCharacterActionMechanicFacts(
       kind: 'EFFECT',
       pathCode: entry.pathCode,
       effectKind: outcome.effectKind,
+      ...(outcome.effectKind === 'MOVEMENT_RULE' ? { ruleKind: outcome.ruleKind } : {}),
       label: nullableLabel(entry.label) ?? nullableLabel('label' in outcome ? outcome.label : null)
     })
   }
 
-  return { invocation: normalizeInvocation(effect.invocation), outcomes }
+  return {
+    invocation: normalizeInvocation(effect.invocation, zoneEntrySavingThrow(effect)),
+    outcomes
+  }
 }
 
 function appendActions(params: {

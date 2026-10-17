@@ -212,7 +212,8 @@ export const encounterStoreIndexes = {
   encounterSpatialRuleEffects: {
     by_publicId: ['id'],
     by_encounterId_sceneId_id: ['encounterId', 'sceneId', 'id'],
-    by_encounterId_sceneId_createdOrdinal_id: ['encounterId', 'sceneId', 'createdOrdinal', 'id']
+    by_encounterId_sceneId_createdOrdinal_id: ['encounterId', 'sceneId', 'createdOrdinal', 'id'],
+    by_state_encounter: ['maintainedEffectStateId', 'encounterId', 'id']
   },
   campaigns: {
     by_publicId: ['id'],

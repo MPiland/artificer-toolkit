@@ -15,6 +15,7 @@ import {
 } from './encounterActionEntryPointCompiler.js'
 import {
   creatureActiveGrantAttackContributors,
+  creatureAttackAbility,
   withSourceSightSave
 } from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
@@ -28,7 +29,9 @@ import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import {
   encounterConditionAttackContributors,
   encounterConditionHitIsCritical,
-  encounterConditionSaveAutoFailAbilityIds
+  encounterConditionMechanicsInSourceSight,
+  encounterConditionSaveAutoFailAbilityIds,
+  encounterConditionSources
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
@@ -215,6 +218,15 @@ export async function prepareEncounterActionMechanics<
     roller: EncounterPerceptionRoller
   }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
   /**
+   * Which of a sourced, sight-gated condition's recorded sources its holder sees now (Frightened).
+   * Called only when the source or the target has one; any Encounter actor can be a source, and
+   * one no longer in the Encounter is unseen.
+   */
+  loadSourcesSeen?: (input: {
+    holder: MovementTarget<TCharacterFacts>
+    sourceActorIds: readonly string[]
+  }) => Promise<ReadonlySet<string>>
+  /**
    * How near an enemy stands to the target on the Scene, for an attack with a path that asks
    * (Sneak Attack's nearby enemy). Called only for such an attack; null when it has no Scene to
    * measure on, which leaves the check unanswerable.
@@ -240,15 +252,43 @@ export async function prepareEncounterActionMechanics<
 }) {
   const { state, actor, target, actors, actionId } = input
   const currentTargets = input.movementTargets
-  const sourceFacts = currentTargets.get(actor.id)
-  const targetFacts = currentTargets.get(target.id)
+  const currentSourceFacts = currentTargets.get(actor.id)
+  const currentTargetFacts = currentTargets.get(target.id)
   if (
-    !sourceFacts ||
-    !targetFacts ||
-    checksumCanonicalJson(sourceFacts.actor) !== checksumCanonicalJson(actor) ||
-    checksumCanonicalJson(targetFacts.actor) !== checksumCanonicalJson(target)
+    !currentSourceFacts ||
+    !currentTargetFacts ||
+    checksumCanonicalJson(currentSourceFacts.actor) !== checksumCanonicalJson(actor) ||
+    checksumCanonicalJson(currentTargetFacts.actor) !== checksumCanonicalJson(target)
   )
     throw new Error('Encounter action facts are stale.')
+  // A sourced condition's sight-gated roll modes hold only while its holder sees a source
+  // (Frightened, SPELLS-29); a flow that reads no perception keeps them always on.
+  const inSourceSight = async (facts: MovementTarget<TCharacterFacts>) => {
+    const sources = encounterConditionSources(facts)
+    const gatedSourceIds = new Set(
+      facts.conditionMechanics.flatMap(({ conditionDefinitionId, mechanic }) =>
+        mechanic.kind === 'D20_ROLL_MODE' && mechanic.requiresHolderSeesSource
+          ? (sources.get(conditionDefinitionId) ?? [])
+          : []
+      )
+    )
+    if (!gatedSourceIds.size || !input.loadSourcesSeen) return facts
+    return {
+      ...facts,
+      conditionMechanics: encounterConditionMechanicsInSourceSight({
+        mechanics: facts.conditionMechanics,
+        sources,
+        seenActorIds: await input.loadSourcesSeen({
+          holder: facts,
+          sourceActorIds: [...gatedSourceIds].sort()
+        })
+      })
+    }
+  }
+  const [sourceFacts, targetFacts] = await Promise.all([
+    inSourceSight(currentSourceFacts),
+    inSourceSight(currentTargetFacts)
+  ])
   const { source, adapter, targetPolicy, plan } = await prepareEncounterActionSource({
     state,
     actor,
@@ -489,17 +529,17 @@ export async function prepareEncounterActionMechanics<
               attackKind,
               source.kind === 'CHARACTER_ACTION'
                 ? mergeCanonicalD20Contributors(
-                    dnd5eAttackRollContributors(
-                      source.effectivePolicyOutput,
-                      attackKind,
-                      dnd5eCharacterActionTarget(source.candidate)
-                    ),
+                    dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, {
+                      ...dnd5eCharacterActionTarget(source.candidate),
+                      attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
+                    }),
                     contributors
                   )
                 : mergeCanonicalD20Contributors(
                     creatureActiveGrantAttackContributors(
                       actor.id,
                       attackKind,
+                      creatureAttackAbility(source.capability.mechanicFacts.outcomes),
                       sourceFacts.activeEffects
                     ),
                     contributors
@@ -540,7 +580,8 @@ export async function prepareEncounterActionMechanics<
       defenses: dnd5eAttackDamageDefenses(
         targetFacts.defenses,
         targetFacts.qualifiedDefenses,
-        attackTraits
+        attackTraits,
+        source.kind === 'CHARACTER_ACTION' ? source.candidate.mechanicsOwner.id : null
       ),
       conditionImmunityIds: targetFacts.conditionImmunityIds
     }

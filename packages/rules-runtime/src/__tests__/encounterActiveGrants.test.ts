@@ -27,7 +27,9 @@ import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import { checkAbilityCode } from '../encounterMovementPassagePreparation.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
+import { dnd5eAttackRollContributors } from '../systems/dnd5e/characterRollModes.js'
 import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_CHARACTER_WIDE_TARGET } from '../systems/dnd5e/modifierApplicability.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -35,11 +37,13 @@ import {
   antitoxinEffect,
   darkvisionEffect,
   disengageEffect,
+  goldWeakeningEffect,
   helpEffect,
   heroismEffect,
   longstriderEffect,
   protectionFromEnergyEffect,
   shimmeringShieldEffect,
+  speedFractionEffect,
   viciousMockeryEffect
 } from './antitoxinEffectFixture.js'
 import { evaluateSrdCharacter, vocabulary } from './dnd5eSrdCharacter.js'
@@ -172,6 +176,83 @@ describe('Creature holder of an active grant', () => {
     expect(withActiveGrantSpeeds(speeds, [])).toEqual(speeds)
   })
 
+  it('halves every speed, rounded down, by a speed fraction grant (Slowing Breath)', () => {
+    const speeds = [
+      { speedId: WALK_SPEED_ID, amount: 35, unit: 'FEET' },
+      { speedId: FLY_SPEED_ID, amount: 60, unit: 'FEET' }
+    ]
+    const halved = speedFractionEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      fraction: { numerator: 1, denominator: 2 }
+    })
+    expect(withActiveGrantSpeeds(speeds, [halved])).toEqual([
+      { speedId: WALK_SPEED_ID, amount: 17, unit: 'FEET' },
+      { speedId: FLY_SPEED_ID, amount: 30, unit: 'FEET' }
+    ])
+  })
+
+  it('scales only the speed a fraction grant names, after a bonus, with one rounding', () => {
+    const speeds = [
+      { speedId: WALK_SPEED_ID, amount: 30, unit: 'FEET' },
+      { speedId: FLY_SPEED_ID, amount: 60, unit: 'FEET' }
+    ]
+    const thirdOfWalk = speedFractionEffect({
+      id: OTHER_EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      fraction: { numerator: 1, denominator: 3 },
+      speedId: WALK_SPEED_ID
+    })
+    const halved = speedFractionEffect({
+      id: THIRD_EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      fraction: { numerator: 1, denominator: 2 }
+    })
+    // 30 + 10 (Longstrider) = 40, times 1/3 times 1/2 = 6.67, rounded down once.
+    expect(withActiveGrantSpeeds(speeds, [longstrider(), thirdOfWalk, halved])).toEqual([
+      { speedId: WALK_SPEED_ID, amount: 6, unit: 'FEET' },
+      { speedId: FLY_SPEED_ID, amount: 30, unit: 'FEET' }
+    ])
+  })
+
+  it('rolls Strength attacks, checks and saves at disadvantage under Weakening Breath only', () => {
+    const weakened = goldWeakeningEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    const disadvantage = [
+      {
+        sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
+        domainKey: `active-grant:${HOLDER_ID}`,
+        influence: 'DISADVANTAGE'
+      }
+    ]
+    for (const attackDomain of ['MELEE', 'RANGED', 'UNARMED']) {
+      expect(
+        creatureActiveGrantAttackContributors(HOLDER_ID, attackDomain, 'STRENGTH', [weakened])
+      ).toMatchObject(disadvantage)
+      expect(
+        creatureActiveGrantAttackContributors(HOLDER_ID, attackDomain, 'DEXTERITY', [weakened])
+      ).toEqual([])
+      expect(
+        creatureActiveGrantAttackContributors(HOLDER_ID, attackDomain, null, [weakened])
+      ).toEqual([])
+    }
+    expect(creatureActiveGrantCheckContributors(HOLDER_ID, 'STRENGTH', [weakened])).toMatchObject(
+      disadvantage
+    )
+    expect(creatureActiveGrantCheckContributors(HOLDER_ID, 'DEXTERITY', [weakened])).toEqual([])
+    const saves = target([weakened]).targetDerivedFacts.savingThrowDefinitions
+    const select = (abilityDefinitionId: string) =>
+      selectDnd5eTargetSavingThrow({
+        savingThrowDefinitions: saves,
+        abilityDefinitionId,
+        conditionIds: []
+      })
+    expect(select(SRD_ABILITY_DEFINITION_IDS.STRENGTH)).toMatchObject({
+      rollMode: 'DISADVANTAGE',
+      contributors: disadvantage
+    })
+    expect(select(WISDOM)).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+  })
+
   it('falls to its maximum when the maximum hit point grant ends', () => {
     const planned = planEncounterMaintenanceOwner({
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: HOLDER_ID },
@@ -217,11 +298,55 @@ describe('Creature holder of an active grant', () => {
     expect(target([])).toMatchObject({ defenses: [], conditionImmunityIds: [] })
   })
 
+  it('keeps the authored content a defense is limited to, and treats an empty list as unfiltered (REACTION-4.1)', () => {
+    const withSources = (effect: ReturnType<typeof protectionFromEnergyEffect>, ids: string[]) => {
+      if (effect.definition.schemaVersion !== 2)
+        throw new Error('A grant stores a version 2 definition.')
+      return {
+        ...effect,
+        definition: {
+          ...effect.definition,
+          stateContributions: effect.definition.stateContributions.map((contribution) =>
+            contribution.kind === 'MODIFIER_GRANT'
+              ? {
+                  ...contribution,
+                  modifiers: contribution.modifiers.map((modifier) => {
+                    const { payload } = modifier
+                    if (payload === undefined || !('damageTypeId' in payload))
+                      throw new Error('A defense grant names its damage type.')
+                    return {
+                      ...modifier,
+                      payload: { damageTypeId: payload.damageTypeId, sourceEffectIds: ids }
+                    }
+                  })
+                }
+              : contribution
+          )
+        }
+      }
+    }
+    const fire = protectionFromEnergyEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      energyLabel: 'Fire'
+    })
+    expect(target([withSources(fire, ['spell:b', 'spell:a'])]).defenses).toEqual([
+      {
+        kind: 'RESISTANCE',
+        damageTypeId: FIRE_DAMAGE_TYPE_ID,
+        sourceEffectIds: ['spell:a', 'spell:b']
+      }
+    ])
+    expect(target([withSources(fire, [])]).defenses).toEqual([
+      { kind: 'RESISTANCE', damageTypeId: FIRE_DAMAGE_TYPE_ID }
+    ])
+  })
+
   it('rolls its own attacks of each mocked domain with disadvantage (Vicious Mockery)', () => {
     const mockery = viciousMockeryEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
     for (const attackDomain of ['MELEE', 'RANGED', 'SPELL', 'UNARMED']) {
       expect(
-        creatureActiveGrantAttackContributors(HOLDER_ID, attackDomain, [mockery])
+        creatureActiveGrantAttackContributors(HOLDER_ID, attackDomain, null, [mockery])
       ).toMatchObject([
         {
           sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
@@ -230,7 +355,9 @@ describe('Creature holder of an active grant', () => {
         }
       ])
     }
-    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', [antitoxin()])).toEqual([])
+    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', null, [antitoxin()])).toEqual(
+      []
+    )
   })
 
   it('rolls its ability checks with the advantage of a Help, and only an ability check', () => {
@@ -251,7 +378,7 @@ describe('Creature holder of an active grant', () => {
     expect(creatureActiveGrantCheckContributors(HOLDER_ID, null, [antitoxin()])).toEqual([])
     expect(creatureActiveGrantCheckContributors(HOLDER_ID, null, [])).toEqual([])
     // The attack reader reads the Help's attack modifier, never its check modifier.
-    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', [help])).toHaveLength(1)
+    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', null, [help])).toHaveLength(1)
   })
 
   it('applies a Strength check grant to its Athletics skill check, and to no other skill', () => {
@@ -267,7 +394,7 @@ describe('Creature holder of an active grant', () => {
                 ...contribution,
                 modifiers: contribution.modifiers.map((modifier) =>
                   modifier.valueDomainCode === 'ABILITY_CHECK'
-                    ? { ...modifier, domain: { ability: 'STRENGTH' } }
+                    ? { ...modifier, domain: { ability: 'STRENGTH' as const } }
                     : modifier
                 )
               }
@@ -377,6 +504,50 @@ describe('Character holder of an active grant', () => {
       SPELL: 'DISADVANTAGE',
       UNARMED: 'DISADVANTAGE'
     })
+  })
+
+  it('rolls Strength attacks, checks and saves at disadvantage under Weakening Breath only', () => {
+    const policy = evaluateDnd5e2014CharacterPolicy(
+      withCharacterActiveGrants(fighter.facts, [
+        goldWeakeningEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+      ])
+    )
+    expect(policy.rollModes.abilityChecks.STRENGTH).toBe('DISADVANTAGE')
+    expect(policy.rollModes.abilityChecks.DEXTERITY).toBe('NORMAL')
+    expect(policy.rollModes.savingThrows.STRENGTH).toBe('DISADVANTAGE')
+    expect(policy.rollModes.savingThrows.DEXTERITY).toBe('NORMAL')
+    // No attack in particular is evaluated Character-wide, so a Strength-only grant waits for one.
+    expect(policy.rollModes.attacks).toEqual({
+      MELEE: 'NORMAL',
+      RANGED: 'NORMAL',
+      SPELL: 'NORMAL',
+      UNARMED: 'NORMAL'
+    })
+    const attackWith = (attackKind: 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED', ability: string) =>
+      dnd5eAttackRollContributors(policy, attackKind, {
+        ...DND5E_CHARACTER_WIDE_TARGET,
+        attackAbility: ability
+      }).map((contributor) => contributor.influence)
+    for (const attackKind of ['MELEE', 'RANGED', 'UNARMED'] as const) {
+      expect(attackWith(attackKind, 'STRENGTH')).toEqual(['DISADVANTAGE'])
+      expect(attackWith(attackKind, 'DEXTERITY')).toEqual([])
+    }
+    expect(attackWith('SPELL', 'STRENGTH')).toEqual([])
+  })
+
+  it('walks at the fraction of a speed grant (Slowing Breath) once the bonuses are added', () => {
+    const walk = (effects: Parameters<typeof withCharacterActiveGrants>[1]) =>
+      evaluateDnd5e2014CharacterPolicy(
+        withCharacterActiveGrants(fighter.facts, effects)
+      ).movement.speeds.find(({ speedId }) => speedId === WALK_SPEED_ID)?.amount ?? 0
+    const base = walk([])
+    const halved = speedFractionEffect({
+      id: OTHER_EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      fraction: { numerator: 1, denominator: 2 }
+    })
+    expect(walk([halved])).toBe(Math.floor(base / 2))
+    expect(walk([longstrider(), halved])).toBe(Math.floor((base + 10) / 2))
   })
 
   it('raises its maximum hit points by Aid and clamps current hit points when it ends', () => {

@@ -7,14 +7,23 @@ import {
 } from '#core'
 import type { CombatPerceptionRequirement } from '../../rules/combatPerception.js'
 
+/** What the target perceives of its source, which a repeated save's policy reads each turn. */
+export type FollowUpSaveRepeatPerceptionAuthored = {
+  kind: 'PERCEPTION'
+  observer: 'TARGET'
+  subject: 'SOURCE'
+  requirement: CombatPerceptionRequirement
+}
+
 export type FollowUpSaveRepeatRollInfluenceAuthored = {
   influence: 'ADVANTAGE' | 'DISADVANTAGE'
-  when: {
-    kind: 'PERCEPTION'
-    observer: 'TARGET'
-    subject: 'SOURCE'
-    requirement: CombatPerceptionRequirement
-  }
+  when: FollowUpSaveRepeatPerceptionAuthored
+}
+
+/** The repeat is attempted only on turns its perception requirement is met (or unmet). */
+export type FollowUpSaveRepeatAttemptGateAuthored = {
+  allow: 'WHEN_MET' | 'WHEN_UNMET'
+  when: FollowUpSaveRepeatPerceptionAuthored
 }
 
 export type FollowUpSaveBranchAuthored =
@@ -36,6 +45,7 @@ export type FollowUpSaveAuthored = {
   repeatTiming?: FollowUpSaveTiming
   /** System-authored policy for a repeated save; runtime evaluation stays outside this contract. */
   repeatRollInfluence?: FollowUpSaveRepeatRollInfluenceAuthored
+  repeatAttemptGate?: FollowUpSaveRepeatAttemptGateAuthored
   savingThrow: SavingThrowAuthored
   attempts:
     | {

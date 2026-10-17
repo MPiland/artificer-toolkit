@@ -1,7 +1,2 @@
 export * from './charge.js'
-export * from './speed.js'
-export * from './startingEquipment.js'
 export * from './duration.js'
-export * from './range.js'
-export * from './shape.js'
-export * from './scaling.js'

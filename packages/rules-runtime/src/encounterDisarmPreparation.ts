@@ -32,6 +32,7 @@ import type { ReceiptApplications } from './encounterCharacterMechanicsBatch.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import {
   creatureActiveGrantAttackContributors,
+  creatureAttackAbility,
   creatureActiveGrantCheckContributors,
   mergedRollContributors
 } from './encounterActiveGrants.js'
@@ -169,7 +170,10 @@ export function readEncounterDisarmSelection(input: {
         throw new Error('Optional combat Character action policy is stale.')
       const equipment = source.candidate.equipment
       // The same scoped contributors that resolved this action's roll mode.
-      const actionTarget = dnd5eCharacterActionTarget(source.candidate)
+      const actionTarget = {
+        ...dnd5eCharacterActionTarget(source.candidate),
+        attackAbility: decisions[0].mechanic.attackAbility
+      }
       const contributors = (attackKind: 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED') =>
         dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, actionTarget).map(
           ({ sourceId, grantId, domainKey, influence }) => ({
@@ -258,6 +262,7 @@ export function readEncounterDisarmSelection(input: {
           creatureActiveGrantAttackContributors(
             actor.id,
             dnd5eAttackKind(source.capability.compiledEffect.invocation.triggerCode ?? '') ?? '',
+            creatureAttackAbility(source.capability.mechanicFacts.outcomes),
             sourceFacts.activeEffects
           )
         ).contributors
