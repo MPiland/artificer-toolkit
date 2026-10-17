@@ -13,9 +13,11 @@ import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   createSrdRulesRuntime,
   ENCOUNTER_ID,
+  srdCreatureActor,
   srdCreatureTarget,
   srdEncounterState
 } from '../testing/dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { roundAt } from './encounterInitiativeFixtures.js'
 import {
   actorIdByTokenId,
@@ -29,6 +31,7 @@ import {
   placedZone,
   root,
   SOURCE_ID,
+  source,
   START,
   tokens
 } from '../testing/encounterTurnZoneFixture.js'
@@ -46,16 +49,27 @@ function prepare(input: {
   state?: ReturnType<typeof srdEncounterState>
   pending?: ServerRuleExecutionPendingSnapshotDto
   resolution?: EncounterResponseAnswer
+  /** The Scene's tokens and the encounter's actors; the fixture's by default. */
+  tokens?: typeof tokens
+  actors?: typeof actors
 }) {
+  const sceneActors = input.actors ?? actors
   return prepareEncounterTurnZoneEffects({
-    state: input.state ?? srdEncounterState({ actors, currentActorId: GOBLIN_ID, turnSequence: 3 }),
+    state:
+      input.state ??
+      srdEncounterState({ actors: sceneActors, currentActorId: GOBLIN_ID, turnSequence: 3 }),
     userId: GM_USER_ID,
     root,
     occurrenceId: OCCURRENCE_ID,
-    actors,
+    actors: sceneActors,
     boundary: input.boundary,
-    loadScene: async () => ({ effects: input.zones, tokens, actorIdByTokenId }),
-    loadTarget: async (actorId) => srdCreatureTarget(actors.find((actor) => actor.id === actorId)!),
+    loadScene: async () => ({
+      effects: input.zones,
+      tokens: input.tokens ?? tokens,
+      actorIdByTokenId
+    }),
+    loadTarget: async (actorId) =>
+      srdCreatureTarget(sceneActors.find((actor) => actor.id === actorId)!),
     createRuntime: async () => runtime,
     random: () => 0,
     autoRollByActorId: input.autoRollByActorId ?? AUTO_ROLL,
@@ -213,6 +227,60 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
     expect(
       effectIds((await complete(prepare({ zones: [zone], boundary: START, state: spent(3) }))).plan)
     ).toEqual([zone.id])
+  })
+})
+
+describe('a zone that catches only some creatures (SPELLS-20 T4b3a)', () => {
+  /** The goblin moved half its width out of the zone: it still shares area with it. */
+  const partlyOut = tokens.map((token) =>
+    token.id === tokens[0]!.id
+      ? { ...token, position: { x: token.position.x + 50, y: token.position.y } }
+      : token
+  )
+  const fullyWithin = authoredZone(['START_TURN_IN_SPACE'], undefined, {
+    requiresFullyWithin: true
+  })
+
+  it('catches a creature whose whole space is inside a zone that requires it', async () => {
+    const zone = placedZone(0x3a1, fullyWithin, 1)
+    const phase = await complete(prepare({ zones: [zone], boundary: START }))
+    expect(effectIds(phase.plan)).toEqual([zone.id])
+  })
+
+  it('does not catch a creature only partly inside a zone that requires it fully within', async () => {
+    const zone = placedZone(0x3a1, fullyWithin, 1)
+    const phase = await complete(prepare({ zones: [zone], boundary: START, tokens: partlyOut }))
+    expect(phase.plan).toBeNull()
+    // The same footprint is caught by a zone that needs only overlap.
+    const overlap = placedZone(0x3a2, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const caught = await complete(prepare({ zones: [overlap], boundary: START, tokens: partlyOut }))
+    expect(effectIds(caught.plan)).toEqual([overlap.id])
+  })
+
+  it('lets a poison-immune creature succeed automatically on a zone save that names it', async () => {
+    const skeleton = srdCreatureActor({
+      id: GOBLIN_ID,
+      creature: srdByLabel(SRD.creatures, 'Skeleton')
+    })
+    const zone = placedZone(
+      0x3a1,
+      authoredZone(['START_TURN_IN_SPACE'], undefined, {
+        automaticSaveSuccessConditions: ['POISON_IMMUNE']
+      }),
+      1
+    )
+    const phase = await complete(
+      prepare({ zones: [zone], boundary: START, actors: [skeleton, source] })
+    )
+    // The scripted roll is the lowest face, which fails the save unless it succeeds unrolled.
+    const [execution] = phase.plan!.executions
+    expect(execution!.targetTransition.after).toEqual(execution!.targetTransition.before)
+    // A creature without the immunity fails the same save.
+    const goblinPhase = await complete(prepare({ zones: [zone], boundary: START }))
+    const [failed] = goblinPhase.plan!.executions
+    expect(failed!.targetTransition.after.currentHitPoints).toBe(
+      failed!.targetTransition.before.currentHitPoints - 1
+    )
   })
 })
 

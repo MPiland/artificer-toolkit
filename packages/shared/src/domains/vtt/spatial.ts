@@ -103,6 +103,8 @@ export interface SpatialEffectInstance {
   readonly unaffectedActorIds?: readonly string[]
   /** How many times the effect may catch one creature in one turn; absent for no limit. */
   readonly maxApplicationsPerTurn?: number
+  /** At a turn boundary, catches only a creature whose whole space is inside the area. */
+  readonly requiresFullyWithin?: boolean
 }
 
 /** The space a token occupies. */
@@ -369,6 +371,22 @@ function footprintOverlapsSpatialGeometry(value: Footprint, geometry: SpatialGeo
   return geometry.kind === 'CIRCLE'
     ? distanceFromFootprint(value, geometry.center) < geometry.radius - EPSILON
     : polygonFootprintOverlapArea(geometry.points, value) > EPSILON
+}
+
+/**
+ * Whether the footprint lies entirely inside the geometry; its edges may lie on the boundary. A
+ * circle is convex, so holding the four corners holds the footprint; a polygon (convex or concave)
+ * holds it when their shared area is the whole footprint.
+ */
+function footprintWithinSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
+  return geometry.kind === 'CIRCLE'
+    ? footprintCorners(value).every(
+        (corner) =>
+          Math.hypot(corner.x - geometry.center.x, corner.y - geometry.center.y) <=
+          geometry.radius + EPSILON
+      )
+    : polygonFootprintOverlapArea(geometry.points, value) >=
+        4 * value.halfWidth * value.halfHeight - EPSILON
 }
 
 /**
@@ -1242,8 +1260,9 @@ export interface SpatialTurnCandidate {
 
 /**
  * The effects that catch a creature at a turn boundary: those with that turn trigger whose area
- * the target's footprint currently shares area with, that do not exempt it and whose per-turn limit
- * is not spent. Like {@link collectSpatialMovementCandidates} it only reports contact facts.
+ * the target's footprint currently shares area with (or lies wholly inside, for an effect that
+ * requires it), that do not exempt it and whose per-turn limit is not spent. Like
+ * {@link collectSpatialMovementCandidates} it only reports contact facts.
  */
 export function collectSpatialTurnCandidates(input: {
   readonly actorIdByTokenId: ReadonlyMap<string, string>
@@ -1274,7 +1293,10 @@ export function collectSpatialTurnCandidates(input: {
       )
         return false
       const geometry = effectiveSpatialGeometry(effect, input.tokens)
-      return !!geometry && spatialGeometryOverlapsTokenFootprint({ geometry, token: target })
+      if (!geometry) return false
+      return effect.requiresFullyWithin
+        ? footprintWithinSpatialGeometry(footprint(target), geometry)
+        : spatialGeometryOverlapsTokenFootprint({ geometry, token: target })
     })
     .map((effect) => ({
       effectId: effect.effectId,
