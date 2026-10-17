@@ -1,6 +1,7 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
+  creatureFormContribution,
   revertActorForm,
   type EncounterActorFormCreature
 } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -9,22 +10,14 @@ import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from 
 import type { EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
-/** The creature form an effect holds (D130), or null when the effect holds none. */
-function creatureFormOf(definition: ActiveRuleEffectDefinitionDto) {
-  if (definition.schemaVersion !== 2) return null
-  for (const contribution of definition.stateContributions)
-    if (contribution.kind === 'CREATURE_FORM') return contribution
-  return null
-}
-
 /** Whether the effect is the rule that holds a creature form (D130); only its end touches the actor. */
 export function holdsActorForm(definition: ActiveRuleEffectDefinitionDto) {
-  return creatureFormOf(definition) !== null
+  return creatureFormContribution({ definition }) !== null
 }
 
 /** The Creature a created form effect swaps in, or null when the effect holds no form. */
 export function createdFormCreatureId(effect: Pick<ActiveRuleEffectRecord, 'definition'>) {
-  return creatureFormOf(effect.definition)?.creatureId ?? null
+  return creatureFormContribution(effect)?.creatureId ?? null
 }
 
 /**
@@ -63,7 +56,7 @@ export function actorFormEntry(
   effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition'>,
   creature: EncounterActorFormCreature
 ): EncounterMechanicsBatchInput['enterForm'] {
-  const form = creatureFormOf(effect.definition)
+  const form = creatureFormContribution(effect)
   return form
     ? { effectId: effect.id, excessDamageCarriesOver: form.excessDamageCarriesOver, creature }
     : undefined
