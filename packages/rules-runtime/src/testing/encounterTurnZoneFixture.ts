@@ -8,7 +8,12 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { ENCOUNTER_ID, srdCreatureActor, testUuid, TIMESTAMP } from './dnd5eSrdEncounter.js'
-import { diceDamage, variantEquipment, zonePlacementOf } from './authoredZoneFixture.js'
+import {
+  diceDamage,
+  variantEquipment,
+  zonePlacementOf,
+  type ZoneParts
+} from './authoredZoneFixture.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 
 const GOBLIN = srdByLabel(SRD.creatures, 'Goblin')
@@ -48,16 +53,21 @@ export const root = turnCoordinatorRootDtoSchema.parse({
   resolutionCommands: []
 })
 
-/** A 5-foot Caltrops-shaped zone whose failed Dexterity save (DC 15) deals 1d4, acting at the given boundaries. */
+/**
+ * A 5-foot Caltrops-shaped zone whose failed Dexterity save (DC 15) deals 1d4, acting at the given
+ * boundaries, with any other component options authored on it.
+ */
 export function authoredZone(
   interactionKinds: ('ENTER_SPACE' | 'START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
-  maxApplicationsPerTurn?: number
+  maxApplicationsPerTurn?: number,
+  componentOptions: Partial<ZoneParts['component']> = {}
 ): EquipmentAuthored {
   return variantEquipment((parts) => {
     diceDamage('1d4')(parts)
     parts.component.interactionKinds = interactionKinds
     if (maxApplicationsPerTurn !== undefined)
       Object.assign(parts.component, { maxApplicationsPerTurn })
+    Object.assign(parts.component, componentOptions)
   })
 }
 

@@ -280,6 +280,34 @@ describe('a zone that applies once per turn (SPELLS-20 T4b1)', () => {
   })
 })
 
+describe('a zone that catches only creatures fully within it (SPELLS-20 T4b3a)', () => {
+  const authored = variantEquipment(({ component }) => {
+    component.interactionKinds = ['START_TURN_IN_SPACE']
+    component.requiresFullyWithin = true
+  })
+
+  it('compiles the rule onto the zone and its placement, which the SRD Caltrops zone does not offer', () => {
+    expect(zonePlacementOf(authored).requiresFullyWithin).toBe(true)
+    expect(zonePlacementOf()).not.toHaveProperty('requiresFullyWithin')
+    const place = (zone: ReturnType<typeof zonePlacementOf>) =>
+      planEncounterPlacedZone({
+        zone,
+        id: ZONE_ID,
+        maintainedEffectStateId: null,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: OCCURRENCE_ID,
+        rootCommandId: SPREAD_COMMAND_ID,
+        sourceActorId: SOURCE_ID,
+        point: { x: 250, y: 350 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: null
+      }).placement
+    expect(place(zonePlacementOf(authored)).requiresFullyWithin).toBe(true)
+    expect(place(zonePlacementOf())).not.toHaveProperty('requiresFullyWithin')
+  })
+})
+
 describe('a zone that triggers at turn boundaries (SPELLS-20 T4b2a)', () => {
   const withInteractions = (
     interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']>
@@ -673,9 +701,16 @@ describe('a zone the System cannot honor in full stays manual', () => {
     [
       'an unmodeled component field',
       ({ component }) => {
-        Object.assign(component, { requiresFullyWithin: true })
+        Object.assign(component, { hollow: true })
       }
     ],
+    [
+      'a fully-within rule on a zone that a mover enters',
+      ({ component }) => {
+        component.requiresFullyWithin = true
+      }
+    ],
+
     [
       'a save DC that is not fixed',
       ({ invocation }) => {

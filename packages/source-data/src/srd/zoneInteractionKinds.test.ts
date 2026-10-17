@@ -13,6 +13,8 @@ import { insectPlague } from './spells/insect-plague.js'
 import { moonbeam } from './spells/moonbeam.js'
 import { sleetStorm } from './spells/sleet-storm.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
+import { stinkingCloud } from './spells/stinking-cloud.js'
+import { damageTypeId } from './spells/shared.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
 function interactionKindsByComponent(node: unknown): Record<string, readonly string[]> {
@@ -115,11 +117,11 @@ function placedZoneOf(spell: SpellAuthored) {
 }
 
 /**
- * SPELLS-4.T1a, T1c and T1d: SRD rules of the hazard zones a placed zone cannot run yet. The zone
+ * SPELLS-4.T1a, T1c, T1d and SPELLS-20.T4b3a: SRD rules of the hazard zones a placed zone cannot run yet. The zone
  * compiler refuses any authored option it does not model, so each stays unauthored (the zone then
  * still compiles) and leaves this list when a task models it (registration is the orchestrator's).
  */
-describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c, T1d)', () => {
+describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c, T1d, SPELLS-20.T4b3a)', () => {
   const zoneGaps = [
     { spell: cloudkill, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: cloudkill, rule: 'fog spreads around corners', option: 'spreadsAroundCorners' },
@@ -132,7 +134,10 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
       option: 'spreadsAroundCorners'
     },
     { spell: moonbeam, rule: 'dim light filling the cylinder', option: 'light' },
-    { spell: sleetStorm, rule: 'heavily obscured area', option: 'obscurementKind' }
+    { spell: sleetStorm, rule: 'heavily obscured area', option: 'obscurementKind' },
+    { spell: stinkingCloud, rule: 'heavily obscured area', option: 'obscurementKind' },
+    { spell: stinkingCloud, rule: 'cloud spreads around corners', option: 'spreadsAroundCorners' },
+    { spell: stinkingCloud, rule: 'wind dispersal', option: 'destructionCriteria' }
   ] as const
   it.each(zoneGaps)(
     '$spell.label: the $rule is unauthored ($option, no task yet)',
@@ -151,6 +156,13 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
       expect(placedZoneOf(spell).components?.[0]).not.toHaveProperty('movementCostMultiplier')
     }
   )
+
+  // D141: no creature fact says a creature does not breathe; the rider is a deferred edge case.
+  it('authors Stinking Cloud’s automatic success only for immunity to poison damage', () => {
+    expect(placedZoneOf(stinkingCloud).components?.[0]).toMatchObject({
+      automaticSaveSuccessImmunityDamageTypeId: damageTypeId('POISON')
+    })
+  })
 
   /**
    * Not authorable at all yet, so nothing in the record can show them: Cloudkill's fog moving 10

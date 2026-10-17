@@ -145,7 +145,8 @@ export type ManifestComponentAuthored = {
   choosesUnaffected?: boolean
   movementCostMultiplier?: number
   requiresFullyWithin?: boolean
-  automaticSaveSuccessConditions?: Array<'DOES_NOT_BREATHE' | 'POISON_IMMUNE'>
+  /** A target immune to this damage type succeeds on the component's save unrolled. */
+  automaticSaveSuccessImmunityDamageTypeId?: string
   requiresIgnition?: boolean
   maxApplicationsPerTurn?: number
   maxApplicationsTotal?: number

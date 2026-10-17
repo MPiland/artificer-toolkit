@@ -858,8 +858,9 @@ const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.de
 
 const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifestComponent.define(
   'manifestComponent',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { text, number, selectSingle, selectMulti, toggle, groupArray } = nodes
+    const { table } = data
 
     map
       .set('id', text(['id'], 'ID'))
@@ -895,14 +896,17 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       )
       .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
       .set(
-        'automaticSaveSuccessConditions',
-        selectMulti(['automaticSaveSuccessConditions'], 'Automatic Save Success', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'DOES_NOT_BREATHE', label: 'Does Not Breathe' },
-            { code: 'POISON_IMMUNE', label: 'Poison Immune' }
-          ]
-        })
+        'automaticSaveSuccessImmunityDamageTypeId',
+        selectSingle(
+          ['automaticSaveSuccessImmunityDamageTypeId'],
+          'Automatic Save Success on Damage Immunity',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          }
+        )
       )
       .set('requiresIgnition', toggle(['requiresIgnition'], 'Requires Ignition'))
       .set(

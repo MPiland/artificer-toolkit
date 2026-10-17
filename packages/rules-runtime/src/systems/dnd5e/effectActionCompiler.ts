@@ -230,6 +230,9 @@ const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-roll-influence'
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
   'dnd5e.active-effect-repeat-save-perception-requirement'
+/** The damage type whose immunity makes the target succeed on this effect's save unrolled. */
+const DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY =
+  'dnd5e.active-effect-save-success-immunity-damage-type-id'
 /** Whether a repeat save is attempted when its perception requirement is met or unmet. */
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-attempt-gate'
@@ -2219,6 +2222,10 @@ function zonePlacementPlan(
         : 'A placed zone takes a point or the caster as its center.'
     )
   const pinnedDc = pinnedSaveDc(savingThrow)
+  const { requiresFullyWithin, automaticSaveSuccessImmunityDamageTypeId: successImmunity } =
+    zone.component
+  if (requiresFullyWithin && triggers?.triggerModes.length)
+    unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
   if (
     !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
@@ -2283,7 +2290,13 @@ function zonePlacementPlan(
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
-      [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20'
+      [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20',
+      ...(successImmunity
+        ? {
+            [DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]:
+              damageTypeIdentity(successImmunity)
+          }
+        : {})
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
@@ -2328,6 +2341,7 @@ function zonePlacementPlan(
     ...(zone.component.maxApplicationsPerTurn
       ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
       : {}),
+    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
     entry: {
       ...entryPlan,
       frozenGraph: stops.length ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
@@ -3980,7 +3994,12 @@ export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract
   }
 }
 
-const DND5E_TEST_OUTCOME_RULES = ['NONE', 'SAVE_AUTO_FAIL', 'HIT_IS_CRITICAL'] as const
+const DND5E_TEST_OUTCOME_RULES = [
+  'NONE',
+  'SAVE_AUTO_FAIL',
+  'SAVE_AUTO_SUCCESS',
+  'HIT_IS_CRITICAL'
+] as const
 type Dnd5eTestOutcomeRule = (typeof DND5E_TEST_OUTCOME_RULES)[number]
 
 function isDnd5eTestOutcomeRule(value: unknown): value is Dnd5eTestOutcomeRule {
@@ -3989,7 +4008,8 @@ function isDnd5eTestOutcomeRule(value: unknown): value is Dnd5eTestOutcomeRule {
 
 /**
  * The D&D test result path. A natural 20 always hits critically and a natural 1 always misses; a
- * target's condition can make a hit critical or a save fail without counting the roll (D94).
+ * target's condition can make a hit critical or a save fail without counting the roll (D94), and an
+ * authored automatic success (a poison-immune creature) makes a save succeed without counting it.
  */
 function dnd5eTestResultPath(input: {
   kind: TestKind
@@ -3999,7 +4019,8 @@ function dnd5eTestResultPath(input: {
   outcomeRule: Dnd5eTestOutcomeRule
 }) {
   if (input.kind === 'SAVE')
-    return input.outcomeRule !== 'SAVE_AUTO_FAIL' && input.total >= input.threshold
+    return input.outcomeRule === 'SAVE_AUTO_SUCCESS' ||
+      (input.outcomeRule !== 'SAVE_AUTO_FAIL' && input.total >= input.threshold)
       ? 'ON_SAVE_SUCCESS'
       : 'ON_SAVE_FAIL'
   if (input.naturalD20 === 20) return 'ON_CRIT'
@@ -8370,6 +8391,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     temporaryHitPoints,
     maximumHitPoints,
     targetScalarValues,
+    defenses,
     conditionImmunityIds,
     perception
   }) => {
@@ -8520,14 +8542,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
     const attemptAllowed = !gate || perception?.satisfied === (gate.allow === 'WHEN_MET')
+    const successImmunity =
+      definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
+    const succeedsUnrolled = defenses.some(
+      (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
+    )
     const facts = {
       ...baseFacts,
       [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
       [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-      [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
-        conditionOutcomeRules,
-        abilityDefinitionId
-      ),
+      [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: succeedsUnrolled
+        ? 'SAVE_AUTO_SUCCESS'
+        : dnd5eSaveOutcomeRule(conditionOutcomeRules, abilityDefinitionId),
       ...(gate ? { [DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]: attemptAllowed } : {})
     }
     // A refused attempt settles its d20 without a request, so no roll is asked for.
