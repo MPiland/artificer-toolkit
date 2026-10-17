@@ -8,7 +8,7 @@ import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/char
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 
 import { abilityModifier } from './abilityModifier.js'
-import { combineDnd5eArmorClass } from './armorClass.js'
+import { combineDnd5eArmorClass, selectDnd5eHeldShield } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { hitPointGain } from './hitPointRules.js'
@@ -41,17 +41,10 @@ export function resolveDnd5eActiveShield(
         activeEquipmentInstanceIds.includes(item.itemInstanceId)
     )
     .map((item) => ({
-      slot: item.equippedSlot,
+      inMainHand: item.equippedSlot === 'MAIN_HAND',
       shield: { itemInstanceId: item.itemInstanceId, armorClass: item.armorClass ?? 2 }
     }))
-  const best = held.reduce<(typeof held)[number] | undefined>((chosen, candidate) => {
-    if (chosen === undefined) return candidate
-    const difference = armorClassOf(candidate.shield) - armorClassOf(chosen.shield)
-    return difference > 0 || (difference === 0 && candidate.slot === 'MAIN_HAND')
-      ? candidate
-      : chosen
-  }, undefined)
-  return best?.shield ?? null
+  return selectDnd5eHeldShield(held, armorClassOf)
 }
 
 /** The armor class a shield adds: its base value and the applied modifiers it owns (magic +N). */

@@ -15,6 +15,7 @@ import type { MutationCtx } from '../_generated/server'
 import { readCampaignInventoryCurrencyOptions } from './characterCurrencyLifecycle'
 import type { InventoryCustodyOwner } from './inventoryCustodyOwners'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
+import { removeCharacterItemReferences } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
 import { retainCharacterEquipmentRules } from '../characters/acquiredEquipment'
 import { readPartyVehicleItemForest } from './partyVehicleTransfer'
 
@@ -43,31 +44,6 @@ function toSharedHeldItem(item: Doc<'campaignPartyItems'>) {
     ...held
   } = item
   return held
-}
-function removeRosterReferences(owner: CharacterOwner, removedItemIds: ReadonlySet<string>) {
-  const filterRoster = (roster: Record<string, { equipmentItemId: string }[]>) =>
-    Object.fromEntries(
-      Object.entries(roster).map(([id, entries]) => [
-        id,
-        entries.filter((entry) => !removedItemIds.has(entry.equipmentItemId))
-      ])
-    )
-  const state = owner.character.state
-  owner.character = {
-    ...owner.character,
-    state: {
-      ...state,
-      equipment: {
-        ...state.equipment,
-        equipped: state.equipment.equipped.filter(({ itemId }) => !removedItemIds.has(itemId)),
-        attuned: state.equipment.attuned.filter((itemId) => !removedItemIds.has(itemId))
-      },
-      ...(state.creatureEquipment
-        ? { creatureEquipment: filterRoster(state.creatureEquipment) }
-        : {}),
-      ...(state.vehicleEquipment ? { vehicleEquipment: filterRoster(state.vehicleEquipment) } : {})
-    }
-  }
 }
 
 function assertDistinctGroupIds(groups: readonly { id: string }[], label: string) {
@@ -354,10 +330,13 @@ export async function transferCharacterItemCustody(
         )
       }
     }
-    removeRosterReferences(
-      source,
-      new Set([...movedOriginalIds].filter((movedId) => !sourceReplacementIds.has(movedId)))
-    )
+    source.character = {
+      ...source.character,
+      state: removeCharacterItemReferences(
+        source.character.state,
+        new Set([...movedOriginalIds].filter((movedId) => !sourceReplacementIds.has(movedId)))
+      )
+    }
   } else {
     for (const balance of sourceForest!.balances) await ctx.db.delete(balance._id)
     for (const group of sourceForest!.groups) await ctx.db.delete(group._id)

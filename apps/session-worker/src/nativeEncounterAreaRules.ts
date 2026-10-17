@@ -31,6 +31,7 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import {
   encounterActionCurrentnessChecksum,
   prepareEncounterActionMechanics,
@@ -700,23 +701,21 @@ export async function openReachCastWindow(
 function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
   caught: readonly Caught[],
   pool: number,
-  excludedCreatureTypeIds: readonly string[],
+  targeting: CompiledActionTargetPolicy['targeting'],
   movementTargets: ReadonlyMap<string, { state: { current: number } }>
 ) {
-  const eligible = caught.filter(({ actor }) => {
-    const creatureTypeId = snapshotCreatureTypeId(actor)
-    return creatureTypeId === null || !excludedCreatureTypeIds.includes(creatureTypeId)
-  })
   const covered = new Set(
     selectHitPointPoolTargets(
       pool,
-      eligible.map(({ actor }) => ({
+      caught.map(({ actor }) => ({
         actorId: actor.id,
-        currentHitPoints: movementTargets.get(actor.id)!.state.current
-      }))
+        currentHitPoints: movementTargets.get(actor.id)!.state.current,
+        creatureTypeId: snapshotCreatureTypeId(actor)
+      })),
+      targeting
     )
   )
-  return eligible.filter(({ actor }) => covered.has(actor.id))
+  return caught.filter(({ actor }) => covered.has(actor.id))
 }
 
 /**
@@ -756,7 +755,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
         evaluateRollExpression(parseRollExpression(contents.hitPointPool.diceConfig), {
           nextInt: input.random ?? nextRollInt
         }).evidence.total,
-        contents.excludedCreatureTypeIds ?? [],
+        contents,
         movementTargets
       )
     : caughtInArea

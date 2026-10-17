@@ -11,7 +11,8 @@ import {
   conversationParticipants as readConversationParticipants,
   conversationAccess as readConversationAccess,
   openConversation as openStoredConversation,
-  insertConversationEntry as insertStoredConversationEntry
+  insertConversationEntry as insertStoredConversationEntry,
+  readConversationEntryReplay as readStoredConversationEntryReplay
 } from '@artificer-toolkit/encounter-persistence/conversationPersistence'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -125,6 +126,23 @@ export async function presentConversation(
     lastReadAt: member.lastReadAt,
     unreadCount: await countUnreadEntries(ctx, conversation, member)
   })
+}
+
+/** The member's earlier entry for this client nonce, or null; see the shared reader. */
+export async function readConversationEntryReplay(
+  ctx: QueryCtx,
+  access: Awaited<ReturnType<typeof openConversation>>,
+  authorUserId: string,
+  clientNonce: string,
+  kind: Doc<'campaignConversationEntryPayloads'>['kind']
+) {
+  return readStoredConversationEntryReplay(
+    { db: createConvexEncounterStoreReader(ctx) },
+    access,
+    authorUserId,
+    clientNonce,
+    kind
+  )
 }
 
 export async function readEntryPayload(ctx: QueryCtx, entryId: string) {
