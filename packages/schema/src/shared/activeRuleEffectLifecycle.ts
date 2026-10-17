@@ -27,8 +27,8 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
       z.strictObject({
         sourceId: postgresUuidSchema,
         sourceRevision: z.number().check(z.int()).check(z.positive()),
-        // Opaque here: a recursive JSON schema in this widely shared lifecycle exceeds the compiler's depth.
-        snapshot: z.unknown(),
+        /** JSON text, as `definitionJson` is, so the lifecycle stays a flat Convex validator. */
+        snapshotJson: z.string(),
         currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
         maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
         tempHitPoints: z.number().check(z.int()).check(z.nonnegative())

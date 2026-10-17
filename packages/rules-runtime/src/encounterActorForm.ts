@@ -156,8 +156,15 @@ export function carriedCreatureForm(
   form: CharacterActorForm
 ): NonNullable<ActiveRuleEffectLifecycleDto['carriedCreatureForm']> {
   const { sourceId, sourceRevision, snapshot, currentHitPoints, maxHitPoints, tempHitPoints } = form
-  return { sourceId, sourceRevision, snapshot, currentHitPoints, maxHitPoints, tempHitPoints }
-}
+  return {
+    sourceId,
+    sourceRevision,
+    snapshotJson: JSON.stringify(snapshot),
+    currentHitPoints,
+    maxHitPoints,
+    tempHitPoints
+  }
+}}
 
 /** A new Run's Character actor resumes the form its carried effect holds, with the hit points it kept. */
 export function resumeCharacterForm(
@@ -173,8 +180,12 @@ export function resumeCharacterForm(
         form: {
           effectId: effect.id,
           excessDamageCarriesOver: contribution.excessDamageCarriesOver,
-          ...carried,
-          snapshot: jsonValueSchema.parse(carried.snapshot)
+          sourceId: carried.sourceId,
+          sourceRevision: carried.sourceRevision,
+          snapshot: jsonValueSchema.parse(JSON.parse(carried.snapshotJson)),
+          currentHitPoints: carried.currentHitPoints,
+          maxHitPoints: carried.maxHitPoints,
+          tempHitPoints: carried.tempHitPoints
         }
       }
   }

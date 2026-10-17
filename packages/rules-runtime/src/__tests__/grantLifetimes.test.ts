@@ -1039,7 +1039,12 @@ describe('planCarriedOverEffects', () => {
     expect(resumeCharacterForm(actor, [carried]).form).toEqual({
       effectId: effect.id,
       excessDamageCarriesOver: true,
-      ...carriedForm
+      sourceId: carriedForm.sourceId,
+      sourceRevision: 1,
+      snapshot: { label: 'Giant Ape' },
+      currentHitPoints: 40,
+      maxHitPoints: 157,
+      tempHitPoints: 0
     })
     expect(resumeCharacterForm(actor, [effect])).toBe(actor)
   })
