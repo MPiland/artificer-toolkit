@@ -11,9 +11,26 @@ import { pathToFileURL } from 'node:url'
 
 const TEST_DIRECTORIES = new Set(['test', 'tests', '__tests__', 'testing', 'fixtures', '__snapshots__'])
 
-/** Test files and test-only helpers: a `.test.` file or anything under a test directory. */
+const TEST_FILE = /\.test\.[cm]?[jt]sx?$/
+
+/** Test files and test-only helpers: a `.test.` or `.fixtures.` file, or anything under a test directory. */
 export const isTestPath = (path) =>
-  /\.test\.[cm]?[jt]sx?$/.test(path) || path.split('/').slice(0, -1).some((part) => TEST_DIRECTORIES.has(part))
+  TEST_FILE.test(path) ||
+  /\.fixtures?\.[cm]?[jt]sx?$/.test(path) ||
+  path.split('/').slice(0, -1).some((part) => TEST_DIRECTORIES.has(part))
+
+/**
+ * Packages whose build output carries a changed test helper (such as rules-runtime's `src/testing`),
+ * which other suites import from `dist`; they are rebuilt once the tip's helpers are in place.
+ */
+export const packagesToRebuild = (files) => [
+  ...new Set(
+    files
+      .filter((file) => !TEST_FILE.test(file) && !/\/(__tests__|__snapshots__)\//.test(file))
+      .map((file) => /^packages\/([^/]+)\/src\//.exec(file)?.[1])
+      .filter(Boolean)
+  )
+]
 
 /** The Vitest invocation that owns a test file, or undefined when no suite runs it. */
 export function runnerFor(path) {
@@ -27,8 +44,11 @@ export function runnerFor(path) {
     }
   if (/^apps\/web\/src\/.+\.test\.tsx?$/.test(path) && !path.endsWith('.browser.test.tsx'))
     return { name: 'web', cwd: 'apps/web', args: ['--config', 'vitest.config.ts', '--project=unit'] }
+  // The root config's include list.
   if (
-    /^(packages\/[^/]+\/src|apps\/apis\/src|apps\/session-worker\/src)\/.+\.test\.tsx?$/.test(path) ||
+    /^packages\/(design-system|shared|schema)\/src\/__tests__\/.+\.test\.ts$/.test(path) ||
+    /^packages\/emails\/src\/__tests__\/.+\.test\.tsx?$/.test(path) ||
+    /^(packages\/(authoring|source-data|rules-runtime|encounter-persistence)\/src|apps\/apis\/src|apps\/session-worker\/src)\/.+\.test\.ts$/.test(path) ||
     /^scripts\/.+\.test\.mjs$/.test(path)
   )
     return { name: 'root', cwd: '.', args: ['--config', 'vitest.config.ts'] }
@@ -50,7 +70,13 @@ export function classify(files, reports, root) {
     if (result.status !== 'failed') return { file, outcome: 'ALREADY-PASSING', detail: '' }
     const failed = result.assertionResults.filter((assertion) => assertion.status === 'failed')
     if (failed.length)
-      return { file, outcome: 'RED', detail: `${failed.length} failing test(s): ${firstLine(failed[0].failureMessages[0])}` }
+      return {
+        file,
+        outcome: 'RED',
+        detail: `${failed.length} of ${result.assertionResults.length} failing: ${failed
+          .map((assertion) => `"${assertion.fullName}"`)
+          .join(', ')}. First: ${firstLine(failed[0].failureMessages[0])}`
+      }
     return { file, outcome: 'RED-IMPORT', detail: firstLine(result.message) }
   })
 }
@@ -90,8 +116,10 @@ export const changedTestFiles = (root, base) =>
 
 /** Runs each runner's files once; returns the rows, or throws when a runner left no report. */
 function runFiles(root, files) {
+  // tsc still emits when the phase branch's code fails to type the tip's helper; the tests then report it.
+  for (const name of packagesToRebuild(files)) run(root, ['workspace', `@artificer-toolkit/${name}`, 'build'])
   const groups = Map.groupBy(
-    files.filter((file) => /\.test\.[cm]?[jt]sx?$/.test(file)),
+    files.filter((file) => TEST_FILE.test(file)),
     (file) => runnerFor(file)?.name
   )
   const rows = (groups.get(undefined) ?? []).map((file) => ({

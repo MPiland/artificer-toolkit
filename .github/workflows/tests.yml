@@ -83,10 +83,10 @@ jobs:
       - name: Package tests
         id: tests
         run: |
-          for package in schema shared source-data emails rules-runtime encounter-persistence; do
+          for package in schema shared source-data emails design-system rules-runtime encounter-persistence apis; do
             yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
           done
-          yarn vitest run --config vitest.config.ts scripts --reporter=default --reporter=json --outputFile.json=local-validation/vitest-scripts.json
+          yarn vitest run --config vitest.config.ts scripts/*.test.mjs --reporter=default --reporter=json --outputFile.json=local-validation/vitest-scripts.json
       - uses: ./.github/actions/regenerate-snapshots
         if: failure() && steps.tests.outcome == 'failure'
         with:
@@ -155,6 +155,8 @@ jobs:
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
   # labels each file RED, RED-IMPORT or ALREADY-PASSING (scripts/redProof.mjs). Those outcomes all pass;
   # the job fails only when a suite cannot report. Merge batches already proved red on their slices.
+  # It holds one of the account's 20 job slots for its own install and build, so beside two other runs it can
+  # queue another run's jobs; a single run is no slower.
   red:
     name: Red proof against the phase branch
     if: ${{ !startsWith(github.ref_name, 'ci/merge-') }}
@@ -165,6 +167,7 @@ jobs:
         with:
           fetch-depth: 0
           filter: blob:none
+          persist-credentials: false
       - name: Restore the phase branch's production code
         id: restore
         run: |
@@ -172,18 +175,23 @@ jobs:
           tip=$(git rev-parse HEAD)
           base=$(git merge-base HEAD origin/codex/phase-08-2-convex-cutover)
           node "$RUNNER_TEMP/redProof.mjs" changed "$base" > "$RUNNER_TEMP/red-files.txt"
-          if [ ! -s "$RUNNER_TEMP/red-files.txt" ]; then
+          if ! grep -qE '\.test\.[cm]?[jt]sx?$' "$RUNNER_TEMP/red-files.txt"; then
             echo "No new or changed test files against the phase branch ($base); nothing to prove red." >> "$GITHUB_STEP_SUMMARY"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "tip=$tip" >> "$GITHUB_OUTPUT"
           git checkout --quiet --detach "$base"
-          xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' git checkout "$tip" --
-          echo "Base $base; the tip's test files:" && cat "$RUNNER_TEMP/red-files.txt"
+      # Package builds compile their test files too, so the tip's tests join only after the build.
       - uses: ./.github/actions/setup
         if: steps.restore.outputs.skip != 'true'
         with:
           build: 'true'
+      - name: Keep the tip's changed test files
+        if: steps.restore.outputs.skip != 'true'
+        run: |
+          xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' git checkout ${{ steps.restore.outputs.tip }} --
+          cat "$RUNNER_TEMP/red-files.txt"
       - name: Run the changed tests without the slice
         if: steps.restore.outputs.skip != 'true'
         run: xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' node "$RUNNER_TEMP/redProof.mjs" run

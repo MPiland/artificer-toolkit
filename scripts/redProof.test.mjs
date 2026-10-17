@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { changedTestFiles, classify, isTestPath, runnerFor, summary } from './redProof.mjs'
+import { changedTestFiles, classify, isTestPath, packagesToRebuild, runnerFor, summary } from './redProof.mjs'
 
 const git = (root, ...args) =>
   execFileSync(
@@ -23,6 +23,7 @@ describe('isTestPath', () => {
         'apps/apis/tests/convexTest.ts',
         'apps/web/src/test/setup.ts',
         'packages/authoring/src/fixtures/zone.ts',
+        'apps/web/src/domains/characters/characterList.fixtures.ts',
         'apps/apis/convex/__snapshots__/a.test.ts.snap'
       ].every(isTestPath)
     ).toBe(true)
@@ -58,6 +59,7 @@ describe('runnerFor', () => {
   it('runs no suite for browser-only and unincluded tests', () => {
     expect(runnerFor('apps/web/src/vtt/Board.browser.test.tsx')).toBeUndefined()
     expect(runnerFor('apps/session-worker/test/other.test.ts')).toBeUndefined()
+    expect(runnerFor('packages/shared/src/foo/foo.test.ts')).toBeUndefined()
   })
 })
 
@@ -67,7 +69,8 @@ describe('classify', () => {
     name: join(root, name),
     status,
     message,
-    assertionResults: assertions.map(([assertionStatus, failureMessages]) => ({
+    assertionResults: assertions.map(([assertionStatus, failureMessages], index) => ({
+      fullName: `test ${index}`,
       status: assertionStatus,
       failureMessages
     }))
@@ -90,8 +93,22 @@ describe('classify', () => {
       { file: 'a/import.test.ts', outcome: 'RED-IMPORT', detail: 'Error: Failed to load url ../newModule' },
       { file: 'a/missing.test.ts', outcome: 'NOT-RUN', detail: 'No Vitest report holds this file.' },
       { file: 'a/pass.test.ts', outcome: 'ALREADY-PASSING', detail: '' },
-      { file: 'a/red.test.ts', outcome: 'RED', detail: '1 failing test(s): AssertionError: expected 1 to be 2' }
+      { file: 'a/red.test.ts', outcome: 'RED', detail: '1 of 2 failing: "test 1". First: AssertionError: expected 1 to be 2' }
     ])
+  })
+})
+
+describe('packagesToRebuild', () => {
+  it('rebuilds the packages whose build output carries a changed helper', () => {
+    expect(
+      packagesToRebuild([
+        'packages/rules-runtime/src/testing/fixture.ts',
+        'packages/rules-runtime/src/testing/other.ts',
+        'packages/shared/src/__tests__/helper.ts',
+        'packages/schema/src/a.test.ts',
+        'apps/session-worker/test/liveRoomFixture.ts'
+      ])
+    ).toEqual(['rules-runtime'])
   })
 })
 
