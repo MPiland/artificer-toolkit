@@ -9466,8 +9466,8 @@
             },
             {
               "id": "SPELLS-27.T12",
-              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern.",
-              "status": "TODO",
+              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern. (Sleep wired with the SRD basic action Rouse; Hypnotic Pattern uses the same trigger in T9. Red proof job in Tests 39008675014; green: ci/spells-27-t12 8fef4ceb2, Tests 39008675014, Live 39007537775 on 9b4074f8e. Journey apps/session-worker/test/nativeRoomHitPointPoolSpell.test.ts. Merged in m67 59ac30a23 (Tests 39008737658, Live 39008737577).)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9480,7 +9480,7 @@
             {
               "id": "SPELLS-27.T9",
               "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9488,7 +9488,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T10",

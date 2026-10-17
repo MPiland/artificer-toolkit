@@ -18,6 +18,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import {
   conditionTypeId,
   creatureTypeId,
@@ -94,7 +95,13 @@ export const sleep: SpellAuthored = {
               amount: 1
             },
             lifecycle: {
-              endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
+              endOnTriggers: [
+                { event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const },
+                {
+                  event: 'ACTION_USED_ON_HOLDER' as const,
+                  actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE]
+                }
+              ]
             },
             outcomes: [
               {
