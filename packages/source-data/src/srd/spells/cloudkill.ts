@@ -113,7 +113,10 @@ export const cloudkill: SpellAuthored = {
                     id: spellChildId(SPELL_IDS.CLOUDKILL, 0x221, 1),
                     order: 1,
                     label: 'Enter the poisonous fog',
-                    interactionKinds: ['ENTER_SPACE' as const, 'START_TURN_IN_SPACE' as const],
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'START_TURN_IN_SPACE' as const
+                    ],
                     maxApplicationsPerTurn: 1,
                     behaviors: [
                       {

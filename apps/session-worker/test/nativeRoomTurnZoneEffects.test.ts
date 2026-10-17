@@ -159,7 +159,7 @@ describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)
     // Real compile evidence: the SRD Spirit Guardians places a source zone that acts at a turn start.
     expect(zone.placement).toMatchObject({
       anchorKind: 'TOKEN',
-      triggerModes: ['ENTER'],
+      triggerModes: ['ENTER', 'CROSS'],
       turnTriggers: ['START_OF_TURN']
     })
     const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
