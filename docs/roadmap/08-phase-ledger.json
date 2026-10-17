@@ -1069,16 +1069,26 @@
           "acs": [
             {
               "id": "PLATFORM-20.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
-              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller."
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller.",
+              "proof": [
+                "Deleted the Character compilers (subjects/compilers/character/*), compileShape/CompiledShape, ForbidIfMissing and compileScalingSource: no production caller in a repo-wide search, and the full build, every typecheck and every suite are green after deletion.",
+                "shared-correctness.test.ts \"preserves stable currency-group identity through compilation\" removed with its deleted subject (an identity check on the Character compiler); orchestrator accepted.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
             },
             {
               "id": "PLATFORM-20.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one."
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one.",
+              "proof": [
+                "Removed copy-only compileSpeed (SpeedAuthored), compileRange (SenseRangeAuthored), compileStartingEquipment and helpers (StartingEquipmentAuthored) and compileFeatureOption (wrapper of compileFeatureBase); the kept list and reasons are in ADR 0003 \"Compile stage as built\" and docs/handoffs/slice-platform-20.md.",
+                "packages/shared/src/__tests__/compiler-scaling.test.ts, starting-equipment-node-maps.test.ts, modifier-grant-compiler.test.ts; packages/schema/src/__tests__/modifier-grant-authored-parity.test.ts.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
             },
             {
               "id": "PLATFORM-20.3",
@@ -1241,6 +1251,62 @@
                 "rr": 5,
                 "size": 2,
                 "after": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-23",
+          "title": "CI runs exactly the tests a change can affect",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-23.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all.",
+              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test."
+            },
+            {
+              "id": "PLATFORM-23.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions.",
+              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-23.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.2"],
+              "text": "Fix the 12 failing packages/authoring tests at their cause; re-verify the ACs that cite them.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-23.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.1"],
+              "text": "tests.yml: affected-only test selection per slice from the module graph across all packages; full suite on merge batches; remove the hand-kept package list.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["PLATFORM-23.T1"]
               }
             }
           ]
@@ -9292,9 +9358,8 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/session-worker/test/nativeRoomFearSource.test.ts"],
-          "journeyStatus": "verified",
           "origin": [
             "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
           ],
@@ -9322,7 +9387,7 @@
             {
               "id": "SPELLS-29.2",
               "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
-              "status": "DONE",
+              "status": "TODO",
               "origin": [
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
               ],
@@ -9331,7 +9396,8 @@
                 "The out-of-sight repeat save is proved by the two T1a tests in the same file.",
                 "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts (homebrew Panicked from core options), packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts, characterSpellCastActions.test.ts, packages/shared/src/__tests__/effect-compiler.test.ts (fleesSource).",
                 "Red 04e6af8c5 (Tests 38960560081, Live 38960560070); green 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
-              ]
+              ],
+              "note": "Reopened 2026-10-16: its cited proof conditionSourceAuthoringParity.test.ts fails on the phase branch (CI never ran authoring tests). Closes again with PLATFORM-23.2."
             }
           ],
           "tasks": [
