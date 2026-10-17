@@ -123,7 +123,7 @@ export const acidArrow: SpellAuthored = {
                     id: spellChildId(SPELL_IDS.ACID_ARROW, 0x223, 1),
                     order: 1,
                     label: 'End of target next turn',
-                    interactionKind: 'END_OF_ATTACHED_TARGET_NEXT_TURN' as const,
+                    interactionKinds: ['END_OF_ATTACHED_TARGET_NEXT_TURN' as const],
                     behaviors: [delayedAcidDamage]
                   }
                 ]

@@ -38,24 +38,30 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'id',
   'order',
   'label',
-  'interactionKind',
+  'interactionKinds',
   'bypassAtHalfSpeed',
   'choosesUnaffected',
   'maxApplicationsPerTurn',
   'behaviors'
 ])
 
-const ZONE_INTERACTION_TRIGGER_MODES: Readonly<
-  Partial<
-    Record<
-      NonNullable<CompiledManifestComponent['interactionKind']>,
-      CompiledActionZonePlacement['triggerModes']
-    >
-  >
+type ZoneInteractionKind = NonNullable<CompiledManifestComponent['interactionKinds']>[number]
+
+const ZONE_MOVEMENT_TRIGGERS: Readonly<
+  Partial<Record<ZoneInteractionKind, CompiledActionZonePlacement['triggerModes']>>
 > = {
   ENTER_SPACE: ['ENTER'],
   ENTER_OR_PASS_THROUGH: ['ENTER', 'CROSS'],
   MOVE_ACROSS: ['CROSS']
+}
+
+const ZONE_TURN_TRIGGERS: Readonly<
+  Partial<
+    Record<ZoneInteractionKind, NonNullable<CompiledActionZonePlacement['turnTriggers']>[number]>
+  >
+> = {
+  START_TURN_IN_SPACE: 'START_OF_TURN',
+  END_TURN_IN_SPACE: 'END_OF_TURN'
 }
 
 function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean {
@@ -116,11 +122,27 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
   }
 }
 
-/** The movement a zone component reacts to, in canonical order; null for an unmodeled interaction. */
-export function zoneTriggerModes(
+/**
+ * What a zone component reacts to, in canonical order: the movements and the turn boundaries its
+ * interactions name. Null when it names none, or any interaction the System does not model.
+ */
+export function zoneTriggers(
   component: CompiledManifestComponent
-): CompiledActionZonePlacement['triggerModes'] | null {
-  return (
-    (component.interactionKind && ZONE_INTERACTION_TRIGGER_MODES[component.interactionKind]) || null
-  )
+): Pick<CompiledActionZonePlacement, 'triggerModes' | 'turnTriggers'> | null {
+  const kinds = component.interactionKinds
+  if (!kinds?.length) return null
+  const movement = new Set<string>()
+  const turn = new Set<string>()
+  for (const kind of kinds) {
+    const movements = ZONE_MOVEMENT_TRIGGERS[kind]
+    const boundary = ZONE_TURN_TRIGGERS[kind]
+    if (!movements && !boundary) return null
+    movements?.forEach((trigger) => movement.add(trigger))
+    if (boundary) turn.add(boundary)
+  }
+  const turnTriggers = (['START_OF_TURN', 'END_OF_TURN'] as const).filter((t) => turn.has(t))
+  return {
+    triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter((t) => movement.has(t)),
+    ...(turnTriggers.length ? { turnTriggers } : {})
+  }
 }

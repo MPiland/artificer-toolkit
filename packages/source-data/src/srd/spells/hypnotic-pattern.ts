@@ -1,24 +1,31 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SHAPE_KIND,
+  SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { conditionTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -38,6 +45,7 @@ export const hypnoticPattern: SpellAuthored = {
   materialDescription:
     'a glowing stick of incense or a crystal vial filled with phosphorescent material',
   magicSchoolId: schoolId('ILLUSION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x210, 1),
@@ -89,11 +97,45 @@ export const hypnoticPattern: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            lifecycle: {
+              endOnTriggers: [
+                { event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const },
+                {
+                  event: 'ACTION_USED_ON_HOLDER' as const,
+                  actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE]
+                }
+              ]
+            },
+            // Charmed, incapacitated, and a speed of 0 (every speed the creature has).
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'HYPNOTIC_PATTERN' as const
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('CHARMED')
+              },
+              {
+                id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x213, 2),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INCAPACITATED')
+              },
+              {
+                id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x213, 3),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x216, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.MULTIPLY,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { numerator: 0, denominator: 1 },
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }

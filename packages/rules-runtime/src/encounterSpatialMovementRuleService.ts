@@ -31,6 +31,7 @@ import {
   executeTargetBoundActiveRuleEffectWithPause,
   isDamageDieRequest,
   reconstructTargetBoundActiveRuleEffectCompletion,
+  resumeTargetBoundActiveRuleEffectWithAnswer,
   resumeTargetBoundActiveRuleEffectWithPause,
   type TargetBoundActiveRuleEffectExecutionPaused,
   type TargetBoundActiveRuleEffectExecutionInput,
@@ -994,6 +995,7 @@ function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     anchorKind: effect.placement.anchorKind,
     geometry: effect.placement.geometry,
     triggerModes: effect.placement.triggerModes,
+    turnTriggers: effect.placement.turnTriggers,
     movementKinds: effect.placement.movementKinds,
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
     unaffectedActorIds: effect.placement.unaffectedActorIds,
@@ -1243,57 +1245,20 @@ async function resumeSpatial(input: {
   result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
   d20: SpatialD20Roll
 }> {
-  const resolution = input.resolution
-  const policy = requireSupportedD20Policy(input.pending.d20Policy)
-  const request = input.pendingSnapshot.request
   const {
     optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
     applicationContext: _applicationContext,
     snapshotKind: _snapshotKind,
     ...continuation
   } = input.pendingSnapshot
-  if (request.requestId !== resolution.requestId || request.kind !== 'INTEGER_RANGE')
-    throw new EncounterConflictError('The spatial evidence request is stale.')
-  if (isDamageDieRequest(continuation, policy)) {
-    const d20 = input.pending.diceStage
-    if (!d20) throw new EncounterConflictError('The spatial evidence request is stale.')
-    const value = resolveEncounterIntegerAnswer({
-      min: request.min,
-      max: request.max,
-      answer: resolution,
-      random: input.random
-    })
-    return {
-      d20: { rollMode: d20.rollMode, rawFaces: [...d20.rawFaces] },
-      result: await resumeTargetBoundActiveRuleEffectWithPause({
-        ...input.effectInput,
-        continuation,
-        resolution: { requestId: resolution.requestId, value, d20 },
-        expectedEvidencePolicy: policy
-      })
-    }
-  }
-  if (
-    input.pending.diceStage ||
-    request.min !== 1 ||
-    request.max !== 20 ||
-    request.nodeId !== policy.requestNodeId
-  )
-    throw new EncounterConflictError('The spatial evidence request is stale.')
-  const { faces, rollMode } = resolveEncounterD20Answer({
-    derivedRollMode: policy.rollMode,
-    answer: resolution,
-    rollD20: () => input.random(20) + 1
+  return resumeTargetBoundActiveRuleEffectWithAnswer({
+    effectInput: input.effectInput,
+    continuation,
+    policy: requireSupportedD20Policy(input.pending.d20Policy),
+    diceStage: input.pending.diceStage,
+    answer: input.resolution,
+    random: input.random
   })
-  return {
-    d20: { rollMode, rawFaces: faces },
-    result: await resumeTargetBoundActiveRuleEffectWithPause({
-      ...input.effectInput,
-      continuation,
-      resolution: { requestId: resolution.requestId, rawFaces: faces, rollMode },
-      expectedEvidencePolicy: policy
-    })
-  }
 }
 
 function pendingSnapshot(input: {

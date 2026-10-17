@@ -12,9 +12,7 @@ function interactionKindsByComponent(node: unknown): Record<string, readonly str
   const record = node as Record<string, unknown>
   const kinds = Array.isArray(record.interactionKinds)
     ? (record.interactionKinds as string[])
-    : typeof record.interactionKind === 'string'
-      ? [record.interactionKind]
-      : null
+    : null
   const own = typeof record.label === 'string' && kinds ? { [record.label]: kinds } : {}
   return Object.assign(own, ...Object.values(record).map(interactionKindsByComponent))
 }
