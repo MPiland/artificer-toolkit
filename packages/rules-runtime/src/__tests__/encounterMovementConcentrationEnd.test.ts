@@ -145,6 +145,7 @@ function concentrationEnd(owners: MovementMaintenanceOwner<MovementCharacterRow>
       maintenance: {
         state,
         removed: [firstRemoved, secondRemoved],
+        zoneIds: [],
         owners,
         characterVersions: []
       }
