@@ -75,11 +75,7 @@ export interface ResolvedEquipmentVariantMeta {
   inherited: ResolvedEquipmentVariantInherited
 }
 
-export type ResolvedEquipment = Omit<BaseEquipmentAuthored, 'category' | 'properties'> & {
-  category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
-  properties: EquipmentPropertyCode[]
-  variant?: ResolvedEquipmentVariantMeta
-}
+export type ResolvedEquipment = BaseEquipmentAuthored & { variant?: ResolvedEquipmentVariantMeta }
 
 export type CompiledEquipmentEffectGroup = CompiledEffectGroup & {
   grip: EquipmentGrip | null
@@ -185,11 +181,7 @@ export function resolveEquipmentAuthored(
   lineage: string[] = []
 ): ResolvedEquipment {
   if (authored.category !== EQUIPMENT_CATEGORY_CODE.VARIANT) {
-    return {
-      ...authored,
-      category: authored.category,
-      properties: [...authored.properties]
-    }
+    return { ...authored, properties: [...authored.properties] }
   }
 
   if (lineage.includes(authored.id)) {
@@ -208,6 +200,8 @@ export function resolveEquipmentAuthored(
   const properties = mergeUniqueValues(resolvedParent.properties, authored.properties) ?? []
 
   return {
+    // The parent's category and its Armor Class stay paired (D143); every other field is set below.
+    ...resolvedParent,
     kind: authored.kind,
     id: authored.id,
     label: authored.label,
@@ -223,14 +217,12 @@ export function resolveEquipmentAuthored(
     modifiers: mergeOrderedValues(resolvedParent.modifiers, authored.modifiers),
     maxStack: resolvedParent.maxStack,
     rarityId: authored.rarityId,
-    armorClass: resolvedParent.armorClass,
     contains: resolvedParent.contains,
     features: mergeOrderedValues(resolvedParent.features, authored.features),
     restrictions: authored.restrictions ?? resolvedParent.restrictions,
     requiresAttunement: authored.requiresAttunement ?? resolvedParent.requiresAttunement,
     userId: authored.userId,
     systemId: authored.systemId,
-    category: resolvedParent.category,
     properties,
     variant: {
       parentEquipmentId: authored.parentEquipmentId,

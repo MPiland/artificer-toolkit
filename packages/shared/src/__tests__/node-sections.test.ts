@@ -415,6 +415,22 @@ describe('node map sections', () => {
     ).toBe(false)
   })
 
+  // D143: armor and shields author their Armor Class; other categories may.
+  it('requires an Armor Class only for armor and shields', () => {
+    const armorClassNode = EQUIPMENT_NODE_MAP.nodes.armorClass
+    expect(armorClassNode.kind).toBe('INPUT')
+    if (armorClassNode.kind !== 'INPUT') return
+    const { requiredIf } = armorClassNode
+    if (requiredIf === undefined || requiredIf === true)
+      throw new Error('Expected a category-driven Armor Class requirement.')
+
+    expect(
+      ['ARMOR', 'SHIELD', 'WEAPON', 'ADVENTURING_GEAR', 'TOOL', 'VARIANT'].map((category) =>
+        evaluateConditionIf(requiredIf, { values: { category } })
+      )
+    ).toEqual([true, true, false, false, false, false])
+  })
+
   it('authors equipment attunement as a boolean toggle', () => {
     expect(EQUIPMENT_NODE_MAP.nodes.requiresAttunement).toMatchObject({
       kind: 'INPUT',

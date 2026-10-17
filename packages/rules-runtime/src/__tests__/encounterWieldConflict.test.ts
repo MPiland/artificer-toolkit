@@ -85,8 +85,9 @@ describe('encounter wield conflict', () => {
     })
   })
 
-  it('uses the D&D armor class fallback when the shield has no authored AC', () => {
-    expect(
+  // D143 deleted the Character-only fallback of 2: a shield without an authored AC is refused.
+  it('refuses a shield that has no authored AC', () => {
+    expect(() =>
       evaluate({
         grip: 'TWO_HANDED',
         armorClassFacts: {
@@ -96,7 +97,7 @@ describe('encounter wield conflict', () => {
           )
         }
       })
-    ).toEqual({ kind: 'STOW_SHIELD', shieldItemInstanceId: shieldId, armorClassDelta: -2 })
+    ).toThrow('Equipment "shield" is armor or a shield without an armor class.')
   })
 
   it("counts a magic shield's own bonus: a +1 shield stows 3 AC (SRD: +1 in addition to its 2)", () => {

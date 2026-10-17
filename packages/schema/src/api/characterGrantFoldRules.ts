@@ -16,6 +16,15 @@ const identitySchema = lazySchema(() =>
 )
 const codeSchema = lazySchema(() => z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/)))
 
+/** An equipment item instance as a mechanic source: the Equipment and the Character's item. */
+export const equipmentInstanceMechanicSourceSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('EQUIPMENT_INSTANCE'),
+    equipmentId: identitySchema,
+    itemInstanceId: identitySchema
+  })
+)
+
 export const characterMechanicSourceSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -35,11 +44,7 @@ export const characterMechanicSourceSchema = lazySchema(() =>
       definitionId: identitySchema,
       sourceInstanceId: identitySchema
     }),
-    z.strictObject({
-      kind: z.literal('EQUIPMENT_INSTANCE'),
-      equipmentId: identitySchema,
-      itemInstanceId: identitySchema
-    }),
+    equipmentInstanceMechanicSourceSchema,
     z.strictObject({ kind: z.literal('SYSTEM'), systemId: identitySchema }),
     z.strictObject({
       kind: z.literal('COMPANION_INSTANCE'),

@@ -1,11 +1,11 @@
-# Slice QUALITY-1: one implementation per diverging copy (T1)
+# Slice QUALITY-1: one implementation per diverging copy (T1, T2)
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Resume here
 
-- T1 closes AC QUALITY-1.1 and is built on `ci/quality-1`. The CI SHA and run ids go to the orchestrator.
-- Open item for the architect: shield and armor without an authored Armor Class (item 6 below).
+- T1 closes AC QUALITY-1.1 and merged in m83.
+- T2 (D143, Armor Class without defaults) is built on `ci/quality-1-t2`. The CI SHA and run ids go to the orchestrator.
 
 ## T1: diverging copies
 
@@ -69,12 +69,26 @@ Each copy was checked against the audit finding. Each has a regression test agai
   - A creature counted only the first shield it found.
 - Shared: `selectDnd5eHeldShield` in `packages/rules-runtime/src/systems/dnd5e/armorClass.ts`, called by `resolveDnd5eActiveShield` and `resolveDnd5eCreatureArmorClass`.
 - Proof: `packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts` "counts the held shield that adds the most, as a Character does". Leather, a Shield in the main hand and a Shield +1 in the off hand give AC 16.
-- **Open, not changed: missing Armor Class.**
-  - A Character falls back to 2 for a shield (`armorClass ?? 2`) and 10 for armor.
-  - A creature refuses with `missingArmorClass`.
-  - The schema makes `armorClass` optional, so the difference is visible to users.
-  - Options: (a) creatures adopt the Character defaults; (b) both refuse; (c) authoring requires `armorClass` on ARMOR and SHIELD.
-  - Recommendation: (c), with (b) as the runtime behavior.
+- Missing Armor Class was left open here and ruled D143 (T2 below).
+
+## T2: Armor Class without defaults (D143)
+
+- Authoring:
+  - `equipmentAuthoredDtoSchema` and `equipmentAuthoringInputDtoSchema` refuse ARMOR or SHIELD without `armorClass` (`armorAuthorsArmorClass`). A variant inherits its parent's.
+  - `BaseEquipmentAuthored` requires `armorClass` for those two categories.
+  - The equipment node map marks Armor Class required for them.
+- Runtime: `resolveDnd5eEquipmentArmorClass` in `packages/rules-runtime/src/systems/dnd5e/armorClass.ts` is the one check. Creatures return its refusal; Character vitals throw it through `requireDnd5eArmorClass` (renamed from `requireCreatureArmorClass`). The Character-only `?? 2` and `?? 10` are deleted.
+- Contract: the Character Armor Class facts' `source` is now `equipmentInstanceMechanicSourceSchema`, the one source kind their builder emits, so the refusal names the Equipment.
+- Source data: all 12 SRD armors and 3 SRD shields carry an Armor Class.
+- Development data (orchestrator ruling: migrate only if records need it): a read-only scan of the local Docker backend on 2026-10-17 found nothing to migrate, so no migration was added.
+  - The scan read `authoredVersions` (with `authoredVersionPayloadChunks`), `authoredDrafts` and `authoredDraftPayloads` through `convex data`.
+  - It found 1057 versions, 371 of them Equipment, all from the SRD content source. 15 are ARMOR or SHIELD, and none lacks `armorClass`.
+  - There are 0 drafts.
+- Proofs:
+  - `packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts` "a Character and a Creature holding the same equipment (D143)": equal AC for SRD Leather Armor and Shield; the same refusal for each without its Armor Class (red: the Character got 10 or 12).
+  - `packages/schema/src/__tests__/equipment-armor-class-contracts.test.ts` and `packages/shared/src/__tests__/node-sections.test.ts` "requires an Armor Class only for armor and shields".
+- Changed expectation (ruled behavior, not a weakened assertion): `encounterWieldConflict.test.ts` asserted the deleted shield fallback (stowing an AC-less shield cost 2). It now expects the D143 refusal.
+- Imports: a custom armor or shield imported without an Armor Class becomes a draft the author must complete before it saves.
 
 ## Follow-ups (not in AC QUALITY-1.1)
 
