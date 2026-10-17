@@ -27,7 +27,7 @@ import {
   concentrationCommandId,
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import {
@@ -132,19 +132,22 @@ export async function planNativeLiveConcentration(input: {
   let vocabulary:
     | Extract<LiveSessionEncounterRulesResponse, { kind: 'SYSTEM_VOCABULARY' }>['snapshot']
     | undefined
+  const maintenanceDefinitionId = requireInstalledConcentrationMaintenanceDefinitionId(
+    state.gameSystemId
+  )
   async function slotFor(targetActorId: string) {
     if (!slots.has(targetActorId)) {
       const created = input.settlement.maintainedState
       if (
         created?.ownerActorId === targetActorId &&
-        created.maintenanceDefinitionId === DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+        created.maintenanceDefinitionId === maintenanceDefinitionId
       )
         slots.set(targetActorId, created)
       else {
         const response = await capture({
           kind: 'MAINTENANCE_SLOT',
           actorId: targetActorId,
-          definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+          definitionId: maintenanceDefinitionId
         })
         if (response.kind !== 'MAINTENANCE_SLOT')
           throw new Error('Concentration slot is unavailable.')

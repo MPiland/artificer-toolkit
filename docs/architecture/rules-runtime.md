@@ -79,6 +79,13 @@ package before tests that import newly added modules.
 Everything here takes structural inputs (domain types, injected readers, ports). None of it imports
 Convex contexts, database rows, or Worker APIs, so the room and Convex run the same functions.
 
+**Installed-System classification (RELIABILITY-6.16, current).** Generic Worker, encounter-persistence
+and rules-runtime code never imports the D&D Concentration maintenance id or melee classification. It
+asks the installed System for the Run's `gameSystemId` through `platformRulesRuntime`:
+`requireInstalledConcentrationMaintenanceDefinitionId` and `isInstalledMeleeAttackTrigger`, both
+registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
+closed.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain

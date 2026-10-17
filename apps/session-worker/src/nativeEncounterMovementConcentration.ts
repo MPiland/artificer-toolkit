@@ -7,7 +7,7 @@ import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtim
 import { prepareEncounterConcentrationState } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { prepareEncounterMovementConcentration } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import { projectEncounterMovementConcentrationEnd } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
   readNativeLiveMaintenanceOwners,
@@ -33,16 +33,11 @@ export async function readNativeLiveMovementConcentrationState(input: {
   capture(request: LiveSessionEncounterRulesRequest): Promise<LiveSessionEncounterRulesResponse>
 }) {
   const { state, targetActorId, targets, projection, capture } = input
-  const projected = projection?.slots.get(
-    `${targetActorId}:${DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID}`
-  )
+  const definitionId = requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
+  const projected = projection?.slots.get(`${targetActorId}:${definitionId}`)
   const stored = projected
     ? null
-    : await capture({
-        kind: 'MAINTENANCE_SLOT',
-        actorId: targetActorId,
-        definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
-      })
+    : await capture({ kind: 'MAINTENANCE_SLOT', actorId: targetActorId, definitionId })
   if (stored && stored.kind !== 'MAINTENANCE_SLOT')
     throw new Error('Movement Concentration slot is unavailable.')
   return prepareEncounterConcentrationState({
@@ -94,7 +89,7 @@ export function prepareNativeLiveMovementConcentration(
         capture
       }),
     findEnd: async (actorId, targets, projection) => {
-      const definitionId = DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      const definitionId = requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
       const slot =
         projection?.slots.get(`${actorId}:${definitionId}`) ??
         (await readNativeLiveMaintenanceSlot({
