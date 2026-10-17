@@ -1061,7 +1061,7 @@ export function withOffHandDamage(
     }) as ModifierGrantAuthored
   let node = 0
   return modifiers
-    .flatMap((modifier, index) => {
+    .flatMap((modifier, index): ModifierGrantAuthored[] => {
       const abilityModifier =
         modifier.valueDomainCode === VALUE_DOMAIN_CODE.DAMAGE &&
         modifier.domain.attackDomain === ATTACK_DOMAIN_CODE.MELEE &&
