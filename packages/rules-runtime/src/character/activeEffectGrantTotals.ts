@@ -95,6 +95,29 @@ export function activeSpeedGrantFeet(
   return feet
 }
 
+/** The amounts a holder's active global grants of one modifier kind carry for one value domain. */
+function activeGlobalAmounts(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: string,
+  modifierKind: 'SET_VALUE' | 'CAP_VALUE'
+): number[] {
+  const amounts: number[] = []
+  for (const { modifiers } of listActiveEffectGrants(effects)) {
+    for (const modifier of modifiers) {
+      const { payload } = modifier
+      if (
+        modifier.valueDomainCode === valueDomainCode &&
+        modifier.modifierKind === modifierKind &&
+        modifier.scope === 'GLOBAL' &&
+        payload !== undefined &&
+        'amount' in payload
+      )
+        amounts.push(payload.amount)
+    }
+  }
+  return amounts
+}
+
 /**
  * The highest amount a holder's active global `SET_VALUE` grants set one value domain to, or null
  * when none do. Several grants setting the same value do not add (a second Action Surge on one turn
@@ -104,21 +127,8 @@ export function activeSetValueGrantMaximum(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: string
 ): number | null {
-  let best: number | null = null
-  for (const { modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
-      const { payload } = modifier
-      if (
-        modifier.valueDomainCode === valueDomainCode &&
-        modifier.modifierKind === 'SET_VALUE' &&
-        modifier.scope === 'GLOBAL' &&
-        payload !== undefined &&
-        'amount' in payload
-      )
-        best = best === null ? payload.amount : Math.max(best, payload.amount)
-    }
-  }
-  return best
+  const amounts = activeGlobalAmounts(effects, valueDomainCode, 'SET_VALUE')
+  return amounts.length === 0 ? null : Math.max(...amounts)
 }
 
 /**
@@ -129,21 +139,8 @@ export function activeCapValueGrantMinimum(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: string
 ): number | null {
-  let best: number | null = null
-  for (const { modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
-      const { payload } = modifier
-      if (
-        modifier.valueDomainCode === valueDomainCode &&
-        modifier.modifierKind === 'CAP_VALUE' &&
-        modifier.scope === 'GLOBAL' &&
-        payload !== undefined &&
-        'amount' in payload
-      )
-        best = best === null ? payload.amount : Math.min(best, payload.amount)
-    }
-  }
-  return best
+  const amounts = activeGlobalAmounts(effects, valueDomainCode, 'CAP_VALUE')
+  return amounts.length === 0 ? null : Math.min(...amounts)
 }
 
 /**
