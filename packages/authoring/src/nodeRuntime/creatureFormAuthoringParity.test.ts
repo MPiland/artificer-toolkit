@@ -17,12 +17,10 @@ const reader = createNodeRuntimeSourceReader({
   readReusableDefinitions: async () => []
 })
 
-/** Equipment authoring the Giant Insect effects, so the effect node map is what normalizes them. */
-function equipmentWithGiantInsect(): EquipmentAuthored {
-  return equipmentWith(giantInsect.effects)
-}
-
-/** Equipment carrying spell effects, which an item authors with no grip, as Caltrops does. */
+/**
+ * Equipment carrying spell effects, so the effect node map is what normalizes them; an item authors them
+ * with no grip, as Caltrops does.
+ */
 function equipmentWith(effects: SpellAuthored['effects']): EquipmentAuthored {
   return {
     ...structuredClone(caltropsBagOf20),
@@ -40,7 +38,7 @@ function normalize(equipment: EquipmentAuthored) {
 
 /** The creature form the way the Builder authors it: another set of forms, with the excess carried over. */
 function polymorphShaped(): EquipmentAuthored {
-  const equipment = equipmentWithGiantInsect()
+  const equipment = equipmentWith(giantInsect.effects)
   const path = equipment.effects?.[0]?.paths[0]
   const manifest = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
   if (manifest?.effectKind !== 'MANIFEST' || manifest.manifestKind !== 'CREATURE')
@@ -60,7 +58,7 @@ function polymorphShaped(): EquipmentAuthored {
 
 describe('the creature form through the effect node map (ADR 0038)', () => {
   it('keeps the SRD Giant Insect forms exactly as authored', async () => {
-    const authored = equipmentWithGiantInsect()
+    const authored = equipmentWith(giantInsect.effects)
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)

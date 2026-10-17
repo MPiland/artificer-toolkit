@@ -726,7 +726,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         )
         try {
           return Response.json(await next)
-        } catch {
+        } catch (error) {
+          console.error('Live Scene presentation failed in the room.', error)
           return new Response('Live Scene presentation is unavailable.', {
             status: 409
           })
@@ -3976,14 +3977,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
   }
 
-  /** A failure inside the room tells the member only to retry, so the room logs its cause. */
+  /**
+   * A failure inside the room tells the member only to retry, so the room logs its cause; a Convex route
+   * status is expected and not logged (as Encounter and Scene commands do).
+   */
   #rejectRoomFailure(
     socket: WebSocket,
     commandId: string,
     error: unknown,
     message = LIVE_SESSION_TRY_AGAIN_MESSAGE
   ): void {
-    console.error('Live Session command failed in the room.', error)
+    if (!(error instanceof LiveSessionRouteError))
+      console.error('Live Session command failed in the room.', error)
     this.#rejectCommand(socket, commandId, 'UNAVAILABLE', message)
   }
 

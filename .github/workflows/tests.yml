@@ -83,7 +83,7 @@ jobs:
       - name: Package tests
         id: tests
         run: |
-          for package in schema shared source-data rules-runtime encounter-persistence; do
+          for package in schema shared source-data authoring emails rules-runtime encounter-persistence; do
             yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
           done
       - uses: ./.github/actions/regenerate-snapshots
@@ -156,7 +156,7 @@ jobs:
   cancel-on-type-error:
     name: Cancel the run on a type error
     needs: [typecheck-packages, typecheck-web]
-    if: always() && contains(needs.*.result, 'failure')
+    if: ${{ !cancelled() && contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

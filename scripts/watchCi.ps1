@@ -4,8 +4,9 @@
 #   pwsh -NoProfile -File scripts/watchCi.ps1 [-Ref HEAD]
 # Exit 0: all green. Exit 1: a run failed (its failed steps are printed, with the download command for
 # updated snapshots, or for generated-file drift the auto-fix could not commit; a type error cancels the
-# Tests run early and counts as a failure). Exit 2: the latest run was cancelled with no failed job. When Live fails on generated-file drift, the workflow's auto-fix job commits the regenerated
-# files to the branch; the script prints AUTO-FIX <sha> and follows that commit (exit codes then refer to it).
+# Tests run early and counts as a failure). Exit 2: the latest run was cancelled with no failed job.
+# When Live fails on generated-file drift, the workflow's auto-fix job commits the regenerated files to
+# the branch; the script prints AUTO-FIX <sha> and follows that commit (exit codes then refer to it).
 param([string]$Ref = 'HEAD')
 
 $sha = git rev-parse $Ref
@@ -18,10 +19,15 @@ while ($true) {
   if ($latest | Where-Object workflowName -eq 'Tests') { $testsSeenAt ??= Get-Date }
 
   # Tests cancels its own run on a type error (job "Cancel the run on a type error"); a cancelled run with a
-  # failed job is that failure, not a superseded run.
+  # failed job is that failure, not a superseded run. An unreadable job list is polled again.
+  $cancelledRuns = @($latest | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'cancelled' })
+  $failedJobs = @{}
+  foreach ($run in $cancelledRuns) {
+    $failedJobs[$run.databaseId] = gh run view $run.databaseId --json jobs --jq '[.jobs[] | select(.conclusion=="failure")] | length'
+  }
+  if ($failedJobs.Values -contains $null) { [Threading.Thread]::Sleep(120000); continue }
   $failed = $latest | Where-Object {
-    $_.status -eq 'completed' -and ($_.conclusion -eq 'failure' -or ($_.conclusion -eq 'cancelled' -and
-      (gh run view $_.databaseId --json jobs --jq '[.jobs[] | select(.conclusion=="failure")] | length') -ne '0'))
+    $_.status -eq 'completed' -and ($_.conclusion -eq 'failure' -or ($_.conclusion -eq 'cancelled' -and $failedJobs[$_.databaseId] -ne '0'))
   }
   foreach ($run in $failed) {
     $steps = gh run view $run.databaseId --json jobs --jq '.jobs[] | select(.conclusion=="failure") | "\(.name): \([.steps[] | select(.conclusion=="failure") | .name] | join(", "))"'
