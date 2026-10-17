@@ -9253,8 +9253,60 @@
                   "SPELLS-20.T4b2b2"
                 ]
               },
-              "text": "Condition-outcome hazard zones: a failed zone save applies a condition (restrained for Web and Black Tentacles, prone for Grease and Sleet Storm, restrained for Entangle) with the zone's escape or repeat-save rule, authored from core options and proved on each listed spell.",
+              "text": "Prone hazard zones: a failed zone save applies one condition from the System vocabulary (prone for Grease and Sleet Storm), authored from core options and proved on each spell. Narrowed 2026-10-17: the restrained zones moved to T1e (D142) and the cast-time area saves to T1g.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T1f",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": [
+                  "SPELLS-4.T1d"
+                ]
+              },
+              "text": "Regression of SPELLS-17.5: Cloudkill, Insect Plague, Moonbeam, Incendiary Cloud and Spirit Guardians author ENTER_SPACE, so a creature that walks through without stopping is never caught. Switch them to ENTER_OR_PASS_THROUGH, add a corpus test that fails on any SRD zone whose text says it triggers on entering the area but authors ENTER_SPACE, and prove a walk-through in a room."
+            },
+            {
+              "id": "SPELLS-4.T1e",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-4.T1d",
+                  "SPELLS-20.T4b3b"
+                ]
+              },
+              "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save through the composable failed-save outcomes from SPELLS-20.T4b3b. Proved on Web and Black Tentacles."
+            },
+            {
+              "id": "SPELLS-4.T1g",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.2"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-4.T1e"
+                ]
+              },
+              "text": "Cast-time area save on a zone-placing cast: each creature in the area when the zone appears makes the save once (Insect Plague, Grease, Entangle), from core options. For Entangle it is the only save, with the T1e restrained condition and escape. Proved on all three."
             },
             {
               "id": "SPELLS-4.T2",
@@ -10788,7 +10840,7 @@
             },
             {
               "id": "SPELLS-20.T4b3a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10802,11 +10854,11 @@
                   "SPELLS-20.T4b2b2"
                 ]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "CI ci/spells-20-t4b3a 3d9670841 (Tests 39065365208, Live 39065365174); merged fast path 82702ff9a, backstop ci/merge-m82. Workbook docs/handoffs/slice-spells-20.md. requiresFullyWithin through footprintWithinSpatialGeometry (refused with a movement trigger); automaticSaveSuccessImmunityDamageTypeId (one authored damage type id) sets SAVE_AUTO_SUCCESS against an IMMUNITY defense, proved on an SRD Skeleton (poison passes, fire fails); Stinking Cloud obscurement, spreading and wind dispersal unauthored as zone gaps; DOES_NOT_BREATHE deferred (D141)."
             },
             {
               "id": "SPELLS-20.T4b3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10819,7 +10871,8 @@
                   "SPELLS-20.T4b3a"
                 ]
               },
-              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17."
+              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17. Per D142, replace the zone failed-save shape check (including the T1d condition-alone branch) with one composable outcome set: damage rows, at most one stop, grant, System-vocabulary condition and lost action, with at least one outcome; a made save only deals damage.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4e",
