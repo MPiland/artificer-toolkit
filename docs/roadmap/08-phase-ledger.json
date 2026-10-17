@@ -8689,18 +8689,57 @@
               "proof": "Red ci/spells-20-t3-red c6f4813bd (Tests 38978456915 failed on the two aura room tests and activeReads); green ci/spells-20-t3 897458fa0 (Tests 38984886789, Live 38984886833); merged in m60 3f46d92b1 (Tests 38987673112, Live 38987673094)."
             },
             {
-              "id": "SPELLS-20.T4",
-              "text": "A start-of-turn and first-entry-per-turn zone trigger consumer shared by all zones: half damage on a made save, slot scaling, designated unaffected creatures, and half speed in the area if a seam exists (otherwise reported for registration).",
+              "id": "SPELLS-20.T4a",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
+              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-20.T1b"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones, with one once-per-turn counter per (effect, creature, turn) shared by first entry and start of turn (maxApplicationsPerTurn gets its runtime consumer). Turn-boundary save and damage rolls run as a turn stage through the existing turn pending path (encounterTurnPending), after Recharge and the death save and with the start-of-turn effects, prompted per ADR 0034 like the death save and not undoable like other turn-stage rolls. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-20.T4a"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4c",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T1b"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4d",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Half speed inside a zone: a zone consumer of movement cost shared with terrain (shared pathing, Worker movement inputs, web movement preview), authored from core options; proved on Spirit Guardians.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-20.T4b"]
+              }
             },
             {
               "id": "SPELLS-20.T5",
@@ -8725,7 +8764,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4"]
+                "after": ["SPELLS-20.T4b"]
               }
             }
           ]
