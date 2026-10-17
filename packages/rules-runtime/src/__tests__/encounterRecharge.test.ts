@@ -230,7 +230,7 @@ describe('start-of-turn Recharge phase', () => {
       actors,
       autoRoll: input.autoRoll,
       definitions: srdDefinitions,
-      createRuntime: createSrdRulesRuntime,
+      createRuntime: async () => createSrdRulesRuntime(),
       rollD6: input.rollD6,
       ...(input.pending ? { pending: input.pending } : {}),
       ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })

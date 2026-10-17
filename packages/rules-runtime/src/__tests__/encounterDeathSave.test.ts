@@ -57,7 +57,7 @@ function prepare(input: {
       movementTargets: new Map(),
       loadTarget,
       autoRoll: true,
-      createRuntime: createSrdRulesRuntime,
+      createRuntime: async () => createSrdRulesRuntime(),
       rollD20: input.rollD20 ?? (() => 20),
       ...(input.pending ? { pending: input.pending } : {}),
       ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })
