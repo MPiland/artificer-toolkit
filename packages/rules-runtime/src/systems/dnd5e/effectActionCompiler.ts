@@ -41,6 +41,7 @@ import {
 } from '@artificer-toolkit/shared/rules'
 import { parseRollExpression, type ParsedRollExpression } from '@artificer-toolkit/shared/rolls'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { v5 as uuidv5 } from 'uuid'
 import {
   checksumRuleDocument,
@@ -54,6 +55,7 @@ import type {
   CharacterRuleActionActiveEffectPlan,
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
+  CharacterRuleActionZoneChoicePlan,
   CharacterRuleActionZonePlacementPlan,
   CharacterRuleActionSpatialDirective,
   CharacterRuleActionForcedMovementDirection as ForcedMovementDirection
@@ -76,7 +78,7 @@ import {
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
-import { placedSpaceZone, zoneTriggers } from '../../encounterZonePlacement.js'
+import { placedSpaceZone, zoneChoiceOptions, zoneTriggers } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
@@ -2151,6 +2153,38 @@ function durationPublishedGraph(input: {
     checksum: checksumRuleDocument(definition),
     definition
   })
+}
+
+/**
+ * The zones an action lets its caster pick one of at cast (D140), one plan per option, or null when
+ * it offers no zone pick. The options must agree on what is settled before the pick: the area the
+ * caster aims, whether the caster spares creatures, and the Concentration the cast opens.
+ */
+function zoneChoicePlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionZoneChoicePlan | null {
+  const choices = zoneChoiceOptions(action.compiledEffect)
+  if (!choices) return null
+  const options = choices.flatMap(({ optionId, label, compiledEffect }) => {
+    const zone = zonePlacementPlan({ ...action, compiledEffect })
+    return zone ? [{ optionId, label, zone }] : []
+  })
+  if (options.length !== choices.length) return null
+  // Each option authors its own shape identity; the geometry is what must agree. Zones that use the
+  // caster's save DC share its save too, since the cast resolves one.
+  const settled = ({ zone }: (typeof options)[number]) =>
+    checksumCanonicalJson([
+      zone.attachment,
+      { ...zone.shape, id: null },
+      zone.choosesUnaffected ?? false,
+      zone.maintenance,
+      zone.entry.castSaveDcFactKey ? zone.entry.adapterFacts : null
+    ])
+  if (new Set(options.map(settled)).size !== 1)
+    unsupported(
+      'The zones a cast picks between share their area, the creatures they spare, their Concentration and any save at the caster’s DC.'
+    )
+  return { options }
 }
 
 /**
@@ -7719,7 +7753,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   compile: compileDnd5eEffectAction,
-  compileZonePlacement: ({ action }) => zonePlacementPlan(action),
+  compileZonePlacement: ({ action }) => zoneChoicePlan(action) ?? zonePlacementPlan(action),
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = dndSourceFromCompilerSource(compilerSource)

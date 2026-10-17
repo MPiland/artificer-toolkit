@@ -1,4 +1,7 @@
-import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type {
+  CompiledActionZoneChoice,
+  CompiledActionZonePlacement
+} from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CompiledEffectGroup,
   CompiledManifest,
@@ -69,11 +72,54 @@ function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean
 }
 
 /**
+ * The options of an action whose one ON_USE CHOICE path lets its caster pick the zone at cast
+ * (D140), each as the action narrowed to that option's entries; null for any other action.
+ */
+export function zoneChoiceOptions(
+  compiledEffect: CompiledEffectGroup
+): { optionId: string; label: string; compiledEffect: CompiledEffectGroup }[] | null {
+  const [first] = compiledEffect.entries
+  if (
+    !first ||
+    !compiledEffect.entries.every(
+      (entry) =>
+        'outcome' in entry &&
+        entry.groupKind === 'CHOICE' &&
+        entry.pathCode === 'ON_USE' &&
+        entry.pathGroupId === first.pathGroupId &&
+        entry.label !== undefined
+    )
+  )
+    return null
+  const optionIds = [...new Set(compiledEffect.entries.map(({ entryId }) => entryId))]
+  if (optionIds.length < 2) return null
+  return optionIds.map((optionId) => {
+    const entries = compiledEffect.entries.filter((entry) => entry.entryId === optionId)
+    const [entry] = entries
+    return {
+      optionId,
+      label: entry && 'label' in entry ? (entry.label ?? '') : '',
+      compiledEffect: { ...compiledEffect, entries }
+    }
+  })
+}
+
+/**
  * The manifest of an action whose one outcome places a zone in the space it names (a PLACED_SPACE
  * ZONE) or on its user (a SOURCE ZONE), or null for any other action. Identification only:
  * {@link placedSpaceZone} validates it.
  */
 export function placedSpaceManifest(
+  compiledEffect: CompiledEffectGroup
+): PlacedSpaceManifest | null {
+  // A cast-time pick places one of its options' zones, which share the area (D140).
+  const options = zoneChoiceOptions(compiledEffect)
+  if (!options) return singlePlacedSpaceManifest(compiledEffect)
+  const manifests = options.map((option) => singlePlacedSpaceManifest(option.compiledEffect))
+  return manifests.every((manifest) => manifest !== null) ? (manifests[0] ?? null) : null
+}
+
+function singlePlacedSpaceManifest(
   compiledEffect: CompiledEffectGroup
 ): PlacedSpaceManifest | null {
   const [entry] = compiledEffect.entries
@@ -92,7 +138,7 @@ export function placedSpaceManifest(
  * partly honored).
  */
 export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpaceZone | null {
-  const manifest = placedSpaceManifest(compiledEffect)
+  const manifest = singlePlacedSpaceManifest(compiledEffect)
   if (!manifest) return null
   if (hasUnmodeledField(manifest, MODELED_MANIFEST_KEYS))
     throw new CharacterRuleActionUnsupportedCompilationError(
@@ -145,4 +191,23 @@ export function zoneTriggers(
     triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter((t) => movement.has(t)),
     ...(turnTriggers.length ? { turnTriggers } : {})
   }
+}
+
+/** What every zone an action may place shares: its only zone, or its first option's (D140). */
+export function sharedZonePlacement(
+  placement: CompiledActionZonePlacement | CompiledActionZoneChoice
+): CompiledActionZonePlacement {
+  return 'options' in placement ? placement.options[0]!.zone : placement
+}
+
+/**
+ * The zone the caster's pick places: the option it names, or the action's only zone when it names
+ * none. Null when the pick does not fit the action.
+ */
+export function chosenZonePlacement(
+  placement: CompiledActionZonePlacement | CompiledActionZoneChoice,
+  optionId: string | undefined
+): CompiledActionZonePlacement | null {
+  if (!('options' in placement)) return optionId === undefined ? placement : null
+  return placement.options.find((option) => option.optionId === optionId)?.zone ?? null
 }

@@ -70,10 +70,15 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
   })
 })
 
-/** The ZONE manifest a spell's cast places, found by narrowing the authored record. */
+/**
+ * The ZONE manifest a spell's cast places, found by narrowing the authored record; a cast-time pick
+ * between zones (D140) is read from its first option.
+ */
 function placedZoneOf(spell: SpellAuthored) {
   const path = spell.effects?.[0]?.paths[0]
-  const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+  const outcome = (
+    path?.selectionKind === 'FIXED' ? path.resultBlock : path?.options[0]?.resultBlock
+  )?.outcomes[0]
   if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
     throw new Error(`${spell.label} must place a zone.`)
   return outcome

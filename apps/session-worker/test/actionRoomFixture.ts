@@ -602,14 +602,17 @@ export async function actionRoom(config: ActionRoomConfig) {
         sender
       )
     },
-    /** The acting actor's area action centered on its own token; not yet checked. */
+    /**
+     * The acting actor's area action centered on its own token; not yet checked. `choices` are the
+     * creatures its zone spares and the zone a cast-time pick places.
+     */
     startCasterCenteredAreaAction(
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       sender: 'GM' | 'PLAYER' = 'GM',
-      unaffectedActorIds?: string[]
+      choices: { unaffectedActorIds?: string[]; choiceOptionId?: string } = {}
     ) {
       return this.startAreaCommand(
-        { kind: 'CASTER_CENTERED', ...(unaffectedActorIds ? { unaffectedActorIds } : {}) },
+        { kind: 'CASTER_CENTERED', ...choices },
         acknowledgedWarnings,
         sender
       )
@@ -619,7 +622,7 @@ export async function actionRoom(config: ActionRoomConfig) {
       target:
         | { kind: 'POINT'; point: { x: number; y: number }; unaffectedActorIds?: string[] }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
-        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[] },
+        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[]; choiceOptionId?: string },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
       sender: 'GM' | 'PLAYER'
     ) {

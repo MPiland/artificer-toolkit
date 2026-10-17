@@ -18,7 +18,8 @@ import {
   readMaintainedStates,
   readZones,
   revertLastAction,
-  walkerMoves
+  walkerMoves,
+  choiceOptionIdOf
 } from './placedZoneRoomReads.js'
 
 /**
@@ -91,8 +92,15 @@ async function aurasListedTo(client: {
   })
 }
 
-async function castAura(room: Room, unaffectedActorIds?: string[]) {
-  const { answer } = await room.startCasterCenteredAreaAction([], 'GM', unaffectedActorIds)
+const RADIANT = choiceOptionIdOf(spiritGuardians, 'Radiant')
+const NECROTIC = choiceOptionIdOf(spiritGuardians, 'Necrotic (evil caster)')
+
+/** The cast picks radiant damage unless a test picks another option (D140). */
+async function castAura(room: Room, unaffectedActorIds?: string[], choiceOptionId = RADIANT) {
+  const { answer } = await room.startCasterCenteredAreaAction([], 'GM', {
+    choiceOptionId,
+    ...(unaffectedActorIds ? { unaffectedActorIds } : {})
+  })
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
@@ -318,7 +326,64 @@ describe('Spirit Guardians designated unaffected creatures (SPELLS-20 T4c)', () 
   it('refuses a designation of a creature that is not in the Encounter', async () => {
     const room = await auraRoom(OUTSIDE_THE_AURA)
 
-    const { answer } = await room.startCasterCenteredAreaAction([], 'GM', [crypto.randomUUID()])
+    const { answer } = await room.startCasterCenteredAreaAction([], 'GM', {
+      choiceOptionId: RADIANT,
+      unaffectedActorIds: [crypto.randomUUID()]
+    })
+
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+    expect(await readZones(room)).toEqual([])
+  })
+})
+
+describe('Spirit Guardians damage type picked at cast (SPELLS-20 T4e, D140)', () => {
+  const damageTypeIdOf = (code: string) =>
+    srdSystemRecord.damageTypes.find((damageType) => damageType.code === code)!.id
+
+  it.each([
+    { label: 'Radiant', optionId: RADIANT, code: 'RADIANT' },
+    { label: 'Necrotic (evil caster)', optionId: NECROTIC, code: 'NECROTIC' }
+  ])(
+    'deals $code damage to a creature that walks in later after the caster picks $label',
+    async ({ optionId, code }) => {
+      const room = await auraRoom(OUTSIDE_THE_AURA)
+      await castAura(room, undefined, optionId)
+      await room.advanceTurn()
+      const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+      const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
+
+      expect(walk.executions).toHaveLength(1)
+      expect(walk.executions[0]).toMatchObject({
+        applications: [
+          expect.objectContaining({
+            kind: 'DAMAGE',
+            damageTypeId: damageTypeIdOf(code),
+            appliedAmount: ROLLED_DAMAGE
+          })
+        ]
+      })
+      expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - ROLLED_DAMAGE)
+    }
+  )
+
+  it('keeps the picked damage type on the aura it left', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+
+    await castAura(room, undefined, NECROTIC)
+
+    const [zone] = await readZones(room)
+    expect(zone?.definitionJson).toContain(damageTypeIdOf('NECROTIC'))
+    expect(zone?.definitionJson).not.toContain(damageTypeIdOf('RADIANT'))
+  })
+
+  it.each([
+    { name: 'no pick', choices: {} },
+    { name: 'a pick the spell does not offer', choices: { choiceOptionId: crypto.randomUUID() } }
+  ])('refuses a cast with $name and leaves no aura', async ({ choices }) => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+
+    const { answer } = await room.startCasterCenteredAreaAction([], 'GM', choices)
 
     expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
     expect(await readZones(room)).toEqual([])

@@ -146,7 +146,9 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema,
       point: spatialPointDtoSchema,
-      unaffectedActorIds: unaffectedActorIdsSchema
+      unaffectedActorIds: unaffectedActorIdsSchema,
+      /** The zone the caster picks at cast, for an action that offers several (D140). */
+      choiceOptionId: z.optional(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('DIRECTED'),
@@ -159,7 +161,9 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       kind: z.literal('CASTER_CENTERED'),
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema,
-      unaffectedActorIds: unaffectedActorIdsSchema
+      unaffectedActorIds: unaffectedActorIdsSchema,
+      /** The zone the caster picks at cast, for an action that offers several (D140). */
+      choiceOptionId: z.optional(postgresUuidSchema)
     })
   ])
 )

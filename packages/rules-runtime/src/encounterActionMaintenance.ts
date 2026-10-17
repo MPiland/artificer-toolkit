@@ -18,6 +18,7 @@ import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
 import { EncounterValidationError, SpellcastingLockedError } from './encounterErrors.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
+import { sharedZonePlacement } from './encounterZonePlacement.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
@@ -56,10 +57,12 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     prepared.source.kind === 'CHARACTER_ACTION' && prepared.source.entry.schemaVersion === 4
       ? prepared.source.entry.compilation.zonePlacement
       : null
+  // The zones a cast picks between open one Concentration (D140).
+  const zoneMaintenance = zone ? sharedZonePlacement(zone).maintenance : null
   // The creature effects and the zone of one cast name one Concentration, not two.
   const policies = [
     ...new Map(
-      [...plans.map((plan) => plan?.maintenance), zone?.maintenance].flatMap((policy) =>
+      [...plans.map((plan) => plan?.maintenance), zoneMaintenance].flatMap((policy) =>
         policy ? [[checksumCanonicalJson(policy), policy] as const] : []
       )
     ).values()

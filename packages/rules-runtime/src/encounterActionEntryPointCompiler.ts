@@ -217,7 +217,8 @@ export function compileCharacterActionEntryPoints(
       try {
         const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
         if (zonePlacement) {
-          // The zone's entry graph runs when a creature enters it, never when the action is used.
+          // The zone's entry graph runs when a creature enters it, never when the action is used; a
+          // cast-time pick (D140) names its first option's.
           return {
             schemaVersion: 4,
             kind: 'CHARACTER_ACTION',
@@ -229,7 +230,13 @@ export function compileCharacterActionEntryPoints(
               resourceBinding: compiledResourceBinding(candidate),
               activeEffectPlan: null,
               zonePlacement,
-              executionPlan: { kind: 'SINGLE_GRAPH', published: zonePlacement.entry.frozenGraph }
+              executionPlan: {
+                kind: 'SINGLE_GRAPH',
+                published: ('options' in zonePlacement
+                  ? zonePlacement.options[0]!.zone
+                  : zonePlacement
+                ).entry.frozenGraph
+              }
             }
           }
         }

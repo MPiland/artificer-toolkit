@@ -180,6 +180,11 @@ export type CharacterRuleActionZonePlacementPlan = Omit<CompiledActionZonePlacem
   entry: CharacterRuleActionActiveEffectPlan
 }
 
+/** The zones an action places when its caster picks one at cast (D140). */
+export type CharacterRuleActionZoneChoicePlan = {
+  options: { optionId: string; label: string; zone: CharacterRuleActionZonePlacementPlan }[]
+}
+
 /**
  * A System compiler can split a direct action into a bounded evidence TEST
  * followed by the one authored OUTCOME selected by that completed test.
@@ -426,12 +431,12 @@ export interface CharacterRuleActionSystemAdapter {
     testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   }): CharacterRuleActionOutcomeTemplate | null
   /**
-   * The zone this action places when its authored outcome is a placed-space manifest, or null for
-   * any other action. An unsupported zone throws the unsupported-compilation error.
+   * The zone this action places when its authored outcome is a placed-space manifest (or the zones
+   * its caster picks one of, D140), or null for any other action. An unsupported zone throws the unsupported-compilation error.
    */
   compileZonePlacement?(input: {
     action: EffectActionCapabilityDescriptor
-  }): CharacterRuleActionZonePlacementPlan | null
+  }): CharacterRuleActionZonePlacementPlan | CharacterRuleActionZoneChoicePlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {
     action: EffectActionCapabilityDescriptor

@@ -324,6 +324,28 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
 
 export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlacementSchema>
 
+/**
+ * The zones an action places when its caster picks one at cast (D140): one plan per option of its
+ * ON_USE CHOICE path. The options share what is settled before the pick: the area, whether the
+ * caster spares creatures, and the Concentration the cast opens.
+ */
+const compiledActionZoneChoiceSchema = lazySchema(() =>
+  z.strictObject({
+    options: z
+      .array(
+        z.strictObject({
+          optionId: serverUuidIdentityDtoSchema,
+          label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+          zone: compiledActionZonePlacementSchema
+        })
+      )
+      .check(z.minLength(2))
+      .check(z.maxLength(20))
+  })
+)
+
+export type CompiledActionZoneChoice = z.infer<typeof compiledActionZoneChoiceSchema>
+
 const compiledActionTemplateIdentitySchema = ruleGraphSourceIdentityDtoSchema
 
 const compiledActionTestOutcomePlanSchema = lazySchema(() =>
@@ -480,7 +502,9 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         /** Set for an action that places a zone; its `executionPlan` is then never run. */
-        zonePlacement: z.nullable(compiledActionZonePlacementSchema),
+        zonePlacement: z.nullable(
+          z.union([compiledActionZonePlacementSchema, compiledActionZoneChoiceSchema])
+        ),
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),

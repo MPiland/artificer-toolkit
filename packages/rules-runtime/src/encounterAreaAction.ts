@@ -1,5 +1,9 @@
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
-import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type {
+  CompiledActionTargetPolicy,
+  CompiledActionZoneChoice,
+  CompiledActionZonePlacement
+} from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
@@ -19,6 +23,7 @@ import {
 
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
 import { selectScalingRow } from './scalingRowSelection.js'
+import { sharedZonePlacement } from './encounterZonePlacement.js'
 
 const OUT_OF_SIGHT: EncounterRuleWarningDto = {
   code: 'TARGET_OUT_OF_SIGHT',
@@ -227,13 +232,26 @@ export function encounterActionChoiceTarget(
     forms: readonly { id: string; label: string; maxTargets: number }[]
     filter: unknown
   } | null,
-  /** The zone the action places; one that lets the caster spare creatures says so. */
-  zonePlacement?: { choosesUnaffected?: boolean } | null
+  /**
+   * The zone the action places: one that lets the caster spare creatures says so, and a cast-time
+   * pick lists the zones to pick from (D140).
+   */
+  zonePlacement?: CompiledActionZonePlacement | CompiledActionZoneChoice | null
 ): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
-  const sparesCreatures = zonePlacement?.choosesUnaffected
-    ? { choosesUnaffected: true as const }
-    : {}
+  const zoneChoices = {
+    ...(zonePlacement && sharedZonePlacement(zonePlacement).choosesUnaffected
+      ? { choosesUnaffected: true as const }
+      : {}),
+    ...(zonePlacement && 'options' in zonePlacement
+      ? {
+          choiceOptions: zonePlacement.options.map(({ optionId, label }) => ({
+            id: optionId,
+            label
+          }))
+        }
+      : {})
+  }
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
   const maxTargets =
@@ -256,8 +274,8 @@ export function encounterActionChoiceTarget(
       ...(formContribution?.filter ? { choosesCreatureForm: true as const } : {})
     }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
-    return { kind: 'CASTER_CENTERED', area, ...sparesCreatures }
-  if (area) return { kind: 'POINT', area, ...sparesCreatures }
+    return { kind: 'CASTER_CENTERED', area, ...zoneChoices }
+  if (area) return { kind: 'POINT', area, ...zoneChoices }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
