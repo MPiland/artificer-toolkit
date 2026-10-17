@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -56,13 +57,13 @@ describe('the source aura through the equipment node map', () => {
     const authored = carrying(spiritGuardians.effects as EquipmentAuthored['effects'])
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
   it('keeps an aura with another radius and a fixed DC the same way, so it resolves like the SRD aura', async () => {
     const authored = variant()
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 })

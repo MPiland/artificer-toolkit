@@ -89,8 +89,13 @@ import {
   runActorPlayState
 } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
-import { RoomEncounterStore, SCENE_EVIDENCE_ROW } from '../src/roomEncounterStore.js'
+import {
+  RoomEncounterStore,
+  RoomStoreCorruptError,
+  SCENE_EVIDENCE_ROW
+} from '../src/roomEncounterStore.js'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
+import { roomFailureLog } from './roomFailureLog.js'
 
 /** Scene receipts stay in the room's evidence and never travel in a checkpoint (Amendment 26). */
 function roomReceipt(stub: DurableObjectStub, commandId: string) {
@@ -6593,7 +6598,55 @@ it('sends an expected domain rejection and keeps an unexpected failure generic',
       ])
       expect(JSON.stringify(messages)).not.toContain('Encounter actor was not found')
       expect(localEncounterEvidence(context.storage)).toEqual(before)
+      // The cause the member never sees reaches the test harness (PLATFORM-22.2).
+      expect(roomFailureLog().flat()).toContainEqual(
+        expect.objectContaining({ message: expect.stringContaining('Encounter actor was not found') })
+      )
     } finally {
+      sent.mockRestore()
+    }
+  })
+})
+it('logs a room failure behind a generic retry for the test harness and tells the member nothing', async () => {
+  const { base, state, actors } = await localEncounterFixture()
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    const before = localEncounterEvidence(context.storage)
+    const sent = vi.spyOn(socket, 'send')
+    // The room's aggregate load fails with an internal error before the command runs.
+    const corrupt = vi
+      .spyOn(RoomEncounterStore.prototype, 'corruption', 'get')
+      .mockReturnValue(new RoomStoreCorruptError('harness-visible cause'))
+    try {
+      await instance.webSocketMessage(
+        socket,
+        encounterFrame({
+          type: 'UPDATE_ACTOR',
+          encounterId: state.id,
+          commandId,
+          expectedVersion: state.version,
+          actorId: actors[0]!.id,
+          currentHitPoints: 5
+        })
+      )
+      const messages = sentMessages(sent)
+      expect(messages).toEqual([
+        expect.objectContaining({
+          type: 'COMMAND_REJECTED',
+          commandId,
+          code: 'UNAVAILABLE',
+          message: LIVE_SESSION_TRY_AGAIN_MESSAGE,
+          reason: null
+        })
+      ])
+      expect(JSON.stringify(messages)).not.toContain('harness-visible cause')
+      expect(roomFailureLog().flat()).toContainEqual(
+        expect.objectContaining({ message: expect.stringContaining('harness-visible cause') })
+      )
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+    } finally {
+      corrupt.mockRestore()
       sent.mockRestore()
     }
   })

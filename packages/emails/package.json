@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/emails/src/__tests__",
     "dev": "email dev --dir src/previews"
   },
