@@ -1164,6 +1164,67 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-22",
+          "title": "Fewer and faster CI cycles per slice",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-22.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request: about half of the day's failed CI cycles were type errors found only after a 15-20 minute run.",
+              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today."
+            },
+            {
+              "id": "PLATFORM-22.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients."
+            },
+            {
+              "id": "PLATFORM-22.3",
+              "status": "TODO",
+              "origin": [],
+              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-22.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-22.1", "PLATFORM-22.2"],
+              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-22.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-22.3"],
+              "text": "Single-slice merge rule in AGENTS.md, applied at the next single-slice merge.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              }
+            }
+          ]
         }
       ]
     },
