@@ -4,7 +4,6 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability,
@@ -26,26 +25,27 @@ export function evaluateDnd5eCharacterDefenses(
       )
     )
       continue
-    const grant = characterPolicyRecord(modifier.grant)
-    const payload = characterPolicyRecord(grant.payload)
+    const { payload } = modifier
     const adding = modifier.modifierKind === 'ADD_OPTION'
-    if (grant.valueDomainCode === 'CONDITION_IMMUNITY') {
+    if (modifier.valueDomainCode === 'CONDITION_IMMUNITY') {
+      if (payload === undefined || !('conditionTypeId' in payload)) continue
       const conditionId = payload.conditionTypeId
-      if (typeof conditionId !== 'string' || conditionId.trim() === '') continue
+      if (conditionId.trim() === '') continue
       if (adding) conditionImmunityIds.add(conditionId)
       else conditionImmunityIds.delete(conditionId)
       continue
     }
     const kind =
-      grant.valueDomainCode === 'DAMAGE_RESISTANCE'
+      modifier.valueDomainCode === 'DAMAGE_RESISTANCE'
         ? 'RESISTANCE'
-        : grant.valueDomainCode === 'DAMAGE_IMMUNITY'
+        : modifier.valueDomainCode === 'DAMAGE_IMMUNITY'
           ? 'IMMUNITY'
-          : grant.valueDomainCode === 'DAMAGE_VULNERABILITY'
+          : modifier.valueDomainCode === 'DAMAGE_VULNERABILITY'
             ? 'VULNERABILITY'
             : null
-    const damageTypeId = payload.damageTypeId
-    if (kind === null || typeof damageTypeId !== 'string' || damageTypeId.trim() === '') continue
+    if (kind === null || payload === undefined || !('damageTypeId' in payload)) continue
+    const { damageTypeId } = payload
+    if (damageTypeId.trim() === '') continue
     const key = `${kind}:${damageTypeId}`
     if (adding) defenses.set(key, { kind, damageTypeId, source: modifier.source })
     else defenses.delete(key)

@@ -35,14 +35,6 @@ type GrantBearingDefinition = {
   spells?: readonly CompiledSpellGrant[]
 }
 
-type JsonFact = CharacterGrantFoldSource['modifiers'][number]['grant']
-
-function jsonFact(value: unknown): JsonFact {
-  const serialized = JSON.stringify(value)
-  if (serialized === undefined) throw new Error('Character grant mechanics must be JSON values.')
-  return JSON.parse(serialized) as JsonFact
-}
-
 type ScalingTargetKey = 'senseIds' | 'featIds' | 'spellIds'
 
 function selectedIds<K extends ScalingTargetKey>(
@@ -173,8 +165,9 @@ export function buildCharacterGrantFoldModifierFacts(
     grantId: grant.id,
     valueDomainCode: grant.valueDomainCode,
     modifierKind: grant.modifierKind,
-    domain: jsonFact(grant.domain),
-    grant: jsonFact(grant),
+    scope: grant.scope,
+    domain: grant.domain,
+    payload: grant.payload,
     restrictions: normalizeCharacterGrantRestrictions(
       grant.restrictions,
       normalizeProficiencyTarget
@@ -186,6 +179,15 @@ export function buildCharacterGrantFoldModifierFacts(
         context.authoringModeKind === 'SELECTED' &&
         context.spellIds.length > 0
           ? [...context.spellIds]
+          : []
+      ),
+    scopeResourceIds: (grant.restrictions?.groups ?? [])
+      .flatMap((group) => group.contexts)
+      .flatMap((context) =>
+        context.subject === 'RESOURCE' &&
+        context.authoringModeKind === 'SELECTED' &&
+        context.resourceIds.length > 0
+          ? [...context.resourceIds]
           : []
       )
   }))

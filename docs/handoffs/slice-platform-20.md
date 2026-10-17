@@ -1,6 +1,6 @@
 # Slice workbook: PLATFORM-20 (one flat compile stage: no dead or copy-only compilers)
 
-**Status:** T1 green on `57625a799`, awaiting merge (2026-10-16); T2 (typed persisted fold `grant`) follows on merged T1.
+**Status:** T1 green on `57625a799`, in merge batch m62 (`ci/merge-m62`, 21d8d8206). T2 (typed fold `scope`/`domain`/`payload`, AC 20.3) in progress on `claude/platform-20-t2` from the T1 tip (2026-10-16).
 **Base:** `claude/sweet-cartwright-3b0fe8` at ea6b4a50f.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0003](../adr/0003-vocabulary-authored-compiled-engine-data.md), [engine.md](../architecture/engine.md).
 
@@ -13,6 +13,10 @@
 5. **T1 green** on `57625a799`: Tests 38992261820 (attempt 2; attempt 1 hit an unrelated `nativeRoomEscapeAction` console-spy flake), Live 38992261797. Reported to the orchestrator for merge.
 6. 20.4 docs are in ADR 0003 (Compile stage as built) and engine.md (Compile stage).
 7. Orchestrator ruled option A with a split: **T1** (this branch) is 20.1, 20.2, the flat compiled type, typed fold reads and the builder workarounds removed; report green and the orchestrator merges. **T2** (same session, on merged T1) replaces `grant: boundedJson` in `modifierOperationSchema` with typed `scope`/`payload`, rewrites the rules-runtime consumers without `record()`, migrates stored dev rows idempotently with a test, and checks projection byte budgets. AC 20.3 closes with T2.
+8. **T2** on `claude/platform-20-t2`: `modifierOperationSchema` carries typed `scope`, `domain` (`modifierDomainParamsDtoSchema`), optional `payload` (`modifierPayloadDtoSchema`) and `scopeResourceIds`; fold contributions drop `grant`. Every rules-runtime reader narrows the typed fields; `record()` remains only on saving-throw definition rows in `encounterActiveGrants.ts`, not on modifiers. Red goes to `ci/platform-20-t2-red` (tests only), green to `ci/platform-20-t2`.
+9. Stored rows: `apps/apis/convex/rules/modifierOperationMigration.ts` rewrites frozen operations in `characterActiveRuleEffects`, `encounterActiveRuleEffects` and `encounterSpatialRuleEffects` from their compiled-grant dump (grant compiler plus fold fact builder), validates the definition and re-checksums it; idempotent, with `modifierOperationMigration.test.ts`. Run it once on the local backend after deploy (`rules/modifierOperationMigration:run`).
+10. Not migrated: immutable copies of old definitions in rule receipts (`consumedGrants`, `endedEffect`, `consumedSpatialEffects`), pending snapshot parts and Session Worker room storage. They are chained and checksummed history, so the standard local reset clears them rather than a rewrite. A rewritten spatial `definitionChecksum` also no longer matches a pending occurrence pinned to the old one.
+11. Byte budgets: an operation now carries `scope`, `payload` and `scopeResourceIds` instead of a copy of the whole compiled grant (id, order, kinds, domain, payload, authored restrictions), and contributions no longer repeat the grant, so the fold output and frozen definitions only shrink under the 240,000-character fold caps.
 
 ## ACs
 
@@ -51,6 +55,6 @@
 - `CompiledModifierGrant` is flat: independent `valueDomainCode` and `modifierKind`, validated `domain` and `payload`. Stored compiled JSON is unchanged, so no recompile migration.
 - The fold builder reads proficiency and scaling targets through typed narrowing; no `Record<string, unknown>` casts remain.
 
-## Open escalation
+## Escalation (resolved by T2)
 
 `CharacterGrantFoldModifier.grant` (and `domain`) are `boundedJson` in `packages/schema/src/api/characterGrantFoldRules.ts` and persisted in Character mechanics, active rule effects, encounter runs, scene live state and spatial effects. About 35 rules-runtime sites read `grant.scope`, `grant.payload` and `grant.domain` through `record()`. Removing the `jsonFact` passthrough means replacing `grant` with typed fields in that persisted contract, rewriting those consumers and migrating stored rows. Ruled 2026-10-16: option A, delivered as T2 (see Resume here, step 6).

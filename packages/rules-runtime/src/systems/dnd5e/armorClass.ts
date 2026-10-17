@@ -6,7 +6,7 @@ import {
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
-import { characterPolicyNumber, characterPolicyRecord } from './characterPolicyValues.js'
+import { characterPolicyRecord } from './characterPolicyValues.js'
 
 /**
  * The one D&D armor class formula. The standard base is worn armor (its armor class plus the
@@ -89,11 +89,21 @@ function itemArmorClassModifiers(
         item.id,
         `Equipment "${item.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
       )
-    const payload = characterPolicyRecord(modifier.payload)
-    if (modifier.modifierKind === 'ABILITY_MODIFIER_BONUS' && payload.ability === 'DEXTERITY') {
+    const { payload } = modifier
+    if (
+      modifier.modifierKind === 'ABILITY_MODIFIER_BONUS' &&
+      payload !== undefined &&
+      'ability' in payload &&
+      payload.ability === 'DEXTERITY'
+    ) {
       abilityBonuses.push(resolveAbilityModifierBonus(dexterityModifier, payload))
-    } else if (modifier.modifierKind === 'BONUS' && payload.valueKind === 'FIXED') {
-      flatBonuses.push(characterPolicyNumber(payload.amount))
+    } else if (
+      modifier.modifierKind === 'BONUS' &&
+      payload !== undefined &&
+      'valueKind' in payload &&
+      payload.valueKind === 'FIXED'
+    ) {
+      flatBonuses.push(payload.amount)
     } else {
       return failure(
         item.id,

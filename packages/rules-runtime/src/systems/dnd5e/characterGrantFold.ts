@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
-import { canonicalCharacterAbility, characterPolicyRecord } from './characterPolicyValues.js'
+import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   DND5E_ITEM_CONDITION_KINDS,
@@ -74,7 +74,7 @@ function drawnSourceState(
   sourceState: SourceState | undefined
 ): SourceState | undefined {
   if (!sourceState?.carried || sourceState.equipped) return sourceState
-  return characterPolicyRecord(modifier.grant).scope === 'SOURCE' &&
+  return modifier.scope === 'SOURCE' &&
     (modifier.valueDomainCode === 'ATTACK_ROLL' || modifier.valueDomainCode === 'DAMAGE')
     ? { ...sourceState, equipped: true }
     : sourceState
@@ -117,23 +117,22 @@ export function evaluateDnd5e2014CharacterGrantFold(
     let score = base
     let set: number | null = null
     for (const modifier of acc.modifiers) {
-      const grant = characterPolicyRecord(modifier.grant)
-      const payload = characterPolicyRecord(grant.payload)
-      const amount = payload.amount
+      const { payload } = modifier
       if (
-        grant.valueDomainCode !== 'ABILITY_SCORE' ||
-        canonicalCharacterAbility(characterPolicyRecord(grant.domain).ability) !== ability ||
-        typeof amount !== 'number' ||
-        (payload.valueKind !== undefined && payload.valueKind !== 'FIXED') ||
+        modifier.valueDomainCode !== 'ABILITY_SCORE' ||
+        canonicalCharacterAbility(modifier.domain.ability) !== ability ||
+        payload === undefined ||
+        !('amount' in payload) ||
+        ('valueKind' in payload && payload.valueKind !== 'FIXED') ||
         !dnd5eModifierApplies(
           dnd5eAcceptedModifierApplicability(modifier),
           DND5E_CHARACTER_WIDE_TARGET
         )
       )
         continue
-      if (grant.modifierKind === 'BONUS') score += amount
-      else if (grant.modifierKind === 'PENALTY') score -= amount
-      else if (grant.modifierKind === 'SET_VALUE') set = amount
+      if (modifier.modifierKind === 'BONUS') score += payload.amount
+      else if (modifier.modifierKind === 'PENALTY') score -= payload.amount
+      else if (modifier.modifierKind === 'SET_VALUE') set = payload.amount
     }
     return set === null ? score : set + score - base
   }
@@ -318,15 +317,22 @@ export function evaluateDnd5e2014CharacterGrantFold(
       const domainKey = buildModifierDomainKey(
         modifier.valueDomainCode,
         modifier.modifierKind,
-        characterPolicyRecord(modifier.domain)
+        modifier.domain
       )
       const accepted: Modifier = {
         domainKey,
+        grantId: modifier.grantId,
+        valueDomainCode: modifier.valueDomainCode,
         modifierKind: modifier.modifierKind,
-        grant: modifier.grant,
+        scope: modifier.scope,
+        domain: modifier.domain,
+        payload: modifier.payload,
         sourceId,
         source: mechanicSource,
         ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),
+        ...(modifier.scopeResourceIds.length > 0
+          ? { scopeResourceIds: modifier.scopeResourceIds }
+          : {}),
         deferredRequirements
       }
       const acceptedModifierIndex = acc.modifiers.length
@@ -345,8 +351,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       group.contributions.push({
         acceptedModifierIndex,
         sourceId,
-        grantId: modifier.grantId,
-        grant: modifier.grant
+        grantId: modifier.grantId
       })
     }
   }

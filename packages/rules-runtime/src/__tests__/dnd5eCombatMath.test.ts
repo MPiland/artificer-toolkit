@@ -380,17 +380,12 @@ describe('D&D 5e armor class', () => {
           grantId: 'penalty-grant',
           valueDomainCode: 'ARMOR_CLASS',
           modifierKind: 'PENALTY',
+          scope: 'GLOBAL',
           domain: {},
-          grant: {
-            id: 'penalty-grant',
-            valueDomainCode: 'ARMOR_CLASS',
-            modifierKind: 'PENALTY',
-            scope: 'GLOBAL',
-            domain: {},
-            payload: { valueKind: 'FIXED', amount: 2 }
-          },
+          payload: { valueKind: 'FIXED', amount: 2 },
           restrictions: [],
-          scopeSpellIds: []
+          scopeSpellIds: [],
+          scopeResourceIds: []
         }
       ],
       feats: [],
@@ -907,14 +902,12 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
           grantId: 'unevaluable-grant',
           valueDomainCode: 'ARMOR_CLASS',
           modifierKind: 'BONUS',
+          scope: 'GLOBAL',
           domain: {},
-          grant: {
-            id: 'unevaluable-grant',
-            scope: 'GLOBAL',
-            payload: { valueKind: 'FIXED', amount: 5 }
-          },
+          payload: { valueKind: 'FIXED', amount: 5 },
           restrictions: [group!],
-          scopeSpellIds: []
+          scopeSpellIds: [],
+          scopeResourceIds: []
         }
       ],
       feats: [],
