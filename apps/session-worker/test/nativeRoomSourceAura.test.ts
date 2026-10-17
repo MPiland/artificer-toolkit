@@ -92,8 +92,8 @@ async function aurasListedTo(client: {
   })
 }
 
-async function castAura(room: Room) {
-  const { answer } = await room.startCasterCenteredAreaAction()
+async function castAura(room: Room, unaffectedActorIds?: readonly string[]) {
+  const { answer } = await room.startCasterCenteredAreaAction([], 'GM', unaffectedActorIds)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
@@ -316,4 +316,39 @@ describe('Spirit Guardians damage by save and slot level (SPELLS-20 T4a)', () =>
       expect(lost).toBe(half)
     }
   )
+})
+
+describe('Spirit Guardians designated unaffected creatures (SPELLS-20 T4c)', () => {
+  it('never puts a creature the caster designated through the save or its damage', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(room, [WOLF_ID])
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
+
+    expect(walk.executions).toEqual([])
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+  })
+
+  it('keeps the designation on the aura it left, and leaves nobody out when none is named', async () => {
+    const designated = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(designated, [WOLF_ID])
+    expect(await readZones(designated)).toMatchObject([
+      { placement: { unaffectedActorIds: [WOLF_ID] } }
+    ])
+
+    const open = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(open)
+    expect((await readZones(open))[0]?.placement).not.toHaveProperty('unaffectedActorIds')
+  })
+
+  it('refuses a designation of a creature that is not in the Encounter', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+
+    const { answer } = await room.startCasterCenteredAreaAction([], 'GM', [crypto.randomUUID()])
+
+    expect(answer.type).toBe('COMMAND_REJECTED')
+    expect(await readZones(room)).toEqual([])
+  })
 })

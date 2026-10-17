@@ -297,6 +297,41 @@ function zonePlacementOf(equipment?: EquipmentAuthored) {
   return zone
 }
 
+describe('a zone whose caster designates unaffected creatures (SPELLS-20 T4c)', () => {
+  const authored = variantEquipment(({ component }) => {
+    Object.assign(component, { choosesUnaffected: true })
+  })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('compiles the choice onto the zone, which the SRD Caltrops zone does not offer', () => {
+    expect(zonePlacementOf(authored).choosesUnaffected).toBe(true)
+    expect(zonePlacementOf().choosesUnaffected).toBeUndefined()
+  })
+
+  it('stores the designated creatures on the placed zone, and nothing when none are named', () => {
+    const place = (unaffectedActorIds: readonly string[]) =>
+      planEncounterPlacedZone({
+        zone: zonePlacementOf(authored),
+        id: ZONE_ID,
+        maintainedEffectStateId: null,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: OCCURRENCE_ID,
+        rootCommandId: SPREAD_COMMAND_ID,
+        sourceActorId: SOURCE_ID,
+        point: { x: 250, y: 350 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: null,
+        unaffectedActorIds
+      }).placement
+    expect(place([SOURCE_ID]).unaffectedActorIds).toEqual([SOURCE_ID])
+    expect(place([])).not.toHaveProperty('unaffectedActorIds')
+  })
+})
+
 describe('a zone authored with another save DC and a circle shape', () => {
   const authored = variantEquipment(({ zone, invocation }) => {
     zone.label = 'Spike field'

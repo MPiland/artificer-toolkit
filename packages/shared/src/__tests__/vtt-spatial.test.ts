@@ -89,6 +89,25 @@ describe('spatial movement candidates', () => {
     expect(exit[0]?.contact.x).toBeCloseTo(2)
   })
 
+  describe('creatures designated unaffected (SPELLS-20 T4c)', () => {
+    const walk = [
+      { x: -5, y: 0 },
+      { x: 5, y: 0 }
+    ]
+
+    it('never catches a creature the effect names unaffected, and still catches the others', () => {
+      const spared = effect({ unaffectedActorIds: [ids.targetActor] })
+      expect(collect({ effects: [spared], movementKind: 'VOLUNTARY', path: walk })).toEqual([])
+      expect(
+        collect({
+          effects: [effect({ unaffectedActorIds: [ids.sourceActor] })],
+          movementKind: 'VOLUNTARY',
+          path: walk
+        })
+      ).toHaveLength(1)
+    })
+  })
+
   describe('half-speed passage', () => {
     const field = effect({ bypassAtHalfSpeed: true })
     const walk = [

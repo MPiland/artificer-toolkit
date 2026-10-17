@@ -552,16 +552,21 @@ export async function actionRoom(config: ActionRoomConfig) {
     /** The acting actor's area action centered on its own token; not yet checked. */
     startCasterCenteredAreaAction(
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
-      sender: 'GM' | 'PLAYER' = 'GM'
+      sender: 'GM' | 'PLAYER' = 'GM',
+      unaffectedActorIds?: readonly string[]
     ) {
-      return this.startAreaCommand({ kind: 'CASTER_CENTERED' }, acknowledgedWarnings, sender)
+      return this.startAreaCommand(
+        { kind: 'CASTER_CENTERED', ...(unaffectedActorIds ? { unaffectedActorIds } : {}) },
+        acknowledgedWarnings,
+        sender
+      )
     },
     /** The acting actor's area action on the Scene as the room holds it now. */
     async startAreaCommand(
       target:
         | { kind: 'POINT'; point: { x: number; y: number } }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
-        | { kind: 'CASTER_CENTERED' },
+        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: readonly string[] },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
       sender: 'GM' | 'PLAYER'
     ) {
