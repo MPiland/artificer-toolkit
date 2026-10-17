@@ -37,10 +37,11 @@ const SPELL_CAST_ACTION_NAMESPACE = 'b7a2f1d6-3c4e-5a89-9d10-6e2f4c8a1b35'
 /**
  * A Spell cast resolves through the action seam under this identity; the candidate carries the rest.
  * The candidate id embeds the source and the spell and can outgrow an action identity, so the action
- * id is a fixed-length digest of it.
+ * id is a fixed-length digest of it. A spell's first Effect group keeps that id; each further group
+ * (Shield's reaction to being targeted) is its own action, named by its Effect id as well.
  */
-export function spellCastActionId(candidateId: string): string {
-  return `spell-cast:${uuidv5(candidateId, SPELL_CAST_ACTION_NAMESPACE)}`
+export function spellCastActionId(candidateId: string, laterEffectId?: string): string {
+  return `spell-cast:${uuidv5(laterEffectId === undefined ? candidateId : `${candidateId}#${laterEffectId}`, SPELL_CAST_ACTION_NAMESPACE)}`
 }
 
 /**
@@ -174,78 +175,86 @@ export function buildCharacterSpellCastActions(input: {
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const decisions: ActionDecision[] = []
   for (const cast of input.spellCastCandidates) {
-    const actionId = spellCastActionId(cast.candidateId)
     const spell = input.spellDocumentsById?.get(cast.spellId)
     if (
       !spell ||
       !isCastOffered(cast, decisionsByCandidateId.get(cast.candidateId), input.castableCandidateIds)
     )
       continue
-    // One cast is one action, and the compiler executes one Effect group per action.
+    // One cast action runs one Effect group. Groups that are each a reaction of their own (Shield
+    // answering an attack, and answering Magic Missile) are separate actions; any other spell with
+    // several groups is not offered.
     const effects = activeSpellEffects(spell)
+    if (
+      effects.length > 1 &&
+      !effects.every((effect) => effect.invocation.activation.code === 'REACTION')
+    )
+      continue
     const mechanics = mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
-    const [group] = effects
-    const mechanic = mechanics.find((entry) => entry.effectId === group?.id)
-    if (effects.length !== 1 || !group || mechanics.length !== 1 || !mechanic) continue
-    const mechanicFacts = normalizeCharacterActionMechanicFacts(group)
-    const source = {
-      kind: 'AUTHORED' as const,
-      sourceKind: 'SPELL' as const,
-      definitionId: cast.spellId,
-      sourceInstanceId: cast.candidateId
+    for (const [index, group] of effects.entries()) {
+      const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
+      const mechanic = mechanics.find((entry) => entry.effectId === group.id)
+      if (!mechanic) continue
+      const mechanicFacts = normalizeCharacterActionMechanicFacts(group)
+      const source = {
+        kind: 'AUTHORED' as const,
+        sourceKind: 'SPELL' as const,
+        definitionId: cast.spellId,
+        sourceInstanceId: cast.candidateId
+      }
+      const mechanicsOwner = { kind: 'SPELL' as const, id: cast.spellId }
+      // As on the Sheet, a leveled cast paid from a pool spends one of its uses, and a cantrip is free.
+      const poolId =
+        cast.spellLevel > 0 && (cast.castMode === 'LIMITED_USE' || cast.castMode === 'FIXED_LEVEL')
+          ? cast.resourceOwnerKey
+          : null
+      const pool =
+        poolId === null
+          ? null
+          : policyOutput.resources.find(
+              (resource) => resource.poolId === poolId && resource.state === 'RESOLVED'
+            )
+      if (pool === undefined) continue
+      const resourceUse = pool && { poolId: pool.poolId, chargeId: pool.chargeId, cost: 1 }
+      const sequence = input.firstSequence + candidates.length
+      candidates.push({
+        sequence,
+        actionId,
+        label: spellCastLabel(spell, cast),
+        effectId: group.id,
+        sourceId: cast.candidateId,
+        source,
+        mechanicsOwner,
+        activationSourceKind: 'ACTIVE_SOURCE',
+        equipment: null,
+        resourceUse,
+        mechanicFacts
+      })
+      entryPoints.push({
+        actionId,
+        effectId: group.id,
+        sourceId: cast.candidateId,
+        source,
+        mechanicsOwner,
+        activationSourceKind: 'ACTIVE_SOURCE',
+        compiledEffect: group,
+        spellCastLevel: cast.castLevel,
+        characterLevel: input.characterLevel
+      })
+      decisions.push({
+        sequence,
+        actionId,
+        effectId: group.id,
+        sourceId: cast.candidateId,
+        source,
+        mechanicsOwner,
+        status: 'AVAILABLE',
+        reasonCode: null,
+        resourcePoolId: resourceUse?.poolId ?? null,
+        resourceCost: resourceUse?.cost ?? null,
+        mechanic
+      })
     }
-    const mechanicsOwner = { kind: 'SPELL' as const, id: cast.spellId }
-    // As on the Sheet, a leveled cast paid from a pool spends one of its uses, and a cantrip is free.
-    const poolId =
-      cast.spellLevel > 0 && (cast.castMode === 'LIMITED_USE' || cast.castMode === 'FIXED_LEVEL')
-        ? cast.resourceOwnerKey
-        : null
-    const pool =
-      poolId === null
-        ? null
-        : policyOutput.resources.find(
-            (resource) => resource.poolId === poolId && resource.state === 'RESOLVED'
-          )
-    if (pool === undefined) continue
-    const resourceUse = pool && { poolId: pool.poolId, chargeId: pool.chargeId, cost: 1 }
-    const sequence = input.firstSequence + candidates.length
-    candidates.push({
-      sequence,
-      actionId,
-      label: spellCastLabel(spell, cast),
-      effectId: group.id,
-      sourceId: cast.candidateId,
-      source,
-      mechanicsOwner,
-      activationSourceKind: 'ACTIVE_SOURCE',
-      equipment: null,
-      resourceUse,
-      mechanicFacts
-    })
-    entryPoints.push({
-      actionId,
-      effectId: group.id,
-      sourceId: cast.candidateId,
-      source,
-      mechanicsOwner,
-      activationSourceKind: 'ACTIVE_SOURCE',
-      compiledEffect: group,
-      spellCastLevel: cast.castLevel,
-      characterLevel: input.characterLevel
-    })
-    decisions.push({
-      sequence,
-      actionId,
-      effectId: group.id,
-      sourceId: cast.candidateId,
-      source,
-      mechanicsOwner,
-      status: 'AVAILABLE',
-      reasonCode: null,
-      resourcePoolId: resourceUse?.poolId ?? null,
-      resourceCost: resourceUse?.cost ?? null,
-      mechanic
-    })
   }
   return { candidates, entryPoints, decisions }
 }

@@ -800,6 +800,8 @@ export async function planNativeLiveEncounterAction(
     command,
     prepared,
     movementTargets,
+    // A single-target cast has no chosen list to react to being chosen (T4 covers a chosen list).
+    chosenActorIds: null,
     reactionSources: actionSources,
     // Range is read from the Scene, so a cast made without one offers no reaction.
     readScene: command.sceneContext

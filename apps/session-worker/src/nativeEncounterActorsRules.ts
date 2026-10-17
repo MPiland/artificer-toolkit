@@ -160,14 +160,14 @@ export async function planNativeLiveEncounterActorsAction(
     const reactorId = receipt.reaction.reactorActorId
     const reactor = chosen.find((actor) => actor.id === reactorId)
     if (!reactor) throw new Error('Reaction evidence is stale.')
-    const prepareReactor = (reactedTargets: typeof reach.movementTargets) =>
+    const prepareReactor = (reactedTargets: ReadonlyMap<string, Awaited<ReturnType<typeof input.loadTarget>>>) =>
       prepareAreaTarget({
         ...input,
-        base: { ...reach, movementTargets: reactedTargets },
+        base: { ...reach, movementTargets: new Map(reactedTargets) },
         actor: reactor,
         token: reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
       })
-    let adjusted = reach.movementTargets
+    let adjusted: Parameters<typeof prepareReactor>[0] = reach.movementTargets
     const applied = await applyNativeReactionEffect({
       reaction: { prepared: found.prepared, triggerDamageTypeIds: [] },
       runtime: input.runtime,
