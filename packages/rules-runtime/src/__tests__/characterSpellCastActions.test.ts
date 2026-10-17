@@ -52,6 +52,7 @@ const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
 const CHARM_PERSON = spell('Charm Person')
 const SLEEP = spell('Sleep')
+const HYPNOTIC_PATTERN = spell('Hypnotic Pattern')
 const FEAR = spell('Fear')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
@@ -210,9 +211,94 @@ const WATCHFUL_MIASMA: SpellAuthored = (() => {
     attributes: []
   }
 })()
+const srdEffect = HYPNOTIC_PATTERN.effects?.[0]
+if (!srdEffect) throw new Error('Hypnotic Pattern has no effect.')
+/** Hypnotic Pattern written out in core options alone, with no SRD helper (the parity proof). */
+const HYPNOTIC_PATTERN_FROM_CORE_OPTIONS = {
+  ...HYPNOTIC_PATTERN,
+  id: testUuid(0x30ff),
+  effects: [
+    {
+      id: testUuid(0x3100),
+      order: 1,
+      invocation: {
+        ...srdEffect.invocation,
+        range: { id: testUuid(0x3101), rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' },
+        shape: {
+          id: testUuid(0x3102),
+          shapeKind: 'CUBE',
+          edgeLength: { amount: 30, unit: 'FEET' }
+        },
+        savingThrow: {
+          id: testUuid(0x3103),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_ABILITIES.find(({ code }) => code === 'WISDOM')?.id
+        }
+      },
+      paths: [
+        {
+          id: testUuid(0x3104),
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SINGLE',
+          originKind: 'SOURCE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: testUuid(0x3105),
+            resultKind: 'SINGLE',
+            duration: { id: testUuid(0x3106), durationKind: 'MINUTE', amount: 1 },
+            lifecycle: {
+              endOnTriggers: [
+                { event: 'DAMAGE_TAKEN', by: 'ANYONE' },
+                {
+                  event: 'ACTION_USED_ON_HOLDER',
+                  actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE]
+                }
+              ]
+            },
+            outcomes: [
+              {
+                id: testUuid(0x3107),
+                effectKind: 'CONDITION',
+                conditionId: conditionId('CHARMED')
+              },
+              {
+                id: testUuid(0x3108),
+                effectKind: 'CONDITION',
+                conditionId: conditionId('INCAPACITATED')
+              },
+              {
+                id: testUuid(0x3109),
+                effectKind: 'APPLY_GRANT',
+                grants: {
+                  modifiers: [
+                    {
+                      id: testUuid(0x310a),
+                      grantKind: 'MODIFIER_GRANT',
+                      valueDomainCode: 'SPEED',
+                      domain: {},
+                      modifierKind: 'MULTIPLY',
+                      scope: 'GLOBAL',
+                      selectionKind: 'GRANTED',
+                      payload: { numerator: 0, denominator: 1 },
+                      order: 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+} as SpellAuthored
+
 const authoredById = new Map(
   [
     SLEEP,
+    HYPNOTIC_PATTERN,
+    HYPNOTIC_PATTERN_FROM_CORE_OPTIONS,
     SCORCHED_INVISIBILITY,
     FIREBALL,
     MEND,
@@ -616,25 +702,25 @@ describe('the Concentration a cast starts', () => {
   it('compiles Hold Person with the Concentration maintenance and the caster save DC', () => {
     const plan = compiledCast(HOLD_PERSON)?.activeEffectPlan
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
-    expect(plan?.conditionContribution).not.toBeNull()
+    expect(plan?.conditionContributions).toHaveLength(1)
   })
 
   it('plans the Frightened of SRD Fear as recording its caster; Hold Person records none (SPELLS-29)', () => {
-    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
-      recordsSource: true
-    })
-    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
-      recordsSource: false
-    })
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContributions).toMatchObject([
+      { recordsSource: true }
+    ])
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContributions).toMatchObject([
+      { recordsSource: false }
+    ])
   })
 
   it('plans the Frightened of SRD Fear as fleeing its caster; Hold Person flees none (SPELLS-29.T2)', () => {
-    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
-      fleesSource: true
-    })
-    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
-      fleesSource: false
-    })
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContributions).toMatchObject([
+      { fleesSource: true }
+    ])
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContributions).toMatchObject([
+      { fleesSource: false }
+    ])
   })
 
   it('starts no Concentration for a spell that is not a Concentration spell', () => {
@@ -668,8 +754,8 @@ describe('the timed condition a cast owns with no save', () => {
     expect(plan).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 600,
-      conditionContribution: {
-        conditionId: invisibleId,
+      conditionContributions: [{ conditionId: invisibleId }],
+      lifecycle: {
         consumeOnFirstEvents: [],
         endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
       }
@@ -679,7 +765,7 @@ describe('the timed condition a cast owns with no save', () => {
 
   it('carries authored end triggers with explicit filters, unique and in canonical order', () => {
     const plan = compiledCast(SCORCHED_INVISIBILITY)?.activeEffectPlan
-    expect(plan?.conditionContribution?.endOnTriggers).toEqual([
+    expect(plan?.lifecycle?.endOnTriggers).toEqual([
       { event: 'ATTACK_ROLL', against: 'ENEMY' },
       { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null },
       { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] },
@@ -693,9 +779,55 @@ describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
     const charmedId = SRD_CONDITION_TYPES.find(({ code }) => code === 'CHARMED')?.id
     expect(compiledCast(CHARM_PERSON)?.activeEffectPlan).toMatchObject({
       initialRemaining: 600,
-      conditionContribution: {
-        conditionId: charmedId,
+      conditionContributions: [{ conditionId: charmedId }],
+      lifecycle: {
         endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+      }
+    })
+  })
+})
+
+describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', () => {
+  const ROUSE_OR_DAMAGE = [
+    { event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE] },
+    { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
+  ]
+
+  it('owns Hypnotic Pattern’s charmed, incapacitated and speed of 0 as one effect that ends on damage or a rousing', () => {
+    const plan = compiledCast(HYPNOTIC_PATTERN)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 10,
+      conditionContributions: [
+        { conditionId: conditionId('CHARMED') },
+        { conditionId: conditionId('INCAPACITATED') }
+      ],
+      modifierGrantContribution: {
+        countedByTurnEffects: true,
+        consumeOnFirstEvents: [],
+        endOnEvents: [],
+        modifiers: [{ valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' }]
+      },
+      lifecycle: { endOnTriggers: ROUSE_OR_DAMAGE }
+    })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+
+  // Parity: the same spell written out in core options alone (no SRD helper) compiles to this plan.
+  it('compiles a spell authored from core options only to the same plan as the SRD data', () => {
+    const srd = compiledCast(HYPNOTIC_PATTERN)?.activeEffectPlan
+    const plan = compiledCast(HYPNOTIC_PATTERN_FROM_CORE_OPTIONS)?.activeEffectPlan
+    expect(plan).not.toBeNull()
+    expect(plan).toMatchObject({
+      recurrenceStage: srd?.recurrenceStage,
+      initialRemaining: srd?.initialRemaining,
+      conditionContributions: srd?.conditionContributions,
+      lifecycle: srd?.lifecycle,
+      modifierGrantContribution: {
+        modifiers: srd?.modifierGrantContribution?.modifiers.map(({ grantId, ...rest }) =>
+          expect.objectContaining(rest)
+        ),
+        countedByTurnEffects: true
       }
     })
   })
@@ -732,7 +864,7 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
         frozenGraphNodeId: 'repeat-save-test',
         recurrenceStage: 'END_OF_TURN',
         initialRemaining: 10,
-        conditionContribution: { conditionId: conditionId(condition), recordsSource },
+        conditionContributions: [{ conditionId: conditionId(condition), recordsSource }],
         adapterFacts: expect.objectContaining({
           'dnd5e.active-effect-repeat-save-attempt-gate': allow,
           'dnd5e.active-effect-repeat-save-perception-requirement': 'SEE'
@@ -926,8 +1058,8 @@ describe('the timed condition a hit-point pool cast owns (SPELLS-27.T8)', () => 
   it('owns Sleep’s one-minute unconscious condition and ends it on anyone’s damage or a creature rousing it', () => {
     expect(compiledCast(SLEEP)?.activeEffectPlan).toMatchObject({
       initialRemaining: 10,
-      conditionContribution: {
-        conditionId: conditionId('UNCONSCIOUS'),
+      conditionContributions: [{ conditionId: conditionId('UNCONSCIOUS') }],
+      lifecycle: {
         endOnTriggers: [
           { event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE] },
           { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
