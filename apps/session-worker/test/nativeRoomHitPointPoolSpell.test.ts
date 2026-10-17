@@ -14,7 +14,6 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -65,7 +64,11 @@ const wolfAt = (id: string, hitPoints: number) =>
 function sleepRoom() {
   return actionRoom({
     actors: [
-      characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+      {
+        ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        // Initiative reads the Character's frozen identity, which a turn change checks.
+        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+      },
       attacker,
       wolfAt(DAMAGED_ID, 11),
       wolfAt(LOW_ID, 4),
@@ -156,20 +159,6 @@ async function biteHits(room: SleepRoom, targetId: string) {
   })
   expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
 }
-
-describe('dbg', () => {
-  it('dbg', async () => {
-    const room = await sleepRoom()
-    await castSleep(room)
-    const h = await readRoomHistory(room.room.base.stub)
-    const out = h.actors.map((row) => {
-      const a = readStoredRunActor(row)
-      const sn = a.snapshot as Record<string, unknown>
-      return JSON.stringify({ id: a.id.slice(-3), k: a.kind, ak: sn.kind, s: a.systemId, as: sn.systemId, r: a.sourceRevision, sr: sn.sourceRevision, sid: a.sourceId, snid: sn.id })
-    })
-    throw new Error(out.join(' | '))
-  }, 120000)
-})
 
 describe('room cast of Sleep (SPELLS-27.T8)', () => {
   it('puts creatures to sleep from the lowest current hit points up while the rolled pool lasts, in one commit and with no save', async () => {

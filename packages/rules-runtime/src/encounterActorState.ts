@@ -25,10 +25,10 @@ export function requireSnapshotIdentity(actor: EncounterRunActorState) {
       snapshot.sourceRevision !== undefined &&
       snapshot.sourceRevision !== actor.sourceRevision)
   ) {
-    throw new Error('Encounter initiative actor source identity is stale.' + JSON.stringify({a:actor.id,k:actor.kind,s:actor.systemId,sid:actor.sourceId,sk:snapshot.kind,ss:snapshot.systemId,sr:snapshot.sourceRevision,snid:snapshot.id,keys:Object.keys(snapshot),sr2:snapshot.sourceRevision}))
+    throw new Error('Encounter initiative actor source identity is stale.')
   }
   if (actor.kind !== 'CUSTOM' && snapshot.id !== actor.sourceId) {
-    throw new Error('Encounter initiative actor source identity is stale.' + JSON.stringify({a:actor.id,k:actor.kind,s:actor.systemId,sid:actor.sourceId,sk:snapshot.kind,ss:snapshot.systemId,sr:snapshot.sourceRevision,snid:snapshot.id,keys:Object.keys(snapshot),sr2:snapshot.sourceRevision}))
+    throw new Error('Encounter initiative actor source identity is stale.')
   }
   return snapshot
 }
