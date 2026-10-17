@@ -298,6 +298,50 @@ describe('Creature holder of an active grant', () => {
     expect(target([])).toMatchObject({ defenses: [], conditionImmunityIds: [] })
   })
 
+  it('keeps the authored content a defense is limited to, and treats an empty list as unfiltered (REACTION-4.1)', () => {
+    const withSources = (effect: ReturnType<typeof protectionFromEnergyEffect>, ids: string[]) => {
+      if (effect.definition.schemaVersion !== 2)
+        throw new Error('A grant stores a version 2 definition.')
+      return {
+        ...effect,
+        definition: {
+          ...effect.definition,
+          stateContributions: effect.definition.stateContributions.map((contribution) =>
+            contribution.kind === 'MODIFIER_GRANT'
+              ? {
+                  ...contribution,
+                  modifiers: contribution.modifiers.map((modifier) => {
+                    const { payload } = modifier
+                    if (payload === undefined || !('damageTypeId' in payload))
+                      throw new Error('A defense grant names its damage type.')
+                    return {
+                      ...modifier,
+                      payload: { damageTypeId: payload.damageTypeId, sourceEffectIds: ids }
+                    }
+                  })
+                }
+              : contribution
+          )
+        }
+      }
+    }
+    const fire = protectionFromEnergyEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      energyLabel: 'Fire'
+    })
+    expect(target([withSources(fire, ['spell:b', 'spell:a'])]).defenses).toEqual([
+      {
+        kind: 'RESISTANCE',
+        damageTypeId: FIRE_DAMAGE_TYPE_ID,
+        sourceEffectIds: ['spell:a', 'spell:b']
+      }
+    ])
+    expect(target([withSources(fire, [])]).defenses).toEqual([
+      { kind: 'RESISTANCE', damageTypeId: FIRE_DAMAGE_TYPE_ID }
+    ])
+  })
+
   it('rolls its own attacks of each mocked domain with disadvantage (Vicious Mockery)', () => {
     const mockery = viciousMockeryEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
     for (const attackDomain of ['MELEE', 'RANGED', 'SPELL', 'UNARMED']) {

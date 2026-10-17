@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import {
   authoredNodeRuntimeSourceFactsSchema,
-  nodeRuntimeSourceManifest
+  nodeRuntimeSourceManifest,
+  type AuthoredNodeRuntimeSourceFacts,
+  type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
 
@@ -30,12 +32,20 @@ function version(subjectKind: AuthoredDocumentVersion['subjectKind'], document: 
 
 describe('authoredSourceFacts', () => {
   it('projects nested feature, grant, and effect source rows with manifest-exact columns', () => {
-    const documents = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
-      subjects.map((document) =>
+    // A union of subject arrays has no single map signature, so the facts are typed here.
+    const documents: AuthoredNodeRuntimeSourceFacts[] = Object.entries(
+      srdBaselineContent.subjects
+    ).flatMap(([kind, subjects]) =>
+      subjects.map((document: unknown) =>
         authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
       )
     )
-    const rows = documents.flatMap((facts) => Object.entries(facts.rows))
+    const rows = documents.flatMap((facts) =>
+      (Object.keys(facts.rows) as NodeRuntimeSourceTable[]).flatMap((table) => {
+        const tableRows = facts.rows[table]
+        return tableRows ? [[table, tableRows] as const] : []
+      })
+    )
 
     expect(rows.some(([table]) => table === 'features')).toBe(true)
     expect(rows.some(([table]) => table === 'effect_paths')).toBe(true)
@@ -57,7 +67,7 @@ describe('authoredSourceFacts', () => {
 
   it('projects every SRD authored subject into compact schema-valid facts', () => {
     const facts = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
-      subjects.map((document) =>
+      subjects.map((document: unknown) =>
         authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
       )
     )

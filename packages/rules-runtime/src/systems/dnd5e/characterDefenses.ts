@@ -10,6 +10,12 @@ import {
   dnd5eModifierApplies
 } from './modifierApplicability.js'
 
+/** The sorted, non-empty authored content ids a defense is limited to; undefined for any source. */
+function defenseSourceEffectIds(value: string[] | undefined): string[] | undefined {
+  const ids = (value ?? []).filter((id) => id.trim() !== '')
+  return ids.length > 0 ? [...new Set(ids)].sort() : undefined
+}
+
 export function evaluateDnd5eCharacterDefenses(
   input: CharacterRulePolicyInput,
   grantFold: CharacterGrantFoldOutput
@@ -46,12 +52,21 @@ export function evaluateDnd5eCharacterDefenses(
     if (kind === null || payload === undefined || !('damageTypeId' in payload)) continue
     const { damageTypeId } = payload
     if (damageTypeId.trim() === '') continue
-    const key = `${kind}:${damageTypeId}`
-    if (adding) defenses.set(key, { kind, damageTypeId, source: modifier.source })
+    const sourceEffectIds = defenseSourceEffectIds(
+      'sourceEffectIds' in payload ? payload.sourceEffectIds : undefined
+    )
+    const key = `${kind}:${damageTypeId}:${(sourceEffectIds ?? []).join(',')}`
+    if (adding)
+      defenses.set(key, {
+        kind,
+        damageTypeId,
+        ...(sourceEffectIds && { sourceEffectIds }),
+        source: modifier.source
+      })
     else defenses.delete(key)
   }
   for (const addition of input.defenseFacts.manualAdditions) {
-    defenses.set(`${addition.kind}:${addition.damageTypeId}`, {
+    defenses.set(`${addition.kind}:${addition.damageTypeId}:`, {
       kind: addition.kind,
       damageTypeId: addition.damageTypeId,
       source: addition.source

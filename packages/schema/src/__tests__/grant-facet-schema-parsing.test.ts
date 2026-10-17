@@ -31,6 +31,34 @@ describe('grant and facet schema parsing', () => {
     ).toBe(false)
   })
 
+  it('parses a damage immunity limited to authored content, filtered or not (REACTION-4.1)', () => {
+    const immunity = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'immune-force',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scope: 'GLOBAL',
+      valueDomainCode: 'DAMAGE_IMMUNITY',
+      domain: {},
+      modifierKind: 'ADD_OPTION'
+    }
+    expect(
+      modifierGrantDtoSchema.parse({
+        ...immunity,
+        payload: { damageTypeId: 'force', sourceEffectIds: ['spell-1'] }
+      })
+    ).toMatchObject({ payload: { damageTypeId: 'force', sourceEffectIds: ['spell-1'] } })
+    expect(
+      modifierGrantDtoSchema.safeParse({ ...immunity, payload: { damageTypeId: 'force' } }).success
+    ).toBe(true)
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...immunity,
+        payload: { damageTypeId: 'force', sourceEffectIds: 'spell-1' }
+      }).success
+    ).toBe(false)
+  })
+
   it('selects only the matching modifier domain and kind before validating its fields', () => {
     let scopeReads = 0
     const grant = {

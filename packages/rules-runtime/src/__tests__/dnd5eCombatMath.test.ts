@@ -698,6 +698,30 @@ describe('D&D 5e saving throws and defenses', () => {
     expect(authored.output.rollModes.savingThrows.DEXTERITY).toBe('NORMAL')
   })
 
+  it('an immunity limited to authored content protects only against that content (REACTION-4.1)', () => {
+    const defenses = [
+      {
+        kind: 'IMMUNITY' as const,
+        damageTypeId: 'force',
+        sourceEffectIds: ['spell:magic-missile']
+      },
+      { kind: 'RESISTANCE' as const, damageTypeId: 'fire', sourceEffectIds: [] },
+      { kind: 'IMMUNITY' as const, damageTypeId: 'cold' }
+    ]
+    const met = (sourceId: string | null) =>
+      dnd5eAttackDamageDefenses(defenses, [], null, sourceId).map(
+        (defense) => `${defense.kind}:${defense.damageTypeId}`
+      )
+    // Filtered: only the listed spell's damage is met.
+    expect(met('spell:magic-missile')).toEqual([
+      'IMMUNITY:force',
+      'RESISTANCE:fire',
+      'IMMUNITY:cold'
+    ])
+    expect(met('spell:fireball')).toEqual(['RESISTANCE:fire', 'IMMUNITY:cold'])
+    expect(met(null)).toEqual(['RESISTANCE:fire', 'IMMUNITY:cold'])
+  })
+
   it('a Couatl is immune to nonmagical weapons but takes damage from a magic weapon', () => {
     const couatl = srdByLabel(SRD.creatures, 'Couatl')
     expect(couatl.qualifiedDamageDefenses?.length).toBeGreaterThan(0)
@@ -725,9 +749,12 @@ describe('D&D 5e saving throws and defenses', () => {
       (defense) => defense.kind === 'IMMUNITY'
     )!.damageTypeId
     const immune = (traits: Parameters<typeof dnd5eAttackDamageDefenses>[2]) =>
-      dnd5eAttackDamageDefenses(protection.defenses, protection.qualifiedDefenses, traits).some(
-        (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === piercingId
-      )
+      dnd5eAttackDamageDefenses(
+        protection.defenses,
+        protection.qualifiedDefenses,
+        traits,
+        null
+      ).some((defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === piercingId)
     expect(immune({ magical: false, silvered: false, adamantine: false })).toBe(true)
     expect(immune({ magical: true, silvered: false, adamantine: false })).toBe(false)
     // A qualified defense is "from attacks": damage outside an attack is not reduced by it.

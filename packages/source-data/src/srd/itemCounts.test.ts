@@ -7,6 +7,7 @@ const { classes, equipment } = srdBaselineContent.subjects
 function item(label: string) {
   const found = equipment.find((entry) => entry.label === label)
   if (!found) throw new Error(`SRD item "${label}" is missing.`)
+  if (found.category === 'VARIANT') throw new Error(`SRD item "${label}" is a variant.`)
   return found
 }
 
@@ -36,7 +37,7 @@ describe('SRD item counts (D97)', () => {
   it('grants starting ammunition as single pieces, not one bundle', () => {
     const grantedQuantities = (itemLabel: string) =>
       classes.flatMap((characterClass) =>
-        (characterClass.startingEquipment?.sets ?? [])
+        ('startingEquipment' in characterClass ? characterClass.startingEquipment.sets : [])
           .flatMap((set) => set.groups)
           .flatMap((group) => group.options)
           .flatMap((option) => option.items)

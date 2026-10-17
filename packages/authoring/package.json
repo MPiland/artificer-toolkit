@@ -28,7 +28,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/authoring/src",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit"
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit"
   },
   "dependencies": {
     "@artificer-toolkit/schema": "workspace:^",

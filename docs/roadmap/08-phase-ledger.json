@@ -1069,16 +1069,26 @@
           "acs": [
             {
               "id": "PLATFORM-20.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
-              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller."
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller.",
+              "proof": [
+                "Deleted the Character compilers (subjects/compilers/character/*), compileShape/CompiledShape, ForbidIfMissing and compileScalingSource: no production caller in a repo-wide search, and the full build, every typecheck and every suite are green after deletion.",
+                "shared-correctness.test.ts \"preserves stable currency-group identity through compilation\" removed with its deleted subject (an identity check on the Character compiler); orchestrator accepted.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
             },
             {
               "id": "PLATFORM-20.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one."
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one.",
+              "proof": [
+                "Removed copy-only compileSpeed (SpeedAuthored), compileRange (SenseRangeAuthored), compileStartingEquipment and helpers (StartingEquipmentAuthored) and compileFeatureOption (wrapper of compileFeatureBase); the kept list and reasons are in ADR 0003 \"Compile stage as built\" and docs/handoffs/slice-platform-20.md.",
+                "packages/shared/src/__tests__/compiler-scaling.test.ts, starting-equipment-node-maps.test.ts, modifier-grant-compiler.test.ts; packages/schema/src/__tests__/modifier-grant-authored-parity.test.ts.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
             },
             {
               "id": "PLATFORM-20.3",
@@ -1179,16 +1189,26 @@
           "acs": [
             {
               "id": "PLATFORM-22.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 at the user's request: about half of the day's failed CI cycles were type errors found only after a 15-20 minute run.",
-              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today."
+              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today.",
+              "proof": [
+                "tests.yml fail-fast typecheck gate: a deliberate type-error push (Tests 38995237121) was cancelled at 6.5 minutes with the remaining jobs stopped, and scripts/watchCi.ps1 printed the type error; across the proof runs a type error cancelled the run in 4.7-7.9 minutes.",
+                "A green run took 18.9 minutes, against 17-20 minutes before the gate.",
+                "Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1."
+              ]
             },
             {
               "id": "PLATFORM-22.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients."
+              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients.",
+              "proof": [
+                "Worker test harness reports the underlying error of a failed room command; production rejections stay generic UNAVAILABLE.",
+                "Red Tests 38990052509; green Tests 38993716147; harness proof run 38993725207.",
+                "Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1."
+              ]
             },
             {
               "id": "PLATFORM-22.3",
@@ -1198,17 +1218,22 @@
             },
             {
               "text": "One CI run proves red and green: a parallel job runs the slice's new and changed test files against the phase-branch production code and reports them failing (assertion or import failure, labelled), or \"already passing\" for a test-only slice, while the normal jobs prove green on the tip. Slices no longer push separate red branches.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "id": "PLATFORM-22.4"
+              "id": "PLATFORM-22.4",
+              "proof": [
+                "tests.yml red job (scripts/redProof.mjs): the slice's new and changed test files run against the merge-base production code on their own runner and are labelled RED, RED-IMPORT or ALREADY-PASSING; skipped on ci/merge-* batches.",
+                "RED in-run: Tests 38995460725 (ci/platform-22 32d3ee876). ALREADY-PASSING and RED-IMPORT: Tests 38995465195 (ci/platform-22-passing fb895db67). Final tip 9ae03922f Tests 38996867823, Live 38998059441.",
+                "Merged in m64 ea86913af (Tests 38999516387, Live 38999516512)."
+              ]
             }
           ],
           "tasks": [
             {
               "id": "PLATFORM-22.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-22.1", "PLATFORM-22.2"],
-              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections.",
+              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections. (Green f826a6429. Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1.)",
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
@@ -1232,7 +1257,7 @@
             },
             {
               "id": "PLATFORM-22.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-22.4"],
               "text": "Red job in tests.yml: fail-before proof inside the green run",
               "wsjf": {
@@ -1241,6 +1266,62 @@
                 "rr": 5,
                 "size": 2,
                 "after": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-23",
+          "title": "CI runs exactly the tests a change can affect",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-23.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all.",
+              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test."
+            },
+            {
+              "id": "PLATFORM-23.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions.",
+              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-23.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.2"],
+              "text": "Fix the 12 failing packages/authoring tests at their cause; re-verify the ACs that cite them.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-23.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.1"],
+              "text": "tests.yml: affected-only test selection per slice from the module graph across all packages; full suite on merge batches; remove the hand-kept package list.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["PLATFORM-23.T1"]
               }
             }
           ]
@@ -8613,18 +8694,57 @@
               "proof": "Red ci/spells-20-t3-red c6f4813bd (Tests 38978456915 failed on the two aura room tests and activeReads); green ci/spells-20-t3 897458fa0 (Tests 38984886789, Live 38984886833); merged in m60 3f46d92b1 (Tests 38987673112, Live 38987673094)."
             },
             {
-              "id": "SPELLS-20.T4",
-              "text": "A start-of-turn and first-entry-per-turn zone trigger consumer shared by all zones: half damage on a made save, slot scaling, designated unaffected creatures, and half speed in the area if a seam exists (otherwise reported for registration).",
+              "id": "SPELLS-20.T4a",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
+              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-20.T1b"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones, with one once-per-turn counter per (effect, creature, turn) shared by first entry and start of turn (maxApplicationsPerTurn gets its runtime consumer). Turn-boundary save and damage rolls run as a turn stage through the existing turn pending path (encounterTurnPending), after Recharge and the death save and with the start-of-turn effects, prompted per ADR 0034 like the death save and not undoable like other turn-stage rolls. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-20.T4a"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4c",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T1b"]
+              }
+            },
+            {
+              "id": "SPELLS-20.T4d",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Half speed inside a zone: a zone consumer of movement cost shared with terrain (shared pathing, Worker movement inputs, web movement preview), authored from core options; proved on Spirit Guardians.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-20.T4b"]
+              }
             },
             {
               "id": "SPELLS-20.T5",
@@ -8649,7 +8769,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4"]
+                "after": ["SPELLS-20.T4b"]
               }
             }
           ]
@@ -9292,9 +9412,8 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/session-worker/test/nativeRoomFearSource.test.ts"],
-          "journeyStatus": "verified",
           "origin": [
             "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
           ],
@@ -9322,7 +9441,7 @@
             {
               "id": "SPELLS-29.2",
               "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
-              "status": "DONE",
+              "status": "TODO",
               "origin": [
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
               ],
@@ -9331,7 +9450,8 @@
                 "The out-of-sight repeat save is proved by the two T1a tests in the same file.",
                 "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts (homebrew Panicked from core options), packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts, characterSpellCastActions.test.ts, packages/shared/src/__tests__/effect-compiler.test.ts (fleesSource).",
                 "Red 04e6af8c5 (Tests 38960560081, Live 38960560070); green 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
-              ]
+              ],
+              "note": "Reopened 2026-10-16: its cited proof conditionSourceAuthoringParity.test.ts fails on the phase branch (CI never ran authoring tests). Closes again with PLATFORM-23.2."
             }
           ],
           "tasks": [
@@ -9525,16 +9645,22 @@
         {
           "id": "REACTION-4",
           "title": "Non-movement reactions",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCounterspell.test.ts",
+            "apps/session-worker/test/nativeRoomShieldMagicMissile.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574"
+                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574",
+                "T4 (Shield against Magic Missile through a TARGETED_SELF trigger and source-filtered DAMAGE_IMMUNITY, D137): apps/session-worker/test/nativeRoomShieldMagicMissile.test.ts (filtered and unfiltered trigger and immunity; grants apply before the cast resolves; one undo restores slot, reaction and grants), with schema, rules-runtime and persistence tests listed in docs/handoffs/slice-reaction-4.md. The room undo test caught a product bug: actionRevert.ts did not end reactionEffectTransitions; fixed.",
+                "Accepted test change: grantAnchors.test.ts now asserts that every timed APPLY_GRANT block shares one lifecycle instead of exactly one block, because Shield legitimately carries two reaction effects.",
+                "T4 red Tests 38980938831, Live 38980938809; green 7a0083ead (Tests 38995086822, Live 38996188284), tip e168153fe workbook-only (Tests 38996683359). Merged in m64 ea86913af (Tests 38999516387, Live 38999516512)."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
@@ -9734,7 +9860,7 @@
             {
               "id": "REACTION-4.T4",
               "text": "TARGETED_SELF trigger and the source-filtered damage immunity: Shield against Magic Missile.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -9742,8 +9868,7 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["REACTION-4.T3d", "SPELLS-26.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T5",

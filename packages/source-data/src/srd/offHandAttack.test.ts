@@ -66,7 +66,7 @@ describe('the off-hand attack of the SRD Light melee weapons (two-weapon fightin
       const activationConstraint = (modifier: typeof action) =>
         modifier?.restrictions?.groups
           .flatMap((group) => group.contexts)
-          .flatMap((context) => context.conditions ?? [])
+          .flatMap((context) => [...(context.conditions ?? [])])
           .find(
             (condition) =>
               condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ACTIVATION'

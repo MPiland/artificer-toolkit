@@ -219,6 +219,14 @@ const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })
 )
 
+/** An immunity can be limited to damage from actions owned by the named authored content. */
+const damageImmunityPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    damageTypeId: authoredIdentifierSchema,
+    sourceEffectIds: z.optional(z.array(authoredIdentifierSchema).check(z.maxLength(100)))
+  })
+)
+
 /** A resistance names its damage type, or takes the type of the damage that triggered it. */
 const damageResistancePayloadDtoSchema = lazySchema(() =>
   z.union([damageTypePayloadDtoSchema, z.strictObject({ damageTypeSource: z.literal('TRIGGER') })])
@@ -305,6 +313,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     optionalAbilityModifierBonusPayloadDtoSchema,
     dicePayloadDtoSchema,
     damageResistancePayloadDtoSchema,
+    damageImmunityPayloadDtoSchema,
     conditionTypePayloadDtoSchema,
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
@@ -594,13 +603,13 @@ const buildModifierGrantVariants = () =>
       'DAMAGE_IMMUNITY',
       'ADD_OPTION',
       emptyDomainDtoSchema,
-      damageTypePayloadDtoSchema
+      damageImmunityPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE_IMMUNITY',
       'REMOVE_OPTION',
       emptyDomainDtoSchema,
-      damageTypePayloadDtoSchema
+      damageImmunityPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE_VULNERABILITY',

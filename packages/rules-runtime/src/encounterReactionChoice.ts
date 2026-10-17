@@ -87,9 +87,19 @@ export function sameEncounterReactionCandidate(
 
 const reactionEffectNamespace = 'c2a9f1d4-5b3e-4e7a-8d60-1f4b7a92e5c3'
 
-/** The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same one. */
-export function encounterReactionEffectId(input: { commandId: string; occurrenceId: string }) {
-  return uuidv5(`${input.commandId}:${input.occurrenceId}`, reactionEffectNamespace)
+/**
+ * The id of the effect a used reaction leaves on its reactor: a replay of the command mints the same
+ * one. A cast several creatures react to names each `reactorActorId`, so each leaves its own.
+ */
+export function encounterReactionEffectId(input: {
+  commandId: string
+  occurrenceId: string
+  reactorActorId?: string
+}) {
+  return uuidv5(
+    [input.commandId, input.occurrenceId, input.reactorActorId].filter(Boolean).join(':'),
+    reactionEffectNamespace
+  )
 }
 
 /** The interstitial audit a decided offer hands the sealed OUTCOME it selects. */
