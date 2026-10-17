@@ -199,6 +199,15 @@ describe('spatial movement candidates', () => {
       ).toHaveLength(caught)
     })
 
+    it('catches a creature once per move by a zone that triggers on enter, exit and cross', () => {
+      const through = collect({
+        effects: [effect({ maxApplicationsPerTurn: 1 })],
+        movementKind: 'VOLUNTARY',
+        path: [walk[0]!, { x: 0, y: 0 }, walk[1]!]
+      })
+      expect(through).toHaveLength(1)
+    })
+
     it('counts a creature against the zone it was caught by, not other creatures or zones', () => {
       const spent = { turnSequence: 3, count: 1 }
       for (const stale of [
