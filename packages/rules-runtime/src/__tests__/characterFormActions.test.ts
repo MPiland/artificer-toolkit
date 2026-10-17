@@ -1,3 +1,4 @@
+import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { giantCentipede } from '@artificer-toolkit/source-data/srd/creatures/giant-centipede.js'
 import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
@@ -29,7 +30,7 @@ const sheetCharacter = (() => {
 const wornCharacter = (() => {
   const creature = srdCreatureActor({
     id: FORM_ACTOR_ID,
-    creature: installedSrdCreature(giantCentipede)
+    creature: installedSrdCreature(applyCreatureAttackRolls(giantCentipede))
   })
   if (creature.kind !== 'CREATURE' || !creature.sourceId || !creature.sourceRevision)
     throw new Error('Expected a Creature actor.')
