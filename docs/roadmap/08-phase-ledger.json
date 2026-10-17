@@ -8810,18 +8810,31 @@
               }
             },
             {
-              "id": "SPELLS-20.T4b",
+              "id": "SPELLS-20.T4b1",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
-              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones, with one once-per-turn counter per (effect, creature, turn) shared by first entry and start of turn (maxApplicationsPerTurn gets its runtime consumer). Turn-boundary save and damage rolls run as a turn stage through the existing turn pending path (encounterTurnPending), after Recharge and the death save and with the start-of-turn effects, prompted per ADR 0034 like the death save and not undoable like other turn-stage rolls. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "text": "Once-per-turn zone counter per (effect, creature, turn), stored on the Encounter run state keyed by effect and actor with the turn identity in each entry (an entry from another turn counts as unspent and is pruned on write; the placement stays immutable). First ENTER consumes it and maxApplicationsPerTurn gets its runtime consumer; proved on Caltrops and Spirit Guardians.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 3,
                 "after": ["SPELLS-20.T4a"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b2",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones as a new turn stage (pending context ENCOUNTER_TURN_ZONE_EFFECTS) through encounterTurnPending, after Recharge, the death save and the start-of-turn effects, carrying the save then the damage roll through one save-then-dice resume shared with the spatial movement path; membership through spatialEffectAffects; consumes the T4b1 counter; prompted per ADR 0034 and not undoable like other turn-stage rolls. Proved on Spirit Guardians and a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-20.T4b1"]
+              }
             },
             {
               "id": "SPELLS-20.T4c",
@@ -8846,7 +8859,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-20.T4b"]
+                "after": ["SPELLS-20.T4b2"]
               }
             },
             {
@@ -8872,7 +8885,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4b"]
+                "after": ["SPELLS-20.T4b2"]
               }
             }
           ]
