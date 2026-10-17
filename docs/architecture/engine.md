@@ -39,6 +39,10 @@ Draft structural selections use stable authored root IDs and resolve against act
 
 The normalized facts include the data needed for grant/source ordering and eligibility, modifiers/stacking, derived formulas, spell access/slots, resources/charges, rest/exhaustion/attunement, and action availability. TypeScript attaches stable identities and provenance but does not decide those mechanics. Zen returns typed results with domain explanations and source IDs; its native trace is diagnostic only.
 
+## Compile stage (current)
+
+Registry records are compiled authored content. Publication stores each subject's compiled projection through `compilePublicationDocument`; `characterRuleSnapshot` still compiles background, class, feat, feature and race records when it builds the registry (compile-once hydration is PLATFORM-21, not current). The grant fold builder (`characterGrantFoldSourceFacts`) reads compiled proficiency, sense, feat, spell and modifier grants through typed fields; modifier grants are one flat shape with independent `valueDomainCode` and `modifierKind`. [ADR 0003](../adr/0003-vocabulary-authored-compiled-engine-data.md#compile-stage-as-built-current-platform-20) lists every compiler, what it does and where its output is consumed.
+
 ## Resolution responsibilities
 
 One top-level Zen Character derivation resolves all mechanics for one structural fact set and may invoke pack submodels. It applies grant/source ordering and eligibility, modifiers/stacking, derived formulas, spell access/slots, resources/charges, rest/exhaustion/attunement, and action availability. Fact discovery and spell hydration run before that evaluation, in parallel with exact revision binding where possible; no intermediate mechanics result is rendered. The retired D&D 5e 2014 functions workspace kept a separate rule-order contract; current ownership is documented in [shared rules runtime](rules-runtime.md).

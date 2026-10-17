@@ -2,12 +2,21 @@ import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/cha
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import type {
   CompiledFeatGrant,
+  CompiledGrantTarget,
   CompiledModifierGrant,
   CompiledProficiencyGrant,
+  CompiledScalingGrant,
   CompiledSenseGrant,
   CompiledSpellGrant
 } from '@artificer-toolkit/shared/compilers'
-import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
+import {
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
+  PROFICIENCY_KIND,
+  SCALING,
+  type CharacterBuildSnapshot,
+  type GrantKind
+} from '@artificer-toolkit/shared/core'
 import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
 import {
   getCharacterProvenanceIdentityKey,
@@ -34,10 +43,13 @@ function jsonFact(value: unknown): JsonFact {
   return JSON.parse(serialized) as JsonFact
 }
 
-function strings(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : []
+type ScalingTargetKey = 'senseIds' | 'featIds' | 'spellIds'
+
+function selectedIds<K extends ScalingTargetKey>(
+  target: CompiledGrantTarget<Record<K, string[]>>,
+  idKey: K
+): string[] {
+  return target.authoringModeKind === AUTHORING_MODE_KIND.SELECTED ? [...target[idKey]] : []
 }
 
 function chosenTargets(
@@ -69,27 +81,19 @@ function proficiencyTargets(
   owner: CharacterProvenance
 ): string[] {
   if (grant.selectionKind === 'CHOSEN') return chosenTargets(snapshot, grant.id, owner)
-  if (grant.authoringModeKind === 'ALL') return ['*']
-  const value = grant as unknown as Record<string, unknown>
-  let targets: string[]
+  if (grant.authoringModeKind === AUTHORING_MODE_KIND.ALL) return ['*']
   switch (grant.proficiencyKind) {
-    case 'SKILL':
-      targets = strings(value.skillIds)
-      break
-    case 'SAVE_ABILITY':
-      targets = strings(value.abilities)
-      break
-    case 'LANGUAGE':
-      targets = strings(value.languageIds)
-      break
-    case 'EQUIPMENT':
-      targets = strings(value.equipmentIds)
-      break
-    case 'EQUIPMENT_PROPERTY':
-      targets = strings(value.properties)
-      break
+    case PROFICIENCY_KIND.SKILL:
+      return 'skillIds' in grant ? [...grant.skillIds] : []
+    case PROFICIENCY_KIND.SAVE_ABILITY:
+      return 'abilities' in grant ? [...grant.abilities] : []
+    case PROFICIENCY_KIND.LANGUAGE:
+      return 'languageIds' in grant ? [...grant.languageIds] : []
+    case PROFICIENCY_KIND.EQUIPMENT:
+      return 'equipmentIds' in grant ? [...grant.equipmentIds] : []
+    case PROFICIENCY_KIND.EQUIPMENT_PROPERTY:
+      return 'properties' in grant ? [...(grant.properties ?? [])] : []
   }
-  return targets
 }
 
 export function buildCharacterGrantFoldProficiencyFacts(
@@ -116,31 +120,34 @@ export function buildCharacterGrantFoldProficiencyFacts(
   })
 }
 
-function scalingTargets(
-  grant: CompiledSenseGrant | CompiledFeatGrant | CompiledSpellGrant,
-  idKey: 'senseIds' | 'featIds' | 'spellIds',
+function scalingTargets<K extends ScalingTargetKey>(
+  grant: CompiledScalingGrant<GrantKind, CompiledGrantTarget<Record<K, string[]>>>,
+  idKey: K,
   snapshot: CharacterBuildSnapshot,
   owner: CharacterProvenance
 ): { targetIds: string[]; levels: Array<{ level: number; targetIds: string[] }> } {
-  const value = grant as unknown as Record<string, unknown>
-  const targetIds =
-    grant.selectionKind === 'CHOSEN'
-      ? chosenTargets(snapshot, grant.id, owner)
-      : strings(value[idKey])
-  const levels =
-    grant.scalingKind === 'PER_LEVEL'
-      ? grant.levels.map((level) => {
-          const entry = level as unknown as Record<string, unknown>
-          return {
-            level: level.level,
-            targetIds:
-              grant.selectionKind === 'CHOSEN'
-                ? chosenTargets(snapshot, grant.id, owner, level.level)
-                : strings(entry[idKey])
-          }
-        })
-      : []
-  return { targetIds, levels }
+  if (grant.scalingKind === SCALING.NONE) {
+    return {
+      targetIds:
+        grant.selectionKind === AUTHORING_SELECTION_KIND.CHOSEN
+          ? chosenTargets(snapshot, grant.id, owner)
+          : selectedIds(grant, idKey),
+      levels: []
+    }
+  }
+  return {
+    targetIds:
+      grant.selectionKind === AUTHORING_SELECTION_KIND.CHOSEN
+        ? chosenTargets(snapshot, grant.id, owner)
+        : [],
+    levels: grant.levels.map((entry) => ({
+      level: entry.level,
+      targetIds:
+        grant.selectionKind === AUTHORING_SELECTION_KIND.CHOSEN
+          ? chosenTargets(snapshot, grant.id, owner, entry.level)
+          : selectedIds(entry, idKey)
+    }))
+  }
 }
 
 function mechanicSource(

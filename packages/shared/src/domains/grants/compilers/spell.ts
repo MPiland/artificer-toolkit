@@ -7,7 +7,7 @@ import {
   GRANT_KIND,
   type NodeSubjectCode
 } from '#core'
-import { compileChargeUse, compileScalingSource } from '#compilers'
+import { compileChargeUse } from '#compilers'
 import type { CompiledChargeUse, CompiledScalingGrant, CompiledGrantTarget } from '#compilers'
 import { SCALING } from '#core'
 import type { SpellGrantAttribute } from '#core'
@@ -87,6 +87,7 @@ export function compileSpellGrantResult(
     }
 
     case SCALING.PER_LEVEL: {
+      const { levels: _levels, ...scalingSource } = authored.progression
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.CHOSEN: {
           return compileSuccess({
@@ -94,7 +95,7 @@ export function compileSpellGrantResult(
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.progression),
+            ...scalingSource,
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               count: entry.count,
@@ -111,7 +112,7 @@ export function compileSpellGrantResult(
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED, // <- literal
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.progression),
+            ...scalingSource,
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               order: entry.order,
