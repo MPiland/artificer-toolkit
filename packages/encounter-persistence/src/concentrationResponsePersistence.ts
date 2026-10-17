@@ -13,7 +13,7 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -136,7 +136,9 @@ export async function persistEncounterConcentrationResponse(
     const slot = await store.findMaintainedState({
       encounterId: state.id,
       ownerActorId: actorId,
-      maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+        state.gameSystemId
+      )
     })
     if (slot && admission.actors.some((actor) => actor.id === actorId)) slots.set(actorId, slot)
   }
