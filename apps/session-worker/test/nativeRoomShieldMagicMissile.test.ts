@@ -47,8 +47,10 @@ const unfilteredShield: SpellAuthored = {
     const { invocation } = effect
     if (!('reactionTrigger' in invocation) || invocation.reactionTrigger?.kind !== 'TARGETED_SELF')
       return effect
-    const { sourceEffectIds: _filter, ...unfiltered } = invocation.reactionTrigger
-    return { ...effect, invocation: { ...invocation, reactionTrigger: unfiltered } }
+    return {
+      ...effect,
+      invocation: { ...invocation, reactionTrigger: { kind: 'TARGETED_SELF' as const } }
+    }
   })
 }
 

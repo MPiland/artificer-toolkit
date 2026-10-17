@@ -4,7 +4,11 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { chosenCreaturesMaxTargets } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
-import { encounterChosenActorsChecksum } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import {
+  encounterAreaTargetCommandId,
+  encounterAreaTargetOccurrenceId,
+  encounterChosenActorsChecksum
+} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
@@ -159,6 +163,7 @@ export async function planNativeLiveEncounterActorsAction(
     if (receipt.reaction.trigger !== 'TARGETED_SELF') continue
     const reactorId = receipt.reaction.reactorActorId
     const reactor = chosen.find((actor) => actor.id === reactorId)
+    const reactorOccurrenceId = encounterAreaTargetOccurrenceId(window.occurrenceId, reactorId)
     if (!reactor) throw new Error('Reaction evidence is stale.')
     const prepareReactor = (reactorTarget: Awaited<ReturnType<typeof input.loadTarget>>) =>
       prepareAreaTarget({
@@ -171,8 +176,9 @@ export async function planNativeLiveEncounterActorsAction(
     const applied = await applyNativeReactionEffect({
       reaction: { prepared: found.prepared, triggerDamageTypeIds: [] },
       runtime: input.runtime,
-      occurrenceId: window.occurrenceId,
-      commandId: command.commandId,
+      // The effect lands with the reactor's first outcome, so it is that outcome's own.
+      occurrenceId: reactorOccurrenceId,
+      commandId: encounterAreaTargetCommandId(reactorOccurrenceId),
       reactorActorId: reactorId,
       occurredAt: window.occurredAt,
       activeEffectsByActorId: input.activeEffectsByActorId,
