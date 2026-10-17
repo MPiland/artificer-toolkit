@@ -1011,6 +1011,145 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-19",
+          "title": "Generated-file drift on a CI branch fixes itself",
+          "status": "DONE",
+          "journeyTests": [".github/workflows/live-backend.yml"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 5,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-19.1",
+              "text": "CI never fails on generated-file drift that it can fix itself: the SRD manifest is not committed and is generated after the package build in every job that needs it (user decision 2026-10-16, option b); when the only live-backend failure on a ci/** push is Convex _generated drift, the workflow commits the regenerated files back to that same ci/** branch and starts Tests and Live on the new commit; it never writes the phase branch or main, never loops on its own commit, and scripts/watchCi.ps1 follows the new sha.",
+              "status": "DONE",
+              "proof": [
+                ".github/actions/setup/action.yml (manifest generation)",
+                ".github/workflows/live-backend.yml (auto-fix job)",
+                "scripts/watchCi.ps1 (AUTO-FIX follow)"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: about a quarter of recent Live runs failed only on drift, each costing a CI cycle plus a manual artifact download and re-push. A local pre-push regeneration was tried and rejected: the manifest generator reads built package dist, and worktrees have no node_modules."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-19.T1",
+              "text": "Stop committing the SRD manifest and generate it in the CI setup action after the build; narrow drift to Convex _generated; live-backend.yml commits regenerated _generated files back to the ci/** branch on drift-only failure and dispatches Tests and Live on the new commit (GITHUB_TOKEN pushes do not trigger workflows); loop guard on its own commit; watchCi.ps1 follows the new sha. (Base: ci/platform-19 Tests 38977513942 and Live 38977513914 on e371ed77c. Drift proof: ci/platform-19-drift Live 38977521997 failed on bf90de31b, auto-fix commit 0a22547dd green on Tests 38978637618 and Live 38978639676.)",
+              "status": "DONE",
+              "closes": ["PLATFORM-19.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-20",
+          "title": "One flat compile stage: no dead or copy-only compilers",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 8,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-20.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller."
+            },
+            {
+              "id": "PLATFORM-20.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one."
+            },
+            {
+              "id": "PLATFORM-20.3",
+              "status": "TODO",
+              "origin": [],
+              "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold reads those typed fields with no Record<string, unknown> casts, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859."
+            },
+            {
+              "id": "PLATFORM-20.4",
+              "status": "TODO",
+              "origin": [],
+              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-20.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-20.1", "PLATFORM-20.2", "PLATFORM-20.3", "PLATFORM-20.4"],
+              "text": "Delete the dead and copy-only compilers, flatten the modifier compile and the fold read, type the SRD builders per domain, remove the union workarounds, update the docs. Red first: a type-level test that a generic modifier transform compiles, and fold tests on the flat shape.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-21",
+          "title": "The engine loads compiled content instead of recompiling",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 8,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-21.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "User decision 2026-10-17 (option a): compile once at publish, as ADR 0003 describes, for performance and reliability.",
+              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics."
+            },
+            {
+              "id": "PLATFORM-21.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-21.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
+              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8,
+                "after": ["PLATFORM-20.T1"]
+              }
+            }
+          ]
         }
       ]
     },
@@ -8195,7 +8334,7 @@
             {
               "id": "SPELLS-19.T3b",
               "text": "Gold Weakening (4) and the speed and reaction riders of Copper Slowing (4) re-authored from core options as a grant plus repeat save, the grant gated on the failed save (compiler fix), no closed rule. Additive core options: an optional ability scope on the ATTACK_ROLL domain read by Creature and Character folds, plain ability-scoped save advantage/disadvantage read for Creature holders, and a SPEED fraction payload rounded down per D94. Corpus pin updated row by row.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8204,12 +8343,12 @@
                 "size": 5,
                 "after": ["SPELLS-19.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "proof": "Red ci/spells-19-t3b-red 2c8351736 (Tests 38950478150); green ci/spells-19-t3b 05cf244f1 (Tests 38974361848, Live 38974361808); merged with T3c at dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3c",
               "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8217,20 +8356,22 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-19.T3"]
-              }
+              },
+              "proof": "Red ci/spells-19-t3c-red f53086a3f (Tests 38976770402 failed on the three Gorgon assertions); green ci/spells-19-t3c dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3d",
               "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-19.T3b"]
-              }
+                "after": ["SPELLS-19.T3b", "PLATFORM-20.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T4",
@@ -8301,8 +8442,8 @@
             },
             {
               "id": "SPELLS-20.T2a",
-              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians.",
-              "status": "TODO",
+              "text": "A cast whose only product is a placed or source zone opens the caster's Concentration state, with the zone recorded as a dependent of that maintained state (D135), so damage to the caster checks Concentration for zone-only spells such as Spirit Guardians. (Red: ci/spells-20-t2a-red on bac84acaa. Green: ci/spells-20-t2a Tests 38972849265 and Live 38974795282 on 16e4493c7.)",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -8336,7 +8477,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4",
@@ -8741,8 +8883,8 @@
             },
             {
               "id": "SPELLS-28.T4c",
-              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey.",
-              "status": "IN_PROGRESS",
+              "text": "Shapechange (creature form) and Wild Shape authored from core options on the CREATURE_FORM grant applied to CHARACTER Run actors (D130 amendment: one form shape and one revert path; form HP on the actor, carry-over through the Sheet damage batch). Wild Shape and Shapechange keep the origin's Intelligence, Wisdom and Charisma and its save and skill proficiencies (higher bonus wins); casting is refused in a form that cannot cast. Corpus proof against the real compiler and one journey. (Red: ci/spells-28-t4c-red Tests 38964372322 on 8582fe60a. Green: ci/spells-28-t4c Tests 38975553592 and Live 38977759895 on 23de9c2cd.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8750,8 +8892,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T4"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4d",
@@ -8777,7 +8918,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             }
           ]
         },
@@ -8908,8 +9050,8 @@
             },
             {
               "id": "SPELLS-27.T5",
-              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms.",
-              "status": "IN_PROGRESS",
+              "text": "Author SRD end events (spells, class features, items, creature traits) from core options; corpus test lists any effect left with end-event text and no authored end, except a typed allow-list of other mechanisms. (Red: ci/spells-27-t5-red Tests 38956741664 on 21f6e15ca. Green: ci/spells-27-t5 Tests 38967899788 and Live 38967899786 on 7c66e5554.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -8917,8 +9059,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T4", "SPELLS-27.T4b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T7",
@@ -8935,7 +9076,21 @@
             },
             {
               "id": "SPELLS-27.T8",
-              "text": "Sleep from core options: roll the hit-point pool, put creatures in the area to sleep from lowest current HP up, and the unconscious condition ends when the sleeper takes damage or a creature uses an action to wake it. GM undo restores both (D122 amendment of 2026-10-16).",
+              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12.",
+              "status": "TODO",
+              "closes": ["SPELLS-27.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-27.T5"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+            },
+            {
+              "id": "SPELLS-27.T12",
+              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern.",
               "status": "TODO",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
@@ -8943,7 +9098,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T5"]
+                "after": ["SPELLS-27.T8"]
               }
             },
             {
@@ -8956,13 +9111,13 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-27.T5"]
+                "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
               }
             },
             {
               "id": "SPELLS-27.T10",
-              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo.",
-              "status": "TODO",
+              "text": "Indefinite invisibility that ends on attack or cast: a creature trait (Imp, Quasit, Green Hag, Sprite, Will-o'-Wisp) creates an effect with no duration that ends on ON_ATTACK_ROLL or ON_CAST_SPELL, or when its Concentration ends, from core options with GM undo. (Red: ci/spells-27-t10-red Tests 38973682677 on f95bacfe5. Green: ci/spells-27-t10 Tests 38975443036 and Live 38975443035 on 6e993607d.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9413,8 +9568,8 @@
             },
             {
               "id": "REACTION-4.T3e",
-              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive).",
-              "status": "IN_PROGRESS",
+              "text": "Cast reactions for a Character's chosen-creature (ACTORS) and area casts: the cast-reaction advance runs before the target-kind dispatch, reusing the ENCOUNTER_ACTION cast pause and the COUNTERED root with the ACTOR-only guards accepting any target kind (a countered cast spends slot and action only), resume replays into the area/ACTORS planner, and the area commit input carries failedCounters (additive). (Red: ci/reaction-4-t3e-red Tests 38944702077 on 17dcee0a0. Green: ci/reaction-4-t3e Tests 38964831551 and Live 38964831537 on 0c733d676.)",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9422,13 +9577,12 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["REACTION-4.T3b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T3h",
-              "text": "Cast reactions for Creature capability casts: a capability that casts a spell gets its cast level from the referenced System spell, or from an authored cast level on the capability (additive core option, SRD data filled) where no spell is referenced, so Counterspell's higher-level check has its input; a capability that is not a spell is never offered a counter.",
-              "status": "TODO",
+              "text": "Cast reactions for Creature capability casts (D136): a Feature action effect authors spellCast { castLevel: 1..9 } beside grip on ACTION invocations only, and Counterspell is offered only for those; a spell-attack-only action is not counterable; no spellId and no new room-input capture kind. (Red: ci/reaction-4-t3h-red Tests 38970845033 on ad8488c11. Green: ci/reaction-4-t3h Tests 38975904611 and Live 38975904624 on 9cec1d408.)",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9449,7 +9603,8 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["REACTION-4.T3d", "SPELLS-26.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
             },
             {
               "id": "REACTION-4.T5",

@@ -865,6 +865,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Shape:** a placed or source spatial effect records `maintainedStateId`, across the Convex table, the room store, `LiveSessionPlacedSpatialEffect` and checkpoint records. Zones count as dependents of the state, so `TERMINATE_WHEN_EMPTY` keeps a state that holds only a zone. A cast whose only product is a zone opens the caster's Concentration state.
   - **Rule:** ending, dropping or replacing Concentration removes its zones through the one Concentration cleanup path, in the same transaction (the cleanup DTO carries `removedZoneIds`); GM undo restores them.
   - **Rejected:** a separate sweep keyed on `sourceOccurrenceId` (a second, looser cleanup path).
+* **D136** (2026-10-16) A Creature capability that casts a spell is counterable (REACTION-4.T3h, AC REACTION-4.1; [slice-reaction-4.md](slice-reaction-4.md)). Orchestrator ruling.
+  - **Shape:** a Feature action effect authors `spellCast: { castLevel: 1..9 } | null` beside `grip`, on ACTION invocations only. No `spellId` (a display link is a future enhancement) and no new room-input capture kind.
+  - **Rule:** Counterspell's window opens only for a capability with `spellCast`. A spell-attack-only action (for example Paralyzing Touch) is not counterable.
+  - **Deferred:** spell attacks counting as ON_CAST_SPELL.
+* **D137** (2026-10-16) TARGETED_SELF reactions share the cast window (REACTION-4.T4, AC REACTION-4.1; [slice-reaction-4.md](slice-reaction-4.md)). Orchestrator ruling.
+  - **Shape:** the reaction trigger binding gains `{ kind: 'TARGETED_SELF', sourceEffectIds?: uuid[] }`. The `castReaction` pending context gains a required `kind` (`COUNTER` | `TARGETED_SELF`), with persisted contexts migrated in the same change. The `DAMAGE_IMMUNITY` option gains an optional `sourceEffectIds`. An empty or absent list means unfiltered.
+  - **Rule:** the trigger fires when the reactor is a chosen target of an action whose Effect id is listed. A Use spends the slot and reaction and applies its grants before the cast resolves; nothing is countered. Damage resolution skips an immunity whose list lacks the damage's source Effect id. GM undo restores the slot, reaction and grants. Shield against Magic Missile is authored from these core options.
+  - **Rejected:** a separate `targetedReaction` pending context (it would duplicate the window and its persistence validators). **Deferred:** ordering when several targets react.
 
 ## Approved implementation decisions
 

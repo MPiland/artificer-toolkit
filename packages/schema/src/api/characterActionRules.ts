@@ -377,6 +377,8 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
       stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
     ),
     attackKind: z.nullable(attackKindSchema),
+    // The ability the attack is made with, which an ability-scoped attack grant is read against.
+    attackAbility: z.nullable(abilityCodeSchema),
     attackBonus: z.nullable(integerSchema),
     attackRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
     save: z.nullable(

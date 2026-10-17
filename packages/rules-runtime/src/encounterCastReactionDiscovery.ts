@@ -34,8 +34,9 @@ export function discoverCastReactionActions(
 }
 
 /**
- * The level a Character's prepared spell cast is cast at (0 for a cantrip); null when the action is
- * not a Character's spell cast, so nothing can counter it.
+ * The level a prepared spell cast is cast at (0 for a cantrip); null when the action is not a spell
+ * cast, so nothing can counter it. A Character's is the level of its cast. A Creature capability's is
+ * its authored cast level; a spell attack casts no spell (D136).
  */
 export function preparedSpellCastLevel(
   prepared: Pick<
@@ -43,6 +44,9 @@ export function preparedSpellCastLevel(
     'source' | 'characterActionState'
   >
 ): number | null {
+  if (prepared.source.kind === 'CREATURE') {
+    return prepared.source.capability.spellCast?.castLevel ?? null
+  }
   if (
     prepared.source.kind !== 'CHARACTER_ACTION' ||
     prepared.source.candidate.mechanicsOwner.kind !== 'SPELL'
@@ -62,10 +66,10 @@ export function preparedCastsSpell(
   >
 ): boolean {
   if (preparedSpellCastLevel(prepared) !== null) return true
+  if (prepared.source.kind !== 'CREATURE') return false
+  const { capability } = prepared.source
   return (
-    prepared.source.kind === 'CREATURE' &&
-    isDnd5eSpellAttackKind(
-      dnd5eAttackKind(prepared.source.capability.mechanicFacts.invocation.triggerCode)
-    )
+    capability.spellCast != null ||
+    isDnd5eSpellAttackKind(dnd5eAttackKind(capability.mechanicFacts.invocation.triggerCode))
   )
 }

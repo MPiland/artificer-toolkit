@@ -10,7 +10,8 @@ import {
 type ChildMap = { mapId: string; nodes: Record<string, unknown> }
 
 /** The node map a group node opens. */
-function childMap(node: { kind: string; nodes?: ChildMap | (() => ChildMap) } | undefined) {
+function childMap(candidate: unknown) {
+  const node = candidate as { kind: string; nodes?: ChildMap | (() => ChildMap) } | undefined
   if (node?.kind !== 'GROUP' || !node.nodes) throw new Error('Expected a group node.')
   return typeof node.nodes === 'function' ? node.nodes() : node.nodes
 }
@@ -26,5 +27,16 @@ describe('Creature-only Feature authoring fields (D51, D57)', () => {
     expect(childMap(FEATURE_NODE_MAP.nodes.options).mapId).toBe('option')
     expect(OPTION_NODE_MAP.nodes.actionReference).toBeUndefined()
     expect(childMap(OPTION_NODE_MAP.nodes.effects).nodes.grip).toBeUndefined()
+  })
+})
+
+describe('Creature spellCast authoring (REACTION-4.T3h)', () => {
+  it('authors a cast level from core nodes, only in Creature editors', () => {
+    const creatureEffect = childMap(CREATURE_FEATURE_NODE_MAP.nodes.effects).nodes
+    expect(Object.keys(childMap(creatureEffect.spellCast).nodes)).toEqual(['castLevel'])
+    expect(childMap(childMap(CREATURE_OPTION_NODE_MAP.nodes.effects).nodes.spellCast).nodes).toBeDefined()
+
+    expect(childMap(FEATURE_NODE_MAP.nodes.effects).nodes.spellCast).toBeUndefined()
+    expect(childMap(OPTION_NODE_MAP.nodes.effects).nodes.spellCast).toBeUndefined()
   })
 })

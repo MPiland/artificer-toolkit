@@ -32396,6 +32396,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -41906,6 +41907,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -51425,6 +51427,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -60935,6 +60938,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -70480,6 +70484,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -79990,6 +79995,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -89377,6 +89383,7 @@ export declare const api: {
                       };
                   order: number;
                   paths: Array<any>;
+                  spellCast?: { castLevel: number };
                 }>;
                 gameSystemId: string;
                 id: string;
@@ -98882,6 +98889,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -108392,6 +108400,7 @@ export declare const api: {
                         };
                     order: number;
                     paths: Array<any>;
+                    spellCast?: { castLevel: number };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -121789,6 +121798,36 @@ export declare const internal: {
         any
       >;
       runActorForm: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
+    actorIdentityMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorIdentity: FunctionReference<
         "mutation",
         "internal",
         {

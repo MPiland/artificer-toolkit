@@ -68,11 +68,13 @@ export async function readLiveMovementTargetState(
   const row = await readLiveCharacterRow(ctx, state, actor.sourceId)
   const character = ctx.ports.readCharacterRecord(row)
   const campaign = await readCampaignCharacterState(state.campaignId, row.id)
+  // A Character in a form holds the form's hit points; its conditions stay the Sheet's (D130).
+  const { form } = actor
   return {
-    currentHitPoints: character.state.hitpoints.current,
-    temporaryHitPoints: character.state.hitpoints.temp ?? 0,
+    currentHitPoints: form ? form.currentHitPoints : character.state.hitpoints.current,
+    temporaryHitPoints: form ? form.tempHitPoints : (character.state.hitpoints.temp ?? 0),
     maximumHitPoints: plannedMaximumHitPoints,
-    deathSaves: character.state.hitpoints.deathSaves,
+    deathSaves: form ? null : character.state.hitpoints.deathSaves,
     conditionIds: [
       ...new Set([
         ...(character.state.conditions ?? []).map((condition) => condition.conditionTypeId),

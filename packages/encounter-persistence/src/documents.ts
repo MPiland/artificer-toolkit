@@ -14,6 +14,7 @@ import {
   ensureSourceFacts,
   readStoredRunActor,
   releaseSourceFacts,
+  serializeStoredRunActor,
   splitActorForStorage
 } from './actorProjectionFacts.js'
 import { ensureActorSnapshot, readActorSnapshot, releaseActorSnapshot } from './actorSnapshots.js'
@@ -195,7 +196,7 @@ export async function insertRunActor(ctx: EncounterWriteContext, actor: Encounte
   await ctx.db.insert('encounterRunActors', {
     id: actor.id,
     encounterId: actor.encounterId,
-    stateJson: JSON.stringify(split.stored),
+    stateJson: serializeStoredRunActor(split.stored),
     stateChecksum: checksumRunActorPlayState(actor),
     snapshotChecksum: split.snapshotChecksum,
     formOriginSnapshotChecksum: split.originSnapshotChecksum,
@@ -236,7 +237,7 @@ export async function writeRunActor(
   )
     await ensureSourceFacts(ctx, actor.encounterId, split.sourceFactsChecksum, split.source)
   await ctx.db.patch(rowId, {
-    stateJson: JSON.stringify(split.stored),
+    stateJson: serializeStoredRunActor(split.stored),
     stateChecksum: checksumRunActorPlayState(actor),
     snapshotChecksum: split.snapshotChecksum,
     formOriginSnapshotChecksum: split.originSnapshotChecksum,
@@ -251,9 +252,9 @@ export async function writeRunActor(
     await releaseActorSnapshot(ctx, row.encounterId, row.formOriginSnapshotChecksum)
   if (row.sourceFactsChecksum !== null && row.sourceFactsChecksum !== split.sourceFactsChecksum)
     await releaseSourceFacts(ctx, row.encounterId, row.sourceFactsChecksum)
-  if (row.formOriginSnapshotChecksum !== null && split.originSnapshotChecksum === null) {
+  if (actor.form === null) {
     const before = readStoredRunActor(row)
-    if (before.kind !== 'CHARACTER' && before.form !== null) {
+    if (before.form !== null) {
       const effectId = before.form.effectId
       const effect = await ctx.db
         .query('encounterActiveRuleEffects')
@@ -262,6 +263,16 @@ export async function writeRunActor(
         )
         .unique()
       if (effect) await ctx.db.delete(effect._id)
+      // A Character's form is held by an effect on the Character.
+      if (before.kind === 'CHARACTER') {
+        const characterEffect = await ctx.db
+          .query('characterActiveRuleEffects')
+          .withIndex('by_characterId_id', (q) =>
+            q.eq('characterId', before.sourceId).eq('id', effectId)
+          )
+          .unique()
+        if (characterEffect) await ctx.db.delete(characterEffect._id)
+      }
     }
   }
 }

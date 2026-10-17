@@ -82,10 +82,7 @@ import {
   chosenEncounterReaction,
   type EncounterReactionSelection
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
-import type {
-  EncounterFailedCounterDto,
-  EncounterReactionOfferDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
 import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
@@ -97,17 +94,9 @@ import {
   applyNativeAttackReaction,
   discoverNativeAttackReaction
 } from './nativeEncounterAttackReaction.js'
-import {
-  advanceNativeCastReactions,
-  discoverNativeCastReactions,
-  planNativeCounteredCast,
-  planNativeFailedCounters,
-  type NativeCastReactionAnswer
-} from './nativeEncounterCastReaction.js'
-import {
-  preparedCastsSpell,
-  preparedSpellCastLevel
-} from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
+import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterCastReactionPendingSnapshot
@@ -130,7 +119,6 @@ import {
   restoreEncounterActionPending
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import { projectSpellSlotSpend } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
@@ -387,7 +375,19 @@ export async function planNativeLiveEncounterAction(
     })
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
+    // An answer to a counter offered before the cast did anything replays the cast itself.
+    const castResume =
+      castAnswer && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' && responseCommand
+        ? {
+            response: responseCommand,
+            answer: castAnswer,
+            initiatorUserId: snapshot.applicationContext.initiatorUserId,
+            currentnessChecksum: snapshot.applicationContext.currentnessChecksum,
+            failedCounters: snapshot.applicationContext.failedCounters ?? []
+          }
+        : undefined
     const areaInput = {
+      castResume,
       initial,
       command: { ...command, target },
       fingerprint: admission.fingerprint,
@@ -415,7 +415,7 @@ export async function planNativeLiveEncounterAction(
         revisions
       }
     }
-    if (responseCommand) {
+    if (responseCommand && !castResume) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
       if (areaDecision)
         return {
@@ -578,7 +578,6 @@ export async function planNativeLiveEncounterAction(
     speedDefinitions: system.speeds
   })
   refuseUnmetItemActionRequirements(prepared, state)
-  const triggerLevel = preparedSpellCastLevel(prepared)
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const { activationCode, economy, suppressed, attackAction } =
@@ -804,140 +803,54 @@ export async function planNativeLiveEncounterAction(
     dependencies,
     revisions
   })
-  if (castAnswer && triggerLevel === null) throw new Error('Reaction evidence is stale.')
-  /** The counters that failed against this cast so far; the cast's terminal commit spends them (D127). */
-  let failedCounters: readonly EncounterFailedCounterDto[] =
-    snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-      ? (snapshot.applicationContext.failedCounters ?? [])
-      : []
-  let castDiscovery: Promise<ReturnType<typeof discoverNativeCastReactions>> | undefined
-  const castConsumption = prepared.characterActionState?.spellConsumption
-  /**
-   * A reactor counters against the slots it has left. The cast's own caster counters a counter cast
-   * against its cast with the cast's slot already spent, on the Character version both spends commit in.
-   */
-  const castSpentTarget = (
-    reactorActorId: string,
-    reactorTarget: Awaited<ReturnType<typeof loadTarget>>
-  ) =>
-    castConsumption && reactorActorId === prepared.actor.id
-      ? projectSpellSlotSpend({
-          target: reactorTarget,
-          consumption: castConsumption,
-          campaignId: state.campaignId,
-          gameSystemId: state.gameSystemId,
-          occurredAt
-        })
-      : reactorTarget
-  /** The creatures that may counter this cast, read once from the Scene the cast names. */
-  const discoverCast = (level: number) =>
-    (castDiscovery ??= (async () => {
-      if (!command.sceneContext) throw new Error('Reaction evidence is stale.')
-      const castScene = await capture({
-        kind: 'ACTION_AREA_SCENE',
-        command: {
-          actorId: command.actorId,
-          sceneId: command.sceneContext.sceneId,
-          expectedSceneVersion: command.sceneContext.expectedSceneVersion
-        }
-      })
-      if (castScene.kind !== 'ACTION_AREA_SCENE')
-        throw new Error('Action Scene context is unavailable.')
-      return discoverNativeCastReactions({
-        state,
-        actors,
-        caster: prepared.actor,
-        triggerLevel: level,
-        scene: castScene.context,
-        loadTarget,
-        prepareReaction: async (reactor, reactorTarget, actionId, against) =>
-          prepareEncounterActionMechanics({
-            state,
-            actor: reactor,
-            target: against,
-            actors,
-            actionId,
-            wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-            overridable: false,
-            movementTargets: new Map(movementTargets)
-              .set(reactor.id, castSpentTarget(reactor.id, reactorTarget))
-              .set(against.id, movementTargets.get(against.id) ?? (await loadTarget(against))),
-            sceneContext: null,
-            ...actionSources
-          }),
-        capture
-      })
-    })())
-  /** What each failed counter spends when the cast ends, planned against the reactor as it stands now. */
-  const plannedFailedCounters = async (counters: typeof failedCounters) => {
-    if (counters.length === 0) return []
-    if (triggerLevel === null) throw new Error('Reaction evidence is stale.')
-    return planNativeFailedCounters({
-      failedCounters: counters,
-      discover: await discoverCast(triggerLevel),
-      state,
-      occurrenceId,
-      commandId: command.commandId,
-      occurredAt,
-      userId: initial.expectedUserId
-    })
-  }
-  // Before a Character's spell does anything, another Character in range may counter it. A cast that
-  // already offered itself replays past this point once answered: a decline moves to the next creature,
-  // and an answer to a later decision (dice, a Legendary Resistance) was made after every offer.
-  if (
-    triggerLevel !== null &&
-    (!snapshot || castAnswer) &&
+  const castPause = createNativeCastPause({
+    runtime: executionOptions.runtime,
+    random: executionOptions.random,
+    state,
+    system,
+    actors,
+    activeEffectsByActorId,
+    loadTarget,
+    capture,
+    requireAutoRoll,
+    command,
+    prepared,
+    movementTargets,
+    reactionSources: actionSources,
     // Range is read from the Scene, so a cast made without one offers no reaction.
-    command.sceneContext &&
-    actors.some((actor) => actor.kind === 'CHARACTER' && actor.id !== prepared.actor.id)
-  ) {
-    const cast = await advanceNativeCastReactions({
-      runtime: executionOptions.runtime,
-      occurrenceId,
-      gameSystemId: state.gameSystemId,
-      system,
-      casterActorId: prepared.actor.id,
-      triggerLevel,
-      answer: castAnswer,
-      failedCounters,
-      autoRoll: requireAutoRoll,
-      rollD20: () => (executionOptions.random ?? nextRollInt)(20) + 1,
-      discover: await discoverCast(triggerLevel)
-    })
-    failedCounters = cast.failedCounters
-    if (cast.kind === 'COUNTERED')
-      return {
-        ...preflight(),
-        kind: 'COUNTERED' as const,
-        countered: planNativeCounteredCast({
-          state,
-          actors,
-          prepared,
-          casterEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
-          reactorEffects: activeEffectsByActorId.get(cast.found.prepared.actor.id) ?? [],
-          triggerLevel,
-          actionEconomy,
-          ruleOverrides: ruleWarnings.overrides,
-          occurrenceId,
-          occurrenceVersion,
-          commandId: command.commandId,
-          occurredAt,
-          userId: initial.expectedUserId,
-          countered: cast,
-          failedCounters: await plannedFailedCounters(cast.failedCounters)
-        })
-      }
-    if (cast.kind === 'OFFER' || cast.kind === 'CHECK')
-      return {
-        ...preflight(),
-        kind: 'CAST_PENDING' as const,
-        continuation: cast.continuation,
-        rollerActorId: cast.reactor.id,
-        castReaction: cast.offer,
-        failedCounters
-      }
-  }
+    readScene: command.sceneContext
+      ? async () => {
+          const castScene = await capture({
+            kind: 'ACTION_AREA_SCENE',
+            command: {
+              actorId: command.actorId,
+              sceneId: command.sceneContext!.sceneId,
+              expectedSceneVersion: command.sceneContext!.expectedSceneVersion
+            }
+          })
+          if (castScene.kind !== 'ACTION_AREA_SCENE')
+            throw new Error('Action Scene context is unavailable.')
+          return castScene.context
+        }
+      : null,
+    occurrenceId,
+    occurredAt,
+    userId: initial.expectedUserId,
+    answer: castAnswer,
+    resumed: snapshot !== null,
+    // The counters that failed against this cast so far; its terminal commit spends them (D127).
+    failedCounters:
+      snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+        ? (snapshot.applicationContext.failedCounters ?? [])
+        : []
+  })
+  const cast = await castPause.advance({
+    actionEconomy,
+    ruleOverrides: ruleWarnings.overrides,
+    occurrenceVersion
+  })
+  if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
+  const failedCounters = cast.failedCounters
   const discoverReaction = discoverNativeAttackReaction({
     state,
     attack: prepared,
@@ -1155,7 +1068,7 @@ export async function planNativeLiveEncounterAction(
           })
         })
       : null
-  const failedSpends = await plannedFailedCounters(failedCounters)
+  const failedSpends = await castPause.planFailedCounters(failedCounters)
   // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
   // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
   const failedTarget = failedSpends.find(

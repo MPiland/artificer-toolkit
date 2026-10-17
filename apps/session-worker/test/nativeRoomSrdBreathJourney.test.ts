@@ -4,7 +4,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
-import { copperDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/copper-dragon-wyrmling.js'
+import { bronzeDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/bronze-dragon-wyrmling.js'
 import { winterWolf } from '@artificer-toolkit/source-data/srd/creatures/winter-wolf.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -149,10 +149,10 @@ describe.each([
 )
 
 describe('an SRD breath whose shape the System cannot execute is unavailable', () => {
-  it('lists the Copper Dragon Wyrmling’s Slowing Breath as unavailable with its reason, and refuses it at open without changing anything', async () => {
-    const creature = installedSrdCreature(copperDragonWyrmling)
+  it('lists the Bronze Dragon Wyrmling’s Repulsion Breath as unavailable with its reason, and refuses it at open without changing anything', async () => {
+    const creature = installedSrdCreature(bronzeDragonWyrmling)
     const { feature, room } = await breathRoom({
-      creature: copperDragonWyrmling,
+      creature: bronzeDragonWyrmling,
       featureLabel: 'Breath Weapons'
     })
     const discovery = discoverEncounterFeatureActions({
@@ -160,21 +160,21 @@ describe('an SRD breath whose shape the System cannot execute is unavailable', (
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
     })
-    // The feature's Acid Breath runs; only the slowing one, with its repeating save, does not.
-    const [slowing, ...others] = discovery.unavailable.filter(
+    // The feature's Lightning Breath runs; only the repulsion one, which pushes, does not.
+    const [repulsion, ...others] = discovery.unavailable.filter(
       ({ ownerFeatureId }) => ownerFeatureId === feature.id
     )
-    if (!slowing || others.length > 0)
-      throw new Error('Expected exactly one unavailable Copper Dragon Wyrmling breath.')
-    expect(discovery.available.map(({ actionId }) => actionId)).not.toContain(slowing.actionId)
+    if (!repulsion || others.length > 0)
+      throw new Error('Expected exactly one unavailable Bronze Dragon Wyrmling breath.')
+    expect(discovery.available.map(({ actionId }) => actionId)).not.toContain(repulsion.actionId)
 
     const choices = await room.actionChoices()
     expect(choices.unavailableActions).toContainEqual({
-      id: slowing.actionId,
-      label: slowing.label,
-      reason: slowing.reason
+      id: repulsion.actionId,
+      label: repulsion.label,
+      reason: repulsion.reason
     })
-    expect(choices.actions.map(({ id }) => id)).not.toContain(slowing.actionId)
+    expect(choices.actions.map(({ id }) => id)).not.toContain(repulsion.actionId)
 
     const stub = room.room.base.stub
     const before = await readRoomHistory(stub)
@@ -192,7 +192,7 @@ describe('an SRD breath whose shape the System cannot execute is unavailable', (
         sceneId: room.room.scene.id,
         expectedSceneVersion: room.room.scene.version
       },
-      actionId: slowing.actionId,
+      actionId: repulsion.actionId,
       optionalCombatIntent: null,
       sceneContext: null
     })
@@ -200,7 +200,7 @@ describe('an SRD breath whose shape the System cannot execute is unavailable', (
       type: 'COMMAND_REJECTED',
       code: 'DOMAIN_REJECTED',
       reason: 'SOURCE_REQUIREMENTS_NOT_MET',
-      message: `${slowing.label} is unavailable: ${slowing.reason}`
+      message: `${repulsion.label} is unavailable: ${repulsion.reason}`
     })
     expect(await readPendingActionDecision(stub)).toBeNull()
     expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))

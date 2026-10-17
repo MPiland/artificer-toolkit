@@ -176,29 +176,49 @@ export const gorgon: CreatureAuthored = {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
-            // A 30-foot cone waits on SPELLS-19: the breath is a lone on-fail Restrained whose repeat save
-            // is not authored, which the System cannot execute, and an area does not refuse a bare condition.
-            range: {
-              id: S.actionId(148, 8),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            ...S.selfCone(S.actionId(148, 8), S.actionId(148, 11), 30)
           },
           paths: [
             {
               id: S.actionId(148, 9),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(148, 9) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: S.actionId(148, 12),
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(148, 9),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('RESTRAINED')
+                  },
+                  {
+                    id: S.actionId(148, 13),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END' as const,
+                    savingThrow: {
+                      id: S.actionId(148, 14),
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE' as const },
+                    onSuccess: { kind: 'END' as const },
+                    onFailure: {
+                      kind: 'OUTCOMES' as const,
+                      endCurrent: true,
+                      resultKind: 'SINGLE' as const,
+                      outcomes: [
+                        {
+                          id: S.actionId(148, 15),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('PETRIFIED')
+                        }
+                      ]
+                    }
                   }
                 ]
               }

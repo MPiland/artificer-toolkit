@@ -136,6 +136,21 @@ const compiledActionResourceBindingSchema = lazySchema(() =>
     cost: z.number().check(z.int()).check(z.gte(1)).check(z.lte(Number.MAX_SAFE_INTEGER))
   })
 )
+
+/** The maintained effect (Concentration) an action starts, resolved under the Encounter transaction. */
+const compiledActionMaintenanceSchema = lazySchema(() =>
+  z.nullable(
+    z.strictObject({
+      definitionId: serverUuidIdentityDtoSchema,
+      /** Resolved under the Encounter transaction before any aggregate mutation. */
+      definitionChecksum: z.nullable(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
+      owner: z.literal('SOURCE_ACTOR'),
+      replacementPolicy: z.literal('REPLACE_SAME_DEFINITION'),
+      emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
+    })
+  )
+)
+
 const compiledActionActiveEffectPlanSchema = lazySchema(() =>
   z.strictObject({
     authoredEffectId: serverUuidIdentityDtoSchema,
@@ -176,6 +191,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
+            countedByTurnEffects: z.optional(z.boolean()),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             endOnEvents: activeGrantEndEventsSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,
@@ -257,19 +273,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       ),
       null
     ),
-    maintenance: z._default(
-      z.nullable(
-        z.strictObject({
-          definitionId: serverUuidIdentityDtoSchema,
-          /** Resolved under the Encounter transaction before any aggregate mutation. */
-          definitionChecksum: z.nullable(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
-          owner: z.literal('SOURCE_ACTOR'),
-          replacementPolicy: z.literal('REPLACE_SAME_DEFINITION'),
-          emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
-        })
-      ),
-      null
-    )
+    maintenance: z._default(compiledActionMaintenanceSchema, null)
   })
 )
 
@@ -297,7 +301,9 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
         /** The events whose first occurrence ends the grant (a heal ends a speed penalty). */
         endOnEvents: activeEffectEndEventsSchema
       })
-    )
+    ),
+    /** The Concentration the placing cast opens; the zone depends on it (D135). */
+    maintenance: compiledActionMaintenanceSchema
   })
 )
 

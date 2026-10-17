@@ -9,6 +9,9 @@ import {
   planEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
@@ -73,9 +76,30 @@ export async function applyRoomEncounterMechanicsBatch(input: {
       campaignContext: facts.campaignContext
     }
   }
+  // A Character in a form takes hits on the form's pool; the Sheet maximum is where excess damage
+  // lands, so callers' maxima (a Sheet's for a source, the form's for a target) are replaced (D130).
+  const form = read.actor.kind === 'CHARACTER' ? read.actor.form : null
+  const formMaxima =
+    character && form
+      ? {
+          effectiveMaximumHitPoints: effectiveHitPointMaximum(
+            form.maxHitPoints,
+            await listActiveRuleEffects(
+              ctx,
+              { kind: 'ENCOUNTER_ACTOR', encounterId: read.state.id, targetActorId: read.actor.id },
+              { ownerVerified: true }
+            )
+          ),
+          sheetMaximumHitPoints: await readCharacterMaximumHitPoints(ctx, character.play)
+        }
+      : {}
   const target = {
     ...read,
-    input: { ...read.input, expectedCharacterStreamVersion: character?.play.streamVersion ?? null }
+    input: {
+      ...read.input,
+      ...formMaxima,
+      expectedCharacterStreamVersion: character?.play.streamVersion ?? null
+    }
   }
   const plan = planEncounterMechanicsBatch({
     batch: target.input,
