@@ -1,6 +1,9 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
+import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { TurnEffectBoundary } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   CAMPAIGN_ID,
@@ -29,6 +32,7 @@ import {
   AUTO_ROLL,
   authoredZone,
   GM_USER_ID,
+  goblin,
   GOBLIN_ID,
   GOBLIN_TOKEN_ID,
   OCCURRENCE_ID,
@@ -39,12 +43,15 @@ import {
   START,
   tokens
 } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
-import { insertRunActor } from '../documents.js'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { insertRunActor, readRunActor, readRunActorWithRow, writeRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
-import type { EncounterMechanicsBatchResult } from '../mechanicsBatchPersistence.js'
+import {
+  persistEncounterMechanicsBatchPlan,
+  readEncounterMechanicsBatchTarget
+} from '../mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from '../ports.js'
 import { createSpatialRuleEffectStore } from '../spatialEffectStore.js'
-import type { EncounterDocument } from '../store.js'
 import { persistEncounterTurnZoneEffects } from '../turnZoneEffectsPersistence.js'
 
 const STALE_SELECTION = 'Staged turn zone selection is stale.'
@@ -67,33 +74,63 @@ beforeAll(async () => {
 /** A memory store holding the Run's actors, its Scene, the goblin's token and the given zones. */
 async function seededScene(
   equipment = authoredZone(['START_TURN_IN_SPACE']),
-  { runActors = actors, ports = {} }: { runActors?: typeof actors; ports?: object } = {}
+  {
+    runActors = actors,
+    liveCharacterStreamVersion = 1
+  }: { runActors?: typeof actors; liveCharacterStreamVersion?: number } = {}
 ) {
   const memory = createMemoryEncounterStore()
-  const ctx = { db: memory.store, ports } as unknown as EncounterCharacterWriteTransaction
+  // The only cast: the host ports are the platform, and the wider port surface is unused here.
+  // concentrationEnd.test.ts builds its transaction the same way.
+  const ctx = {
+    db: memory.store,
+    ports: {
+      requireIdentity: async () => ({ userId: GM_USER_ID }),
+      requireCampaignAuthority: async () => ({
+        campaign: {
+          id: CAMPAIGN_ID,
+          status: 'ACTIVE',
+          gameSystemId: SRD_SYSTEM_ID,
+          ownerUserId: GM_USER_ID
+        }
+      }),
+      readCharacterRow: async () => ({
+        status: 'ACTIVE',
+        systemId: SRD_SYSTEM_ID,
+        play: { streamVersion: liveCharacterStreamVersion }
+      })
+    }
+  } as unknown as EncounterCharacterWriteTransaction
+  const run = encounterRunStateSchema.parse(runState({}, { runActors }))
+  await memory.store.insert('encounterRuns', {
+    id: run.id,
+    campaignId: run.campaignId,
+    gameSystemId: run.gameSystemId,
+    status: run.status,
+    version: run.version,
+    stateJson: JSON.stringify(run),
+    stateChecksum: checksumCanonicalJson(run),
+    createCommandId: COMMAND_ID,
+    createCommandFingerprint: 'b'.repeat(64),
+    concentrationCasterCharacterIds: [],
+    createdAt: OCCURRED_AT,
+    updatedAt: OCCURRED_AT
+  })
   for (const actor of runActors) await insertRunActor(ctx, actor)
-  memory.load('encounterSceneBindings', [
-    {
-      _id: 'scene-binding',
-      _creationTime: 1,
-      encounterId: ENCOUNTER_ID,
-      campaignId: CAMPAIGN_ID,
-      sceneId: SCENE_ID,
-      commandId: COMMAND_ID,
-      commandFingerprint: 'a'.repeat(64),
-      createdAt: OCCURRED_AT
-    }
-  ] as unknown as EncounterDocument<'encounterSceneBindings'>[])
-  memory.load('encounterActorTokenBindings', [
-    {
-      _id: 'token-binding',
-      _creationTime: 2,
-      actorId: GOBLIN_ID,
-      encounterId: ENCOUNTER_ID,
-      sceneId: SCENE_ID,
-      tokenId: GOBLIN_TOKEN_ID
-    }
-  ] as unknown as EncounterDocument<'encounterActorTokenBindings'>[])
+  await memory.store.insert('encounterSceneBindings', {
+    encounterId: ENCOUNTER_ID,
+    campaignId: CAMPAIGN_ID,
+    sceneId: SCENE_ID,
+    commandId: COMMAND_ID,
+    commandFingerprint: 'a'.repeat(64),
+    createdAt: OCCURRED_AT
+  })
+  await memory.store.insert('encounterActorTokenBindings', {
+    actorId: GOBLIN_ID,
+    encounterId: ENCOUNTER_ID,
+    sceneId: SCENE_ID,
+    tokenId: GOBLIN_TOKEN_ID
+  })
   const scope = await createSpatialRuleEffectStore(ctx).scope({
     encounterId: ENCOUNTER_ID,
     sceneId: SCENE_ID
@@ -142,23 +179,26 @@ async function stagedPlan(
 
 type Plan = Awaited<ReturnType<typeof stagedPlan>>
 
-/** What the mechanics batch would settle: the plan's own transitions and applications. */
-function settledFrom(plan: Plan) {
-  let ordinal = 0
-  return {
-    updatedActor: actors[0]!,
-    receiptApplications: plan.executions.flatMap((execution) =>
-      execution.applications.map((application) => ({ ...application, ordinal: ordinal++ }))
-    ),
-    targetTransition: {
-      checksum: plan.executions.at(-1)!.targetTransition.checksum,
-      before: plan.executions[0]!.targetTransition.before,
-      after: plan.executions.at(-1)!.targetTransition.after
-    },
-    characterStreamVersion: null,
-    itemUseStateTransition: null,
-    endedGrants: []
-  } as unknown as EncounterMechanicsBatchResult
+type Callbacks = Parameters<typeof persistEncounterTurnZoneEffects>[2]
+
+/** The room's mechanics batch for a creature target: read, plan and persist over the same store. */
+function settleMechanicsBatch(ctx: EncounterCharacterWriteTransaction) {
+  return async (batch: Parameters<Callbacks['applyMechanics']>[0]) => {
+    const target = await readEncounterMechanicsBatchTarget(ctx, {
+      ...batch,
+      expectedCharacterStreamVersion: null
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: target.input,
+      actor: target.actor,
+      userId: target.userId
+    })
+    return persistEncounterMechanicsBatchPlan(ctx, target, {
+      actor: target.actor,
+      character: null,
+      plan
+    })
+  }
 }
 
 function persist(
@@ -169,12 +209,9 @@ function persist(
     boundary?: TurnEffectBoundary
     state?: ReturnType<typeof runState>
     readSceneTokens?: () => Promise<typeof tokens>
-    settle?: (plan: Plan) => EncounterMechanicsBatchResult
   }
 ) {
-  const applyMechanics = vi.fn(async (_batch: Record<string, unknown>) =>
-    input.settle!(input.plan!)
-  )
+  const applyMechanics = vi.fn(settleMechanicsBatch(scene.ctx))
   const result = persistEncounterTurnZoneEffects(
     scene.ctx,
     {
@@ -191,11 +228,17 @@ function persist(
   return { result, applyMechanics }
 }
 
+/** The goblin is a creature, whose hit points live on the actor itself. */
+function creature(actor: EncounterRunActorState) {
+  if (actor.kind === 'CHARACTER') throw new Error('Expected a creature actor.')
+  return actor
+}
+
 describe('persisting a turn zone phase inside the terminal transaction (SPELLS-20 T4b2b2)', () => {
   it('commits a plan prepared against the Scene and returns the executed phase', async () => {
     const scene = await seededScene()
     const plan = await stagedPlan(scene)
-    const { result, applyMechanics } = persist(scene, { plan, settle: settledFrom })
+    const { result, applyMechanics } = persist(scene, { plan })
 
     const settled = await result
     expect(applyMechanics).toHaveBeenCalledTimes(1)
@@ -216,7 +259,17 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
       ordinal: 0,
       candidate: { boundaryOrdinal: START.ordinal, candidate: { effectId: scene.zone.id } }
     })
-    expect(settled?.phase.encounterActorTransitions).toHaveLength(1)
+    // The phase reports what the real batch persisted, not what the plan predicted.
+    const stored = creature(await readRunActor(scene.ctx, runState(), GOBLIN_ID))
+    expect(stored.currentHitPoints).toBeLessThan(creature(goblin).currentHitPoints)
+    expect(settled?.actor).toEqual(stored)
+    expect(settled?.phase.encounterActorTransitions).toEqual([
+      {
+        targetActorId: GOBLIN_ID,
+        before: expect.objectContaining({ currentHitPoints: creature(goblin).currentHitPoints }),
+        after: expect.objectContaining({ currentHitPoints: stored.currentHitPoints })
+      }
+    ])
   })
 
   it('refuses a plan made before the creature left the zone, without settling', async () => {
@@ -227,7 +280,6 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     )
     const { result, applyMechanics } = persist(scene, {
       plan,
-      settle: settledFrom,
       readSceneTokens: async () => moved
     })
 
@@ -242,7 +294,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     const spent = runState({
       [zoneApplicationKey(scene.zone.id, GOBLIN_ID)]: { turnSequence: 4, count: 1 }
     })
-    const { result, applyMechanics } = persist(scene, { plan, settle: settledFrom, state: spent })
+    const { result, applyMechanics } = persist(scene, { plan, state: spent })
 
     await expect(result).rejects.toThrow(STALE_SELECTION)
     expect(applyMechanics).not.toHaveBeenCalled()
@@ -257,7 +309,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
       lifecycle: scene.zone.lifecycle,
       spatialState: scene.zone.spatialState
     })
-    const { result, applyMechanics } = persist(scene, { plan, settle: settledFrom })
+    const { result, applyMechanics } = persist(scene, { plan })
 
     await expect(result).rejects.toThrow(STALE_SELECTION)
     expect(applyMechanics).not.toHaveBeenCalled()
@@ -267,7 +319,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     const scene = await seededScene()
     const plan = await stagedPlan(scene)
     await scene.scope.deleteCas({ id: scene.zone.id, expectedVersion: scene.zone.version })
-    const { result, applyMechanics } = persist(scene, { plan, settle: settledFrom })
+    const { result, applyMechanics } = persist(scene, { plan })
 
     await expect(result).rejects.toThrow(STALE_SELECTION)
     expect(applyMechanics).not.toHaveBeenCalled()
@@ -276,30 +328,28 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
   it('returns null, without settling, when neither a plan nor a contact exists', async () => {
     const scene = await seededScene()
     await scene.scope.deleteCas({ id: scene.zone.id, expectedVersion: scene.zone.version })
-    const { result, applyMechanics } = persist(scene, { plan: undefined, settle: settledFrom })
+    const { result, applyMechanics } = persist(scene, { plan: undefined })
 
     await expect(result).resolves.toBeNull()
     expect(applyMechanics).not.toHaveBeenCalled()
   })
 
-  it('refuses a settlement that differs from its plan', async () => {
+  it('lets the real mechanics batch refuse a plan made before the creature was hurt, persisting nothing', async () => {
     const scene = await seededScene()
     const plan = await stagedPlan(scene)
-    const { result } = persist(scene, {
-      plan,
-      settle: (staged) => {
-        const settled = settledFrom(staged)
-        return {
-          ...settled,
-          targetTransition: {
-            ...settled.targetTransition,
-            after: { ...settled.targetTransition.after, currentHitPoints: 0 }
-          }
-        }
-      }
+    const { row, actor: read } = await readRunActorWithRow(scene.ctx, runState(), GOBLIN_ID)
+    const actor = creature(read)
+    await writeRunActor(scene.ctx, row._id, {
+      ...actor,
+      currentHitPoints: actor.currentHitPoints - 1
     })
+    const { result, applyMechanics } = persist(scene, { plan })
 
-    await expect(result).rejects.toThrow('Turn zone settlement differs from its plan.')
+    await expect(result).rejects.toThrow('The Character rule action application order is stale.')
+    expect(applyMechanics).toHaveBeenCalledTimes(1)
+    expect(creature(await readRunActor(scene.ctx, runState(), GOBLIN_ID)).currentHitPoints).toBe(
+      actor.currentHitPoints - 1
+    )
   })
 
   describe('on the START command', () => {
@@ -319,8 +369,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
         plan,
         state: fresh,
         commandType: 'START',
-        boundary: incoming,
-        settle: settledFrom
+        boundary: incoming
       })
 
       const settled = await result
@@ -344,8 +393,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
         plan,
         state: fresh,
         commandType: 'START',
-        boundary: incoming,
-        settle: settledFrom
+        boundary: incoming
       })
 
       await expect(result).rejects.toThrow(STALE_SELECTION)
@@ -369,13 +417,13 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
       const structure = json({ ...document, state: split.structure.state })
       const sheetStructure = json(split.structure.sheetState)
       const play = json(split.play)
-      const characterFacts = {
+      const characterFacts: ProjectableCharacterFacts = {
         active: {
           id: document.id,
           userId: document.userId,
           systemId: document.systemId,
           label: document.label,
-          status: document.status,
+          status: document.status ?? 'ACTIVE',
           documentJson: canonicalizeRuleDocument(structure),
           checksum: checksumRuleDocument(structure),
           updatedAt: TIMESTAMP,
@@ -393,25 +441,15 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
             maximumHitPoints: 12
           }
         },
-        character: sheet.prepared.character,
+        character: fixture.character,
         campaignContext: { conditions: [], adjustments: [], attunementSlotOverride: null },
         prepared: sheet.prepared,
         ruleEvaluation: sheet.ruleEvaluation,
         sheetState: sheet.sheetState,
         evaluationInput: sheet.evaluationInput
-      } as unknown as ProjectableCharacterFacts
-      const liveStreamVersion = (streamVersion: number) => ({
-        readCharacterRow: async () => ({
-          status: 'ACTIVE',
-          systemId: SRD_SYSTEM_ID,
-          play: { streamVersion }
-        })
-      })
+      }
       const state = runState({}, { runActors })
-      const planning = await seededScene(authoredZone(['START_TURN_IN_SPACE']), {
-        runActors,
-        ports: liveStreamVersion(1)
-      })
+      const planning = await seededScene(authoredZone(['START_TURN_IN_SPACE']), { runActors })
       const plan = await stagedPlan(planning, {
         state,
         runActors,
@@ -429,9 +467,9 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
 
       const moved = await seededScene(authoredZone(['START_TURN_IN_SPACE']), {
         runActors,
-        ports: liveStreamVersion(2)
+        liveCharacterStreamVersion: 2
       })
-      const { result, applyMechanics } = persist(moved, { plan, state, settle: settledFrom })
+      const { result, applyMechanics } = persist(moved, { plan, state })
 
       await expect(result).rejects.toThrow('Staged turn zone target pin is stale.')
       expect(applyMechanics).not.toHaveBeenCalled()
