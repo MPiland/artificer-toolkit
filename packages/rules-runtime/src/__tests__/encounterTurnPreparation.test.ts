@@ -1,20 +1,9 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { describe, expect, it } from 'vitest'
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
-import {
-  hydrateStagedState,
-  inMemoryInitiativeRepository,
-  serializeStagedInitiativeRoundState
-} from '../encounterInitiativeStaging.js'
-import {
-  applyEncounterInitiativeAdvance,
-  planEncounterInitiativeAdvance,
-  settleEncounterInitiativeRound
-} from '../encounterInitiativeStateSettlement.js'
 import { planEncounterTurnAdvance, prepareEncounterTurn } from '../encounterTurnPreparation.js'
 import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
 import {
@@ -27,47 +16,16 @@ import {
   ACTOR_A,
   ACTOR_B,
   ACTOR_C,
-  SIDE_FOES,
-  preparingRound
+  roundAt as fixtureRoundAt
 } from './encounterInitiativeFixtures.js'
-import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 
 type Stages = Parameters<typeof prepareEncounterTurn<ProjectableCharacterFacts>>[1]
 
 const ORDER = [ACTOR_A, ACTOR_B, ACTOR_C]
 const OWNER_ID = testUuid(0x70)
 
-/** The round with `currentActorId` taking its turn, the order A, B, C. */
-async function roundAt(
-  currentActorId: string,
-  cadence: 'ENCOUNTER_START' | 'EACH_ROUND'
-): Promise<EncounterInitiativeRoundStateDto> {
-  let state = preparingRound({
-    actors: ORDER.map((id) => ({ id, sideId: SIDE_FOES })),
-    ...(cadence === 'EACH_ROUND'
-      ? { policy: initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence }) }
-      : {})
-  })
-  state = await settleEncounterInitiativeRound({
-    repository: inMemoryInitiativeRepository(state).repository,
-    state,
-    orderedActorIds: ORDER
-  })
-  for (const actorId of ORDER.slice(0, ORDER.indexOf(currentActorId))) {
-    const plan = planEncounterInitiativeAdvance({
-      state,
-      currentActorId: actorId,
-      defeatedActorIds: new Set()
-    })
-    state = await applyEncounterInitiativeAdvance({
-      repository: inMemoryInitiativeRepository(state).repository,
-      state,
-      plan,
-      defeatedActorIds: new Set()
-    })
-  }
-  return hydrateStagedState(serializeStagedInitiativeRoundState(state))
-}
+const roundAt = (currentActorId: string, cadence: 'ENCOUNTER_START' | 'EACH_ROUND') =>
+  fixtureRoundAt(ORDER, currentActorId, cadence)
 
 function defeating(
   actors: readonly EncounterRunActorState[],

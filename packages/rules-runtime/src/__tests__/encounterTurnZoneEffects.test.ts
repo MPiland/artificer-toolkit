@@ -5,17 +5,14 @@ import {
   type EncounterSpatialRuleEffectRecord
 } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import {
-  executedTurnZonePhaseEvidenceDtoSchema,
-  refineTurnZoneEffectsEvidence
-} from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
-import type { z } from 'zod'
+import { initiativeCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResultBranches'
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { zoneApplicationKey } from '@artificer-toolkit/shared/vtt'
 
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
+import { planEncounterInitiativeAdvance } from '../encounterInitiativeStateSettlement.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { projectNativeTurnPending, turnPendingActorId } from '../encounterTurnPending.js'
 import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
@@ -30,6 +27,7 @@ import {
   TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
 import { diceDamage, variantEquipment, zonePlacementOf } from './authoredZoneFixture.js'
+import { roundAt } from './encounterInitiativeFixtures.js'
 import { GOBLIN } from './encounterActiveEffectFixtures.js'
 
 const GOBLIN_ID = testUuid(0x301)
@@ -305,55 +303,76 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
 })
 
 describe('the stored evidence of a zone phase (SPELLS-20 T4b2b)', () => {
-  async function evidenceOf(
-    zones: readonly EncounterSpatialRuleEffectRecord[],
-    boundary: typeof START | typeof END
-  ) {
-    const plan = (await complete(prepare({ zones, boundary }))).plan!
+  const ORDER = [GOBLIN_ID, SOURCE_ID]
+
+  /** A real zone phase and the initiative advance of the same turn, as the stored result holds them. */
+  async function storedResult(zones: readonly EncounterSpatialRuleEffectRecord[]) {
+    const plan = (await complete(prepare({ zones, boundary: START }))).plan!
+    const round = await roundAt(ORDER, GOBLIN_ID, 'ENCOUNTER_START')
     return {
-      kind: 'EXECUTED' as const,
-      selectionChecksum: plan.selectionChecksum,
-      executions: plan.executions,
-      characterTransitions: [],
-      encounterActorTransitions: [
-        {
-          targetActorId: GOBLIN_ID,
-          before: plan.executions[0]!.targetTransition.before,
-          after: plan.executions.at(-1)!.targetTransition.after
-        }
-      ]
+      status: 'INITIATIVE_COMPLETE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: OCCURRENCE_ID,
+      occurrenceVersion: 1,
+      encounterId: ENCOUNTER_ID,
+      commandType: 'ADVANCE_TURN' as const,
+      initiativeAdvance: planEncounterInitiativeAdvance({
+        state: round,
+        currentActorId: GOBLIN_ID,
+        defeatedActorIds: new Set<string>()
+      }),
+      incomingZoneEffects: {
+        kind: 'EXECUTED' as const,
+        selectionChecksum: plan.selectionChecksum,
+        executions: plan.executions,
+        characterTransitions: [],
+        encounterActorTransitions: [
+          {
+            targetActorId: GOBLIN_ID,
+            before: plan.executions[0]!.targetTransition.before,
+            after: plan.executions.at(-1)!.targetTransition.after
+          }
+        ]
+      }
     }
   }
 
-  function issues(
-    commandType: 'START' | 'ADVANCE_TURN',
-    phases: Omit<Parameters<typeof refineTurnZoneEffectsEvidence>[0], 'commandType'>
-  ) {
-    const found: unknown[] = []
-    refineTurnZoneEffectsEvidence({ ...phases, commandType }, {
-      addIssue: (issue: unknown) => found.push(issue)
-    } as unknown as z.core.$RefinementCtx)
-    return found
-  }
+  const authored = authoredZone(['START_TURN_IN_SPACE'])
+  const twoZones = () => [placedZone(0x3a9, authored, 1), placedZone(0x3a3, authored, 2)]
+  const parse = (result: object) => initiativeCompleteRuleExecutionResultDtoSchema.safeParse(result)
 
-  const twoZones = () => {
-    const authored = authoredZone(['START_TURN_IN_SPACE'])
-    return [placedZone(0x3a9, authored, 1), placedZone(0x3a3, authored, 2)]
-  }
+  it('accepts what the planner produced', async () => {
+    const result = await storedResult(twoZones())
+    expect(parse(result).success).toBe(true)
+  })
 
-  it('accepts what the planner produced and rejects it when it is mis-chained or misplaced', async () => {
-    const phase = await evidenceOf(twoZones(), START)
-    expect(executedTurnZonePhaseEvidenceDtoSchema.parse(phase)).toEqual(phase)
-    expect(issues('START', { incomingZoneEffects: phase })).toEqual([])
-    expect(issues('START', { outgoingZoneEffects: phase })).not.toEqual([])
-    expect(issues('ADVANCE_TURN', { outgoingZoneEffects: phase })).toEqual([])
+  it('rejects an outgoing zone phase on a START command', async () => {
+    const { incomingZoneEffects, ...result } = await storedResult(twoZones())
     expect(
-      issues('START', {
+      parse({ ...result, commandType: 'START', outgoingZoneEffects: incomingZoneEffects }).success
+    ).toBe(false)
+  })
+
+  it('rejects executions out of effect-id order and a phase with none', async () => {
+    const result = await storedResult(twoZones())
+    const { incomingZoneEffects: phase } = result
+    expect(
+      parse({
+        ...result,
         incomingZoneEffects: { ...phase, executions: [...phase.executions].reverse() }
-      })
-    ).not.toEqual([])
+      }).success
+    ).toBe(false)
+    expect(parse({ ...result, incomingZoneEffects: { ...phase, executions: [] } }).success).toBe(
+      false
+    )
+  })
+
+  it('rejects a phase whose owner transitions are not exactly one', async () => {
+    const result = await storedResult(twoZones())
+    const { incomingZoneEffects: phase } = result
     expect(
-      issues('START', {
+      parse({
+        ...result,
         incomingZoneEffects: {
           ...phase,
           encounterActorTransitions: [
@@ -361,10 +380,7 @@ describe('the stored evidence of a zone phase (SPELLS-20 T4b2b)', () => {
             ...phase.encounterActorTransitions
           ]
         }
-      })
-    ).not.toEqual([])
-    expect(
-      executedTurnZonePhaseEvidenceDtoSchema.safeParse({ ...phase, executions: [] }).success
+      }).success
     ).toBe(false)
   })
 })

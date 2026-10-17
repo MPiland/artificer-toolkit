@@ -62,11 +62,14 @@ type ZonePhase = z.infer<typeof executedTurnZonePhaseEvidenceDtoSchema>
 
 /** A zone phase is one mechanics batch against the creature whose boundary it is, chained in order. */
 const refineZonePhase = (phase: ZonePhase, context: z.core.$RefinementCtx, path: string) => {
-  const targetActorId = phase.executions[0]!.candidate.candidate.targetActorId
+  // An empty list is already an issue of the executions field; the chain has nothing to check.
+  const [firstExecution] = phase.executions
+  if (!firstExecution) return
+  const targetActorId = firstExecution.candidate.candidate.targetActorId
   const transitions = [...phase.characterTransitions, ...phase.encounterActorTransitions]
-  const first = phase.executions[0]!.targetTransition.before
+  const first = firstExecution.targetTransition.before
   const last = phase.executions.at(-1)!.targetTransition.after
-  let boundary = phase.executions[0]!.candidate.boundaryOrdinal
+  let boundary = firstExecution.candidate.boundaryOrdinal
   let chained = true
   let priorEffectId = ''
   for (const [index, execution] of phase.executions.entries()) {
