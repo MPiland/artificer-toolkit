@@ -34,6 +34,7 @@ const GRAPPLED = srdCondition('Grappled')
 const RESTRAINED = srdCondition('Restrained')
 /** The zero-based draw of a d20 that shows `face`. */
 const draw = (face: number) => face - 1
+const ENCOUNTER_COMMAND_FAILED = 'Live Session Encounter command failed in the room.'
 
 afterEach(() => {
   closeTrackedSockets()
@@ -137,7 +138,10 @@ async function invalidEscape(room: EscapeRoom, checkDefinitionId?: string) {
   const answer = await escape(room, checkDefinitionId)
   return {
     answer,
-    causes: logged.mock.calls.map(([, error]) => (error instanceof Error ? error.message : error))
+    // The console is process-wide: keep only the Encounter command failure, not other rooms' logs.
+    causes: logged.mock.calls
+      .filter(([message]) => message === ENCOUNTER_COMMAND_FAILED)
+      .map(([, error]) => (error instanceof Error ? error.message : error))
   }
 }
 
