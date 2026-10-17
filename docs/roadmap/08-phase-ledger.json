@@ -4049,9 +4049,12 @@
         {
           "id": "ROOM-6",
           "title": "Room tests cover multi-Character and multi-controller scenarios",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/liveSessions/encounterJourneys.test.ts",
+            "apps/session-worker/test/nativeMovementController.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -4195,9 +4198,16 @@
             {
               "id": "ROOM-6.14",
               "text": "A player cannot move an Encounter-bound token their user does not control, in the Worker room and on Convex: the move is refused and nothing is written, proved room-side and on Convex.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "ROOM-6.T1 report 2026-10-16: Worker movement planning skips the controller check for Encounter-bound tokens"
+              ],
+              "proof": [
+                "apps/session-worker/test/nativeMovementController.test.ts: a player moving the GM's Wolf and a second player moving the first player's Character are each refused NOT_ACTOR_CONTROLLER with Run documents, turn movements, Scene checkpoint/evidence rows, receipts and pending unchanged; the controller's own move commits and changes the Scene evidence snapshot.",
+                "apps/apis/convex/liveSessions/encounterMovementAdmission.test.ts: a player moving a token bound to an actor they do not control is refused NOT_ACTOR_CONTROLLER through the real room; runs, occurrences, receipts, Scene saves, entities, live states, sceneLiveEntities and encounterTurnMovements are unchanged after a checkpoint.",
+                "Red ci/room-6-t4-red Tests 38905531310 on 16088dba7 was green: the refusal already existed (requireBoundTokenMoveControl), so no failing-before clause and no production change.",
+                "Green ci/room-6-t4 bb6def86a: Tests 38911103026, Live 38911102929; merged with ROOM-6.T4.",
+                "Accepted limit: sceneGeometryPublication.ts runs only in the Worker, so the Convex test proves nothing reaches Convex after the room checkpoints, not a separate Convex check."
               ]
             }
           ],
@@ -9263,9 +9273,9 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomFearSource.test.ts"],
+          "journeyStatus": "verified",
           "origin": [
             "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
           ],
@@ -9298,9 +9308,10 @@
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
               ],
               "proof": [
-                "Fear's frightened creature flees its source; room and runtime tests in the SPELLS-29 workbook.",
-                "Red: ci/spells-29-t2-red 04e6af8c5 (Tests 38960560081, Live 38960560070).",
-                "Green: ci/spells-29-t2 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+                "apps/session-worker/test/nativeRoomFearSource.test.ts \"room Fear makes its Frightened creatures flee the caster (SPELLS-29.T2)\": the non-Dash action warns and goes ahead when acknowledged; the controller is prompted to Dash away until the GM undoes Fear; Dash runs without a warning, then the move away; the GM undo takes the flee requirement with the cast.",
+                "The out-of-sight repeat save is proved by the two T1a tests in the same file.",
+                "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts (homebrew Panicked from core options), packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts, characterSpellCastActions.test.ts, packages/shared/src/__tests__/effect-compiler.test.ts (fleesSource).",
+                "Red 04e6af8c5 (Tests 38960560081, Live 38960560070); green 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
               ]
             }
           ],
