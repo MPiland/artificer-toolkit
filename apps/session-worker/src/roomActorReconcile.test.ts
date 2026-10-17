@@ -10,12 +10,14 @@ import { characterPageFixtureFor } from './testing/characterPageFixture.js'
 import { encounterRunFixture } from './testing/encounterRunFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
 
 const EPOCH = uuid(0x900)
 const CAMPAIGN = uuid(0x901)
-const SYSTEM = uuid(0x902)
+// The Run's System must be installed: Concentration reads resolve through its module (6.16).
+const SYSTEM = DND5E_SYSTEM_ID
 const GM = uuid(0xa01)
 const PLAYER_B = uuid(0xa02)
 const PLAYER_C = uuid(0xa03)
