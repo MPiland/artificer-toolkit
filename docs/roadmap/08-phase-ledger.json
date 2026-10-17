@@ -1058,7 +1058,7 @@
         {
           "id": "PLATFORM-20",
           "title": "One flat compile stage: no dead or copy-only compilers",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1096,7 +1096,7 @@
           "tasks": [
             {
               "id": "PLATFORM-20.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-20.1", "PLATFORM-20.2", "PLATFORM-20.3", "PLATFORM-20.4"],
               "text": "Delete the dead and copy-only compilers, flatten the modifier compile and the fold read, type the SRD builders per domain, remove the union workarounds, update the docs. Red first: a type-level test that a generic modifier transform compiles, and fold tests on the flat shape.",
               "wsjf": {
@@ -1107,7 +1107,8 @@
                 "after": []
               }
             }
-          ]
+          ],
+          "activeWorkbook": "docs/handoffs/slice-platform-20.md"
         },
         {
           "id": "PLATFORM-21",
