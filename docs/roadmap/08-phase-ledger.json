@@ -12513,7 +12513,7 @@
         {
           "id": "QUALITY-3",
           "title": "Lint guardrails stop duplication and escapes returning",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -12532,16 +12532,68 @@
           ],
           "tasks": [
             {
-              "id": "QUALITY-3.T1",
-              "text": "Add each lint rule together with the cleanup of its current violations; wire knip and the boundary rules into CI.",
-              "status": "TODO",
+              "id": "QUALITY-3.T1a",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-3.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 8,
-                "size": 5
-              }
+                "size": 3
+              },
+              "text": "A lint job in tests.yml running yarn lint (fails the run); fix the 6 no-unused-vars errors on the tip; ban double casts through unknown outside tests (~49 sites fixed by typing them properly) and non-component exports from component files (10 sites, moved to non-component files). Measured 2026-10-17 in slice-quality-3.md."
+            },
+            {
+              "id": "QUALITY-3.T1b",
+              "status": "TODO",
+              "closes": ["QUALITY-3.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-3.T1a"]
+              },
+              "text": "knip in CI for dead exports, files and dependencies, configured per workspace (entry points: routes, Convex functions, Worker entry, stories, tests); its current findings deleted (deleting unused code is pre-approved) or listed as public package entry points."
+            },
+            {
+              "id": "QUALITY-3.T1c1",
+              "status": "TODO",
+              "closes": ["QUALITY-3.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 8,
+                "size": 3,
+                "after": ["QUALITY-3.T1a"]
+              },
+              "text": "Package boundary rule (D145): survey each web import of rules-runtime (38), source-data (38), authoring (6) and design-system (5) and each Convex and Worker package import, propose the allowed matrix in the workbook for an orchestrator ruling, then enforce it in lint with the crossing imports fixed."
+            },
+            {
+              "id": "QUALITY-3.T1c2",
+              "status": "TODO",
+              "closes": ["QUALITY-3.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-3.T1c1"]
+              },
+              "text": "Root-barrel ban: codemod the 1,072 root @artificer-toolkit/schema and @artificer-toolkit/shared imports in non-test code to their narrow subpaths, then make the root barrel import a lint error."
+            },
+            {
+              "id": "QUALITY-3.T1d",
+              "status": "TODO",
+              "closes": ["QUALITY-3.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-3.T1a"]
+              },
+              "text": "Large-file flag (D145): a non-test file over 1,500 lines fails lint unless it is in a reviewed allowlist. Each of the 18 current files gets a responsibility review: split at a real seam, or stays allowlisted with a one-line reason. The allowlist may only shrink."
             }
           ]
         },
