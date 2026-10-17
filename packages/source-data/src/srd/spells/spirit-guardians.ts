@@ -69,7 +69,7 @@ const auraResult = (damageType: 'RADIANT' | 'NECROTIC', bucket: number) => ({
           id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x21, 1),
           order: 1,
           label: 'Enter the spirits',
-          interactionKinds: ['ENTER_SPACE' as const, 'START_TURN_IN_SPACE' as const],
+          interactionKinds: ['ENTER_OR_PASS_THROUGH' as const, 'START_TURN_IN_SPACE' as const],
           choosesUnaffected: true,
           maxApplicationsPerTurn: 1,
           behaviors: [

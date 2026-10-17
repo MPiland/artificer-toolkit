@@ -100,3 +100,11 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - (c) Leave the three spells MANUAL until (a) or (b) is ruled.
   - Recommendation: (a). It keeps the condition generic (any zone, trap or hazard can restrain with an escape), reuses the existing escape settlement, and matches D138 (fixed at placement, ends with the zone). Black Tentacles additionally needs a zone branch with damage and a condition together, and a turn trigger gated on holding the zone's condition. Both are separate follow-ups.
 - Finding on T1a/T1c (my earlier slices): Cloudkill, Insect Plague, Moonbeam and Incendiary Cloud author `ENTER_SPACE`, so a creature that passes through without stopping is not caught. SPELLS-17.2 reads SRD "enters the area" as `ENTER_OR_PASS_THROUGH`, and Blade Barrier, with the same "for the first time on a turn" wording, uses it. Spirit Guardians (SPELLS-20) also uses `ENTER_SPACE`. Recommendation: switch all five to `ENTER_OR_PASS_THROUGH` in one follow-up, with a pass-through room proof.
+
+### T1f (enter-the-area zones pass through)
+
+- Cloudkill, Insect Plague, Moonbeam, Incendiary Cloud and Spirit Guardians now author `ENTER_OR_PASS_THROUGH` in place of `ENTER_SPACE`, so a creature whose move passes through the area and ends outside it is caught, as SPELLS-17.5 reads SRD "enters the area". Each zone is placed with `triggerModes: ['ENTER', 'CROSS']`.
+- Proofs:
+  - `packages/source-data/src/srd/zoneInteractionKinds.test.ts`: a corpus test fails on any authored SRD zone whose text says a creature enters its area and that authors `ENTER_SPACE`; the five components author `ENTER_OR_PASS_THROUGH` beside their turn trigger.
+  - `apps/session-worker/test/nativeRoomHazardZoneSpells.test.ts`: for each of the four hazard spells a Wolf that walks through the area and ends its move outside it fails the save and takes the cast's damage.
+  - `nativeRoomTurnZoneEffects.test.ts` reads Spirit Guardians' placement with both modes.

@@ -53,6 +53,13 @@ const WIZARD_SAVE_DC = 11
 const ZONE_CENTER = { x: 600, y: 600 }
 const OUTSIDE_THE_ZONE = { x: 950, y: 150 }
 
+/**
+ * A 35-foot walk through the area that starts and ends outside it: the line runs 330 units off the
+ * center, inside the 20-foot spheres' 400-unit reach, while the Wolf's 100-unit token at either end
+ * stays clear of it.
+ */
+const SPHERE_CROSSING_Y = ZONE_CENTER.y + 330
+
 afterEach(() => {
   closeTrackedSockets()
   vi.restoreAllMocks()
@@ -74,6 +81,7 @@ const SPELLS = [
   {
     spell: cloudkill,
     slotSpell: chainLightning,
+    crossingY: SPHERE_CROSSING_Y,
     ability: 'CONSTITUTION',
     turnTrigger: 'START_OF_TURN',
     casts: [
@@ -84,6 +92,7 @@ const SPELLS = [
   {
     spell: insectPlague,
     slotSpell: chainLightning,
+    crossingY: SPHERE_CROSSING_Y,
     ability: 'CONSTITUTION',
     turnTrigger: 'END_OF_TURN',
     casts: [
@@ -94,6 +103,8 @@ const SPELLS = [
   {
     spell: moonbeam,
     slotSpell: undefined,
+    // The 5-foot beam: a walk through its center.
+    crossingY: ZONE_CENTER.y,
     ability: 'CONSTITUTION',
     turnTrigger: 'START_OF_TURN',
     casts: [
@@ -105,6 +116,7 @@ const SPELLS = [
     // No higher-level damage, so the cast is offered only at the 8th level.
     spell: incendiaryCloud,
     slotSpell: undefined,
+    crossingY: SPHERE_CROSSING_Y,
     ability: 'DEXTERITY',
     turnTrigger: 'END_OF_TURN',
     casts: [{ label: 'Incendiary Cloud (8th level)', dice: 10 }]
@@ -161,7 +173,7 @@ async function advanceTurn(room: Room) {
 }
 
 describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject) => {
-  const { spell, ability, turnTrigger, casts } = subject
+  const { spell, ability, turnTrigger, casts, crossingY } = subject
   const [firstCast] = casts
   it('is placed at the chosen point and acts on entry and at its turn boundary', async () => {
     const room = await zoneRoom(subject, firstCast.label, OUTSIDE_THE_ZONE)
@@ -169,7 +181,7 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
     expect(zone.placement).toMatchObject({
       anchorKind: 'FIXED',
       label: spell.label,
-      triggerModes: ['ENTER'],
+      triggerModes: ['ENTER', 'CROSS'],
       turnTriggers: [turnTrigger],
       maxApplicationsPerTurn: 1
     })
@@ -198,6 +210,24 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
       expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - dice)
     }
   )
+
+  it('deals the damage to a creature that passes through the area and ends its move outside (SPELLS-4.T1f)', async () => {
+    const start = { x: 250, y: crossingY }
+    const end = { x: 950, y: crossingY }
+    const room = await zoneRoom(subject, firstCast.label, start)
+    await castAtTheCenter(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [start, end])
+
+    expect(walk.terminalPosition).toEqual(end)
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]).toMatchObject({
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: firstCast.dice })]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - firstCast.dice)
+  })
 
   it(`makes a creature in the area save at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'} and take the damage`, async () => {
     const room = await zoneRoom(subject, firstCast.label, ZONE_CENTER)

@@ -117,7 +117,10 @@ export const incendiaryCloud: SpellAuthored = {
                     id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x221, 1),
                     order: 1,
                     label: 'Enter the burning cloud',
-                    interactionKinds: ['ENTER_SPACE' as const, 'END_TURN_IN_SPACE' as const],
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'END_TURN_IN_SPACE' as const
+                    ],
                     maxApplicationsPerTurn: 1,
                     behaviors: [
                       {

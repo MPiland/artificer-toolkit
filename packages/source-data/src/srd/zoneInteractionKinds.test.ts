@@ -56,45 +56,26 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     )
   })
 
-  it('catches a creature of Spirit Guardians on entering and on starting its turn in the area', () => {
-    expect(interactionKindsByComponent(spiritGuardians)['Enter the spirits']).toEqual([
-      'ENTER_SPACE',
-      'START_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Cloudkill on entering and on starting its turn in the fog', () => {
-    expect(interactionKindsByComponent(cloudkill)['Enter the poisonous fog']).toEqual([
-      'ENTER_SPACE',
-      'START_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Insect Plague on entering and on ending its turn in the swarm', () => {
-    expect(interactionKindsByComponent(insectPlague)['Enter the locust swarm']).toEqual([
-      'ENTER_SPACE',
-      'END_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Moonbeam on entering and on starting its turn in the beam', () => {
-    expect(interactionKindsByComponent(moonbeam)['Enter the moonlight']).toEqual([
-      'ENTER_SPACE',
-      'START_TURN_IN_SPACE'
-    ])
-  })
-
+  it.each([
+    ['Spirit Guardians', spiritGuardians, 'Enter the spirits', 'START_TURN_IN_SPACE'],
+    ['Cloudkill', cloudkill, 'Enter the poisonous fog', 'START_TURN_IN_SPACE'],
+    ['Insect Plague', insectPlague, 'Enter the locust swarm', 'END_TURN_IN_SPACE'],
+    ['Moonbeam', moonbeam, 'Enter the moonlight', 'START_TURN_IN_SPACE'],
+    ['Incendiary Cloud', incendiaryCloud, 'Enter the burning cloud', 'END_TURN_IN_SPACE']
+  ])(
+    'catches a creature of %s on entering or passing through the area and at its turn boundary (SPELLS-4.T1f)',
+    (_name, spell, component, turnTrigger) => {
+      expect(interactionKindsByComponent(spell)[component]).toEqual([
+        'ENTER_OR_PASS_THROUGH',
+        turnTrigger
+      ])
+    }
+  )
   it('knocks a creature of Grease prone on ending its turn in the grease, and of Sleet Storm on starting it in the storm', () => {
     expect(interactionKindsByComponent(grease)['Enter the grease']).toContain('END_TURN_IN_SPACE')
     expect(interactionKindsByComponent(sleetStorm)['Enter the sleet storm']).toContain(
       'START_TURN_IN_SPACE'
     )
-  })
-  it('catches a creature of Incendiary Cloud on entering and on ending its turn in the cloud', () => {
-    expect(interactionKindsByComponent(incendiaryCloud)['Enter the burning cloud']).toEqual([
-      'ENTER_SPACE',
-      'END_TURN_IN_SPACE'
-    ])
   })
 })
 
@@ -249,6 +230,28 @@ describe('SRD zones with turn-trigger text author the turn trigger', () => {
             !subject.kinds.includes('END_TURN_IN_SPACE')
         )
         .map((subject) => subject.label)
+    ).toEqual([])
+  })
+})
+
+/**
+ * SPELLS-4.T1f: the SRD's "enters the area" includes a move that passes through it (SPELLS-17.5), so
+ * no zone whose text says a creature enters its area may author ENTER_SPACE, which fires only when a
+ * move ends inside.
+ */
+describe('SRD zones whose text says a creature enters the area', () => {
+  const ENTERS_THE_AREA = /\benters\b[^.]*\barea\b/i
+  const entered = describedZones(srdBaselineContent.subjects).filter(
+    (subject) => subject.kinds.length > 0 && ENTERS_THE_AREA.test(subject.description)
+  )
+
+  it('finds authored zones that a creature enters', () => {
+    expect(entered.length).toBeGreaterThan(0)
+  })
+
+  it('lists every such zone that authors ENTER_SPACE', () => {
+    expect(
+      entered.filter((subject) => subject.kinds.includes('ENTER_SPACE')).map(({ label }) => label)
     ).toEqual([])
   })
 })
