@@ -92,7 +92,7 @@ Closes AC SPELLS-28.1. Two stages, each red on `ci/spells-28-t4-red` then green 
 
 ## Resume here (2026-10-16)
 
-T1, T3, T2, T1b and T4 stage 1 are merged; T4c (`ci/spells-28-t4c`) and T4b (`ci/spells-28-t4b`, based on it) await merge. **T4c and T4b are done and green** (T4b closes SPELLS-28.1); **T4d is next**: T4d (form action-list swap, form defenses/speeds/senses, creature-proficiency merge).
+T1, T3, T2, T1b and T4 stage 1 are merged; T4c (`ci/spells-28-t4c`) and T4b (`ci/spells-28-t4b`, based on it) await merge. **T4c and T4b are done and green** (T4b closes SPELLS-28.1); **T4d (the form's action list replaces the Sheet's) is done and green on its branch**; the form's defenses/speeds/senses and the creature-proficiency merge remain in `docs/roadmap/future-enhancements.md`.
 
 ## T4c status (2026-10-16)
 
@@ -120,3 +120,10 @@ Approved by the orchestrator (Phase 8) on 2026-10-16. Changes a persisted contra
 - Red: `ci/spells-28-t4b-red` 727b9d232, Tests 38980010145, Live 38980010183.
 - Mechanism: the form rides the carried effect's lifecycle (`carriedCreatureForm`: Creature, snapshot and form hit points). `planCarriedOverEffects` (via `carryOverRunGrants`, the one D99 path) stamps it at COMPLETE and refreshes an already carried form effect; `resumeCharacterForm` rebuilds the actor `form` when `runs.create` builds the next Run's Character actor. Ending the effect on the Sheet just deletes it, so no form is resumed.
 - Proof: `packages/rules-runtime/src/__tests__/grantLifetimes.test.ts` (planCarriedOverEffects form cases, resume), `apps/apis/convex/encounters/finishedRun.test.ts` (carry out, next Run wears it, Sheet end).
+
+## T4d status (2026-10-16)
+
+- Red: `ci/spells-28-t4d-red` 5e2595c62, Tests 38990844159 (failed as intended), Live 38990844158.
+- Mechanism: `characterFormCreatureView` (`encounterActorForm.ts`) presents a Character in a form as the form's Creature. `resolveEncounterActionSource` and `readEncounterActionChoices` run the Creature feature-action discovery on it, so the action is a CREATURE source whose actor stays the Character. `encounterMovementTargets.ts` empties the Sheet's action candidates and entry points while `form` is set; reverting restores them.
+- Proof: `packages/rules-runtime/src/__tests__/characterFormActions.test.ts`, `apps/session-worker/test/nativeRoomPolymorph.test.ts` (form actions offered, Sheet actions back after undo, Bite attack in form).
+- Not in T4d: the form's defenses, speeds, senses and creature-proficiency merge.

@@ -569,10 +569,14 @@ type CompiledOutcome = CompiledEffectEntry['outcome']
 type Targeting = NonNullable<CompiledEffectGroup['invocation']['targeting']>
 
 function targetingReadsSpellCastLevel(targeting: Targeting | undefined): boolean {
-  return (
-    targeting?.selectionKind === 'CHOSEN_CREATURES' &&
-    targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL'
-  )
+  switch (targeting?.selectionKind) {
+    case 'CHOSEN_CREATURES':
+      return targeting.maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL'
+    case 'AREA_CONTENTS':
+      return targeting.hitPointPoolScaling?.scalingSource === 'SPELL_CAST_LEVEL'
+    default:
+      return false
+  }
 }
 
 function branchReadsSpellCastLevel(

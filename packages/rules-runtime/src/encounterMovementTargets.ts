@@ -144,7 +144,8 @@ function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record
   const facts = encounterCreatureRuleFactsSnapshotSchema.parse(
     (snapshot as { ruleFacts?: unknown }).ruleFacts
   )
-  if (facts.gameSystemId !== gameSystemId) throw new Error('Encounter actor scalar facts are stale.')
+  if (facts.gameSystemId !== gameSystemId)
+    throw new Error('Encounter actor scalar facts are stale.')
   return { ...facts.abilityScores }
 }
 
@@ -278,35 +279,38 @@ export function buildMovementTarget<
             characterFacts.prepared.context.vocabularySnapshot
           )
         : baseRulePolicyOutput
-    const formArmorClass = characterFormStatBlock(actor)?.armorClass
+    const formStatBlock = characterFormStatBlock(actor)
+    const formArmorClass =
+      formStatBlock?.armorClass == null
+        ? null
+        : (withCreatureActiveGrantArmorClass(formStatBlock.armorClass, activeEffects) ??
+          formStatBlock.armorClass)
     const effectiveRulePolicyOutput =
-      formArmorClass == null
-        ? policyOutput
-        : withFormArmorClass(
-            policyOutput,
-            withCreatureActiveGrantArmorClass(formArmorClass, activeEffects) ?? formArmorClass
-          )
+      formArmorClass === null ? policyOutput : withFormArmorClass(policyOutput, formArmorClass)
     const sheetMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
     const effectiveMaximumHitPoints =
-      form === null ? sheetMaximumHitPoints : effectiveHitPointMaximum(form.maxHitPoints, activeEffects)
+      form === null
+        ? sheetMaximumHitPoints
+        : effectiveHitPointMaximum(form.maxHitPoints, activeEffects)
     const conditionDefinitionIds = [...systemConditions].sort()
     // A form that cannot cast offers no spells; Concentration on one already held stays (D130).
-    const spellCast = input.includeReactionSources && form === null
-      ? buildCharacterSpellCastActions({
-          spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
-          castableCandidateIds: listCastableSpellCandidateIds({
-            character: characterFacts.character,
-            ruleEvaluation: {
-              ...characterFacts.ruleEvaluation,
-              output: effectiveRulePolicyOutput
-            }
-          }),
-          policyOutput: effectiveRulePolicyOutput,
-          spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
-          characterLevel: characterTotalLevel(characterFacts),
-          firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
-        })
-      : null
+    const spellCast =
+      input.includeReactionSources && form === null
+        ? buildCharacterSpellCastActions({
+            spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
+            castableCandidateIds: listCastableSpellCandidateIds({
+              character: characterFacts.character,
+              ruleEvaluation: {
+                ...characterFacts.ruleEvaluation,
+                output: effectiveRulePolicyOutput
+              }
+            }),
+            policyOutput: effectiveRulePolicyOutput,
+            spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
+            characterLevel: characterTotalLevel(characterFacts),
+            firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
+          })
+        : null
     // A cast the Encounter cannot compile is not offered: choosing it could only be refused as stale.
     const spellEntryPoints = spellCast
       ? compileCharacterActionEntryPoints({
@@ -371,22 +375,27 @@ export function buildMovementTarget<
               streamVersion: characterFacts.active.play.streamVersion,
               actor,
               activeConditionDefinitionIds: conditionIds,
-              mechanics: {
-                rulePolicyInput: {
-                  actionCandidates: characterFacts.ruleEvaluation.facts.actionCandidates
-                },
-                compiledActionEntryPoints: compileCharacterActionEntryPoints({
-                  gameSystemId,
-                  candidates: characterFacts.ruleEvaluation.facts.actionCandidates,
-                  descriptors: discoverCharacterActionCapabilities({
-                    gameSystemId,
-                    candidates: characterFacts.ruleEvaluation.facts.actionCandidates,
-                    conditionDefinitionIds,
-                    abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
-                    entryPoints: characterFacts.ruleEvaluation.actionEntryPoints
-                  })
-                })
-              }
+              // In a form the Sheet's actions are not the Character's: the form's stat block supplies them (T4d).
+              mechanics:
+                form === null
+                  ? {
+                      rulePolicyInput: {
+                        actionCandidates: characterFacts.ruleEvaluation.facts.actionCandidates
+                      },
+                      compiledActionEntryPoints: compileCharacterActionEntryPoints({
+                        gameSystemId,
+                        candidates: characterFacts.ruleEvaluation.facts.actionCandidates,
+                        descriptors: discoverCharacterActionCapabilities({
+                          gameSystemId,
+                          candidates: characterFacts.ruleEvaluation.facts.actionCandidates,
+                          conditionDefinitionIds,
+                          abilityDefinitions:
+                            characterFacts.ruleEvaluation.facts.abilityDefinitions,
+                          entryPoints: characterFacts.ruleEvaluation.actionEntryPoints
+                        })
+                      })
+                    }
+                  : { rulePolicyInput: { actionCandidates: [] }, compiledActionEntryPoints: [] }
             },
             ...(characterSpellCast ? { characterSpellCast } : {})
           }
@@ -414,6 +423,8 @@ export function buildMovementTarget<
       },
       targetDerivedFacts: {
         ...effectiveRulePolicyOutput,
+        // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
+        ...(formStatBlock ? { statBlock: formStatBlock } : {}),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,

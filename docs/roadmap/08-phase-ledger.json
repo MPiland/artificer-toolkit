@@ -1385,6 +1385,49 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-24",
+          "title": "Paused rule continuations need no signing key",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-24.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16: the user chose removal (Q23) after an audit found no client ever holds a continuation, Convex never verifies it, and the cross-service reason ended with ADR 0035.",
+              "text": "Resuming a paused rule occurrence validates the frozen graph exactly as executeFrozen does (capability lookup, contractVersion match, validateCompiledRuleGraph) and rejects a graph that fails it, with no HMAC seal; a test resumes a tampered graph and sees it rejected."
+            },
+            {
+              "id": "PLATFORM-24.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16: the user chose removal (Q23) after an audit found no client ever holds a continuation, Convex never verifies it, and the cross-service reason ended with ADR 0035.",
+              "text": "RULES_CONTINUATION_SECRET, the continuation seal field, deriveRulesContinuationKey and every fixture key are gone from code, env examples, scripts and docs (READMEs, live-sessions.md, rules-runtime.md, an ADR 0029 amendment); paused decisions stored before the change are cancelled per the ADR 0033 precedent, and the local Convex and Worker env names are removed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-24.T1",
+              "text": "Move graph validation into resume/resumeWithGraph, delete the seal and key end to end, cancel pre-change paused decisions, update docs and the ADR 0029 amendment.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-24.1", "PLATFORM-24.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-24.md"
+            }
+          ]
         }
       ]
     },
@@ -9095,7 +9138,13 @@
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomDepartAction.test.ts",
+            "apps/session-worker/test/nativeRoomActorLink.test.ts",
+            "apps/session-worker/test/nativeRoomGiantInsect.test.ts",
+            "apps/session-worker/test/nativeRoomPolymorph.test.ts",
+            "apps/session-worker/test/nativeRoomTeleportAction.test.ts"
+          ],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
@@ -9106,10 +9155,12 @@
               "proof": [
                 "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
                 "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
-                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b"
+                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b",
+                "T2 MANIFEST Giant Insect (D130): packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts compiles the real SRD spell as a one-hour swap without carry-over; journey apps/session-worker/test/nativeRoomGiantInsect.test.ts (transform and byte-exact undo, revert at duration end, 0 HP ends the form and excess is lost, over-count and missing form refused); encounterMechanicsBatchPlan.test.ts, encounter-action-actors-target.test.ts.",
+                "T4-T4d creature form for Characters: apps/session-worker/test/nativeRoomPolymorph.test.ts (Polymorph, form outlasting the Run, acting in the form: the form Bite resolves and hurts its target); characterFormActions.test.ts. Merged in m65 22e21b5c5."
               ],
               "origin": [],
-              "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+              "note": "Held open: its core-options parity proof packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts is one of the 12 failing authoring tests CI never ran; closes when PLATFORM-23.2 makes it green. Giant Centipede Bite (GIANT_CENTIPEDE_VENOM outcome) is not plannable, so a Giant Insect centipede cannot bite yet."
             },
             {
               "id": "SPELLS-28.2",
@@ -9209,8 +9260,8 @@
             },
             {
               "id": "SPELLS-28.T4d",
-              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
-              "status": "IN_PROGRESS",
+              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form). (Red: ci/spells-28-t4d-red 5e2595c62, Tests 38990844159. Green: ci/spells-28-t4d 7c1f31f38, Tests 39000811200, Live 39000811192. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -9218,8 +9269,7 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4b",
@@ -9390,8 +9440,8 @@
             },
             {
               "id": "SPELLS-27.T8",
-              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12.",
-              "status": "TODO",
+              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12. (Red: ci/spells-27-t8-red 63224cccc, Tests 38979581415. Green: ci/spells-27-t8 9d763e662, Tests 38996918030, Live 38997995671. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9399,8 +9449,7 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["SPELLS-27.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T12",
