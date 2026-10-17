@@ -1,6 +1,10 @@
 import type { ChargeLimitPayload } from '#authored'
 import type {
   AbilityCode,
+  ChargeResetKind,
+  DurationKind,
+  RangeKind,
+  ShapeKind,
   ValueDomainCode,
   CoreMeta,
   LengthUnitCode,
@@ -454,13 +458,21 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
             ? { dice: string }
             : K extends 'REPLACE_DAMAGE_TYPE'
               ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                ? undefined
-                : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                  ? { abilities: AbilityCode[]; min?: number; max?: number }
-                  : // option-like operations must be domain-supported
-                    K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                    ? V extends keyof ValueDomainOptionPayloadByDomain
-                      ? ValueDomainOptionPayloadByDomain[V]
-                      : never
-                    : never
+              : K extends 'REPLACE_RANGE_KIND'
+                ? { rangeKind: RangeKind }
+                : K extends 'REPLACE_DURATION_KIND'
+                  ? { durationKind: DurationKind }
+                  : K extends 'REPLACE_SHAPE_KIND'
+                    ? { shapeKind: ShapeKind }
+                    : K extends 'REPLACE_CHARGE_RESET_KIND'
+                      ? { resetKind: ChargeResetKind }
+                      : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                        ? undefined
+                        : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                          ? { abilities: AbilityCode[]; min?: number; max?: number }
+                          : // option-like operations must be domain-supported
+                            K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                            ? V extends keyof ValueDomainOptionPayloadByDomain
+                              ? ValueDomainOptionPayloadByDomain[V]
+                              : never
+                            : never

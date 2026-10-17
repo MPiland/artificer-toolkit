@@ -1084,6 +1084,10 @@ export function withOffHandDamage(
       }
     }
   }
+  const keepNegativeOnly = <M extends MeleeDamageAbilityModifier>(modifier: M): M => ({
+    ...modifier,
+    payload: { ...modifier.payload, max: 0 }
+  })
   let node = 0
   return modifiers
     .flatMap((modifier, index): ModifierGrantAuthored[] => {
@@ -1091,10 +1095,7 @@ export function withOffHandDamage(
       const offHand = withFreshIds(bonusActionOnly(modifier, 2 * index + 2, 'INCLUDE'), () =>
         childId(0x270, ++node)
       )
-      return [
-        bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'),
-        { ...offHand, payload: { ...offHand.payload, max: 0 } }
-      ]
+      return [bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'), keepNegativeOnly(offHand)]
     })
     .map(<M extends ModifierGrantAuthored>(modifier: M, index: number): M => ({
       ...modifier,
