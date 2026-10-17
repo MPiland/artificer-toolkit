@@ -1343,7 +1343,8 @@
                 "rr": 8,
                 "size": 3,
                 "after": []
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             },
             {
               "id": "PLATFORM-23.T2",
@@ -1356,7 +1357,8 @@
                 "rr": 8,
                 "size": 3,
                 "after": ["PLATFORM-23.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             },
             {
               "id": "PLATFORM-23.T3",
@@ -1369,7 +1371,8 @@
                 "rr": 5,
                 "size": 2,
                 "after": []
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             },
             {
               "id": "PLATFORM-23.T4",
@@ -1382,7 +1385,8 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["PLATFORM-23.T3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             }
           ]
         },

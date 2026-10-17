@@ -19,9 +19,9 @@ import {
 } from '#domains/authoredRouteStory.fixtures'
 import {
   normalizeFixtureNodeRuntimeValues,
-  resolveFixtureNodeRuntime,
-  warmFixtureAuthoredSources
+  resolveFixtureNodeRuntime
 } from '#test/nodeRuntimeResolver'
+import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout, AuthoringLayoutContent } from '../layout/AuthoringLayout'
 import { AuthoringFormProvider } from '../layout/AuthoringFormProvider'

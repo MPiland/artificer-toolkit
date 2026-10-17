@@ -44,6 +44,7 @@ or JSDoc.
 - [D&D 2014 optional combat](architecture/dnd5e-optional-combat.md)
 - [Rules runtime domain ERDs](architecture/rules-runtime-erd.md)
 - [Live-session coordination](architecture/live-sessions.md)
+- [CI validation and affected-test selection](architecture/ci-validation.md)
 - [Versioned documents and correctness projections](architecture/versioned-projections.md) — historical implementation record superseded by ADRs 0023–0025 and 0029
 
 ## Operator runbooks

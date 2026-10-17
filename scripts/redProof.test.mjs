@@ -1,16 +1,7 @@
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { changedTestFiles, classify, isTestPath, packagesToRebuild, runnerFor, summary } from './redProof.mjs'
-
-const git = (root, ...args) =>
-  execFileSync(
-    'git',
-    ['-c', 'user.name=test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', ...args],
-    { cwd: root, stdio: 'pipe', encoding: 'utf8' }
-  )
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { classify, isTestPath, packagesToRebuild, summary } from './redProof.mjs'
 
 describe('isTestPath', () => {
   it('takes test files and anything under a test directory', () => {
@@ -24,6 +15,7 @@ describe('isTestPath', () => {
         'apps/web/src/test/setup.ts',
         'packages/authoring/src/fixtures/zone.ts',
         'apps/web/src/domains/characters/characterList.fixtures.ts',
+        'apps/web/src/routes/-routeTreeSource.testUtils.ts',
         'apps/apis/convex/__snapshots__/a.test.ts.snap'
       ].every(isTestPath)
     ).toBe(true)
@@ -38,28 +30,6 @@ describe('isTestPath', () => {
         '.github/workflows/tests.yml'
       ].some(isTestPath)
     ).toBe(false)
-  })
-})
-
-describe('runnerFor', () => {
-  it('sends each test file to the suite whose config includes it', () => {
-    expect(
-      [
-        'apps/apis/convex/live/session.test.ts',
-        'apps/session-worker/test/nativeLiveSessionRoom.test.ts',
-        'apps/web/src/forms/Form.test.tsx',
-        'packages/shared/src/__tests__/a.test.ts',
-        'apps/apis/src/http.test.ts',
-        'apps/session-worker/src/room.test.ts',
-        'scripts/snapshotDrift.test.mjs'
-      ].map((path) => runnerFor(path)?.name)
-    ).toEqual(['convex', 'worker', 'web', 'root', 'root', 'root', 'root'])
-  })
-
-  it('runs no suite for browser-only and unincluded tests', () => {
-    expect(runnerFor('apps/web/src/vtt/Board.browser.test.tsx')).toBeUndefined()
-    expect(runnerFor('apps/session-worker/test/other.test.ts')).toBeUndefined()
-    expect(runnerFor('packages/shared/src/foo/foo.test.ts')).toBeUndefined()
   })
 })
 
@@ -89,11 +59,29 @@ describe('classify', () => {
         ]
       }
     ]
-    expect(classify(['a/import.test.ts', 'a/missing.test.ts', 'a/pass.test.ts', 'a/red.test.ts'], reports, root)).toEqual([
-      { file: 'a/import.test.ts', outcome: 'RED-IMPORT', detail: 'Error: Failed to load url ../newModule' },
-      { file: 'a/missing.test.ts', outcome: 'NOT-RUN', detail: 'No Vitest report holds this file.' },
+    expect(
+      classify(
+        ['a/import.test.ts', 'a/missing.test.ts', 'a/pass.test.ts', 'a/red.test.ts'],
+        reports,
+        root
+      )
+    ).toEqual([
+      {
+        file: 'a/import.test.ts',
+        outcome: 'RED-IMPORT',
+        detail: 'Error: Failed to load url ../newModule'
+      },
+      {
+        file: 'a/missing.test.ts',
+        outcome: 'NOT-RUN',
+        detail: 'No Vitest report holds this file.'
+      },
       { file: 'a/pass.test.ts', outcome: 'ALREADY-PASSING', detail: '' },
-      { file: 'a/red.test.ts', outcome: 'RED', detail: '1 of 2 failing: "test 1". First: AssertionError: expected 1 to be 2' }
+      {
+        file: 'a/red.test.ts',
+        outcome: 'RED',
+        detail: '1 of 2 failing: "test 1". First: AssertionError: expected 1 to be 2'
+      }
     ])
   })
 })
@@ -116,45 +104,5 @@ describe('summary', () => {
   it('lists each file with its outcome and escapes table pipes', () => {
     const text = summary([{ file: 'a/red.test.ts', outcome: 'RED', detail: 'expected a | b' }])
     expect(text).toContain('| `a/red.test.ts` | RED | expected a \\| b |')
-  })
-})
-
-describe('changedTestFiles', () => {
-  let root
-  let base
-  const write = (path, text) => {
-    mkdirSync(join(root, dirname(path)), { recursive: true })
-    writeFileSync(join(root, path), text)
-  }
-
-  beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'red-proof-'))
-    git(root, 'init', '--quiet')
-    write('pkg/src/a.ts', 'export const a = 1\n')
-    write('pkg/src/a.test.ts', 'a\n')
-    write('pkg/src/old.test.ts', 'old\n')
-    write('pkg/test/fixture.ts', 'fixture\n')
-    git(root, 'add', '.')
-    git(root, 'commit', '--quiet', '-m', 'base')
-    base = git(root, 'rev-parse', 'HEAD').trim()
-  })
-
-  afterEach(() => rmSync(root, { force: true, recursive: true }))
-
-  it('lists added and modified test files and helpers, not production code or deletions', () => {
-    write('pkg/src/a.ts', 'export const a = 2\n')
-    write('pkg/src/a.test.ts', 'a changed\n')
-    write('pkg/src/b.test.ts', 'b\n')
-    write('pkg/test/fixture.ts', 'fixture changed\n')
-    rmSync(join(root, 'pkg/src/old.test.ts'))
-    git(root, 'add', '-A')
-    git(root, 'commit', '--quiet', '-m', 'slice')
-    expect(changedTestFiles(root, base)).toEqual(['pkg/src/a.test.ts', 'pkg/src/b.test.ts', 'pkg/test/fixture.ts'])
-  })
-
-  it('is empty for a production-only change', () => {
-    write('pkg/src/a.ts', 'export const a = 3\n')
-    git(root, 'commit', '--quiet', '-am', 'fix')
-    expect(changedTestFiles(root, base)).toEqual([])
   })
 })
