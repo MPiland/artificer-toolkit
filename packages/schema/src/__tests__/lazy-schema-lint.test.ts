@@ -12,6 +12,6 @@ it('builds no schema at module load anywhere in the repo', () => {
     cwd: repoRoot,
     encoding: 'utf8'
   })
-  expect(result.stderr + result.stdout).toBe('')
+  expect(result.stdout + result.stderr).toContain('no schema is built at module load')
   expect(result.status).toBe(0)
 })

@@ -30,4 +30,4 @@ See the status log.
 
 ## Status log
 
-- 2026-10-17: workbook written; fixes committed.
+- 2026-10-17: workbook written; fixes committed. Typecheck lane green (platform-13-t11). Light lane: nativeRoomAdmission 15 passed; schema lazy-schema-lint, lazy-schemas, effect-schema-parsing 34 passed.
