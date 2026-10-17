@@ -2190,7 +2190,8 @@ function zoneChoicePlan(
 /**
  * The zone a PLACED_SPACE or SOURCE manifest action places. Its one entering behavior is a saving
  * throw against a fixed DC or the caster's save DC (stored when the zone is placed) whose failure
- * stops the mover, deals damage and may leave a grant that lasts until its authored end event.
+ * applies one condition alone, or stops the mover, deals damage and may leave a grant that lasts
+ * until its authored end event.
  * Anything else the behavior authors is refused rather than partly honored.
  */
 function zonePlacementPlan(
@@ -2246,23 +2247,35 @@ function zonePlacementPlan(
   )
   const damageRows = outcomeEntries('DAMAGE')
   const [grant] = outcomeEntries('APPLY_GRANT')
+  // A failure that only applies a condition (falling prone) has no made-save outcome.
+  const [condition] = outcomeEntries('CONDITION')
+  const conditionAlone =
+    condition && failEntries.length === 1 && madeEntries.length === 0 ? condition : undefined
   if (
-    damageRows.length === 0 ||
-    outcomeEntries('APPLY_GRANT').length > 1 ||
-    stops.length > 1 ||
-    damageRows.length + stops.length + (grant ? 1 : 0) !== failEntries.length ||
-    madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE')
+    conditionAlone &&
+    'outcome' in conditionAlone &&
+    conditionAlone.outcome.effectKind === 'CONDITION' &&
+    !(action.conditionDefinitionIds ?? []).includes(conditionAlone.outcome.conditionId)
+  )
+    unsupported('A placed zone condition is not in the pinned System vocabulary.')
+  if (
+    !conditionAlone &&
+    (damageRows.length === 0 ||
+      outcomeEntries('APPLY_GRANT').length > 1 ||
+      stops.length > 1 ||
+      damageRows.length + stops.length + (grant ? 1 : 0) !== failEntries.length ||
+      madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE'))
   )
     unsupported(
-      'A placed zone failure stops movement, deals damage and may apply one grant; a made save only deals damage.'
+      'A placed zone failure applies one condition alone, or stops movement, deals damage and may apply one grant; a made save only deals damage.'
     )
-  const damage = zoneDamageRow(damageRows, action.spellCastLevel)
+  const failure = conditionAlone ?? zoneDamageRow(damageRows, action.spellCastLevel)
   const madeDamageRows =
     madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
-  if (!UUID.test(damage.entryId)) unsupported('A placed zone damage needs a compiled identity.')
+  if (!UUID.test(failure.entryId)) unsupported('A placed zone outcome needs a compiled identity.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
-    compiledEntryId: damage.entryId,
+    compiledEntryId: failure.entryId,
     frozenGraphNodeId: 'proposal-on_save_fail',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'NONE',
@@ -2281,7 +2294,7 @@ function zonePlacementPlan(
     {
       kind: 'SAVE',
       branches: new Map([
-        ['ON_SAVE_FAIL', zoneDamageOutcome(damage, 'ON_SAVE_FAIL')],
+        ['ON_SAVE_FAIL', zoneDamageOutcome(failure, 'ON_SAVE_FAIL')],
         ...madeDamageRows.map(
           (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
         )
@@ -2327,7 +2340,7 @@ function zonePlacementPlan(
           endOnEvents: [...lingering.endOnEvents]
         }
       : null,
-    maintenance: maintenancePlan(action, damage)
+    maintenance: maintenancePlan(action, failure)
   }
 }
 

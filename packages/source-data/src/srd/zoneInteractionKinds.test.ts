@@ -7,9 +7,11 @@ import { oilFlask } from './equipment/oil-flask.js'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
 import { bladeBarrier } from './spells/blade-barrier.js'
 import { cloudkill } from './spells/cloudkill.js'
+import { grease } from './spells/grease.js'
 import { incendiaryCloud } from './spells/incendiary-cloud.js'
 import { insectPlague } from './spells/insect-plague.js'
 import { moonbeam } from './spells/moonbeam.js'
+import { sleetStorm } from './spells/sleet-storm.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
@@ -34,7 +36,9 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     ['Ball Bearings', ballBearingsBagOf1000, 'Move across the ball bearings'],
     ['Oil Flask', oilFlask, 'Enter burning oil'],
     ['Hunting Trap', huntingTrap, 'Pressure plate'],
-    ['Blade Barrier', bladeBarrier, 'Whirling Blades']
+    ['Blade Barrier', bladeBarrier, 'Whirling Blades'],
+    ['Grease', grease, 'Enter the grease'],
+    ['Sleet Storm', sleetStorm, 'Enter the sleet storm']
   ])('%s authors its enter component as ENTER_OR_PASS_THROUGH', (_name, subject, component) => {
     const kinds = interactionKindsByComponent(subject)[component]
     expect(kinds).toContain('ENTER_OR_PASS_THROUGH')
@@ -78,6 +82,12 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     ])
   })
 
+  it('knocks a creature of Grease prone on ending its turn in the grease, and of Sleet Storm on starting it in the storm', () => {
+    expect(interactionKindsByComponent(grease)['Enter the grease']).toContain('END_TURN_IN_SPACE')
+    expect(interactionKindsByComponent(sleetStorm)['Enter the sleet storm']).toContain(
+      'START_TURN_IN_SPACE'
+    )
+  })
   it('catches a creature of Incendiary Cloud on entering and on ending its turn in the cloud', () => {
     expect(interactionKindsByComponent(incendiaryCloud)['Enter the burning cloud']).toEqual([
       'ENTER_SPACE',
@@ -105,11 +115,11 @@ function placedZoneOf(spell: SpellAuthored) {
 }
 
 /**
- * SPELLS-4.T1a and T1c: SRD rules of the hazard zones a placed zone cannot run yet. The zone
+ * SPELLS-4.T1a, T1c and T1d: SRD rules of the hazard zones a placed zone cannot run yet. The zone
  * compiler refuses any authored option it does not model, so each stays unauthored (the zone then
  * still compiles) and leaves this list when a task models it (registration is the orchestrator's).
  */
-describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c)', () => {
+describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c, T1d)', () => {
   const zoneGaps = [
     { spell: cloudkill, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: cloudkill, rule: 'fog spreads around corners', option: 'spreadsAroundCorners' },
@@ -121,7 +131,8 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
       rule: 'cloud spreads around corners',
       option: 'spreadsAroundCorners'
     },
-    { spell: moonbeam, rule: 'dim light filling the cylinder', option: 'light' }
+    { spell: moonbeam, rule: 'dim light filling the cylinder', option: 'light' },
+    { spell: sleetStorm, rule: 'heavily obscured area', option: 'obscurementKind' }
   ] as const
   it.each(zoneGaps)(
     '$spell.label: the $rule is unauthored ($option, no task yet)',
@@ -130,15 +141,22 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
     }
   )
 
-  it('leaves Insect Plague’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)', () => {
-    expect(placedZoneOf(insectPlague).components?.[0]).not.toHaveProperty('movementCostMultiplier')
-  })
+  it.each([
+    ['Insect Plague', insectPlague],
+    ['Grease', grease],
+    ['Sleet Storm', sleetStorm]
+  ])(
+    'leaves %s’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)',
+    (_name, spell) => {
+      expect(placedZoneOf(spell).components?.[0]).not.toHaveProperty('movementCostMultiplier')
+    }
+  )
 
   /**
    * Not authorable at all yet, so nothing in the record can show them: Cloudkill's fog moving 10
    * feet away from the caster at the start of each of the caster's turns and sinking to the lowest
-   * ground, strong wind dispersing it, and Insect Plague's save for each creature in the area when
-   * it appears (a cast that places a zone has no cast-time area save). Incendiary Cloud's cloud
+   * ground, strong wind dispersing it, and Insect Plague's and Grease's save for each creature in the area
+   * when it appears (a cast that places a zone has no cast-time area save). Incendiary Cloud's cloud
    * moving 10 feet away from the caster at the start of each of the caster's turns, its wind
    * dispersal and its save when it appears, and Moonbeam's beam moved 60 feet by the caster's
    * action. Each needs a new core option. Moonbeam's shapechanger rider (disadvantage on the save,
@@ -146,11 +164,14 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
    * creature-trait condition on a zone save and a creature form state, which the save contract
    * does not have. Also not exact: the per-turn limit counts every application, so an Insect
    * Plague or Incendiary Cloud creature that enters and ends the same turn in the area saves once
-   * (the SRD text gives two saves).
+   * (the SRD text gives two saves). Sleet Storm's Constitution save to keep Concentration for a
+   * creature concentrating in the area, and its dousing of exposed flames, need a zone save that
+   * targets a maintained effect and a light-source state, which no core option has.
    */
   it.each([
     ['Insect Plague', insectPlague],
-    ['Incendiary Cloud', incendiaryCloud]
+    ['Incendiary Cloud', incendiaryCloud],
+    ['Grease', grease]
   ])('%s places only the zone: no cast-time area save beside it', (_name, spell) => {
     expect(spell.effects?.[0]?.paths).toHaveLength(1)
     expect(spell.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')

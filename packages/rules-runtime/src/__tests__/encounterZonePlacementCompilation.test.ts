@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_CONDITION_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
@@ -561,6 +564,83 @@ describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () 
       halvedOnMadeSave('2d6', (outcome) => {
         Object.assign(outcome, { amountKind: 'DOUBLE' })
       })
+    ]
+  ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
+    expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({
+      kind: 'MANUAL',
+      reasonCode: 'NOT_NORMALIZED'
+    })
+  })
+})
+
+const PRONE_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'PRONE')!.id
+
+/** The failed save applies `conditionId` and nothing else: no stop, damage or grant. */
+function conditionOnFailedSave(conditionId = PRONE_ID) {
+  return ({ savePath }: ZoneParts) => {
+    savePath.resultBlock.outcomes = [{ id: extraId(9), effectKind: 'CONDITION', conditionId }]
+  }
+}
+
+describe('a zone whose failed save applies a condition alone (SPELLS-4.T1d)', () => {
+  const authored = variantEquipment(conditionOnFailedSave())
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('applies the condition from the one frozen entry graph, only on the failed save', () => {
+    const zone = zonePlacementOf(authored)
+    const { nodes, outputs } = zone.entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test', 'proposal-on_save_fail'])
+    expect(nodes.find((node) => node.id === 'proposal-on_save_fail')).toMatchObject({
+      inputs: { conditionId: { kind: 'LITERAL', value: PRONE_ID } }
+    })
+    expect(outputs).not.toHaveProperty('movementInterruption')
+    expect(zone.entry.compiledEntryId).toBe(extraId(9))
+    expect(zone.grant).toBeNull()
+  })
+
+  it.each([
+    [
+      'a condition beside damage',
+      ({ savePath }: ZoneParts) => {
+        const damage = savePath.resultBlock.outcomes.find(
+          (outcome) => outcome.effectKind === 'DAMAGE'
+        )
+        if (!damage) throw new Error('The zone must author damage.')
+        conditionOnFailedSave()({ savePath } as ZoneParts)
+        savePath.resultBlock.outcomes.push(damage)
+      }
+    ],
+    [
+      'two conditions',
+      ({ savePath }: ZoneParts) => {
+        conditionOnFailedSave()({ savePath } as ZoneParts)
+        savePath.resultBlock.outcomes.push({
+          id: extraId(10),
+          effectKind: 'CONDITION',
+          conditionId: SRD_CONDITION_TYPES.find(({ code }) => code === 'RESTRAINED')!.id
+        })
+      }
+    ],
+    ['a condition outside the System vocabulary', conditionOnFailedSave(extraId(11))],
+    [
+      'a condition on the made save',
+      (parts: ZoneParts) => {
+        conditionOnFailedSave()(parts)
+        parts.behavior.paths.push({
+          ...parts.savePath,
+          id: extraId(12),
+          order: 2,
+          pathCode: 'ON_SAVE_SUCCESS',
+          resultBlock: {
+            id: `${extraId(12)}__result`,
+            resultKind: 'SINGLE',
+            outcomes: [{ id: extraId(13), effectKind: 'CONDITION', conditionId: PRONE_ID }]
+          }
+        })
+      }
     ]
   ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
     expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({

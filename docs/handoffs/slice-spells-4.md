@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1 (audit) is done: the zone table is in [slice-spells-20.md](slice-spells-20.md#zone-table-srd-zones-with-turn-startend-text-static-audit-2026-10-17).
-- T1a (Cloudkill and Insect Plague) merged in m80. T1c (Moonbeam and Incendiary Cloud) is on `ci/spells-4-t1c`; the Moonbeam shapechanger rider waits on the ruling below. Next: T1b (wall geometry), T1d (Restrained and Prone outcomes).
+- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. Next: T1b (wall geometry).
 
 ## Scope
 
@@ -66,3 +66,37 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - (b) The same condition keyed on a trait vocabulary id instead of a tag (needs a new System vocabulary).
   - (c) Leave the rider as a named gap until shapechanger form state exists, then do both halves together.
   - Recommendation: (c), since half a rider (disadvantage without the revert) gives a shapechanger a worse save with no lasting effect, and the form model decides which key the condition reads.
+
+### T1d (condition zones)
+
+- Compiler: `zonePlacementPlan` also accepts a failed save that applies exactly one condition from the pinned System vocabulary and nothing else, with no made-save outcome. The entry graph's failed-save proposal is then the existing `CONDITION_APPLY`, which the zone trigger already settles. A condition beside damage, two conditions, a condition outside the vocabulary, or a condition on the made save stay MANUAL.
+- Authoring (prone):
+  - Grease: its bare zone gains a label, the 10-foot square, `ENTER_OR_PASS_THROUGH` + `END_TURN_IN_SPACE`, and a Dexterity save against `SOURCE_SAVE_DC` whose failure knocks the creature prone. No per-turn limit: the SRD gives a save on each entry and at each turn end. Its separate cast-time area save (effect 2) is removed: an Encounter offers no spell with two non-reaction effect groups (uildCharacterSpellCastActions), so Grease was never castable there. That makes it the same named gap as Insect Plague's area save.
+  - Sleet Storm: re-authored from `CLOSED_RULE` `SLEET_STORM` (deleted, since nothing else used it) as a 40-foot-radius, 20-foot-tall cylinder with `ENTER_OR_PASS_THROUGH` + `START_TURN_IN_SPACE`, `maxApplicationsPerTurn: 1`, and the same Dexterity save and prone failure.
+  - "Enters the area" uses `ENTER_OR_PASS_THROUGH`, following SPELLS-17.2 and Blade Barrier. ENTER alone fires only when a move ends inside the area.
+- Proofs:
+  - `apps/session-worker/test/nativeRoomHazardZoneSpells.test.ts`: a real cast places each zone (label, triggers, per-turn limit, Dexterity at the caster's DC). A Wolf that walks in and fails falls prone and takes no damage. The turn boundary each spell names knocks a Wolf in the area prone, and the other boundary does nothing.
+  - `packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts`: the condition-only failure compiles to one condition proposal. The four refused variants above stay MANUAL.
+  - `zoneInteractionKinds.test.ts` and `sourceZoneAuthoringParity.test.ts` cover both spells.
+- Named gaps (recorded in `zoneInteractionKinds.test.ts`):
+
+| Spell       | SRD rule                                                     | Authoring option                           | Owner                         |
+| ----------- | ------------------------------------------------------------ | ------------------------------------------ | ----------------------------- |
+| Grease      | Difficult terrain                                            | component `movementCostMultiplier`         | SPELLS-20.T4d (movement cost) |
+| Grease      | Each creature in the area saves when it appears              | none: a zone-placing cast has no area save | none registered               |
+| Sleet Storm | Difficult terrain                                            | component `movementCostMultiplier`         | SPELLS-20.T4d (movement cost) |
+| Sleet Storm | Heavily obscured area                                        | `obscurementKind: 'HEAVY'`                 | none registered               |
+| Sleet Storm | A concentrating creature in the area saves (Con) or loses it | none (zone save on a maintained state)     | none registered               |
+| Sleet Storm | Exposed flames are doused                                    | none (light-source state)                  | none registered               |
+
+- Ruling needed for the restrained zones (Web, Black Tentacles, Entangle). Each needs things no contract has:
+  - A condition held for the zone's lifetime. Web's also ends when the creature leaves the webs. Today a zone failure leaves only a `MODIFIER_GRANT` with end events (`planSpatialEntryGrant`), and a `CONDITION_APPLY` stays until removed by hand.
+  - An escape action: the restrained creature uses its action for a Strength check (Black Tentacles: Strength or Dexterity) against the caster's spell save DC. `ESCAPE_CHECK` exists only as an `ACTOR_RELATIONSHIP` module held by a source creature (grapples), and `escapeDcDtoSchema` takes only `FIXED` or `CONTEST` DCs.
+  - Black Tentacles: 3d6 bludgeoning and restrained on the same failed save (a zone save branch holds one proposal), and 3d6 with no save to a creature already restrained by it that starts its turn there.
+  - Entangle: the save happens only when the spell is cast (no entry or turn trigger), so it is a cast-time area save, which a zone-placing cast cannot hold today (see Grease above).
+- Options:
+  - (a) A zone-held condition. The zone failure leaves a `CONDITION_OWNERSHIP` active effect under the placed zone, built like `planSpatialEntryGrant`'s grant. It ends with the zone, optionally on leaving the area. It carries an optional authored escape that reuses the `ESCAPE_CHECK` module shape (activation, checks) plus a new `SOURCE_SAVE_DC` escape DC kind, settled by the existing escape settlement. Contract changes: the CONDITION outcome (or its result block lifecycle) gains `escape` and `endsOnLeavingArea`, plus the new DC kind.
+  - (b) Model the restraint as an `ACTOR_RELATIONSHIP` whose source is the zone rather than a creature. This reuses ESCAPE_CHECK as it is, but relationships are held by a source actor (`heldAtOnce`, release, follow), and a zone is not an actor.
+  - (c) Leave the three spells MANUAL until (a) or (b) is ruled.
+  - Recommendation: (a). It keeps the condition generic (any zone, trap or hazard can restrain with an escape), reuses the existing escape settlement, and matches D138 (fixed at placement, ends with the zone). Black Tentacles additionally needs a zone branch with damage and a condition together, and a turn trigger gated on holding the zone's condition. Both are separate follow-ups.
+- Finding on T1a/T1c (my earlier slices): Cloudkill, Insect Plague, Moonbeam and Incendiary Cloud author `ENTER_SPACE`, so a creature that passes through without stopping is not caught. SPELLS-17.2 reads SRD "enters the area" as `ENTER_OR_PASS_THROUGH`, and Blade Barrier, with the same "for the first time on a turn" wording, uses it. Spirit Guardians (SPELLS-20) also uses `ENTER_SPACE`. Recommendation: switch all five to `ENTER_OR_PASS_THROUGH` in one follow-up, with a pass-through room proof.
