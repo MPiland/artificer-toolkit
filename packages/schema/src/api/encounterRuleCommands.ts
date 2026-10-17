@@ -118,8 +118,8 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
  * cylinder or circle) takes no aim: it names only the Scene version it is fenced to.
  */
 /** Creatures the caster designates at cast that a zone the action places never affects. */
-const unaffectedActorIdsSchema = z.optional(
-  z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+const unaffectedActorIdsSchema = lazySchema(() =>
+  z.optional(z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)))
 )
 
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>

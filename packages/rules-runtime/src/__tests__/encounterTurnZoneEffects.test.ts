@@ -35,7 +35,7 @@ import {
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await createSrdRulesRuntime()
+  runtime = createSrdRulesRuntime()
 })
 
 function prepare(input: {

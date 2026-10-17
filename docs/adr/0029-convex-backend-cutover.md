@@ -394,8 +394,9 @@ frontend cutover remain separately tracked in C06.
   `packages/rules-runtime`, with `schema` and `shared` as its workspace dependencies. The TypeScript Kernel stays in `shared`; form resolution/publication
   stays in `authoring`. This avoids both a `shared` → `schema` cycle and placing play execution in
   the form package. The temporary functions facade delegates to the same wrapper until its native
-  callers are migrated. Continuation seals retain canonical UTF-8 HMAC-SHA256 and the existing key
-  and DTO contracts; standard Web Crypto replaces Node crypto without changing stored seal bytes.
+  callers are migrated. Continuation seals retained canonical UTF-8 HMAC-SHA256 and the existing key
+  and DTO contracts; standard Web Crypto replaced Node crypto without changing stored seal bytes
+  (historical: Amendment 1 removed the seal).
   System compilers retain the existing UUID v5 dependency and exact deterministic inputs. Shared
   server-source contracts replace DB/aggregate type dependencies without moving authority or
   transaction ownership. Native publishers consume the installed contracts/operations directly;
@@ -498,6 +499,20 @@ reuse the existing reducer and writer without mechanics evaluation, retaining im
 lifecycle checks before replay. These are local implementations of the approved narrower access target.
 Development data is reset/seeded locally in the same change; no retired
 storage compatibility path is retained for launch.
+
+## Amendment 1 (2026-10-17): unsealed continuations
+
+Decision Q23 (PLATFORM-24) removes the rules continuation seal. A continuation never leaves the
+server, so the HMAC proved only that the server wrote it, and it cost a shared
+`RULES_CONTINUATION_SECRET` in both Convex and the Worker. `resume` and `resumeWithGraph` now admit
+the continuation's graph exactly as `executeFrozen` admits a persisted graph: the installed capability
+for its Game System, a matching capability contract version, and `validateCompiledRuleGraph`. That
+validation cannot detect an edited literal; Q23 accepts this because only server code writes
+continuations. The schema field, `deriveRulesContinuationKey`, the `continuationIntegrityKey` option
+and the secret are deleted with no compatibility path. Decisions paused before the change are
+cancelled, as ADR 0033 cancelled decisions paused across its migration: the
+`encounters/continuationSealMigration` migration voids each pending occurrence whose stored snapshot
+carries a seal and removes its snapshot parts and checksum.
 
 ## Evidence
 

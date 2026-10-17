@@ -230,7 +230,7 @@ export async function spatialDamageEffect(input: {
 }) {
   const offset = (input.variant ?? 0) * 0x10
   return buildSpatialDamageEffect({
-    runtime: await createSrdRulesRuntime(),
+    runtime: createSrdRulesRuntime(),
     encounterId: input.encounterId,
     targetActorId: input.targetActorId,
     targetHitPoints: 1,

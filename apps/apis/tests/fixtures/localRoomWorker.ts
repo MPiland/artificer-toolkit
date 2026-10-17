@@ -230,8 +230,6 @@ async function startWorker() {
   // An empty env file keeps the ignored `.dev.vars` (the developer's local secrets) out of this Worker.
   const environmentFile = resolve(directory, 'worker.env')
   await writeFile(environmentFile, '')
-  const rulesSecret = process.env.RULES_CONTINUATION_SECRET
-  if (!rulesSecret) throw new Error('RULES_CONTINUATION_SECRET is required by the room.')
   const errorLogs: string[] = []
   const { unstable_startWorker } = await import('wrangler')
   vi.stubEnv('WRANGLER_LOG', 'warn')
@@ -246,8 +244,7 @@ async function startWorker() {
         LIVE_SESSION_ALLOWED_ORIGINS: LOCAL_ROOM_ORIGIN,
         LIVE_SESSION_TICKET_SECRET: TICKET_SECRET,
         LIVE_SESSION_WORKER_SECRET: WORKER_SECRET,
-        LOCAL_CONTENT_SNAPSHOT_ORIGIN: r2.endpoint,
-        RULES_CONTINUATION_SECRET: rulesSecret
+        LOCAL_CONTENT_SNAPSHOT_ORIGIN: r2.endpoint
       }).map(([name, value]) => [name, { type: 'plain_text', value }])
     ),
     dev: {
@@ -656,9 +653,10 @@ export async function deliverQueuedRoomControl(t: TestConvex<typeof schema>) {
     })
     if (jobs.length === 0) return
     for (const { name, args } of jobs)
-      await (name === send
-        ? t.action(roomControlSend, args as LiveSessionControlInput)
-        : t.action(roomControlEvictUser, args as FunctionArgs<typeof roomControlEvictUser>)
+      await (
+        name === send
+          ? t.action(roomControlSend, args as LiveSessionControlInput)
+          : t.action(roomControlEvictUser, args as FunctionArgs<typeof roomControlEvictUser>)
       ).catch(() => undefined)
   }
   throw new Error('Room control was not delivered.')

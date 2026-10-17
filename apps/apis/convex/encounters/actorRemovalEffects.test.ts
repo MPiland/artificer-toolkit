@@ -213,7 +213,6 @@ describe('native actor maintained-effect cleanup', () => {
     const occurrenceId = crypto.randomUUID()
     const graph = definition(state.id, target.id).frozenGraph
     const runtime = createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(32).fill(1),
       definitions: {
         async requireCurrent() {
           throw new Error('Frozen graph has no definition read')

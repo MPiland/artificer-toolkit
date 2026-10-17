@@ -928,7 +928,7 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
       },
       defenses: [],
       perception: { requirement: 'SEE', satisfied: input.seesSource, checksum: 'a'.repeat(64) },
-      runtime: await createSrdRulesRuntime(),
+      runtime: createSrdRulesRuntime(),
       adapters: characterRuleActionSystemAdapterRegistry
     })
   }

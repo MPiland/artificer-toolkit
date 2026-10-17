@@ -64,7 +64,7 @@ async function settle(
       initiator: { ...preparation.contest.initiator, requestNodeId: 'initiator_d20' },
       defender: { ...defender, requestNodeId: 'target_d20' },
       occurrenceId,
-      runtime: await createRulesRuntime(ctx, base.owner.userId),
+      runtime: createRulesRuntime(ctx, base.owner.userId),
       rollD20: () => {
         const face = faces.next().value
         if (face === undefined) throw new Error('Unexpected extra contest roll.')

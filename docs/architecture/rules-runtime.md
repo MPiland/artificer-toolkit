@@ -67,7 +67,7 @@ package before tests that import newly added modules.
 
 | Area                          | Modules                                                                                                                                                                                             | Owns                                                                                                                                                                         |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Execution wrapper             | `rulesRuntimeService`, `platformRulesRuntime`, `platformPolicyModules`, `platformEncounterPolicy`, `platformCharacterPolicy`, `random`                                                              | Schema-aware Kernel execution, continuation sealing, installed System lookup by System UUID                                                                                  |
+| Execution wrapper             | `rulesRuntimeService`, `platformRulesRuntime`, `platformPolicyModules`, `platformEncounterPolicy`, `platformCharacterPolicy`, `random`                                                              | Schema-aware Kernel execution, frozen-graph admission, installed System lookup by System UUID                                                                                |
 | Systems                       | `systems/dnd5e/*`                                                                                                                                                                                   | D&D 2014 policy, action compiler, grant fold, modifier scope, concentration, lifecycle and optional-combat policy                                                            |
 | Character                     | `character/*`                                                                                                                                                                                       | Context and Sheet preparation, Builder catalogue/eligibility/reconciliation/readiness/payload, snapshot readers, Sheet commands, rest, roll, projection, rule-fact composers |
 | Encounter actions             | `encounterAction*`, `encounterBasicActions`, `encounterDisarmPreparation`, `encounterWieldConflict`, `encounterCleaving*`, `encounterConcentration*`                                                | Source resolution, mechanics preparation, economy, target policy, effects, receipts, warnings                                                                                |
@@ -122,10 +122,13 @@ authorization checks.
 ## Execution, decisions, and receipts
 
 An authorized command creates or resumes an aggregate-owned occurrence. A paused occurrence stores its
-sealed snapshot: the reachable graph, operation keys and versions, source identities and checksums,
+snapshot: the reachable graph, operation keys and versions, source identities and checksums,
 frozen facts, issued requests, authority and redaction policy. Resume rejects stale authority, an
-unexpected aggregate version, a bad seal, or a decision outside the stored contract. A pending snapshot is
-either `KERNEL_EVIDENCE` (sealed continuation plus a bounded server-only context) or `AGGREGATE_CHOICE`
+unexpected aggregate version, or a decision outside the stored contract. A continuation never leaves the
+server and carries no seal (Q23, [ADR 0029 Amendment 1](../adr/0029-convex-backend-cutover.md#amendment-1-2026-10-17-unsealed-continuations)):
+resume admits its graph exactly as frozen execution does (installed capability, matching contract
+version, `validateCompiledRuleGraph`). A pending snapshot is
+either `KERNEL_EVIDENCE` (the continuation plus a bounded server-only context) or `AGGREGATE_CHOICE`
 (one closed tactical choice, no graph). An Encounter has at most one pending occurrence, and a retry
 matching a stored receipt returns it before that gate.
 

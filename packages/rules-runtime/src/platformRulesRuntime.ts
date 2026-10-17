@@ -82,24 +82,7 @@ export function requireInstalledGameSystemRuleCapability(
   return capability
 }
 
-/**
- * Derives the continuation seal key from the dedicated `RULES_CONTINUATION_SECRET` shared by Convex
- * and the Session Worker. The versioned label keeps continuations sealed under earlier key sources
- * from verifying.
- */
-export async function deriveRulesContinuationKey(secret: string | undefined): Promise<Uint8Array> {
-  if (!secret || new TextEncoder().encode(secret).byteLength < 32)
-    throw new Error('RULES_CONTINUATION_SECRET must be configured with at least 32 bytes.')
-  return new Uint8Array(
-    await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(`artificer-toolkit:rules-continuation:v2\0${secret}`)
-    )
-  )
-}
-
 export function createPlatformRulesRuntime(input: {
-  continuationIntegrityKey: Uint8Array
   definitions: PublishedRuleDefinitionSource
 }): RulesRuntimeService {
   const registrations = installedRuntimeModules.map((module) => module.gameSystemId)
@@ -109,7 +92,6 @@ export function createPlatformRulesRuntime(input: {
 
   return createRulesRuntimeService({
     capabilities: installedGameSystemRuleCapabilities,
-    continuationIntegrityKey: input.continuationIntegrityKey,
     definitions: input.definitions,
     operations: installedGameSystemRuleOperations
   })

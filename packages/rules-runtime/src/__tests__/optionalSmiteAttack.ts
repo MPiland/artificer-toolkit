@@ -51,7 +51,6 @@ function smiter(weaponLabel: string) {
 
 export function smiteRuntime() {
   return createPlatformRulesRuntime({
-    continuationIntegrityKey: new Uint8Array(32).fill(1),
     definitions: {
       async requireCurrent() {
         throw new Error('Definitions are not used by sealed graphs.')

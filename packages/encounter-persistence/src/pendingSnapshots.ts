@@ -44,6 +44,29 @@ function assemble(parts: readonly EncounterDocument<'encounterPendingSnapshotPar
   return value
 }
 
+function assembleChecked(
+  parts: readonly EncounterDocument<'encounterPendingSnapshotParts'>[],
+  checksum: string
+) {
+  const value = assemble(parts)
+  if (checksumCanonicalJson(value) !== checksum)
+    throw new Error('Pending snapshot does not match its checksum.')
+  return value
+}
+
+/**
+ * An occurrence's pending snapshot as stored, checked against its checksum but not parsed, so a
+ * migration can read a snapshot the current schema refuses. Null when it has none.
+ */
+export async function readStoredPendingSnapshot(
+  ctx: EncounterReadContext,
+  occurrence: PendingOccurrence
+): Promise<JsonValue | null> {
+  const checksum = occurrence.pendingSnapshotChecksum
+  if (checksum === null) return null
+  return assembleChecked(await readParts(ctx, occurrence.id), checksum)
+}
+
 const parsedSnapshots = new WeakMap<object, Map<string, ServerRuleExecutionPendingSnapshotDto>>()
 
 /**
@@ -61,10 +84,9 @@ export async function readPendingSnapshot(
   if (!parsed) parsedSnapshots.set(ctx.db, (parsed = new Map()))
   const known = parsed.get(checksum)
   if (known) return known
-  const value = assemble(parts)
-  if (checksumCanonicalJson(value) !== checksum)
-    throw new Error('Pending snapshot does not match its checksum.')
-  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(value)
+  const snapshot = serverRuleExecutionPendingSnapshotDtoSchema.parse(
+    assembleChecked(parts, checksum)
+  )
   parsed.set(checksum, snapshot)
   return snapshot
 }

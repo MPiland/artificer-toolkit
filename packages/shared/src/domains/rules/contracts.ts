@@ -138,7 +138,7 @@ export interface RuleIntegerRangeEvidenceRequest {
   max: number
 }
 
-/** Pure, serializable state. Application services seal and persist it as an occurrence. */
+/** Pure, serializable state. Application services persist it as an occurrence. */
 export interface RuleExecutionContinuation {
   schemaVersion: 1
   occurrenceId: string

@@ -149,9 +149,19 @@ Do not add helpers, wrappers, maps, files, abstractions, or validation layers un
 
 Avoid single-use abstractions.
 
-Prefer inline types and direct logic when a helper, wrapper, map, or named type is used only once.
+Prefer inline types and direct logic when a helper, wrapper, map, or named type is used only once. A well-named pure function used once is fine when it names a domain concept, gets its own test, or turns a long function into readable steps; the test is whether it hides complexity or only moves it.
 
 Avoid wrapper functions that simply call another function.
+
+DRY means one home per piece of knowledge, not "never repeat a line". Merge two code paths when they encode the same rule; keep look-alike code separate when it changes for different reasons.
+
+Never special-case a named feature, spell, creature or rule in code. Express it through generic, data-authored options.
+
+Prefer deep modules: a small interface over a substantial implementation. Avoid layers of thin pass-throughs, which make control flow untraceable.
+
+Name shared code by its domain (`spatial/forcedMovementPath.ts`), not as a grab-bag `utils` file.
+
+Split files by responsibility, not line count: planning, settlement, persistence and fan-out are seams. A large file is a prompt to look for mixed responsibilities, not an automatic split.
 
 ## Validation
 
