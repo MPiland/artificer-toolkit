@@ -104,7 +104,9 @@ export function planEncounterPlacedZone(input: {
       revealOnTrigger: false,
       label: zone.label,
       bypassAtHalfSpeed: zone.bypassAtHalfSpeed,
-      maxApplicationsPerTurn: zone.maxApplicationsPerTurn,
+      ...(zone.maxApplicationsPerTurn !== undefined
+        ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
+        : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
         : {})

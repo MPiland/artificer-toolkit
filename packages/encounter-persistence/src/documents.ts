@@ -42,16 +42,21 @@ export function changedFields<Fields extends object>(
  */
 export function runZoneApplicationsAfter(
   state: Pick<EncounterRunState, 'turnSequence' | 'zoneApplications'>,
-  result: {
-    executions?: readonly {
-      candidate: { candidate: { effectId: string; targetActorId: string } }
-    }[]
-  }
+  result:
+    | {
+        status: 'BATCH_COMPLETE'
+        executions: readonly {
+          candidate: { candidate: { effectId: string; targetActorId: string } }
+        }[]
+      }
+    | { status: 'MOVEMENT_COMPLETE' }
 ) {
   return recordZoneApplications(
     state.zoneApplications,
     state.turnSequence,
-    result.executions?.map((execution) => execution.candidate.candidate) ?? []
+    result.status === 'BATCH_COMPLETE'
+      ? result.executions.map((execution) => execution.candidate.candidate)
+      : []
   )
 }
 
