@@ -445,10 +445,14 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
       ? V extends 'SPEED' | 'SENSE_RANGE'
         ? ModifierLengthAuthored
         : K extends 'SET_VALUE'
-          ? V extends 'ARMOR_CLASS'
-            ? // An armor class formula: the amount plus each listed ability modifier.
-              { amount: number; abilities: AbilityCode[] }
-            : { amount: number }
+          ? V extends 'DURATION'
+            ?
+                | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
+                | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
+            : V extends 'ARMOR_CLASS'
+              ? // An armor class formula: the amount plus each listed ability modifier.
+                { amount: number; abilities: AbilityCode[] }
+              : { amount: number }
           : ModifierScalarValueAuthored
       : K extends 'ABILITY_MODIFIER_BONUS'
         ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
