@@ -5,11 +5,11 @@ Workbook for PLATFORM-22.T1 (Phase 8.2). Rules: [slice-workbook-rules.md](slice-
 ## Resume here
 
 - Branch `claude/hungry-germain-d180cf`; CI branch `ci/platform-22`. Throwaway proof branches go under `ci/platform-22-*`; delete each after recording it.
-- State: T1 (22.1, 22.2) is green on f826a6429. T3 (22.4, the red job) is pushed as 570f25b09 (it includes the m62 merge). Next:
-  - read the red job summary on the 570f25b09 run;
-  - run the ALREADY-PASSING proof branch and the typefail proof;
-  - get an independent review of T3;
-  - report.
+- State:
+  - T1 (22.1, 22.2) is green on f826a6429. The orchestrator merges it.
+  - T3 (22.4) is green on 32d3ee876, and every proof is recorded.
+  - The final push merges the phase branch and m63.
+- Next: wait for Tests and Live to go green on the final tip, then report.
 
 ## ACs (ledger text is the orchestrator's)
 
@@ -42,7 +42,7 @@ Green wall clock today: 17-20 min. A type error failed the run only when the slo
 | --- | --- | --- |
 | `nativeLiveSessionRoom.test.ts` "logs a room failure behind a generic retry for the test harness and tells the member nothing" (cause in harness log; member sees only UNAVAILABLE + retry message; nothing written) | red: run 38990052509 (`ci/platform-22-red`, d9c9b9a30: harness and tests without the room change), the only Worker failure, `expected [] to deep equally contain … "harness-visible cause"` | green: Tests 38993716147 |
 | `nativeLiveSessionRoom.test.ts` "sends an expected domain rejection and keeps an unexpected failure generic" (existing production-behaviour proof, plus the harness sees the logged cause) | n/a (already logged path) | green: Tests 38993716147 |
-| 22.1 proof: `ci/platform-22-typefail` type error in a test file | pending | n/a |
+| 22.1 proof: `ci/platform-22-typefail` type error in a test file | run 38995237121 (7a7df49ea = f826a6429 + a type error in `apps/session-worker/test/roomFailureLog.ts`) cancelled 6.5 min after start; watchCi printed `error TS2322`. Branch deleted. | n/a |
 
 ## Status log
 
@@ -76,11 +76,50 @@ Green wall clock today: 17-20 min. A type error failed the run only when the slo
   - updates to AGENTS.md and the workbook rules that retire separate red pushes.
 
   Known limit: when the slice has merged a `ci/merge-m*` batch that the phase branch does not yet have, that batch's changed tests also run against the phase branch and show as RED.
+- 2026-10-17: first T3 run 38995072518 (570f25b09). The red job failed in its build: package builds compile `src/__tests__`, so the tip's tests broke tsc. Fix: build at base first, then check out the tip's test files.
+- 2026-10-17: independent review (opus) of T3, triaged:
+  - Fixed:
+    - build before the tip's tests join;
+    - rebuild a package whose `dist` carries a changed helper (rules-runtime `src/testing`);
+    - skip unless a `.test.` file changed;
+    - `runnerFor` mirrors the root include list;
+    - `*.fixtures.*` count as test helpers;
+    - RED rows list the failing test titles;
+    - `persist-credentials: false`;
+    - the scripts step names `scripts/*.test.mjs`, because Vitest filters match substrings;
+    - apis and design-system tests joined the package loop, so the files the red job runs also run green.
+  - Recorded in a `tests.yml` comment: the red job holds one of the 20 job slots, so with two other runs in flight it can queue a third run's jobs.
+- 2026-10-17: T3 green on 32d3ee876:
+  - Tests 38995460725: 19.2 min wall, within the 17-20 min baseline.
+  - The red job took 3.3 min beside the build, so it is off the critical path.
+  - Its summary (saved under `local-validation/platform-22/red-summary-38995460725.md`) lists 35 files. Among them, the 22.2 test in `nativeLiveSessionRoom.test.ts` is RED ("1 of 126 failing: logs a room failure …"), matching the separate red push 38990052509.
+  - The other RED rows come from two sources:
+    - the m62 batch's tests, because the phase branch did not yet have m62 (the known limit above);
+    - the 12 authoring failures that predate this slice.
+  - Worker files resolve correctly (host-absolute paths).
+- 2026-10-17: ALREADY-PASSING proof run 38995465195 (throwaway `ci/platform-22-passing`: the phase branch, the T3 files and one test-only change):
+  - `scripts/snapshotDrift.test.mjs` ALREADY-PASSING;
+  - `scripts/redProof.test.mjs` RED-IMPORT ("Cannot find module './redProof.mjs'");
+  - the job passed;
+  - the branch was deleted.
+- 2026-10-17: merged the phase branch (4d634cfc7) and `ci/merge-m63` for the final green push.
 
 ## Proposed ledger edits
 
-- Pending green.
+- PLATFORM-22.1: done.
+  - Proofs: runs 38989496620, 38990590658, 38991294793 and 38995237121 were cancelled 4.7-7.9 min after they started, which is about 5 min of compute plus any wait for a runner.
+  - Green no slower: 38993716147 took 18.9 min against the 17-20 min baseline.
+  - Suggested AC wording: "within about five minutes of compute (plus runner queue)".
+- PLATFORM-22.2: done.
+  - Red: 38990052509.
+  - Green: 38993716147.
+  - Harness proof: 38993725207.
+- PLATFORM-22.4 / T3: done.
+  - RED in-run: 38995460725.
+  - ALREADY-PASSING and RED-IMPORT: 38995465195.
+  - Green no slower: 19.2 min.
+- New follow-up: fix the 12 authoring test failures (they predate this slice; base run 38992508732), then add authoring to the Package tests loop.
 
 ## Follow-ups noticed (out of scope)
 
-- `tests.yml` Packages tests loop skips `authoring`, `emails` and `design-system` tests (their typechecks now run).
+- The `tests.yml` Package tests loop still skips `authoring`, because 12 of its tests fail on the phase branch (run 38992508732). Emails, design-system and apis now run. Until authoring joins the loop, the red job can report an authoring failure that predates the slice as RED.
