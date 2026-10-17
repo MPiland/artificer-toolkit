@@ -9169,7 +9169,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6a"]
               },
-              "text": "A creature's passive zones (D144): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, with no maintained state. It is deleted when its actor is removed or the Encounter finishes, suppressed while its source is defeated (candidates skip it; a revived source has it again), and GM undo of START or REINFORCE removes it. Second consumer: the Pit Fiend's Fear Aura (save at the start of its own turn).",
+              "text": "A creature's passive zones (D144, D147): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, and when the GM binds a token to an actor in a PREPARED or ACTIVE Run, with no maintained state. It is deleted when its token is unbound, its actor is removed or the Encounter finishes, and suppressed while its source is defeated (candidates skip it; a revived source has it again). Proved on a core-options creature zone; the Balor (T6c) is the SRD consumer.",
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
