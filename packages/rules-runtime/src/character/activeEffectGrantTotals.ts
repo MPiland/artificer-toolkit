@@ -132,15 +132,15 @@ export function activeCapValueGrantMinimum(
   let best: number | null = null
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
-      const grant = record(modifier.grant)
-      const amount = record(grant?.payload)?.amount
+      const { payload } = modifier
       if (
         modifier.valueDomainCode === valueDomainCode &&
         modifier.modifierKind === 'CAP_VALUE' &&
-        grant?.scope === 'GLOBAL' &&
-        typeof amount === 'number'
+        modifier.scope === 'GLOBAL' &&
+        payload !== undefined &&
+        'amount' in payload
       )
-        best = best === null ? amount : Math.min(best, amount)
+        best = best === null ? payload.amount : Math.min(best, payload.amount)
     }
   }
   return best
