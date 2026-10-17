@@ -9240,7 +9240,7 @@
             },
             {
               "id": "SPELLS-4.T1d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-4.2"
               ],
@@ -9253,7 +9253,8 @@
                   "SPELLS-20.T4b2b2"
                 ]
               },
-              "text": "Condition-outcome hazard zones: a failed zone save applies a condition (restrained for Web and Black Tentacles, prone for Grease and Sleet Storm, restrained for Entangle) with the zone's escape or repeat-save rule, authored from core options and proved on each listed spell."
+              "text": "Condition-outcome hazard zones: a failed zone save applies a condition (restrained for Web and Black Tentacles, prone for Grease and Sleet Storm, restrained for Entangle) with the zone's escape or repeat-save rule, authored from core options and proved on each listed spell.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2",
@@ -10787,7 +10788,7 @@
             },
             {
               "id": "SPELLS-20.T4b3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10800,7 +10801,8 @@
                 "after": [
                   "SPELLS-20.T4b2b2"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4e",
@@ -10906,7 +10908,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
         },
         {
           "id": "SPELLS-21",
