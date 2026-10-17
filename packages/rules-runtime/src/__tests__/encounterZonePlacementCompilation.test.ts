@@ -790,6 +790,56 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
   })
 })
 
+const PRONE_ID = conditionId('PRONE')
+
+/** The failed save applies `conditionId` and nothing else: no stop, damage or grant. */
+function conditionOnFailedSave(id = PRONE_ID) {
+  return ({ savePath }: ZoneParts) => {
+    savePath.resultBlock.outcomes = [{ id: extraId(9), effectKind: 'CONDITION', conditionId: id }]
+  }
+}
+
+describe('a zone a mover enters whose failed save applies a condition alone (SPELLS-4.T1d)', () => {
+  const authored = variantEquipment(conditionOnFailedSave())
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('applies the condition from the one frozen entry graph, only on the failed save', () => {
+    const zone = zonePlacementOf(authored)
+    const { nodes, outputs } = zone.entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test', 'proposal-on_save_fail'])
+    expect(nodes.find((node) => node.id === 'proposal-on_save_fail')).toMatchObject({
+      inputs: { conditionId: { kind: 'LITERAL', value: PRONE_ID } }
+    })
+    expect(outputs).not.toHaveProperty('movementInterruption')
+    expect(zone.entry.compiledEntryId).toBe(extraId(9))
+    expect(zone.grant).toBeNull()
+  })
+
+  it('refuses a condition on the made save instead of partly honoring it', () => {
+    const change = (parts: ZoneParts) => {
+      conditionOnFailedSave()(parts)
+      parts.behavior.paths.push({
+        ...parts.savePath,
+        id: extraId(12),
+        order: 2,
+        pathCode: 'ON_SAVE_SUCCESS',
+        resultBlock: {
+          id: `${extraId(12)}__result`,
+          resultKind: 'SINGLE',
+          outcomes: [{ id: extraId(13), effectKind: 'CONDITION', conditionId: PRONE_ID }]
+        }
+      })
+    }
+    expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({
+      kind: 'MANUAL',
+      reasonCode: 'NOT_NORMALIZED'
+    })
+  })
+})
+
 describe('a zone the System cannot honor in full stays manual', () => {
   const REFUSED: readonly (readonly [string, (parts: ZoneParts) => void])[] = [
     [
