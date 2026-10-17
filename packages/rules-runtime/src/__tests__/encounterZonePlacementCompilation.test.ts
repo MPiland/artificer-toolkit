@@ -27,6 +27,7 @@ import {
   failedSaveOnly,
   losesAction,
   lostActionOutcome,
+  noSave,
   variantEquipment,
   zonePlacementOf,
   type ZoneParts
@@ -840,6 +841,41 @@ describe('a zone a mover enters whose failed save applies a condition alone (SPE
   })
 })
 
+describe('a zone outcome with no save, at the start of its source’s turn (D144)', () => {
+  const authored = variantEquipment((parts) => {
+    diceDamage('2d6')(parts)
+    noSave()(parts)
+  })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('maps the interaction to a START_OF_SOURCE_TURN trigger and no movement trigger', () => {
+    expect(zonePlacementOf(authored)).toMatchObject({
+      triggerModes: [],
+      turnTriggers: ['START_OF_SOURCE_TURN'],
+      grant: null
+    })
+  })
+
+  it('applies its damage directly: plain damage dice and a proposal, with no d20 or test node', () => {
+    const { entry } = zonePlacementOf(authored)
+    const { nodes } = entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual(['die-1', 'die-2', 'sum-1', 'proposal-on_use'])
+    for (const dieId of ['die-1', 'die-2'])
+      expect(nodes.find((node) => node.id === dieId)).toMatchObject({
+        operation: { key: 'evidence.integer-range' },
+        inputs: { min: { value: 1 }, max: { value: 6 } }
+      })
+    expect(entry).toMatchObject({
+      frozenGraphNodeId: 'proposal-on_use',
+      adapterFacts: {},
+      castSaveDcFactKey: null
+    })
+  })
+})
+
 describe('a zone the System cannot honor in full stays manual', () => {
   const REFUSED: readonly (readonly [string, (parts: ZoneParts) => void])[] = [
     [
@@ -917,6 +953,29 @@ describe('a zone the System cannot honor in full stays manual', () => {
       'a cone, which is aimed rather than placed at a point',
       ({ zone }) => {
         zone.shape = { id: extraId(5), shapeKind: 'CONE', length: { amount: 15, unit: 'FEET' } }
+      }
+    ],
+    [
+      'a zone outcome with no save that a mover enters',
+      (parts) => {
+        diceDamage('2d6')(parts)
+        noSave(['ENTER_SPACE', 'START_OF_SOURCE_TURN'])(parts)
+      }
+    ],
+    [
+      'a zone outcome with no save that halves its dice',
+      (parts) => {
+        diceDamage('2d6', (damage) => Object.assign(damage, { multiplier: 0.5 }))(parts)
+        noSave()(parts)
+      }
+    ],
+    [
+      'a zone outcome with no save that stops the mover',
+      (parts) => {
+        const stop = parts.savePath.resultBlock.outcomes[0]!
+        diceDamage('2d6')(parts)
+        noSave()(parts)
+        parts.savePath.resultBlock.outcomes.push(stop)
       }
     ],
     [

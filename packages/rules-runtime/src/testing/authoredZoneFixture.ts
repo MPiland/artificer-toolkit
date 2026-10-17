@@ -135,3 +135,24 @@ export function failedSaveOnly(...outcomes: FailedSaveOutcome[]) {
       delete savePath.resultBlock.lifecycle
   }
 }
+
+/**
+ * The zone's outcome needs no save (D144): its behavior deals the authored damage on use, acting at
+ * the start of its source's turn unless `interactionKinds` says otherwise.
+ */
+export function noSave(
+  interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']> = [
+    'START_OF_SOURCE_TURN'
+  ]
+) {
+  return ({ component, behavior, savePath, invocation }: ZoneParts) => {
+    component.interactionKinds = interactionKinds
+    delete component.bypassAtHalfSpeed
+    behavior.invocation = { kind: 'PASSIVE', triggerCode: 'ACTIVATED', range: invocation.range }
+    savePath.pathCode = 'ON_USE'
+    savePath.resultBlock.outcomes = savePath.resultBlock.outcomes.filter(
+      (outcome) => outcome.effectKind === 'DAMAGE'
+    )
+    delete savePath.resultBlock.lifecycle
+  }
+}

@@ -14,6 +14,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - D138 cleanup (after the T4b2b2 green): `spatialEffectPin.ts` and its movement-persistence call are removed (a placed zone is fixed at placement). Movement still refuses a deleted zone (`movementSpatialZoneSettlement.test.ts`) and a zone or path that changed since a pause (`encounterSpatialMovementStale.test.ts`: zone gone, path misses, zone version bumped, creature changed). The turn path keeps its selection-checksum and 'settlement differs from its plan' refusals.
 - T4f (START journey, pending-prompt interleaves, spatial resume checks): see the T4f log entry. A Sheet END_CONCENTRATION while a prompt was pending deleted the aura under it; it now refuses with PENDING_DECISION, and REMOVE_ACTOR now refuses with PENDING_DECISION instead of a plain error. The resume harness in `encounterSpatialMovementStale.test.ts` now resumes from the paused position and Scene version, so two older stale tests now assert the guard that actually fires.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
+- T6 is split by D144 into T6a (source-turn zone outcome with no save), T6b (passive creature zones and their lifecycle, Pit Fiend Fear Aura), T6c (Balor data, CLOSED_RULE deletion, ADR 0038 parity, room journey) and T6d (melee-hit retaliation rider). T6a: see its log entry; pushed to `ci/spells-20-t6a`.
 
 ## Scope
 
@@ -179,6 +180,19 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Spatial resume (`encounterSpatialMovementStale.test.ts`): the harness used to resume from the start point at Scene version 1, while a pause moves the token to the contact and advances the Scene, so every resume hit 'The paused spatial movement root is stale.'. The 'zone version bumped' and 'creature changed' tests passed for that reason only. The harness now resumes from the paused root, and they assert the guards that fire: 'A spatial root changed before execution.' (row lock) and 'The current spatial contact is stale.'. Two zones on one space queue a second contact. Resuming unchanged pauses on the second zone; a second zone row that advanced since the pause refuses with 'The remaining spatial contacts changed.'
 - The frozen-reaction selection check ('The frozen spatial candidate selection is stale.') compares the caller's root against the sealed remainder that the candidates come from, so stored data cannot reach it: the pending snapshot is checksum-verified on read (`pendingSnapshots.ts`). Live changes during a reaction pause are caught by the lock check and the frozen currentness check. It stays as a seal-integrity guard, untested by a hand-corrupted remainder.
 - The `frozenTerminal` input of `evaluateEncounterSpatialMovementRuleBatch` has had no caller since `8b7459d6d` (Convex movement rules deleted), so it is deleted with its checks and `verifyFrozenTerminalIdentity`.
+
+### T6a (source-turn zone outcome with no save, D144)
+
+- Vocabulary: interaction kind `START_OF_SOURCE_TURN` (schema, shared type, authoring option) maps to the placement turn trigger `START_OF_SOURCE_TURN`; `SPATIAL_TURN_TRIGGERS` is the one ordered list (it replaces `turnTriggerOrder`). END_OF_SOURCE_TURN was rejected by D144.
+- Compiler: `unsavedZonePlacementPlan` compiles a non-save behavior with `ON_USE` damage to one unmodified dice row dealt in full, with no test node; turn boundaries only.
+- Turn stage: contacts across every bound token; at the boundary creature's START, others in its `START_OF_SOURCE_TURN` zones are caught, ordered by actor id then effect id (`followsInZoneTurnOrder`, enforced by the pending and phase schemas). The phase stores one chained batch per caught creature.
+- Dice with no d20 policy: the damage die is answered with `d20: null`, the source rolls (`awaitsSpatialDamageDice`), and automatic evidence auto-rolls the save only when a policy exists.
+- Persistence and Worker: the cleaving bindings capture is renamed `ACTOR_TOKEN_BINDINGS` (`readEncounterActorTokenBindings`, `actorTokenBindings.ts`) and serves the turn path too; settlement order is shared with movement (`orderSpatialSettlementActors`).
+- Proofs:
+  - `encounterZonePlacementCompilation.test.ts`: the START_OF_SOURCE_TURN trigger, the dice-and-proposal graph with no d20/test node, and refusals (a mover trigger, halved dice, a stop).
+  - `encounterTurnZoneEffects.test.ts`: two creatures caught at the source's START in actor-id order, the source spared; quiet at other boundaries; the source answers each die when it does not auto-roll; the stored multi-creature phase accepted, and rejected out of order or missing a transition.
+  - `turnZoneEffectsPersistence.test.ts`: one batch per caught creature in settlement order, the source untouched.
+  - `nativeRoomTurnZoneEffects.test.ts`: a core-options no-save field damages the Wolf at the caster's turn start, not at the Wolf's own, with an exact replay.
 
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 

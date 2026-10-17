@@ -21,6 +21,7 @@ import {
 } from './ruleExecutionEffectEvidence.js'
 import { spatialTurnCandidateDtoSchema } from './ruleExecutionSpatial.js'
 import {
+  followsInZoneTurnOrder,
   stagedTurnZonePlanDtoSchema,
   type StagedTurnZonePlanDto
 } from './ruleExecutionTurnPhaseEvidence.js'
@@ -396,14 +397,12 @@ export const turnZoneEffectsPendingContextDtoSchema = lazySchema(() =>
           if (
             candidate.ordinal !== index ||
             candidate.boundaryOrdinal !== first.boundaryOrdinal ||
-            candidate.candidate.targetActorId !== first.candidate.targetActorId ||
-            (previous && candidate.candidate.effectId <= previous.candidate.effectId)
+            (previous && !followsInZoneTurnOrder(previous.candidate, candidate.candidate))
           )
             context.addIssue({
               code: 'custom',
               path: ['currentCandidate'],
-              message:
-                'Zone turn candidates must be one boundary and creature in strictly increasing effect order.'
+              message: 'Zone turn candidates must be one boundary in canonical zone turn order.'
             })
         }
       })

@@ -257,8 +257,8 @@ it('admits native turn scopes and pages the selected actor effects without a bac
       'live authority changed'
     )
     await expect(
-      capture(owner, { ...input, request: { kind: 'CLEAVING_BINDINGS' } })
-    ).resolves.toMatchObject({ kind: 'CLEAVING_BINDINGS', bindings: [] })
+      capture(owner, { ...input, request: { kind: 'ACTOR_TOKEN_BINDINGS' } })
+    ).resolves.toMatchObject({ kind: 'ACTOR_TOKEN_BINDINGS', bindings: [] })
     const playerInput: LiveSessionEncounterRulesInput = {
       ...input,
       expectedUserId: playerId,

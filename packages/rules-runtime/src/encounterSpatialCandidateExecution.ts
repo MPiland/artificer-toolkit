@@ -225,11 +225,12 @@ export async function settleAutomaticSpatialEvidence(input: {
   let { result, d20 } = input
   const { effectInput, random } = input
   // A spatial save belongs to the contacted actor, so its roller's preference applies.
-  if ('continuation' in result && !d20 && input.autoRoll[input.candidate.targetActorId] === true) {
-    if (!result.evidencePolicy)
-      throw new EncounterConflictError(
-        'Automatic spatial execution requested unsupported evidence.'
-      )
+  if (
+    'continuation' in result &&
+    result.evidencePolicy &&
+    !d20 &&
+    input.autoRoll[input.candidate.targetActorId] === true
+  ) {
     const requestId = result.continuation.request.requestId
     const { faces, rollMode } = resolveEncounterD20Answer({
       derivedRollMode: result.evidencePolicy.rollMode,
@@ -244,13 +245,19 @@ export async function settleAutomaticSpatialEvidence(input: {
       expectedEvidencePolicy: result.evidencePolicy
     })
   }
-  // Its damage dice belong to the zone source's controller, who may auto-roll them.
+  // Its damage dice, after the save or with none, belong to the zone source's controller, who may
+  // auto-roll them.
   while (
     'continuation' in result &&
-    d20 &&
+    (d20 || !result.evidencePolicy) &&
     isDamageDieRequest(result.continuation, result.evidencePolicy) &&
-    input.autoRoll[spatialPendingRollerActorId({ candidate: input.candidate, diceStage: d20 })] ===
-      true
+    input.autoRoll[
+      spatialPendingRollerActorId({
+        candidate: input.candidate,
+        d20Policy: result.evidencePolicy,
+        diceStage: d20
+      })
+    ] === true
   ) {
     const { request } = result.continuation
     if (request.kind !== 'INTEGER_RANGE')
