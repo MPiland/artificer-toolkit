@@ -8896,7 +8896,7 @@
               "id": "SPELLS-20.T4b2b2",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
-              "text": "Turn zone stage persistence and play: staged-plan validation, the mechanics batch and the zone application record in the terminal transaction, the generic encounter-persistence seams (pending reads, admission, replay, void and owner, terminal completion), Session Worker and Convex loading of placed zones and the Scene, the SRD flip, ADR 0034 note and persistence.md section; prompted rolls are not undoable. Proved by a Stinking Cloud journey plus Spirit Guardians start. Unblocks Stinking Cloud and Blade Barrier; Oil Flask stays MANUAL (requiresIgnition, maxApplicationsTotal).",
+              "text": "Turn zone stage persistence and play: staged-plan validation, the mechanics batch and the zone application record in the terminal transaction, the generic encounter-persistence seams (pending reads, admission, replay, void and owner, terminal completion), Session Worker and Convex loading of placed zones and the Scene, the SRD flip, ADR 0034 note and persistence.md section; prompted rolls are not undoable. Proved by a Spirit Guardians start journey and an ADVANCE_TURN journey on a real SRD start-of-turn damage zone, with END on a zone authored from core options. Stinking Cloud moves to T4b3; Oil Flask stays MANUAL (requiresIgnition, maxApplicationsTotal).",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -8905,6 +8905,19 @@
                 "after": ["SPELLS-20.T4b2b1"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b3",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Stinking Cloud from core options: a failed save in a turn zone costs the creature its action on that turn, the zone applies only to a creature fully within it (requiresFullyWithin), and a creature that does not need to breathe or is immune to poison succeeds automatically. Each authored from core options and generic for any zone; proved on Stinking Cloud with a journey. Raised 2026-10-17 by T4b2b2: the zone compiler accepts only damage, stop-movement and grant outcomes.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T4b2b2"]
+              }
             },
             {
               "id": "SPELLS-20.T4c",
