@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ClassAuthored, EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
@@ -37,8 +38,8 @@ describe('two-weapon fighting through the authoring form (ATTACK-9.5)', () => {
       expect(bonus?.requirements).toBeDefined()
       const result = await normalize('equipment', weapon)
       expect(result.clearedPaths).toEqual([])
-      expect(result.values.effects).toEqual(weapon.effects)
-      expect(result.values.modifiers).toEqual(weapon.modifiers)
+      expect(getValueAtPath(result.values, ['effects'])).toEqual(weapon.effects)
+      expect(getValueAtPath(result.values, ['modifiers'])).toEqual(weapon.modifiers)
     }
   )
 
@@ -49,6 +50,6 @@ describe('two-weapon fighting through the authoring form (ATTACK-9.5)', () => {
     expect(style?.grants?.modifiers).toHaveLength(2)
     const result = await normalize('class', fighter)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.features).toEqual(fighter.features)
+    expect(getValueAtPath(result.values, ['features'])).toEqual(fighter.features)
   })
 })

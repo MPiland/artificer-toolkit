@@ -9,7 +9,10 @@ type Effects = (typeof spells)[number]['effects']
 function grantLifecycle(effects: Effects) {
   const blocks = (effects ?? [])
     .flatMap((effect) => effect.paths)
-    .map((path) => path.resultBlock)
+    .map((path) => {
+      if (path.selectionKind !== 'FIXED') throw new Error('A spell grant path must be FIXED.')
+      return path.resultBlock
+    })
     .filter(
       (block) =>
         block.duration && block.outcomes.some((outcome) => outcome.effectKind === 'APPLY_GRANT')

@@ -7,6 +7,7 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from './concentration.js'
 import { ABILITY_CODE, ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
+import type { EffectPathAuthored } from '@artificer-toolkit/shared/authored'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
 import { SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
@@ -36,6 +37,19 @@ function preparedDefinitions() {
   )
 }
 
+/** The document as a basic action, when it is one: rule-graph documents carry no `kind`. */
+function basicActionOf(
+  document: ReturnType<typeof preparedDefinitions>[number]['document'] | undefined
+) {
+  return document && 'kind' in document && document.kind === 'BASIC_ACTION' ? document : undefined
+}
+
+/** A basic action's path resolves one fixed result block. */
+function fixedResultBlock(path: EffectPathAuthored) {
+  if (path.selectionKind !== 'FIXED') throw new Error('A basic action path must be FIXED.')
+  return path.resultBlock
+}
+
 describe('canonical Convex import preparation', () => {
   it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
     const catalogue = preparedDefinitions().filter(
@@ -43,19 +57,22 @@ describe('canonical Convex import preparation', () => {
     )
     expect(
       Object.fromEntries(
-        catalogue.map((definition) => [
-          definition.label,
-          definition.document.kind === 'BASIC_ACTION'
-            ? [
-                definition.document.actionCost,
-                definition.document.effects.flatMap((effect) =>
-                  effect.paths.flatMap((path) =>
-                    path.resultBlock.outcomes.map((outcome) => outcome.effectKind)
+        catalogue.map((definition) => {
+          const action = basicActionOf(definition.document)
+          return [
+            definition.label,
+            action
+              ? [
+                  action.actionCost,
+                  action.effects.flatMap((effect) =>
+                    effect.paths.flatMap((path) =>
+                      fixedResultBlock(path).outcomes.map((outcome) => outcome.effectKind)
+                    )
                   )
-                )
-              ]
-            : null
-        ])
+                ]
+              : null
+          ]
+        })
       )
     ).toEqual({
       Dash: ['ACTION', ['MOVEMENT_RULE']],
@@ -73,18 +90,18 @@ describe('canonical Convex import preparation', () => {
     )
     // Dodge is authored: attacks against its holder have disadvantage and its Dexterity saves
     // advantage, both only while the holder can act and has speed above 0.
-    const dodgeModifiers =
-      catalogue.find((definition) => definition.label === 'Dodge')?.document.kind === 'BASIC_ACTION'
-        ? catalogue
-            .find((definition) => definition.label === 'Dodge')!
-            .document.effects.flatMap((effect) =>
-              effect.paths.flatMap((path) =>
-                path.resultBlock.outcomes.flatMap((outcome) =>
-                  outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
-                )
-              )
+    const dodgeAction = basicActionOf(
+      catalogue.find((definition) => definition.label === 'Dodge')?.document
+    )
+    const dodgeModifiers = dodgeAction
+      ? dodgeAction.effects.flatMap((effect) =>
+          effect.paths.flatMap((path) =>
+            fixedResultBlock(path).outcomes.flatMap((outcome) =>
+              outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
             )
-        : []
+          )
+        )
+      : []
     expect(dodgeModifiers.map((modifier) => modifier.valueDomainCode)).toEqual([
       ...Array(4).fill('ATTACKS_AGAINST'),
       'SAVING_THROW_MODIFIER'
@@ -113,7 +130,7 @@ describe('canonical Convex import preparation', () => {
       expect(
         modifier.restrictions?.groups.flatMap((group) =>
           group.contexts.flatMap((context) =>
-            context.conditions.map((condition) =>
+            (context.conditions ?? []).map((condition) =>
               condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
             )
           )
@@ -121,11 +138,12 @@ describe('canonical Convex import preparation', () => {
       ).toEqual(['CAN_ACT', 'SPEED_ABOVE_ZERO'])
     // Help is authored: an attack-roll advantage per attack kind plus one ability-check advantage,
     // all used up by the first attack roll or ability check, on one other willing creature.
-    const helpEffect = catalogue.find((definition) => definition.label === 'Help')!.document
-    const helpBlocks =
-      helpEffect.kind === 'BASIC_ACTION'
-        ? helpEffect.effects.flatMap((effect) => effect.paths.map((path) => path.resultBlock))
-        : []
+    const helpAction = basicActionOf(
+      catalogue.find((definition) => definition.label === 'Help')!.document
+    )
+    const helpBlocks = helpAction
+      ? helpAction.effects.flatMap((effect) => effect.paths.map(fixedResultBlock))
+      : []
     const helpModifiers = helpBlocks.flatMap((block) =>
       block.outcomes.flatMap((outcome) =>
         outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
@@ -144,21 +162,21 @@ describe('canonical Convex import preparation', () => {
         consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
       }
     ])
-    expect(
-      helpEffect.kind === 'BASIC_ACTION' && helpEffect.effects[0]?.invocation.targeting
-    ).toEqual({
+    expect(helpAction?.effects[0]?.invocation.targeting).toEqual({
       selectionKind: 'SINGLE_TARGET',
       dispositionKind: 'WILLING',
       self: 'REFUSED'
     })
     // First Aid is a CHECK action: a DC 10 Wisdom (Medicine) check whose success stabilizes the target.
-    const firstAid = catalogue.find((definition) => definition.label === 'First Aid')?.document
-    expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation.targeting).toEqual({
+    const firstAid = basicActionOf(
+      catalogue.find((definition) => definition.label === 'First Aid')?.document
+    )
+    expect(firstAid?.effects[0]?.invocation.targeting).toEqual({
       selectionKind: 'SINGLE_TARGET',
       dispositionKind: 'WILLING',
       self: 'REFUSED'
     })
-    expect(firstAid?.kind === 'BASIC_ACTION' && firstAid.effects[0]?.invocation).toMatchObject({
+    expect(firstAid?.effects[0]?.invocation).toMatchObject({
       triggerCode: 'CHECK',
       check: {
         checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
@@ -186,7 +204,7 @@ describe('canonical Convex import preparation', () => {
     expect(
       modifier?.restrictions?.groups.flatMap((group) =>
         group.contexts.flatMap((context) =>
-          context.conditions.map((condition) =>
+          (context.conditions ?? []).map((condition) =>
             condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
           )
         )

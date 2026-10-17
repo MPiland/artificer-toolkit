@@ -69,7 +69,6 @@ const inputs: readonly SocialNotificationEmailInput[] = [
       campaignPublicId,
       occurredAt,
       scope: 'TABLE',
-      sourcePublicId: announcementPublicId,
       summary: 'A new Campaign announcement is available.'
     }
   }

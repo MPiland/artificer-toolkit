@@ -83,7 +83,7 @@ jobs:
       - name: Package tests
         id: tests
         run: |
-          for package in schema shared source-data rules-runtime encounter-persistence; do
+          for package in schema shared source-data emails rules-runtime encounter-persistence; do
             yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
           done
       - uses: ./.github/actions/regenerate-snapshots
@@ -129,7 +129,7 @@ jobs:
         run: yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/apis --concurrency=1 --only --env-mode=loose --continue
       - name: Packages
         if: success() || failure()
-        run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --concurrency=1 --only --env-mode=loose --continue
+        run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --filter=@artificer-toolkit/design-system --concurrency=1 --only --env-mode=loose --continue
 
   typecheck-web:
     name: Typecheck web
@@ -149,6 +149,22 @@ jobs:
       - name: Stories
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
+
+  # A type error ends the run once both typecheck jobs have reported, instead of after the ~15-minute test
+  # jobs. It cancels only this run; the cancelled run keeps the failed typecheck jobs, which
+  # scripts/watchCi.ps1 reports. A green run never waits on this job.
+  cancel-on-type-error:
+    name: Cancel the run on a type error
+    needs: [typecheck-packages, typecheck-web]
+    if: ${{ !cancelled() && contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
   # A Tests run that failed on snapshot mismatches leaves the corrected files as one `updated-snapshots`
   # artifact (scripts/watchCi.ps1 prints the download command). The failing job stays failed, so snapshot
