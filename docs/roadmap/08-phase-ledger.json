@@ -9138,7 +9138,13 @@
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomDepartAction.test.ts",
+            "apps/session-worker/test/nativeRoomActorLink.test.ts",
+            "apps/session-worker/test/nativeRoomGiantInsect.test.ts",
+            "apps/session-worker/test/nativeRoomPolymorph.test.ts",
+            "apps/session-worker/test/nativeRoomTeleportAction.test.ts"
+          ],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
@@ -9149,10 +9155,12 @@
               "proof": [
                 "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
                 "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
-                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b"
+                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b",
+                "T2 MANIFEST Giant Insect (D130): packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts compiles the real SRD spell as a one-hour swap without carry-over; journey apps/session-worker/test/nativeRoomGiantInsect.test.ts (transform and byte-exact undo, revert at duration end, 0 HP ends the form and excess is lost, over-count and missing form refused); encounterMechanicsBatchPlan.test.ts, encounter-action-actors-target.test.ts.",
+                "T4-T4d creature form for Characters: apps/session-worker/test/nativeRoomPolymorph.test.ts (Polymorph, form outlasting the Run, acting in the form: the form Bite resolves and hurts its target); characterFormActions.test.ts. Merged in m65 22e21b5c5."
               ],
               "origin": [],
-              "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+              "note": "Held open: its core-options parity proof packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts is one of the 12 failing authoring tests CI never ran; closes when PLATFORM-23.2 makes it green. Giant Centipede Bite (GIANT_CENTIPEDE_VENOM outcome) is not plannable, so a Giant Insect centipede cannot bite yet."
             },
             {
               "id": "SPELLS-28.2",
