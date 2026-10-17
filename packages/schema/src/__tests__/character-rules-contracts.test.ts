@@ -739,7 +739,7 @@ describe('Character rule contracts', () => {
     })
     const contributor = {
       sourceId: 'feature-1',
-      source: { kind: 'MANUAL_ADJUSTMENT' as const, adjustmentId: 'adjustment-1' },
+      source: { kind: 'AUTHORED' as const, id: 'adjustment-1', holderActorId: null },
       grantId: 'grant-1',
       domainKey: 'INITIATIVE:ADVANTAGE',
       influence: 'ADVANTAGE' as const

@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import { rollModeContributorSourceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   compareCanonicalD20Contributors,
+  type D20Contributor,
   RULE_GRAPH_LIMITS,
   RULE_VALUE_KIND,
   type GameSystemRuleCapabilityContract,
@@ -26,21 +28,14 @@ export const DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY = 'dnd5e.concentration-s
 export const DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY =
   'dnd5e.concentration-contributor-checksum'
 
-interface Dnd5eConcentrationContributor {
-  sourceId: string
-  grantId: string | null
-  domainKey: string | null
-  influence: 'ADVANTAGE' | 'DISADVANTAGE'
-}
-
 /** Rejects noncanonical or altered contributor evidence before it enters a child receipt. */
 function validateDnd5eConcentrationContributors(
-  contributors: readonly Dnd5eConcentrationContributor[],
+  contributors: readonly D20Contributor[],
   contributorChecksum: string
 ): void {
   if (contributors.length > RULE_GRAPH_LIMITS.NODES)
     throw new Error('D&D concentration saving-throw contributors exceed the rules-runtime limit.')
-  let prior: Dnd5eConcentrationContributor | null = null
+  let prior: D20Contributor | null = null
   for (const contributor of contributors) {
     if (prior !== null && compareCanonicalD20Contributors(prior, contributor) >= 0)
       throw new Error('D&D concentration saving-throw contributors are not canonical.')
@@ -107,7 +102,8 @@ const creatureSaveRowsSchema = z.array(
         sourceId: z.string(),
         grantId: z.nullable(z.string()),
         domainKey: z.nullable(z.string()),
-        influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+        influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
+        source: rollModeContributorSourceDtoSchema
       })
     )
   })
@@ -148,14 +144,14 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       conditionTypeId?: string
       modifier: number
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-      contributors: readonly Dnd5eConcentrationContributor[]
+      contributors: readonly D20Contributor[]
     }[]
   }
 }): {
   facts: Record<string, string | number>
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   modifier: number
-  contributors: ReadonlyArray<Dnd5eConcentrationContributor>
+  contributors: ReadonlyArray<D20Contributor>
   contributorChecksum: string
 } {
   const appliedDamage = positiveSafeInteger(input.appliedDamage, 'Applied damage')
@@ -181,11 +177,12 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   if (!Array.isArray(contributors))
     throw new Error('D&D concentration saving-throw contributors are unavailable.')
   const normalizedContributors = contributors
-    .map(({ sourceId, grantId, domainKey, influence }) => ({
+    .map(({ sourceId, grantId, domainKey, influence, source }) => ({
       sourceId,
       grantId,
       domainKey,
-      influence
+      influence,
+      source
     }))
     .sort(compareCanonicalD20Contributors)
   const contributorChecksum = checksumRuleDocument(normalizedContributors)

@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import {
+  ROLL_MODE_RULE_SOURCE_IDS,
   checksumRuleDocument,
   compareCanonicalD20Contributors
 } from '@artificer-toolkit/shared/rules'
@@ -18,10 +19,6 @@ import {
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
-import {
-  ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-  ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
-} from './encounterRollModeReasons.js'
 
 type D20Policy = Pick<
   ServerRuleExecutionD20PolicyDto,
@@ -86,9 +83,10 @@ export function isEncounterSightGovernedD20(input: {
   return (
     input.belief !== null ||
     input.policy.contributors.some(
-      (contributor) =>
-        contributor.sourceId === ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID ||
-        contributor.sourceId === ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
+      ({ source }) =>
+        source.kind === 'RULE' &&
+        (source.id === ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER ||
+          source.id === ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET)
     )
   )
 }

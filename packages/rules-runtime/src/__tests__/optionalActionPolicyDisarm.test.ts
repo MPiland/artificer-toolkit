@@ -64,6 +64,7 @@ describe('Disarm contest contributors', () => {
         'domainKey',
         'grantId',
         'influence',
+        'source',
         'sourceId'
       ])
   })

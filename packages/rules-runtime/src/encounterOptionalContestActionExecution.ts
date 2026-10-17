@@ -3,6 +3,7 @@ import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { D20Contributor } from '@artificer-toolkit/shared/rules'
 
 import {
   DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
@@ -27,12 +28,7 @@ type OptionalContestD20Policy = {
   actorId: string
   requestNodeId: 'initiator_d20' | 'target_d20'
   rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
-  contributors: readonly {
-    sourceId: string
-    grantId: string | null
-    domainKey: string | null
-    influence: 'ADVANTAGE' | 'DISADVANTAGE'
-  }[]
+  contributors: readonly D20Contributor[]
   contributorChecksum: string
   modifier: number
 }
