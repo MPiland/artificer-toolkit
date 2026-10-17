@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
+  collectSpatialTurnCandidates,
   recordZoneApplications,
   zoneApplicationKey,
   collectTokenFootprintPathCrossings,
@@ -1055,5 +1056,95 @@ describe('spatialTokensWithinSpaceRadius', () => {
     expect(() =>
       spatialTokensWithinSpaceRadius({ radius: 10, tokens: [at('a1', 2)], casterTokenId: casterId })
     ).toThrow('caster')
+  })
+})
+
+describe('spatial turn candidates', () => {
+  const key = zoneApplicationKey(ids.effect, ids.targetActor)
+  const collectTurn = (
+    input: Partial<Parameters<typeof collectSpatialTurnCandidates>[0]> & {
+      readonly targetAt?: number
+    } = {}
+  ) =>
+    collectSpatialTurnCandidates({
+      actorIdByTokenId: new Map([
+        [ids.sourceToken, ids.sourceActor],
+        [ids.targetToken, ids.targetActor]
+      ]),
+      effects: [effect({ turnTriggers: ['START_OF_TURN', 'END_OF_TURN'] })],
+      targetTokenId: ids.targetToken,
+      tokens: [token(ids.targetToken, input.targetAt ?? 0)],
+      trigger: 'START_OF_TURN',
+      turnSequence: 1,
+      ...input
+    })
+
+  it('catches a creature inside the area at a trigger the effect has, with the effect facts', () => {
+    expect(collectTurn()).toEqual([
+      {
+        effectId: ids.effect,
+        sourceActorId: ids.sourceActor,
+        targetActorId: ids.targetActor,
+        trigger: 'START_OF_TURN'
+      }
+    ])
+    expect(collectTurn({ trigger: 'END_OF_TURN' })).toHaveLength(1)
+  })
+
+  it.each([
+    ['outside the area', { targetAt: 10 }],
+    ['at a boundary the effect lacks', { effects: [effect({ turnTriggers: ['END_OF_TURN'] })] }],
+    ['for an effect without turn triggers', { effects: [effect()] }],
+    [
+      'a creature the effect never catches',
+      {
+        effects: [
+          effect({ turnTriggers: ['START_OF_TURN'], unaffectedActorIds: [ids.targetActor] })
+        ]
+      }
+    ],
+    [
+      'an effect whose per-turn limit is spent',
+      {
+        effects: [effect({ turnTriggers: ['START_OF_TURN'], maxApplicationsPerTurn: 1 })],
+        zoneApplications: { [key]: { turnSequence: 1, count: 1 } }
+      }
+    ]
+  ])('catches nothing: %s', (_name, input) => {
+    expect(collectTurn(input)).toEqual([])
+  })
+
+  it('counts a limit spent on an earlier turn as unspent', () => {
+    expect(
+      collectTurn({
+        effects: [effect({ turnTriggers: ['START_OF_TURN'], maxApplicationsPerTurn: 1 })],
+        zoneApplications: { [key]: { turnSequence: 0, count: 1 } }
+      })
+    ).toHaveLength(1)
+  })
+
+  it('follows a token-anchored effect to its source token and orders effects by id', () => {
+    const anchored = effect({
+      anchorKind: 'TOKEN',
+      effectId: ids.effectTwo,
+      geometry: {
+        frame: 'TOKEN_LOCAL',
+        shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 3 }
+      },
+      sourceTokenId: ids.sourceToken,
+      turnTriggers: ['START_OF_TURN']
+    })
+    const tokens = [token(ids.targetToken, 0), token(ids.sourceToken, 2)]
+    const found = collectTurn({
+      effects: [anchored, effect({ turnTriggers: ['START_OF_TURN'] })],
+      tokens
+    })
+    expect(found.map((candidate) => candidate.effectId)).toEqual([ids.effect, ids.effectTwo])
+    expect(
+      collectTurn({
+        effects: [anchored],
+        tokens: [token(ids.targetToken, 0), token(ids.sourceToken, 20)]
+      })
+    ).toEqual([])
   })
 })

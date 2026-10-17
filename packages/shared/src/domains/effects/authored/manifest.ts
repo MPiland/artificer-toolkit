@@ -140,7 +140,6 @@ export type ManifestComponentAuthored = {
   id: string
   order: number
   label: string
-  interactionKind?: ManifestInteractionKind
   interactionKinds?: ManifestInteractionKind[]
   bypassAtHalfSpeed?: boolean
   choosesUnaffected?: boolean

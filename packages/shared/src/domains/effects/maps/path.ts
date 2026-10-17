@@ -866,23 +866,6 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       .set('order', number(['order'], 'Order', { requiredIf: true }))
       .set('label', text(['label'], 'Label', { requiredIf: true }))
       .set(
-        'interactionKind',
-        selectSingle(['interactionKind'], 'Interaction', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ENTER_OR_PASS_THROUGH', label: 'Enter or Pass Through' },
-            { code: 'MOVE_ACROSS', label: 'Move Across' },
-            { code: 'ENTER_SPACE', label: 'Enter Space' },
-            { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
-            { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
-            { code: 'SOURCE_HIT', label: 'Source Hits' },
-            { code: 'TARGET_TAKES_FIRE_DAMAGE', label: 'Target Takes Fire Damage' },
-            { code: 'START_OF_ATTACHED_TARGET_TURN', label: 'Start of Attached Target Turn' },
-            { code: 'END_OF_ATTACHED_TARGET_NEXT_TURN', label: 'End of Attached Target Next Turn' }
-          ]
-        })
-      )
-      .set(
         'interactionKinds',
         selectMulti(['interactionKinds'], 'Interactions', {
           kind: 'INLINE_OPTIONS',

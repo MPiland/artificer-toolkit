@@ -390,8 +390,13 @@ graph's `movementInterruption` output; a made save may deal the same dice halved
 `endOnEvents`). Only point shapes (`SPHERE`, `CYLINDER`, `CIRCLE`, a cube) compile; a directed zone (cone, line, a
 Self cube) and any authored feature the System cannot honor in full (a second component, behavior or outcome, an
 unmodeled field, a save DC other than fixed, an end event the System never reads) stay manual with
-`NOT_NORMALIZED`. The component's `interactionKind` picks the trigger modes (`ZONE_INTERACTION_TRIGGER_MODES`):
-`ENTER_SPACE` is ENTER (the path ends inside), `MOVE_ACROSS` is CROSS, and `ENTER_OR_PASS_THROUGH` is both. SRD text
+`NOT_NORMALIZED`. The component's `interactionKinds` (a non-empty list; there is no single-kind field) pick what catches a
+creature (`zoneTriggers`): `ENTER_SPACE` is ENTER (the path ends inside), `MOVE_ACROSS` is CROSS, and
+`ENTER_OR_PASS_THROUGH` is both (`triggerModes`); `START_TURN_IN_SPACE` and `END_TURN_IN_SPACE` are the
+placement's `turnTriggers` `START_OF_TURN` and `END_OF_TURN`, in that order. A zone may have either set or both;
+a kind the System does not model keeps the whole zone manual. `collectSpatialTurnCandidates` (shared/vtt) is the
+containment seam for turn triggers: it applies `spatialEffectAffects` and the per-turn limit, as movement does.
+The turn stage that runs them lands with SPELLS-20 T4b2b. SRD text
 that says a creature "enters the area" (Caltrops, Ball Bearings) authors `ENTER_OR_PASS_THROUGH`, so a drag that
 ends beyond the field still triggers the save and, on a failure, stops at the first field square it entered. The System, not the authored zone, owns the placement defaults: `planEncounterPlacedZone` sets
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
