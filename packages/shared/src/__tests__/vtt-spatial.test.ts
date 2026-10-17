@@ -159,6 +159,7 @@ describe('spatial movement candidates', () => {
         })
       const sweep = (unaffectedActorIds: readonly string[]) =>
         collectSpatialMovementCandidates({
+          turnSequence: 1,
           actorIdByTokenId: new Map([
             [ids.sourceToken, ids.sourceActor],
             [ids.targetToken, ids.targetActor]
@@ -367,6 +368,7 @@ describe('spatial movement candidates', () => {
       sourceTokenId: ids.sourceToken
     })
     const candidates = collectSpatialMovementCandidates({
+      turnSequence: 1,
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
@@ -399,6 +401,7 @@ describe('spatial movement candidates', () => {
       sourceTokenId: ids.sourceToken
     })
     const candidates = collectSpatialMovementCandidates({
+      turnSequence: 1,
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
