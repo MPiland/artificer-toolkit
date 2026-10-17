@@ -92,7 +92,8 @@ function sleepRoom() {
     },
     characterSpellcasting: { spells: [sleep], prepared: [sleep.id] },
     characterAction: (action) => action.label === 'Sleep (1st level)',
-    rolls: [4, 4, 4, 4, 4],
+    autoRoll: 'BOTH',
+    rolls: [4, 4, 4, 4, 4, 18],
     fallbackRoll: 5
   })
 }
@@ -135,7 +136,7 @@ async function undoLastAction(room: SleepRoom) {
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
 }
 
-/** The attacker's Bite at `targetId` on its own turn, hitting with a natural 20. */
+/** The attacker's Bite at `targetId` on its own turn, hitting with a natural 19, the room rolling it and the damage. */
 async function biteHits(room: SleepRoom, targetId: string) {
   await room.advanceTurn()
   const bite = plainWolf.features?.find((feature) => feature.label === 'Bite')
@@ -149,15 +150,6 @@ async function biteHits(room: SleepRoom, targetId: string) {
     ATTACKER_ID
   )
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  const decision = await room.pendingDecision()
-  if (!('request' in decision.pending)) throw new Error('The Bite asks for its attack roll.')
-  const rolled = await room.resolve(decision, {
-    kind: 'ENTER_DICE',
-    requestId: decision.pending.request.requestId,
-    rawFaces: [20],
-    rollMode: 'NORMAL'
-  })
-  expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
 }
 
 describe('room cast of Sleep (SPELLS-27.T8)', () => {
