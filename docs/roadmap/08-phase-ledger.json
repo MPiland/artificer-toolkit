@@ -1069,16 +1069,26 @@
           "acs": [
             {
               "id": "PLATFORM-20.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
-              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller."
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller.",
+              "proof": [
+                "Deleted the Character compilers (subjects/compilers/character/*), compileShape/CompiledShape, ForbidIfMissing and compileScalingSource: no production caller in a repo-wide search, and the full build, every typecheck and every suite are green after deletion.",
+                "shared-correctness.test.ts \"preserves stable currency-group identity through compilation\" removed with its deleted subject (an identity check on the Character compiler); orchestrator accepted.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
             },
             {
               "id": "PLATFORM-20.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one."
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one.",
+              "proof": [
+                "Removed copy-only compileSpeed (SpeedAuthored), compileRange (SenseRangeAuthored), compileStartingEquipment and helpers (StartingEquipmentAuthored) and compileFeatureOption (wrapper of compileFeatureBase); the kept list and reasons are in ADR 0003 \"Compile stage as built\" and docs/handoffs/slice-platform-20.md.",
+                "packages/shared/src/__tests__/compiler-scaling.test.ts, starting-equipment-node-maps.test.ts, modifier-grant-compiler.test.ts; packages/schema/src/__tests__/modifier-grant-authored-parity.test.ts.",
+                "Red ci/platform-20-red 2c37820a9 (Tests 38987927973 failed in shared#build as intended); green ci/platform-20 57625a799 (Tests 38992261820, Live 38992261797); merged in m62 21d8d8206 (Tests 38994693080, Live 38994693086)."
+              ]
             },
             {
               "id": "PLATFORM-20.3",
