@@ -8798,17 +8798,16 @@
             },
             {
               "id": "SPELLS-20.T4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
-              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path.",
+              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path. (Red: Tests 38998091848 on 8b55d392a. Green: ci/spells-20-t4a 5c9c90a54, Tests 39001554879, Live 39001554886; docs-only tip 151372f39 Tests 39002845848. Merged in m66 6a73cedf3 (Tests 39004397749, Live 39004397753).)",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
               "id": "SPELLS-20.T4b",
@@ -8825,7 +8824,7 @@
             },
             {
               "id": "SPELLS-20.T4c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface.",
               "wsjf": {
@@ -8834,7 +8833,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4d",
