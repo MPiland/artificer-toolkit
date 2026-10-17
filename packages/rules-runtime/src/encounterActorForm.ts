@@ -173,7 +173,7 @@ export function carriedCreatureForm(
  */
 export function characterFormCreatureView(
   actor: EncounterRunCharacterActorState
-): Extract<EncounterRunActorState, { kind: 'CREATURE' }> | null {
+): FormableActor | null {
   const { form } = actor
   if (form === null) return null
   return {
