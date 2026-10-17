@@ -17,6 +17,9 @@ Two lanes share the machine:
   is capped at 30 minutes, prints the type errors and keeps the full log in
   local-validation/typecheck/<Name>.log.
 
+A light batch given -BuildFor <test files> first builds, in the typecheck lane, the dependencies of
+the workspaces that own those files (Turbo-cached), so its tests import current package dist output.
+
 Each waiter queues a ticket in its lane's queue (.validation.queue or .validation.light-queue).
 Only the oldest live tickets, one per slot, may take a lock, so each lane runs in arrival order. A
 ticket whose waiting process has exited is pruned. The batch runs in a child pwsh under a timeout
@@ -33,22 +36,59 @@ pwsh -NoProfile -File D:/dev/artificer-toolkit/scripts/withValidationLock.ps1 -N
 pwsh -NoProfile -File D:/dev/artificer-toolkit/scripts/withValidationLock.ps1 -Lane light -Name spells-22-red -Script local-validation/spells-22/red.ps1
 
 .EXAMPLE
+pwsh -NoProfile -File D:/dev/artificer-toolkit/scripts/withValidationLock.ps1 -Lane light -Name spells-22-room -Script local-validation/spells-22/room.ps1 -BuildFor apps/session-worker/src/room.test.ts
+
+.EXAMPLE
 pwsh -NoProfile -File D:/dev/artificer-toolkit/scripts/withValidationLock.ps1 -Lane typecheck -Name spells-22-types
 #>
 param(
   [Parameter(Mandatory)] [ValidatePattern('^[a-z0-9][a-z0-9-]{0,47}$')] [string] $Name,
   [string] $Script,
   [ValidateSet('heavy', 'light', 'typecheck')] [string] $Lane = 'heavy',
-  [ValidateRange(0, 240)] [int] $TimeoutMinutes = 0
+  [ValidateRange(0, 240)] [int] $TimeoutMinutes = 0,
+  [string[]] $BuildFor = @()
 )
 $ErrorActionPreference = 'Stop'
 $validation = Join-Path (Split-Path -Parent $PSScriptRoot) 'local-validation'
 $light = $Lane -eq 'light'
 $typecheck = $Lane -eq 'typecheck'
 $typecheckMB = 4096
-if ($typecheck) {
+# `pwsh -File` passes a comma list as one string.
+$BuildFor = @($BuildFor | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+if ($typecheck -and $TimeoutMinutes -gt 30) { throw 'Typecheck lane batches are capped at 30 minutes.' }
+if ($BuildFor -and $Lane -eq 'heavy') { throw '-BuildFor belongs to the light lane; a heavy batch builds itself.' }
+if ($light -and $BuildFor) {
+  # Build what the named test files import from dist (their workspaces' dependencies) in the typecheck
+  # lane, one compile at a time behind its memory gate, before this batch takes a light slot.
+  & $PSCommandPath -Lane typecheck -Name $Name -BuildFor $BuildFor
+  if ($LASTEXITCODE) { exit $LASTEXITCODE }
+}
+if ($typecheck -and $BuildFor) {
   if ($Script) { throw 'The typecheck lane runs its own fixed command; it takes no -Script.' }
-  if ($TimeoutMinutes -gt 30) { throw 'Typecheck lane batches are capped at 30 minutes.' }
+  $workspaces = @($BuildFor | ForEach-Object {
+      $dir = Split-Path -Parent (Resolve-Path -LiteralPath $_).Path
+      while ($dir -and -not (Test-Path (Join-Path $dir 'package.json'))) { $dir = Split-Path -Parent $dir }
+      if ($dir -and $dir -ne (Get-Location).Path) { (Get-Content -Raw (Join-Path $dir 'package.json') | ConvertFrom-Json).name }
+    } | Sort-Object -Unique)
+  $filters = ($workspaces | ForEach-Object { "'--filter=$_^...'" }) -join ', '
+  $command = @'
+$ErrorActionPreference = 'Continue'
+$env:GOMAXPROCS = '2'
+$log = 'local-validation/typecheck/NAME-build.log'
+New-Item -ItemType Directory -Force (Split-Path $log) | Out-Null
+$filters = @(FILTERS)
+"Building the dependencies of: $($filters -join ' ')"
+$exitCode = 0
+if ($filters) {
+  yarn turbo run build @filters --concurrency=1 --env-mode=loose *> $log
+  $exitCode = $LASTEXITCODE
+}
+Select-String -CaseSensitive -LiteralPath $log -Pattern 'error TS|ERROR|Failed:|Tasks:|Cached:|Time:' -ErrorAction SilentlyContinue |
+  Select-Object -First 40 | ForEach-Object { $_.Line.Substring(0, [Math]::Min(300, $_.Line.Length)) }
+exit $exitCode
+'@ -creplace 'NAME', $Name -creplace 'FILTERS', $filters
+} elseif ($typecheck) {
+  if ($Script) { throw 'The typecheck lane runs its own fixed command; it takes no -Script.' }
   # The Tests workflow's typecheck tasks for the changed workspaces and their dependents. Web's
   # `typecheck` script is its `typecheck:app`, so web runs its three tasks once each instead.
   # The full log stays in local-validation/typecheck/<Name>.log; the console gets the errors and totals.
@@ -77,7 +117,7 @@ $report = Select-String -CaseSensitive -LiteralPath $log -Pattern 'Typechecking|
 $report
 "Full log: $log"
 exit $exitCode
-'@ -replace 'NAME', $Name
+'@ -creplace 'NAME', $Name
 } else {
   if (-not $Script) { throw "The $Lane lane needs -Script." }
   $batch = (Resolve-Path -LiteralPath $Script).Path

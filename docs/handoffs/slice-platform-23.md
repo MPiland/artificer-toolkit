@@ -47,6 +47,19 @@ The CI fail-fast gate reports a type error in about 6 minutes, plus the push and
 
 Proof (`local-validation/platform-23/lane-proof.txt`): the slice changes root config, so every workspace is in scope. Clean pass 108 s (exit 0, 17 of 19 tasks cached); then a `string` assigned to a `number` in `apps/session-worker/src/index.ts`: exit 1 in 45 s, printing `src/index.ts(143,14): error TS2322`, with no push or CI run; reverted, clean pass 5 s, all cached.
 
+## T4: scoped build before local test files
+
+A light batch takes `-BuildFor <test files>`. Before it queues for a light slot, the runner maps each file to the workspace that owns it and runs `turbo run build --filter=<workspace>^...` (that workspace's dependencies, Turbo-cached, `--concurrency=1`) as a typecheck-lane batch: same lock, same 4 GB commit-headroom gate, one compile at a time. The light lane still refuses scripts that build.
+
+Proof (`local-validation/platform-23/build-proof.txt`): a comment added to `packages/rules-runtime/src/index.ts`, then `apps/session-worker/src/roomEncounterMechanics.test.ts` with `-BuildFor` that file.
+
+| Run                | Build (7 tasks)           | Test  | Total |
+| ------------------ | ------------------------- | ----- | ----- |
+| After the change   | 6.1 s (2 rebuilt, 5 hits) | 20 s  | 45 s  |
+| Again, nothing new | 0.9 s (all cached)        | 3.4 s | 12 s  |
+
+`tsc` builds incrementally from `tsconfig.build.tsbuildinfo`, so a source change rebuilds in seconds. A build with no tsbuildinfo and no cache (fresh checkout) is part of the cold typecheck times in T3.
+
 ## Status log
 
 - 2026-10-16: local red (12 failed / 16 passed in the six files) reproduced after building packages. Green: `packages/authoring/src` 15 files, 104 tests passed (light lane).
