@@ -7922,7 +7922,7 @@
                 "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
               ],
               "origin": [],
-              "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5). Built 2026-10-10 (D103): proved by the executor, room and journey tests.",
+              "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5). Built 2026-10-10 (D103): proved by the executor, room and journey tests. 2026-10-17: SPELLS-7.T1 merged (47f6f85cd, m75) proves save-for-half; stays TODO until T2 fixes Ice Storm.",
               "id": "SPELLS-7.2"
             },
             {
@@ -7940,13 +7940,26 @@
           "tasks": [
             {
               "id": "SPELLS-7.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-7.2"],
               "text": "Bug (found by ATTACK-2.T2): 19 SRD spells whose text gives half as much damage on a successful save encode only ON_SAVE_FAIL damage, so a made save takes none: call-lightning, cloudkill, delayed-blast-fireball, earthquake, flaming-sphere, glyph-of-warding, guardian-of-faith, ice-storm, incendiary-cloud, insect-plague, moonbeam, storm-of-vengeance, sunbeam, symbol, thunderwave, wall-of-fire, wall-of-ice, wall-of-thorns, wind-wall. Add the ON_SAVE_SUCCESS half-damage path in source data, with a source-data regression test that walks every SRD spell and fails while any save-for-half text lacks it (red on these 19), plus a Thunderwave area-save resolution test proving a made save takes half. Zone spells in the list resolve the path through SPELLS-20.T4a.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
+                "size": 2
+              },
+              "note": "CI ci/spells-7-t1 671099470 (Tests 39043398747 with red proof, Live 39043398763); merged 47f6f85cd via batch ci/merge-m75 (Tests 39044937675, Live 39044937683). Workbook docs/handoffs/slice-spells-7.md. Thunderwave and Ice Storm gain ON_SAVE_SUCCESS HALF paths; walker saveForHalfDamage.test.ts also caught Chain Lightning (success rolled a separate 5d8, now halves the 10d8). 17 of the 19 plus Control Water author no damage at all (11 CLOSED_RULE, 4 ZONE manifests without interactions, 3 MANUAL_ADJUDICATION) and sit in an exact DAMAGE_NOT_AUTHORED list that fails if any gains failed-save damage without its half path."
+            },
+            {
+              "id": "SPELLS-7.T2",
+              "text": "Ice Storm: scale the bludgeoning damage with spell slot level when upcast, and give the cold fail path its own save effect id instead of reusing (0x214,1); failing-first tests on the real SRD spell.",
+              "status": "TODO",
+              "closes": ["SPELLS-7.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
                 "size": 2
               }
             }
@@ -12235,6 +12248,299 @@
             "size": 3,
             "finalSource": true
           }
+        }
+      ]
+    },
+    {
+      "id": "QUALITY",
+      "title": "Code quality: one home per rule",
+      "kind": "feature",
+      "dependsOn": [],
+      "summary": "Removes duplicated and diverging logic, pre-launch shims and monolithic files found by the 2026-10-17 audit, and adds lint guardrails so they cannot return. Principles in AGENTS.md Patterns to Avoid.",
+      "regressionTests": [],
+      "uat": [],
+      "pbis": [
+        {
+          "id": "QUALITY-1",
+          "title": "Diverging duplicates behave the same everywhere",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 8,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "QUALITY-1.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Each diverging copy (removed-item references, the sheet-command HP clamp after Concentration ends, chat SEND replay, the hit-point pool allowed creature types, ability/skill alias resolution with its ambiguity check, active shield selection for Characters and creatures) has a regression test that fails before the fix, and one shared implementation is called by every former copy."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-1.T1",
+              "text": "Write failing-first regression tests for each divergence, then move each to one shared implementation (rules-runtime or encounter-persistence ports) used by Convex, the Worker and the web.",
+              "status": "TODO",
+              "closes": ["QUALITY-1.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 5
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-2",
+          "title": "Each rule has one implementation",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 8,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "QUALITY-2.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Temporary-HP-first damage and temporary HP non-stacking, Polymorph carry-over, action source-spend settlement, the Character campaign context, currency group validation, the random number source, System-dispatched armor class and the mechanics receipt validation each have one implementation called from every site, with existing tests green and no assertion weakened."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-2.T1",
+              "text": "Consolidate each listed rule into its owning package and delete the copies.",
+              "status": "TODO",
+              "closes": ["QUALITY-2.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 8,
+                "size": 8
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-3",
+          "title": "Lint guardrails stop duplication and escapes returning",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 8,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "QUALITY-3.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Lint fails on double casts through unknown outside tests, on dead exports (knip), on imports that cross the package boundaries (domain logic into Convex or the Worker), and on non-component exports from component files; a large-file warning flags files for responsibility review. Each rule ships with its existing violations fixed, so lint stays at zero warnings."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-3.T1",
+              "text": "Add each lint rule together with the cleanup of its current violations; wire knip and the boundary rules into CI.",
+              "status": "TODO",
+              "closes": ["QUALITY-3.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 8,
+                "size": 5
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-4",
+          "title": "Contracts and primitives come from one place",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 2,
+            "rr": 5,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "QUALITY-4.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Checksum, integer, boolean and uniqueness schema primitives, the Scene command input unions, the mutable Scene table list, account and import-preview validators, and web-local types come from packages/schema; the campaign DTO carries a canManage flag replacing the 12 owner-and-active checks; token control and formatting helpers have one shared home per package."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-4.T1",
+              "text": "Move each duplicated contract and primitive into packages/schema or a domain-named shared module and update every caller.",
+              "status": "TODO",
+              "closes": ["QUALITY-4.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 8
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-5",
+          "title": "Pre-launch shims and dead code are gone",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 2,
+            "rr": 5,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "QUALITY-5.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Legacy optional fields are migrated in development data and made required or deleted, old schemaVersion branches are normalized at load, completed one-off migrations are deleted, dead exports, re-export chains and compatibility aliases are removed, frontend names drop the word runtime, and the 19 legacy authored URL redirect routes are removed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-5.T1",
+              "text": "Migrate development data, tighten the schemas and delete each shim, migration, alias, dead export and legacy redirect route.",
+              "status": "TODO",
+              "closes": ["QUALITY-5.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 5
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-6",
+          "title": "The live room is split along its seams",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 2,
+            "rr": 8,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "QUALITY-6.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Every room command goes through one journaled-command path; nativeLiveSessionRoom is a thin router over admission, command pipeline, per-scope executors, transient relay and Scene cache modules; the single-target and area encounter planners are split into phases; the web holds one live-session WebSocket per campaign."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-6.T1",
+              "text": "Extract runJournaledCommand, split the room and planners by responsibility, and share one live-session connection per campaign on the web.",
+              "status": "TODO",
+              "closes": ["QUALITY-6.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 8,
+                "size": 13,
+                "after": ["SPELLS-19.T4", "SPELLS-20.T4f"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-7",
+          "title": "Monolithic modules are split by responsibility",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 1,
+            "rr": 5,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "QUALITY-7.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "effectActionCompiler, sheetCommandReducer, path.ts, facet.ts and nodeDefinition.ts are split by responsibility, with the duplicated node maps built by one factory and their casts removed; the authoring form context becomes a narrow read context with explicit props; CampaignVttStage, the VTT Scene renderer and the form renderer factories are split into plain modules and components; guided authoring forms are typed by their schema DTOs."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-7.T1",
+              "text": "Split each listed module along its responsibilities and remove the casts and single-use factories that the splits expose.",
+              "status": "TODO",
+              "closes": ["QUALITY-7.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 5,
+                "size": 13,
+                "after": ["SPELLS-19.T4"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "QUALITY-8",
+          "title": "Each game System has one policy bundle",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 2,
+            "tc": 1,
+            "rr": 5,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "QUALITY-8.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
+              "text": "Generic encounter and character modules resolve System behaviour through one per-System policy bundle instead of direct dnd5e imports, one-entry maps and separate registries; compiled graph node roles are exported constants or graph tags rather than repeated string ids."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "QUALITY-8.T1",
+              "text": "Introduce the per-System policy bundle, migrate every lookup to it and replace string node ids.",
+              "status": "TODO",
+              "closes": ["QUALITY-8.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 5,
+                "size": 8
+              }
+            }
+          ]
         }
       ]
     },
