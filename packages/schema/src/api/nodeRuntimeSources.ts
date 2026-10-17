@@ -41,7 +41,6 @@ export const nodeRuntimeSourceManifest = {
   magic_schools: ['description', 'id', 'label'],
   option_effects: ['effect_id', 'option_id'],
   option_proficiency_grants: ['option_id', 'proficiency_grant_id'],
-  passives: ['description', 'id', 'label'],
   options: ['id', 'label'],
   passives: ['description', 'id', 'label'],
   proficiency_grant_languages: ['language_id', 'proficiency_grant_id'],
