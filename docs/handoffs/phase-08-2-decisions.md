@@ -882,6 +882,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Shape:** each move is a FORCED `MOVE_SCENE_TOKEN` Scene command whose persisted record carries its originating action, so Scene undo refuses it. The action receipt references those Scene commands and does not copy their positions. GM revert of the action restores the moves through the Scene undo path, refusing a token that has moved since. No new wire message: the room re-syncs the Scene.
   - **Rejected:** staging one follow-up FORCED command per token (it needs a mover-control exemption and breaks single-command atomicity and undo), and a separate room-only table of action-owned moves (it duplicates the Scene command record).
   - **Deferred:** exploration fog, concealment pruning and grapple breaking for pushes, as 8.1 already defers them for third-party moves.
+* **D140** (2026-10-17) A zone's cast-time variant is an ON_USE CHOICE path (SPELLS-20.T4e, AC 20.1; [slice-spells-20.md](slice-spells-20.md)). Orchestrator ruling.
+  - **Rule:** a spell whose zone differs by a cast-time choice (Spirit Guardians: radiant, or necrotic for an evil caster) authors an ON_USE CHOICE path whose options each hold one zone outcome. The caster picks through the kernel choice prompt, as Protection from Energy and Blade Barrier already do. Zone placement accepts a CHOICE path whose chosen option's single outcome is a zone, and the placed zone stores the chosen option's behaviour for every later trigger (D138: fixed at placement). No alignment is modelled: the option labels name the condition ("Necrotic (evil caster)") and the player chooses, as on a paper sheet and in Foundry.
+  - **Source data:** the options' shared zone is built by one builder in the spell's source file that takes the varying field, so the zone is authored once.
+  - **Rejected:** alternative damage types on a damage outcome (a second cast-time choice mechanism beside CHOICE paths) and an automatic caster-alignment check (new alignment logic with no other consumer).
 
 ## Approved implementation decisions
 
