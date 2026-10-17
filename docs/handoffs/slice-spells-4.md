@@ -22,6 +22,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - `packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts`: both zones pass the equipment node map exactly as authored (ADR 0038 parity).
   - `packages/source-data/src/srd/zoneInteractionKinds.test.ts`: both components author their entry and turn triggers; the named gaps below are recorded. Both spells now also join the turn-trigger corpus check.
   - `packages/source-data/src/srd/saveForHalfDamage.test.ts`: both left the damage-not-authored list (its rule: a spell leaves the moment its damage is authored) and now carry the halved success path.
+- CI on `7544db3c3`: Tests 39047887206 and Live backend 39047887179 green. Red proof: the room test, `zoneInteractionKinds` and `saveForHalfDamage` RED; the parity test ALREADY-PASSING (the earlier bare zone passed the node map too, so it guards against regression rather than proving new behavior).
 - Named gaps (not authored, because the zone compiler refuses an option it does not model; recorded in `zoneInteractionKinds.test.ts`):
 
 | Spell         | SRD rule                                                                         | Authoring option                           | Owner                         |
