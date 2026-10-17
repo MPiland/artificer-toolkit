@@ -9,6 +9,7 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
+  SCALING_SOURCE,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   SHAPE_KIND,
@@ -87,25 +88,63 @@ export const iceStorm: SpellAuthored = {
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('BLUDGEONING'),
                 valueKind: 'DICE',
-                scalingKind: SCALING.NONE,
-                diceConfig: '2d8'
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                levels: [
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 2),
+                    level: 4,
+                    order: 1,
+                    diceConfig: '2d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 3),
+                    level: 5,
+                    order: 2,
+                    diceConfig: '3d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 4),
+                    level: 6,
+                    order: 3,
+                    diceConfig: '4d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 5),
+                    level: 7,
+                    order: 4,
+                    diceConfig: '5d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 6),
+                    level: 8,
+                    order: 5,
+                    diceConfig: '6d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 7),
+                    level: 9,
+                    order: 6,
+                    diceConfig: '7d8'
+                  }
+                ]
               }
             ]
           }
         },
         {
-          id: spellChildId(SPELL_IDS.ICE_STORM, 0x214, 1),
+          id: spellChildId(SPELL_IDS.ICE_STORM, 0x216, 1),
           order: 2,
           pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.ICE_STORM, 0x214, 1) + '__result',
+            id: spellChildId(SPELL_IDS.ICE_STORM, 0x216, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.ICE_STORM, 0x214, 1),
+                id: spellChildId(SPELL_IDS.ICE_STORM, 0x216, 1),
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('COLD'),
                 valueKind: 'DICE',
@@ -132,8 +171,46 @@ export const iceStorm: SpellAuthored = {
                 damageTypeId: damageTypeId('BLUDGEONING'),
                 amountKind: SCALING_AMOUNT_KIND.HALF,
                 valueKind: 'DICE',
-                scalingKind: SCALING.NONE,
-                diceConfig: '2d8'
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                levels: [
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 3),
+                    level: 4,
+                    order: 1,
+                    diceConfig: '2d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 4),
+                    level: 5,
+                    order: 2,
+                    diceConfig: '3d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 5),
+                    level: 6,
+                    order: 3,
+                    diceConfig: '4d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 6),
+                    level: 7,
+                    order: 4,
+                    diceConfig: '5d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 7),
+                    level: 8,
+                    order: 5,
+                    diceConfig: '6d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 8),
+                    level: 9,
+                    order: 6,
+                    diceConfig: '7d8'
+                  }
+                ]
               }
             ]
           }

@@ -1,10 +1,11 @@
-# Slice SPELLS-7: area actions (T1: half damage on a made save)
+# Slice SPELLS-7: area actions (T1: half damage on a made save; T2: Ice Storm upcast and child ids)
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Resume here
 
-- T1 (closes AC SPELLS-7.2's data gap) is built on `ci/spells-7-t1`. CI SHA and run ids go to the orchestrator.
+- T1 (closes AC SPELLS-7.2's data gap) merged 47f6f85cd.
+- T2 (Ice Storm upcast, child-id reuse) is built on `ci/spells-7-t2`. CI SHA and run ids go to the orchestrator.
 
 ## T1: save-for-half SRD spells
 
@@ -32,3 +33,17 @@ None of these carries a damage effect to halve, so the half path cannot be added
 
 - Ice Storm's "bludgeoning damage increases by 1d8 for each slot level above 4th" is not authored (fixed 2d8 on both paths). Not in T1's scope.
 - Ice Storm's second failure path reuses the save's id (`spellChildId(ICE_STORM, 0x214, 1)` for both `savingThrow.id` and the cold path). The new success paths use scope `0x215`. Not changed here.
+
+## T2: Ice Storm upcast and save-id reuse
+
+Orchestrator rulings, 2026-10-17: bludgeoning scales like Fireball and cold stays `SCALING.NONE`, as in the SRD. Ice Storm's save keeps its own id. There is no SRD-wide uniqueness test (no scope growth).
+
+- Ice Storm's bludgeoning is now `PER_LEVEL` by `SPELL_CAST_LEVEL`, from 2d8 at 4th to 7d8 at 9th, on both the failed-save path (rows `0x213,2..7`) and the half success path (rows `0x215,3..8`). Before the fix the Sheet offered only "Ice Storm (4th level)", because a spell with no cast-level scaling gets no upcast choices.
+- The cold fail path and its outcome moved from the save's `0x214,1` to `0x216,1`.
+- Id test: `packages/source-data/src/srd/iceStormIds.test.ts` checks that no Ice Storm path or outcome carries the saving throw's id.
+- Journey test: `apps/session-worker/test/nativeRoomSpellCasting.test.ts` "room Ice Storm upcast by a Character wizard". The SRD Ice Storm is cast with a 5th-level slot and every die rolls 1. Each caught creature fails its save and takes 3 bludgeoning and 4 cold. Red before the fix: the 5th-level cast was not offered.
+
+### T2 findings for the orchestrator
+
+- Save, range and shape ids have no runtime reader, so nothing enforces their uniqueness. `compileEffect` (`packages/shared/src/domains/effects/compilers/effect.ts`) keys compiled entries on the outcome id and groups them by path id, and save, range and shape go through as authored data. Spells are stored as whole definition documents (`apps/apis/convex/content/definitionDocumentJson.ts`). The only reader of `savingThrow.id` is web's guided-form rehydrate, which round-trips it.
+- An SRD-wide check (not committed) found the same reuse, a later path taking the save's `spellChildId(…, 0x214, 1)`, in Finger of Death, Circle of Death and Meteor Swarm. Left unchanged, since it has no runtime effect.

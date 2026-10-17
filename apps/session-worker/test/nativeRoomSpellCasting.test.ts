@@ -7,6 +7,7 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
+import { iceStorm } from '@artificer-toolkit/source-data/srd/spells/ice-storm.js'
 import {
   SRD_CREATURE_TYPES,
   srdSystemRecord
@@ -377,6 +378,37 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
     },
     120000
   )
+})
+
+describe('room Ice Storm upcast by a Character wizard (SPELLS-7.2)', () => {
+  it('adds 1d8 bludgeoning for the 5th-level slot and keeps the cold at 4d6', async () => {
+    // 3d8 bludgeoning then 4d6 cold, every face 1; a further die would roll the fallback 6.
+    const room = await actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      characterSpellcasting: { spells: [iceStorm], prepared: [iceStorm.id] },
+      characterAction: (action) => action.label === 'Ice Storm (5th level)',
+      rolls: [0, 0, 0, 0, 0, 0, 0],
+      fallbackRoll: 5
+    })
+    const { answer } = await room.startAreaAction({ x: 300, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots[0]?.outputs.spellCastConsumption).toMatchObject({ slotKey: 'STANDARD:5' })
+    expect(children).toHaveLength(CAUGHT_IDS.length + 1)
+    // Every caught creature fails its save and takes 3 bludgeoning and 4 cold.
+    expect(
+      children.map(({ outputs }) =>
+        outputs.applications.flatMap((application) =>
+          application.kind === 'DAMAGE' ? [application.requestedAmount] : []
+        )
+      )
+    ).toEqual(children.map(() => [3, 4]))
+  }, 120000)
 })
 
 describe('room Hold Person cast by a Character at a creature type it does not affect (SPELLS-8.5)', () => {
