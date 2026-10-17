@@ -99,18 +99,18 @@ export const fingerOfDeath: SpellAuthored = {
           }
         },
         {
-          id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 1),
+          id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x215, 1),
           order: 3,
           pathCode: PATH_CODE.ON_SAVE_SUCCESS,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 1) + '__result',
+            id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x215, 1) + '__result',
             resultKind: 'SINGLE' as const,
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 1),
+                id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x215, 1),
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('NECROTIC'),
                 amountKind: SCALING_AMOUNT_KIND.HALF,

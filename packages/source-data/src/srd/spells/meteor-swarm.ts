@@ -89,18 +89,18 @@ export const meteorSwarm: SpellAuthored = {
           }
         },
         {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
+          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x217, 1),
           order: 2,
           pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1) + '__result',
+            id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x217, 1) + '__result',
             resultKind: 'SINGLE' as const,
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
+                id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x217, 1),
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('BLUDGEONING'),
                 valueKind: 'DICE',

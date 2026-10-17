@@ -117,18 +117,18 @@ export const circleOfDeath: SpellAuthored = {
           }
         },
         {
-          id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 1),
+          id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 1),
           order: 2,
           pathCode: PATH_CODE.ON_SAVE_SUCCESS,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 1) + '__result',
+            id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 1) + '__result',
             resultKind: 'SINGLE' as const,
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 1),
+                id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 1),
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('NECROTIC'),
                 amountKind: SCALING_AMOUNT_KIND.HALF,
@@ -137,25 +137,25 @@ export const circleOfDeath: SpellAuthored = {
                 scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
                 levels: [
                   {
-                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 2),
+                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 2),
                     level: 6,
                     order: 1,
                     diceConfig: '8d6'
                   },
                   {
-                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 3),
+                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 3),
                     level: 7,
                     order: 2,
                     diceConfig: '10d6'
                   },
                   {
-                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 4),
+                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 4),
                     level: 8,
                     order: 3,
                     diceConfig: '12d6'
                   },
                   {
-                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x214, 5),
+                    id: spellChildId(SPELL_IDS.CIRCLE_OF_DEATH, 0x215, 5),
                     level: 9,
                     order: 4,
                     diceConfig: '14d6'
