@@ -90,7 +90,10 @@ export type SpatialMovementTarget = {
   scalarValues: Readonly<Record<string, number>>
 }
 type LockedTarget = SpatialMovementTarget
-type SpatialMovementEncounter = Pick<EncounterRunState, 'id' | 'version' | 'automationMode'> & {
+type SpatialMovementEncounter = Pick<
+  EncounterRunState,
+  'id' | 'version' | 'automationMode' | 'turnSequence' | 'zoneApplications'
+> & {
   actors: readonly { id: string }[]
 }
 
@@ -380,7 +383,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         path: root.originalPath,
         tokens: input.sceneTokens,
         movingTokenId: root.tokenId,
-        carefully: input.carefully
+        carefully: input.carefully,
+        zoneApplications: input.encounter.zoneApplications,
+        turnSequence: input.encounter.turnSequence
       })
   const computedSelectionChecksum = checksumSpatialMovementSelection({
     encounterId: input.encounter.id,
@@ -534,7 +539,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         path: root.originalPath,
         tokens: input.sceneTokens,
         movingTokenId: root.tokenId,
-        carefully: input.carefully
+        carefully: input.carefully,
+        zoneApplications: input.encounter.zoneApplications,
+        turnSequence: input.encounter.turnSequence
       })
   if (checksumRuleDocument(lockedCandidates) !== checksumRuleDocument(candidates))
     throw new EncounterConflictError('Spatial candidates changed after target locking.')
@@ -989,7 +996,8 @@ function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     triggerModes: effect.placement.triggerModes,
     movementKinds: effect.placement.movementKinds,
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
-    unaffectedActorIds: effect.placement.unaffectedActorIds
+    unaffectedActorIds: effect.placement.unaffectedActorIds,
+    maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn
   } as const
 }
 

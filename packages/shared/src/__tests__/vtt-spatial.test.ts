@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
+  recordZoneApplications,
+  zoneApplicationKey,
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
@@ -48,8 +50,9 @@ function effect(overrides: Partial<SpatialEffectInstance> = {}): SpatialEffectIn
 function collect(
   input: Omit<
     Parameters<typeof collectSpatialMovementCandidates>[0],
-    'actorIdByTokenId' | 'effects' | 'tokens' | 'movingTokenId'
+    'actorIdByTokenId' | 'effects' | 'tokens' | 'movingTokenId' | 'turnSequence'
   > & {
+    readonly turnSequence?: number
     readonly effects?: readonly SpatialEffectInstance[]
     readonly tokens?: readonly SpatialSceneToken[]
   }
@@ -62,7 +65,8 @@ function collect(
     effects: input.effects ?? [effect()],
     movingTokenId: ids.targetToken,
     tokens: input.tokens ?? [token(ids.targetToken, input.path[0]!.x, input.path[0]!.y)],
-    ...input
+    ...input,
+    turnSequence: input.turnSequence ?? 1
   })
 }
 
@@ -155,6 +159,7 @@ describe('spatial movement candidates', () => {
         })
       const sweep = (unaffectedActorIds: readonly string[]) =>
         collectSpatialMovementCandidates({
+          turnSequence: 1,
           actorIdByTokenId: new Map([
             [ids.sourceToken, ids.sourceActor],
             [ids.targetToken, ids.targetActor]
@@ -167,6 +172,75 @@ describe('spatial movement candidates', () => {
         })
       expect(sweep([ids.targetActor])).toEqual([])
       expect(sweep([])).toHaveLength(1)
+    })
+  })
+
+  describe('applications per turn', () => {
+    const walk = [
+      { x: -5, y: 0 },
+      { x: 5, y: 0 }
+    ]
+    const key = zoneApplicationKey(ids.effect, ids.targetActor)
+
+    it.each([
+      ['has no limit', undefined, { turnSequence: 3, count: 9 }, 1],
+      ['is spent this turn', 1, { turnSequence: 3, count: 1 }, 0],
+      ['has one application left this turn', 2, { turnSequence: 3, count: 1 }, 1],
+      ['was only spent on an earlier turn', 1, { turnSequence: 2, count: 1 }, 1]
+    ])('an effect whose limit %s', (_name, maxApplicationsPerTurn, entry, caught) => {
+      expect(
+        collect({
+          effects: [effect({ maxApplicationsPerTurn })],
+          movementKind: 'VOLUNTARY',
+          path: walk,
+          turnSequence: 3,
+          zoneApplications: { [key]: entry }
+        })
+      ).toHaveLength(caught)
+    })
+
+    it('catches a creature once per move by a zone that triggers on enter, exit and cross', () => {
+      const through = collect({
+        effects: [effect({ maxApplicationsPerTurn: 1 })],
+        movementKind: 'VOLUNTARY',
+        path: [walk[0]!, { x: 0, y: 0 }, walk[1]!]
+      })
+      expect(through).toHaveLength(1)
+    })
+
+    it('counts a creature against the zone it was caught by, not other creatures or zones', () => {
+      const spent = { turnSequence: 3, count: 1 }
+      for (const stale of [
+        zoneApplicationKey(ids.effect, ids.sourceActor),
+        zoneApplicationKey(ids.sourceActor, ids.targetActor)
+      ])
+        expect(
+          collect({
+            effects: [effect({ maxApplicationsPerTurn: 1 })],
+            movementKind: 'VOLUNTARY',
+            path: walk,
+            turnSequence: 3,
+            zoneApplications: { [stale]: spent }
+          })
+        ).toHaveLength(1)
+    })
+
+    it('records each settled trigger against the current turn and drops entries from earlier turns', () => {
+      const earlier = { turnSequence: 2, count: 4 }
+      const other = zoneApplicationKey(ids.effect, ids.sourceActor)
+      expect(recordZoneApplications({ [other]: earlier }, 3, [])).toEqual({ [other]: earlier })
+      const recorded = recordZoneApplications(
+        { [other]: earlier, [key]: { turnSequence: 3, count: 1 } },
+        3,
+        [
+          { effectId: ids.effect, targetActorId: ids.targetActor },
+          { effectId: ids.effect, targetActorId: ids.sourceActor }
+        ]
+      )
+      expect(recorded).toEqual({
+        [key]: { turnSequence: 3, count: 2 },
+        [other]: { turnSequence: 3, count: 1 }
+      })
     })
   })
 
@@ -303,6 +377,7 @@ describe('spatial movement candidates', () => {
       sourceTokenId: ids.sourceToken
     })
     const candidates = collectSpatialMovementCandidates({
+      turnSequence: 1,
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
@@ -335,6 +410,7 @@ describe('spatial movement candidates', () => {
       sourceTokenId: ids.sourceToken
     })
     const candidates = collectSpatialMovementCandidates({
+      turnSequence: 1,
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]

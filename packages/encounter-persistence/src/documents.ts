@@ -10,6 +10,7 @@ import {
   composeRunActorState
 } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { recordZoneApplications } from '@artificer-toolkit/shared/vtt'
 import {
   ensureSourceFacts,
   readStoredRunActor,
@@ -33,6 +34,30 @@ export function changedFields<Fields extends object>(
   for (const key of Object.keys(next) as (keyof Fields)[])
     if (JSON.stringify(current[key]) !== JSON.stringify(next[key])) changed[key] = next[key]
   return changed
+}
+
+/**
+ * The Run's zone applications once a settled movement's spatial executions are counted against the
+ * current turn. A movement that caught no one (no batch) leaves them unchanged.
+ */
+export function runZoneApplicationsAfter(
+  state: Pick<EncounterRunState, 'turnSequence' | 'zoneApplications'>,
+  result:
+    | {
+        status: 'BATCH_COMPLETE'
+        executions: readonly {
+          candidate: { candidate: { effectId: string; targetActorId: string } }
+        }[]
+      }
+    | { status: 'MOVEMENT_COMPLETE' }
+) {
+  return recordZoneApplications(
+    state.zoneApplications,
+    state.turnSequence,
+    result.status === 'BATCH_COMPLETE'
+      ? result.executions.map((execution) => execution.candidate.candidate)
+      : []
+  )
 }
 
 /** Reads a Run's state after checking that it belongs to `campaign` and its Game System. */
