@@ -344,7 +344,9 @@ export async function verifyEncounterPlayer({
   ) => {
     const pending = result.occurrence?.pending
     if (result.occurrence?.status !== 'PENDING' || pending?.kind !== kind)
-      throw new Error(`Expected ${kind} to be pending.`)
+      throw new Error(
+        `Expected ${kind} to be pending; the occurrence is ${result.occurrence?.status ?? 'absent'} with ${pending?.kind ?? 'nothing'} pending.`
+      )
     return pending as Extract<Pending, { kind: Kind }>
   }
   const readRun = async () => {
