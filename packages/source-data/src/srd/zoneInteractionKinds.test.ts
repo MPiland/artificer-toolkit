@@ -4,7 +4,10 @@ import { ballBearingsBagOf1000 } from './equipment/ball-bearings-bag-of-1000.js'
 import { caltropsBagOf20 } from './equipment/caltrops-bag-of-20.js'
 import { huntingTrap } from './equipment/hunting-trap.js'
 import { oilFlask } from './equipment/oil-flask.js'
+import type { SpellAuthored } from '@artificer-toolkit/shared'
 import { bladeBarrier } from './spells/blade-barrier.js'
+import { cloudkill } from './spells/cloudkill.js'
+import { insectPlague } from './spells/insect-plague.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
@@ -50,6 +53,69 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
       'ENTER_SPACE',
       'START_TURN_IN_SPACE'
     ])
+  })
+
+  it('catches a creature of Cloudkill on entering and on starting its turn in the fog', () => {
+    expect(interactionKindsByComponent(cloudkill)['Enter the poisonous fog']).toEqual([
+      'ENTER_SPACE',
+      'START_TURN_IN_SPACE'
+    ])
+  })
+
+  it('catches a creature of Insect Plague on entering and on ending its turn in the swarm', () => {
+    expect(interactionKindsByComponent(insectPlague)['Enter the locust swarm']).toEqual([
+      'ENTER_SPACE',
+      'END_TURN_IN_SPACE'
+    ])
+  })
+})
+
+/** The ZONE manifest a spell's cast places, found by narrowing the authored record. */
+function placedZoneOf(spell: SpellAuthored) {
+  const path = spell.effects?.[0]?.paths[0]
+  const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+  if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+    throw new Error(`${spell.label} must place a zone.`)
+  return outcome
+}
+
+/**
+ * SPELLS-4.T1a: SRD rules of Cloudkill and Insect Plague a placed zone cannot run yet. The zone
+ * compiler refuses any authored option it does not model, so each stays unauthored (the zone then
+ * still compiles) and leaves this list when a task models it (registration is the orchestrator's).
+ */
+describe('Cloudkill and Insect Plague rules a placed zone does not run yet (SPELLS-4.T1a)', () => {
+  const zoneGaps = [
+    ['Cloudkill', cloudkill, 'heavily obscured area', 'obscurementKind', 'no task yet'],
+    ['Cloudkill', cloudkill, 'fog spreads around corners', 'spreadsAroundCorners', 'no task yet'],
+    ['Insect Plague', insectPlague, 'lightly obscured area', 'obscurementKind', 'no task yet'],
+    [
+      'Insect Plague',
+      insectPlague,
+      'swarm spreads around corners',
+      'spreadsAroundCorners',
+      'no task yet'
+    ]
+  ] as const
+  it.each(zoneGaps)('%s: the %s is unauthored (%s, %s)', (_name, spell, _rule, option) => {
+    expect(placedZoneOf(spell)).not.toHaveProperty(option)
+  })
+
+  it('leaves Insect Plague’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)', () => {
+    expect(placedZoneOf(insectPlague).components?.[0]).not.toHaveProperty('movementCostMultiplier')
+  })
+
+  /**
+   * Not authorable at all yet, so nothing in the record can show them: Cloudkill's fog moving 10
+   * feet away from the caster at the start of each of the caster's turns and sinking to the lowest
+   * ground, strong wind dispersing it, and Insect Plague's save for each creature in the area when
+   * it appears (a cast that places a zone has no cast-time area save). Each needs a new core option.
+   * Also not exact: the per-turn limit counts every application, so an Insect Plague creature that
+   * enters and ends the same turn in the area saves once (the SRD text gives two saves).
+   */
+  it('places only the zone: no cast-time area save beside it', () => {
+    expect(insectPlague.effects?.[0]?.paths).toHaveLength(1)
+    expect(insectPlague.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')
   })
 })
 
