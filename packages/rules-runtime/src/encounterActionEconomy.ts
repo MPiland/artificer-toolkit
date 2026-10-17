@@ -9,10 +9,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
 import { activeSetValueGrantMaximum } from './character/activeEffectGrantTotals.js'
-import {
-  encounterActiveGrantCapabilitySuppressions,
-  encounterGrantsEnabledDomain
-} from './encounterActiveGrants.js'
+import { encounterActiveGrantCapabilitySuppressions } from './encounterActiveGrants.js'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from './encounterActorState.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
@@ -149,11 +146,7 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
     definitionId: binding.capabilityDefinitionId,
     capability,
     maximum: Math.max(usage.maximum, granted ?? 0),
-    beforeUsed: encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId),
-    excludedBySibling:
-      binding.exclusiveWithCapabilityDefinitionId !== undefined &&
-      encounterGrantsEnabledDomain(target.activeEffects, 'ACTION_BONUS_ACTION_EXCLUSIVITY') &&
-      encounterRuleUsageUsed(input.actor, binding.exclusiveWithCapabilityDefinitionId) > 0
+    beforeUsed: encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId)
   }
 }
 
@@ -166,7 +159,7 @@ export async function evaluateEncounterActionEconomy(
 ): Promise<{ consumption: EncounterActionEconomyConsumption; available: boolean } | null> {
   const allowance = await resolveActionAllowance(input)
   if (!allowance) return null
-  const { capability, maximum, beforeUsed, excludedBySibling } = allowance
+  const { capability, maximum, beforeUsed } = allowance
   return {
     consumption: {
       definitionId: allowance.definitionId,
@@ -176,7 +169,7 @@ export async function evaluateEncounterActionEconomy(
       beforeUsed,
       afterUsed: beforeUsed + 1
     },
-    available: capability.available && beforeUsed < maximum && !excludedBySibling
+    available: capability.available && beforeUsed < maximum
   }
 }
 

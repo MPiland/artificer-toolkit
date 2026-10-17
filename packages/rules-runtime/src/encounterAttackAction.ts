@@ -7,7 +7,6 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { activeCapValueGrantMinimum } from './character/activeEffectGrantTotals.js'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
 import {
   encounterAttackActionState,
@@ -70,33 +69,27 @@ export async function evaluateEncounterAttackAction(
       slot: null
     }
   const before = encounterAttackActionState(actor)
-  const target = input.target ?? (await input.loadTarget())
-  // An active cap (Slowing Breath) lowers what the Attack action allows, even one already open.
-  const cap = target
-    ? activeCapValueGrantMinimum(target.activeEffects, 'ATTACKS_PER_ATTACK_ACTION')
-    : null
-  const capped = (total: number) => (cap === null ? total : Math.min(total, cap))
   if (
     before &&
     before.turnSequence === state.turnSequence &&
-    before.attacks.length < capped(before.total)
+    before.attacks.length < before.total
   ) {
     const suppressed = await isActionEconomySuppressed(input)
-    const total = capped(before.total)
     return {
       economy: null,
       attackAction: {
         before,
         turnSequence: before.turnSequence,
-        total,
+        total: before.total,
         attacksMade: before.attacks
       },
       suppressed,
-      slot: suppressed ? null : { number: before.attacks.length + 1, total }
+      slot: suppressed ? null : { number: before.attacks.length + 1, total: before.total }
     }
   }
+  const target = input.target ?? (await input.loadTarget())
   const economy = await evaluateEncounterActionEconomy({ ...input, target })
-  const total = capped(target?.effectiveRulePolicyOutput?.attacksPerAttackAction ?? 1)
+  const total = target?.effectiveRulePolicyOutput?.attacksPerAttackAction ?? 1
   return {
     economy,
     attackAction: {
