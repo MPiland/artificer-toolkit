@@ -12,7 +12,15 @@ import {
 } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 
-type SpatialExecution = FrozenMovementReactionRemainder['completedSpatialExecutions'][number]
+type MovementSpatialExecution =
+  FrozenMovementReactionRemainder['completedSpatialExecutions'][number]
+/** What settling needs of a spatial execution, whether a movement contact's or a turn boundary's. */
+type SpatialExecution = Pick<
+  MovementSpatialExecution,
+  'ordinal' | 'targetTransition' | 'applications'
+> & {
+  candidate: { candidate: { targetActorId: string } }
+}
 
 type Settlement = {
   batch: EncounterMechanicsBatchInput
@@ -34,6 +42,10 @@ export function planNativeSpatialMovementPrefix<
   occurredAt: string
   userId: string
   projectTargets?: boolean
+  /** The command-id phase and first ordinal; a movement keys them by its first execution. */
+  commandId?: { phase: 'SPATIAL_EFFECT' | 'TURN_ZONE_EFFECT'; ordinal: number }
+  /** A turn boundary settles its creature even when the contacts left it unchanged. */
+  settleUnchanged?: boolean
 }): {
   projectedTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   settlements: Settlement[]
@@ -63,7 +75,8 @@ export function planNativeSpatialMovementPrefix<
     const last = executions.at(-1)
     if (!target || !first || !last) throw new Error('Spatial execution target is unavailable.')
     assertInitialTransition(targetActorId, target, first)
-    return sameState(first.targetTransition.before, last.targetTransition.after)
+    return !input.settleUnchanged &&
+      sameState(first.targetTransition.before, last.targetTransition.after)
       ? []
       : [[targetActorId, target] as const]
   })
@@ -95,9 +108,9 @@ export function planNativeSpatialMovementPrefix<
           ? deriveEncounterCharacterMechanicsEventCommandId({
               occurrenceId: input.occurrenceId,
               sourceCommandId: input.sourceCommandId,
-              phase: 'SPATIAL_EFFECT',
+              phase: input.commandId?.phase ?? 'SPATIAL_EFFECT',
               // Preserve first-segment IDs and reserve disjoint ordinals for later segments.
-              ordinal: (input.executions[0]?.ordinal ?? 0) + ordinal,
+              ordinal: (input.commandId?.ordinal ?? input.executions[0]?.ordinal ?? 0) + ordinal,
               targetCharacterId: target.actor.sourceId
             })
           : input.sourceCommandId,

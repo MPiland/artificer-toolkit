@@ -1,5 +1,6 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
+import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
 import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { discoverTurnLegendaryWindows } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryDiscovery'
@@ -98,6 +99,15 @@ export function createNativeLiveTurnStages(
             loadTarget,
             onSceneRead: inputs.onSceneRead
           })
+      }),
+    zones: (stage) =>
+      prepareEncounterTurnZoneEffects<CharacterFacts>({
+        ...stage,
+        // The live Scene's placed zones load in the persistence tranche (SPELLS-20.T4b2b2).
+        loadScene: async () => null,
+        loadTarget,
+        createRuntime,
+        random
       }),
     legendary: (stage) =>
       prepareTurnLegendaryActions<CharacterFacts>({

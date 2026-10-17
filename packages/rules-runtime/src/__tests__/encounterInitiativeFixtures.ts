@@ -4,10 +4,18 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 
 import {
   createStagedInitiativeRoundState,
-  hydrateStagedState
+  hydrateStagedState,
+  inMemoryInitiativeRepository,
+  serializeStagedInitiativeRoundState
 } from '../encounterInitiativeStaging.js'
+import {
+  applyEncounterInitiativeAdvance,
+  planEncounterInitiativeAdvance,
+  settleEncounterInitiativeRound
+} from '../encounterInitiativeStateSettlement.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
+import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 
 /** Canonical ascending actor identities; A < B < C. */
 export const ACTOR_A = '00000000-0000-4000-8000-0000000000a1'
@@ -34,6 +42,39 @@ export function preparingRound(input: {
       round: input.round ?? 1
     })
   )
+}
+
+/** The round with `currentActorId` taking its turn in `order`, as the real settlement leaves it. */
+export async function roundAt(
+  order: readonly string[],
+  currentActorId: string,
+  cadence: 'ENCOUNTER_START' | 'EACH_ROUND'
+): Promise<EncounterInitiativeRoundStateDto> {
+  let state = preparingRound({
+    actors: order.map((id) => ({ id, sideId: SIDE_FOES })),
+    ...(cadence === 'EACH_ROUND'
+      ? { policy: initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence }) }
+      : {})
+  })
+  state = await settleEncounterInitiativeRound({
+    repository: inMemoryInitiativeRepository(state).repository,
+    state,
+    orderedActorIds: order
+  })
+  for (const actorId of order.slice(0, order.indexOf(currentActorId))) {
+    const plan = planEncounterInitiativeAdvance({
+      state,
+      currentActorId: actorId,
+      defeatedActorIds: new Set()
+    })
+    state = await applyEncounterInitiativeAdvance({
+      repository: inMemoryInitiativeRepository(state).repository,
+      state,
+      plan,
+      defeatedActorIds: new Set()
+    })
+  }
+  return hydrateStagedState(serializeStagedInitiativeRoundState(state))
 }
 
 /** A Creature initiative source; the D&D adapter reads only its initiative modifier. */

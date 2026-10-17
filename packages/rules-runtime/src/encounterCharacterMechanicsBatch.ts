@@ -36,6 +36,7 @@ export type EncounterCharacterMechanicsEventPhase =
   | 'MOVEMENT_REACTION_OUTCOME'
   | 'MOVEMENT_REACTION_RESOURCE'
   | 'SPATIAL_EFFECT'
+  | 'TURN_ZONE_EFFECT'
   | 'TURN_DEATH_SAVE'
   | 'TURN_EFFECT'
 
