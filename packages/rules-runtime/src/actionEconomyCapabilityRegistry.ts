@@ -7,6 +7,11 @@ export type ActionEconomyCapabilityBinding =
       capabilityDefinitionId: string
       /** The value domain whose active `SET_VALUE` grants raise this allowance's maximum. */
       grantedCountDomain?: string
+      /**
+       * The allowance an `ACTION_BONUS_ACTION_EXCLUSIVITY` grant makes this one exclusive with:
+       * once the other is spent this turn, this one is unavailable.
+       */
+      exclusiveWithCapabilityDefinitionId?: string
     }
 
 /**

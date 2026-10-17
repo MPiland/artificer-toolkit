@@ -135,7 +135,7 @@ export const youngCopperDragon: CreatureAuthored = {
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: S.actionId(305, 234),
+                id: S.actionId(305, 900),
                 resultKind: 'SEQUENCE',
                 duration: {
                   id: S.actionId(305, 235),
@@ -143,6 +143,57 @@ export const youngCopperDragon: CreatureAuthored = {
                   amount: 1
                 },
                 outcomes: [
+                  {
+                    id: S.actionId(305, 901),
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(305, 902),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'REACTION_COUNT',
+                          domain: {},
+                          modifierKind: 'SET_VALUE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          payload: { amount: 0 },
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(305, 903),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'SPEED',
+                          domain: {},
+                          modifierKind: 'MULTIPLY',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          payload: { numerator: 1, denominator: 2 },
+                          order: 2
+                        },
+                        {
+                          id: S.actionId(305, 904),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACKS_PER_ATTACK_ACTION',
+                          domain: {},
+                          modifierKind: 'CAP_VALUE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          payload: { amount: 1 },
+                          order: 3
+                        },
+                        {
+                          id: S.actionId(305, 905),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
+                          domain: {},
+                          modifierKind: 'ENABLE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 4
+                        }
+                      ]
+                    }
+                  },
                   {
                     id: S.actionId(305, 236),
                     effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
@@ -156,11 +207,6 @@ export const youngCopperDragon: CreatureAuthored = {
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
                     onSuccess: { kind: 'END' },
                     onFailure: { kind: 'CONTINUE' }
-                  },
-                  {
-                    id: S.actionId(305, 238),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_SLOWING_BREATH
                   }
                 ]
               }

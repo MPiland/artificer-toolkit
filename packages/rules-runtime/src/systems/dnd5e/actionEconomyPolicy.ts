@@ -15,13 +15,15 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
       return {
         kind: 'REQUIRED',
         capabilityDefinitionId: DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
-        grantedCountDomain: 'ACTION_COUNT'
+        grantedCountDomain: 'ACTION_COUNT',
+        exclusiveWithCapabilityDefinitionId: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
       }
     }
     if (activationKind === 'BONUS_ACTION') {
       return {
         kind: 'REQUIRED',
-        capabilityDefinitionId: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
+        capabilityDefinitionId: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+        exclusiveWithCapabilityDefinitionId: DND5E_ACTION_ALLOWANCE_DEFINITION_ID
       }
     }
     if (activationKind === 'REACTION') {

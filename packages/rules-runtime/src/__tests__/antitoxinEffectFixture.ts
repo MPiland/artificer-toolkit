@@ -7,6 +7,7 @@ import {
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
+import { copperDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/copper-dragon-wyrmling.js'
 import { goldDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/gold-dragon-wyrmling.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -246,21 +247,26 @@ export function viciousMockeryEffect(input: { id: string; holderActorId: string 
 }
 
 /**
- * The active effect the real compiler plans for the Gold Dragon Wyrmling's Weakening Breath grants
- * (Strength checks, Strength saves and Strength attacks at disadvantage), held for the next turn.
- * The wyrmling's authored grants ride in Vicious Mockery's grant path so the compiler plans them
- * as a plain timed grant.
+ * The active effect the real compiler plans for the grants a dragon wyrmling's breath leaves,
+ * held for the next turn. The wyrmling's authored grants ride in Vicious Mockery's grant path so
+ * the compiler plans them as a plain timed grant.
  */
-export function goldWeakeningEffect(input: { id: string; holderActorId: string }) {
-  const grants = goldDragonWyrmling.features
+function breathGrantEffect(input: {
+  id: string
+  holderActorId: string
+  creature: typeof goldDragonWyrmling
+  sourceLabel: string
+}) {
+  const grants = input.creature.features
     ?.flatMap((feature) => feature.effects ?? [])
     .flatMap((effect) => effect.paths)
     .flatMap((path) => ('resultBlock' in path ? path.resultBlock.outcomes : []))
     .flatMap((outcome) => (outcome.effectKind === 'APPLY_GRANT' ? [outcome.grants] : []))[0]
   const mockery = viciousMockery.effects?.[0]
-  if (!grants || !mockery) throw new Error('The Weakening Breath grants are not authored.')
+  if (!grants || !mockery) throw new Error(`The ${input.sourceLabel} grants are not authored.`)
   return plannedGrantEffect({
-    ...input,
+    id: input.id,
+    holderActorId: input.holderActorId,
     effect: grantOnly(
       {
         ...mockery,
@@ -280,7 +286,25 @@ export function goldWeakeningEffect(input: { id: string; holderActorId: string }
       },
       { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }, consumeOnFirstEvents: [] }
     ),
+    sourceLabel: input.sourceLabel
+  })
+}
+
+/** The Gold Dragon Wyrmling's Weakening Breath grants (Strength checks, saves and attacks at disadvantage). */
+export function goldWeakeningEffect(input: { id: string; holderActorId: string }) {
+  return breathGrantEffect({
+    ...input,
+    creature: goldDragonWyrmling,
     sourceLabel: 'Weakening Breath'
+  })
+}
+
+/** The Copper Dragon Wyrmling's Slowing Breath grants (no reactions, half speed, one attack, action or bonus action). */
+export function copperSlowingEffect(input: { id: string; holderActorId: string }) {
+  return breathGrantEffect({
+    ...input,
+    creature: copperDragonWyrmling,
+    sourceLabel: 'Slowing Breath'
   })
 }
 

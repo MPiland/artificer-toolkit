@@ -775,6 +775,18 @@
                 "size": 1,
                 "after": ["PLATFORM-13.T9"]
               }
+            },
+            {
+              "id": "PLATFORM-13.T11",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Raised 2026-10-17 by SPELLS-20.T4b2b2. Root-cause and fix the nativeRoomAdmission lease-renewal test flake, and check the two suspected lazy-schema violations (encounterRuleCommands.ts:121, followUpSave.ts:16); fix them if they break the lazySchema rule, with a regression test that fails first."
             }
           ]
         },
@@ -8772,7 +8784,7 @@
             {
               "id": "SPELLS-19.T3d",
               "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8781,7 +8793,7 @@
                 "size": 5,
                 "after": ["SPELLS-19.T3b", "PLATFORM-20.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "note": "CI ci/spells-19-t3d 9b61c3f81 (Tests 39036458551 with red proof, Live backend 39036458501); fast-path merge cb84a0d4d, backstop ci/merge-m73. New CAP_VALUE modifier kind on ATTACKS_PER_ATTACK_ACTION (lowest cap clamps the SET_VALUE total, read by activeCapValueGrantMinimum through the shared activeGlobalAmounts step) and ACTION_BONUS_ACTION_EXCLUSIVITY (ENABLE) enforced in encounterAttackAction and encounterActionEconomy; all four Copper Slowing Breaths authored from core options."
             },
             {
               "id": "SPELLS-19.T4",
@@ -8984,6 +8996,19 @@
                 "after": ["SPELLS-20.T4b2b2"]
               },
               "text": "Spirit Guardians damage type chosen at cast (radiant, or necrotic for an evil caster) as a cast-time choice from core options stored on the zone; proved on Spirit Guardians."
+            },
+            {
+              "id": "SPELLS-20.T4f",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Raised 2026-10-17 by T4b2b2. (1) A room journey for the START turn command with a turn zone (the harness builds only ACTIVE Runs today; START is covered at persistence level). (2) Prove with a real-code test that Concentration end, zone deletion and GM undo between a pending zone or movement prompt and its commit refuse the commit (state.version bump or pending-occurrence fence); fix if any path does not. (3) Cover the frozen reaction/terminal selection checks and \"remaining spatial contacts changed\" (second queued contact) on the spatial movement resume."
             },
             {
               "id": "SPELLS-20.T4c",

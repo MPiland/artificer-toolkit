@@ -137,21 +137,20 @@ describe('SRD breath weapons breathe areas', () => {
     ({ leavesLastingEffect }) => leavesLastingEffect
   )
 
-  // The breaths SPELLS-19 has still to author: the Copper Dragons' attack cap and action exclusivity
-  // (T3d) and the Bronze Dragons' push (T4). Each task takes its
-  // rows off this list, and the last leaves it empty (AC 19.2).
+  // The breaths SPELLS-19 has still to author: the Bronze Dragons' push (T4). The task that
+  // authors them empties this list (AC 19.2).
   const stillToAuthor = breathRows.filter(({ creatureLabel, leavesLastingEffect }) => {
-    const pending = /Bronze Dragon|Copper Dragon/.test(creatureLabel)
+    const pending = /Bronze Dragon/.test(creatureLabel)
     return leavesLastingEffect && pending
   })
 
   // The System compiles a damage-only breath to a test outcome, a breath whose condition it times
   // and repeats (Silver, Dust Mephit) or ends on damage (Brass), one whose grant it times and
-  // repeats (Gold) and one whose repeat save escalates to a second condition (Gorgon).
+  // repeats (Gold, Copper) and one whose repeat save escalates to a second condition (Gorgon).
   // The rest it cannot execute, so discovery never offers them.
   it('cannot execute exactly the breaths still to author', () => {
     expect(shapedLeavingMoreThanDamage).toHaveLength(22)
-    expect(stillToAuthor).toHaveLength(8)
+    expect(stillToAuthor).toHaveLength(4)
     expect(
       breathRows
         .filter(({ compiles }) => !compiles)
@@ -194,7 +193,7 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T3d and T4 take the rows
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T4 takes the rows
   // off `stillToAuthor`; the task that empties it drops `.fails` (vitest errors once it passes).
   it.fails('leaves no breath its System cannot execute', () => {
     expect(
