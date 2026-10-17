@@ -386,7 +386,7 @@ uses `pointCubeOutline`), the same geometry the room catches with.
 that leaves a zone behind instead of catching creatures. The System compiler (`zonePlacementPlan`) turns the
 outcome into a `zonePlacement` on the v4 `CHARACTER_ACTION` compiled entry: label, shape, trigger modes, the entry
 graph (the authored save, `ON_SAVE_FAIL` damage and, when authored, a `STOP_CURRENT_MOVEMENT` that surfaces as the
-graph's `movementInterruption` output) and an optional lingering modifier-grant template (its modifiers, senses and
+graph's `movementInterruption` output; a made save may deal the same dice halved, as a second gated dice set (`damage-success-*`) behind a 0.5 multiplier, and a PER_LEVEL `SPELL_CAST_LEVEL` damage row is picked by the action's own cast level, so each slot level freezes its own graph) and an optional lingering modifier-grant template (its modifiers, senses and
 `endOnEvents`). Only point shapes (`SPHERE`, `CYLINDER`, `CIRCLE`, a cube) compile; a directed zone (cone, line, a
 Self cube) and any authored feature the System cannot honor in full (a second component, behavior or outcome, an
 unmodeled field, a save DC other than fixed, an end event the System never reads) stay manual with

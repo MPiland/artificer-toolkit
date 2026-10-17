@@ -4315,10 +4315,11 @@ function compileTestDefinition(
     plan.kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
   const testOperation =
     plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const proposalNodes = [...plan.branches].flatMap(([pathCode, outcome]) =>
-    outcome.kind === 'ENTRY_DICE_DAMAGE'
-      ? entryDiceDamageNodes(pathCode, outcome)
-      : [proposalNode(pathCode, outcome)]
+  const proposalNodes: RuleGraphDefinition['nodes'] = [...plan.branches].flatMap(
+    ([pathCode, outcome]) =>
+      outcome.kind === 'ENTRY_DICE_DAMAGE'
+        ? entryDiceDamageNodes(pathCode, outcome)
+        : [proposalNode(pathCode, outcome)]
   )
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
