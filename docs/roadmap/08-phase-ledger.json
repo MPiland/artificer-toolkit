@@ -5556,7 +5556,7 @@
         {
           "id": "ATTACK-2",
           "title": "Players act for their own actors",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/playerControl.test.ts",
             "apps/apis/convex/scenes/automaticCharacterMovement.test.ts"
@@ -5610,9 +5610,10 @@
             },
             {
               "text": "A player can do everything the GM can for their own Characters in play (player play parity, launch-gating).",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T1: a controlling player enters their own actor's initiative once (rolled or hand-entered) while the Run is PREPARED; re-rolls, tie-break and settled orders stay GM-only. packages/encounter-persistence/src/commands.ts; matrix rows on both sides. CI Tests 38870865820 and Live backend 38870866069 on 5821eed47"
+                "T1: a controlling player enters their own actor's initiative once (rolled or hand-entered) while the Run is PREPARED; re-rolls, tie-break and settled orders stay GM-only. packages/encounter-persistence/src/commands.ts; matrix rows on both sides. CI Tests 38870865820 and Live backend 38870866069 on 5821eed47",
+                "T2: apps/web/tests/live-backend/encounterPlayer.ts#verifyEncounterPlayerBrowser (map target pick, Thunderwave aim, Shield reaction, death save settled, exact submitted-command list); apps/apis/tests/developmentEncounterPlayer.ts#verifyEncounterPlayer (Club, Thunderwave AREA_SAVES via owner view, REACTION_CHOICE Shield, DEATH_SAVE roll, Character Sheet death saves 1/0); packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts#selects only columns the node runtime source manifest serves, on every node map select. CI ci/merge-m72 b123b3e56 (Tests 39022719048, Live backend 39022719042), merged at 2a8428d2b; local player-browser proof a2t2-40"
               ],
               "origin": [],
               "note": "Carry-over from ADR 0034 (inventory section 7).",
@@ -5641,7 +5642,7 @@
             {
               "id": "ATTACK-2.T2",
               "text": "Player parity journey (browser, player client): on their own Character a player casts an area spell, takes a death save, uses a non-movement reaction and targets from the map, with no GM step.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-2.5"],
               "wsjf": {
                 "bv": 8,
@@ -5650,7 +5651,7 @@
                 "size": 3,
                 "after": ["ATTACK-2.T1", "ATTACK-17.T3", "REACTION-4.T3b"]
               },
-              "activeWorkbook": "docs/handoffs/slice-attack-2.md"
+              "note": "CI ci/merge-m72 b123b3e56 (Tests 39022719048, Live backend 39022719042), merged at 2a8428d2b; local player-browser proof a2t2-40. Workbook docs/handoffs/slice-attack-2.md. The death-save outcome shows on the Character Sheet (tabletop tally parked in future-enhancements)."
             }
           ]
         },
