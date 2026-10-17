@@ -32,7 +32,8 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
 /** What enabling something does for the holder; any other enabled domain is neutral. */
 const ENABLE_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPolarity>>> = {
   OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL',
-  SPELLCASTING_LOCK: 'HARMFUL'
+  SPELLCASTING_LOCK: 'HARMFUL',
+  ACTION_BONUS_ACTION_EXCLUSIVITY: 'HARMFUL'
 }
 
 /**
@@ -89,6 +90,8 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
         (amount === 0 ? byValue?.zero : amount > 0 ? byValue?.positive : undefined) ?? 'NEUTRAL'
       )
     }
+    case 'CAP_VALUE':
+      return 'HARMFUL'
     case 'ADD_OPTION':
       return OPTION_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'
     case 'REMOVE_OPTION':

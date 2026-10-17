@@ -183,7 +183,11 @@ export function evaluateDnd5e2014CharacterPolicy(
     attacksPerAttackAction: Math.max(
       1,
       ...modifierGroups
-        .filter((group) => group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION')
+        .filter(
+          (group) =>
+            group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION' &&
+            group.modifierKind === 'SET_VALUE'
+        )
         .flatMap((group) => group.contributions)
         .filter((contribution) =>
           dnd5eModifierApplies(
