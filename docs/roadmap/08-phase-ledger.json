@@ -8532,7 +8532,7 @@
             {
               "id": "SPELLS-20.T2b",
               "text": "Ending, dropping or replacing Concentration removes the zones dependent on that maintained state in the same transaction (one cleanup path, D135), and GM undo restores them; serves every lasting zone.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -8540,12 +8540,13 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T3",
               "text": "Encounter session state carries each aura's label, radius and source token only to viewers allowed to see the source (Convex and room parity); unblocks VTT_UI-3.1.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8554,7 +8555,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "proof": "Red ci/spells-20-t3-red c6f4813bd (Tests 38978456915 failed on the two aura room tests and activeReads); green ci/spells-20-t3 897458fa0 (Tests 38984886789, Live 38984886833); merged in m60 3f46d92b1 (Tests 38987673112, Live 38987673094)."
             },
             {
               "id": "SPELLS-20.T4",
