@@ -279,14 +279,14 @@ export function buildMovementTarget<
             characterFacts.prepared.context.vocabularySnapshot
           )
         : baseRulePolicyOutput
-    const formArmorClass = characterFormStatBlock(actor)?.armorClass
+    const formStatBlock = characterFormStatBlock(actor)
+    const formArmorClass =
+      formStatBlock?.armorClass == null
+        ? null
+        : (withCreatureActiveGrantArmorClass(formStatBlock.armorClass, activeEffects) ??
+          formStatBlock.armorClass)
     const effectiveRulePolicyOutput =
-      formArmorClass == null
-        ? policyOutput
-        : withFormArmorClass(
-            policyOutput,
-            withCreatureActiveGrantArmorClass(formArmorClass, activeEffects) ?? formArmorClass
-          )
+      formArmorClass === null ? policyOutput : withFormArmorClass(policyOutput, formArmorClass)
     const sheetMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
     const effectiveMaximumHitPoints =
       form === null
@@ -423,6 +423,8 @@ export function buildMovementTarget<
       },
       targetDerivedFacts: {
         ...effectiveRulePolicyOutput,
+        // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
+        ...(formStatBlock ? { statBlock: formStatBlock } : {}),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
