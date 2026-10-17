@@ -10964,7 +10964,7 @@
             {
               "id": "SPELLS-20.T6",
               "text": "A creature's damaging aura (the Balor's Fire Aura first) through the same options, with an authoring-parity proof; closes SPELLS-20.1.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10976,9 +10976,11 @@
                 "after": [
                   "SPELLS-20.T4b2b2"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             }
-          ]
+          ],
+          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
         },
         {
           "id": "SPELLS-21",
