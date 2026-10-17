@@ -32,7 +32,6 @@ export interface SpatialPersistedGeometry {
   readonly shape: SpatialGeometry
 }
 
-/** A system-neutral spatial instance after its source has been resolved. */
 /**
  * Whether an effect can catch a creature at all: the one membership question every trigger asks
  * (movement ENTER, EXIT and CROSS today; turn-stage triggers and movement cost must ask it too).
@@ -44,6 +43,7 @@ export function spatialEffectAffects(
   return !effect.unaffectedActorIds?.includes(actorId)
 }
 
+/** A system-neutral spatial instance after its source has been resolved. */
 export interface SpatialEffectInstance {
   readonly effectId: string
   readonly sourceActorId: string | null
