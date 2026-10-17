@@ -261,6 +261,10 @@ Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`)
 
 SPELLS-20.T4b2b resolves a turn boundary's effects in a fixed, deterministic order: the actor's own start- or end-of-turn effects first, then the zones it is in (such as Spirit Guardians), each batch by effect id. The SRD lets the creature whose turn it is choose the order of simultaneous effects. Candidate: an order prompt for that creature when more than one effect is due. Raised 2026-10-17 during SPELLS-20.T4b2 design; post-launch.
 
+### Death save outcome on the tabletop
+
+A death save rolled in play shows its outcome only on the Character Sheet (CharacterSheetDeathSaves); the tabletop shows the prompt, then the decision settles, with no tally, token mark or log entry for the player or the GM. Candidate: a success/failure tally on the dying creature's token or in the play log. Raised 2026-10-17 by the ATTACK-2.T2 journey; post-launch.
+
 ### Level-gated check on an effect (Dispel Magic)
 
 REACTION-4.T3c authors the level-gated check as `higherLevelCheck` on a `SPELL_CAST` reaction binding (roll only when the triggering level exceeds the level the reaction is cast at; DC = base DC + the triggering level). Dispel Magic is not a reaction: it ends an effect of a given level on a target, and an effect above the slot owes the same check. Its gate needs the same shape authored on the effect side, with the check resolved by the same rules-runtime requirement, before Dispel Magic can reuse it. Raised by Phase 8 on 2026-10-16; post-launch.
