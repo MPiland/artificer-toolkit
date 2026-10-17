@@ -98,3 +98,8 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - A made save's damage comes from its own proposal node, so the zone graph binds it as a second source entry (`sourceEntryBindings`); `requireSupportedApplications` and the spatial evidence schema accept any bound node, not only `frozenGraphNodeId`.
 - Spirit Guardians is authored as 3d8 at the 3rd level plus 1d8 per slot level (levels 3-9), half on a made save.
 - `semantic-ledger.json` `authoredSha256` is not verified by any code, so it was not regenerated.
+
+### T4c (creatures designated unaffected at cast)
+
+- Red proof: the Tests run's "Red proof against the phase branch" job (no separate red branch).
+- Design: authored component flag `choosesUnaffected` (precedent `bypassAtHalfSpeed`) -> compiled zone placement -> choice DTO `choosesUnaffected` on `POINT` / `CASTER_CENTERED` -> optional command `unaffectedActorIds` on those targets -> optional `placement.unaffectedActorIds` (omitted when empty) -> `SpatialEffectInstance.unaffectedActorIds` filtered in `collectSpatialMovementCandidates`. No migration (additive optional fields); web drawer shows a MultiSelect.

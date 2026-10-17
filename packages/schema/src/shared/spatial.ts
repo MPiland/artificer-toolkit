@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
@@ -137,7 +138,11 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       revealOnTrigger: z.boolean(),
       label: z.optional(spatialZoneLabelSchema),
       /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
-      bypassAtHalfSpeed: z.optional(z.boolean())
+      bypassAtHalfSpeed: z.optional(z.boolean()),
+      /** Creatures the caster designated at cast; the zone never catches them. Absent when none. */
+      unaffectedActorIds: z.optional(
+        z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      )
     })
     .check(
       z.superRefine((placement, context) => {
@@ -219,7 +224,10 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
       geometry: spatialPersistedGeometryDtoSchema,
       triggerModes: z.array(triggerSchema).check(z.minLength(1)).check(z.maxLength(3)),
       movementKinds: z.array(movementSchema).check(z.minLength(1)).check(z.maxLength(3)),
-      bypassAtHalfSpeed: z.optional(z.boolean())
+      bypassAtHalfSpeed: z.optional(z.boolean()),
+      unaffectedActorIds: z.optional(
+        z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      )
     })
     .check(
       z.superRefine((effect, context) => {

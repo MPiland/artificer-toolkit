@@ -290,6 +290,8 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
     triggerModes: z.array(spatialTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(3)),
     /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
     bypassAtHalfSpeed: z.optional(z.boolean()),
+    /** Whether the caster designates creatures at cast that the zone never affects. */
+    choosesUnaffected: z.optional(z.boolean()),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */

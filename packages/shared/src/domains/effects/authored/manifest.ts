@@ -143,6 +143,7 @@ export type ManifestComponentAuthored = {
   interactionKind?: ManifestInteractionKind
   interactionKinds?: ManifestInteractionKind[]
   bypassAtHalfSpeed?: boolean
+  choosesUnaffected?: boolean
   movementCostMultiplier?: number
   requiresFullyWithin?: boolean
   automaticSaveSuccessConditions?: Array<'DOES_NOT_BREATHE' | 'POISON_IMMUNE'>

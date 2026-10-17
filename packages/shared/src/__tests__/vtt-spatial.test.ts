@@ -89,6 +89,87 @@ describe('spatial movement candidates', () => {
     expect(exit[0]?.contact.x).toBeCloseTo(2)
   })
 
+  describe('creatures designated unaffected (SPELLS-20 T4c)', () => {
+    const walk = [
+      { x: -5, y: 0 },
+      { x: 5, y: 0 }
+    ]
+
+    const spared = effect({ unaffectedActorIds: [ids.targetActor] })
+    const otherSpared = effect({ unaffectedActorIds: [ids.sourceActor] })
+    const movements = [
+      { trigger: 'CROSS', movementKind: 'VOLUNTARY', path: walk },
+      {
+        trigger: 'EXIT',
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 0, y: 0 },
+          { x: 5, y: 0 }
+        ]
+      },
+      {
+        trigger: 'ENTER',
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: -5, y: 0 },
+          { x: 0, y: 0 }
+        ]
+      },
+      { trigger: 'CROSS', movementKind: 'FORCED', path: walk },
+      {
+        trigger: 'ENTER',
+        movementKind: 'TELEPORT',
+        path: [
+          { x: -5, y: 0 },
+          { x: 0, y: 0 }
+        ]
+      },
+      {
+        trigger: 'EXIT',
+        movementKind: 'TELEPORT',
+        path: [
+          { x: 0, y: 0 },
+          { x: 5, y: 0 }
+        ]
+      }
+    ] as const
+
+    it.each(movements)(
+      'never catches a creature the effect names unaffected on a $movementKind $trigger, and still catches the others',
+      ({ trigger, movementKind, path }) => {
+        expect(collect({ effects: [otherSpared], movementKind, path })).toMatchObject([{ trigger }])
+        expect(collect({ effects: [spared], movementKind, path })).toEqual([])
+      }
+    )
+
+    it('never catches a spared creature a moving source aura passes over', () => {
+      const aura = (unaffectedActorIds: readonly string[]) =>
+        effect({
+          anchorKind: 'TOKEN',
+          geometry: {
+            frame: 'TOKEN_LOCAL',
+            shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 1 }
+          },
+          sourceTokenId: ids.sourceToken,
+          unaffectedActorIds
+        })
+      const sweep = (unaffectedActorIds: readonly string[]) =>
+        collectSpatialMovementCandidates({
+          actorIdByTokenId: new Map([
+            [ids.sourceToken, ids.sourceActor],
+            [ids.targetToken, ids.targetActor]
+          ]),
+          effects: [aura(unaffectedActorIds)],
+          movementKind: 'FORCED',
+          movingTokenId: ids.sourceToken,
+          path: walk,
+          tokens: [token(ids.sourceToken, -5), token(ids.targetToken, 0)]
+        })
+      expect(sweep([ids.targetActor])).toEqual([])
+      expect(sweep([])).toHaveLength(1)
+    })
+  })
+
   describe('half-speed passage', () => {
     const field = effect({ bypassAtHalfSpeed: true })
     const walk = [
