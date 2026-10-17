@@ -277,6 +277,17 @@ describe('Escape from a fixed-DC grapple, in the room', () => {
     expect(state.spent).toBe(0)
   })
 
+  it('reports only its own refusal when another room logs an error meanwhile', async () => {
+    const room = await escapeRoom({ autoRoll: true, faces: [20] })
+    // A room from an earlier test retrying its alarm logs through the same process-wide console.
+    setTimeout(
+      () => console.error('Live Session alarm failed; retrying.', new Error('other room')),
+      0
+    )
+    const { causes } = await invalidEscape(room, SRD_MEDICINE_SKILL_ID)
+    expect(causes).toEqual(['The escape does not allow that check.'])
+  })
+
   it('refuses a second escape once the effect has ended', async () => {
     const room = await escapeRoom({ autoRoll: true, faces: [20, 20] })
     expect((await escape(room)).type).toBe('COMMAND_COMMITTED')
