@@ -102,6 +102,7 @@ export async function planNativeLiveEncounterTurn(
       context?.kind === 'ENCOUNTER_TURN_RECHARGE' ||
       context?.kind === 'ENCOUNTER_TURN_DEATH_SAVE' ||
       context?.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
+      context?.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS' ||
       context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
       context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE') &&
       context.root.commandType === 'START')
@@ -258,6 +259,7 @@ export async function planNativeLiveEncounterTurn(
       pendingContext.kind !== 'ENCOUNTER_TURN_RECHARGE' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_DEATH_SAVE' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
+      pendingContext.kind !== 'ENCOUNTER_TURN_ZONE_EFFECTS' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
     )
@@ -419,6 +421,7 @@ export async function planNativeLiveEncounterTurn(
           occurredAt,
           root: prepared.root,
           incomingTurn: prepared.incoming.phase,
+          ...(prepared.incomingZones ? { incomingZoneTurn: prepared.incomingZones } : {}),
           rules: completion.rules,
           maintenanceOwners: [
             ...new Map(

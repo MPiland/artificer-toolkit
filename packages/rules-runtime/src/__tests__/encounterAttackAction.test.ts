@@ -23,8 +23,8 @@ import {
   revertEncounterAttackActionTransition
 } from '../encounterAttackAction.js'
 import type { CurrentReusableDefinitionSource } from '../ruleCapabilityStateService.js'
+import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { copperSlowingEffect } from './antitoxinEffectFixture.js'
-import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
 import { creatureActor, creatureEncounter, srdConditionId } from './encounterCreatureAction.js'
 
 const ACTOR_ID = '00000000-0000-4000-8000-0000000b0001'

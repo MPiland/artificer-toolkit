@@ -29,7 +29,7 @@ import {
   srdDefinitions,
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
 const HOLDER_ID = testUuid(0xe501)
 const wolf = srdByLabel(SRD.creatures, 'Wolf')

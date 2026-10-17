@@ -21,7 +21,7 @@ import {
   itemAction,
   srdByLabel,
   type SrdCharacter
-} from './dnd5eSrdCharacter.js'
+} from '../testing/dnd5eSrdCharacter.js'
 
 export const SMITE_TARGET_ID = testUuid(0xc2)
 export const SMITE_OCCURRENCE_ID = testUuid(0xc3)

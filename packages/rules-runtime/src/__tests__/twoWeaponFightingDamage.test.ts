@@ -12,7 +12,7 @@ import {
   itemAction,
   srdFeature,
   type SrdCharacter
-} from './dnd5eSrdCharacter.js'
+} from '../testing/dnd5eSrdCharacter.js'
 
 /** The Club and Shortsword the SRD publishes: a Strength and a finesse Light melee weapon. */
 const strengthClub = club

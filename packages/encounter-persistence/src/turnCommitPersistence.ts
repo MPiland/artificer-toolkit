@@ -13,10 +13,12 @@ import {
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
   legendaryActionDamage,
-  nativeConcentrationDamageApplications
+  nativeConcentrationDamageApplications,
+  zoneEffectDamage
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { recordZoneApplications, type SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type {
@@ -31,9 +33,13 @@ import { projectNativeGm } from './nativeProjection.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
-import { persistEncounterGrantTicks, persistEncounterIdleTurnCheck } from './grantTickPersistence.js'
+import {
+  persistEncounterGrantTicks,
+  persistEncounterIdleTurnCheck
+} from './grantTickPersistence.js'
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
+import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
 import {
   persistEncounterTurnDeathSave,
   persistEncounterTurnResources
@@ -57,6 +63,7 @@ export async function persistEncounterTurnCommit(
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
+    readSceneTokens(sceneId: string): Promise<readonly SpatialSceneToken[]>
     readDefinition(id: string, userId: string): Promise<ReusableDefinitionCurrentDto | null>
     bindConcentrationApplications(
       state: EncounterRunState,
@@ -138,11 +145,13 @@ export async function persistEncounterTurnCommit(
     input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
   )
     throw new Error('Live Session turn rule output scope mismatch.')
-  // Outgoing effects, then Legendary Actions, then incoming effects, as the room planned them.
+  // Each boundary's effects, then its zones, around the Legendary Actions, as the room planned them.
   const applications = nativeConcentrationDamageApplications([
     ...(root.outgoingTurn?.kind === 'STAGED' ? root.outgoingTurn.plan.executions : []),
+    ...zoneEffectDamage(root.outgoingZoneTurn),
     ...legendaryActionDamage(root.completedLegendaryActions),
-    ...(input.incomingTurn.kind === 'STAGED' ? input.incomingTurn.plan.executions : [])
+    ...(input.incomingTurn.kind === 'STAGED' ? input.incomingTurn.plan.executions : []),
+    ...zoneEffectDamage(input.incomingZoneTurn)
   ])
   if (
     input.maintenanceOwners.some(
@@ -177,6 +186,26 @@ export async function persistEncounterTurnCommit(
         callbacks.applyMechanics
       )
     : null
+  const zoneCommit = {
+    state,
+    occurrenceId: input.occurrenceId,
+    rootCommandId: root.rootCommandId,
+    commandType: root.commandType,
+    occurredAt: input.occurredAt
+  }
+  const zoneCallbacks = {
+    applyMechanics: callbacks.applyMechanics,
+    readSceneTokens: callbacks.readSceneTokens
+  }
+  const outgoingZones = await persistEncounterTurnZoneEffects(
+    ctx,
+    {
+      ...zoneCommit,
+      boundary: { ordinal: 0, stage: 'END_OF_TURN', actorId: state.currentActorId },
+      plan: root.outgoingZoneTurn
+    },
+    zoneCallbacks
+  )
   await persistEncounterGrantTicks(ctx, {
     state,
     stage: 'END_OF_TURN',
@@ -264,18 +293,24 @@ export async function persistEncounterTurnCommit(
     { state, campaign, root, occurrenceId: input.occurrenceId, occurredAt: input.occurredAt },
     callbacks.applyMechanics
   )
+  const incomingBoundary = {
+    ordinal: root.commandType === 'START' ? 0 : 1,
+    stage: 'START_OF_TURN',
+    actorId: root.proposedTerminalTransition.currentActorId
+  } as const
   const incoming = await persistEncounterTurnEffects(
     ctx,
     {
       ...effectCommit,
-      boundary: {
-        ordinal: root.commandType === 'START' ? 0 : 1,
-        stage: 'START_OF_TURN',
-        actorId: root.proposedTerminalTransition.currentActorId
-      },
+      boundary: incomingBoundary,
       phase: input.incomingTurn
     },
     callbacks.applyMechanics
+  )
+  const incomingZones = await persistEncounterTurnZoneEffects(
+    ctx,
+    { ...zoneCommit, boundary: incomingBoundary, plan: input.incomingZoneTurn },
+    zoneCallbacks
   )
   await persistEncounterGrantTicks(ctx, {
     state,
@@ -288,6 +323,16 @@ export async function persistEncounterTurnCommit(
     ...root.proposedTerminalTransition,
     // START and ADVANCE_TURN always begin a new turn, even for the same actor.
     turnSequence: state.turnSequence + 1,
+    // Only the new turn's catches count: the outgoing turn is over, so its limit is never read again.
+    ...(incomingZones
+      ? {
+          zoneApplications: recordZoneApplications(
+            state.zoneApplications,
+            state.turnSequence + 1,
+            incomingZones.phase.executions.map(({ candidate }) => candidate.candidate)
+          )
+        }
+      : {}),
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
@@ -359,6 +404,8 @@ export async function persistEncounterTurnCommit(
         ? { phase: root.outgoingTurn, result: outgoing.result }
         : undefined,
     incomingEffects: { phase: input.incomingTurn, result: incoming.result },
+    outgoingZones: outgoingZones?.phase,
+    incomingZones: incomingZones?.phase,
     legendaryActions: root.completedLegendaryActions,
     legendaryActionRefreshes: root.stagedLegendaryActionRefreshes,
     actionEconomyRefreshes: root.stagedActionEconomyRefreshes,
@@ -368,6 +415,8 @@ export async function persistEncounterTurnCommit(
       root.completedDeathSavePlan != null ||
       (root.outgoingTurn !== undefined && root.outgoingTurn.kind !== 'NONE') ||
       input.incomingTurn.kind !== 'NONE' ||
+      !!outgoingZones ||
+      !!incomingZones ||
       !!root.completedLegendaryActions?.length ||
       !!root.stagedLegendaryActionRefreshes?.length ||
       !!root.stagedActionEconomyRefreshes?.length,

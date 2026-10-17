@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { srdBaselineContent } from './index.js'
 import { ballBearingsBagOf1000 } from './equipment/ball-bearings-bag-of-1000.js'
 import { caltropsBagOf20 } from './equipment/caltrops-bag-of-20.js'
 import { huntingTrap } from './equipment/hunting-trap.js'
 import { oilFlask } from './equipment/oil-flask.js'
 import { bladeBarrier } from './spells/blade-barrier.js'
+import { spiritGuardians } from './spells/spirit-guardians.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
 function interactionKindsByComponent(node: unknown): Record<string, readonly string[]> {
@@ -41,5 +43,64 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     expect(interactionKindsByComponent(bladeBarrier)['Whirling Blades']).toContain(
       'START_TURN_IN_SPACE'
     )
+  })
+
+  it('catches a creature of Spirit Guardians on entering and on starting its turn in the area', () => {
+    expect(interactionKindsByComponent(spiritGuardians)['Enter the spirits']).toEqual([
+      'ENTER_SPACE',
+      'START_TURN_IN_SPACE'
+    ])
+  })
+})
+
+const TURN_TRIGGER_TEXT =
+  /\b(starts?|ends?) (its|his|her|their|a) turn\b|\b(start|end) of (its|their) turn\b/i
+
+/** Every labelled subject whose description is prose, with the interaction kinds its components author. */
+function describedZones(node: unknown): { label: string; description: string; kinds: string[] }[] {
+  if (Array.isArray(node)) return node.flatMap(describedZones)
+  if (typeof node !== 'object' || node === null) return []
+  const record = node as Record<string, unknown>
+  const own =
+    typeof record.kind === 'string' &&
+    typeof record.label === 'string' &&
+    typeof record.description === 'string'
+      ? [
+          {
+            label: record.label,
+            description: record.description,
+            kinds: Object.values(interactionKindsByComponent(record)).flat()
+          }
+        ]
+      : []
+  return [...own, ...Object.values(record).flatMap(describedZones)]
+}
+
+/**
+ * SPELLS-20.T4b2b: a zone whose text acts on a creature starting or ending its turn in the area
+ * must author that trigger once its components are authored, or the turn stage never reaches it.
+ */
+describe('SRD zones with turn-trigger text author the turn trigger', () => {
+  /** Zones whose outcomes a placed zone cannot yet run; each leaves the list when its rules gap closes. */
+  const RULES_GAP = new Set(['Prismatic Wall'])
+  const authored = describedZones(srdBaselineContent.subjects).filter(
+    (subject) => subject.kinds.length > 0 && TURN_TRIGGER_TEXT.test(subject.description)
+  )
+
+  it('finds authored zones that mention a turn trigger', () => {
+    expect(authored.length).toBeGreaterThan(0)
+  })
+
+  it('lists every such zone that lacks START_TURN_IN_SPACE and END_TURN_IN_SPACE', () => {
+    expect(
+      authored
+        .filter(
+          (subject) =>
+            !RULES_GAP.has(subject.label) &&
+            !subject.kinds.includes('START_TURN_IN_SPACE') &&
+            !subject.kinds.includes('END_TURN_IN_SPACE')
+        )
+        .map((subject) => subject.label)
+    ).toEqual([])
   })
 })

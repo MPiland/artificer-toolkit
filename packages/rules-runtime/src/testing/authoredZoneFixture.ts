@@ -9,7 +9,7 @@ import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/ca
 
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
-import { testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { testUuid } from './dnd5eSrdEncounter.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
 
 const CALTROPS = 'Caltrops (bag of 20)'

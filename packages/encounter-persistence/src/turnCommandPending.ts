@@ -51,6 +51,7 @@ export async function readNativeTurnCommandPending(
         pendingContext.kind !== 'ENCOUNTER_TURN_RECHARGE' &&
         pendingContext.kind !== 'ENCOUNTER_TURN_DEATH_SAVE' &&
         pendingContext.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
+        pendingContext.kind !== 'ENCOUNTER_TURN_ZONE_EFFECTS' &&
         pendingContext.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
         pendingContext.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE') ||
       pendingContext.root.rootCommandId !== input.commandId ||
@@ -72,6 +73,7 @@ export async function readNativeTurnCommandPending(
           pendingContext.kind === 'ENCOUNTER_TURN_RECHARGE' ||
           pendingContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE' ||
           pendingContext.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
+          pendingContext.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS' ||
           pendingContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
           pendingContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
             ? projectNativeTurnPending({

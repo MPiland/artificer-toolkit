@@ -23,7 +23,7 @@ import {
   variantEquipment,
   zonePlacementOf,
   type ZoneParts
-} from './authoredZoneFixture.js'
+} from '../testing/authoredZoneFixture.js'
 
 describe('placed-space zone compilation from real SRD Caltrops', () => {
   it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
@@ -492,7 +492,7 @@ describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () 
     expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
   })
 
-  it('rolls the dice of each save result in a gate of its own and halves the made save’s roll', () => {
+  it('rolls the dice of each save result in a gate of its own and halves the made saveï¿½s roll', () => {
     const { nodes } = zonePlacementOf(authored).entry.frozenGraph.definition
     expect(nodes.map((node) => node.id)).toEqual([
       'd20',

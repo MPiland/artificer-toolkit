@@ -26,7 +26,11 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-import { resolveNativeLiveTurnEffectPerception } from './nativeTurnEffectPerception.js'
+import {
+  readNativeLivePerceptionScene,
+  readNativeLiveSpatialEffects,
+  resolveNativeLiveTurnEffectPerception
+} from './nativeTurnEffectPerception.js'
 
 type CharacterFacts = PreparedLiveCharacterSheet
 
@@ -103,8 +107,32 @@ export function createNativeLiveTurnStages(
     zones: (stage) =>
       prepareEncounterTurnZoneEffects<CharacterFacts>({
         ...stage,
-        // The live Scene's placed zones load in the persistence tranche (SPELLS-20.T4b2b2).
-        loadScene: async () => null,
+        loadScene: async () => {
+          const actorId = stage.boundary.actorId
+          if (actorId === null) return null
+          const loaded = await readNativeLivePerceptionScene({
+            observerActorId: actorId,
+            subjectActorId: actorId,
+            campaignId: state.campaignId,
+            capture
+          })
+          if (!loaded) return null
+          inputs.onSceneRead({
+            sceneId: loaded.id,
+            sceneVersion: loaded.version,
+            definitionSaveId: loaded.definitionSaveId
+          })
+          return {
+            effects: await readNativeLiveSpatialEffects({
+              encounterId: state.id,
+              sceneId: loaded.id,
+              sceneVersion: loaded.version,
+              capture
+            }),
+            tokens: loaded.scene.tokens,
+            actorIdByTokenId: new Map([[loaded.subjectTokenId, actorId]])
+          }
+        },
         loadTarget,
         createRuntime,
         random

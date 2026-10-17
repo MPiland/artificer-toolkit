@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   QUILL_VOLLEY_ID,

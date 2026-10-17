@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureEncounter,

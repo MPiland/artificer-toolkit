@@ -71,6 +71,51 @@ function requirePending(pending: ServerRuleExecutionPendingSnapshotDto): {
 }
 
 /**
+ * The zones that catch a creature at a turn boundary, with the checksum that pins them. The turn
+ * preparation plans against it and the terminal transaction re-derives it from the locked Scene.
+ * Null when the creature has no token in the Scene or no zone catches it.
+ */
+export function selectTurnZoneContacts(input: {
+  state: Pick<EncounterRunState, 'turnSequence' | 'zoneApplications'>
+  commandType: TurnCoordinatorRootDto['commandType']
+  boundary: Pick<TurnEffectBoundary, 'ordinal' | 'stage'>
+  actorId: string
+  scene: TurnZoneScene
+}) {
+  const { scene, boundary } = input
+  const tokenId = [...scene.actorIdByTokenId].find(([, id]) => id === input.actorId)?.[0]
+  if (!tokenId) return null
+  const contacts = collectSpatialTurnCandidates({
+    actorIdByTokenId: scene.actorIdByTokenId,
+    effects: scene.effects.map(toSpatialInstance),
+    targetTokenId: tokenId,
+    tokens: scene.tokens,
+    trigger: boundary.stage,
+    zoneApplications: input.state.zoneApplications,
+    // The turn commit advances the sequence once: the outgoing turn is the current one.
+    turnSequence: input.state.turnSequence + (boundary.stage === 'START_OF_TURN' ? 1 : 0)
+  })
+  if (!contacts.length) return null
+  const effects = contacts.map(({ effectId }) => {
+    const effect = scene.effects.find((candidate) => candidate.id === effectId)
+    if (!effect) throw new Error('Turn zone is unavailable.')
+    return effect
+  })
+  const selectionChecksum = checksumCanonicalJson({
+    commandType: input.commandType,
+    boundaryOrdinal: boundary.ordinal,
+    stage: boundary.stage,
+    targetActorId: input.actorId,
+    zones: contacts.map((contact, index) => ({
+      contact,
+      version: effects[index]!.version,
+      placementChecksum: effects[index]!.placementChecksum
+    }))
+  })
+  return { contacts, effects, selectionChecksum }
+}
+
+/**
  * Executes the zones that catch the creature whose turn boundary this is, after its active
  * effects, in effect-id order. Like the active-effect stage it plans without changing the Run.
  * No zone batch runs when none catches the creature, so such a turn stores no zone evidence.
@@ -114,35 +159,17 @@ export async function prepareEncounterTurnZoneEffects<
   // A manual Run leaves its zones to the GM, as it does its active effects.
   if (!actor || state.automationMode === 'MANUAL') return none()
   const scene = await input.loadScene()
-  const tokenId = scene && [...scene.actorIdByTokenId].find(([, id]) => id === actor.id)?.[0]
-  if (!scene || !tokenId) return none()
-  const contacts = collectSpatialTurnCandidates({
-    actorIdByTokenId: scene.actorIdByTokenId,
-    effects: scene.effects.map(toSpatialInstance),
-    targetTokenId: tokenId,
-    tokens: scene.tokens,
-    trigger: boundary.stage,
-    zoneApplications: state.zoneApplications,
-    // The turn commit advances the sequence once: the outgoing turn is the current one.
-    turnSequence: state.turnSequence + (boundary.stage === 'START_OF_TURN' ? 1 : 0)
-  })
-  if (!contacts.length) return none()
-  const effects = contacts.map(({ effectId }) => {
-    const effect = scene.effects.find((candidate) => candidate.id === effectId)
-    if (!effect) throw new Error('Turn zone is unavailable.')
-    return effect
-  })
-  const selectionChecksum = checksumCanonicalJson({
-    commandType: input.root.commandType,
-    boundaryOrdinal: boundary.ordinal,
-    stage: boundary.stage,
-    targetActorId: actor.id,
-    zones: contacts.map((contact, index) => ({
-      contact,
-      version: effects[index]!.version,
-      placementChecksum: effects[index]!.placementChecksum
-    }))
-  })
+  const selected =
+    scene &&
+    selectTurnZoneContacts({
+      state,
+      commandType: input.root.commandType,
+      boundary,
+      actorId: actor.id,
+      scene
+    })
+  if (!selected) return none()
+  const { contacts, effects, selectionChecksum } = selected
   const retained = input.pending ? requirePending(input.pending) : null
   const pending = retained?.context
   if (

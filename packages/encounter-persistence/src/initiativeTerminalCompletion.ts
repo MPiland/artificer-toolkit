@@ -26,6 +26,7 @@ import type {
   TurnDeathSaveExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import type { executedTurnZonePhaseEvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { writePendingSnapshot } from './pendingSnapshots.js'
@@ -68,6 +69,9 @@ export async function completeNativeInitiativeOccurrence(input: {
     phase: PendingCompletedTurnPhaseDto
     result: StoredRuleExecutionResultDto | null
   }
+  /** The zone batches that ran at each boundary; absent where none did. */
+  outgoingZones?: ReturnType<typeof executedTurnZonePhaseEvidenceDtoSchema.parse>
+  incomingZones?: ReturnType<typeof executedTurnZonePhaseEvidenceDtoSchema.parse>
   includeOccurrence?: boolean
   resolutionCommands: readonly TurnResolutionCommandDto[]
   occurrenceVersion: number
@@ -105,11 +109,16 @@ export async function completeNativeInitiativeOccurrence(input: {
       : {}),
     ...(input.actionEconomyRefreshes?.length
       ? { actionEconomyRefreshes: input.actionEconomyRefreshes }
-      : {})
+      : {}),
+    ...(input.outgoingZones ? { outgoingZoneEffects: input.outgoingZones } : {}),
+    ...(input.incomingZones ? { incomingZoneEffects: input.incomingZones } : {})
   }
-  const hasEffects = [input.outgoingEffects, input.incomingEffects].some(
-    (value) => value !== undefined && value.phase.kind !== 'NONE'
-  )
+  const hasEffects =
+    !!input.outgoingZones ||
+    !!input.incomingZones ||
+    [input.outgoingEffects, input.incomingEffects].some(
+      (value) => value !== undefined && value.phase.kind !== 'NONE'
+    )
   const terminatedMaintainedStates = [input.outgoingEffects, input.incomingEffects]
     .flatMap((value) =>
       value?.result?.status === 'BATCH_COMPLETE' &&

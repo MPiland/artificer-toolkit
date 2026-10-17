@@ -26,7 +26,7 @@ import {
   itemAction,
   vocabulary,
   type SrdCharacter
-} from './dnd5eSrdCharacter.js'
+} from '../testing/dnd5eSrdCharacter.js'
 
 const HOLDER_ID = '00000000-0000-4000-8000-00000000b901'
 const EFFECT_ID = '00000000-0000-4000-8000-00000000b902'

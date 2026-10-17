@@ -19,7 +19,7 @@ import {
   ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
   QUILL_VOLLEY_ID,
   creatureActor,

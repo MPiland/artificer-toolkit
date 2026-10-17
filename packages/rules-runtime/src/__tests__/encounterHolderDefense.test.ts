@@ -28,7 +28,7 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { dodgeEffect } from './antitoxinEffectFixture.js'
-import { SRD, evaluateSrdCharacter, srdByLabel, vocabulary } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel, vocabulary } from '../testing/dnd5eSrdCharacter.js'
 
 const HOLDER_ID = testUuid(0xd5a1)
 const DODGE_ID = testUuid(0xd5a2)

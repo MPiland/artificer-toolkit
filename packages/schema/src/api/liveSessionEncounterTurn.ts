@@ -19,6 +19,10 @@ import {
   liveSessionEncounterConcentrationFields,
   type LiveSessionEncounterActionCommitInput
 } from './liveSessionEncounterAction.js'
+import {
+  stagedTurnZonePlanDtoSchema,
+  type StagedTurnZonePlanDto
+} from '../shared/ruleExecutionTurnPhaseEvidence.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '../shared/activeRuleEffects.js'
 
@@ -70,6 +74,8 @@ export type LiveSessionEncounterTurnCommitInput = Omit<
     occurredAt: string
     root: TurnCoordinatorRootDto
     incomingTurn: PendingCompletedTurnPhaseDto
+    /** The zones that catch the incoming creature; absent when none does. */
+    incomingZoneTurn?: StagedTurnZonePlanDto
   }
 
 export const liveSessionEncounterTurnCommitInputSchema: z.ZodMiniType<LiveSessionEncounterTurnCommitInput> =
@@ -79,6 +85,7 @@ export const liveSessionEncounterTurnCommitInputSchema: z.ZodMiniType<LiveSessio
       occurredAt: z.iso.datetime(),
       root: turnCoordinatorRootDtoSchema,
       incomingTurn: pendingCompletedTurnPhaseDtoSchema,
+      incomingZoneTurn: z.optional(stagedTurnZonePlanDtoSchema),
       rules: encounterActorRuleOutputSchema,
       maintenanceOwners: z
         .array(liveSessionEncounterMaintenanceOwnerRequestSchema)

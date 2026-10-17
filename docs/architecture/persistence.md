@@ -338,6 +338,23 @@ whose only Concentration holder is the zone has no creature outcome to carry the
 created state with the zone; undoing a cast that replaced a state stays unsupported. Ending the Concentration
 removes the zone in the same transaction in T2b (current: the link exists, cleanup does not yet act on it).
 
+Zones act at turn boundaries (SPELLS-20.T4b2b, ADR 0034). The room plans each boundary's zone batch against the
+live Scene (`prepareEncounterTurnZoneEffects`) and keeps it in the turn result (`outgoingZoneTurn` on the root,
+`incomingZoneTurn` on the commit input; absent when no zone caught the creature). The terminal transaction
+(`persistEncounterTurnCommit`) runs, per boundary, the active-effect batch and then
+`persistEncounterTurnZoneEffects`, the only zone-specific persistence function: it reads the Encounter's Scene
+binding and the creature's token binding, derives the contacts and the per-turn counter again with the shared
+`selectTurnZoneContacts` (the same function the room used) from the locked effect rows and the room's Scene
+tokens, and refuses a plan whose selection checksum (which covers each zone's version and placement, D138: a placed
+zone is fixed at placement) or Character target pin differs. It applies one `TURN_ZONE_EFFECT` mechanics batch and returns the zone phase evidence
+that `completeNativeInitiativeOccurrence` stores as `outgoingZoneEffects` / `incomingZoneEffects` on
+`INITIATIVE_COMPLETE`, `BATCH_COMPLETE (ENCOUNTER_TURN_ACTIVE_EFFECTS)` and `TURN_LIFECYCLE_COMPLETE` results; a turn
+without zones stores a result without those fields. The new turn's catches are recorded in the Run state's
+`zoneApplications` (`recordZoneApplications`, keyed by effect and actor, kept for the current turn sequence
+only). Turn zones neither consume nor reveal a spatial effect, so persistence applies no spatial lifecycle
+transition. The pending kind `ENCOUNTER_TURN_ZONE_EFFECTS` rides the same pending, admission, owner and
+replay seams as the other turn kinds.
+
 ## Scene storage
 
 `sceneDefinitions` holds the current settings and save ID of a Scene definition. An owner save uploads typed

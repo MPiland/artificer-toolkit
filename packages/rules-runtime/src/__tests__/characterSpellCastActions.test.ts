@@ -27,7 +27,7 @@ import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiv
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 
 type BuildInput = Parameters<typeof buildCharacterSpellCastActions>[0]
 type SpellCastCandidate = BuildInput['spellCastCandidates'][number]

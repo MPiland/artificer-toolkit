@@ -1,128 +1,42 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  encounterSpatialRuleEffectRecordSchema,
-  type EncounterSpatialRuleEffectRecord
-} from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { initiativeCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResultBranches'
-import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { zoneApplicationKey } from '@artificer-toolkit/shared/vtt'
 
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { planEncounterInitiativeAdvance } from '../encounterInitiativeStateSettlement.js'
-import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { projectNativeTurnPending, turnPendingActorId } from '../encounterTurnPending.js'
 import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   createSrdRulesRuntime,
   ENCOUNTER_ID,
-  srdCreatureActor,
   srdCreatureTarget,
-  srdEncounterState,
-  testUuid,
-  TIMESTAMP
+  srdEncounterState
 } from '../testing/dnd5eSrdEncounter.js'
-import { diceDamage, variantEquipment, zonePlacementOf } from './authoredZoneFixture.js'
 import { roundAt } from './encounterInitiativeFixtures.js'
-import { GOBLIN } from './encounterActiveEffectFixtures.js'
-
-const GOBLIN_ID = testUuid(0x301)
-const SOURCE_ID = testUuid(0x302)
-const GOBLIN_TOKEN_ID = testUuid(0x303)
-const SOURCE_TOKEN_ID = testUuid(0x304)
-const SCENE_ID = testUuid(0x305)
-const OCCURRENCE_ID = testUuid(0x306)
-const GM_USER_ID = testUuid(0x9a)
-const ZONE_POINT = { x: 250, y: 350 }
-const START = { ordinal: 1, stage: 'START_OF_TURN', actorId: GOBLIN_ID } as const
-const END = { ordinal: 0, stage: 'END_OF_TURN', actorId: GOBLIN_ID } as const
-
-const goblin = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN })
-const source = srdCreatureActor({ id: SOURCE_ID, creature: GOBLIN })
-const actors = [goblin, source]
-const tokens = [
-  { id: GOBLIN_TOKEN_ID, position: ZONE_POINT, width: 100, height: 100 },
-  { id: SOURCE_TOKEN_ID, position: { x: 1000, y: 350 }, width: 100, height: 100 }
-]
-const actorIdByTokenId = new Map([
-  [GOBLIN_TOKEN_ID, GOBLIN_ID],
-  [SOURCE_TOKEN_ID, SOURCE_ID]
-])
-
-const root = turnCoordinatorRootDtoSchema.parse({
-  rootCommandId: testUuid(0x307),
-  commandFingerprint: 'f'.repeat(64),
-  commandType: 'ADVANCE_TURN',
-  initiatorUserId: GM_USER_ID,
-  requestedByUserId: GM_USER_ID,
-  correlationId: null,
-  expectedEncounterVersion: 7,
-  proposedTerminalTransition: { status: 'ACTIVE', round: 1, currentActorId: GOBLIN_ID },
-  resolutionCommands: []
-})
-
-/** A 5-foot Caltrops-shaped zone whose failed Dexterity save (DC 15) deals 1d4, acting at the given boundaries. */
-function authoredZone(
-  interactionKinds: ('START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
-  maxApplicationsPerTurn?: number
-): EquipmentAuthored {
-  return variantEquipment((parts) => {
-    diceDamage('1d4')(parts)
-    parts.component.interactionKinds = interactionKinds
-    if (maxApplicationsPerTurn !== undefined)
-      Object.assign(parts.component, { maxApplicationsPerTurn })
-  })
-}
-
-/** The zone the real planner leaves at the goblin's space, stored as the Scene effect store keeps it. */
-function placedZone(
-  seed: number,
-  equipment: EquipmentAuthored,
-  createdOrdinal: number
-): EncounterSpatialRuleEffectRecord {
-  const placed = planEncounterPlacedZone({
-    zone: zonePlacementOf(equipment),
-    id: testUuid(seed),
-    maintainedEffectStateId: null,
-    encounterId: ENCOUNTER_ID,
-    occurrenceId: testUuid(0x308),
-    rootCommandId: testUuid(0x309),
-    sourceActorId: SOURCE_ID,
-    point: ZONE_POINT,
-    area: { kind: 'CUBE', edgeLength: 100 },
-    sourceToken: null,
-    saveDc: null
-  })
-  return encounterSpatialRuleEffectRecordSchema.parse({
-    id: placed.id,
-    encounterId: ENCOUNTER_ID,
-    sceneId: SCENE_ID,
-    createdOrdinal,
-    version: 1,
-    maintainedEffectStateId: null,
-    definition: placed.definition,
-    definitionChecksum: checksumCanonicalJson(placed.definition),
-    lifecycle: placed.lifecycle,
-    lifecycleChecksum: checksumCanonicalJson(placed.lifecycle),
-    placement: placed.placement,
-    placementChecksum: checksumCanonicalJson(placed.placement),
-    spatialState: placed.spatialState,
-    spatialStateChecksum: checksumCanonicalJson(placed.spatialState),
-    createdAt: TIMESTAMP,
-    updatedAt: TIMESTAMP
-  })
-}
+import {
+  actorIdByTokenId,
+  actors,
+  AUTO_ROLL,
+  authoredZone,
+  END,
+  GM_USER_ID,
+  GOBLIN_ID,
+  OCCURRENCE_ID,
+  placedZone,
+  root,
+  SOURCE_ID,
+  START,
+  tokens
+} from '../testing/encounterTurnZoneFixture.js'
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
   runtime = await createSrdRulesRuntime()
 })
-
-const AUTO_ROLL = { [GOBLIN_ID]: true, [SOURCE_ID]: true }
 
 function prepare(input: {
   zones: readonly EncounterSpatialRuleEffectRecord[]
