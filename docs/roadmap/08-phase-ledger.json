@@ -9480,7 +9480,7 @@
             {
               "id": "SPELLS-27.T9",
               "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9488,7 +9488,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T10",
