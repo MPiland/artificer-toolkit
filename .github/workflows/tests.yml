@@ -3,6 +3,10 @@
 #   git push origin HEAD:ci/<slice>
 # and reads the result with `gh run list --branch ci/<slice>` / `gh run watch`. Each `ci/*` branch runs
 # on its own, so slices validate in parallel; a newer push to the same branch cancels the older run.
+# A slice runs only the test files whose imports reach a file it changed since the phase branch
+# (scripts/affectedTests.mjs, docs/architecture/ci-validation.md). Merge batches (`ci/merge-*`), a commit
+# already on the phase branch, a dispatch with `full`, and dependency, config or test-setup changes run
+# every test. Typechecks always run in full.
 # Convex tests run in-process with convex-test, so no Convex deployment is touched (ADR 0035). Live
 # backend checks (codegen push, deploy, seed, audit) are .github/workflows/live-backend.yml; the Worker,
 # Playwright and reset/review-data work stays local.
@@ -16,6 +20,13 @@ on:
       convex_workers:
         description: Vitest workers per Convex shard (trial; pushes use 1)
         default: '1'
+      full:
+        description: Run every test file instead of the affected ones
+        type: boolean
+        default: false
+      base:
+        description: Select against this branch instead of the phase branch (to prove a selection)
+        default: ''
 
 permissions:
   contents: read
@@ -24,17 +35,45 @@ concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Slices branch from, and merge into, the phase branch; affected tests are selected against it.
+  PHASE_BRANCH: codex/phase-08-2-convex-cutover
+
 jobs:
   # Builds the packages once; every other job downloads this dist. A compile error fails only this job.
+  # It also selects the affected test files; a suite with none skips its job.
   build:
-    name: Build packages
+    name: Build packages and select tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      full: ${{ steps.select.outputs.full }}
+      convex-shards: ${{ steps.select.outputs.convex-shards }}
+      run-packages: ${{ steps.select.outputs.run-packages }}
+      packages-files: ${{ steps.select.outputs.packages-files }}
+      run-convex: ${{ steps.select.outputs.run-convex }}
+      convex-files: ${{ steps.select.outputs.convex-files }}
+      run-worker: ${{ steps.select.outputs.run-worker }}
+      worker-files: ${{ steps.select.outputs.worker-files }}
+      run-web: ${{ steps.select.outputs.run-web }}
+      web-files: ${{ steps.select.outputs.web-files }}
+      merge-base: ${{ steps.select.outputs.merge-base }}
+      red-files: ${{ steps.select.outputs.red-files }}
+      red-suites: ${{ steps.select.outputs.red-suites }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The selector diffs against the merge base with the phase branch; commits and trees only.
+          fetch-depth: 0
+          filter: blob:none
       - uses: ./.github/actions/setup
         with:
           build: 'true'
+      - name: Select affected tests
+        id: select
+        env:
+          BASE: ${{ inputs.base }}
+        run: node scripts/affectedTests.mjs --base "origin/${BASE:-$PHASE_BRANCH}" --branch "$GITHUB_REF_NAME" ${{ inputs.full && '--full' || '' }}
       - uses: actions/upload-artifact@v4
         with:
           name: package-dist
@@ -43,14 +82,15 @@ jobs:
           if-no-files-found: error
 
   convex:
-    name: Convex suite ${{ matrix.shard }}/4
+    name: Convex suite ${{ matrix.shard }}/${{ strategy.job-total }}
     needs: build
+    if: needs.build.outputs.run-convex == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJSON(needs.build.outputs.convex-shards) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -58,12 +98,16 @@ jobs:
         id: tests
         env:
           CONVEX_WORKERS: ${{ inputs.convex_workers || '1' }}
+          FILES: ${{ needs.build.outputs.convex-files }}
+          SHARD: --shard=${{ matrix.shard }}/${{ strategy.job-total }}
           REPORT: --reporter=default --reporter=json --outputFile.json=local-validation/vitest-convex.json
+        # FILES is empty on a full run. set -f keeps route paths such as $id from globbing.
         run: |
+          set -f
           if [ "$CONVEX_WORKERS" = "1" ]; then
-            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4 $REPORT
+            yarn workspace @artificer-toolkit/apis test:convex $FILES $SHARD $REPORT
           else
-            yarn workspace @artificer-toolkit/apis test:convex --shard=${{ matrix.shard }}/4 --fileParallelism --maxWorkers=$CONVEX_WORKERS $REPORT
+            yarn workspace @artificer-toolkit/apis test:convex $FILES $SHARD --fileParallelism --maxWorkers=$CONVEX_WORKERS $REPORT
           fi
       - uses: ./.github/actions/regenerate-snapshots
         if: failure() && steps.tests.outcome == 'failure'
@@ -72,9 +116,12 @@ jobs:
           config: apps/apis/vitest.config.ts
           reports: local-validation/vitest-convex.json
 
-  packages-worker:
-    name: Packages and Worker
+  # The root Vitest config: every package, apps/apis/src, apps/session-worker/src and scripts tests. The
+  # Worker's source tests run one file at a time, as its test:unit script does.
+  packages:
+    name: Package tests
     needs: build
+    if: needs.build.outputs.run-packages == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -82,32 +129,60 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Package tests
         id: tests
+        env:
+          FULL: ${{ needs.build.outputs.full }}
+          FILES: ${{ needs.build.outputs.packages-files }}
+          REPORT: --reporter=default --reporter=json --outputFile.json=local-validation/vitest
         run: |
-          for package in schema shared source-data emails design-system rules-runtime encounter-persistence apis; do
-            yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
+          set -f
+          worker=(); others=()
+          for file in $FILES; do
+            case "$file" in apps/session-worker/src/*) worker+=("$file") ;; *) others+=("$file") ;; esac
           done
-          yarn vitest run --config vitest.config.ts scripts/*.test.mjs --reporter=default --reporter=json --outputFile.json=local-validation/vitest-scripts.json
+          if [ "$FULL" = true ]; then
+            yarn vitest run --config vitest.config.ts --exclude 'apps/session-worker/src/**' $REPORT-packages.json
+            yarn vitest run --config vitest.config.ts apps/session-worker/src --maxWorkers=1 --no-file-parallelism $REPORT-worker-src.json
+          else
+            if [ ${#others[@]} -gt 0 ]; then yarn vitest run --config vitest.config.ts "${others[@]}" $REPORT-packages.json; fi
+            if [ ${#worker[@]} -gt 0 ]; then yarn vitest run --config vitest.config.ts "${worker[@]}" --maxWorkers=1 --no-file-parallelism $REPORT-worker-src.json; fi
+          fi
       - uses: ./.github/actions/regenerate-snapshots
         if: failure() && steps.tests.outcome == 'failure'
         with:
           name: packages
           config: vitest.config.ts
           reports: local-validation/vitest-*.json
-      - name: Worker tests
-        run: |
-          yarn workspace @artificer-toolkit/session-worker types
-          yarn workspace @artificer-toolkit/session-worker test
-          yarn workspace @artificer-toolkit/session-worker test:unit
 
-  web:
-    name: Web tests
+  worker:
+    name: Worker tests
     needs: build
+    if: needs.build.outputs.run-worker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: yarn workspace @artificer-toolkit/web test
+      - env:
+          FILES: ${{ needs.build.outputs.worker-files }}
+        run: |
+          set -f
+          yarn workspace @artificer-toolkit/session-worker types
+          yarn workspace @artificer-toolkit/session-worker test $FILES
+
+  web:
+    name: Web tests
+    needs: build
+    if: needs.build.outputs.run-web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - env:
+          FILES: ${{ needs.build.outputs.web-files }}
+        run: |
+          set -f
+          yarn workspace @artificer-toolkit/web test $FILES
 
   # The account runs at most 20 jobs at once, so typechecks share two sequential jobs instead of one job
   # each; both finish inside the Convex and web test critical path. Every step runs even after a failure,
@@ -154,14 +229,20 @@ jobs:
   # Proves fail-before in the same run: the slice's new and changed test files run against the production
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
   # labels each file RED, RED-IMPORT or ALREADY-PASSING (scripts/redProof.mjs). Those outcomes all pass;
-  # the job fails only when a suite cannot report. Merge batches already proved red on their slices.
+  # the job fails only when a suite cannot report. Merge batches already proved red on their slices. The
+  # build job's selector names the files and the suites that run them; a slice that adds or changes no
+  # test file skips this job.
   # It holds one of the account's 20 job slots for its own install and build, so beside two other runs it can
   # queue another run's jobs; a single run is no slower.
   red:
     name: Red proof against the phase branch
-    if: ${{ !startsWith(github.ref_name, 'ci/merge-') }}
+    needs: build
+    if: ${{ !startsWith(github.ref_name, 'ci/merge-') && needs.build.outputs.red-suites != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      RED_FILES: ${{ needs.build.outputs.red-files }}
+      RED_SUITES: ${{ needs.build.outputs.red-suites }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -169,32 +250,22 @@ jobs:
           filter: blob:none
           persist-credentials: false
       - name: Restore the phase branch's production code
-        id: restore
         run: |
           cp scripts/redProof.mjs "$RUNNER_TEMP/redProof.mjs"
-          tip=$(git rev-parse HEAD)
-          base=$(git merge-base HEAD origin/codex/phase-08-2-convex-cutover)
-          node "$RUNNER_TEMP/redProof.mjs" changed "$base" > "$RUNNER_TEMP/red-files.txt"
-          if ! grep -qE '\.test\.[cm]?[jt]sx?$' "$RUNNER_TEMP/red-files.txt"; then
-            echo "No new or changed test files against the phase branch ($base); nothing to prove red." >> "$GITHUB_STEP_SUMMARY"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "tip=$tip" >> "$GITHUB_OUTPUT"
-          git checkout --quiet --detach "$base"
+          git checkout --quiet --detach ${{ needs.build.outputs.merge-base }}
       # Package builds compile their test files too, so the tip's tests join only after the build.
       - uses: ./.github/actions/setup
-        if: steps.restore.outputs.skip != 'true'
         with:
           build: 'true'
       - name: Keep the tip's changed test files
-        if: steps.restore.outputs.skip != 'true'
         run: |
-          xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' git checkout ${{ steps.restore.outputs.tip }} --
-          cat "$RUNNER_TEMP/red-files.txt"
+          set -f
+          git checkout "$GITHUB_SHA" -- $RED_FILES
+          printf '%s\n' $RED_FILES
       - name: Run the changed tests without the slice
-        if: steps.restore.outputs.skip != 'true'
-        run: xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' node "$RUNNER_TEMP/redProof.mjs" run
+        run: |
+          set -f
+          node "$RUNNER_TEMP/redProof.mjs" run $RED_FILES
 
   # A type error ends the run once both typecheck jobs have reported, instead of after the ~15-minute test
   # jobs. It cancels only this run; the cancelled run keeps the failed typecheck jobs, which
@@ -217,8 +288,8 @@ jobs:
   # drift never goes green silently.
   updated-snapshots:
     name: Updated snapshots
-    needs: [convex, packages-worker]
-    if: always() && (needs.convex.result == 'failure' || needs.packages-worker.result == 'failure')
+    needs: [convex, packages]
+    if: always() && (needs.convex.result == 'failure' || needs.packages.result == 'failure')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -234,4 +305,3 @@ jobs:
           path: updated-snapshots/
           retention-days: 7
           if-no-files-found: ignore
-

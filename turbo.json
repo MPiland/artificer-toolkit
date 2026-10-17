@@ -85,15 +85,19 @@
       "outputs": []
     },
     "typecheck:app": {
+      "dependsOn": ["^build"],
       "outputs": [".cache/tsc/typecheck.app.tsbuildinfo"]
     },
     "typecheck:config": {
+      "dependsOn": ["^build"],
       "outputs": [".cache/tsc/typecheck.config.tsbuildinfo"]
     },
     "typecheck:stories": {
+      "dependsOn": ["^build"],
       "outputs": [".cache/tsc/typecheck.stories.tsbuildinfo"]
     },
     "typecheck:tests": {
+      "dependsOn": ["^build"],
       "outputs": [".cache/tsc/typecheck.tests*.tsbuildinfo"]
     }
   }
