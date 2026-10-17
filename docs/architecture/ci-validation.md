@@ -24,7 +24,7 @@ Every test file runs when:
 - the branch is a merge batch (`ci/merge-*`);
 - the commit is already on the phase branch (no change since the merge base);
 - the run is dispatched with `full: true`;
-- a change touches a dependency or toolchain file (`package.json`, `yarn.lock`, `.yarnrc.yml`, `.yarn/`, `turbo.json`, `tsconfig*.json`), a Vite or Vitest config, `wrangler.json[c]`, `tests.yml`, a composite action, the selector itself, or a file a Vitest config names (a setup file or the Worker test entry).
+- a change touches a dependency or toolchain file (`package.json`, `yarn.lock`, `.yarnrc.yml`, `.yarn/`, `turbo.json`, `tsconfig*.json`), a Vite or Vitest config, `wrangler.json[c]`, `tests.yml`, a composite action, the selector or `redProof.mjs`, or a file a Vitest config names (a setup file or the Worker test entry).
 
 Typechecks always run in full, and `cancel-on-type-error` still ends the run early on a type error.
 
@@ -50,3 +50,7 @@ A changed `__snapshots__/<test>.snap` selects its test. A change outside the sou
 ## Outputs
 
 The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex shards one runner per 100 selected files, up to 4. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.
+
+## Red proof
+
+The `red` job (PLATFORM-22) runs the slice's added and modified test files against the merge base's production code (`scripts/redProof.mjs`). The selector owns its inputs from the same diff: `merge-base`, `red-files` (every added or modified test file and test helper, which the job checks out from the tip) and `red-suites` (per suite, its config, root and the changed test files it includes, from the same Vitest config resolution). A slice that adds or changes no test file skips the job, and merge batches skip it too. The job runs whatever the selection, so a full run still proves red.

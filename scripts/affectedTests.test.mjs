@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -5,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   assertEveryTestRuns,
   buildImportGraph,
+  changesSince,
   fullRunReason,
+  redProof,
   selectTests
 } from './affectedTests.mjs'
 
@@ -135,6 +138,7 @@ describe('full runs and the suite guard', () => {
       '.github/workflows/tests.yml',
       '.github/actions/setup/action.yml',
       'scripts/affectedTests.mjs',
+      'scripts/redProof.mjs',
       'a/setup.ts'
     ])
       expect(fullRunReason(['docs/notes.md', path], suites)).toBe(`${path} changed`)
@@ -148,5 +152,73 @@ describe('full runs and the suite guard', () => {
     expect(() => assertEveryTestRuns(['a/x.test.ts', 'b/y.test.ts'], suites)).toThrow(
       'Test files outside every CI suite:\nb/y.test.ts'
     )
+  })
+})
+
+describe('the red proof', () => {
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-c', 'user.name=test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', ...args],
+      { cwd: root, stdio: 'pipe', encoding: 'utf8' }
+    )
+  let base
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'red-proof-'))
+    git('init', '--quiet')
+    write({
+      'pkg/src/a.ts': 'export const a = 1\n',
+      'pkg/src/a.test.ts': 'a\n',
+      'pkg/src/old.test.ts': 'old\n',
+      'pkg/test/fixture.ts': 'fixture\n'
+    })
+    git('add', '.')
+    git('commit', '--quiet', '-m', 'base')
+    base = git('rev-parse', 'HEAD').trim()
+  })
+  afterEach(() => rmSync(root, { recursive: true, force: true }))
+
+  it('proves the added and modified test files and helpers, not production code or deletions', () => {
+    write({
+      'pkg/src/a.ts': 'export const a = 2\n',
+      'pkg/src/a.test.ts': 'a changed\n',
+      'pkg/src/b.test.ts': 'b\n',
+      'pkg/test/fixture.ts': 'fixture changed\n'
+    })
+    rmSync(join(root, 'pkg/src/old.test.ts'))
+    git('add', '-A')
+    git('commit', '--quiet', '-m', 'slice')
+    const { changed, addedOrModified } = changesSince(root, base)
+    expect(changed.sort()).toEqual([
+      'pkg/src/a.test.ts',
+      'pkg/src/a.ts',
+      'pkg/src/b.test.ts',
+      'pkg/src/old.test.ts',
+      'pkg/test/fixture.ts'
+    ])
+    const suites = [
+      { name: 'unit', config: 'vitest.config.ts', root: '.', tests: ['pkg/src/a.test.ts', 'pkg/src/b.test.ts'] },
+      { name: 'other', config: 'other.config.ts', root: 'other', tests: ['other/c.test.ts'] }
+    ]
+    expect(redProof(suites, addedOrModified)).toEqual({
+      files: ['pkg/src/a.test.ts', 'pkg/src/b.test.ts', 'pkg/test/fixture.ts'],
+      suites: [
+        {
+          name: 'unit',
+          config: 'vitest.config.ts',
+          root: '.',
+          project: undefined,
+          tests: ['pkg/src/a.test.ts', 'pkg/src/b.test.ts']
+        }
+      ]
+    })
+  })
+
+  it('proves nothing for a production-only change', () => {
+    write({ 'pkg/src/a.ts': 'export const a = 3\n' })
+    git('commit', '--quiet', '-am', 'fix')
+    const suites = [{ name: 'unit', config: 'vitest.config.ts', root: '.', tests: ['pkg/src/a.test.ts'] }]
+    expect(redProof(suites, changesSince(root, base).addedOrModified)).toEqual({ files: [], suites: [] })
   })
 })

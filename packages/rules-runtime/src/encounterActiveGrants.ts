@@ -473,6 +473,12 @@ export function mergedRollContributors(
   return { contributors, rollMode: resolveD20Contributors(contributors).rollMode }
 }
 
+const defenseKey = (defense: {
+  kind: string
+  damageTypeId: string
+  sourceEffectIds?: readonly string[]
+}) => `${defense.kind}:${defense.damageTypeId}:${(defense.sourceEffectIds ?? []).join(',')}`
+
 /**
  * A Creature holder's damage defenses and condition immunities with its active grants' options
  * added or removed (Protection from Energy's resistance, Heroism's immunity to Frightened); defenses
@@ -484,12 +490,13 @@ export function withCreatureActiveGrantProtection<
     defenses: readonly {
       kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
       damageTypeId: string
+      sourceEffectIds?: readonly string[]
     }[]
     conditionImmunityIds: readonly string[]
   }
 >(protection: TProtection, effects: readonly ActiveRuleEffectRecord[]): TProtection {
   const defenses = new Map(
-    protection.defenses.map((defense) => [`${defense.kind}:${defense.damageTypeId}`, defense])
+    protection.defenses.map((defense) => [defenseKey(defense), defense])
   )
   const conditionImmunityIds = new Set(protection.conditionImmunityIds)
   for (const { modifiers } of listActiveEffectGrants(effects)) {
@@ -507,18 +514,27 @@ export function withCreatureActiveGrantProtection<
       )
         continue
       if (kind) {
-        if (adding) defenses.set(`${kind}:${option}`, { kind, damageTypeId: option })
-        else defenses.delete(`${kind}:${option}`)
+        const sourceEffectIds = Array.isArray(payload?.sourceEffectIds)
+          ? payload.sourceEffectIds.filter((id): id is string => typeof id === 'string').sort()
+          : []
+        const defense = {
+          kind,
+          damageTypeId: option,
+          ...(sourceEffectIds.length > 0 && { sourceEffectIds })
+        }
+        if (adding) defenses.set(defenseKey(defense), defense)
+        else defenses.delete(defenseKey(defense))
       } else if (adding) conditionImmunityIds.add(option)
       else conditionImmunityIds.delete(option)
     }
   }
   return {
     ...protection,
-    defenses: [...defenses.values()].sort((left, right) =>
-      left.damageTypeId === right.damageTypeId
-        ? left.kind.localeCompare(right.kind)
-        : left.damageTypeId.localeCompare(right.damageTypeId)
+    defenses: [...defenses.values()].sort(
+      (left, right) =>
+        left.damageTypeId.localeCompare(right.damageTypeId) ||
+        left.kind.localeCompare(right.kind) ||
+        defenseKey(left).localeCompare(defenseKey(right))
     ),
     conditionImmunityIds: [...conditionImmunityIds]
   }

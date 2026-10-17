@@ -57,6 +57,9 @@ jobs:
       worker-files: ${{ steps.select.outputs.worker-files }}
       run-web: ${{ steps.select.outputs.run-web }}
       web-files: ${{ steps.select.outputs.web-files }}
+      merge-base: ${{ steps.select.outputs.merge-base }}
+      red-files: ${{ steps.select.outputs.red-files }}
+      red-suites: ${{ steps.select.outputs.red-suites }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -222,6 +225,47 @@ jobs:
       - name: Stories
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
+
+  # Proves fail-before in the same run: the slice's new and changed test files run against the production
+  # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
+  # labels each file RED, RED-IMPORT or ALREADY-PASSING (scripts/redProof.mjs). Those outcomes all pass;
+  # the job fails only when a suite cannot report. Merge batches already proved red on their slices. The
+  # build job's selector names the files and the suites that run them; a slice that adds or changes no
+  # test file skips this job.
+  # It holds one of the account's 20 job slots for its own install and build, so beside two other runs it can
+  # queue another run's jobs; a single run is no slower.
+  red:
+    name: Red proof against the phase branch
+    needs: build
+    if: ${{ !startsWith(github.ref_name, 'ci/merge-') && needs.build.outputs.red-suites != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RED_FILES: ${{ needs.build.outputs.red-files }}
+      RED_SUITES: ${{ needs.build.outputs.red-suites }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Restore the phase branch's production code
+        run: |
+          cp scripts/redProof.mjs "$RUNNER_TEMP/redProof.mjs"
+          git checkout --quiet --detach ${{ needs.build.outputs.merge-base }}
+      # Package builds compile their test files too, so the tip's tests join only after the build.
+      - uses: ./.github/actions/setup
+        with:
+          build: 'true'
+      - name: Keep the tip's changed test files
+        run: |
+          set -f
+          git checkout "$GITHUB_SHA" -- $RED_FILES
+          printf '%s\n' $RED_FILES
+      - name: Run the changed tests without the slice
+        run: |
+          set -f
+          node "$RUNNER_TEMP/redProof.mjs" run $RED_FILES
 
   # A type error ends the run once both typecheck jobs have reported, instead of after the ~15-minute test
   # jobs. It cancels only this run; the cancelled run keeps the failed typecheck jobs, which

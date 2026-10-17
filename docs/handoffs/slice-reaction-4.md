@@ -288,16 +288,23 @@ AC 4.3 closes with T3d. Questions for the architect: (1) approve the split; (2) 
 - **SRD data.** No SRD creature action casts a named spell at an authored level, so none is filled; the Worker test (`nativeRoomCounterspellCreatureCast.test.ts`) is the data proof.
 - **Not done by design.** A spell link for display (with a save-time `castLevel` >= spell level check) is a future-enhancements line, not a task.
 
-## Resume here (after T3h, merged in the next Phase 8 batch)
+## REACTION-4.T4: TARGETED_SELF trigger and source-filtered DAMAGE_IMMUNITY (closes AC REACTION-4.1; D137 "go A")
 
-**Next task: REACTION-4.T4 (TARGETED_SELF trigger and source-filtered damage immunity: Shield against Magic Missile).** T3h is DONE (`spellCast: { castLevel }` on the Creature action effect; see the T3h D136 packet above); do not reopen it.
-
-### T3h pitfalls
-- A new node-map group with add actions needs an `AUTHORING_DEFAULT_MAP_IDS` kind plus a case in `authoringNodeDefaults.ts` (web inventory test).
-- Rule documents are JSON-only: never leave `undefined` keys on effects in tests.
-- A new descriptor field must be added to the `EncounterFeatureActionCapabilityDescriptor` fixtures (`encounterActionEffectBaseline.test.ts`).
-- Convex `api.d.ts` drifts on contract changes: take the `generated-files` artifact from the Live run.
+- **Rulings applied.** (1) `castReaction.kind` is required with no default; no shim. (2) Absent or empty `sourceEffectIds` means unfiltered, for the trigger and the immunity; each has a filtered and an unfiltered proof. (3) The TARGETED_SELF Use applies its grants before the cast resolves; one undo restores slot, reaction and grants. (4) Multi-reactor ordering is left out (deferred below).
+- **File map.**
+  - Authoring: `packages/shared/.../effect.ts` (`ReactionTargetedSelfTriggerBindingAuthored`), `valueDomain.ts` (`DAMAGE_IMMUNITY.sourceEffectIds`), shared node maps; schema `shared/reaction.ts`, `maps/invocation.ts`, `modifier.ts`; Shield data `packages/source-data/src/srd/spells/shield.ts` (`shieldReaction`: ATTACKED_SELF effect plus a TARGETED_SELF effect filtered to Magic Missile with a force immunity).
+  - Rules runtime: `characterSpellCastActions.ts` (one cast action per Effect group when all are REACTION-activated; `spellCastActionId(candidateId, laterEffectId?)`), `characterNativeActionResources.ts`, `characterDefenses.ts`, `characterRules.ts`, `encounterActiveGrants.ts`, `targetBoundActiveRuleEffectExecutor.ts`, `attackDamageDefenses.ts`, `encounterCastReactionDiscovery.ts` (`discoverTargetedSelfReactionActions`), `encounterReactionChoice.ts`, `encounterActionReceipt.ts`, `docs/architecture/rules-runtime.md`.
+  - Contract: `ruleExecutionReactionChoice.ts` (required `kind`), `ruleExecutionApplicationOutputs.ts` (new `reactionEffectTransitions`, max 1).
+  - Worker: `nativeEncounterCastReaction.ts` (`discoverNativeTargetedReactions`, `advanceNativeTargetedReactions`), `nativeEncounterCastPause.ts`, `nativeEncounterActorsRules.ts` (reaction effect carries the reactor's own first child occurrence and command ids), `nativeEncounterAreaRules.ts`, `nativeEncounterAttackReaction.ts` (`prepareAttack` receives the adjusted target), `nativeEncounterRules.ts`.
+  - Persistence: `actionEffectPersistence.ts`, `areaCommitPersistence.ts` (child count includes the reaction effect), `actionRevert.ts` (undo ends `reactionEffectTransitions`; this was the product bug the room undo test caught).
+- **Test change to flag.** `grantAnchors.test.ts` now accepts several timed grant blocks that share one lifecycle (the count assertion was loosened from exactly 1) because Shield now has two reaction effects. Fixtures also gained the required `kind`.
+- **Deferred.** Multi-reactor ordering; a spell-only picker for `sourceEffectIds`; REMOVE_OPTION exact-key semantics; TARGETED_SELF for single-target, area-caught, save-based non-SINGLE_GRAPH and Creature casts; renaming `failedCounters` (it also stores a used TARGETED_SELF reaction); the manual cast list shows one "Shield (1st level)" entry per reaction trigger.
+- **Pitfalls.** `ADD_OPTION` payload types live in `ValueDomainOptionPayloadByDomain` (`valueDomain.ts`); TS does not narrow variables assigned inside closures (use a holder object); invocation unions mix `reactionTrigger?: never` members, so narrow with an `Extract` type guard, not `in`.
 
 ### Run ids
-- Red: Tests 38970845033 (ad8488c11; the build fails because `spellCast` is not on the authored type).
-- Green: 9cec1d408 (Tests 38975904611, Live 38975904624).
+- Red: Tests 38980938831 (failed as expected), Live 38980938809.
+- Green: 7a0083ead (Tests 38995086822, Live 38996188284 dispatched on the same sha; the earlier auto Live 38992297215 was green on c382d97c4, test-only changes since).
+
+## Resume here (after T4, merged in the next Phase 8 batch)
+
+**REACTION-4 AC 4.1 is closed by T4.** Ask Phase 8 for the next REACTION-4 task (any remaining AC 4.2 items from T3's list) or the next ranked PBI; do not reopen T4.

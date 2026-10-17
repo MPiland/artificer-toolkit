@@ -2,11 +2,13 @@
 // A slice runs only the Vitest files whose static import graph reaches a file it changed since the
 // phase branch; merge batches, pushes already on the phase branch and config changes run every file.
 //   node scripts/affectedTests.mjs --base <ref> [--branch <name>] [--full]
-// Writes `full`, `run-<suite>`, `<suite>-files` and `convex-shards` to $GITHUB_OUTPUT when set.
+// Writes `full`, `run-<suite>`, `<suite>-files` and `convex-shards`, and the red job's `merge-base`,
+// `red-files` and `red-suites`, to $GITHUB_OUTPUT when set.
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync, statSync } from 'node:fs'
 import { posix, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { isTestPath } from './redProof.mjs'
 
 /** Every Vitest run CI makes; each test file must belong to one of them or to LOCAL_ONLY. */
 export const SUITES = [
@@ -33,7 +35,7 @@ const FULL_RUN = [
   /(^|\/)vite(st)?\.config\.[cm]?[jt]s$/,
   /(^|\/)wrangler\.jsonc?$/,
   /^\.github\/(workflows\/tests\.yml|actions\/)/,
-  /^scripts\/affectedTests\.mjs$/
+  /^scripts\/(affectedTests|redProof)\.mjs$/
 ]
 
 const CODE_FILE = /\.[cm]?[jt]sx?$/
@@ -349,6 +351,26 @@ export function fullRunReason(changed, suites) {
   return trigger ? `${trigger} changed` : null
 }
 
+/**
+ * What the red job proves (scripts/redProof.mjs): the test files and helpers the slice adds or modifies,
+ * and per suite the test files among them, which run against the merge base's production code.
+ */
+export function redProof(suites, addedOrModified) {
+  const files = addedOrModified.filter(isTestPath)
+  return {
+    files,
+    suites: suites
+      .map(({ name, config, root, project, tests }) => ({
+        name,
+        config,
+        root,
+        project,
+        tests: tests.filter((test) => files.includes(test))
+      }))
+      .filter(({ tests }) => tests.length > 0)
+  }
+}
+
 /** Throws when a tracked test file belongs to no CI suite, so no test can silently stop running. */
 export function assertEveryTestRuns(tracked, suites) {
   const inSuite = new Set(suites.flatMap(({ tests }) => tests))
@@ -399,6 +421,17 @@ const git = (root, ...args) =>
     .split('\n')
     .filter(Boolean)
 
+/** Every path HEAD changes against `base`, and those it adds or modifies; a rename is a delete and an add. */
+export function changesSince(root, base) {
+  const diff = git(root, 'diff', '--name-status', '--no-renames', base, 'HEAD').map((line) =>
+    line.split('\t')
+  )
+  return {
+    changed: diff.map(([, path]) => path),
+    addedOrModified: diff.filter(([status]) => status === 'A' || status === 'M').map(([, path]) => path)
+  }
+}
+
 async function main() {
   const root = resolve(import.meta.dirname, '..')
   const args = process.argv.slice(2)
@@ -414,7 +447,8 @@ async function main() {
   const suites = await listSuites(root)
   assertEveryTestRuns(tracked, suites)
   const [mergeBase] = git(root, 'merge-base', 'HEAD', base)
-  const changed = git(root, 'diff', '--name-only', '--no-renames', mergeBase, 'HEAD')
+  const { changed, addedOrModified } = changesSince(root, mergeBase)
+  const red = redProof(suites, addedOrModified)
 
   let fullReason = args.includes('--full') ? 'a full run was requested' : null
   fullReason ??= branch.startsWith('ci/merge-') ? `${branch} is a merge batch` : null
@@ -440,9 +474,7 @@ async function main() {
   const output = process.env.GITHUB_OUTPUT
   if (output) {
     // The jobs split the space-separated file lists unquoted.
-    const spaced = Object.values(selected)
-      .flat()
-      .find((file) => /\s/.test(file))
+    const spaced = [...Object.values(selected).flat(), ...red.files].find((file) => /\s/.test(file))
     if (spaced) throw new Error(`Test file paths cannot contain whitespace: ${spaced}`)
     const suiteRoot = Object.fromEntries(
       suites.map(({ name, root: suiteRootDir }) => [name, suiteRootDir])
@@ -453,6 +485,9 @@ async function main() {
       output,
       [
         `full=${fullReason ? 'true' : 'false'}`,
+        `merge-base=${mergeBase}`,
+        `red-files=${red.files.join(' ')}`,
+        `red-suites=${JSON.stringify(red.suites)}`,
         `convex-shards=${JSON.stringify(Array.from({ length: shards }, (_, index) => index + 1))}`,
         ...Object.entries(selected).flatMap(([name, files]) => [
           `run-${name}=${files.length > 0}`,

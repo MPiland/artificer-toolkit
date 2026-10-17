@@ -91,7 +91,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import {
-  applyNativeAttackReaction,
+  applyNativeReactionEffect,
   discoverNativeAttackReaction
 } from './nativeEncounterAttackReaction.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
@@ -816,6 +816,8 @@ export async function planNativeLiveEncounterAction(
     command,
     prepared,
     movementTargets,
+    // A single-target cast has no chosen list to react to being chosen (T4 covers a chosen list).
+    chosenActorIds: null,
     reactionSources: actionSources,
     // Range is read from the Scene, so a cast made without one offers no reaction.
     readScene: command.sceneContext
@@ -878,7 +880,7 @@ export async function planNativeLiveEncounterAction(
     const [found] = await discoverReaction({ answering, critical })
     if (!found) throw new Error('Reaction evidence is stale.')
     const applied = used
-      ? await applyNativeAttackReaction({
+      ? await applyNativeReactionEffect({
           reaction: found,
           runtime: executionOptions.runtime,
           occurrenceId,

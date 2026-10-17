@@ -1218,9 +1218,14 @@
             },
             {
               "text": "One CI run proves red and green: a parallel job runs the slice's new and changed test files against the phase-branch production code and reports them failing (assertion or import failure, labelled), or \"already passing\" for a test-only slice, while the normal jobs prove green on the tip. Slices no longer push separate red branches.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "id": "PLATFORM-22.4"
+              "id": "PLATFORM-22.4",
+              "proof": [
+                "tests.yml red job (scripts/redProof.mjs): the slice's new and changed test files run against the merge-base production code on their own runner and are labelled RED, RED-IMPORT or ALREADY-PASSING; skipped on ci/merge-* batches.",
+                "RED in-run: Tests 38995460725 (ci/platform-22 32d3ee876). ALREADY-PASSING and RED-IMPORT: Tests 38995465195 (ci/platform-22-passing fb895db67). Final tip 9ae03922f Tests 38996867823, Live 38998059441.",
+                "Merged in m64 ea86913af (Tests 38999516387, Live 38999516512)."
+              ]
             }
           ],
           "tasks": [
@@ -1252,7 +1257,7 @@
             },
             {
               "id": "PLATFORM-22.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-22.4"],
               "text": "Red job in tests.yml: fail-before proof inside the green run",
               "wsjf": {
@@ -9642,16 +9647,22 @@
         {
           "id": "REACTION-4",
           "title": "Non-movement reactions",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCounterspell.test.ts",
+            "apps/session-worker/test/nativeRoomShieldMagicMissile.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574"
+                "T3b (Counterspell reaction pause, countered-cast terminal, one undo): packages/schema/src/__tests__/reaction-cast-contracts.test.ts, packages/rules-runtime encounterReactionChoice.test.ts, encounter-persistence actionPendingOffers.test.ts, apps/session-worker/test/nativeRoomCounterspell.test.ts, AuthoredDomainFieldParity.test.tsx; red ci/reaction-4-t3b-red3 Tests 38876216534 on 256bc0549; green CI Tests 38877353496 and Live backend 38877353425 on 3fcee9574",
+                "T4 (Shield against Magic Missile through a TARGETED_SELF trigger and source-filtered DAMAGE_IMMUNITY, D137): apps/session-worker/test/nativeRoomShieldMagicMissile.test.ts (filtered and unfiltered trigger and immunity; grants apply before the cast resolves; one undo restores slot, reaction and grants), with schema, rules-runtime and persistence tests listed in docs/handoffs/slice-reaction-4.md. The room undo test caught a product bug: actionRevert.ts did not end reactionEffectTransitions; fixed.",
+                "Accepted test change: grantAnchors.test.ts now asserts that every timed APPLY_GRANT block shares one lifecycle instead of exactly one block, because Shield legitimately carries two reaction effects.",
+                "T4 red Tests 38980938831, Live 38980938809; green 7a0083ead (Tests 38995086822, Live 38996188284), tip e168153fe workbook-only (Tests 38996683359). Merged in m64 ea86913af (Tests 38999516387, Live 38999516512)."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
@@ -9851,7 +9862,7 @@
             {
               "id": "REACTION-4.T4",
               "text": "TARGETED_SELF trigger and the source-filtered damage immunity: Shield against Magic Missile.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["REACTION-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -9859,8 +9870,7 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["REACTION-4.T3d", "SPELLS-26.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-reaction-4.md"
+              }
             },
             {
               "id": "REACTION-4.T5",
