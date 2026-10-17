@@ -1,0 +1,52 @@
+# CI validation and affected-test selection
+
+**Status:** current (PLATFORM-23, 2026-10-16).
+
+Slices validate on GitHub runners by pushing to `ci/<slice>` (AGENTS.md Validation). `.github/workflows/tests.yml` builds the packages once, typechecks everything, and runs only the Vitest files the slice can affect. `.github/workflows/live-backend.yml` is unchanged by this guide.
+
+## Suites
+
+Every Vitest run CI makes is one suite in `SUITES` (`scripts/affectedTests.mjs`). Vitest's own config resolution lists each suite's test files and setup files, so the include globs live only in the configs.
+
+| Suite      | Config                                 | Runs from             | Job                                                   |
+| ---------- | -------------------------------------- | --------------------- | ----------------------------------------------------- |
+| `packages` | `vitest.config.ts`                     | repo root             | Package tests (Worker `src` tests one file at a time) |
+| `convex`   | `apps/apis/vitest.config.ts`           | repo root             | Convex suite, 1 to 4 shards                           |
+| `worker`   | `apps/session-worker/vitest.config.ts` | `apps/session-worker` | Worker tests (workerd)                                |
+| `web`      | `apps/web/vitest.config.ts`, `unit`    | `apps/web`            | Web tests                                             |
+
+The selector fails the run when a tracked `*.test.*` or `*.spec.*` file belongs to no suite. Only `apps/web/tests/**` (Playwright, run locally) is exempt. This replaces the hand-kept package list that left `packages/authoring` and `packages/design-system` tests unrun.
+
+## Full runs
+
+Every test file runs when:
+
+- the branch is a merge batch (`ci/merge-*`);
+- the commit is already on the phase branch (no change since the merge base);
+- the run is dispatched with `full: true`;
+- a change touches a dependency or toolchain file (`package.json`, `yarn.lock`, `.yarnrc.yml`, `.yarn/`, `turbo.json`, `tsconfig*.json`), a Vite or Vitest config, `wrangler.json[c]`, `tests.yml`, a composite action, the selector itself, or a file a Vitest config names (a setup file or the Worker test entry).
+
+Typechecks always run in full, and `cancel-on-type-error` still ends the run early on a type error.
+
+## Selection
+
+Otherwise the changed files are `git diff --name-only --no-renames <merge-base with origin/$PHASE_BRANCH> HEAD`, the whole slice and not only its last push. A test file is selected when the static import graph reaches a changed file from it. The graph is built from tracked source under `apps/`, `packages/` and `scripts/`:
+
+- `import`, `export … from`, dynamic `import()`, `require()` and `vi.mock()` specifiers. Matching is textual, so a specifier in a comment only adds tests.
+- Workspace package `exports` and `imports` resolve to the `src` file their `dist` target is compiled from. That is why Vitest's `--changed` and `vitest related` were not used: tests import packages through `dist` behind `node_modules` symlinks, which Vitest's module graph does not trace back to source, and a package change must also reach the other configs' suites (Convex, Worker, web). If a target cannot be mapped, the whole package is the dependency.
+- `tsconfig.json` `paths` (the web `#app/*` aliases).
+- `new URL('./file', import.meta.url)` file references (a Worker module, the SRD corpus text).
+- `import.meta.glob` patterns: every non-test module a glob matches. convex-test globs every Convex module and runs the ones a test reaches through `ctx.run*` by name at run time, so any Convex module change selects the Convex tests that use it.
+- Uncommitted generated modules (`GENERATED`) depend on their generator, e.g. the SRD manifest on `apps/apis/scripts/generateSrdManifest.ts`.
+- A relative import that no longer resolves depends on the deleted path, so deleting a module selects its importers.
+
+Two rules widen the selection for tests the graph cannot see into:
+
+- A test that imports `node:fs` reads files itself, for example a boundary or architecture scan. Every change under `apps/`, `packages/` or `scripts/` selects it.
+- A suite whose setup file is reached runs in full.
+
+A changed `__snapshots__/<test>.snap` selects its test. A change outside the source roots (docs, the ledger) selects nothing.
+
+## Outputs
+
+The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex shards one runner per 100 selected files, up to 4. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.

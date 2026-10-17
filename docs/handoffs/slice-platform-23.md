@@ -24,10 +24,19 @@ Ledger items that cite these tests (orchestrator to re-verify): AUTHORING-18.1, 
 
 Also found: `packages/authoring` typechecks with `tsconfig.build.json`, which excludes `*.test.ts`, so authoring tests are not typechecked. PLATFORM-22 adds `tsconfig.tests.json` for packages on `ci/platform-22`; not touched here.
 
+## T2: affected-test selection
+
+`scripts/affectedTests.mjs` with `scripts/affectedTests.test.mjs`; design and rules in [CI validation](../architecture/ci-validation.md). Why not Vitest `--changed`/`related`: tests import workspace packages through `dist` behind `node_modules` symlinks, which Vitest's graph does not map back to source, and one package change must select tests in four configs. turbo affected is package-granular, so it would run whole package suites.
+
+Also found by the suite guard and the root config now running whole: `apps/apis/src` (1 file) and `scripts/*.test.mjs` (3) tests were never run in CI; they pass (light lane: 6 files, 42 tests with the selector and design-system tests).
+
+Full-run baseline (T1, run 38999517415): 15m19s wall; Convex shards 9:03-13:39, packages and Worker 8:30, web 9:18.
+
 ## Status log
 
 - 2026-10-16: local red (12 failed / 16 passed in the six files) reproduced after building packages. Green: `packages/authoring/src` 15 files, 104 tests passed (light lane).
+- 2026-10-16: T1 green on CI at `e9f6c14b2` (live-backend auto-fix of `_generated/api.d.ts` on top of `ffb666a9e`): Tests 38999517415, Live backend 38999518771.
 
 ## Proposed ledger edits
 
-- PLATFORM-23.2 DONE once T1 is green on CI (sha and run ids in the report).
+- PLATFORM-23.2 and T1 DONE: green at `e9f6c14b2` (Tests 38999517415, Live 38999518771).

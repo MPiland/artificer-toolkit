@@ -1318,7 +1318,8 @@
                 "rr": 8,
                 "size": 3,
                 "after": ["PLATFORM-23.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             }
           ]
         }
