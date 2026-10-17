@@ -231,7 +231,8 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       pending: null,
       waitingOn: null,
       turnMovement,
-      halfSpeedFields: []
+      halfSpeedFields: [],
+      auras: []
     })
   }
 

@@ -94,7 +94,8 @@ const room = (): HeldEncounterSession => ({
     turnMovement: [
       { actorId: emberActor.id, used: 0, speedId: null, allowances: [], teleport: [] }
     ],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   },
   preparedPending: [],
   actorSides: null,
