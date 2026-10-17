@@ -81,6 +81,7 @@ describe('canonical Convex import preparation', () => {
       Help: ['ACTION', ['APPLY_GRANT']],
       Hide: ['ACTION', ['CONCEAL_FROM_OBSERVERS']],
       Ready: ['ACTION', ['MANUAL_ADJUDICATION']],
+      Rouse: ['ACTION', ['MANUAL_ADJUDICATION']],
       Search: ['ACTION', ['DETECT_CONCEALED']],
       'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
       'First Aid': ['ACTION', ['STABILIZE']]
