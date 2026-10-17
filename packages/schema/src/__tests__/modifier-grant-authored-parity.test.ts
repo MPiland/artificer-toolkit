@@ -5,6 +5,8 @@ import type { ModifierGrantDto } from '../grants/modifier.js'
 
 describe('modifier grant schema and authored type', () => {
   it('types every schema variant as a supported authored domain, kind and payload', () => {
-    expectTypeOf<ModifierGrantDto>().toExtend<ModifierGrantAuthored>()
+    // A plain assignment: vitest's toExtend mismatch constraint cannot evaluate a union this large.
+    const toAuthored = (grant: ModifierGrantDto): ModifierGrantAuthored => grant
+    expectTypeOf(toAuthored).returns.toEqualTypeOf<ModifierGrantAuthored>()
   })
 })
