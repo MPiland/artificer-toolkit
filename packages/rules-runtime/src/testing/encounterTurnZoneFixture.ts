@@ -55,12 +55,13 @@ export const root = turnCoordinatorRootDtoSchema.parse({
 
 /**
  * A 5-foot Caltrops-shaped zone whose failed Dexterity save (DC 15) deals 1d4, acting at the given
- * boundaries, with any other component options authored on it.
+ * boundaries, with any other component options authored on it and any further `change`.
  */
 export function authoredZone(
   interactionKinds: ('ENTER_SPACE' | 'START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
   maxApplicationsPerTurn?: number,
-  componentOptions: Partial<ZoneParts['component']> = {}
+  componentOptions: Partial<ZoneParts['component']> = {},
+  change?: (parts: ZoneParts) => void
 ): EquipmentAuthored {
   return variantEquipment((parts) => {
     diceDamage('1d4')(parts)
@@ -68,6 +69,7 @@ export function authoredZone(
     if (maxApplicationsPerTurn !== undefined)
       Object.assign(parts.component, { maxApplicationsPerTurn })
     Object.assign(parts.component, componentOptions)
+    change?.(parts)
   })
 }
 

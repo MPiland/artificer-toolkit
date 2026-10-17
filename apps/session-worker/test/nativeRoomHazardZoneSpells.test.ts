@@ -11,16 +11,20 @@ import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.j
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
+import { stinkingCloud } from '@artificer-toolkit/source-data/srd/spells/stinking-cloud.js'
+import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { vitalsOf } from './areaRoomReads.js'
 import { hitPointsOf, readZones, walkerMoves } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -108,7 +112,7 @@ const SPELLS = [
 
 /** The Character casts the action labelled `castLabel`; the Wolf stands at `wolfAt`. */
 function zoneRoom(
-  { spell, slotSpell }: (typeof SPELLS)[number],
+  { spell, slotSpell }: { spell: SpellAuthored; slotSpell?: SpellAuthored },
   castLabel: string,
   wolfAt: { x: number; y: number }
 ) {
@@ -220,5 +224,39 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
       ]
     })
     expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - firstCast.dice)
+  })
+})
+
+describe('the SRD Stinking Cloud zone (SPELLS-20.T4b3b)', () => {
+  it('costs a creature fully in the area its Action when it fails the save at its turn start', async () => {
+    const room = await zoneRoom({ spell: stinkingCloud }, 'Stinking Cloud (3rd level)', ZONE_CENTER)
+    const zone = await castAtTheCenter(room)
+    expect(zone.placement).toMatchObject({
+      label: stinkingCloud.label,
+      triggerModes: [],
+      turnTriggers: ['START_OF_TURN'],
+      requiresFullyWithin: true,
+      failedSaveLosesAction: true
+    })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    // The caster's turn ends outside the area; the Wolf's turn starts in it.
+    const wolfStarts = await advanceTurn(room)
+
+    expect(wolfStarts.incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { effectId: zone.id, targetActorId: WOLF_ID } },
+          applications: [],
+          actionEconomy: { definitionId: ACTION, beforeUsed: 0, afterUsed: 1 }
+        }
+      ]
+    })
+    const wolf = vitalsOf(await readRoomHistory(room.room.base.stub)).find(
+      ({ id }) => id === WOLF_ID
+    )
+    expect(wolf?.spent).toContainEqual([ACTION, 1])
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
   })
 })

@@ -151,7 +151,9 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       /** How many times the zone may catch one creature in one turn; absent for no limit. */
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
       /** At a turn boundary the zone catches only a creature wholly inside it; absent for overlap. */
-      requiresFullyWithin: z.optional(z.boolean())
+      requiresFullyWithin: z.optional(z.boolean()),
+      /** A creature failing the zone's save at the start of its turn loses its Action for that turn. */
+      failedSaveLosesAction: z.optional(z.boolean())
     })
     .check(
       z.superRefine((placement, context) => {

@@ -406,6 +406,19 @@ its boundary); the compiler refuses it on a zone with a movement trigger. A comp
 damage type as an adapter fact on the zone entry; when the target holds an IMMUNITY defense to it, the dnd5e binder sets
 the `SAVE_AUTO_SUCCESS` outcome rule (the mirror of D94's `SAVE_AUTO_FAIL`), so the made-save path runs whatever the
 roll. A "does not breathe" rider has no creature fact and stays unauthored (a deferred edge case).
+A zone's failed save is one composable outcome set (D142, SPELLS-20 T4b3b), not a list of shapes: damage rows, at
+most one `STOP_CURRENT_MOVEMENT`, at most one `APPLY_GRANT`, at most one System-vocabulary `CONDITION` and at most
+one `LOSE_ACTION`, with at least one outcome; a made save still only deals damage. The set holds one graph outcome
+(damage or the condition) beside the stop, grant and lost Action, so damage plus a condition stays manual until
+SPELLS-4.T1e. With no graph outcome the entry binds the save's `test` node, and the executor accepts the empty
+applications of a path that has no proposal node. A `LOSE_ACTION` (D141) compiles only on a zone acting solely at
+the start of a turn and sets `failedSaveLosesAction` on the compiled and stored placement. The turn stage
+(`prepareEncounterTurnZoneEffects`, which now takes the reusable `definitions`) then evaluates the target's Action
+through `evaluateEncounterActionEconomy` after the start-of-turn refresh and, when it is unspent, consumes it with
+`consumeEncounterActionEconomy`; the spatial turn execution carries `actionEconomy` (the transition, or null when
+the Action was already spent, a second zone at the same boundary included). `persistEncounterTurnZoneEffects`
+refuses a transition on a zone that does not cost the Action or on a path other than `ON_SAVE_FAIL`, and settles it
+through `consumeNativeActionEconomy`, which checks the stored actor's checksum.
 The turn stage that runs them lands with SPELLS-20 T4b2b. SRD text
 that says a creature "enters the area" (Caltrops, Ball Bearings) authors `ENTER_OR_PASS_THROUGH`, so a drag that
 ends beyond the field still triggers the save and, on a failure, stops at the first field square it entered. The System, not the authored zone, owns the placement defaults: `planEncounterPlacedZone` sets

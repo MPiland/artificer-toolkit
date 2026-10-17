@@ -109,6 +109,7 @@ export function planEncounterPlacedZone(input: {
         ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+      ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
         : {})

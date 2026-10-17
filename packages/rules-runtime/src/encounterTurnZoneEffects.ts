@@ -13,6 +13,8 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { collectSpatialTurnCandidates, type SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
+import { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
+import { consumeEncounterActionEconomy } from './encounterActionEconomyConsumption.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -31,6 +33,7 @@ import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.
 import { kernelContinuation } from './encounterTurnEffects.js'
 import type { TurnEffectBoundary } from './encounterTurnEffectState.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
+import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
@@ -133,6 +136,8 @@ export async function prepareEncounterTurnZoneEffects<
   loadScene: () => Promise<TurnZoneScene | null>
   loadTarget: (actorId: string) => Promise<MovementTarget<TCharacterFacts> | undefined>
   createRuntime: () => Promise<RulesRuntimeService>
+  /** The System definitions a zone that costs the Action reads its allowance from. */
+  definitions: CurrentReusableDefinitionSource
   random: (maxExclusive: number) => number
   autoRollByActorId: Readonly<Record<string, boolean>>
   pending?: ServerRuleExecutionPendingSnapshotDto
@@ -203,6 +208,8 @@ export async function prepareEncounterTurnZoneEffects<
   const runtime = await input.createRuntime()
   const executions: TurnZoneExecution[] = []
   let targetState: SpatialTargetState = spatialTarget.state
+  // The creature's allowances after each Action a failed zone save has cost it so far.
+  let economyActor = actor
 
   const candidateAt = (
     ordinal: number,
@@ -308,10 +315,6 @@ export async function prepareEncounterTurnZoneEffects<
       targetStateChecksum: current.target.targetStateChecksum,
       result
     })
-    const execution: TurnZoneExecution = { ordinal, candidate: current, ...outcome }
-    if (existing && !same(existing, execution))
-      throw new Error('Retained turn zone execution is stale.')
-    executions.push(execution)
     const after = outcome.targetTransition.after
     targetState = {
       current: after.currentHitPoints,
@@ -319,6 +322,34 @@ export async function prepareEncounterTurnZoneEffects<
       conditions: [...after.conditionIds],
       deathSaves: after.deathSaves
     }
+    // D141: a failed save of a zone that costs the Action spends it for this turn, if it is unspent.
+    const allowance =
+      effect.placement.failedSaveLosesAction &&
+      result.execution.outputs.resultPath === 'ON_SAVE_FAIL'
+        ? await evaluateEncounterActionEconomy({
+            actor: economyActor,
+            state,
+            activation: { code: 'ACTION', amount: 1 },
+            target: {
+              ...target,
+              actor: economyActor,
+              state: { ...target.state, conditions: targetState.conditions }
+            },
+            loadTarget: async () => undefined,
+            definitions: input.definitions
+          })
+        : null
+    const actionEconomy = allowance?.available ? allowance.consumption : null
+    if (actionEconomy)
+      economyActor = consumeEncounterActionEconomy({
+        actor: economyActor,
+        consumption: actionEconomy,
+        overridden: false
+      })
+    const execution: TurnZoneExecution = { ordinal, candidate: current, ...outcome, actionEconomy }
+    if (existing && !same(existing, execution))
+      throw new Error('Retained turn zone execution is stale.')
+    executions.push(execution)
   }
 
   const plan: StagedTurnZonePlanDto = { selectionChecksum, executions }
@@ -338,12 +369,24 @@ export async function prepareEncounterTurnZoneEffects<
     settleUnchanged: true
   })
   const projected = settled.projectedTargets.get(actor.id)!
-  const updatedActor = settled.settlements[0]?.plan.updatedActor ?? actor
+  const spendLostActions = (settledActor: EncounterRunActorState) =>
+    executions.reduce(
+      (spent, { actionEconomy }) =>
+        actionEconomy
+          ? consumeEncounterActionEconomy({
+              actor: spent,
+              consumption: actionEconomy,
+              overridden: false
+            })
+          : spent,
+      settledActor
+    )
+  const updatedActor = spendLostActions(settled.settlements[0]?.plan.updatedActor ?? actor)
   targets.set(
     actor.id,
     rebuildEncounterTurnTarget({
       source: target,
-      actor: projected.actor,
+      actor: spendLostActions(projected.actor),
       characterFacts: projected.characterFacts,
       activeEffects: projected.activeEffects,
       state
