@@ -9252,8 +9252,8 @@
             },
             {
               "id": "SPELLS-28.T4d",
-              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
-              "status": "IN_PROGRESS",
+              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form). (Red: ci/spells-28-t4d-red 5e2595c62, Tests 38990844159. Green: ci/spells-28-t4d 7c1f31f38, Tests 39000811200, Live 39000811192. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -9261,8 +9261,7 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4b",
@@ -9433,8 +9432,8 @@
             },
             {
               "id": "SPELLS-27.T8",
-              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12.",
-              "status": "TODO",
+              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12. (Red: ci/spells-27-t8-red 63224cccc, Tests 38979581415. Green: ci/spells-27-t8 9d763e662, Tests 38996918030, Live 38997995671. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9442,8 +9441,7 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["SPELLS-27.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T12",
