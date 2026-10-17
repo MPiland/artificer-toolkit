@@ -775,6 +775,18 @@
                 "size": 1,
                 "after": ["PLATFORM-13.T9"]
               }
+            },
+            {
+              "id": "PLATFORM-13.T11",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Raised 2026-10-17 by SPELLS-20.T4b2b2. Root-cause and fix the nativeRoomAdmission lease-renewal test flake, and check the two suspected lazy-schema violations (encounterRuleCommands.ts:121, followUpSave.ts:16); fix them if they break the lazySchema rule, with a regression test that fails first."
             }
           ]
         },
@@ -8984,6 +8996,19 @@
                 "after": ["SPELLS-20.T4b2b2"]
               },
               "text": "Spirit Guardians damage type chosen at cast (radiant, or necrotic for an evil caster) as a cast-time choice from core options stored on the zone; proved on Spirit Guardians."
+            },
+            {
+              "id": "SPELLS-20.T4f",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Raised 2026-10-17 by T4b2b2. (1) A room journey for the START turn command with a turn zone (the harness builds only ACTIVE Runs today; START is covered at persistence level). (2) Prove with a real-code test that Concentration end, zone deletion and GM undo between a pending zone or movement prompt and its commit refuse the commit (state.version bump or pending-occurrence fence); fix if any path does not. (3) Cover the frozen reaction/terminal selection checks and \"remaining spatial contacts changed\" (second queued contact) on the spatial movement resume."
             },
             {
               "id": "SPELLS-20.T4c",
