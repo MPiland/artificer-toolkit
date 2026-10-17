@@ -1,12 +1,14 @@
 # Slice workbook: PLATFORM-23 (CI runs exactly the tests a change can affect)
 
-**Status:** T1 green candidate on `ci/platform-23` (2026-10-16); T2 next.
+**Status:** T1-T4 green on `ci/platform-23` at `49d227a06` (2026-10-17); ready to merge.
 **Base:** `codex/phase-08-2-convex-cutover` (merged at `cb19518ea`).
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0038](../adr/0038-rules-authored-from-core-options.md) (authoring parity).
 
 ## ACs
 
 - **23.1** (T2) Each slice runs only the test files whose imports reach its changed files, across all packages, with no hand-kept list; merge batches run every test.
+- **23.3** (T3) A local typecheck lane typechecks the changed workspaces and their dependents before every push.
+- **23.4** (T4) The runner builds the dependencies of named test files before running them, and agents run the touched test files locally before every push.
 - **23.2** (T1) The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions.
 
 ## T1: the 12 authoring failures
@@ -40,7 +42,7 @@ Proof runs (Tests workflow wall time, created to last job):
 | Merge batch, 39004192086    | `b2326ce1b` on `ci/merge-platform-23-proof` (not a real batch)                                                           | full (`ci/merge-*`), red job skipped                               | 17m43s |
 | Single package, 39004159064 | `b2326ce1b` (one line in `packages/authoring/src/nodeRuntime/srdSourceReader.ts`), dispatched with `base=ci/platform-23` | packages 11/366, Convex 112/397, Worker 0/99 (skipped), web 22/296 | 20m43s |
 
-The single-package run selected 145 of 1158 files but was the slowest: the selector gave Convex one shard per 100 selected files, so its 112 files (the Convex tests whose helpers read source files, among the heaviest) ran on 2 shards for 13 and 18 minutes. Convex now spreads any selection over one shard per file, up to 4 (`convexShards`, regression test in `affectedTests.test.mjs`); the rerun is below.
+The single-package run selected 145 of 1158 files but was the slowest: the selector gave Convex one shard per 100 selected files, so its 112 files (the Convex tests whose helpers read source files, among the heaviest) ran on 2 shards for 13 and 18 minutes. Convex now spreads any selection over one shard per file, up to 4 (`convexShards`, regression test in `affectedTests.test.mjs`). Rerun 39005767036 (`d4798b8ba` on `ci/platform-23-single-2`, same one-line change on `49d227a06`, same selection): 12m54s wall, Convex 4 shards 6:42-10:31, web 4:39, packages 0:59. The remaining Convex time is the 112 tests that reach the change through `apps/apis/tests` helpers that read source files (ci-validation.md, blind spots).
 
 ## T3: local typecheck lane
 
@@ -74,7 +76,11 @@ Proof (`local-validation/platform-23/build-proof.txt`): a comment added to `pack
 
 - 2026-10-16: local red (12 failed / 16 passed in the six files) reproduced after building packages. Green: `packages/authoring/src` 15 files, 104 tests passed (light lane).
 - 2026-10-16: T1 green on CI at `e9f6c14b2` (live-backend auto-fix of `_generated/api.d.ts` on top of `ffb666a9e`): Tests 38999517415, Live backend 38999518771.
+- 2026-10-17: T2 green with review fixes; T3 green at `f61638758`/`1b43bbe30` (Tests 39002759057, Live 39002758996); T4 green at `daf82d84f` (Tests 39004035025); Convex shard fix green at `49d227a06` (Tests 39005736388).
 
 ## Proposed ledger edits
 
 - PLATFORM-23.2 and T1 DONE: green at `e9f6c14b2` (Tests 38999517415, Live 38999518771).
+- PLATFORM-23.1 and T2 DONE: proof runs 39002759057 (config, full), 39004192086 (merge batch, full), 39005767036 (single package, 145 of 1158 files); green at `49d227a06` (Tests 39005736388).
+- PLATFORM-23.3 and T3 DONE: lane proof in T3 above; green at `1b43bbe30`.
+- PLATFORM-23.4 and T4 DONE: build proof in T4 above; green at `daf82d84f` (Tests 39004035025).
