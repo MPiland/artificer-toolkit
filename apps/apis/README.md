@@ -435,8 +435,6 @@ yarn convex dev --configure existing --team artificertoolkit --project artificer
 yarn convex env set SITE_URL http://localhost:3000 --deployment local
 # Pipe a newly generated secret to avoid shell history; never reuse staging credentials.
 yarn convex env set BETTER_AUTH_SECRET --deployment local
-# Must equal the Session Worker's RULES_CONTINUATION_SECRET; distinct from every other secret.
-yarn convex env set RULES_CONTINUATION_SECRET --deployment local
 yarn dev:convex
 ```
 
@@ -1118,8 +1116,8 @@ loopback development target, then passes the official CLI explicit URL/key argum
 the saved cloud selection and does not print the key.
 
 Local tabletop browser proofs also need the native [session Worker](../session-worker/README.md).
-Use matching private `LIVE_SESSION_TICKET_SECRET`, `LIVE_SESSION_WORKER_SECRET` and
-`RULES_CONTINUATION_SECRET` values on local Convex and the Worker, with
+Use matching private `LIVE_SESSION_TICKET_SECRET` and `LIVE_SESSION_WORKER_SECRET` values on local
+Convex and the Worker, with
 `CONVEX_SITE_URL=http://127.0.0.1:3211` (see `apps/session-worker/.dev.vars.example`). Start the
 Worker with its documented `--local` command on port 8787. The isolated Vite environment needs
 `VITE_LIVE_SESSION_WEBSOCKET_URL=ws://127.0.0.1:8787` and

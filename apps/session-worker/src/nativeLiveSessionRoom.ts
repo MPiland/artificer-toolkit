@@ -405,7 +405,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   #commandChain: Promise<void> = Promise.resolve()
   #outboxFlush: Promise<void> | null = null
   #storageRecovery: Promise<void> | null = null
-  #rulesRuntime: Promise<RulesRuntimeService> | null = null
+  #rulesRuntime: RulesRuntimeService | null = null
 
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
     super(ctx, env)
@@ -2828,7 +2828,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               command.type === 'ESCAPE_RELATIONSHIP' ||
               command.type === 'END_HELD_GRANT'
                 ? {
-                    turnExecution: { runtime: await this.#liveRulesRuntime() }
+                    turnExecution: { runtime: this.#liveRulesRuntime() }
                   }
                 : {})
             })
@@ -3276,7 +3276,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             command,
             context,
             sceneTokens: this.#sceneTokens(value.authorityEpoch),
-            runtime: await this.#liveRulesRuntime(),
+            runtime: this.#liveRulesRuntime(),
             random
           })
           // The fog patches are written by their owners; the acknowledged DTO carries none.
@@ -3894,8 +3894,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return { ...authorization, characters, play: play ?? authorization.play }
   }
 
-  #liveRulesRuntime(): Promise<RulesRuntimeService> {
-    this.#rulesRuntime ??= createNativeLiveRulesRuntime(this.env.RULES_CONTINUATION_SECRET)
+  #liveRulesRuntime(): RulesRuntimeService {
+    this.#rulesRuntime ??= createNativeLiveRulesRuntime()
     return this.#rulesRuntime
   }
 

@@ -337,7 +337,7 @@ The approved completion plan runs S0–S7: checkpoint, code-quality groundwork, 
   - Worker route table `callLiveSessionRoute`, with `LIVE_SESSION_ROUTE_PATHS` shared with Convex `http.ts`.
   - Pure `planLiveSceneCommand` extracted from the room.
   - Test fixtures consolidated.
-- **S2:** dedicated `RULES_CONTINUATION_SECRET` with `deriveRulesContinuationKey` (v2 label).
+- **S2:** dedicated `RULES_CONTINUATION_SECRET` with `deriveRulesContinuationKey` (v2 label). Historical: Q23 (PLATFORM-24, 2026-10-17) removed the seal, the key and the secret; see [ADR 0029 Amendment 1](../adr/0029-convex-backend-cutover.md#amendment-1-2026-10-17-unsealed-continuations).
 - **Cleanup:**
   - Deleted the stale `packages/db` corpus copy and the orphaned rule-path manifest.
   - `AGENTS.md` and the docs corrected (link check clean).

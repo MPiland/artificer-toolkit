@@ -64,7 +64,7 @@ describe('the reaction a decision answers (REACTION-4.5)', () => {
 describe('settling the chosen reaction (REACTION-4.5)', () => {
   let runtime: RulesRuntimeService
   beforeAll(async () => {
-    runtime = await createSrdRulesRuntime()
+    runtime = createSrdRulesRuntime()
   })
 
   /** A hit the offer was sealed against, and the offer stacking two reactions on it. */
@@ -148,7 +148,7 @@ describe('settling the chosen reaction (REACTION-4.5)', () => {
 describe('settling a used reaction to a cast (REACTION-4.3)', () => {
   let runtime: RulesRuntimeService
   beforeAll(async () => {
-    runtime = await createSrdRulesRuntime()
+    runtime = createSrdRulesRuntime()
   })
 
   const counter = (seed: number): EncounterCastReactionCandidate => ({

@@ -372,7 +372,6 @@ describe('room Scene movement perception staging', () => {
       'graph',
       'facts',
       'nodeOutputs',
-      'seal',
       'reactionTimeline',
       'actionSourceCurrentnessChecksum',
       'eligibilityEvidenceChecksum'

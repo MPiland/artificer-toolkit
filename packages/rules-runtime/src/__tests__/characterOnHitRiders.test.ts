@@ -57,11 +57,7 @@ function rogue(input: {
     ],
     items: [{ label: input.weapon ?? 'Longsword', equipped: true }],
     extraFeatures: input.withRider
-      ? [
-          input.gate
-            ? gatedSneakAttack(ROGUE.id, input.gate)
-            : unconditionalSneakAttack(ROGUE.id)
-        ]
+      ? [input.gate ? gatedSneakAttack(ROGUE.id, input.gate) : unconditionalSneakAttack(ROGUE.id)]
       : [],
     features: input.withRider
       ? [
@@ -140,7 +136,6 @@ async function longswordHit(input: {
   const rolls = [...input.rolls]
   const execution = await executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(32).fill(1),
       definitions: {
         async requireCurrent() {
           throw new Error('Definitions are not used by sealed graphs.')

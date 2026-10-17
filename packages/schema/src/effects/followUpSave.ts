@@ -1,5 +1,5 @@
 import { FOLLOW_UP_SAVE_TIMING, type FollowUpSaveTiming } from '@artificer-toolkit/shared/core'
-import { z } from '../zod.js'
+import { lazySchema, z } from '../zod.js'
 
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { combatPerceptionRequirementDtoSchema } from '../shared/combatPerception.js'
@@ -13,12 +13,14 @@ const followUpSaveTimings = Object.values(FOLLOW_UP_SAVE_TIMING) as [
   ...FollowUpSaveTiming[]
 ]
 
-const repeatPerceptionDtoSchema = z.object({
-  kind: z.literal('PERCEPTION'),
-  observer: z.literal('TARGET'),
-  subject: z.literal('SOURCE'),
-  requirement: combatPerceptionRequirementDtoSchema
-})
+const repeatPerceptionDtoSchema = lazySchema(() =>
+  z.object({
+    kind: z.literal('PERCEPTION'),
+    observer: z.literal('TARGET'),
+    subject: z.literal('SOURCE'),
+    requirement: combatPerceptionRequirementDtoSchema
+  })
+)
 
 export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
   const branchDtoSchema = z.discriminatedUnion('kind', [

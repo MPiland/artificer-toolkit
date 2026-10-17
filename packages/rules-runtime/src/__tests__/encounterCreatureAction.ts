@@ -468,7 +468,6 @@ export async function settleCreatureAction(input: {
   const commandId = '00000000-0000-4000-8000-00000000e008'
   const execution = await executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(32).fill(1),
       definitions: {
         async requireCurrent() {
           throw new Error('Definitions are not used by sealed graphs.')

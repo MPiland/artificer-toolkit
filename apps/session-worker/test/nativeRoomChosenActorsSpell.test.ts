@@ -667,7 +667,7 @@ describe('room cast on chosen creatures that each save (Acid Splash, Chain Light
   }, 120000)
 
   it('burns the creatures that fail with the full dice and the ones that save with the lesser, spending one slot', async () => {
-    // Every die is a 6 (the fallback): the failing creature takes the 10d8, the saving one the 5d8.
+    // Every die is a 6 (the fallback): the failing creature takes the 10d8, the saving one half of it.
     const room = await lightning()
     const before = await hitPointsOf(room)
 

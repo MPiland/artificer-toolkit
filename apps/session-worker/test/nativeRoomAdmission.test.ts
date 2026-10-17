@@ -25,6 +25,7 @@ import { DurableCommandJournal } from '../src/durableCommandJournal.js'
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
+import { trackRoom } from './roomTeardown.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const allowedOrigin = 'https://app.test'
@@ -99,6 +100,9 @@ async function room() {
   let openActivation: () => void = () => undefined
   let activationGate: Promise<void> = Promise.resolve()
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
+  // The fetch and clock spies are isolate-wide, so a room left running would answer from, and count
+  // its reads on, a later test's mock.
+  trackRoom(stub)
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)

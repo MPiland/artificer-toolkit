@@ -149,7 +149,7 @@ export async function preparedEncounterRoom(input: {
     },
     async () => []
   )
-  const runtime = await createNativeLiveRulesRuntime('native-prepared-fixture-continuation-secret')
+  const runtime = createNativeLiveRulesRuntime()
   /** Runs `command` as `userId` through the real room executor. */
   const execute = (userId: string, command: PreparedRoomCommand) =>
     room.transact((transaction) =>

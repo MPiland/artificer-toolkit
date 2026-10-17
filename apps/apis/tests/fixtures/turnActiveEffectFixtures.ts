@@ -328,7 +328,7 @@ export async function seedTurnSaveEffect(
     ]
   })
   return base.t.run(async (ctx) => {
-    const runtime = await createRulesRuntime(ctx, base.owner.userId)
+    const runtime = createRulesRuntime(ctx, base.owner.userId)
     const prepared = await runtime.executeResolvedWithGraph?.({
       command: {
         definitionId,

@@ -152,7 +152,7 @@ async function fighterHolder() {
 }
 
 async function settle(context: ReturnType<typeof prepare>, faces: number[]) {
-  const runtime = await createSrdRulesRuntime()
+  const runtime = createSrdRulesRuntime()
   const continuation = await startEncounterBasicActionCheck({
     runtime,
     gameSystemId: SRD_SYSTEM_ID,
@@ -493,7 +493,7 @@ describe('Escape check', () => {
 
   it('a prompted escape waits on a kernel snapshot carrying its frozen context', async () => {
     const context = prepare()
-    const runtime = await createSrdRulesRuntime()
+    const runtime = createSrdRulesRuntime()
     const continuation = await startEncounterBasicActionCheck({
       runtime,
       gameSystemId: SRD_SYSTEM_ID,

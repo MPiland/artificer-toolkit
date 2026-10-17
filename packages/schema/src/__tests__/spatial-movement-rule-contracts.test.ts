@@ -920,7 +920,6 @@ function movementConcentrationChildSnapshot() {
     },
     authority: 'APPLICATION_SERVICE',
     redaction: 'SERVER_ONLY',
-    seal: checksum('f'),
     applicationContext
   })
 }
@@ -1255,7 +1254,7 @@ describe('spatial movement rule contracts', () => {
     expect(
       storedRuleExecutionResultDtoSchema.safeParse({
         ...result,
-        continuation: { seal: checksum('9') }
+        continuation: { redaction: 'SERVER_ONLY' }
       }).success
     ).toBe(false)
   })

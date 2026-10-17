@@ -13,8 +13,7 @@ export default defineConfig({
           CONVEX_SITE_URL: 'https://native.test',
           LIVE_SESSION_ALLOWED_ORIGINS: 'https://app.test',
           LIVE_SESSION_TICKET_SECRET: secret,
-          LIVE_SESSION_WORKER_SECRET: secret,
-          RULES_CONTINUATION_SECRET: `${secret}-rules`
+          LIVE_SESSION_WORKER_SECRET: secret
         }
       },
       wrangler: { configPath: './wrangler.jsonc' }
