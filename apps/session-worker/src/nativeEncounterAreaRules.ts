@@ -194,7 +194,10 @@ export type AreaPlanBase = {
   system: Extract<LiveSessionEncounterRulesResponse, { kind: 'INPUTS' }>['system']
   actors: readonly EncounterRunActorState[]
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
-  loadTarget: (actor: EncounterRunActorState) => Promise<MovementTargets>
+  loadTarget: (
+    actor: EncounterRunActorState,
+    effectsByActorId?: Map<string, ActiveRuleEffectRecord[]>
+  ) => Promise<MovementTargets>
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
@@ -534,6 +537,7 @@ function reachCastPause(
   cast: {
     reach: Pick<AreaReach, 'scene' | 'movementTargets'>
     lead: AreaPrepared
+    chosenActorIds: readonly string[] | null
     occurrenceId: string
     occurredAt: string
     answer: NativeCastReactionAnswer | null
@@ -563,6 +567,7 @@ function reachCastPause(
     },
     // Range is read from the Scene, so a cast aimed at none offers no reaction.
     readScene: scene ? async () => scene : null,
+    chosenActorIds: cast.chosenActorIds,
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,
@@ -594,6 +599,8 @@ export async function openReachCastWindow(
   cast: {
     reach: AreaReach
     lead: AreaPrepared
+    /** The creatures a chosen-list cast names, who may answer being chosen; null for any other shape. */
+    chosenActorIds: readonly string[] | null
     evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
     ruleOverrides: ReturnType<typeof reachRuleOverrides>
   }
@@ -617,6 +624,7 @@ export async function openReachCastWindow(
   const pause = reachCastPause(input, {
     reach: cast.reach,
     lead,
+    chosenActorIds: cast.chosenActorIds,
     occurrenceId,
     occurredAt,
     answer: castResume?.answer ?? null,
@@ -742,6 +750,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const opened = await openReachCastWindow(input, {
     reach: base,
     lead: lead.prepared,
+    chosenActorIds: null,
     evaluation,
     ruleOverrides
   })
@@ -1504,6 +1513,7 @@ export async function planNativeLiveEncounterAreaCommit(
     failedCounters: await reachCastPause(input, {
       reach: base,
       lead,
+      chosenActorIds: null,
       occurrenceId: areaOccurrenceId,
       occurredAt,
       answer: null,
@@ -1574,6 +1584,8 @@ export async function completeAreaCommit(args: {
   occurredAt: string
   /** What each counter that failed against the cast spends with this commit (D127). */
   failedCounters: Awaited<ReturnType<ReachCastWindow['pause']['planFailedCounters']>>
+  /** The effect each creature's used reaction to being chosen leaves on it, by actor id. */
+  reactionEffects?: ReadonlyMap<string, { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }>
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -1609,6 +1621,7 @@ export async function completeAreaCommit(args: {
     caster,
     occurredAt,
     failedCounters,
+    reactionEffects,
     movementTargets,
     kept,
     lead,
@@ -1724,7 +1737,14 @@ export async function completeAreaCommit(args: {
         ...effectInput,
         maintainedEffectStateId: joined?.id
       })
-    const created = [stateEffect, recurringEffect].flatMap((effect) => (effect ? [effect] : []))
+    const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
+    // The effect of a reaction the creature used on being chosen lands with its first outcome.
+    const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
+    const reactionRecord =
+      reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
+    const created = [stateEffect, recurringEffect, reactionRecord].flatMap((effect) =>
+      effect ? [effect] : []
+    )
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
@@ -1758,9 +1778,7 @@ export async function completeAreaCommit(args: {
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
     const carriesFailedCounterSpend =
-      actor.id !== caster.id &&
-      failedReactorSlots.has(actor.id) &&
-      kept.findIndex((entry) => entry.actor.id === actor.id) === index
+      actor.id !== caster.id && failedReactorSlots.has(actor.id) && firstEntry
     const applications = [...complete.applications, ...effects.relationshipConditionApplications]
     const damageEnded = damageTakenEndedEffects({
       holderActorId: actor.id,
@@ -1839,7 +1857,12 @@ export async function completeAreaCommit(args: {
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
-        targetFailedCounterSpend: carriesFailedCounterSpend
+        targetFailedCounterSpend: carriesFailedCounterSpend,
+        reactionEffectTransitions: projectNativeActionEffectTransitions({
+          state: null,
+          recurring: reactionRecord ?? null,
+          targetActorId: actor.id
+        }).activeEffectTransitions
       })
     })
   }

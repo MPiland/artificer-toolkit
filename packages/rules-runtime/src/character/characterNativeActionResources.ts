@@ -201,7 +201,9 @@ export function prepareNativeCharacterActionState(input: {
   // A spell cast's action id is a digest of its cast candidate's id, so the id names the candidate.
   const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
   const namesCast = (value: { candidateId: string }) =>
-    spellCastActionId(value.candidateId) === input.candidate.actionId
+    [undefined, input.candidate.effectId].some(
+      (laterEffectId) => spellCastActionId(value.candidateId, laterEffectId) === input.candidate.actionId
+    )
   const spellCastLevel = isSpellCast
     ? input.policyOutput.spellCastMechanics.find(namesCast)?.castLevel
     : undefined

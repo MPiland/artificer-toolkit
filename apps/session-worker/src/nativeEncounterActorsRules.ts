@@ -4,9 +4,14 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { chosenCreaturesMaxTargets } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
-import { encounterChosenActorsChecksum } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import {
+  encounterAreaTargetCommandId,
+  encounterAreaTargetOccurrenceId,
+  encounterChosenActorsChecksum
+} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
+import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import {
   completeAreaCommit,
@@ -124,7 +129,15 @@ export async function planNativeLiveEncounterActorsAction(
     targets: prepared,
     movementTargets
   })
-  const opened = await openReachCastWindow(input, { reach, lead, evaluation, ruleOverrides })
+  const opened = await openReachCastWindow(input, {
+    reach,
+    lead,
+    // A cast that asks each creature for a save settles on its own rollers; only a one-graph cast
+    // lets a chosen creature answer being chosen.
+    chosenActorIds: lead.plan.kind === 'SINGLE_GRAPH' ? actorIds : null,
+    evaluation,
+    ruleOverrides
+  })
   if (opened.kind === 'PLAN') return opened.plan
   const { window } = opened
   // An action that asks each creature for a save waits for the rollers it names.
@@ -139,6 +152,48 @@ export async function planNativeLiveEncounterActorsAction(
     })
   const { economy, attackAction } = evaluation
 
+  // A chosen creature that used a reaction to being chosen (Shield) holds its effect before the cast
+  // resolves: its entries are prepared again against the creature as that effect leaves it.
+  const failedCounters = await window.pause.planFailedCounters(window.failedCounters)
+  const reactionEffects = new Map<
+    string,
+    Awaited<ReturnType<typeof applyNativeReactionEffect>>['reactionEffect']
+  >()
+  for (const { receipt, found } of failedCounters) {
+    if (receipt.reaction.trigger !== 'TARGETED_SELF') continue
+    const reactorId = receipt.reaction.reactorActorId
+    const reactor = chosen.find((actor) => actor.id === reactorId)
+    const reactorOccurrenceId = encounterAreaTargetOccurrenceId(window.occurrenceId, reactorId)
+    if (!reactor) throw new Error('Reaction evidence is stale.')
+    const prepareReactor = (reactorTarget: Awaited<ReturnType<typeof input.loadTarget>>) =>
+      prepareAreaTarget({
+        ...input,
+        base: { ...reach, movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget) },
+        actor: reactor,
+        token: reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
+      })
+    const adjusted: { target?: Parameters<typeof prepareReactor>[0] } = {}
+    const applied = await applyNativeReactionEffect({
+      reaction: { prepared: found.prepared, triggerDamageTypeIds: [] },
+      runtime: input.runtime,
+      // The effect lands with the reactor's first outcome, so it is that outcome's own.
+      occurrenceId: reactorOccurrenceId,
+      commandId: encounterAreaTargetCommandId(reactorOccurrenceId),
+      reactorActorId: reactorId,
+      occurredAt: window.occurredAt,
+      activeEffectsByActorId: input.activeEffectsByActorId,
+      loadTarget: input.loadTarget,
+      prepareAttack: async (_reactedTargets, adjustedTarget) => {
+        adjusted.target = adjustedTarget
+        return (await prepareReactor(adjustedTarget)).prepared
+      }
+    })
+    if (!adjusted.target) throw new Error('Reaction evidence is stale.')
+    reactionEffects.set(reactorId, applied.reactionEffect)
+    for (const [index, entry] of prepared.entries())
+      if (entry.actor.id === reactorId)
+        prepared[index] = { ...entry, ...(await prepareReactor(adjusted.target)) }
+  }
   const settled = await executeEncounterActorsAction({
     runtime: input.runtime,
     random: input.random,
@@ -156,7 +211,8 @@ export async function planNativeLiveEncounterActorsAction(
     command,
     caster,
     occurredAt: window.occurredAt,
-    failedCounters: await window.pause.planFailedCounters(window.failedCounters),
+    failedCounters,
+    reactionEffects,
     movementTargets,
     kept: prepared.map(({ actor, prepared: entry }) => ({ actor, target: { prepared: entry } })),
     lead,

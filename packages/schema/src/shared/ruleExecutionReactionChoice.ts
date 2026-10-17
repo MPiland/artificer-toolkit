@@ -67,9 +67,15 @@ export const encounterReactionPinDtoSchema = lazySchema(() =>
 )
 export type EncounterReactionPinDto = z.infer<typeof encounterReactionPinDtoSchema>
 
-/** The exact reaction a cast offers a creature that could counter it; sealed like an attack reaction. */
+/**
+ * The exact reaction a cast offers a creature, sealed like an attack reaction: a counter to the cast
+ * (`SPELL_CAST`), or a reaction of a creature the cast names as a target (`TARGETED_SELF`).
+ */
 export const encounterCastReactionPinDtoSchema = lazySchema(() =>
-  z.strictObject({ trigger: z.literal('SPELL_CAST'), ...reactionPinShape() })
+  z.strictObject({
+    trigger: z.enum(['SPELL_CAST', 'TARGETED_SELF']),
+    ...reactionPinShape()
+  })
 )
 export type EncounterCastReactionPinDto = z.infer<typeof encounterCastReactionPinDtoSchema>
 
@@ -187,8 +193,13 @@ export const encounterCastReactionCheckDtoSchema: z.ZodMiniType<EncounterCastRea
  * lists who declined at that level, and `castDeclinedReactorActorIds` and `castLevel` keep what the
  * outer level needs when the chain resolves (the declines to the cast itself, and the level of the last
  * counter, which is the cast the reactions now answer).
+ *
+ * `kind` names what is offered: `COUNTER` offers counters to the cast; `TARGETED_SELF` offers a creature
+ * the cast names as a target the reactions it holds for being chosen (Shield against Magic Missile),
+ * which lets the cast resolve against the reactor as the reaction leaves it.
  */
 export type EncounterCastReactionOfferDto = {
+  kind: 'COUNTER' | 'TARGETED_SELF'
   reactions: EncounterCastReactionPinDto[]
   declinedReactorActorIds: string[]
   check?: EncounterCastReactionCheckDto
@@ -201,24 +212,39 @@ export type EncounterCastReactionOfferDto = {
 
 export const encounterCastReactionOfferDtoSchema: z.ZodMiniType<EncounterCastReactionOfferDto> =
   lazySchema(() =>
-    z.strictObject({
-      reactions: z
-        .array(encounterCastReactionPinDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
-      declinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-      check: z.optional(encounterCastReactionCheckDtoSchema),
-      chain: z.optional(
-        z.strictObject({
-          counters: z
-            .array(encounterFailedCounterDtoSchema)
-            .check(z.minLength(1))
-            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-          castDeclinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-          castLevel: nonNegativeIntegerSchema
+    z
+      .strictObject({
+        kind: z.enum(['COUNTER', 'TARGETED_SELF']),
+        reactions: z
+          .array(encounterCastReactionPinDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
+        declinedReactorActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        check: z.optional(encounterCastReactionCheckDtoSchema),
+        chain: z.optional(
+          z.strictObject({
+            counters: z
+              .array(encounterFailedCounterDtoSchema)
+              .check(z.minLength(1))
+              .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+            castDeclinedReactorActorIds: z
+              .array(uuidSchema)
+              .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+            castLevel: nonNegativeIntegerSchema
+          })
+        )
+      })
+      .check(
+        z.superRefine((value, context) => {
+          const trigger = value.kind === 'COUNTER' ? 'SPELL_CAST' : 'TARGETED_SELF'
+          if (value.reactions.some((reaction) => reaction.trigger !== trigger))
+            context.addIssue({
+              code: 'custom',
+              path: ['reactions'],
+              message: `A ${value.kind} offer holds only ${trigger} reactions.`
+            })
         })
       )
-    })
   )
 
 /** What a failed counter checked: the reactor's settled d20 against the cast level's DC. */

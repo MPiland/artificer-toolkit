@@ -98,6 +98,11 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
         .check(z.maxLength(1)),
+      /** The effect of a reaction the target used on being chosen as this cast's target; it lands on the target. */
+      reactionEffectTransitions: z._default(
+        z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
+        []
+      ),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
       nestedD20: z._default(z.nullable(serverRuleExecutionNestedD20EvidenceDtoSchema), null),
@@ -440,7 +445,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['sourceItemConsumption'],
             message: 'Item consumption must match the source Character.'
           })
-        const hasActiveEffectCreation = value.activeEffectTransitions.length > 0
+        const hasActiveEffectCreation =
+          value.activeEffectTransitions.length > 0 || value.reactionEffectTransitions.length > 0
         const reaction = value.reaction
         const hasReactionMutation =
           reaction?.spellCastConsumption != null || value.targetFailedCounterSpend

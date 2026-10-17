@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   discoverCastReactionActions,
+  discoverTargetedSelfReactionActions,
   preparedCastsSpell,
   preparedSpellCastLevel
 } from '../encounterCastReactionDiscovery.js'
@@ -56,6 +57,53 @@ describe('cast reaction discovery', () => {
 
   it('offers nothing to a reactor with no spell reactions', () => {
     expect(discoverCastReactionActions(reactor([]))).toEqual([])
+  })
+})
+
+describe('targeted-self reaction discovery (REACTION-4.1)', () => {
+  const targeted = (actionId: string, sourceEffectIds?: string[]) =>
+    candidate(
+      actionId,
+      'REACTION',
+      {
+        kind: 'TARGETED_SELF',
+        ...(sourceEffectIds === undefined ? {} : { sourceEffectIds })
+      } as { kind: string },
+      'GRANT_MODIFIER'
+    )
+
+  it('offers an unfiltered reaction for any cast: absent or empty sourceEffectIds', () => {
+    nextSequence = 0
+    const found = discoverTargetedSelfReactionActions(
+      reactor([targeted('spell:absent'), targeted('spell:empty', [])]),
+      'spell:fireball'
+    )
+    expect(found.map((action) => action.actionId)).toEqual(['spell:absent', 'spell:empty'])
+  })
+
+  it('offers a filtered reaction only for a cast of a listed spell', () => {
+    nextSequence = 0
+    const held = reactor([targeted('spell:shield', ['spell:magic-missile'])])
+    expect(
+      discoverTargetedSelfReactionActions(held, 'spell:magic-missile').map(
+        (action) => action.actionId
+      )
+    ).toEqual(['spell:shield'])
+    expect(discoverTargetedSelfReactionActions(held, 'spell:fireball')).toEqual([])
+  })
+
+  it('ignores counters, attack reactions and actions that are not reactions', () => {
+    nextSequence = 0
+    expect(
+      discoverTargetedSelfReactionActions(
+        reactor([
+          candidate('spell:counterspell', 'REACTION', { kind: 'SPELL_CAST' }),
+          candidate('spell:shield', 'REACTION', { kind: 'ATTACKED_SELF' }, 'GRANT_MODIFIER'),
+          candidate('spell:ward', 'ACTION', { kind: 'TARGETED_SELF' }, 'GRANT_MODIFIER')
+        ]),
+        'spell:magic-missile'
+      )
+    ).toEqual([])
   })
 })
 

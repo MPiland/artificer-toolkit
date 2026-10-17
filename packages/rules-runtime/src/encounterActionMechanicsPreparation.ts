@@ -580,7 +580,8 @@ export async function prepareEncounterActionMechanics<
       defenses: dnd5eAttackDamageDefenses(
         targetFacts.defenses,
         targetFacts.qualifiedDefenses,
-        attackTraits
+        attackTraits,
+        source.kind === 'CHARACTER_ACTION' ? source.candidate.mechanicsOwner.id : null
       ),
       conditionImmunityIds: targetFacts.conditionImmunityIds
     }

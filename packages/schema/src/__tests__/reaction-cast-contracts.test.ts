@@ -14,9 +14,9 @@ import {
 
 const uuid = (seed: number) => `00000000-0000-4000-8000-${seed.toString(16).padStart(12, '0')}`
 
-const castPin = (seed: number) => {
+const castPin = (seed: number, trigger: 'SPELL_CAST' | 'TARGETED_SELF' = 'SPELL_CAST') => {
   const identity = {
-    trigger: 'SPELL_CAST' as const,
+    trigger,
     reactorActorId: uuid(seed),
     characterId: uuid(seed + 100),
     actionId: `counterspell-${seed}`,
@@ -49,11 +49,18 @@ describe('cast reaction pins', () => {
         .success
     ).toBe(false)
   })
+
+  it('accepts a TARGETED_SELF pin as a cast reaction only (REACTION-4.1)', () => {
+    const pin = castPin(1, 'TARGETED_SELF')
+    expect(encounterCastReactionPinDtoSchema.safeParse(pin).success).toBe(true)
+    expect(encounterReactionPinDtoSchema.safeParse(pin).success).toBe(false)
+  })
 })
 
 describe('cast reaction offers', () => {
   it('holds up to the limit of reactions and the reactors that declined', () => {
     const offer = (count: number) => ({
+      kind: 'COUNTER' as const,
       reactions: Array.from({ length: count }, (_, index) => castPin(index + 1)),
       declinedReactorActorIds: [uuid(900)]
     })
@@ -69,14 +76,41 @@ describe('cast reaction offers', () => {
   })
 
   it('refuses a missing decline record', () => {
-    expect(encounterCastReactionOfferDtoSchema.safeParse({ reactions: [castPin(1)] }).success).toBe(
-      false
-    )
+    expect(
+      encounterCastReactionOfferDtoSchema.safeParse({ kind: 'COUNTER', reactions: [castPin(1)] })
+        .success
+    ).toBe(false)
+  })
+
+  it('names what it offers: the kind is required and has no default (REACTION-4.1)', () => {
+    const offer = { reactions: [castPin(1)], declinedReactorActorIds: [] }
+    expect(encounterCastReactionOfferDtoSchema.safeParse(offer).success).toBe(false)
+    expect(
+      encounterCastReactionOfferDtoSchema.safeParse({ ...offer, kind: 'COUNTER' }).success
+    ).toBe(true)
+    expect(
+      encounterCastReactionOfferDtoSchema.safeParse({ ...offer, kind: 'SOMETHING_ELSE' }).success
+    ).toBe(false)
+  })
+
+  it('holds a TARGETED_SELF offer of TARGETED_SELF pins only (REACTION-4.1)', () => {
+    const offer = {
+      kind: 'TARGETED_SELF' as const,
+      reactions: [castPin(1, 'TARGETED_SELF')],
+      declinedReactorActorIds: [uuid(900)]
+    }
+    const parses = (value: unknown) => encounterCastReactionOfferDtoSchema.safeParse(value).success
+    expect(parses(offer)).toBe(true)
+    // A counter offer holds counters, and a targeted offer holds targeted reactions: never mixed.
+    expect(parses({ ...offer, kind: 'COUNTER' })).toBe(false)
+    expect(parses({ ...offer, reactions: [castPin(1)] })).toBe(false)
+    expect(parses({ ...offer, kind: 'COUNTER', reactions: [castPin(1)] })).toBe(true)
   })
 
   it('holds a chain only with a counter standing, and the declines it outranks', () => {
     const withChain = (chain: unknown) =>
       encounterCastReactionOfferDtoSchema.safeParse({
+        kind: 'COUNTER',
         reactions: [castPin(1)],
         declinedReactorActorIds: [],
         chain
