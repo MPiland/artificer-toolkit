@@ -53,7 +53,9 @@ export const vitalsOf = (history: RoomHistory) =>
 
 /** Where each actor's token stands in the Scene the room last synced to the GM. */
 export function tokenPositions(room: Awaited<ReturnType<typeof actionRoom>>) {
-  const sync = room.room.base.messages.findLast((message) => message.type === 'STATE_SYNC')
+  const sync = [...room.room.base.messages]
+    .reverse()
+    .find((message) => message.type === 'STATE_SYNC')
   if (sync?.type !== 'STATE_SYNC' || !sync.state.scene)
     throw new Error('The room has sent the GM no Scene.')
   const tokens = sync.state.scene.tokens

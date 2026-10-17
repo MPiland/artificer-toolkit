@@ -35,7 +35,10 @@ const committed = (answer: { type: string }) =>
 /** A Wolf whose Bite's failed save pushes its one target `feet` away, at any range. */
 function pushRoom(
   others: { id: string; at: ScenePoint; creature?: typeof plainWolf }[],
-  { feet = 10, direction = 'AWAY_FROM_SOURCE' as const } = {}
+  {
+    feet = 10,
+    direction = 'AWAY_FROM_SOURCE'
+  }: { feet?: number; direction?: Parameters<typeof forceOnFailedSave>[1] } = {}
 ) {
   const creature = forceOnFailedSave(biteWolf('SAVE'), direction, feet)
   return actionRoom({
