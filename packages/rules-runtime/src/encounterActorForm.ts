@@ -164,7 +164,7 @@ export function carriedCreatureForm(
     maxHitPoints,
     tempHitPoints
   }
-}}
+}
 
 /** A new Run's Character actor resumes the form its carried effect holds, with the hit points it kept. */
 export function resumeCharacterForm(
