@@ -180,17 +180,24 @@ describe('room cast of Sleep (SPELLS-27.T8)', () => {
     expect(after.effectHolders).toEqual([LOW_ID, MID_ID].sort())
   }, 120000)
 
-  it('gives the sleeperâ€™s condition and effect back when the damage is undone, and the sleep itself when the cast is', async () => {
+  it('gives the sleeper’s condition and effect back when the damage is undone', async () => {
     const room = await sleepRoom()
     await castSleep(room)
     await biteHits(room, DAMAGED_ID)
 
     await undoLastAction(room)
+
     const bitten = await history(room)
     expect(bitten.asleep).toEqual(SLEEPERS)
     expect(bitten.effectHolders).toEqual(SLEEPERS)
+  }, 120000)
+
+  it('puts every sleeper back awake when the cast is undone', async () => {
+    const room = await sleepRoom()
+    await castSleep(room)
 
     await undoLastAction(room)
+
     const undone = await history(room)
     expect(undone.asleep).toEqual([])
     expect(undone.effectHolders).toEqual([])
