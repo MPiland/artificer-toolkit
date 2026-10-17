@@ -1385,6 +1385,49 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-24",
+          "title": "Paused rule continuations need no signing key",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-24.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16: the user chose removal (Q23) after an audit found no client ever holds a continuation, Convex never verifies it, and the cross-service reason ended with ADR 0035.",
+              "text": "Resuming a paused rule occurrence validates the frozen graph exactly as executeFrozen does (capability lookup, contractVersion match, validateCompiledRuleGraph) and rejects a graph that fails it, with no HMAC seal; a test resumes a tampered graph and sees it rejected."
+            },
+            {
+              "id": "PLATFORM-24.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16: the user chose removal (Q23) after an audit found no client ever holds a continuation, Convex never verifies it, and the cross-service reason ended with ADR 0035.",
+              "text": "RULES_CONTINUATION_SECRET, the continuation seal field, deriveRulesContinuationKey and every fixture key are gone from code, env examples, scripts and docs (READMEs, live-sessions.md, rules-runtime.md, an ADR 0029 amendment); paused decisions stored before the change are cancelled per the ADR 0033 precedent, and the local Convex and Worker env names are removed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-24.T1",
+              "text": "Move graph validation into resume/resumeWithGraph, delete the seal and key end to end, cancel pre-change paused decisions, update docs and the ADR 0029 amendment.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-24.1", "PLATFORM-24.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-24.md"
+            }
+          ]
         }
       ]
     },
