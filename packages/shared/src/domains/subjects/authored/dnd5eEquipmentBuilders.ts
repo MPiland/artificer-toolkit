@@ -333,16 +333,14 @@ function heavyWeaponDisadvantage(
   }
 }
 export function heavyMeleeWeaponModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  return [
-    ...meleeWeaponAbilityModifiers(childId),
+  return meleeWeaponAbilityModifiers(childId).concat(
     heavyWeaponDisadvantage(childId, ATTACK_DOMAIN_CODE.MELEE, 3)
-  ]
+  )
 }
 export function heavyRangedWeaponModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  return [
-    ...rangedWeaponAbilityModifiers(childId),
+  return rangedWeaponAbilityModifiers(childId).concat(
     heavyWeaponDisadvantage(childId, ATTACK_DOMAIN_CODE.RANGED, 3)
-  ]
+  )
 }
 /**
  * Light and medium armor AC: + DEX modifier while worn (medium caps it at 2). Armor proficiency
