@@ -45,7 +45,7 @@ const unfilteredShield: SpellAuthored = {
   ...shield,
   effects: shield.effects?.map((effect): NonNullable<SpellAuthored['effects']>[number] => {
     const { invocation } = effect
-    if (!('reactionTrigger' in invocation) || invocation.reactionTrigger?.kind !== 'TARGETED_SELF')
+    if (!invocation.reactionTrigger || invocation.reactionTrigger.kind !== 'TARGETED_SELF')
       return effect
     return {
       ...effect,
