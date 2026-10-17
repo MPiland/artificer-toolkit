@@ -9204,7 +9204,7 @@
         {
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomDepartAction.test.ts",
             "apps/session-worker/test/nativeRoomActorLink.test.ts",
@@ -9212,13 +9212,13 @@
             "apps/session-worker/test/nativeRoomPolymorph.test.ts",
             "apps/session-worker/test/nativeRoomTeleportAction.test.ts"
           ],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "id": "SPELLS-28.1",
               "text": "SRD spells whose outcome is TELEPORT (Word of Recall, the travel half of Plane Shift), MANIFEST (Giant Insect) or TELEPATHIC_LINK (Telepathic Bond) cast in an Encounter through outcome executors authored from core options, each with a test against the real compiler and one journey.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
                 "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
@@ -9227,7 +9227,7 @@
                 "T4-T4d creature form for Characters: apps/session-worker/test/nativeRoomPolymorph.test.ts (Polymorph, form outlasting the Run, acting in the form: the form Bite resolves and hurts its target); characterFormActions.test.ts. Merged in m65 22e21b5c5."
               ],
               "origin": [],
-              "note": "Held open: its core-options parity proof packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts is one of the 12 failing authoring tests CI never ran; closes when PLATFORM-23.2 makes it green. Giant Centipede Bite (GIANT_CENTIPEDE_VENOM outcome) is not plannable, so a Giant Insect centipede cannot bite yet."
+              "note": "Re-verified 2026-10-17 after PLATFORM-23.2: the parity test runs in CI and passes in the full m68 run (Tests 39012209131 on d045e5248). Giant Centipede Bite (closed rule GIANT_CENTIPEDE_VENOM) is not plannable yet, so a Giant Insect centipede cannot bite; that closed rule converts in SPELLS-4.T2."
             },
             {
               "id": "SPELLS-28.2",
@@ -9589,7 +9589,7 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/session-worker/test/nativeRoomFearSource.test.ts"],
           "origin": [
             "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
@@ -9618,7 +9618,7 @@
             {
               "id": "SPELLS-29.2",
               "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
               ],
@@ -9628,7 +9628,7 @@
                 "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts (homebrew Panicked from core options), packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts, characterSpellCastActions.test.ts, packages/shared/src/__tests__/effect-compiler.test.ts (fleesSource).",
                 "Red 04e6af8c5 (Tests 38960560081, Live 38960560070); green 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
               ],
-              "note": "Reopened 2026-10-16: its cited proof conditionSourceAuthoringParity.test.ts fails on the phase branch (CI never ran authoring tests). Closes again with PLATFORM-23.2."
+              "note": "Re-verified 2026-10-17 after PLATFORM-23.2: the parity test runs in CI and passes in the full m68 run (Tests 39012209131 on d045e5248)."
             }
           ],
           "tasks": [
@@ -9671,7 +9671,8 @@
                 "after": ["SPELLS-29.T1a"]
               }
             }
-          ]
+          ],
+          "journeyStatus": "verified"
         }
       ]
     },
