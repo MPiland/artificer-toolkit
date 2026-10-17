@@ -7534,18 +7534,18 @@
             },
             {
               "id": "ATTACK-7.T5a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-7.7"
               ],
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
                 "size": 5
               },
-              "text": "Split 2026-10-17 from T5 to unblock SPELLS-19.T4 (built in that session, branch ci/spells-19-t4). Generic FORCED_MOVEMENT directive AWAY/TOWARD + EXACT for single-target and area, settled live through the existing FORCED token-move pipeline (straight line from source, stop at first blocked square, no opportunity attacks, GM undo restores positions); refuseSpatialInterpretation refusal removed; Balor Whip migrated onto it and its hard-wired compile paths deleted. ASIDE, ANY, UP_TO and the Crusher proof stay in T5."
+              "text": "Split 2026-10-17 from T5 to unblock SPELLS-19.T4 (built in that session, branch ci/spells-19-t4). Generic FORCED_MOVEMENT directive AWAY/TOWARD + EXACT for single-target and area, settled live through the existing FORCED token-move pipeline (straight line from source, stop at first blocked square, no opportunity attacks, GM undo restores positions); refuseSpatialInterpretation refusal removed; Balor Whip migrated onto it and its hard-wired compile paths deleted. ASIDE, ANY, UP_TO and the Crusher proof stay in T5.",
+              "note": "Built on ci/spells-19-t4 (f104bd7b6), merged 8fa192068 (backstop ci/merge-m78). Generic AWAY/TOWARD EXACT forced movement settled on the Scene inside the action transaction (D139): FORCED MOVE_SCENE_TOKEN commands carrying the originating action, Scene undo refuses them, GM revert restores them. Balor migrated; the FORCED_MOVEMENT refusal is deleted. Proof: apps/session-worker/test/nativeRoomForcedMovement.test.ts, packages/shared/src/__tests__/optionalCombatGeometry.test.ts. ATTACK-7.7 stays TODO for aside/any and up-to distances (T5)."
             },
             {
               "id": "ATTACK-7.T5",
@@ -10418,9 +10418,9 @@
         {
           "id": "SPELLS-19",
           "title": "Area actions that leave conditions or lasting effects",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -10438,8 +10438,12 @@
             {
               "id": "SPELLS-19.2",
               "text": "Every SRD breath weapon that leaves a condition (the 21 shaped non-damage breaths, such as the Silver Dragon Wyrmling's Paralyzing Breath, and the Gorgon's Petrifying Breath with its printed repeat save authored) is offered and resolves through the area executor; the SPELLS-21 corpus test's list of non-compiling breaths is empty.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdBreathWeaponAreas.test.ts",
+                "packages/rules-runtime/src/__tests__/srdBronzeRepulsionBreath.test.ts",
+                "apps/session-worker/test/nativeRoomSrdBreathJourney.test.ts"
+              ],
               "origin": [],
               "note": "Registered 2026-10-15 at the SPELLS-21 merge (3aa01bf6d): these breaths are authored as areas but listed unavailable, because an area does not yet commit a condition and the Gorgon's SRD repeat save is not authored."
             }
@@ -10557,7 +10561,7 @@
             {
               "id": "SPELLS-19.T4",
               "text": "Bronze Repulsion Breath (4): an area pushes each creature that fails 30 ft away from the breather through the forced-movement path; the SPELLS-21 corpus list of non-compiling breaths is empty.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-19.2"
               ],
@@ -10571,7 +10575,7 @@
                   "ATTACK-7.T5a"
                 ]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "note": "CI ci/spells-19-t4 19e1dcc39 (Tests 39051132698, Live 39051132720); fast-path merge 8fa192068, backstop ci/merge-m78. Workbook docs/handoffs/slice-spells-19.md. Bronze Repulsion Breath pushes each creature that fails its save through the generic AWAY push (T5a, D139); the DRAGON_REPULSION_BREATH closed rule is gone from the four Bronze Dragons. Guard: no breath is unoffered or listed unavailable. Journey: nativeRoomSrdBreathJourney.test.ts."
             }
           ]
         },
