@@ -12,7 +12,6 @@ const SAVE_FOR_HALF_TEXT =
  */
 const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Call Lightning': 'MANUAL_ADJUDICATION: the recurring bolt action is not authored',
-  Cloudkill: 'ZONE manifest without interactions',
   'Control Water': 'MANUAL_ADJUDICATION: the whirlpool is not authored',
   'Delayed Blast Fireball': 'CLOSED_RULE',
   Earthquake: 'CLOSED_RULE',
@@ -20,7 +19,6 @@ const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Glyph of Warding': 'CLOSED_RULE',
   'Guardian of Faith': 'CLOSED_RULE',
   'Incendiary Cloud': 'CLOSED_RULE',
-  'Insect Plague': 'ZONE manifest without interactions',
   Moonbeam: 'CLOSED_RULE',
   'Storm of Vengeance': 'CLOSED_RULE',
   Sunbeam: 'CLOSED_RULE',
