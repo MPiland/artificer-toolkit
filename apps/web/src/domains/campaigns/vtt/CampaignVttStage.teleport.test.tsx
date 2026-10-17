@@ -94,7 +94,8 @@ const room = (): HeldEncounterSession => ({
         teleport
       }
     ],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   },
   preparedPending: [],
   actorSides: null,

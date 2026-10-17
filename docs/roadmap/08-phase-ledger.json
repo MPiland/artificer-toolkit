@@ -1058,7 +1058,7 @@
         {
           "id": "PLATFORM-20",
           "title": "One flat compile stage: no dead or copy-only compilers",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1084,7 +1084,8 @@
               "id": "PLATFORM-20.3",
               "status": "TODO",
               "origin": [],
-              "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold reads those typed fields with no Record<string, unknown> casts, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859."
+              "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold and every fold consumer read those typed fields with no Record<string, unknown> casts, and the persisted fold contract carries typed scope and payload instead of a JSON dump of the grant, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859.",
+              "note": "Orchestrator ruling 2026-10-17 on the session question: option A (typed persisted contract plus a dev-data migration), per the user's best-practice direction and the pre-launch no-compat rule."
             },
             {
               "id": "PLATFORM-20.4",
@@ -1096,15 +1097,28 @@
           "tasks": [
             {
               "id": "PLATFORM-20.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-20.1", "PLATFORM-20.2", "PLATFORM-20.3", "PLATFORM-20.4"],
-              "text": "Delete the dead and copy-only compilers, flatten the modifier compile and the fold read, type the SRD builders per domain, remove the union workarounds, update the docs. Red first: a type-level test that a generic modifier transform compiles, and fold tests on the flat shape.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-20.1", "PLATFORM-20.2"],
+              "text": "Delete the dead and copy-only compilers; flatten the compiled modifier grant so the fold builds from typed fields; type the SRD builders per domain and remove the union workarounds.",
               "wsjf": {
                 "bv": 8,
                 "tc": 8,
                 "rr": 8,
                 "size": 5,
                 "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-20.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-20.3", "PLATFORM-20.4"],
+              "text": "The persisted fold contract is typed: modifierOperationSchema replaces the grant JSON dump with typed scope and payload, the rules-runtime consumers read typed fields (no record() casts), stored development rows are migrated in the same change, and the docs describe the compile stage as built.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-20.T1"]
               }
             }
           ]
@@ -4148,7 +4162,8 @@
                 "rr": 5,
                 "size": 8
               },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              "activeWorkbook": "docs/handoffs/slice-room-6.md",
+              "note": "Projection-budget gate cleared: stored actors keep identity in row columns only (actorIdentityMigration). Red ci/room-6-budget-red 8cf39bdf5 (Tests 38978140021, 255280 > 230400); green 50e365a3f (Tests 38984324373, Live 38984286163); merged in m59 ea6b4a50f (Tests 38986074614, Live 38986074610). 100-actor read 226707 B OWNER / 227378 B PLAYER."
             },
             {
               "id": "ROOM-6.T4",
