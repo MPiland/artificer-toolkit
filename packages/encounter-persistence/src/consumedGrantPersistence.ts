@@ -43,7 +43,7 @@ export async function endEffects(
     if (
       !state ||
       !maintainedStateTerminatesWhenEmpty(state) ||
-      (await store.listDependentEffects({ encounterId, stateId })).length
+      (await store.hasDependents({ encounterId, stateId }))
     )
       continue
     await store.deleteMaintainedStateCas({

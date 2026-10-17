@@ -168,7 +168,13 @@ export function prepareNativeLiveMovementConcentration(
       })
       return projectEncounterMovementConcentrationEnd(
         {
-          maintenance: { state: maintained, removed: slot.dependents, owners, characterVersions },
+          maintenance: {
+            state: maintained,
+            removed: slot.dependents,
+            zoneIds: slot.zoneIds,
+            owners,
+            characterVersions
+          },
           targets,
           projection,
           campaignId: state.campaignId,

@@ -16,7 +16,7 @@ import type {
 } from '@artificer-toolkit/shared/character'
 import type { CompiledChargeUse } from '@artificer-toolkit/shared/compilers'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
-import type { CompiledCharacterClassState } from '@artificer-toolkit/shared/subjects/compilers'
+import type { CharacterClassState } from '@artificer-toolkit/shared/subjects/authored'
 
 /** Sheet-facing presentation data rehydrated from one validated Character rule-policy result. */
 type CharacterRuleRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
@@ -253,7 +253,7 @@ export interface CharacterSheetRuleProjection {
   calculations: CharacterRuleCalculationBreakdowns
   rollModes: CharacterRuleRollModes
   /** Resolved class-scoped spell state derived from grants */
-  spellState?: CompiledCharacterClassState[]
+  spellState?: CharacterClassState[]
   /** Resolved spell-grant access paths derived during the same rule evaluation. */
   spellAccess: CharacterRuleSpellAccess[]
   /** Spell slot maximums; maxByLevel is empty when the character has no spellcasting. */

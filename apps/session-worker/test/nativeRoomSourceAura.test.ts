@@ -1,3 +1,4 @@
+import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
@@ -8,6 +9,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -87,6 +89,39 @@ async function aurasListedTo(client: {
 async function castAura(room: Room) {
   const { answer } = await room.startCasterCenteredAreaAction()
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+}
+
+/** The caster's player ends their Character's Concentration on the Sheet, as its holder may at any time. */
+async function endCasterConcentration(room: Room) {
+  const streamVersion = await runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const play = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((row) => row.characterId === CASTER_ID)
+    if (!play) throw new Error('Missing room Character play state.')
+    return play.streamVersion
+  })
+  const player = await connectPlayer(room.room.base)
+  const commandId = crypto.randomUUID()
+  player.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'CHARACTER_SHEET',
+        characterId: CASTER_ID,
+        encounterId: room.room.encounterId,
+        command: { type: 'END_CONCENTRATION', commandId, expectedVersion: streamVersion }
+      }
+    })
+  )
+  await vi.waitFor(() => {
+    const answer = player.messages.find(
+      (message) =>
+        (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+        message.commandId === commandId
+    )
+    expect(answer?.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  })
 }
 
 describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
@@ -216,5 +251,20 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
     await revertLastAction(room)
 
     expect(await aurasListedTo(room.room.base)).toEqual([])
+  })
+
+  it('removes the aura in the same commit that ends the caster’s Concentration (D135)', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(room)
+    expect(await readZones(room)).toHaveLength(1)
+
+    await endCasterConcentration(room)
+
+    expect(await readMaintainedStates(room)).toEqual([])
+    expect(await readZones(room)).toEqual([])
+    expect(await aurasListedTo(room.room.base)).toEqual([])
+    await room.advanceTurn()
+    const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
+    expect(walk.executions).toEqual([])
   })
 })

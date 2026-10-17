@@ -542,12 +542,6 @@ const buildModifierGrantVariants = () => {
     ),
     buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(
-      'SENSE_RANGE',
-      'SET_VALUE',
-      senseParamDtoSchema,
-      authoredLengthSchema
-    ),
-    buildModifierGrantVariant(
       'RANGE',
       'REPLACE_RANGE_KIND',
       emptyDomainDtoSchema,
@@ -751,7 +745,27 @@ const buildModifierDomainUnions = () => {
     else modifierVariantsByDomain.set(domain, [variant])
   }
   return [...modifierVariantsByDomain.values()].map((variants) =>
-    z.discriminatedUnion('modifierKind', variants)
+    z.discriminatedUnion('modifierKind', variants, { error: unsupportedModifierKindError })
+  )
+}
+
+/** A kind with no variant, such as SENSE_RANGE SET_VALUE, still gets the "not supported yet" message. */
+function unsupportedModifierKindError(issue: { input?: unknown }): string | undefined {
+  const { input } = issue
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    !('valueDomainCode' in input) ||
+    !('modifierKind' in input) ||
+    typeof input.valueDomainCode !== 'string' ||
+    typeof input.modifierKind !== 'string'
+  )
+    return undefined
+  return (
+    unsupportedModifierMessage({
+      valueDomainCode: input.valueDomainCode,
+      modifierKind: input.modifierKind
+    }) ?? undefined
   )
 }
 

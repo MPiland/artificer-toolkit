@@ -22,6 +22,7 @@ const SLOT_ID = '00000000-0000-4000-8000-0000000e0002'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-0000000e0003'
 const FIRST_ID = '00000000-0000-4000-8000-0000000e0004'
 const SECOND_ID = '00000000-0000-4000-8000-0000000e0005'
+const ZONE_ID = '00000000-0000-4000-8000-0000000e0006'
 
 const holder = creatureActor({ id: ACTOR_ID, kind: 'CUSTOM', snapshot: {} })
 
@@ -73,7 +74,7 @@ async function concentratingActor() {
       lifecycle: { schemaVersion: 1, remainingTicks: 10 },
       maintainedEffectStateId: SLOT_ID
     })
-  return { ctx, store, state, dependent }
+  return { memory, ctx, store, state, dependent }
 }
 
 describe('endEffects', () => {
@@ -104,6 +105,32 @@ describe('endEffects', () => {
 
     expect(await endEffects(ctx, [ending])).toEqual([])
     expect(await store.list(turnEffectOwner(holder, ENCOUNTER_ID))).toEqual([remaining])
+    expect(
+      await store.findMaintainedStateById({ encounterId: ENCOUNTER_ID, stateId: SLOT_ID })
+    ).toEqual(state)
+  })
+
+  it('keeps the Concentration while a zone still depends on it, though no effect does (D135)', async () => {
+    const { memory, ctx, store, state, dependent } = await concentratingActor()
+    memory.load(
+      'encounterSpatialRuleEffects',
+      [
+        {
+          _id: ZONE_ID,
+          _creationTime: 3,
+          id: ZONE_ID,
+          encounterId: ENCOUNTER_ID,
+          sceneId: ZONE_ID,
+          createdOrdinal: 1,
+          version: 1,
+          maintainedEffectStateId: SLOT_ID
+        }
+      ] as never,
+      { validate: false }
+    )
+    const effect = await dependent(FIRST_ID)
+
+    expect(await endEffects(ctx, [effect])).toEqual([])
     expect(
       await store.findMaintainedStateById({ encounterId: ENCOUNTER_ID, stateId: SLOT_ID })
     ).toEqual(state)

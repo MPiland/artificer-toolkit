@@ -7,6 +7,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { deleteStateZones, listStateZones } from './maintainedStateZones.js'
 
 type MaintainedSlot = NonNullable<
   Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectStore>['findMaintainedStateById']>>
@@ -32,6 +33,7 @@ export async function deriveLiveConcentrationCleanup(
   const { state, slot } = input
   const store = createActiveRuleEffectStore(ctx)
   const removed = await store.listDependentEffects({ encounterId: state.id, stateId: slot.id })
+  const zones = await listStateZones(ctx, { encounterId: state.id, stateId: slot.id })
   const characterVersions: { characterId: string; beforeStreamVersion: number }[] = []
   for (const characterId of new Set(
     removed.flatMap((effect) =>
@@ -57,12 +59,13 @@ export async function deriveLiveConcentrationCleanup(
   const cleanup = {
     maintainedStateId: slot.id,
     removedDependentEffectIds: removed.map((effect) => effect.id),
+    removedZoneIds: zones.map((zone) => zone.id),
     characterOwnerTransitions: characterVersions.map((entry) => ({
       ...entry,
       afterStreamVersion: entry.beforeStreamVersion + 1
     }))
   }
-  return { removed, characterVersions, cleanup }
+  return { removed, zones, characterVersions, cleanup }
 }
 
 /** Deletes the exact failed concentration slot and reconciles its current owners. */
@@ -80,7 +83,10 @@ export async function applyLiveConcentrationCleanup(
 ) {
   const { state, slot } = input
   const store = createActiveRuleEffectStore(ctx)
-  const { removed, characterVersions, cleanup } = await deriveLiveConcentrationCleanup(ctx, input)
+  const { removed, zones, characterVersions, cleanup } = await deriveLiveConcentrationCleanup(
+    ctx,
+    input
+  )
   if (checksumCanonicalJson(cleanup) !== checksumCanonicalJson(input.cleanup))
     throw new Error('Live Session concentration cleanup changed.')
   for (const effect of removed)
@@ -89,6 +95,7 @@ export async function applyLiveConcentrationCleanup(
       owner: effect.owner,
       expectedVersion: effect.version
     })
+  await deleteStateZones(ctx, zones)
   await store.deleteMaintainedStateCas({
     id: slot.id,
     encounterId: state.id,

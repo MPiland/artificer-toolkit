@@ -189,7 +189,8 @@ export async function planNativeLiveConcentration(input: {
           state: maintained,
           dependents: input.settlement.createdEffects.filter(
             (effect) => effect.maintainedEffectStateId === maintained.id
-          )
+          ),
+          zoneIds: []
         }
       : await readNativeLiveMaintenanceSlot({
           encounterId: input.state.id,
@@ -273,6 +274,7 @@ export async function planNativeLiveConcentration(input: {
     return {
       maintainedStateId: slot.state.id,
       removedDependentEffectIds: slot.dependents.map((effect) => effect.id),
+      removedZoneIds: slot.zoneIds,
       characterOwnerTransitions: characterVersions.map((entry) => ({
         ...entry,
         afterStreamVersion: entry.beforeStreamVersion + 1

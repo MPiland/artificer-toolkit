@@ -3,7 +3,8 @@ import type {
   CreatureCompanionProfile,
   CreatureEquipmentLoadoutEntry,
   CreatureMountProfile,
-  CreatureNpcProfile
+  CreatureNpcProfile,
+  SpeedAuthored
 } from '#authored'
 import {
   EQUIPMENT_SLOT_CODES,
@@ -15,10 +16,8 @@ import {
 import {
   compileFeature,
   compileProficiencyGrant,
-  compileSpeed,
   type CompiledFeature,
-  type CompiledProficiencyGrant,
-  type CompiledSpeed
+  type CompiledProficiencyGrant
 } from '#compilers'
 
 export interface CompiledCreatureMountProfile {
@@ -50,7 +49,7 @@ export interface CompiledCreatureBase {
   size?: SizeCode
   alignmentId?: string
   tags?: string[]
-  speeds: CompiledSpeed[]
+  speeds: SpeedAuthored[]
   features?: CompiledFeature[]
   proficiencies?: CompiledProficiencyGrant[]
   equipmentLoadout?: CompiledCreatureEquipmentLoadoutEntry[]
@@ -230,7 +229,7 @@ function compileBase(authored: CreatureAuthored): CompiledCreatureBase {
     size: authored.size,
     alignmentId: authored.alignmentId,
     tags: authored.tags,
-    speeds: authored.speeds.map(compileSpeed),
+    speeds: authored.speeds,
     features: authored.features?.map(compileFeature),
     proficiencies: authored.proficiencies?.map(compileProficiencyGrant),
     equipmentLoadout: compileEquipmentLoadout(authored),

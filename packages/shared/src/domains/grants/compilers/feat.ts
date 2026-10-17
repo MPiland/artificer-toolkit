@@ -3,7 +3,7 @@ import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } 
 import type { GrantPayloadAuthored, FeatGrantAuthored } from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, GRANT_KIND, SCALING } from '#core'
 import type { CompiledChargeUse, CompiledGrantTarget, CompiledScalingGrant } from '#compilers'
-import { compileChargeUse, compileScalingSource } from '#compilers'
+import { compileChargeUse } from '#compilers'
 
 export type CompiledFeatGrant = CompiledScalingGrant<
   typeof GRANT_KIND.FEAT_GRANT,
@@ -73,6 +73,7 @@ export function compileFeatGrantResult(
     }
 
     case SCALING.PER_LEVEL: {
+      const { levels: _levels, ...scalingSource } = authored.progression
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.GRANTED: {
           return compileSuccess({
@@ -81,7 +82,7 @@ export function compileFeatGrantResult(
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.progression),
+            ...scalingSource,
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileFeatTarget(entry),
@@ -98,7 +99,7 @@ export function compileFeatGrantResult(
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.progression),
+            ...scalingSource,
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileFeatTarget(entry),
