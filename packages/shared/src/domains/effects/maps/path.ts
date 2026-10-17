@@ -896,9 +896,9 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       )
       .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
       .set(
-        'automaticSaveSuccessImmunityDamageTypeIds',
-        selectMulti(
-          ['automaticSaveSuccessImmunityDamageTypeIds'],
+        'automaticSaveSuccessImmunityDamageTypeId',
+        selectSingle(
+          ['automaticSaveSuccessImmunityDamageTypeId'],
           'Automatic Save Success on Damage Immunity',
           {
             kind: 'DATA',

@@ -145,8 +145,8 @@ export type ManifestComponentAuthored = {
   choosesUnaffected?: boolean
   movementCostMultiplier?: number
   requiresFullyWithin?: boolean
-  /** A target immune to any of these damage types succeeds on the component's save unrolled. */
-  automaticSaveSuccessImmunityDamageTypeIds?: string[]
+  /** A target immune to this damage type succeeds on the component's save unrolled. */
+  automaticSaveSuccessImmunityDamageTypeId?: string
   requiresIgnition?: boolean
   maxApplicationsPerTurn?: number
   maxApplicationsTotal?: number

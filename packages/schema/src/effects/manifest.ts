@@ -195,9 +195,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             choosesUnaffected: z.optional(z.boolean()),
             movementCostMultiplier: z.optional(z.number().check(z.positive())),
             requiresFullyWithin: z.optional(z.boolean()),
-            automaticSaveSuccessImmunityDamageTypeIds: z.optional(
-              authoredReferenceCollectionSchema(authoredIdentifierSchema)
-            ),
+            automaticSaveSuccessImmunityDamageTypeId: z.optional(authoredIdentifierSchema),
+
             requiresIgnition: z.optional(z.boolean()),
             maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
             maxApplicationsTotal: z.optional(z.number().check(z.int()).check(z.positive())),

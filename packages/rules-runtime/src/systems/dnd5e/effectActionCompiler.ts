@@ -2221,12 +2221,10 @@ function zonePlacementPlan(
         : 'A placed zone takes a point or the caster as its center.'
     )
   const pinnedDc = pinnedSaveDc(savingThrow)
-  const { requiresFullyWithin, automaticSaveSuccessImmunityDamageTypeIds = [] } = zone.component
+  const { requiresFullyWithin, automaticSaveSuccessImmunityDamageTypeId: successImmunity } =
+    zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
-  const [successImmunity, ...otherImmunities] = automaticSaveSuccessImmunityDamageTypeIds
-  if (otherImmunities.length)
-    unsupported('A zone save succeeds unrolled for immunity to one damage type at most.')
   if (
     !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||

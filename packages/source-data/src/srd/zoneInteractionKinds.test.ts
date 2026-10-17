@@ -142,7 +142,7 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
   // D141: no creature fact says a creature does not breathe; the rider is a deferred edge case.
   it('authors Stinking Cloud’s automatic success only for immunity to poison damage', () => {
     expect(placedZoneOf(stinkingCloud).components?.[0]).toMatchObject({
-      automaticSaveSuccessImmunityDamageTypeIds: [damageTypeId('POISON')]
+      automaticSaveSuccessImmunityDamageTypeId: damageTypeId('POISON')
     })
   })
 

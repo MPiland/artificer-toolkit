@@ -630,12 +630,7 @@ describe('a zone the System cannot honor in full stays manual', () => {
         component.requiresFullyWithin = true
       }
     ],
-    [
-      'an automatic save success on immunity to more than one damage type',
-      ({ component }) => {
-        component.automaticSaveSuccessImmunityDamageTypeIds = [extraId(0x3c1), extraId(0x3c2)]
-      }
-    ],
+
     [
       'a save DC that is not fixed',
       ({ invocation }) => {

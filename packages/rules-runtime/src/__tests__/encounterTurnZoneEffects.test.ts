@@ -267,9 +267,9 @@ describe('a zone that catches only some creatures (SPELLS-20 T4b3a)', () => {
       placedZone(
         offset,
         authoredZone(['START_TURN_IN_SPACE'], undefined, {
-          automaticSaveSuccessImmunityDamageTypeIds: SRD_DAMAGE_TYPES.filter(
+          automaticSaveSuccessImmunityDamageTypeId: SRD_DAMAGE_TYPES.find(
             ({ code }) => code === damageTypeCode
-          ).map(({ id }) => id)
+          )?.id
         }),
         1
       )

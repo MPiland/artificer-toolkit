@@ -134,7 +134,7 @@ export const stinkingCloud: SpellAuthored = {
                     label: 'Nauseating Gas',
                     interactionKinds: ['START_TURN_IN_SPACE'],
                     requiresFullyWithin: true,
-                    automaticSaveSuccessImmunityDamageTypeIds: [damageTypeId('POISON')],
+                    automaticSaveSuccessImmunityDamageTypeId: damageTypeId('POISON'),
                     behaviors: [stinkingCloudSave]
                   }
                 ]
