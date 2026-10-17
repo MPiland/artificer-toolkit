@@ -23,7 +23,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
   registry: CharacterAssemblyRegistry
 }): CharacterGrantFoldInput {
   const { snapshot, registry } = params
-  const skillAliases = buildSkillSubjectAliasMap(registry)
+  const skillAliases = buildSkillSubjectAliasMap(registry.system)
   const normalizeProficiencyTarget = (kind: string, targetId: string): string => {
     if (targetId === '*') return targetId
     if (kind === 'SAVE_ABILITY') return resolveAbilityAlias(targetId) ?? targetId

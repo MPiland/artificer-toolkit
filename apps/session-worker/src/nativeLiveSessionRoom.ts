@@ -2664,6 +2664,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         checksum: current.stateChecksum
       })
       let receipt: LiveSessionWebSocketServerMessageDto | null = null
+      let replayed = false
       const executed = await this.#roomStore.transact(
         async (transaction) => {
           const posted = await executeRoomCampaignChatCommand({
@@ -2677,6 +2678,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             command: command.command,
             random: this.#random
           })
+          replayed = posted.replayed
           receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
             type: 'COMMAND_COMMITTED',
             commandId,
@@ -2701,7 +2703,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             throw new RoomAdmissionExpiredError()
           if (!receipt || entry.sequence !== current.sequence + 1)
             throw new Error('Room chat command sequence does not match its authority.')
-          this.#buckets.charge(bucket)
+          // A replayed entry spends nothing, as an exact retry in this epoch spends nothing.
+          if (!replayed) this.#buckets.charge(bucket)
           const committed = this.#journal.commitInTransaction({
             actorId: admission.userId,
             authorityEpoch: value.authorityEpoch,

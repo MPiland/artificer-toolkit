@@ -6,7 +6,7 @@ import { getAuthenticatedProfile } from '../lib/identity'
 import { requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { presentChatEntry, readEntryPayload, readCampaignAccessTime } from './conversationDocuments'
+import { presentChatEntry, readCampaignAccessTime } from './conversationDocuments'
 import { consumeUserRateLimit } from '../lib/rateLimits'
 
 /** Inserts an already-authorized RollRecord without evaluating or retaining it again. */
@@ -32,7 +32,6 @@ export async function insertPreEvaluatedCampaignTableRoll(
       },
       requirePeerAuthority: (campaignId, userId) =>
         requireCampaignAuthority(ctx, campaignId, userId),
-      readEntryPayload: (entryId) => readEntryPayload(ctx, entryId),
       readCampaignAccessTime: (campaign) => readCampaignAccessTime(ctx, campaign),
       consumeConversationRate: (userId) =>
         consumeUserRateLimit(ctx, 'campaignConversation', userId),

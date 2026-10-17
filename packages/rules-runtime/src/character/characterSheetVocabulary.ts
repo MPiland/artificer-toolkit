@@ -1,5 +1,10 @@
 import { ABILITIES } from '@artificer-toolkit/shared/core'
-import { resolveSystemSkillAbilities, SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/character'
+import {
+  buildSkillSubjectAliasMap,
+  resolveAbilityAlias,
+  resolveSystemSkillAbilities,
+  SKILL_ABILITY_MAP
+} from '@artificer-toolkit/shared/character'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
@@ -8,16 +13,6 @@ export const DND5E_2014_EXHAUSTION_PRESENTATION = {
   description:
     '<p>Each exhaustion level includes the effects of every lower level.</p><ol><li><strong>Level 1:</strong> Disadvantage on ability checks.</li><li><strong>Level 2:</strong> Speed is halved.</li><li><strong>Level 3:</strong> Disadvantage on attack rolls and saving throws.</li><li><strong>Level 4:</strong> Hit point maximum is halved.</li><li><strong>Level 5:</strong> Speed is reduced to 0.</li><li><strong>Level 6:</strong> Death.</li></ol>'
 } as const
-
-const ABILITY_CANONICAL_BY_ALIAS = (() => {
-  const aliases = new Map<string, string>()
-  for (const abilityCode of Object.keys(ABILITIES)) {
-    aliases.set(abilityCode, abilityCode)
-    const short = ABILITIES[abilityCode as keyof typeof ABILITIES].short
-    if (short) aliases.set(short, abilityCode)
-  }
-  return aliases
-})()
 
 export const CHARACTER_ABILITY_ALIASES: Readonly<Record<string, string>> = {
   STRENGTH: 'STR',
@@ -33,11 +28,8 @@ export function isAbilityCode(value: string): value is keyof typeof ABILITIES {
 }
 
 function resolveAbilityCode(subjectId: string): keyof typeof ABILITIES | undefined {
-  const direct = ABILITY_CANONICAL_BY_ALIAS.get(subjectId)
-  if (direct && isAbilityCode(direct)) return direct
-
-  const upper = ABILITY_CANONICAL_BY_ALIAS.get(subjectId.toUpperCase())
-  return upper && isAbilityCode(upper) ? upper : undefined
+  const abilityCode = resolveAbilityAlias(subjectId)
+  return abilityCode && isAbilityCode(abilityCode) ? abilityCode : undefined
 }
 
 function toSkillCanonicalCode(value: string | undefined): string {
@@ -57,7 +49,8 @@ function toSkillFallbackLabel(slug: string): string {
 }
 
 export function createSkillReference(system: CharacterAssemblyRegistry['system']) {
-  const canonicalBySubject = new Map<string, string>()
+  // One alias map with the rule facts, which refuses an alias two System skills share.
+  const canonicalBySubject = buildSkillSubjectAliasMap(system)
   const metadataByCanonical = new Map<
     string,
     {
@@ -82,8 +75,6 @@ export function createSkillReference(system: CharacterAssemblyRegistry['system']
         label: skill.label,
         ability
       })
-      for (const alias of [skill.id, code, code.toUpperCase(), canonicalId])
-        canonicalBySubject.set(alias, canonicalId)
     }
     return { canonicalBySubject, metadataByCanonical }
   }
@@ -97,8 +88,6 @@ export function createSkillReference(system: CharacterAssemblyRegistry['system']
       label: toSkillFallbackLabel(skillId),
       ability: abilityCode
     })
-    canonicalBySubject.set(skillId, skillId)
-    canonicalBySubject.set(skillId.toUpperCase(), skillId)
   }
 
   for (const skill of system?.skills ?? []) {
@@ -110,11 +99,6 @@ export function createSkillReference(system: CharacterAssemblyRegistry['system']
       : undefined
     const canonical = canonicalFromCode ?? canonicalFromId
     if (!canonical) continue
-
-    canonicalBySubject.set(skill.id, canonical)
-    if (skill.code) canonicalBySubject.set(skill.code, canonical)
-    if (skill.code) canonicalBySubject.set(skill.code.toUpperCase(), canonical)
-    if (skill.code) canonicalBySubject.set(toSkillCanonicalCode(skill.code), canonical)
 
     const existing = metadataByCanonical.get(canonical)
     if (existing) {

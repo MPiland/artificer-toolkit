@@ -30,9 +30,9 @@ import {
   getProspectiveSheetResourceUsage,
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
+import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
-import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
@@ -242,13 +242,17 @@ export async function executeRoomCharacterSheetCommand(input: {
       isCampaignOwner: membership.role === 'OWNER',
       economyEnforced: state.automationMode !== 'MANUAL'
     })
-    updated.state.hitpoints.current = clampCharacterCurrentHitPoints(
-      updated.state.hitpoints.current,
-      projectRoomCharacterSheet(
-        initial,
-        activeEffects.filter((effect) => effect.id !== command.effectId)
-      ).overview.maxHitPoints
-    )
+    // The ended effect settles the Character as every effect end does (QUALITY-1.T1).
+    const settled = settleCharacterEndedEffects({
+      state: updated.state,
+      maximumHitPoints: initial.active.play.maximumHitPoints,
+      removed: activeEffects.filter((effect) => effect.id === command.effectId),
+      remaining: activeEffects.filter((effect) => effect.id !== command.effectId)
+    })
+    if (settled.changed) {
+      updated.state.conditions = settled.conditions
+      updated.state.hitpoints = settled.hitpoints
+    }
   }
   if (updated.state.hitpoints.current > initial.character.state.hitpoints.current)
     await endGrantsOnHitPointsRegained(ctx, { kind: 'CHARACTER', characterId })

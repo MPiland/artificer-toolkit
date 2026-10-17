@@ -134,6 +134,33 @@ export function endedMaintenanceConditions(
 }
 
 /**
+ * Settles a Character whose effects ended, wherever they end (an Encounter settlement or its Sheet):
+ * conditions only the removed effects held end, and current hit points fall to the maximum the
+ * remaining effects allow (Aid ending).
+ */
+export function settleCharacterEndedEffects(input: {
+  state: Pick<CharacterAuthored['state'], 'conditions' | 'hitpoints'>
+  /** The stored maximum, before active effects. */
+  maximumHitPoints: number
+  removed: readonly ActiveRuleEffectRecord[]
+  remaining: readonly ActiveRuleEffectRecord[]
+}) {
+  const ended = endedMaintenanceConditions(input.removed, input.remaining)
+  const priorConditions = input.state.conditions ?? []
+  const conditions = priorConditions.filter((condition) => !ended.has(condition.conditionTypeId))
+  const { hitpoints } = input.state
+  const current = Math.min(
+    hitpoints.current,
+    effectiveHitPointMaximum(input.maximumHitPoints, input.remaining)
+  )
+  return {
+    conditions,
+    hitpoints: { ...hitpoints, current },
+    changed: conditions.length !== priorConditions.length || current !== hitpoints.current
+  }
+}
+
+/**
  * Reconciles the post-mechanics owner once, sharing its preceding Character version increment:
  * conditions only the removed effects held end, and current hit points fall to the maximum the
  * remaining effects allow (Aid ending).
@@ -168,18 +195,13 @@ export function planEncounterMaintenanceOwner(input: {
         current.currentStreamVersion !== current.beforeStreamVersion + 1)
     )
       throw new Error('Maintained-effect Character version changed during settlement.')
-    const priorConditions = current.state.conditions ?? []
-    const conditions = priorConditions.filter((condition) => !ended.has(condition.conditionTypeId))
-    const { hitpoints } = current.state
-    const currentHitPoints = Math.min(
-      hitpoints.current,
-      effectiveHitPointMaximum(current.maximumHitPoints, input.remaining)
-    )
     character = {
-      conditions,
-      hitpoints: { ...hitpoints, current: currentHitPoints },
-      changed:
-        conditions.length !== priorConditions.length || currentHitPoints !== hitpoints.current,
+      ...settleCharacterEndedEffects({
+        state: current.state,
+        maximumHitPoints: current.maximumHitPoints,
+        removed: input.removed,
+        remaining: input.remaining
+      }),
       streamVersion: current.beforeStreamVersion + 1
     }
     ownerActors = input.actors.filter(
