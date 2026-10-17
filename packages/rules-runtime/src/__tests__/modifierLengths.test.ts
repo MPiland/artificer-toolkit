@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { withActiveGrantSpeeds, withCharacterActiveGrants } from '../encounterActiveGrants.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { darkvisionEffect, longstriderEffect } from './antitoxinEffectFixture.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 
 const HOLDER_ID = '00000000-0000-4000-8000-00000000c301'
 const EFFECT_ID = '00000000-0000-4000-8000-00000000c302'

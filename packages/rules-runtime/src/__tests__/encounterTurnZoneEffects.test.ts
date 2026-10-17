@@ -31,7 +31,7 @@ import {
   SOURCE_ID,
   START,
   tokens
-} from './encounterTurnZoneFixture.js'
+} from '../testing/encounterTurnZoneFixture.js'
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {

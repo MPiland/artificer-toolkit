@@ -14,7 +14,7 @@ import {
   foldActiveScalarReductions
 } from '../encounterScalarReductions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 import { creatureActor, creatureRuleFacts, ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect, scalarReduction } from './encounterActiveEffectFixtures.js'
 

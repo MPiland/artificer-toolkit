@@ -1,7 +1,4 @@
-import {
-  deriveEncounterCharacterMechanicsEventCommandId,
-  targetTransitionChecksum
-} from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { TurnEffectBoundary } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { selectTurnZoneContacts } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
@@ -21,7 +18,6 @@ import { readRunActor } from './documents.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
-import { assertSpatialEffectPin } from './spatialEffectPin.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 
 function same(left: unknown, right: unknown) {
@@ -106,7 +102,7 @@ export async function persistEncounterTurnZoneEffects(
     if (plan) throw stale()
     return null
   }
-  const { contacts, effects, selectionChecksum } = selected
+  const { contacts, selectionChecksum } = selected
   if (!plan || plan.selectionChecksum !== selectionChecksum) throw stale()
   const { executions } = plan
   if (executions.length !== contacts.length) throw stale()
@@ -117,21 +113,8 @@ export async function persistEncounterTurnZoneEffects(
       ? await readLiveCharacterStreamVersion(ctx, state, actor.sourceId)
       : null
   const applications: EncounterMechanicsBatchInput['applications'][number][] = []
-  for (const [ordinal, execution] of executions.entries()) {
+  for (const execution of executions) {
     const { candidate } = execution
-    const effect = effects[ordinal]!
-    const transition = execution.targetTransition
-    assertSpatialEffectPin(candidate.effect, effect)
-    if (
-      execution.ordinal !== ordinal ||
-      candidate.ordinal !== ordinal ||
-      candidate.boundaryOrdinal !== boundary.ordinal ||
-      !same(candidate.candidate, contacts[ordinal]) ||
-      candidate.effect.effectId !== effect.id ||
-      effect.encounterId !== state.id ||
-      effect.definition.frozenGraph.source.gameSystemId !== state.gameSystemId
-    )
-      throw new Error('Staged turn zone execution is stale.')
     if (
       actor.kind === 'CHARACTER'
         ? candidate.target.kind !== 'CHARACTER' ||
@@ -140,13 +123,6 @@ export async function persistEncounterTurnZoneEffects(
         : candidate.target.kind !== 'ENCOUNTER_ACTOR'
     )
       throw new Error('Staged turn zone target pin is stale.')
-    const previous = executions[ordinal - 1]
-    if (
-      transition.checksum !== candidate.target.targetStateChecksum ||
-      transition.checksum !== targetTransitionChecksum(actor.id, transition.before) ||
-      (previous && !same(previous.targetTransition.after, transition.before))
-    )
-      throw new Error('Staged turn zone target transition is stale.')
     applications.push(
       ...execution.applications.map(({ ordinal: _ordinal, ...application }) => ({
         ...application,

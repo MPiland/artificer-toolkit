@@ -5,7 +5,7 @@ import { dnd5eCharacterActionCapabilityAdapter } from '../systems/dnd5e/characte
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
-import { SRD, evaluateSrdCharacter, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   outcomeDice,

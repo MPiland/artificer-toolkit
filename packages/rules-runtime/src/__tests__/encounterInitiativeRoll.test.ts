@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { InitiativeActorFactSource } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import { readInitiativeSourceRoll } from '../encounterInitiativeRoll.js'
 import { dnd5eInitiativeFactAdapter } from '../systems/dnd5e/initiativeFactAdapter.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 import { creatureSource, customSource } from './encounterInitiativeFixtures.js'
 
 const CHARACTER_ID = '00000000-0000-4000-8000-00000000e001'

@@ -22,7 +22,7 @@ import {
   srdDefinitions,
   srdEncounterState
 } from '../testing/dnd5eSrdEncounter.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
 const hellHound = srdByLabel(SRD.creatures, 'Hell Hound')
 const wolf = srdByLabel(SRD.creatures, 'Wolf')

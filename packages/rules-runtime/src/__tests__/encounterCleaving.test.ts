@@ -27,7 +27,7 @@ import {
   srdOptionalCombat
 } from '../testing/dnd5eSrdEncounter.js'
 import { shimmeringShieldEffect } from './antitoxinEffectFixture.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
 const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
 const goblin = srdByLabel(SRD.creatures, 'Goblin')

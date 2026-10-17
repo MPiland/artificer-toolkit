@@ -39,7 +39,7 @@ import {
   resolveDnd5eConcentrationSaveFacts
 } from '../systems/dnd5e/concentrationPolicy.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
-import { SRD, evaluateSrdCharacter, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { createSrdRulesRuntime, creatureFeature } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureActor,

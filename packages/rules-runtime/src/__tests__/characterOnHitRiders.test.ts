@@ -29,7 +29,7 @@ import {
   itemAction,
   srdByLabel,
   srdFeature
-} from './dnd5eSrdCharacter.js'
+} from '../testing/dnd5eSrdCharacter.js'
 import { outcomeDice, srdDamageTypeId } from './encounterCreatureAction.js'
 
 const TARGET_ID = testUuid(0xc2)

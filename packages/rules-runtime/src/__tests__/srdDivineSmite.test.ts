@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { outcomeDice, srdDamageTypeId } from './encounterCreatureAction.js'
 import {
   HIT,

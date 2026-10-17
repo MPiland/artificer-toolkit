@@ -12,9 +12,11 @@ import {
   srdCreatureActor,
   testUuid,
   TIMESTAMP
-} from '../testing/dnd5eSrdEncounter.js'
+} from './dnd5eSrdEncounter.js'
 import { diceDamage, variantEquipment, zonePlacementOf } from './authoredZoneFixture.js'
-import { GOBLIN } from './encounterActiveEffectFixtures.js'
+import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+
+const GOBLIN = srdByLabel(SRD.creatures, 'Goblin')
 
 export const GOBLIN_ID = testUuid(0x301)
 export const SOURCE_ID = testUuid(0x302)

@@ -13,7 +13,7 @@ import {
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
-import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
 type PrepareInput = Parameters<typeof prepareNativeCharacterActionState>[0]
 type CompiledEntry = Extract<PrepareInput['entry'], { schemaVersion: 4 }>

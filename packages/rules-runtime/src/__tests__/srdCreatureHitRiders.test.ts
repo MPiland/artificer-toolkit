@@ -7,7 +7,7 @@ import { readEncounterActorConditionState } from '../encounterCharacterMechanics
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
 import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
-import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
   createSrdRulesRuntime,
   creatureFeature,

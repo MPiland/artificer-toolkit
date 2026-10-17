@@ -39,7 +39,7 @@ import {
   itemAction,
   srdByLabel,
   srdFeature
-} from './dnd5eSrdCharacter.js'
+} from '../testing/dnd5eSrdCharacter.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const EB_EFFECT = '0b7e4c6a-1f2d-4e3b-9a8c-7d6e5f4a3b2c'

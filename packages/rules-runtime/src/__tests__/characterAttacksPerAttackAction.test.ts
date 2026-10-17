@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
 const fighterFeature = (featureLabel: string, level: number) =>
   srdFeature({ owner: 'CLASS', classLabel: 'Fighter', featureLabel, level })

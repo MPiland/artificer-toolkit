@@ -46,7 +46,7 @@ import {
   speedFractionEffect,
   viciousMockeryEffect
 } from './antitoxinEffectFixture.js'
-import { evaluateSrdCharacter, vocabulary } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter, vocabulary } from '../testing/dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
 const srdSystem = systemAuthoredDtoSchema.parse(srdSystemRecord)

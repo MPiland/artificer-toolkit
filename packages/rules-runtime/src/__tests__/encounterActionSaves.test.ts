@@ -14,7 +14,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 
 import { antitoxinEffect } from './antitoxinEffectFixture.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
-import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import {
