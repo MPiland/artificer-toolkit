@@ -1189,16 +1189,26 @@
           "acs": [
             {
               "id": "PLATFORM-22.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 at the user's request: about half of the day's failed CI cycles were type errors found only after a 15-20 minute run.",
-              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today."
+              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today.",
+              "proof": [
+                "tests.yml fail-fast typecheck gate: a deliberate type-error push (Tests 38995237121) was cancelled at 6.5 minutes with the remaining jobs stopped, and scripts/watchCi.ps1 printed the type error; across the proof runs a type error cancelled the run in 4.7-7.9 minutes.",
+                "A green run took 18.9 minutes, against 17-20 minutes before the gate.",
+                "Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1."
+              ]
             },
             {
               "id": "PLATFORM-22.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients."
+              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients.",
+              "proof": [
+                "Worker test harness reports the underlying error of a failed room command; production rejections stay generic UNAVAILABLE.",
+                "Red Tests 38990052509; green Tests 38993716147; harness proof run 38993725207.",
+                "Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1."
+              ]
             },
             {
               "id": "PLATFORM-22.3",
@@ -1216,9 +1226,9 @@
           "tasks": [
             {
               "id": "PLATFORM-22.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-22.1", "PLATFORM-22.2"],
-              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections.",
+              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections. (Green f826a6429. Merged in m63 0111560f4 (Tests 38996097651, Live 38996097730); phase tip 2bac641e1.)",
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
