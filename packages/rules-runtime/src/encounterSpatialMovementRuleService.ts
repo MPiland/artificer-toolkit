@@ -209,11 +209,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   frozenReactionRemainder?: FrozenMovementReactionRemainder
   /** Server-discovered reactions retained when spatial evidence pauses before their first boundary. */
   initialReactionTimeline?: MovementReactionTimelineDto
-  /** Exact terminal evidence reconstructed before the parent publishes its aggregate state. */
-  frozenTerminal?: Pick<
-    Extract<SpatialMovementRuleEvaluation, { kind: 'TERMINAL' }>,
-    'result' | 'selectionChecksum' | 'currentnessChecksum'
-  > & { resumeRoot?: FrozenMovementReactionRemainder['root'] }
   resolution?: SpatialMovementRuleResolution
   resolutionCommand?: SpatialResolutionCommand
   /** Zero-based random integer below `maxExclusive`, for every die the server rolls. */
@@ -245,36 +240,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     throw new EncounterConflictError('The spatial movement command is stale.')
   const movingToken = input.sceneTokens.find((token) => token.id === root.tokenId)
   if (!movingToken) throw new EncounterConflictError('The spatial movement token is stale.')
-  if (input.frozenTerminal) {
-    if (
-      input.pendingSnapshot ||
-      input.frozenReactionRemainder ||
-      input.resolution ||
-      input.resolutionCommand ||
-      input.initialReactionTimeline ||
-      input.interruptAfterPathDistance !== undefined
-    )
-      throw new EncounterValidationError(
-        'Frozen terminal movement cannot include pending or reaction execution state.'
-      )
-    if (input.frozenTerminal.result.reactionExecutions.length !== 0)
-      throw new EncounterValidationError('Frozen terminal movement cannot retain reactions.')
-    if (input.frozenTerminal.resumeRoot) {
-      const resumeRoot = input.frozenTerminal.resumeRoot
-      if (
-        resumeRoot.terminalPassageStop ||
-        (input.occurrenceVersion ?? 0) !== resumeRoot.resolutionCommands.length + 1
-      )
-        throw new EncounterValidationError('Frozen terminal response history is inconsistent.')
-      verifyFrozenReactionRoot({
-        context: { root: resumeRoot },
-        root,
-        currentPosition: input.currentPosition,
-        sceneVersion: input.sceneVersion
-      })
-    }
-    verifyFrozenTerminalIdentity({ input, root })
-  }
   const pendingContext = input.pendingSnapshot?.applicationContext
   const resumeContext =
     pendingContext?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ? pendingContext : null
@@ -323,10 +288,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     throw new EncounterValidationError(
       'A frozen movement remainder cannot also supply a pending snapshot.'
     )
-  if (
-    input.initialReactionTimeline &&
-    (input.pendingSnapshot || input.frozenReactionRemainder || input.frozenTerminal)
-  )
+  if (input.initialReactionTimeline && (input.pendingSnapshot || input.frozenReactionRemainder))
     throw new EncounterValidationError(
       'Initial movement reactions may only be supplied for fresh spatial evaluation.'
     )
@@ -341,7 +303,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   if (
     !resumeContext &&
     !frozenReactionRemainder &&
-    !input.frozenTerminal?.resumeRoot &&
     root.expectedSceneVersion !== input.sceneVersion
   )
     throw new EncounterConflictError('The spatial movement Scene is stale.')
@@ -368,17 +329,13 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     candidates
   })
   const selectionChecksum =
-    frozenReactionRemainder?.spatialSelectionChecksum ??
-    input.frozenTerminal?.selectionChecksum ??
-    computedSelectionChecksum
+    frozenReactionRemainder?.spatialSelectionChecksum ?? computedSelectionChecksum
   if (
     frozenReactionRemainder &&
     frozenReactionRemainder.appliedSpatialPrefix === null &&
     computedSelectionChecksum !== selectionChecksum
   )
     throw new EncounterConflictError('The frozen spatial candidate selection is stale.')
-  if (input.frozenTerminal && computedSelectionChecksum !== input.frozenTerminal.selectionChecksum)
-    throw new EncounterConflictError('The frozen terminal candidate selection is stale.')
   const retainedTerminalPosition =
     appliedStopDistance === null
       ? root.originalPath.at(-1)!
@@ -417,10 +374,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       candidates,
       effects: snapshotEffects
     })
-  if (
-    (resumeContext || frozenReactionRemainder || input.frozenTerminal) &&
-    input.encounter.automationMode === 'MANUAL'
-  )
+  if ((resumeContext || frozenReactionRemainder) && input.encounter.automationMode === 'MANUAL')
     throw new EncounterConflictError('A pending spatial occurrence cannot resume in Manual mode.')
   if (input.encounter.automationMode === 'MANUAL')
     return { kind: 'MANUAL', movementIntent: terminalIntent }
@@ -434,8 +388,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       frozenReactionRemainder.spatialCurrentnessChecksum !== currentnessChecksum
     )
       throw new EncounterConflictError('The frozen spatial currentness facts are stale.')
-    if (input.frozenTerminal && input.frozenTerminal.currentnessChecksum !== currentnessChecksum)
-      throw new EncounterConflictError('The frozen terminal currentness facts are stale.')
     if (
       interruptAfterPathDistance !== null &&
       (appliedStopDistance === null || interruptAfterPathDistance <= appliedStopDistance + 1e-8)
@@ -455,8 +407,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         currentnessChecksum
       }
     }
-    if (!frozenReactionRemainder && !input.frozenTerminal)
-      return { kind: 'NO_CANDIDATES', movementIntent: terminalIntent }
+    if (!frozenReactionRemainder) return { kind: 'NO_CANDIDATES', movementIntent: terminalIntent }
     if (appliedPrefix) await input.beforeTerminalApply?.()
     const result = appliedPrefix
       ? await input.applyTerminal({
@@ -542,20 +493,15 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     frozenReactionRemainder.spatialCurrentnessChecksum !== currentnessChecksum
   )
     throw new EncounterConflictError('The frozen spatial currentness facts are stale.')
-  if (input.frozenTerminal && input.frozenTerminal.currentnessChecksum !== currentnessChecksum)
-    throw new EncounterConflictError('The frozen terminal currentness facts are stale.')
   const states = new Map(
     [...targets.entries()].map(([actorId, target]) => [actorId, copyState(target.state)])
   )
   const applications = new Map<string, CharacterRuleActionApplication[]>()
   const executions: SpatialExecution[] = []
-  const completedPrefix = input.frozenTerminal
-    ? input.frozenTerminal.result.status === 'BATCH_COMPLETE'
-      ? input.frozenTerminal.result.executions
-      : []
-    : (resumeContext?.completedExecutions ??
-      frozenReactionRemainder?.completedSpatialExecutions.slice(appliedExecutions.length) ??
-      [])
+  const completedPrefix =
+    resumeContext?.completedExecutions ??
+    frozenReactionRemainder?.completedSpatialExecutions.slice(appliedExecutions.length) ??
+    []
   const pendingSpatialCandidate =
     resumeContext?.currentCandidate ?? frozenReactionRemainder?.currentSpatialCandidate ?? null
   let stopAtDistance: number | null = appliedStopDistance
@@ -637,8 +583,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         frozenReactionRemainder.remainingSpatialCandidates[candidateIndex - completedPrefix.length]
       if (!expected || !sameRemainingPendingCandidate(currentCandidate, expected))
         throw new EncounterConflictError('The frozen spatial contact suffix is stale.')
-    } else if (input.frozenTerminal) {
-      throw new EncounterConflictError('The frozen terminal spatial execution is stale.')
     }
     let d20: SpatialD20Roll | null = null
     let result:
@@ -895,29 +839,6 @@ function verifyFrozenReactionRoot(input: {
     !samePoint(context.root.currentPosition, input.currentPosition)
   )
     throw new EncounterConflictError('The frozen movement reaction root is stale.')
-}
-
-function verifyFrozenTerminalIdentity(input: {
-  input: Parameters<typeof evaluateEncounterSpatialMovementRuleBatch>[0]
-  root: SpatialMovementRuleRoot
-}) {
-  const terminal = input.input.frozenTerminal
-  if (!terminal) throw new EncounterValidationError('Frozen terminal evidence is unavailable.')
-  const result = terminal.result
-  const expectedSceneVersion =
-    input.input.sceneVersion +
-    (intent(input.root.tokenId, input.input.currentPosition, result.terminalPosition) ? 1 : 0)
-  if (
-    result.occurrenceId !== input.input.occurrenceId ||
-    result.occurrenceVersion !== (input.input.occurrenceVersion ?? 0) ||
-    result.encounterId !== input.root.encounterId ||
-    result.encounterVersion !== input.input.encounter.version + 1 ||
-    result.sceneId !== input.root.sceneId ||
-    result.sceneVersion !== expectedSceneVersion ||
-    result.tokenId !== input.root.tokenId ||
-    result.movementKind !== input.root.movementKind
-  )
-    throw new EncounterConflictError('The frozen terminal movement root is stale.')
 }
 
 function normalizeRoot(root: SpatialMovementRuleRoot): SpatialMovementRuleRoot {

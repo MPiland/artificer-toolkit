@@ -333,6 +333,7 @@ export interface ActionRoomConfig extends Pick<
   | 'hiddenActorIds'
   | 'definitions'
   | 'seed'
+  | 'status'
 > {
   /** The Run's actors, side by side 100 px apart from the first, which is the acting (current) actor. */
   actors: readonly EncounterRunActorState[]

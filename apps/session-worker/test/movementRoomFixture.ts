@@ -29,6 +29,7 @@ import {
   srdEncounterState,
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { SRD_REUSABLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -233,12 +234,20 @@ export interface MovementRoomConfig {
   fallbackRoll?: number
   /** Further reusable definitions the room serves, such as Encounter lifecycle policies. */
   definitions?: readonly ReturnType<typeof currentSrdDefinition>[]
-  /** Writes rows into the Run's store before the room hydrates, such as turn effects. */
+  /** Writes rows into the Run's store before the room hydrates, such as turn effects or placed zones. */
   seed?: (input: {
     effects: ReturnType<typeof createActiveRuleEffectStore>
+    spatial: NonNullable<
+      Awaited<ReturnType<ReturnType<typeof createSpatialRuleEffectStore>['scope']>>
+    >
     encounterId: string
     occurredAt: string
   }) => Promise<void>
+  /**
+   * The Run has not started yet: PREPARED, round 0, no current actor and no initiative, so a
+   * START command rolls initiative (d20 + modifier, once at the start) and opens the first turn.
+   */
+  status?: 'PREPARED'
 }
 
 /** A connected socket and the frames the room sent on it: the GM's or a player's. */
@@ -274,10 +283,20 @@ export async function movementRoom(config: MovementRoomConfig) {
   let actors = config.actors.map((actor) =>
     encounterRunActorStateSchema.parse({ ...actor, encounterId })
   )
+  const prepared = config.status === 'PREPARED'
   const state = encounterRunStateSchema.parse({
     ...srdEncounterState({
       actors,
-      currentActorId: config.moverActorId,
+      currentActorId: prepared ? null : config.moverActorId,
+      ...(prepared && {
+        status: 'PREPARED' as const,
+        round: 0,
+        turnSequence: 0,
+        initiativePolicy: initiativePolicySnapshot({
+          procedure: 'ACTOR_ROLL',
+          cadence: 'ENCOUNTER_START'
+        })
+      }),
       automationMode: config.automationMode,
       optionalCombatKinds: config.optionalCombatKinds
     }),
@@ -405,12 +424,13 @@ export async function movementRoom(config: MovementRoomConfig) {
 
   const memory = createMemoryEncounterStore({ idPrefix: 'movement-room' })
   await insertStoredRun(memory, state, actors)
-  await insertInitiativeRound(memory, {
-    encounterId,
-    actors,
-    currentActorId: config.moverActorId,
-    now: NOW
-  })
+  if (!prepared)
+    await insertInitiativeRound(memory, {
+      encounterId,
+      actors,
+      currentActorId: config.moverActorId,
+      now: NOW
+    })
   for (const actor of actors)
     await memory.store.insert('encounterActorTokenBindings', {
       encounterId,
@@ -472,6 +492,7 @@ export async function movementRoom(config: MovementRoomConfig) {
   }
   await config.seed?.({
     effects: createActiveRuleEffectStore({ db: memory.store }),
+    spatial,
     encounterId,
     occurredAt: NOW
   })

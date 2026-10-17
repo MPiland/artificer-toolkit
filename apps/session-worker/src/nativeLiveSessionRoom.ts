@@ -2595,6 +2595,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#rejectCommand(socket, commandId, 'DOMAIN_REJECTED', error.message)
         return
       }
+      if (error instanceof EncounterDomainRejection) {
+        send(socket, {
+          code: 'DOMAIN_REJECTED',
+          commandId,
+          currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
+          message: error.data.message,
+          reason: error.data.reason,
+          warnings: error.data.reason === 'RULE_WARNINGS' ? error.data.warnings : null,
+          type: 'COMMAND_REJECTED'
+        })
+        return
+      }
       const refusal = encounterCommandRefusal(error)
       this.#rejectCommand(socket, commandId, refusal.code, refusal.message)
     }

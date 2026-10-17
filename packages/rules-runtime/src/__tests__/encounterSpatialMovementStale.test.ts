@@ -75,15 +75,30 @@ function evaluate(options: Evaluation = {}) {
   if (pending && pending.snapshotKind !== 'KERNEL_EVIDENCE')
     throw new Error('Expected a kernel request.')
   const requestId = pending?.request.requestId ?? ''
+  // The pause moved the token to the contact and advanced the Scene: a resume starts from there.
+  const context =
+    pending?.applicationContext.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+      ? pending.applicationContext
+      : null
+  const paused = context?.root ?? null
+  const position = paused?.currentPosition ?? START_POINT
+  // Each answer is the next occurrence version after the answers already recorded on the root.
+  const answered = paused?.resolutionCommands.length ?? 0
+  // A failed save asks for its damage dice as a number; otherwise the answer is the d20 face 1.
+  const request = pending?.request
+  const resolution =
+    context?.currentCandidate.diceStage && request?.kind === 'INTEGER_RANGE'
+      ? { kind: 'ENTER_INTEGER' as const, requestId, value: request.min }
+      : { kind: 'ENTER_DICE' as const, requestId, rawFaces: [1], rollMode: 'NORMAL' as const }
   return evaluateEncounterSpatialMovementRuleBatch({
     actorUserId: GM_USER_ID,
     autoRoll: {},
     encounter: { ...state, actors },
     sceneId: SCENE_ID,
-    sceneVersion: 1,
+    sceneVersion: paused?.currentSceneVersion ?? 1,
     actorIdByTokenId,
     sceneTokens: tokens.map((token) =>
-      token.id === GOBLIN_TOKEN_ID ? { ...token, position: START_POINT } : token
+      token.id === GOBLIN_TOKEN_ID ? { ...token, position } : token
     ),
     spatialScope: {
       snapshot: async () => snapshot,
@@ -109,29 +124,24 @@ function evaluate(options: Evaluation = {}) {
       throw new Error('A stale resume must refuse before any terminal applies.')
     },
     root: rootOver(options.path ?? ENTERING_PATH),
-    currentPosition: START_POINT,
+    currentPosition: position,
     occurrenceId: OCCURRENCE_ID,
     executionCommandId: testUuid(0xb02),
     runtime,
     random: () => 0,
     ...(pending
       ? {
-          occurrenceVersion: 1,
+          occurrenceVersion: answered + 1,
           pendingSnapshot: pending,
-          resolution: {
-            kind: 'ENTER_DICE' as const,
-            requestId,
-            rawFaces: [1],
-            rollMode: 'NORMAL' as const
-          },
+          resolution,
           resolutionCommand: {
-            commandId: testUuid(0xb03),
+            commandId: testUuid(0xb03 + answered),
             commandFingerprint: 'b'.repeat(64),
             actorUserId: GM_USER_ID,
             correlationId: null,
-            expectedOccurrenceVersion: 0,
+            expectedOccurrenceVersion: answered,
             requestId,
-            kind: 'ENTER_DICE' as const
+            kind: resolution.kind
           }
         }
       : {})
@@ -166,7 +176,7 @@ describe('resuming a paused spatial movement against changed facts', () => {
 
     await expect(
       evaluate({ pendingSnapshot, locked: (found) => ({ ...found, version: found.version + 1 }) })
-    ).rejects.toThrow('The paused spatial movement root is stale.')
+    ).rejects.toThrow('A spatial root changed before execution.')
   })
 
   it('refuses the resume when the contacted creature changed after the pause', async () => {
@@ -179,6 +189,59 @@ describe('resuming a paused spatial movement against changed facts', () => {
         pendingSnapshot,
         goblin: { ...goblin, currentHitPoints: goblin.currentHitPoints - 1 }
       })
-    ).rejects.toThrow('The paused spatial movement root is stale.')
+    ).rejects.toThrow('The current spatial contact is stale.')
+  })
+})
+
+describe('resuming a paused spatial movement with a second contact queued (SPELLS-20 T4f)', () => {
+  /** A second zone on the same space: the walk enters both, each asking for a save. */
+  const secondZone = placedZone(0x3a2, authoredZone(['ENTER_SPACE']), 2)
+
+  async function pausedOnFirst() {
+    const fresh = await evaluate({ snapshot: [zone, secondZone] })
+    if (fresh.kind !== 'PENDING')
+      throw new Error('Entering the first zone must pause for the save.')
+    const context = fresh.pendingSnapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT') throw new Error('Expected a spatial pause.')
+    // Real evidence: the pause is on the first zone with the second queued behind it.
+    expect(context.currentCandidate.candidate.effectId).toBe(zone.id)
+    expect(context.remainingCandidates.map(({ candidate }) => candidate.effectId)).toEqual([
+      secondZone.id
+    ])
+    return fresh.pendingSnapshot
+  }
+
+  /** The failed save on the first zone asks for its damage dice, the last answer before the queue. */
+  async function pausedOnFirstDamage() {
+    const answered = await evaluate({
+      pendingSnapshot: await pausedOnFirst(),
+      snapshot: [zone, secondZone]
+    })
+    if (answered.kind !== 'PENDING') throw new Error('The failed save must ask for its damage.')
+    const context = answered.pendingSnapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT') throw new Error('Expected a spatial pause.')
+    expect(context.currentCandidate.candidate.effectId).toBe(zone.id)
+    expect(context.currentCandidate.diceStage).not.toBeNull()
+    return answered.pendingSnapshot
+  }
+
+  it('resumes onto the queued contact when nothing changed since the pause', async () => {
+    const pendingSnapshot = await pausedOnFirstDamage()
+
+    const resumed = await evaluate({ pendingSnapshot, snapshot: [zone, secondZone] })
+
+    if (resumed.kind !== 'PENDING') throw new Error('The second zone must pause for its save.')
+    const context = resumed.pendingSnapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT') throw new Error('Expected a spatial pause.')
+    expect(context.currentCandidate.candidate.effectId).toBe(secondZone.id)
+  })
+
+  it('refuses the resume when the queued zone’s row advanced since the pause', async () => {
+    const pendingSnapshot = await pausedOnFirstDamage()
+    const advanced = { ...secondZone, version: secondZone.version + 1 }
+
+    await expect(evaluate({ pendingSnapshot, snapshot: [zone, advanced] })).rejects.toThrow(
+      'The remaining spatial contacts changed.'
+    )
   })
 })

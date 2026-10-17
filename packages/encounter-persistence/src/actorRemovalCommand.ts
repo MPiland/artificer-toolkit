@@ -355,7 +355,10 @@ async function removeEncounterActorCore(
   if (pendingRows.length > 1) throw new Error('Encounter has multiple pending occurrences.')
   const pending = pendingRows[0] ?? null
   if (absentCharacter && pending)
-    throw new Error('Resolve the pending Encounter occurrence before removing this actor.')
+    rejectDomain(
+      'PENDING_DECISION',
+      'Resolve the pending Encounter occurrence before removing this actor.'
+    )
   let concentrationState:
     | ReturnType<
         typeof encounterConcentrationDamageCheckPendingContextDtoSchema.parse
@@ -387,7 +390,10 @@ async function removeEncounterActorCore(
           (actor) => actor.actorId === input.actorId
         ))
     )
-      throw new Error('Resolve the pending Encounter occurrence before removing this actor.')
+      rejectDomain(
+        'PENDING_DECISION',
+        'Resolve the pending Encounter occurrence before removing this actor.'
+      )
   }
   const now = new Date().toISOString()
   const version = row.version + 1
