@@ -3,6 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { characterFormCreatureView } from './encounterActorForm.js'
 import { StaleCharacterActionError, UnavailableCreatureActionError } from './encounterErrors.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
@@ -89,7 +90,9 @@ export function resolveEncounterActionSource(
     if (!capability) throw new Error('The selected basic action source is stale.')
     return { kind: 'BASIC_ACTION', actor, capability }
   }
-  if (actor.kind === 'CHARACTER') {
+  // A Character in a creature form acts from the form's stat block, not its Sheet (SPELLS-28.T4d).
+  const creature = actor.kind === 'CHARACTER' ? characterFormCreatureView(actor) : actor
+  if (actor.kind === 'CHARACTER' && creature === null) {
     const character = input.characterSource
     if (
       !character ||
@@ -109,13 +112,13 @@ export function resolveEncounterActionSource(
       effectivePolicyOutput: character.effectivePolicyOutput
     }
   }
-  if (actor.kind !== 'CREATURE')
+  if (creature?.kind !== 'CREATURE')
     throw new Error('Native action execution requires an action source.')
   const system = input.system
   if (!system || system.id !== input.gameSystemId)
     throw new Error('The selected Creature action source is stale.')
   const actions = discoverEncounterFeatureActions({
-    actor,
+    actor: creature,
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: systemAbilityDefinitions(system)
   })
