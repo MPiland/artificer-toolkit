@@ -6,7 +6,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 - T1, T1b, T2a and T3 are done (T2a at `16e4493c7`; T3 at `897458fa0` on `ci/spells-20-t3`, based on the T2a tip plus `ci/merge-batch-bf`).
 - T2b done: red Tests 38989834002 on `877ceb4ce`; green `6a67e415b` on `ci/spells-20-t2b`, Tests 38991779131 (attempt 2; attempt 1 hit the Escape test flake), Live 38991779168. Next: T4 and later.
-- T4 is split (T4a-T4d, all close AC SPELLS-20.1). T4a (half damage on a made zone save, slot-level scaling) is in CI: red Tests 38998091848 on `8b55d392a`; green on `ci/spells-20-t4a`. Then T4b (turn triggers + once-per-turn counter), T4c (unaffected creatures, parallel-capable), T4d (half speed via a movement-cost seam shared with terrain, after T4b); T6 after T4b.
+- T4 is split (T4a-T4d, all close AC SPELLS-20.1). T4a (half damage on a made zone save, slot-level scaling) is done: red Tests 38998091848 on `8b55d392a`; green `5c9c90a54` on `ci/spells-20-t4a`, Tests 39001554879, Live 39001554886. Then T4b (turn triggers + once-per-turn counter), T4c (unaffected creatures, parallel-capable), T4d (half speed via a movement-cost seam shared with terrain, after T4b); T6 after T4b.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -95,5 +95,6 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 
 - Red: `8b55d392a` on `ci/spells-20-t4a-red`, Tests 38998091848 (Worker aura tests and the zone compile tests).
 - Seam: the cast level is a per-action compile input (each slot level is its own compiled action), so the frozen zone entry graph is per level and no schema or placement pinning changed. `zoneDamageRow` picks the PER_LEVEL `SPELL_CAST_LEVEL` row with `selectScalingRow`. An `ON_SAVE_SUCCESS` path with `amountKind: HALF` damage compiles to its own gated dice set (`damage-success-*`) plus a 0.5 `DND5E_DAMAGE_MULTIPLIER` node and a `proposal-on_save_success`; the movement interruption stays on the failed save. A made-save path that applies a grant or doubles stays manual (`NOT_NORMALIZED`).
+- A made save's damage comes from its own proposal node, so the zone graph binds it as a second source entry (`sourceEntryBindings`); `requireSupportedApplications` and the spatial evidence schema accept any bound node, not only `frozenGraphNodeId`.
 - Spirit Guardians is authored as 3d8 at the 3rd level plus 1d8 per slot level (levels 3-9), half on a made save.
 - `semantic-ledger.json` `authoredSha256` is not verified by any code, so it was not regenerated.
