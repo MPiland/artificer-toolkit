@@ -463,9 +463,20 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 ? 'ON_SAVE_SUCCESS'
                 : 'ON_SAVE_FAIL')
           const removal = execution.applications[0]
+          // A failed repeat that ends the effect may leave a second condition in place of the held one.
+          const escalation = execution.applications[1]
+          const removalWithOptionalEscalation =
+            execution.applications.length === 1 ||
+            (execution.applications.length === 2 &&
+              escalation?.kind === 'CONDITION_APPLY' &&
+              escalation.sourceNodeId === execution.definition.frozenGraphNodeId &&
+              escalation.sourceOperationKey === 'dnd5e.save-test-resolution' &&
+              escalation.authoredPath === 'ON_SAVE_FAIL' &&
+              escalation.resolvedPath === 'ON_SAVE_FAIL' &&
+              execution.d20?.resultPath === 'ON_SAVE_FAIL')
           const repeatedSaveTerminal =
             repeatedSaveTrace &&
-            execution.applications.length === 1 &&
+            removalWithOptionalEscalation &&
             removal?.kind === 'CONDITION_REMOVE' &&
             removal.sourceActiveEffectId === execution.activeEffectId &&
             removal.sourceNodeId === execution.definition.frozenGraphNodeId &&
@@ -480,6 +491,13 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             execution.applications.length === 0 &&
             execution.d20?.resultPath === 'ON_SAVE_FAIL' &&
             execution.lifecycle.kind === 'UPDATE' &&
+            unchanged
+          // A grant that passes its repeating save ends itself: nothing is removed from the target.
+          const repeatedSaveGrantEnd =
+            repeatedSaveTrace &&
+            execution.applications.length === 0 &&
+            execution.d20?.resultPath === 'ON_SAVE_SUCCESS' &&
+            execution.lifecycle.kind === 'EXPIRE' &&
             unchanged
           // A timed condition's or grant's counted turn only moves its tick count.
           const durationTick =
@@ -509,6 +527,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           if (
             (!unauthorizedSourceOutcome &&
               !repeatedSaveContinuation &&
+              !repeatedSaveGrantEnd &&
               !refusedRepeatSaveContinuation &&
               !durationTick &&
               execution.applications.length === 0) ||

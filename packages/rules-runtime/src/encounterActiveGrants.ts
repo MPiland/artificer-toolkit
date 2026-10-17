@@ -24,7 +24,7 @@ import {
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import { lengthInUnit, widestLengthByKey } from './modifierLength.js'
+import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_REACTION_ALLOWANCE_DEFINITION_ID
@@ -91,9 +91,11 @@ export function withCharacterActiveGrants(
 }
 
 /**
- * Adds a Creature holder's active saving-throw grants scoped to a condition (Antitoxin against
- * poison) as condition-scoped save rows beside its base ones, so a save against that condition
- * reads them. A Character folds the same grants through its own policy instead.
+ * Folds a Creature holder's active saving-throw advantage and disadvantage grants into its save
+ * rows. A grant scoped to a condition (Antitoxin against poison) adds a condition-scoped row beside
+ * the base ones, so a save against that condition reads it. A grant scoped to no condition or rule
+ * (Weakening Breath's Strength saves) joins every row of its ability. A Character folds the same
+ * grants through its own policy instead.
  */
 export function withCreatureActiveGrantSaves(
   savingThrowDefinitions: readonly unknown[],
@@ -108,6 +110,7 @@ export function withCreatureActiveGrantSaves(
       contributors: EncounterRelationshipD20Contributor[]
     }
   >()
+  const plain = new Map<string, EncounterRelationshipD20Contributor[]>()
   for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const domain = record(modifier.domain)
@@ -117,13 +120,10 @@ export function withCreatureActiveGrantSaves(
         (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
         modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
         abilityDefinitionId === undefined ||
-        typeof conditionTypeId !== 'string' ||
         record(modifier.grant)?.scope !== 'GLOBAL'
       )
         continue
-      const key = `${abilityDefinitionId}:${conditionTypeId}`
-      const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
-      entry.contributors.push({
+      const contributor: EncounterRelationshipD20Contributor = {
         sourceId: createCharacterMechanicSourceKey({
           kind: 'ACTIVE_EFFECT',
           activeEffectId: effectId
@@ -131,11 +131,22 @@ export function withCreatureActiveGrantSaves(
         grantId: modifier.grantId,
         domainKey: `active-grant:${holderActorId}`,
         influence: modifier.modifierKind
-      })
-      scoped.set(key, entry)
+      }
+      if (typeof conditionTypeId === 'string') {
+        const key = `${abilityDefinitionId}:${conditionTypeId}`
+        const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
+        entry.contributors.push(contributor)
+        scoped.set(key, entry)
+      } else if (
+        domain?.ruleDefinitionId === undefined &&
+        !hasHolderStateRestriction(modifier.restrictions) &&
+        !dnd5eSaveRequiresSourceSight(modifier)
+      ) {
+        plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
+      }
     }
   }
-  return [
+  const rows = [
     ...savingThrowDefinitions,
     ...[...scoped.values()].flatMap(({ abilityDefinitionId, conditionTypeId, contributors }) => {
       const base = savingThrowDefinitions.find((definition) => {
@@ -161,6 +172,7 @@ export function withCreatureActiveGrantSaves(
       ]
     })
   ]
+  return plain.size === 0 ? rows : withSaveRowContributors(rows, plain)
 }
 
 const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
@@ -513,21 +525,36 @@ export function withCreatureActiveGrantProtection<
 }
 
 /**
+ * The ability a Creature's attack is made with: the one its first damage adds (a stat block names
+ * no other), or null when that damage adds none.
+ */
+export function creatureAttackAbility(outcomes: readonly unknown[]): string | null {
+  const damage = outcomes.map(record).find((outcome) => outcome?.kind === 'DAMAGE')
+  const bonuses = Array.isArray(damage?.bonuses) ? damage.bonuses.map(record) : []
+  const ability = bonuses.find((bonus) => bonus?.bonusKind === 'ABILITY_BONUS')?.ability
+  return typeof ability === 'string' ? ability : null
+}
+
+/**
  * A Creature holder's active advantage and disadvantage grants on its own attack rolls of one
- * attack domain (Vicious Mockery's disadvantage), as roll contributors. A Character folds the same
- * grants through its own policy instead.
+ * attack domain (Vicious Mockery's disadvantage), as roll contributors. A grant naming an ability
+ * covers only attacks made with it (`attackAbility`). A Character folds the same grants through its
+ * own policy instead.
  */
 export function creatureActiveGrantAttackContributors(
   holderActorId: string,
   attackDomain: string,
+  attackAbility: string | null,
   effects: readonly ActiveRuleEffectRecord[]
 ): EncounterRelationshipD20Contributor[] {
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
-    modifiers.flatMap((modifier) =>
-      (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
-      modifier.valueDomainCode === 'ATTACK_ROLL' &&
-      record(modifier.domain)?.attackDomain === attackDomain &&
-      record(modifier.grant)?.scope === 'GLOBAL'
+    modifiers.flatMap((modifier) => {
+      const grantAbility = record(modifier.domain)?.ability ?? null
+      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+        modifier.valueDomainCode === 'ATTACK_ROLL' &&
+        record(modifier.domain)?.attackDomain === attackDomain &&
+        (grantAbility === null || grantAbility === attackAbility) &&
+        record(modifier.grant)?.scope === 'GLOBAL'
         ? [
             {
               sourceId: createCharacterMechanicSourceKey({
@@ -540,7 +567,7 @@ export function creatureActiveGrantAttackContributors(
             }
           ]
         : []
-    )
+    })
   )
 }
 
@@ -624,12 +651,27 @@ export function withActiveGrantSpeeds(
   ].map((speed) => {
     const replacement = replacements.get(speed.speedId)
     const bonusFeet = activeSpeedGrantFeet(effects, (domain) => domain?.speedId === speed.speedId)
+    const fractions = listActiveEffectGrants(effects).flatMap(({ modifiers }) =>
+      modifiers.flatMap((modifier) => {
+        const speedId = record(modifier.domain)?.speedId
+        const grant = record(modifier.grant)
+        return modifier.valueDomainCode === 'SPEED' &&
+          modifier.modifierKind === 'MULTIPLY' &&
+          grant?.scope === 'GLOBAL' &&
+          (speedId === undefined || speedId === speed.speedId)
+          ? [grant.payload]
+          : []
+      })
+    )
     return {
       ...speed,
-      amount: Math.max(
-        0,
-        (replacement === undefined ? speed.amount : lengthInUnit(replacement, speed.unit)) +
-          (bonusFeet === 0 ? 0 : feetInLengthUnit(bonusFeet, speed.unit))
+      amount: speedAfterFractions(
+        Math.max(
+          0,
+          (replacement === undefined ? speed.amount : lengthInUnit(replacement, speed.unit)) +
+            (bonusFeet === 0 ? 0 : feetInLengthUnit(bonusFeet, speed.unit))
+        ),
+        fractions
       )
     }
   })

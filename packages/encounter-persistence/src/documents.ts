@@ -14,6 +14,7 @@ import {
   ensureSourceFacts,
   readStoredRunActor,
   releaseSourceFacts,
+  serializeStoredRunActor,
   splitActorForStorage
 } from './actorProjectionFacts.js'
 import { ensureActorSnapshot, readActorSnapshot, releaseActorSnapshot } from './actorSnapshots.js'
@@ -195,7 +196,7 @@ export async function insertRunActor(ctx: EncounterWriteContext, actor: Encounte
   await ctx.db.insert('encounterRunActors', {
     id: actor.id,
     encounterId: actor.encounterId,
-    stateJson: JSON.stringify(split.stored),
+    stateJson: serializeStoredRunActor(split.stored),
     stateChecksum: checksumRunActorPlayState(actor),
     snapshotChecksum: split.snapshotChecksum,
     formOriginSnapshotChecksum: split.originSnapshotChecksum,
@@ -236,7 +237,7 @@ export async function writeRunActor(
   )
     await ensureSourceFacts(ctx, actor.encounterId, split.sourceFactsChecksum, split.source)
   await ctx.db.patch(rowId, {
-    stateJson: JSON.stringify(split.stored),
+    stateJson: serializeStoredRunActor(split.stored),
     stateChecksum: checksumRunActorPlayState(actor),
     snapshotChecksum: split.snapshotChecksum,
     formOriginSnapshotChecksum: split.originSnapshotChecksum,

@@ -1054,6 +1054,102 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-20",
+          "title": "One flat compile stage: no dead or copy-only compilers",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 8,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-20.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller."
+            },
+            {
+              "id": "PLATFORM-20.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one."
+            },
+            {
+              "id": "PLATFORM-20.3",
+              "status": "TODO",
+              "origin": [],
+              "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold reads those typed fields with no Record<string, unknown> casts, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859."
+            },
+            {
+              "id": "PLATFORM-20.4",
+              "status": "TODO",
+              "origin": [],
+              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-20.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-20.1", "PLATFORM-20.2", "PLATFORM-20.3", "PLATFORM-20.4"],
+              "text": "Delete the dead and copy-only compilers, flatten the modifier compile and the fold read, type the SRD builders per domain, remove the union workarounds, update the docs. Red first: a type-level test that a generic modifier transform compiles, and fold tests on the flat shape.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-21",
+          "title": "The engine loads compiled content instead of recompiling",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 8,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-21.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "User decision 2026-10-17 (option a): compile once at publish, as ADR 0003 describes, for performance and reliability.",
+              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics."
+            },
+            {
+              "id": "PLATFORM-21.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-21.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
+              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8,
+                "after": ["PLATFORM-20.T1"]
+              }
+            }
+          ]
         }
       ]
     },
@@ -8238,7 +8334,7 @@
             {
               "id": "SPELLS-19.T3b",
               "text": "Gold Weakening (4) and the speed and reaction riders of Copper Slowing (4) re-authored from core options as a grant plus repeat save, the grant gated on the failed save (compiler fix), no closed rule. Additive core options: an optional ability scope on the ATTACK_ROLL domain read by Creature and Character folds, plain ability-scoped save advantage/disadvantage read for Creature holders, and a SPEED fraction payload rounded down per D94. Corpus pin updated row by row.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8247,12 +8343,12 @@
                 "size": 5,
                 "after": ["SPELLS-19.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "proof": "Red ci/spells-19-t3b-red 2c8351736 (Tests 38950478150); green ci/spells-19-t3b 05cf244f1 (Tests 38974361848, Live 38974361808); merged with T3c at dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3c",
               "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8261,20 +8357,21 @@
                 "size": 3,
                 "after": ["SPELLS-19.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "proof": "Red ci/spells-19-t3c-red f53086a3f (Tests 38976770402 failed on the three Gorgon assertions); green ci/spells-19-t3c dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3d",
               "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-19.T3b"]
-              }
+                "after": ["SPELLS-19.T3b", "PLATFORM-20.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T4",
