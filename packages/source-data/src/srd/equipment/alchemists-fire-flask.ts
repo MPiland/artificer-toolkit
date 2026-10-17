@@ -55,7 +55,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(120), 0x220, 1),
                     order: 1,
                     label: 'Burning flames',
-                    interactionKind: 'START_OF_ATTACHED_TARGET_TURN' as const,
+                    interactionKinds: ['START_OF_ATTACHED_TARGET_TURN' as const],
                     behaviors: [
                       {
                         id: S.equipmentChildId(S.equipId(120), 0x221, 1),

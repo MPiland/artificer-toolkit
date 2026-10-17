@@ -75,7 +75,7 @@ import {
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
-import { placedSpaceZone, zoneTriggerModes } from '../../encounterZonePlacement.js'
+import { placedSpaceZone, zoneTriggers } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
@@ -2078,7 +2078,7 @@ function zonePlacementPlan(
 ): CharacterRuleActionZonePlacementPlan | null {
   const zone = placedSpaceZone(action.compiledEffect)
   if (!zone) return null
-  const triggerModes = zoneTriggerModes(zone.component)
+  const triggers = zoneTriggers(zone.component)
   const { invocation, entries } = zone.behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const placementKind = encounterAreaTargetKind(
@@ -2099,7 +2099,7 @@ function zonePlacementPlan(
     )
   const pinnedDc = pinnedSaveDc(savingThrow)
   if (
-    !triggerModes ||
+    !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     !savingThrow ||
     !pinnedDc ||
@@ -2189,7 +2189,7 @@ function zonePlacementPlan(
     attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
-    triggerModes,
+    ...triggers,
     bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
     ...(zone.component.choosesUnaffected ? { choosesUnaffected: true } : {}),
     ...(zone.component.maxApplicationsPerTurn

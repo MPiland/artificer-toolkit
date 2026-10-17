@@ -98,7 +98,7 @@ export const oilFlask: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(157), 0x214, 1),
                     order: 1,
                     label: 'Ignite the coating',
-                    interactionKind: 'TARGET_TAKES_FIRE_DAMAGE' as const,
+                    interactionKinds: ['TARGET_TAKES_FIRE_DAMAGE' as const],
                     maxApplicationsTotal: 1,
                     behaviors: [fireDamageBehavior(0x215)]
                   }
@@ -161,7 +161,7 @@ export const oilFlask: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(157), 0x236, 1),
                     order: 1,
                     label: 'Enter burning oil',
-                    interactionKind: 'ENTER_OR_PASS_THROUGH' as const,
+                    interactionKinds: ['ENTER_OR_PASS_THROUGH' as const],
                     requiresIgnition: true,
                     behaviors: [fireDamageBehavior(0x240)]
                   },
@@ -169,7 +169,7 @@ export const oilFlask: EquipmentAuthored = {
                     id: S.equipmentChildId(S.equipId(157), 0x236, 2),
                     order: 2,
                     label: 'End turn in burning oil',
-                    interactionKind: 'END_TURN_IN_SPACE' as const,
+                    interactionKinds: ['END_TURN_IN_SPACE' as const],
                     requiresIgnition: true,
                     behaviors: [fireDamageBehavior(0x250)]
                   }

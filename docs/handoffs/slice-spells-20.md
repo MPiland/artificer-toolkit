@@ -8,6 +8,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - T2b done: red Tests 38989834002 on `877ceb4ce`; green `6a67e415b` on `ci/spells-20-t2b`, Tests 38991779131 (attempt 2; attempt 1 hit the Escape test flake), Live 38991779168. Next: T4 and later.
 - T4 is split (T4a-T4d, all close AC SPELLS-20.1). T4a (half damage on a made zone save, slot-level scaling) is done: red Tests 38998091848 on `8b55d392a`; green `5c9c90a54` on `ci/spells-20-t4a`, Tests 39001554879, Live 39001554886. Then T4b (turn triggers + once-per-turn counter), T4c (unaffected creatures, parallel-capable), T4d (half speed via a movement-cost seam shared with terrain, after T4b); T6 after T4b.
 - T4c merged as `d90f99153`. T4b is split: T4b1 (once-per-turn zone counter, ENTER triggers, proved on Spirit Guardians) is done: green `4dd367255` on `ci/spells-20-t4b1`, Tests 39009226378, Live 39009226404; T4b2 (turn-stage zone effects, one shared save-then-dice resume helper) follows after its design delta goes to the orchestrator.
+- T4b2 is split (orchestrator ruling). T4b1 accepted at `18f1e3cc3` (in `ci/merge-m69`). T4b2a (authoring + containment + shared resume helper) is on `ci/spells-20-t4b2a`; T4b2b is the turn stage: one ordered candidate list per boundary, evaluate extending `ENCOUNTER_TURN_ACTIVE_EFFECTS` with a discriminated `ACTIVE_EFFECT | ZONE` candidate (`diceStage` on the zone kind only) and bring the evidence before taking a new context; Spirit Guardians' SRD flip to ENTER + START_TURN lands there. Future enhancement: the creature whose turn it is chooses the order. T4d and T6 wait on T4b2b; T5 is independent.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -110,3 +111,9 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Red proof: the Tests run's "Red proof against the phase branch" job (no separate red branch).
 - Design (orchestrator ruling): `zoneApplications` on the Encounter run state, keyed `effectId:actorId`, entry `{ turnSequence, count }`; stale entries count as unspent and are pruned on write; any creature's turn counts (key on the current `turnSequence`); bounded by the actor and effect caps. Authored `maxApplicationsPerTurn` is compiled onto the zone placement and instance; `collectSpatialMovementCandidates` drops a candidate whose limit is spent; `recordZoneApplications` writes executions at the two terminal movement publications (the initial automatic advance deliberately does not record).
 - Spirit Guardians now authors `maxApplicationsPerTurn: 1` ("first time on a turn").
+
+### T4b2a (turn-trigger authoring, containment, shared resume helper)
+
+- `interactionKind` is deleted for `interactionKinds` (SRD rows migrated, no fallback). The placement and effect instance carry optional `turnTriggers` (`START_OF_TURN`, `END_OF_TURN`; a turn-only zone has empty `triggerModes`).
+- `collectSpatialTurnCandidates` (shared/vtt) is the one containment function: footprint overlap through the movement geometry, `spatialEffectAffects`, and the T4b1 per-turn limit.
+- `resumeTargetBoundActiveRuleEffectWithAnswer` (executor) is the shared save-then-dice resume; the spatial service now uses it, behavior unchanged. Spirit Guardians still authors ENTER only until T4b2b.
