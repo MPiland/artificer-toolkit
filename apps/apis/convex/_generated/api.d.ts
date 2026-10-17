@@ -110331,6 +110331,7 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
+                  choosesUnaffected?: true;
                   kind: "POINT";
                 }
               | {
@@ -110395,6 +110396,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   };
+                  choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
                 }
               | {
@@ -111062,6 +111064,7 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
+                  choosesUnaffected?: true;
                   kind: "POINT";
                 }
               | {
@@ -111126,6 +111129,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   };
+                  choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
                 }
               | {
