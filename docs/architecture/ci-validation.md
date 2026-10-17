@@ -57,7 +57,7 @@ The `build` job runs the selector after the build and exposes, per suite, `run-<
 
 ## Lint
 
-The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains (`lint:schemas`, `scripts/lazySchemas.mjs`). Any finding fails the run.
+The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains: `lint:schemas` (`scripts/lazySchemas.mjs`) and `lint:casts` (`scripts/doubleCasts.mjs`). The second fails on any `as unknown as` outside tests and generated modules, except the per-file counts in its `ALLOWED` list, which only shrink. Any finding fails the run.
 
 ## Red proof
 

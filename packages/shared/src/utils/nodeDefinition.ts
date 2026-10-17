@@ -410,24 +410,26 @@ function createConditionIfBuilder<NLocal extends object>(): ConditionIfBuilder<N
     }
   }
 
-  const makeFrameBinder = <TScope extends object>(
+  // `scope` exists on every binder at run time; FrameBinder exposes it only for scopes that carry an
+  // authoring mode, a conditional type the overload states and the implementation cannot narrow to.
+  function makeFrameBinder<TScope extends object>(
     from: 'LOCAL' | 'PARENT' | 'ANCESTOR',
     up?: number
-  ): FrameBinder<TScope> => {
+  ): FrameBinder<TScope>
+  function makeFrameBinder(
+    from: 'LOCAL' | 'PARENT' | 'ANCESTOR',
+    up?: number
+  ): BaseFrameBinder<HasAuthoringMode> & ScopeFrameBinder<HasAuthoringMode> {
     return {
-      field: <P extends CondPathFor<TScope>>(path: P) =>
-        handle<TScope, Extract<P, ShallowPath>>(from, path as Extract<P, ShallowPath>, up),
-
-      id: <P extends IdPathFor<TScope>>(path: P) =>
-        (from === 'LOCAL'
-          ? { from: 'LOCAL', path: path as Extract<P, ShallowPath> }
+      field: (path) => handle(from, path, up),
+      id: (path) =>
+        from === 'LOCAL'
+          ? { from: 'LOCAL', path }
           : from === 'PARENT'
-            ? { from: 'PARENT', path: path as Extract<P, ShallowPath> }
-            : { from: 'ANCESTOR', up: up!, path: path as Extract<P, ShallowPath> }) as IdRef,
-
-      scope: <P extends CondPathFor<Extract<TScope, HasAuthoringMode>>>(path: P) =>
-        mkScope(from, path as Extract<P, ShallowPath>, up)
-    } as unknown as FrameBinder<TScope>
+            ? { from: 'PARENT', path }
+            : { from: 'ANCESTOR', up: up!, path },
+      scope: (path) => mkScope(from, path, up)
+    }
   }
 
   return {
@@ -596,8 +598,11 @@ const mkCondition = <P>(
 
 const toSelectColumns = <K extends TableName>(
   columns?: readonly [ColumnOf<K>, ...ColumnOf<K>[]]
-): SelectColumns | undefined =>
-  columns ? (columns.map(String) as unknown as SelectColumns) : undefined
+): SelectColumns | undefined => {
+  if (!columns) return undefined
+  const [first, ...rest] = columns
+  return [String(first), ...rest.map(String)]
+}
 
 /* ──────────────────────────────────────────────────────────────
  * Condition DSL
@@ -1323,6 +1328,20 @@ export type NodeMap<NLocal extends object> = {
   mapId: string
   nodes: Record<NodeId, NodeEntry<NLocal>>
 }
+
+/** Any node map with its document type erased, for code that walks maps generically (registries, masking). */
+export type RuntimeNodeMap = Omit<NodeMap<Record<string, unknown>>, 'nodes'> & {
+  nodes: Record<NodeId, RuntimeNodeEntry>
+}
+
+export type RuntimeNodeEntry =
+  | NodeInput<Record<string, readonly unknown[]>>
+  | (Omit<NodeGroupObject<Record<string, Record<string, unknown>>, string>, 'nodes'> & {
+      nodes: Lazy<RuntimeNodeMap>
+    })
+  | (Omit<NodeGroupArray<Record<string, readonly Record<string, unknown>[]>, string>, 'nodes'> & {
+      nodes: Lazy<RuntimeNodeMap>
+    })
 
 /* ──────────────────────────────────────────────────────────────
  * Node helpers

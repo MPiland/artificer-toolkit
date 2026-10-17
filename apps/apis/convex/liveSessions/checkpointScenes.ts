@@ -46,7 +46,7 @@ async function readRow<Table extends LiveSessionCheckpointSceneTable>(
       liveSessionCheckpointSceneIndexes[table] as IndexNames<DataModel[Table]>,
       (query) => {
         // The shared contract validates this complete index's scalar key in field order.
-        let range = query as unknown as SceneIndexRange
+        let range = query as SceneIndexRange
         for (const [index, field] of liveSessionCheckpointSceneKeys[table].entries())
           range = range.eq(field, key[index]!)
         return range

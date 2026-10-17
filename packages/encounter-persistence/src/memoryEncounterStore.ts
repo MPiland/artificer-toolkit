@@ -315,7 +315,7 @@ export function createMemoryEncounterStore({
     store: store as unknown as EncounterStore,
     /** Every stored document of a table, in creation order. */
     documents<Table extends EncounterTableName>(table: Table) {
-      return inCreationOrder(table) as unknown as EncounterDocument<Table>[]
+      return inCreationOrder(table) as EncounterDocument<Table>[]
     },
     /** The stored document with this identity, or null, without copying. Callers must not mutate it. */
     document(id: string) {

@@ -23,7 +23,7 @@ import {
   RACE_NODE_MAP,
   SPELL_NODE_MAP,
   VEHICLE_NODE_MAP,
-  type NodeMap
+  type RuntimeNodeMap
 } from '@artificer-toolkit/shared/maps'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
@@ -41,7 +41,7 @@ const campaignContentNodeMaps = {
   RACE: RACE_NODE_MAP,
   SPELL: SPELL_NODE_MAP,
   VEHICLE: VEHICLE_NODE_MAP
-} as unknown as Record<CampaignContentShareDto['subjectKind'], NodeMap<Record<string, unknown>>>
+} satisfies Record<CampaignContentShareDto['subjectKind'], RuntimeNodeMap>
 
 export const list = query({
   args: zodToConvexFields(campaignContentListInputSchema.shape),

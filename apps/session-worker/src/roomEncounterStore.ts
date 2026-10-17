@@ -264,7 +264,7 @@ function loadTable(
   validate: boolean
 ) {
   // One generic loader serves every table; the caller has matched each document to its table.
-  memory.load(table, documents as unknown as EncounterDocument<typeof table>[], { validate })
+  memory.load(table, documents as EncounterDocument<typeof table>[], { validate })
 }
 
 /**
@@ -800,7 +800,7 @@ export class RoomEncounterStore {
     for (const table of TABLES)
       for (const { _id, _creationTime, ...fields } of this.#base.documents(
         table
-      ) as unknown as StoredDocument[])
+      ) as StoredDocument[])
         documents.push({ table, id: _id, creationTime: _creationTime, fields })
     return {
       epoch,
@@ -925,7 +925,7 @@ export class RoomEncounterStore {
     const documents: SnapshotContent['documents'] = {}
     for (const table of TABLES) {
       const rows = memory.documents(table)
-      if (rows.length > 0) documents[table] = rows as unknown as StoredDocument[]
+      if (rows.length > 0) documents[table] = rows as StoredDocument[]
     }
     return {
       counters: memory.counters(),
