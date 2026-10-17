@@ -8,13 +8,9 @@ import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-perso
 import { SRD_CONDITION_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
-const reader = createNodeRuntimeSourceReader({
-  system: srdSystemRecord,
-  readAuthoredRows: () => [],
-  readReusableDefinitions: async () => []
-})
+const reader = createSrdNodeRuntimeReader()
 
 /** Every outcome of `effectKind` the value nests, wherever it sits. */
 function outcomesOf(value: unknown, effectKind: 'CONDITION' | 'FOLLOW_UP_SAVE'): Record<string, unknown>[] {

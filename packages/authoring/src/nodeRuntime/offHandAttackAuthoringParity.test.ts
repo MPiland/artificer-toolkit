@@ -8,13 +8,9 @@ import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsw
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
-const reader = createNodeRuntimeSourceReader({
-  system: srdSystemRecord,
-  readAuthoredRows: () => [],
-  readReusableDefinitions: async () => []
-})
+const reader = createSrdNodeRuntimeReader()
 
 function normalize(mapId: 'equipment' | 'class', values: EquipmentAuthored | ClassAuthored) {
   return normalizeNodeRuntimeValues(reader, {

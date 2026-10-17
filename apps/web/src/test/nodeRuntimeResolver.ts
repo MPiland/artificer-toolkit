@@ -1,90 +1,11 @@
-import {
-  authoredSourceFacts,
-  authoredSourceKindsByTable,
-  createNodeRuntimeSourceReader,
-  normalizeNodeRuntimeValues,
-  resolveNodeRuntime,
-  sortAuthoredSourceRows,
-  type NodeRuntimeQueryRow,
-  type NodeRuntimeSourceReader,
-  type NodeRuntimeSourceTable
-} from '@artificer-toolkit/authoring/nodeRuntime'
+import { normalizeNodeRuntimeValues, resolveNodeRuntime } from '@artificer-toolkit/authoring/nodeRuntime'
+import { createSrdNodeRuntimeReader } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
 import type {
   NodeRuntimeNormalizeValuesRequestDto,
   NodeRuntimeResolveRequestDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
-import type { AuthoredNodeRuntimeSourceFacts } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
-import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
-import { authoredDocumentVersionSchema } from '@artificer-toolkit/schema/projections/authoredContent'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { SRD_REUSABLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-
-const { subjects } = srdBaselineContent
-const fixtureVersionId = '00000000-0000-4000-8000-000000000f00'
-const subjectsByKind = {
-  BACKGROUND: subjects.backgrounds,
-  CLASS: subjects.classes,
-  CREATURE: subjects.creatures,
-  EQUIPMENT: subjects.equipment,
-  FEAT: subjects.feats,
-  RACE: subjects.races,
-  SPELL: subjects.spells,
-  VEHICLE: subjects.vehicles
-} as const
-type SubjectKind = keyof typeof subjectsByKind
-
-const factsByKind = new Map<SubjectKind, AuthoredNodeRuntimeSourceFacts[]>()
-
-// Mirrors the production import: each SRD record is canonicalized, checksummed and parsed
-// before the shared projection turns it into resolver source facts.
-function readKindFacts(kind: SubjectKind) {
-  const cached = factsByKind.get(kind)
-  if (cached) return cached
-  const facts = subjectsByKind[kind].map((subject) => {
-    const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(subject)))
-    const checksum = checksumRuleDocument(document)
-    return authoredSourceFacts(
-      authoredDocumentVersionSchema.parse({
-        subjectKind: kind,
-        subjectId: subject.id,
-        versionId: fixtureVersionId,
-        version: 1,
-        documentSchemaVersion: 1,
-        checksum,
-        document
-      })
-    )
-  })
-  factsByKind.set(kind, facts)
-  return facts
-}
-
-/** Builds every SRD source projection once so the first resolve stays inside UI wait timeouts. */
-export function warmFixtureAuthoredSources() {
-  for (const kind of Object.keys(subjectsByKind) as SubjectKind[]) readKindFacts(kind)
-}
-
-/** The production reader (`createSystemSourceReader`) over the in-memory SRD. */
-export function createSrdNodeRuntimeReader(
-  system: SystemAuthoredDto = srdSystemRecord
-): NodeRuntimeSourceReader {
-  return createNodeRuntimeSourceReader({
-    system,
-    readAuthoredRows,
-    readReusableDefinitions: async () => SRD_REUSABLE_DEFINITIONS
-  })
-}
-
-function readAuthoredRows(table: NodeRuntimeSourceTable): NodeRuntimeQueryRow[] {
-  const kinds = authoredSourceKindsByTable[table]
-  if (!kinds) throw new Error(`Authoring source is not migrated: ${table}.`)
-  return sortAuthoredSourceRows(
-    kinds.flatMap((kind) => readKindFacts(kind).flatMap((facts) => facts.rows[table] ?? []))
-  )
-}
 
 type FixtureRequest<TRequest> = Omit<TRequest, 'systemId'> & { systemId?: string }
 

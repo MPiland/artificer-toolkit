@@ -42,6 +42,7 @@ export const nodeRuntimeSourceManifest = {
   option_effects: ['effect_id', 'option_id'],
   option_proficiency_grants: ['option_id', 'proficiency_grant_id'],
   options: ['id', 'label'],
+  passives: ['description', 'id', 'label'],
   proficiency_grant_languages: ['language_id', 'proficiency_grant_id'],
   proficiency_grant_skills: ['proficiency_grant_id', 'skill_id'],
   race_ancestries: ['id', 'race_id'],
