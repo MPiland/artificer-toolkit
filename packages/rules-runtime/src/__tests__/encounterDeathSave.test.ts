@@ -98,7 +98,7 @@ describe('start-of-turn death save stage', () => {
 describe('death save graph', () => {
   async function start() {
     const published = createDnd5eDeathSaveDefinition()
-    const runtime = await createSrdRulesRuntime()
+    const runtime = createSrdRulesRuntime()
     const started = await runtime.executeResolved({
       command: { definitionId: published.id, occurrenceId: OCCURRENCE_ID, facts: {} },
       published

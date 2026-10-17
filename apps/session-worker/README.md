@@ -21,7 +21,6 @@ Configure these server-only values for each Worker environment:
 - `CONVEX_SITE_URL`: the matching Convex HTTP Actions origin;
 - `LIVE_SESSION_TICKET_SECRET`: the ticket-signing secret shared with Convex;
 - `LIVE_SESSION_WORKER_SECRET`: the independent Worker-to-Convex secret shared with the protected live-session HTTP Actions;
-- `RULES_CONTINUATION_SECRET`: the rules continuation sealing secret, identical in Convex and this Worker and never sent over HTTP. It is independent of Better Auth's secret.
 - `CONTENT_SNAPSHOT_TOKEN_SECRET`: the content token secret, identical in Convex and this Worker and independent of every other secret. It verifies tokens for private content snapshots.
 
 The `CONTENT_SNAPSHOTS` R2 binding (`wrangler.jsonc`, per environment) names the private content snapshot bucket that Convex's `CONTENT_SNAPSHOT_R2_BUCKET` writes. `GET /content/...` serves it: PLATFORM source objects publicly, others only with a content token in the `Authorization` header ([media](../../docs/architecture/media.md#content-snapshot-delivery-adr-0036-s3--local-implementation)).

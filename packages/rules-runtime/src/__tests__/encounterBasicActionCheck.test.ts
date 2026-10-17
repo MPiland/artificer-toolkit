@@ -115,7 +115,7 @@ async function settle(
   faces: number[],
   targetStillDying = true
 ) {
-  const runtime = await createSrdRulesRuntime()
+  const runtime = createSrdRulesRuntime()
   const continuation = await startEncounterBasicActionCheck({
     runtime,
     gameSystemId: SRD_SYSTEM_ID,
@@ -243,7 +243,7 @@ describe('First Aid check', () => {
 
   it('a prompted check waits on a kernel snapshot carrying its frozen context', async () => {
     const prepared = prepare()!
-    const runtime = await createSrdRulesRuntime()
+    const runtime = createSrdRulesRuntime()
     const continuation = await startEncounterBasicActionCheck({
       runtime,
       gameSystemId: SRD_SYSTEM_ID,

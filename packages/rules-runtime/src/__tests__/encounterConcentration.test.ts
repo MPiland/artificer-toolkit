@@ -303,7 +303,7 @@ async function startCheck(input: {
   remaining?: readonly (ConcentrationDamageApplicationDto & { maintainedStateId: string })[]
   rulePolicyOutput?: CharacterRulePolicyOutput
 }) {
-  const runtime = await createSrdRulesRuntime()
+  const runtime = createSrdRulesRuntime()
   const { context, facts } = createNativeConcentrationContext({
     current: {
       maintained,
@@ -872,7 +872,7 @@ describe('Concentration held by a Creature', () => {
     current: NonNullable<Awaited<ReturnType<typeof wolfHolder>>['current']>,
     appliedAmount: number
   ) {
-    const runtime = await createSrdRulesRuntime()
+    const runtime = createSrdRulesRuntime()
     const checked = application({ ordinal: 0, appliedAmount, targetActorId: WOLF_ID })
     const { context, facts } = createNativeConcentrationContext({
       current,

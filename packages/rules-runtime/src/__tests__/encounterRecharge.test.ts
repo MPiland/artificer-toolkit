@@ -66,7 +66,7 @@ async function execute(
     ...input,
     occurrenceId: OCCURRENCE_ID,
     definitions: srdDefinitions,
-    runtime: await createSrdRulesRuntime()
+    runtime: createSrdRulesRuntime()
   })
 }
 

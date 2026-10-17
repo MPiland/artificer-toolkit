@@ -37,7 +37,7 @@ const characterActor = runCharacterActor({ id: CHARACTER_ACTOR_ID, characterId: 
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await createSrdRulesRuntime()
+  runtime = createSrdRulesRuntime()
 })
 
 function effect(seed: number, input: Partial<TurnSaveDamageEffectInput> = {}) {
@@ -136,7 +136,8 @@ describe('requireTurnMaintainedStates', () => {
   async function heldEffect(occurrenceId: string) {
     const held = await effect(1, { sourceActorId: CASTER_ID, maintainedEffectStateId: STATE_ID })
     const { origin } = held.definition
-    if (origin.kind !== 'ENCOUNTER') throw new Error('The fixture effect is applied in an Encounter.')
+    if (origin.kind !== 'ENCOUNTER')
+      throw new Error('The fixture effect is applied in an Encounter.')
     return {
       ...held,
       definition: { ...held.definition, origin: { ...origin, sourceOccurrenceId: occurrenceId } }

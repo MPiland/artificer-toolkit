@@ -260,7 +260,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     .spyOn(globalThis, 'fetch')
     .mockRejectedValue(new Error('Hydrated turns must not fetch.'))
   let inputs = new RoomInputs(room, read, async () => [])
-  const runtime = await createNativeLiveRulesRuntime('native-turn-fixture-continuation-secret')
+  const runtime = createNativeLiveRulesRuntime()
   type Command = Extract<
     Parameters<typeof executeRoomEncounterCommand>[0]['command'],
     { type: 'START' | 'ADVANCE_TURN' }

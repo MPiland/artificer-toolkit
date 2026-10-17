@@ -79,7 +79,7 @@ let firstKept: ActiveRuleEffectRecord
 let secondRemoved: ActiveRuleEffectRecord
 
 beforeAll(async () => {
-  runtime = await createSrdRulesRuntime()
+  runtime = createSrdRulesRuntime()
   // Dependent effects the caster's Concentration maintains; only the owned conditions matter here.
   firstRemoved = await turnSaveDamageEffect({
     runtime,

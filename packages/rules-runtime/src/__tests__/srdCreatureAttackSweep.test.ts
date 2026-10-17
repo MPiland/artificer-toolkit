@@ -185,7 +185,7 @@ describe('SRD Creature attack sweep', () => {
   })
 
   it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist, and doubles its dice on a critical hit', async () => {
-    const runtime = await createSrdRulesRuntime()
+    const runtime = createSrdRulesRuntime()
     const ogre = creatures.find((creature) => creature.label === 'Ogre')
     if (!ogre) throw new Error('The SRD Ogre is missing.')
     const target = srdCreatureActor({ id: TARGET_ID, creature: ogre })

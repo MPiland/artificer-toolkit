@@ -229,7 +229,7 @@ describe('Legendary Action eligibility policy', () => {
       { outgoingActorId: WOLF_ID, capabilityState: able, poolRemaining: 1, windowUsed: true }
     ]
     const evaluated = await evaluateLegendaryActionEligibility({
-      runtime: await createSrdRulesRuntime(),
+      runtime: createSrdRulesRuntime(),
       definitions: srdDefinitions,
       occurrenceId: OCCURRENCE_ID,
       candidates: cases.map((facts) => ({ source, facts }))

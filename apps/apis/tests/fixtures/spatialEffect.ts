@@ -55,7 +55,7 @@ export async function seedSpatialEffect(
       },
       sourceEntryBindings: [{ sourceEntryId: entryId, nodeId: 'damage' }]
     } satisfies RuleGraphDefinition
-    const runtime = await createRulesRuntime(ctx, base.other.userId)
+    const runtime = createRulesRuntime(ctx, base.other.userId)
     const prepared = await runtime.executeResolvedWithGraph?.({
       command: {
         definitionId,

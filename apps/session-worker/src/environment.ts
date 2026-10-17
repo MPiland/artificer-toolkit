@@ -7,7 +7,6 @@ export interface SessionWorkerEnvironment {
   CONVEX_SITE_URL: string
   LIVE_SESSION_ROOMS: DurableObjectNamespace
   LIVE_SESSION_TICKET_SECRET: string
-  RULES_CONTINUATION_SECRET: string
 }
 
 export function allowedOrigins(

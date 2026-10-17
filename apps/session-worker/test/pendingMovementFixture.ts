@@ -73,7 +73,6 @@ export async function insertPendingMovementDecision(
     },
     authority: 'APPLICATION_SERVICE',
     redaction: 'SERVER_ONLY',
-    seal: checksum('b'),
     applicationContext: {
       kind: 'ENCOUNTER_SPATIAL_MOVEMENT',
       schemaVersion: 1,

@@ -132,8 +132,7 @@ export const serverRuleExecutionContinuationDtoSchema = lazySchema(() =>
     // declaration intent is sealed by the aggregate-choice snapshot.
     request: serverRuleIntegerRangeRequestDtoSchema,
     authority: z.literal('APPLICATION_SERVICE'),
-    redaction: z.literal('SERVER_ONLY'),
-    seal: checksumSchema
+    redaction: z.literal('SERVER_ONLY')
   })
 )
 

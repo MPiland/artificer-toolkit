@@ -107,7 +107,7 @@ async function plannedMovementThroughZone() {
     },
     state,
     userId: GM_USER_ID,
-    runtime: await createSrdRulesRuntime(),
+    runtime: createSrdRulesRuntime(),
     random: () => 0,
     spatialScope: scope,
     loadTargets: async (actorIds) =>

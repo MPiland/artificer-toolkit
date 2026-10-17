@@ -68,7 +68,7 @@ const runState = (
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await createSrdRulesRuntime()
+  runtime = createSrdRulesRuntime()
 })
 
 /** A memory store holding the Run's actors, its Scene, the goblin's token and the given zones. */

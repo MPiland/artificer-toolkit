@@ -420,9 +420,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
       )
     })
   )
-  const runtime = await createNativeLiveRulesRuntime(
-    'native-concentration-fixture-continuation-secret'
-  )
+  const runtime = createNativeLiveRulesRuntime()
   const applications = nativeConcentrationParentDamage(parent)
   const application = applications[0]
   if (!application) throw new Error('Missing parent damage application.')
