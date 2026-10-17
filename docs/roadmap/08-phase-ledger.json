@@ -8959,7 +8959,7 @@
             },
             {
               "id": "SPELLS-20.T4b2b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Turn zone stage persistence and play: staged-plan validation, the mechanics batch and the zone application record in the terminal transaction, the generic encounter-persistence seams (pending reads, admission, replay, void and owner, terminal completion), Session Worker and Convex loading of placed zones and the Scene, the SRD flip, ADR 0034 note and persistence.md section; prompted rolls are not undoable. Proved by a Spirit Guardians start journey and an ADVANCE_TURN journey on a real SRD start-of-turn damage zone, with END on a zone authored from core options. Stinking Cloud moves to T4b3; Oil Flask stays MANUAL (requiresIgnition, maxApplicationsTotal).",
               "wsjf": {
@@ -8969,7 +8969,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4b2b1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "CI ci/spells-20-t4b2b2 ea75a0005 (Tests 39039240355, Live backend 39039240344); fast-path merge ded9224a1, backstop ci/merge-m74. Workbook docs/handoffs/slice-spells-20.md. D138 applied: spatialEffectPin.ts deleted; movement refusals proved by movementSpatialZoneSettlement.test.ts (real prepareEncounterSpatialMovement) and encounterSpatialMovementStale.test.ts. START is proved at persistence level; its room journey moves to T4f."
             },
             {
               "id": "SPELLS-20.T4b3",
