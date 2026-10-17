@@ -1076,7 +1076,9 @@ export function withOffHandDamage(
       const offHand = withFreshIds(bonusActionOnly(modifier, 2 * index + 2, 'INCLUDE'), () =>
         childId(0x270, ++node)
       )
-      return [bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'), withZeroMax(offHand)]
+      const mainHand: ModifierGrantAuthored = bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE')
+      const restrictedOffHand: ModifierGrantAuthored = withZeroMax(offHand)
+      return [mainHand, restrictedOffHand]
     })
     .map((modifier, index) => withOrder(modifier, index + 1))
 }
