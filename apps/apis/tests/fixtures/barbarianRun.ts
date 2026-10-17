@@ -39,7 +39,6 @@ export async function setupBarbarianRun(
     automationMode,
     enemy
   })
-  const { actor } = base
   const actions = await base.t.run(async (ctx) => {
     const facts = await loadCharacterSheetFacts(
       ctx,

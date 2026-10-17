@@ -36,7 +36,7 @@
     }
   },
   "rules": {
-    "no-unused-vars": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "ignoreRestSiblings": true }],
     "no-await-in-loop": "off",
     "no-underscore-dangle": "off",
     "typescript/no-explicit-any": "error",
