@@ -345,8 +345,8 @@ live Scene (`prepareEncounterTurnZoneEffects`) and keeps it in the turn result (
 `persistEncounterTurnZoneEffects`, the only zone-specific persistence function: it reads the Encounter's Scene
 binding and the creature's token binding, derives the contacts and the per-turn counter again with the shared
 `selectTurnZoneContacts` (the same function the room used) from the locked effect rows and the room's Scene
-tokens, and refuses a plan whose selection checksum, effect pins or target pins differ (`assertSpatialEffectPin`
-is shared with movement). It applies one `TURN_ZONE_EFFECT` mechanics batch and returns the zone phase evidence
+tokens, and refuses a plan whose selection checksum (which covers each zone's version and placement, D138: a placed
+zone is fixed at placement) or Character target pin differs. It applies one `TURN_ZONE_EFFECT` mechanics batch and returns the zone phase evidence
 that `completeNativeInitiativeOccurrence` stores as `outgoingZoneEffects` / `incomingZoneEffects` on
 `INITIATIVE_COMPLETE`, `BATCH_COMPLETE (ENCOUNTER_TURN_ACTIVE_EFFECTS)` and `TURN_LIFECYCLE_COMPLETE` results; a turn
 without zones stores a result without those fields. The new turn's catches are recorded in the Run state's

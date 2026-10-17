@@ -7,12 +7,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
-import {
-  ENCOUNTER_ID,
-  srdCreatureActor,
-  testUuid,
-  TIMESTAMP
-} from './dnd5eSrdEncounter.js'
+import { ENCOUNTER_ID, srdCreatureActor, testUuid, TIMESTAMP } from './dnd5eSrdEncounter.js'
 import { diceDamage, variantEquipment, zonePlacementOf } from './authoredZoneFixture.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 
@@ -55,7 +50,7 @@ export const root = turnCoordinatorRootDtoSchema.parse({
 
 /** A 5-foot Caltrops-shaped zone whose failed Dexterity save (DC 15) deals 1d4, acting at the given boundaries. */
 export function authoredZone(
-  interactionKinds: ('START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
+  interactionKinds: ('ENTER_SPACE' | 'START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
   maxApplicationsPerTurn?: number
 ): EquipmentAuthored {
   return variantEquipment((parts) => {

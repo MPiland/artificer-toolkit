@@ -20,7 +20,6 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
-import { assertSpatialEffectPin } from './spatialEffectPin.js'
 import {
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState
@@ -79,7 +78,6 @@ export async function persistLiveMovementSpatial(
       effect.definition.frozenGraph.source.gameSystemId !== state.gameSystemId
     )
       throw new Error('Spatial settlement source or target is unavailable.')
-    assertSpatialEffectPin(candidate.effect, effect)
     if (actor.kind === 'CHARACTER') {
       const streamVersion =
         characterBeforeVersions.get(targetActorId) ??

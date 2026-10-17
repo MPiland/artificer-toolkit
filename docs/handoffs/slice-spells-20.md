@@ -11,6 +11,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - T4b2 is split (orchestrator ruling). T4b1 accepted at `18f1e3cc3` (in `ci/merge-m69`). T4b2a (authoring + containment + shared resume helper) is on `ci/spells-20-t4b2a`; T4b2b is the turn stage: one ordered candidate list per boundary, evaluate extending `ENCOUNTER_TURN_ACTIVE_EFFECTS` with a discriminated `ACTIVE_EFFECT | ZONE` candidate (`diceStage` on the zone kind only) and bring the evidence before taking a new context; Spirit Guardians' SRD flip to ENTER + START_TURN lands there. Future enhancement: the creature whose turn it is chooses the order. T4d and T6 wait on T4b2b; T5 is independent.
 - T4b2b1 (schema + rules-runtime: `ENCOUNTER_TURN_ZONE_EFFECTS`, zone phases on the terminal turn result, real zones stage) is done: green `747f4dd0c` on `ci/spells-20-t4b2b1` (phase branch `dafd15cb1` merged), Tests 39020371226 (attempt 2; attempt 1 hit a CharacterSheetRestControl web flake), Live 39020371263. Next: T4b2b2 (persistence seams, Scene loading, `zoneApplications` write, Spirit Guardians SRD flip, journey, ADR 0034 note, `persistence.md`).
 - T4b2b2 (persistence + play: zones act at turn boundaries) is green: `20b0590a6` on `ci/spells-20-t4b2b2`, Tests 39026658401, Live 39026658409. Proved: ADVANCE_TURN START_OF_TURN on real Spirit Guardians, END_OF_TURN on a core-options zone, no-zone byte-identical result, stale-plan refusals at package level. Not proved: a START-command journey (the room harness builds only ACTIVE Runs). Next: T4b3 (Stinking Cloud), T4d, T4e, T6; T5 independent. Zone table below.
+- D138 cleanup (after the T4b2b2 green): `spatialEffectPin.ts` and its movement-persistence call are removed (a placed zone is fixed at placement). Movement still refuses a deleted zone (`movementSpatialZoneSettlement.test.ts`) and a zone or path that changed since a pause (`encounterSpatialMovementStale.test.ts`: zone gone, path misses, zone version bumped, creature changed). The turn path keeps its selection-checksum and 'settlement differs from its plan' refusals.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -135,22 +136,22 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.
 
-| Zone | Trigger | Authored today | Placeable | Exact blocker / verdict |
-|---|---|---|---|---|
-| Spirit Guardians | E+S | ENTER_SPACE, START_TURN_IN_SPACE | yes | Flipped in this slice. Evil-caster necrotic choice: SPELLS-20.T4e. Half speed: T4d |
-| Cloudkill | E+S | bare ZONE | no | No label/shape/component; full zone authoring (SPELLS-4.2 T1a). Drift/obscurement unmodeled |
-| Insect Plague | E+N | bare ZONE | no | Same (T1a) |
-| Incendiary Cloud | E+N | CLOSED_RULE | no | Not a ZONE; no closed-rule compile path (T1c) |
-| Moonbeam | E+S | CLOSED_RULE | no | Same, plus shapechanger rider (T1c) |
-| Blade Barrier | E+S | ENTER_OR_PASS_THROUGH, START_TURN_IN_SPACE | no | WALL/ring shape; `movementCostMultiplier`, `blockingRules`, `hollow`, `wallThickness` unmodeled (T1b) |
-| Wall of Fire | E/N, no save | CLOSED_RULE | no | Not a ZONE; wall geometry; no-save damage (T1b) |
-| Wall of Thorns | E/N | CLOSED_RULE | no | Not a ZONE; wall geometry; movement cost (T1b) |
-| Stinking Cloud | S | START_TURN_IN_SPACE | no | LOSE_ACTION outcome, `requiresFullyWithin`, auto-success conditions (SPELLS-20.T4b3) |
-| Black Tentacles, Web | E+S | bare ZONE | no | RESTRAINED failure outcome (T1d) |
-| Grease, Sleet Storm | E/N | bare ZONE / CLOSED_RULE | no | Prone, no damage row (T1d) |
-| Forbiddance | E+S, no save | bare ZONE | no | No-save damage, creature-type filter, password |
-| Hallow, Control Water (whirlpool), Zone of Truth, Gust of Wind | E+S | bare / CLOSED_RULE | no | Non-damage, multi-mode or push outcomes |
-| Prismatic Wall | proximity, S | ENTER_OR_PASS_THROUGH + `proximityRule` | no | Blinded outcome, proximityRule, multi-component. Named rules-gap exclusion in the corpus test |
-| Oil Flask | E or N, no save | ENTER_OR_PASS_THROUGH, END_TURN_IN_SPACE | no | No-save fixed damage, `requiresIgnition`, 2 components; stays MANUAL |
+| Zone                                                           | Trigger         | Authored today                             | Placeable | Exact blocker / verdict                                                                               |
+| -------------------------------------------------------------- | --------------- | ------------------------------------------ | --------- | ----------------------------------------------------------------------------------------------------- |
+| Spirit Guardians                                               | E+S             | ENTER_SPACE, START_TURN_IN_SPACE           | yes       | Flipped in this slice. Evil-caster necrotic choice: SPELLS-20.T4e. Half speed: T4d                    |
+| Cloudkill                                                      | E+S             | bare ZONE                                  | no        | No label/shape/component; full zone authoring (SPELLS-4.2 T1a). Drift/obscurement unmodeled           |
+| Insect Plague                                                  | E+N             | bare ZONE                                  | no        | Same (T1a)                                                                                            |
+| Incendiary Cloud                                               | E+N             | CLOSED_RULE                                | no        | Not a ZONE; no closed-rule compile path (T1c)                                                         |
+| Moonbeam                                                       | E+S             | CLOSED_RULE                                | no        | Same, plus shapechanger rider (T1c)                                                                   |
+| Blade Barrier                                                  | E+S             | ENTER_OR_PASS_THROUGH, START_TURN_IN_SPACE | no        | WALL/ring shape; `movementCostMultiplier`, `blockingRules`, `hollow`, `wallThickness` unmodeled (T1b) |
+| Wall of Fire                                                   | E/N, no save    | CLOSED_RULE                                | no        | Not a ZONE; wall geometry; no-save damage (T1b)                                                       |
+| Wall of Thorns                                                 | E/N             | CLOSED_RULE                                | no        | Not a ZONE; wall geometry; movement cost (T1b)                                                        |
+| Stinking Cloud                                                 | S               | START_TURN_IN_SPACE                        | no        | LOSE_ACTION outcome, `requiresFullyWithin`, auto-success conditions (SPELLS-20.T4b3)                  |
+| Black Tentacles, Web                                           | E+S             | bare ZONE                                  | no        | RESTRAINED failure outcome (T1d)                                                                      |
+| Grease, Sleet Storm                                            | E/N             | bare ZONE / CLOSED_RULE                    | no        | Prone, no damage row (T1d)                                                                            |
+| Forbiddance                                                    | E+S, no save    | bare ZONE                                  | no        | No-save damage, creature-type filter, password                                                        |
+| Hallow, Control Water (whirlpool), Zone of Truth, Gust of Wind | E+S             | bare / CLOSED_RULE                         | no        | Non-damage, multi-mode or push outcomes                                                               |
+| Prismatic Wall                                                 | proximity, S    | ENTER_OR_PASS_THROUGH + `proximityRule`    | no        | Blinded outcome, proximityRule, multi-component. Named rules-gap exclusion in the corpus test         |
+| Oil Flask                                                      | E or N, no save | ENTER_OR_PASS_THROUGH, END_TURN_IN_SPACE   | no        | No-save fixed damage, `requiresIgnition`, 2 components; stays MANUAL                                  |
 
 No turn text: Sunbeam (saves on cast and new line only), Wall of Ice, Spike Growth, Entangle, Silence, Darkness, Fog Cloud. Not zones: Flaming Sphere (mobile), Guardian of Faith (enter-only). Creature/item auras with turn text are not audited (ATTACK-5.15). Corpus test: `packages/source-data/src/srd/zoneInteractionKinds.test.ts` fails while an authored zone with turn text lacks START/END (bare zones join once authored).
