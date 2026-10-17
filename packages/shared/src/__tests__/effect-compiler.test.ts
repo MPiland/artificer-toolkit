@@ -18,7 +18,7 @@ import {
   SIZE_CODE,
   TRIGGER
 } from '#core'
-import { compileEffectResult } from '#compilers'
+import { compileConditionEffect, compileEffectResult } from '#compilers'
 import { checksumRuleDocument } from '../domains/rules/checksum.js'
 
 function expectNoUndefined(value: unknown): void {
@@ -315,7 +315,8 @@ describe('effect compiler', () => {
           id: 'slowed',
           effectKind: EFFECT_KIND.CONDITION,
           conditionId: 'slowed',
-          recordsSource: false
+          recordsSource: false,
+          fleesSource: false
         }
       },
       {
@@ -335,7 +336,8 @@ describe('effect compiler', () => {
           id: 'poisoned',
           effectKind: EFFECT_KIND.CONDITION,
           conditionId: 'poisoned',
-          recordsSource: false
+          recordsSource: false,
+          fleesSource: false
         }
       }
     ])
@@ -863,5 +865,22 @@ describe('effect compiler', () => {
         actionEconomy: FORCED_MOVEMENT_ACTION_ECONOMY.REACTION
       }
     })
+  })
+})
+
+describe('a condition that flees its source (SPELLS-29.T2)', () => {
+  const authored = {
+    id: 'fear',
+    effectKind: EFFECT_KIND.CONDITION,
+    conditionId: 'frightened'
+  } as const
+
+  it('compiles an authored fleesSource and states false when it is not authored', () => {
+    expect(
+      compileConditionEffect({ ...authored, recordsSource: true, fleesSource: true })
+    ).toMatchObject([{ recordsSource: true, fleesSource: true }])
+    expect(compileConditionEffect({ ...authored, recordsSource: true })).toMatchObject([
+      { fleesSource: false }
+    ])
   })
 })

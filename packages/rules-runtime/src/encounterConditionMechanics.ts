@@ -347,6 +347,52 @@ export function encounterConditionSources(
 }
 
 /**
+ * The creatures the holder must Dash away from, sorted and unique: the recorded source of each
+ * held condition whose owning effect authored `fleesSource` (SPELLS-29.T2).
+ */
+export function encounterConditionFleeSources(target: {
+  state: Pick<MovementTarget['state'], 'conditions'>
+  activeEffects: MovementTarget['activeEffects']
+}): string[] {
+  const held = new Set(target.state.conditions)
+  return [
+    ...new Set(
+      target.activeEffects.flatMap(({ definition }) =>
+        (definition.schemaVersion === 2 ? definition.stateContributions : []).flatMap(
+          (contribution) =>
+            contribution.kind === 'CONDITION_OWNERSHIP' &&
+            held.has(contribution.conditionId) &&
+            !contribution.baselinePresent &&
+            contribution.fleesSource &&
+            contribution.sourceActorId
+              ? [contribution.sourceActorId]
+              : []
+        )
+      )
+    )
+  ].sort()
+}
+
+/**
+ * The warning for an action that is not Dash, taken by a creature that must Dash away from a source
+ * (a bonus action or reaction is no substitute for the Action the Dash needs).
+ */
+export function encounterFleeActionWarnings(input: {
+  sourceActorIds: readonly string[]
+  activationCode: string
+  dash: boolean
+}): EncounterRuleWarningDto[] {
+  return input.sourceActorIds.length > 0 && input.activationCode === 'ACTION' && !input.dash
+    ? [
+        {
+          code: 'CONDITION_SOURCE_FLEE',
+          message: 'This creature must take the Dash action to move away from the source of a condition.'
+        }
+      ]
+    : []
+}
+
+/**
  * The mechanics that apply while the holder sees what it sees: a sight-gated roll mode of a sourced
  * condition applies only while the holder sees one of its sources; unsourced, it always applies.
  */

@@ -84,7 +84,16 @@ const room = (): HeldEncounterSession => ({
     encounter: tabletopGmEncounter,
     pending: null,
     waitingOn: null,
-    turnMovement: [{ actorId: emberActor.id, used: 0, speedId: null, allowances: [], teleport }],
+    turnMovement: [
+      {
+        actorId: emberActor.id,
+        used: 0,
+        speedId: null,
+        allowances: [],
+        fleeSourceActorIds: [],
+        teleport
+      }
+    ],
     halfSpeedFields: [],
     auras: []
   },

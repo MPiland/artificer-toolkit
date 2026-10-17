@@ -257,7 +257,9 @@ const activeRuleEffectConditionContributionDtoSchema = lazySchema(() =>
     conditionId: uuidSchema,
     baselinePresent: z.boolean(),
     /** The creature whose action applied the condition, when it authored `recordsSource`. */
-    sourceActorId: z.optional(uuidSchema)
+    sourceActorId: z.optional(uuidSchema),
+    /** The holder must Dash away from `sourceActorId` (the condition authored `fleesSource`). */
+    fleesSource: z.optional(z.literal(true))
   })
 )
 

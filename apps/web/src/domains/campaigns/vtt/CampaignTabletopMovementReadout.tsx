@@ -10,7 +10,8 @@ import {
  * speed type's allowance (SPELLS-5.6); an actor with several speed types also names the type and
  * offers a choice between them. Movement is shown, never enforced: past the allowance Assisted uses
  * the soft-warning style, and Manual shows the number only. An actor holding a cast's teleport
- * (Misty Step, SPELLS-28.2) also gets a switch that sends its next drag as that teleport.
+ * (Misty Step, SPELLS-28.2) also gets a switch that sends its next drag as that teleport. An actor
+ * that must flee the source of a condition (Fear, SPELLS-29.T2) is told to Dash away from it.
  */
 export function CampaignTabletopMovementReadout({
   automationMode,
@@ -50,6 +51,11 @@ export function CampaignTabletopMovementReadout({
           size='xs'
           onChange={(event) => onTeleportChange(event.currentTarget.checked)}
         />
+      ) : null}
+      {movement.fleeSourceActorIds.length > 0 ? (
+        <Badge color='red' size='lg' tt='none' variant='light'>
+          Dash away from the source
+        </Badge>
       ) : null}
       <Badge
         aria-live='polite'

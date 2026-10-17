@@ -71,7 +71,8 @@ const walking = (
   used,
   speedId: null,
   allowances: [expect.objectContaining({ code: 'WALK', budget })],
-  teleport
+  teleport,
+  fleeSourceActorIds: []
 })
 
 /** A Misty Step cast this turn, not yet spent by a move; and a Dimension Door a move already spent. */

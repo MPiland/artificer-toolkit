@@ -87,7 +87,11 @@ export async function carryOverRunGrants(
     const actor = readStoredRunActor(row)
     if (actor.kind !== 'CHARACTER') continue
     const owner = { kind: 'CHARACTER', characterId: actor.sourceId } as const
-    const carried = planCarriedOverEffects({ effects: await store.list(owner), clockMinute })
+    const carried = planCarriedOverEffects({
+      effects: await store.list(owner),
+      clockMinute,
+      form: actor.form
+    })
     for (const { effect, lifecycle } of carried)
       await store.updateLifecycleCas({
         id: effect.id,

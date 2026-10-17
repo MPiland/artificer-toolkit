@@ -87,6 +87,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Fleeing a source (SPELLS-29.T2):** the `CONDITION_SOURCE_FLEE` warning covers an Action other than Dash taken through `RESOLVE_ACTION` and area actions. Disarm, escapes and held-grant flows do not warn, and the rider never inspects the distance a move actually covers after the Dash.
 - **Trait invisibility that also ends on using a named action (SPELLS-27.T10).** The Quasit (Scare), Will-o'-Wisp (Consume Life) and Duergar (Enlarge) invisibility also ends when the creature uses that action. No end event covers using a named action, so it ends only on an attack, a cast or Concentration; the GM undoes it by hand. Rare; fix with an action-used end event if it arises.
 - **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
 - **A maintained-state owner Character that is not a Run actor has no room fixture (ROOM-6.T2, D-pending-room-6-t2).** The room test covers a GM-removed Character (D82; still a Run actor) but not a Character absent from the Run's actors: the memory store's `effects.create` requires the target actor in the Run, and the fixture lists Character dependents only through Run actors. Production loads such an owner through `maintenanceCharacterOwnersAtLoad`, the same path the GM-removed case exercises. Fix by seeding a `CHARACTER`-owned effect when the fixture gains a Character table.
@@ -285,6 +286,8 @@ MOVE-3 ships the small version: the GM places zones through the zone node map, t
 Raised by the user on 2026-10-14 during the hazards and traps design; post-launch.
 
 ## Other future enhancements (parked)
+
+- Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
 
 ### Adventure Module Packages
 
