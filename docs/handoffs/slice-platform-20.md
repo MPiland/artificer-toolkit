@@ -1,6 +1,6 @@
 # Slice workbook: PLATFORM-20 (one flat compile stage: no dead or copy-only compilers)
 
-**Status:** T1 green on `57625a799`, in merge batch m62 (`ci/merge-m62`, 21d8d8206). T2 (typed fold `scope`/`domain`/`payload`, AC 20.3) in progress on `claude/platform-20-t2` from the T1 tip (2026-10-16).
+**Status:** T1 merged in m62 (21d8d8206); 20.1 and 20.2 DONE. **T2 green** on `c1a2fcfad` (`claude/platform-20-t2`, `ci/platform-20-t2`); 20.3 and 20.4 ready to close (2026-10-16).
 **Base:** `claude/sweet-cartwright-3b0fe8` at ea6b4a50f.
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0003](../adr/0003-vocabulary-authored-compiled-engine-data.md), [engine.md](../architecture/engine.md).
 
@@ -17,6 +17,8 @@
 9. Stored rows: `apps/apis/convex/rules/modifierOperationMigration.ts` rewrites frozen operations in `characterActiveRuleEffects`, `encounterActiveRuleEffects` and `encounterSpatialRuleEffects` from their compiled-grant dump (grant compiler plus fold fact builder), validates the definition and re-checksums it; idempotent, with `modifierOperationMigration.test.ts`. Run it once on the local backend after deploy (`rules/modifierOperationMigration:run`).
 10. Not migrated: immutable copies of old definitions in rule receipts (`consumedGrants`, `endedEffect`, `consumedSpatialEffects`), pending snapshot parts and Session Worker room storage. They are chained and checksummed history, so the standard local reset clears them rather than a rewrite. A rewritten spatial `definitionChecksum` also no longer matches a pending occurrence pinned to the old one.
 11. Byte budgets: an operation now carries `scope`, `payload` and `scopeResourceIds` instead of a copy of the whole compiled grant (id, order, kinds, domain, payload, authored restrictions), and contributions no longer repeat the grant, so the fold output and frozen definitions only shrink under the 240,000-character fold caps.
+12. T2 red `784bb8c4a` on `ci/platform-20-t2-red`: Tests 38996674304 failed as expected, Live 38996674222 green. Green attempt 1 `a97238e19` failed TS2322 (the compiled payload type admitted the `CHARGE_LIMIT` option payload); `d3ca3f665` narrowed `CompiledModifierGrant.payload` to reachable payloads. Its Tests run failed on `payload: undefined` in checksummed rule documents and stale `.grant` reads from the phase merge; `c1a2fcfad` omits the key and reads typed payloads. Live auto-fix committed generated drift as `b3da4bf0f`.
+13. **T2 green** on `c1a2fcfad`: Tests 38998774898, Live 38998774862. Next: the orchestrator merges T2, then run `rules/modifierOperationMigration:run` once on the local backend after deploy.
 
 ## ACs
 
