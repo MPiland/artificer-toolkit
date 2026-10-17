@@ -4162,7 +4162,8 @@
                 "rr": 5,
                 "size": 8
               },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              "activeWorkbook": "docs/handoffs/slice-room-6.md",
+              "note": "Projection-budget gate cleared: stored actors keep identity in row columns only (actorIdentityMigration). Red ci/room-6-budget-red 8cf39bdf5 (Tests 38978140021, 255280 > 230400); green 50e365a3f (Tests 38984324373, Live 38984286163); merged in m59 ea6b4a50f (Tests 38986074614, Live 38986074610). 100-actor read 226707 B OWNER / 227378 B PLAYER."
             },
             {
               "id": "ROOM-6.T4",
