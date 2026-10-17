@@ -37,7 +37,7 @@ import {
   insertConversationEntry,
   openConversation,
   presentChatEntry,
-  readEntryPayload,
+  readConversationEntryReplay,
   readCampaignAccessTime
 } from './conversationDocuments'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
@@ -94,30 +94,6 @@ async function evaluateCampaignRoll(
 
 type CampaignAuthority = Awaited<ReturnType<typeof requireCampaignAuthority>>
 type ConversationAccess = Awaited<ReturnType<typeof openConversation>>
-
-/** Returns the caller's existing roll entry for this nonce so retries never roll or post twice. */
-async function readRollReplay(
-  ctx: QueryCtx,
-  campaignId: string,
-  userId: string,
-  { conversation, member }: ConversationAccess,
-  clientNonce: string,
-  kind: 'ROLL' | 'ROLL_NOTICE' = 'ROLL'
-) {
-  const header = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
-      q.eq('campaignId', campaignId).eq('authorUserId', userId).eq('clientNonce', clientNonce)
-    )
-    .unique()
-  if (!header) return null
-  if (header.conversationId !== conversation.id)
-    throw new Error('Chat nonce was used in another conversation.')
-  if (header.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
-  const payload = await readEntryPayload(ctx, header.id)
-  if (payload.kind !== kind) throw new Error('Chat nonce was used for a different entry kind.')
-  return { header, payload }
-}
 
 async function insertRollEntry(
   ctx: MutationCtx,
@@ -186,7 +162,7 @@ export const execute = mutation({
         ? await openConversation(ctx, authority, 'TABLE')
         : await openConversation(ctx, authority, 'DIRECT', authority.campaign.ownerUserId)
     const clientNonce = input.clientNonce.toLowerCase()
-    const replay = await readRollReplay(ctx, authority.campaign.id, userId, access, clientNonce)
+    const replay = await readConversationEntryReplay(ctx, access, userId, clientNonce, 'ROLL')
     if (replay)
       return presentChatEntry(
         ctx,
@@ -302,11 +278,10 @@ export const reveal = mutation({
       throw new Error('Roll not found.')
     const access = await openConversation(ctx, authority, 'TABLE')
     const nonce = input.mode === 'FULL' ? retained.id : rollNoticeNonce(retained.id)
-    const replay = await readRollReplay(
+    const replay = await readConversationEntryReplay(
       ctx,
-      authority.campaign.id,
-      userId,
       access,
+      userId,
       nonce,
       input.mode === 'FULL' ? 'ROLL' : 'ROLL_NOTICE'
     )

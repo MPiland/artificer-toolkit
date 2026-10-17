@@ -52,7 +52,7 @@ import {
   assertCampaignGmSheetCommandAllowed
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
-import { endedMaintenanceConditions } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
@@ -474,16 +474,18 @@ export async function executeCharacterSheetCommand(
     const remaining = await createActiveRuleEffectStore({
       db: createConvexEncounterStore(ctx)
     }).list({ kind: 'CHARACTER', characterId: initial.active.id })
-    // The conditions only the ended effects held end with them (SPELLS-5.14).
-    const ended = endedMaintenanceConditions(
-      initial.activeEffects.filter(({ id }) => !remaining.some((effect) => effect.id === id)),
+    // The ended effects settle the Character as every effect end does (SPELLS-5.14, QUALITY-1.T1).
+    const settled = settleCharacterEndedEffects({
+      state: updated.state,
+      maximumHitPoints: initial.active.play.maximumHitPoints,
+      removed: initial.activeEffects.filter(
+        ({ id }) => !remaining.some((effect) => effect.id === id)
+      ),
       remaining
-    )
-    if (ended.size > 0) {
-      const conditions = (updated.state.conditions ?? []).filter(
-        ({ conditionTypeId }) => !ended.has(conditionTypeId)
-      )
-      updated.state.conditions = conditions.length > 0 ? conditions : undefined
+    })
+    if (settled.changed) {
+      updated.state.conditions = settled.conditions
+      updated.state.hitpoints = settled.hitpoints
     }
   }
 
@@ -528,9 +530,7 @@ export async function executeCharacterSheetCommand(
     (command.type === 'UPSERT_SHEET_ADJUSTMENT' && command.adjustment.family === 'HIT_POINTS') ||
     (command.type === 'REMOVE_SHEET_ADJUSTMENT' && command.family === 'HIT_POINTS') ||
     (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' && command.target.kind === 'HIT_POINTS') ||
-    (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined) ||
-    command.type === 'END_ACTIVE_EFFECT' ||
-    command.type === 'END_CONCENTRATION'
+    (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined)
   const clampedHitPoints = clampCharacterCurrentHitPoints(
     updated.state.hitpoints.current,
     current.sheet.overview.maxHitPoints

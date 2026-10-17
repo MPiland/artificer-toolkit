@@ -332,7 +332,12 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
           section: EQUIPMENT_SECTIONS.properties,
           order: 90,
           showIf: isBaseEquipment,
-          hiddenBehavior: 'CLEAR'
+          hiddenBehavior: 'CLEAR',
+          // D143: armor and shields author their Armor Class.
+          requiredIf: logic.or([
+            local.field(['category']).eq(EQUIPMENT_CATEGORY_CODE.ARMOR),
+            local.field(['category']).eq(EQUIPMENT_CATEGORY_CODE.SHIELD)
+          ])
         })
       )
       .set(

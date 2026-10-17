@@ -28,7 +28,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
 import {
-  requireCreatureArmorClass,
+  requireDnd5eArmorClass,
   resolveDnd5eCreatureArmorClass
 } from './systems/dnd5e/armorClass.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
@@ -120,7 +120,7 @@ export function snapshotStatBlock(actor: {
       typeof naturalArmorBonus === 'number' &&
       Number.isInteger(naturalArmorBonus) &&
       naturalArmorBonus >= 0
-        ? requireCreatureArmorClass(
+        ? requireDnd5eArmorClass(
             resolveDnd5eCreatureArmorClass({
               dexterityScore,
               naturalArmorBonus,
@@ -187,7 +187,11 @@ export function characterFormStatBlock(
 ) {
   return actor.form === null
     ? null
-    : snapshotStatBlock({ kind: 'CREATURE', systemId: actor.systemId, snapshot: actor.form.snapshot })
+    : snapshotStatBlock({
+        kind: 'CREATURE',
+        systemId: actor.systemId,
+        snapshot: actor.form.snapshot
+      })
 }
 
 /** The form as a stored actor holds it: the origin snapshot named by checksum, not carried. */
@@ -398,7 +402,8 @@ function projectGmFacts(
         absence: actor.absence,
         resources: actor.resources,
         gmNotes: actor.gmNotes,
-        statBlock: (actor.kind === 'CHARACTER' ? characterFormStatBlock(actor) : source?.statBlock) ?? null,
+        statBlock:
+          (actor.kind === 'CHARACTER' ? characterFormStatBlock(actor) : source?.statBlock) ?? null,
         features: (source?.features ?? []).map((feature) => ({
           ...feature,
           resource: resources.get(feature.id) ?? null

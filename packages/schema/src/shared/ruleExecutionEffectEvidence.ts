@@ -7,6 +7,7 @@ import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsTargetStateDtoSchema
 } from './ruleExecutionMechanics.js'
+import { encounterActionEconomyTransitionDtoSchema } from './ruleExecutionEncounterApplications.js'
 import { serverRuleExecutionD20EvidenceDtoSchema } from './ruleExecutionEvidence.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import {
@@ -348,6 +349,8 @@ export const spatialTurnExecutionDtoSchema = lazySchema(() =>
         .check(z.gte(0))
         .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
       candidate: spatialTurnCandidateDtoSchema,
+      /** The Action the creature lost by failing the zone's save; null when it lost none. */
+      actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
       ...spatialExecutionEvidenceFields()
     })
     .check(z.superRefine(refineSpatialExecutionEvidence))

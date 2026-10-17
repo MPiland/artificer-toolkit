@@ -5,7 +5,11 @@ import {
   campaignStoredEntryPayloadSchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { insertConversationEntry, openConversation } from './conversationPersistence.js'
+import {
+  insertConversationEntry,
+  openConversation,
+  readConversationEntryReplay
+} from './conversationPersistence.js'
 import type { CampaignAuthority } from './ports.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 
@@ -19,9 +23,6 @@ export async function insertPreEvaluatedCampaignTableRoll(
   callbacks: {
     requireAuthenticatedUsername(userId: string): Promise<string>
     requirePeerAuthority(campaignId: string, userId: string): Promise<CampaignAuthority>
-    readEntryPayload(
-      entryId: string
-    ): Promise<ReturnType<typeof campaignStoredEntryPayloadSchema.parse>>
     readCampaignAccessTime(campaign: CampaignAuthority['campaign']): Promise<number>
     consumeConversationRate(userId: string): Promise<void>
     presentChatEntry(
@@ -33,30 +34,13 @@ export async function insertPreEvaluatedCampaignTableRoll(
   }
 ): Promise<CampaignChatEntryDto> {
   const username = await callbacks.requireAuthenticatedUsername(userId)
-  const { conversation, member } = await openConversation(
-    ctx,
-    authority,
-    'TABLE',
-    callbacks.requirePeerAuthority
-  )
+  const access = await openConversation(ctx, authority, 'TABLE', callbacks.requirePeerAuthority)
+  const { conversation } = access
   const normalizedNonce = clientNonce.toLowerCase()
-  const prior = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
-      q
-        .eq('campaignId', authority.campaign.id)
-        .eq('authorUserId', userId)
-        .eq('clientNonce', normalizedNonce)
-    )
-    .unique()
+  const prior = await readConversationEntryReplay(ctx, access, userId, normalizedNonce, 'ROLL')
   if (prior) {
-    if (prior.conversationId !== conversation.id)
-      throw new Error('Chat nonce was used in another conversation.')
-    if (prior.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
-    const payload = await callbacks.readEntryPayload(prior.id)
+    const { payload } = prior
     if (
-      payload.entryId !== prior.id ||
-      payload.kind !== 'ROLL' ||
       payload.roll === null ||
       checksumCanonicalJson(payload.roll) !== checksumCanonicalJson(roll) ||
       payload.authorUsername !== username ||
@@ -69,7 +53,7 @@ export async function insertPreEvaluatedCampaignTableRoll(
     )
       throw new Error('Chat nonce was used with a different roll.')
     return callbacks.presentChatEntry(
-      prior,
+      prior.header,
       payload,
       conversation,
       authority.campaign.contentMaturity

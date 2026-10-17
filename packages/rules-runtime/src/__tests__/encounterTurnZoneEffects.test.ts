@@ -1,5 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  type EncounterRunActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { initiativeCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResultBranches'
@@ -16,9 +19,13 @@ import {
   ENCOUNTER_ID,
   srdCreatureActor,
   srdCreatureTarget,
+  srdDefinitions,
   srdEncounterState
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from '../encounterActorState.js'
+import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { failedSaveOnly, losesAction, lostActionOutcome } from '../testing/authoredZoneFixture.js'
 import { roundAt } from './encounterInitiativeFixtures.js'
 import {
   actorIdByTokenId,
@@ -27,6 +34,7 @@ import {
   authoredZone,
   END,
   GM_USER_ID,
+  goblin,
   GOBLIN_ID,
   OCCURRENCE_ID,
   placedZone,
@@ -72,6 +80,7 @@ function prepare(input: {
     loadTarget: async (actorId) =>
       srdCreatureTarget(sceneActors.find((actor) => actor.id === actorId)!),
     createRuntime: async () => runtime,
+    definitions: srdDefinitions,
     random: () => 0,
     autoRollByActorId: input.autoRollByActorId ?? AUTO_ROLL,
     ...(input.pending ? { pending: input.pending } : {}),
@@ -294,6 +303,94 @@ describe('a zone that catches only some creatures (SPELLS-20 T4b3a)', () => {
     expect(failed!.targetTransition.after.currentHitPoints).toBe(
       failed!.targetTransition.before.currentHitPoints - 1
     )
+  })
+})
+
+describe('a zone whose failed save costs the Action (SPELLS-20 T4b3b, D141)', () => {
+  const lostActionZone = (offset: number, componentOptions = {}) =>
+    placedZone(
+      offset,
+      authoredZone(
+        ['START_TURN_IN_SPACE'],
+        undefined,
+        componentOptions,
+        failedSaveOnly(lostActionOutcome())
+      ),
+      1
+    )
+  const actionsUsed = (list: readonly EncounterRunActorState[], id: string) =>
+    encounterRuleUsageUsed(
+      list.find((actor) => actor.id === id)!,
+      ACTION
+    )
+
+  it('spends the unspent Action of a creature failing the save at the start of its turn', async () => {
+    const phase = await complete(prepare({ zones: [lostActionZone(0x3a1)], boundary: START }))
+    const [execution] = phase.plan!.executions
+    expect(execution).toMatchObject({
+      applications: [],
+      actionEconomy: { definitionId: ACTION, maximum: 1, beforeUsed: 0, afterUsed: 1 }
+    })
+    expect(execution!.execution.outputs.resultPath).toBe('ON_SAVE_FAIL')
+    expect(execution!.targetTransition.after).toEqual(execution!.targetTransition.before)
+    expect(actionsUsed(actors, GOBLIN_ID)).toBe(0)
+    expect(actionsUsed(phase.actors, GOBLIN_ID)).toBe(1)
+    expect(actionsUsed(phase.actors, SOURCE_ID)).toBe(0)
+  })
+
+  it('spends nothing when the Action is already spent', async () => {
+    const spentGoblin = encounterRunActorStateSchema.parse({
+      ...goblin,
+      resources: withEncounterRuleUsageUsed(goblin, ACTION, 1)
+    })
+    const phase = await complete(
+      prepare({ zones: [lostActionZone(0x3a1)], boundary: START, actors: [spentGoblin, source] })
+    )
+    expect(phase.plan!.executions[0]!.actionEconomy).toBeNull()
+    expect(actionsUsed(phase.actors, GOBLIN_ID)).toBe(1)
+  })
+
+  it('spends the Action once when two such zones catch the creature at one boundary', async () => {
+    const phase = await complete(
+      prepare({ zones: [lostActionZone(0x3a1), lostActionZone(0x3a2)], boundary: START })
+    )
+    expect(
+      phase.plan!.executions.map(({ actionEconomy }) => actionEconomy?.afterUsed ?? null)
+    ).toEqual([1, null])
+    expect(actionsUsed(phase.actors, GOBLIN_ID)).toBe(1)
+  })
+
+  it('spends nothing on a made save', async () => {
+    const skeleton = srdCreatureActor({
+      id: GOBLIN_ID,
+      creature: srdByLabel(SRD.creatures, 'Skeleton')
+    })
+    // The Skeleton is immune to poison, so it makes the save without a roll.
+    const zone = lostActionZone(0x3a1, {
+      automaticSaveSuccessImmunityDamageTypeId: SRD_DAMAGE_TYPES.find(
+        ({ code }) => code === 'POISON'
+      )?.id
+    })
+    const phase = await complete(
+      prepare({ zones: [zone], boundary: START, actors: [skeleton, source] })
+    )
+    const [execution] = phase.plan!.executions
+    expect(execution!.execution.outputs.resultPath).toBe('ON_SAVE_SUCCESS')
+    expect(execution!.actionEconomy).toBeNull()
+    expect(actionsUsed(phase.actors, GOBLIN_ID)).toBe(0)
+  })
+
+  it('deals the failed save’s damage and spends the Action together', async () => {
+    const zone = placedZone(
+      0x3a1,
+      authoredZone(['START_TURN_IN_SPACE'], undefined, {}, losesAction),
+      1
+    )
+    const phase = await complete(prepare({ zones: [zone], boundary: START }))
+    const [execution] = phase.plan!.executions
+    expect(execution!.actionEconomy).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
+    expect(hitPoints(phase.actors, GOBLIN_ID)).toBe(hitPoints(actors, GOBLIN_ID)! - 1)
+    expect(actionsUsed(phase.actors, GOBLIN_ID)).toBe(1)
   })
 })
 

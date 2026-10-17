@@ -14,6 +14,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
+import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { readRunActor } from './documents.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -102,7 +103,7 @@ export async function persistEncounterTurnZoneEffects(
     if (plan) throw stale()
     return null
   }
-  const { contacts, selectionChecksum } = selected
+  const { contacts, effects, selectionChecksum } = selected
   if (!plan || plan.selectionChecksum !== selectionChecksum) throw stale()
   const { executions } = plan
   if (executions.length !== contacts.length) throw stale()
@@ -113,8 +114,15 @@ export async function persistEncounterTurnZoneEffects(
       ? await readLiveCharacterStreamVersion(ctx, state, actor.sourceId)
       : null
   const applications: EncounterMechanicsBatchInput['applications'][number][] = []
-  for (const execution of executions) {
+  for (const [ordinal, execution] of executions.entries()) {
     const { candidate } = execution
+    // Only a failed save of a zone that costs the Action spends one (D141).
+    if (
+      execution.actionEconomy &&
+      (!effects[ordinal]!.placement.failedSaveLosesAction ||
+        execution.execution.outputs.resultPath !== 'ON_SAVE_FAIL')
+    )
+      throw new Error('Staged turn zone action economy is stale.')
     if (
       actor.kind === 'CHARACTER'
         ? candidate.target.kind !== 'CHARACTER' ||
@@ -165,8 +173,16 @@ export async function persistEncounterTurnZoneEffects(
     (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
   )
     throw new Error('Turn zone settlement differs from its plan.')
+  let settledActor = applied.updatedActor
+  for (const { actionEconomy } of executions)
+    if (actionEconomy)
+      settledActor = await consumeNativeActionEconomy(ctx, {
+        actor: settledActor,
+        consumption: actionEconomy,
+        overridden: false
+      })
   return {
-    actor: applied.updatedActor,
+    actor: settledActor,
     phase: executedTurnZonePhaseEvidenceDtoSchema.parse({
       kind: 'EXECUTED',
       selectionChecksum,

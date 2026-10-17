@@ -146,6 +146,40 @@ export async function openConversation(
 }
 
 /**
+ * The author's earlier entry for this client nonce, so a retry replays it instead of posting twice;
+ * null for a new nonce. A nonce used in another conversation or for another entry kind is refused,
+ * and an entry from before the member's access cutoff is not theirs to read.
+ */
+export async function readConversationEntryReplay(
+  ctx: EncounterReadContext,
+  { conversation, member }: NonNullable<Awaited<ReturnType<typeof conversationAccess>>>,
+  authorUserId: string,
+  clientNonce: string,
+  kind: EncounterDocument<'campaignConversationEntryPayloads'>['kind']
+) {
+  const header = await ctx.db
+    .query('campaignConversationEntries')
+    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
+      q
+        .eq('campaignId', conversation.campaignId)
+        .eq('authorUserId', authorUserId)
+        .eq('clientNonce', clientNonce)
+    )
+    .unique()
+  if (!header) return null
+  if (header.conversationId !== conversation.id)
+    throw new Error('Chat nonce was used in another conversation.')
+  if (header.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
+  const payload = await ctx.db
+    .query('campaignConversationEntryPayloads')
+    .withIndex('by_entryId', (q) => q.eq('entryId', header.id))
+    .unique()
+  if (!payload) throw new Error('Stored conversation payload is unavailable.')
+  if (payload.kind !== kind) throw new Error('Chat nonce was used for a different entry kind.')
+  return { header, payload }
+}
+
+/**
  * Text and rolls write both halves of an entry together in the caller's transaction. Entries read
  * back by (createdAt, id), so an entry is stamped at least 1 ms after the conversation's newest one:
  * same-millisecond writers keep insertion order instead of falling to the random id. Returns the

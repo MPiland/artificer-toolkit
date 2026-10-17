@@ -295,8 +295,9 @@ describe('native Character item custody', () => {
     expect(state.equipment.inventory[0]?.id).not.toBe(bagId)
     expect(state.equipment.equipped).toEqual([])
     expect(state.equipment.attuned).toEqual([])
-    expect(state.creatureEquipment?.[idFor(5)]).toEqual([])
-    expect(state.vehicleEquipment?.[idFor(6)]).toEqual([])
+    // An emptied roster is dropped, as Character source loss drops it (QUALITY-1.T1).
+    expect(state.creatureEquipment).toBeUndefined()
+    expect(state.vehicleEquipment).toBeUndefined()
     expect(after.items.map((item) => item.id)).toEqual(
       expect.arrayContaining([bagId, pouchId, clubId])
     )

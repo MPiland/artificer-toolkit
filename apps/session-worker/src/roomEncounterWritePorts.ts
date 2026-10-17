@@ -87,14 +87,6 @@ export async function roomEncounterWriteTransaction(
               return username
             },
             requirePeerAuthority: read.ports.requireCampaignAuthority,
-            readEntryPayload: async (entryId) => {
-              const payload = await store.store
-                .query('campaignConversationEntryPayloads')
-                .withIndex('by_entryId', (q) => q.eq('entryId', entryId))
-                .unique()
-              if (!payload) throw new Error('Stored conversation payload is unavailable.')
-              return payload
-            },
             readCampaignAccessTime: async (campaign) => {
               const members = await readActiveCampaignMembers(
                 store.store.query('campaignMemberships'),

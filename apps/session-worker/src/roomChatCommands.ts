@@ -1,7 +1,8 @@
 import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
 import {
   openConversation,
-  insertConversationEntry
+  insertConversationEntry,
+  readConversationEntryReplay
 } from '@artificer-toolkit/encounter-persistence/conversationPersistence'
 import { presentChatEntries } from '@artificer-toolkit/encounter-persistence/conversationPresentation'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -45,7 +46,8 @@ export class CampaignChatCommandError extends Error {}
  * written together through the shared conversation writer, so the room's next checkpoint carries
  * both; the caller commits the receipt, rate charge and sequence in the same transaction. A GM's
  * private roll posts no entry: it is retained in the room (`privateRoll`, for the GM alone) until a
- * reveal posts its card or only a notice to the TABLE (Q14, D83).
+ * reveal posts its card or only a notice to the TABLE (Q14, D83). A message or roll whose nonce
+ * already posted an entry, before this epoch's journal, replays that entry (`replayed`, free).
  */
 export async function executeRoomCampaignChatCommand(input: {
   store: RoomEncounterStore
@@ -61,6 +63,7 @@ export async function executeRoomCampaignChatCommand(input: {
   entry: CampaignChatEntryDto | null
   privateRoll: RollHistoryEntryDto | null
   recipientUserIds: string[]
+  replayed: boolean
 }> {
   const { store, transaction, inputs, authorization } = input
   const campaignId = postgresUuidSchema.parse(input.campaignId)
@@ -194,7 +197,8 @@ export async function executeRoomCampaignChatCommand(input: {
       return {
         entry: null,
         privateRoll: presentRetainedRoll({ ...record, gmCampaignRoll }, campaign.contentMaturity),
-        recipientUserIds: [userId]
+        recipientUserIds: [userId],
+        replayed: false
       }
     }
     const { rollId, mode } = command.input
@@ -226,29 +230,55 @@ export async function executeRoomCampaignChatCommand(input: {
       ...retained,
       gmCampaignRoll: withRollRevealed(gmCampaignRoll, mode, entry.createdAt)
     })
-    return { entry, privateRoll: null, recipientUserIds: tableRecipients('TABLE') }
+    return {
+      entry,
+      privateRoll: null,
+      recipientUserIds: tableRecipients('TABLE'),
+      replayed: false
+    }
   }
 
+  if (
+    command.type === 'EXECUTE_ROLL' &&
+    command.input.destination === 'GM' &&
+    membership.role === 'OWNER'
+  )
+    throw new CampaignChatCommandError('The GM rolls privately instead of to the GM.')
+  const access =
+    command.type === 'SEND_CHAT'
+      ? await openConversation(
+          ctx,
+          authority,
+          command.input.room,
+          requirePeer,
+          command.input.directUserId
+        )
+      : command.input.destination === 'TABLE'
+        ? await openConversation(ctx, authority, 'TABLE', requirePeer)
+        : await openConversation(ctx, authority, 'DIRECT', requirePeer, campaign.ownerUserId)
+  const recipientUserIds =
+    access.conversation.kind === 'DIRECT'
+      ? access.conversation.participantUserIds
+      : tableRecipients(access.conversation.kind)
   const clientNonce = command.commandId.toLowerCase()
-  // A nonce sent before this epoch has no journal receipt to replay.
-  const prior = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
-      q.eq('campaignId', campaignId).eq('authorUserId', userId).eq('clientNonce', clientNonce)
-    )
-    .unique()
-  if (prior) throw new CampaignChatCommandError('This message was already sent.')
+  // A nonce sent before this epoch has no journal receipt; its entry replays as Convex replays it.
+  const prior = await readConversationEntryReplay(
+    ctx,
+    access,
+    userId,
+    clientNonce,
+    command.type === 'SEND_CHAT' ? 'CHAT' : 'ROLL'
+  )
+  if (prior) {
+    const [entry] = presentChatEntries([prior], access.conversation, campaign.contentMaturity, [
+      username
+    ])
+    return { entry: entry!, privateRoll: null, recipientUserIds, replayed: true }
+  }
 
-  const { access, content } = await (async () => {
+  const content = await (async () => {
     if (command.type === 'SEND_CHAT') {
       const chat = command.input
-      const access = await openConversation(
-        ctx,
-        authority,
-        chat.room,
-        requirePeer,
-        chat.directUserId
-      )
       const character =
         chat.mode === 'ROLEPLAY'
           ? await assignedCharacterId(chat.assignedCharacterId!.toLowerCase())
@@ -257,35 +287,19 @@ export async function executeRoomCampaignChatCommand(input: {
       if (character && character.userId !== userId)
         throw new CampaignChatCommandError('Assigned Character is unavailable.')
       return {
-        access,
-        content: {
-          kind: 'CHAT' as const,
-          mode: chat.mode,
-          body: chat.body,
-          character: character && { id: character.id, label: character.label }
-        }
+        kind: 'CHAT' as const,
+        mode: chat.mode,
+        body: chat.body,
+        character: character && { id: character.id, label: character.label }
       }
     }
-    const { roll, destination } = command.input
-    if (destination === 'GM' && membership.role === 'OWNER')
-      throw new CampaignChatCommandError('The GM rolls privately instead of to the GM.')
-    const access =
-      destination === 'TABLE'
-        ? await openConversation(ctx, authority, 'TABLE', requirePeer)
-        : await openConversation(ctx, authority, 'DIRECT', requirePeer, campaign.ownerUserId)
     return {
-      access,
-      content: { kind: 'ROLL' as const, revealedByGm: false, roll: await rollRecord(roll) }
+      kind: 'ROLL' as const,
+      revealedByGm: false,
+      roll: await rollRecord(command.input.roll)
     }
   })()
 
   const entry = await postEntry(access, clientNonce, content)
-  return {
-    entry,
-    privateRoll: null,
-    recipientUserIds:
-      access.conversation.kind === 'DIRECT'
-        ? access.conversation.participantUserIds
-        : tableRecipients(access.conversation.kind)
-  }
+  return { entry, privateRoll: null, recipientUserIds, replayed: false }
 }

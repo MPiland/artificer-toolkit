@@ -135,6 +135,7 @@ export function createNativeLiveTurnStages(
         },
         loadTarget,
         createRuntime,
+        definitions,
         random
       }),
     legendary: (stage) =>

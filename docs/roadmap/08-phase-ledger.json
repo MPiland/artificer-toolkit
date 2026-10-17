@@ -9289,7 +9289,7 @@
                   "SPELLS-20.T4b3b"
                 ]
               },
-              "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save through the composable failed-save outcomes from SPELLS-20.T4b3b. Proved on Web and Black Tentacles."
+              "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save: widen the frozen test graph and testApplications to a second proposal per result path for the zone condition (the composable set from SPELLS-20.T4b3b refuses it until then). Proved on Web and Black Tentacles."
             },
             {
               "id": "SPELLS-4.T1g",
@@ -10858,7 +10858,7 @@
             },
             {
               "id": "SPELLS-20.T4b3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10871,8 +10871,8 @@
                   "SPELLS-20.T4b3a"
                 ]
               },
-              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17. Per D142, replace the zone failed-save shape check (including the T1d condition-alone branch) with one composable outcome set: damage rows, at most one stop, grant, System-vocabulary condition and lost action, with at least one outcome; a made save only deals damage.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17. Per D142, replace the zone failed-save shape check (including the T1d condition-alone branch) with one composable outcome set: damage rows, at most one stop, grant, System-vocabulary condition and lost action, with one graph outcome (damage or a condition, not both until SPELLS-4.T1e) and at least one outcome; a made save only deals damage.",
+              "note": "CI ci/spells-20-t4b3b 7734f4f02 (Tests 39069925344, Live 39069925359); merged via ci/merge-m84 14290abf8 (Tests 39071285091, Live 39071285099). Workbook docs/handoffs/slice-spells-20.md. Composable zone failed-save set (D142 option B: one graph outcome beside stop, grant and lost Action; damage plus a condition refused until SPELLS-4.T1e); failedSaveLosesAction on a start-of-turn zone spends an unspent Action, recorded as actionEconomy and settled through consumeNativeActionEconomy; Stinking Cloud room journey in nativeRoomTurnZoneEffects.test.ts."
             },
             {
               "id": "SPELLS-20.T4e",
@@ -10978,8 +10978,7 @@
                 ]
               }
             }
-          ],
-          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+          ]
         },
         {
           "id": "SPELLS-21",
@@ -14578,7 +14577,7 @@
         {
           "id": "QUALITY-1",
           "title": "Diverging duplicates behave the same everywhere",
-          "status": "TODO",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -14589,17 +14588,26 @@
           "acs": [
             {
               "id": "QUALITY-1.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Each diverging copy (removed-item references, the sheet-command HP clamp after Concentration ends, chat SEND replay, the hit-point pool allowed creature types, ability/skill alias resolution with its ambiguity check, active shield selection for Characters and creatures) has a regression test that fails before the fix, and one shared implementation is called by every former copy."
+              "text": "Each diverging copy (removed-item references, the sheet-command HP clamp after Concentration ends, chat SEND replay, the hit-point pool allowed creature types, ability/skill alias resolution with its ambiguity check, active shield selection for Characters and creatures) has a regression test that fails before the fix, and one shared implementation is called by every former copy.",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterHitPointPool.test.ts",
+                "packages/rules-runtime/src/__tests__/sheetSkillAbility.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterWieldConflict.test.ts",
+                "apps/apis/convex/campaigns/characterItemTransfer.test.ts",
+                "apps/session-worker/test/nativeRoomSheetEffectEnd.test.ts",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts"
+              ]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-1.T1",
               "text": "Write failing-first regression tests for each divergence, then move each to one shared implementation (rules-runtime or encounter-persistence ports) used by Convex, the Worker and the web.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "QUALITY-1.1"
               ],
@@ -14608,9 +14616,29 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 5
-              }
+              },
+              "note": "CI ci/quality-1 d8be81998 (Tests 39048646466, Live 39048646465; red proof RED on all six files); merged via ci/merge-m83 6f4cae06a (Tests 39067166450), phase merge 0c5580dc4. Workbook docs/handoffs/slice-quality-1.md. One shared implementation each: removeCharacterItemReferences, settleCharacterEndedEffects, readConversationEntryReplay, selectHitPointPoolTargets exclusions, resolveAbilityAlias/buildSkillSubjectAliasMap, selectDnd5eHeldShield. Armor Class fallback divergence ruled D143 (T2)."
+            },
+            {
+              "id": "QUALITY-1.T2",
+              "status": "DONE",
+              "closes": [
+                "QUALITY-1.1"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": [
+                  "QUALITY-1.T1"
+                ]
+              },
+              "text": "Armor Class defaults (D143): ARMOR and SHIELD equipment require an authored Armor Class (schema, authored type, node map required state; development data migrated), and the shared Armor Class path refuses a missing value for Characters and creatures alike instead of the Character-only 2 and 10 fallbacks. Failing-first test that a Character and a creature holding the same equipment get the same result.",
+              "note": "CI ci/quality-1-t2 c90d97c52 (Tests 39069446429, Live 39069446442; red proof RED on 4 files); merged via ci/merge-m84 14290abf8 (Tests 39071285091, Live 39071285099). Workbook docs/handoffs/slice-quality-1.md. ARMOR and SHIELD require armorClass (schema, authored type, node map); resolveDnd5eEquipmentArmorClass refuses a missing value for Characters and creatures; fallbacks deleted; local scan found 15 ARMOR/SHIELD versions, none missing armorClass, and 0 drafts, so no migration (D143)."
             }
-          ]
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-2",
@@ -14635,7 +14663,7 @@
           "tasks": [
             {
               "id": "QUALITY-2.T1",
-              "text": "Consolidate each listed rule into its owning package and delete the copies.",
+              "text": "Consolidate each listed rule into its owning package and delete the copies. Includes Convex endCarriedConcentration, a local copy of the shared endChosenConcentration (found by QUALITY-1.T1).",
               "status": "TODO",
               "closes": [
                 "QUALITY-2.1"

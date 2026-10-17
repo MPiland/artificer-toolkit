@@ -24,6 +24,9 @@ import {
   compileItemEntry,
   diceDamage,
   extraId,
+  failedSaveOnly,
+  losesAction,
+  lostActionOutcome,
   variantEquipment,
   zonePlacementOf,
   type ZoneParts
@@ -601,16 +604,202 @@ describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () 
   })
 })
 
-const PRONE_ID = SRD_CONDITION_TYPES.find(({ code }) => code === 'PRONE')!.id
+/** The outcome of an effect kind the real SRD Caltrops failed save authors. */
+function caltropsOutcome(parts: ZoneParts, effectKind: 'MOVEMENT_RULE' | 'DAMAGE' | 'APPLY_GRANT') {
+  const outcome = parts.savePath.resultBlock.outcomes.find((each) => each.effectKind === effectKind)
+  if (!outcome) throw new Error(`Caltrops must author a ${effectKind} outcome.`)
+  return outcome
+}
+
+const conditionId = (code: string) => SRD_CONDITION_TYPES.find((each) => each.code === code)!.id
+const conditionOutcome = (id = conditionId('POISONED'), offset = 21) => ({
+  id: extraId(offset),
+  effectKind: 'CONDITION' as const,
+  conditionId: id
+})
+
+/** The zone acts at the start of a turn, then `changes` edit it in order. */
+const startOfTurnZone = (...changes: ((parts: ZoneParts) => void)[]) =>
+  variantEquipment((parts) => {
+    parts.component.interactionKinds = ['START_TURN_IN_SPACE']
+    for (const change of changes) change(parts)
+  })
+
+/** The zone's save also has a made-save path with only `outcome`. */
+const madeSave =
+  (outcome: (parts: ZoneParts) => ZoneParts['savePath']['resultBlock']['outcomes'][number]) =>
+  (parts: ZoneParts) => {
+    parts.behavior.paths.push({
+      ...parts.savePath,
+      id: extraId(27),
+      order: 2,
+      pathCode: 'ON_SAVE_SUCCESS',
+      resultBlock: {
+        id: `${extraId(27)}__result`,
+        resultKind: 'SINGLE',
+        outcomes: [outcome(parts)]
+      }
+    })
+  }
+
+describe('a zone failure composed from core outcomes (D141, D142)', () => {
+  it('compiles a failure that only costs the Action, binding the save itself', () => {
+    const authored = startOfTurnZone(failedSaveOnly(lostActionOutcome()))
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+    const zone = zonePlacementOf(authored)
+    expect(zone).toMatchObject({ failedSaveLosesAction: true, turnTriggers: ['START_OF_TURN'] })
+    expect(zone.grant).toBeNull()
+    const { nodes, sourceEntryBindings } = zone.entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test'])
+    expect(zone.entry.frozenGraphNodeId).toBe('test')
+    expect(sourceEntryBindings).toEqual([
+      { sourceEntryId: zone.entry.compiledEntryId, nodeId: 'test' }
+    ])
+  })
+
+  it('stores the lost Action on the placed zone, which the SRD Caltrops zone does not cost', () => {
+    const place = (equipment?: EquipmentAuthored) =>
+      planEncounterPlacedZone({
+        zone: zonePlacementOf(equipment),
+        id: ZONE_ID,
+        maintainedEffectStateId: null,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: OCCURRENCE_ID,
+        rootCommandId: SPREAD_COMMAND_ID,
+        sourceActorId: SOURCE_ID,
+        point: { x: 250, y: 350 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: null
+      }).placement
+    expect(place(startOfTurnZone(losesAction)).failedSaveLosesAction).toBe(true)
+    expect(zonePlacementOf()).not.toHaveProperty('failedSaveLosesAction')
+    expect(place()).not.toHaveProperty('failedSaveLosesAction')
+  })
+
+  it('composes damage, a stop, a grant and a lost Action, proposing the damage', () => {
+    const zone = zonePlacementOf(startOfTurnZone(losesAction))
+    const withoutLostAction = zonePlacementOf(startOfTurnZone())
+    expect(zone.failedSaveLosesAction).toBe(true)
+    expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
+    expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual(
+      withoutLostAction.entry.frozenGraph.definition.nodes.map((node) => node.id)
+    )
+    expect(zone.grant).toEqual(withoutLostAction.grant)
+  })
+
+  it('compiles a failure that only applies a System condition, proposing the condition', () => {
+    const zone = zonePlacementOf(startOfTurnZone(failedSaveOnly(conditionOutcome())))
+    expect(zone).not.toHaveProperty('failedSaveLosesAction')
+    const { nodes } = zone.entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test', 'proposal-on_save_fail'])
+    expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
+  })
+
+  it('composes a condition with a lost Action', () => {
+    const zone = zonePlacementOf(
+      startOfTurnZone(failedSaveOnly(conditionOutcome(), lostActionOutcome()))
+    )
+    expect(zone.failedSaveLosesAction).toBe(true)
+    expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
+  })
+
+  it.each<readonly [string, EquipmentAuthored]>([
+    [
+      'damage and a condition, until the graph holds a zone-held condition (SPELLS-4.T1e)',
+      startOfTurnZone((parts) => parts.savePath.resultBlock.outcomes.push(conditionOutcome()))
+    ],
+    [
+      'two conditions',
+      startOfTurnZone(
+        failedSaveOnly(conditionOutcome(), conditionOutcome(conditionId('BLINDED'), 22))
+      )
+    ],
+    [
+      'a condition outside the pinned System vocabulary',
+      startOfTurnZone(failedSaveOnly(conditionOutcome(extraId(30))))
+    ],
+    [
+      'two lost Actions',
+      startOfTurnZone(losesAction, (parts) =>
+        parts.savePath.resultBlock.outcomes.push(lostActionOutcome(23))
+      )
+    ],
+    [
+      'two stops',
+      startOfTurnZone((parts) =>
+        parts.savePath.resultBlock.outcomes.push({
+          ...caltropsOutcome(parts, 'MOVEMENT_RULE'),
+          id: extraId(24)
+        })
+      )
+    ],
+    [
+      'two grants',
+      startOfTurnZone((parts) =>
+        parts.savePath.resultBlock.outcomes.push({
+          ...caltropsOutcome(parts, 'APPLY_GRANT'),
+          id: extraId(25)
+        })
+      )
+    ],
+    [
+      'an outcome kind the set does not hold',
+      startOfTurnZone((parts) =>
+        parts.savePath.resultBlock.outcomes.push({
+          id: extraId(26),
+          effectKind: 'ACTION_ECONOMY_RULE',
+          ruleKind: 'MAX_ATTACKS_PER_TURN',
+          maximum: 1
+        })
+      )
+    ],
+    [
+      'a save whose only outcome is the made save’s damage',
+      startOfTurnZone((parts) => {
+        failedSaveOnly(caltropsOutcome(parts, 'DAMAGE'))(parts)
+        parts.savePath.pathCode = 'ON_SAVE_SUCCESS'
+      })
+    ],
+    [
+      'a made save that costs the Action',
+      startOfTurnZone(
+        losesAction,
+        madeSave(() => lostActionOutcome(31))
+      )
+    ],
+    [
+      'a lost Action on a zone a mover enters',
+      variantEquipment((parts) => {
+        parts.component.interactionKinds = ['ENTER_SPACE', 'START_TURN_IN_SPACE']
+        losesAction(parts)
+      })
+    ],
+    [
+      'a lost Action at the end of a turn',
+      variantEquipment((parts) => {
+        parts.component.interactionKinds = ['END_TURN_IN_SPACE']
+        losesAction(parts)
+      })
+    ]
+  ])('refuses %s instead of partly honoring it', (_name, equipment) => {
+    expect(compileItemEntry(equipment).compilation).toMatchObject({
+      kind: 'MANUAL',
+      reasonCode: 'NOT_NORMALIZED'
+    })
+  })
+})
+
+const PRONE_ID = conditionId('PRONE')
 
 /** The failed save applies `conditionId` and nothing else: no stop, damage or grant. */
-function conditionOnFailedSave(conditionId = PRONE_ID) {
+function conditionOnFailedSave(id = PRONE_ID) {
   return ({ savePath }: ZoneParts) => {
-    savePath.resultBlock.outcomes = [{ id: extraId(9), effectKind: 'CONDITION', conditionId }]
+    savePath.resultBlock.outcomes = [{ id: extraId(9), effectKind: 'CONDITION', conditionId: id }]
   }
 }
 
-describe('a zone whose failed save applies a condition alone (SPELLS-4.T1d)', () => {
+describe('a zone a mover enters whose failed save applies a condition alone (SPELLS-4.T1d)', () => {
   const authored = variantEquipment(conditionOnFailedSave())
 
   it('passes the equipment publication contract', () => {
@@ -629,48 +818,21 @@ describe('a zone whose failed save applies a condition alone (SPELLS-4.T1d)', ()
     expect(zone.grant).toBeNull()
   })
 
-  it.each([
-    [
-      'a condition beside damage',
-      ({ savePath }: ZoneParts) => {
-        const damage = savePath.resultBlock.outcomes.find(
-          (outcome) => outcome.effectKind === 'DAMAGE'
-        )
-        if (!damage) throw new Error('The zone must author damage.')
-        conditionOnFailedSave()({ savePath } as ZoneParts)
-        savePath.resultBlock.outcomes.push(damage)
-      }
-    ],
-    [
-      'two conditions',
-      ({ savePath }: ZoneParts) => {
-        conditionOnFailedSave()({ savePath } as ZoneParts)
-        savePath.resultBlock.outcomes.push({
-          id: extraId(10),
-          effectKind: 'CONDITION',
-          conditionId: SRD_CONDITION_TYPES.find(({ code }) => code === 'RESTRAINED')!.id
-        })
-      }
-    ],
-    ['a condition outside the System vocabulary', conditionOnFailedSave(extraId(11))],
-    [
-      'a condition on the made save',
-      (parts: ZoneParts) => {
-        conditionOnFailedSave()(parts)
-        parts.behavior.paths.push({
-          ...parts.savePath,
-          id: extraId(12),
-          order: 2,
-          pathCode: 'ON_SAVE_SUCCESS',
-          resultBlock: {
-            id: `${extraId(12)}__result`,
-            resultKind: 'SINGLE',
-            outcomes: [{ id: extraId(13), effectKind: 'CONDITION', conditionId: PRONE_ID }]
-          }
-        })
-      }
-    ]
-  ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
+  it('refuses a condition on the made save instead of partly honoring it', () => {
+    const change = (parts: ZoneParts) => {
+      conditionOnFailedSave()(parts)
+      parts.behavior.paths.push({
+        ...parts.savePath,
+        id: extraId(12),
+        order: 2,
+        pathCode: 'ON_SAVE_SUCCESS',
+        resultBlock: {
+          id: `${extraId(12)}__result`,
+          resultKind: 'SINGLE',
+          outcomes: [{ id: extraId(13), effectKind: 'CONDITION', conditionId: PRONE_ID }]
+        }
+      })
+    }
     expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({
       kind: 'MANUAL',
       reasonCode: 'NOT_NORMALIZED'
