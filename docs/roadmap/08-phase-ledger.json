@@ -7810,7 +7810,7 @@
         {
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
-          "status": "DONE",
+          "status": "TODO",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
             "apps/web/tests/live-backend/encounterArea.ts"
@@ -7836,7 +7836,7 @@
             },
             {
               "text": "Every caught creature's save is asked at once, each by the creature's own roller; damage is rolled once and applies in full on a failed save and halved on a success, per target with its own defenses; the action commits once when the last save is in, and GM undo reverts every target.",
-              "status": "DONE",
+              "status": "TODO",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
                 "apps/session-worker/test/nativeRoomAreaAction.test.ts",
@@ -7857,7 +7857,27 @@
               "note": "User ruling 2026-10-10 (no metagaming, like ATTACK-10.1 and ATTACK-17.3). A failed save shows the creature in the results; revealing its token on the map stays the GM's call. Built 2026-10-10 (D103). Proved by a room test where a player controls an Invisible creature the caster cannot perceive: that player reads and answers their own save prompt, the caster's view shows nothing of it, and the GM reads all. The roller's own roll card stays GM-private until ATTACK-17.5.",
               "id": "SPELLS-7.3"
             }
-          ]
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-7.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-7.2"],
+              "text": "Bug (found by ATTACK-2.T2): 19 SRD spells whose text gives half as much damage on a successful save encode only ON_SAVE_FAIL damage, so a made save takes none: call-lightning, cloudkill, delayed-blast-fireball, earthquake, flaming-sphere, glyph-of-warding, guardian-of-faith, ice-storm, incendiary-cloud, insect-plague, moonbeam, storm-of-vengeance, sunbeam, symbol, thunderwave, wall-of-fire, wall-of-ice, wall-of-thorns, wind-wall. Add the ON_SAVE_SUCCESS half-damage path in source data, with a source-data regression test that walks every SRD spell and fails while any save-for-half text lacks it (red on these 19), plus a Thunderwave area-save resolution test proving a made save takes half. Zone spells in the list resolve the path through SPELLS-20.T4a.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2
+              }
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 3,
+            "size": 2
+          }
         },
         {
           "id": "SPELLS-8",
