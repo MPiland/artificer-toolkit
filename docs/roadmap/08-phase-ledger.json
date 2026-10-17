@@ -8000,7 +8000,7 @@
             {
               "id": "SPELLS-7.T2",
               "text": "Ice Storm: scale the bludgeoning damage with spell slot level when upcast, and give the cold fail path its own save effect id instead of reusing (0x214,1); failing-first tests on the real SRD spell.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-7.2"],
               "wsjf": {
                 "bv": 3,
@@ -11134,7 +11134,7 @@
             {
               "id": "RELIABILITY-6.T1b",
               "text": "System-owned Concentration and melee classification through a System seam keyed by gameSystemId; Worker, encounter-persistence and rules-runtime consumers read it instead of hard-coded identities.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-6.16"],
               "wsjf": {
                 "bv": 3,
