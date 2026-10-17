@@ -10787,12 +10787,12 @@
               "note": "CI ci/spells-20-t4b2b2 ea75a0005 (Tests 39039240355, Live backend 39039240344); fast-path merge ded9224a1, backstop ci/merge-m74. Workbook docs/handoffs/slice-spells-20.md. D138 applied: spatialEffectPin.ts deleted; movement refusals proved by movementSpatialZoneSettlement.test.ts (real prepareEncounterSpatialMovement) and encounterSpatialMovementStale.test.ts. START is proved at persistence level; its room journey moves to T4f."
             },
             {
-              "id": "SPELLS-20.T4b3",
+              "id": "SPELLS-20.T4b3a",
               "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-20.1"
               ],
-              "text": "Stinking Cloud from core options: a failed save in a turn zone costs the creature its action on that turn, the zone applies only to a creature fully within it (requiresFullyWithin), and a creature that does not need to breathe or is immune to poison succeeds automatically. Each authored from core options and generic for any zone; proved on Stinking Cloud with a journey. Raised 2026-10-17 by T4b2b2: the zone compiler accepts only damage, stop-movement and grant outcomes.",
+              "text": "Zone save riders from core options (D141): requiresFullyWithin (token footprint inside the geometry; refused with a movement trigger), SAVE_AUTO_SUCCESS when the target is immune to an authored damage type, and Stinking Cloud obscurement, spreading and wind dispersal unauthored and listed as zone gaps. Proved on a core-options zone. Split from T4b3 2026-10-17.",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
@@ -10803,6 +10803,23 @@
                 ]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b3b",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-20.1"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-20.T4b3a"
+                ]
+              },
+              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17."
             },
             {
               "id": "SPELLS-20.T4e",
