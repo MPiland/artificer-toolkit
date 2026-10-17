@@ -941,6 +941,11 @@ export function rangedFixedDamageWeaponEffects(
 // 0x260/0x261 = a damage grant's activation context and condition, 0x270 = the off-hand damage
 // grant's cloned nodes.
 
+/** Spreads through a type parameter so the compiler never expands the full modifier union. */
+function withOrder<T extends ModifierGrantAuthored>(modifier: T, order: number): T {
+  return { ...modifier, order }
+}
+
 /** Copies `value` with every `id` replaced by the next id, so a clone shares no node with its source. */
 function withFreshIds<T>(value: T, nextId: () => string): T {
   if (Array.isArray(value)) return value.map((entry) => withFreshIds(entry, nextId)) as T
@@ -1071,5 +1076,5 @@ export function withOffHandDamage(
         { ...offHand, payload: { ...offHand.payload, max: 0 } } as ModifierGrantAuthored
       ]
     })
-    .map((modifier, index) => ({ ...modifier, order: index + 1 }))
+    .map((modifier, index) => withOrder(modifier, index + 1))
 }
