@@ -40,18 +40,23 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+type EffectAuthored = NonNullable<SpellAuthored['effects']>[number]
+type ReactionInvocation = Extract<EffectAuthored['invocation'], { reactionTrigger: object }>
+
+const isTargetedSelf = (invocation: EffectAuthored['invocation']): invocation is ReactionInvocation =>
+  'reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'TARGETED_SELF'
+
 /** Shield with the cast filter taken off its "chosen as a target" reaction: it answers any cast. */
 const unfilteredShield: SpellAuthored = {
   ...shield,
-  effects: shield.effects?.map((effect): NonNullable<SpellAuthored['effects']>[number] => {
-    const { invocation } = effect
-    if (!invocation.reactionTrigger || invocation.reactionTrigger.kind !== 'TARGETED_SELF')
-      return effect
-    return {
-      ...effect,
-      invocation: { ...invocation, reactionTrigger: { kind: 'TARGETED_SELF' as const } }
-    }
-  })
+  effects: shield.effects?.map((effect): EffectAuthored =>
+    isTargetedSelf(effect.invocation)
+      ? {
+          ...effect,
+          invocation: { ...effect.invocation, reactionTrigger: { kind: 'TARGETED_SELF' } }
+        }
+      : effect
+  )
 }
 
 /** A Caster who knows `spell`, next to a Character holding `reactorSpell` (or none). */
