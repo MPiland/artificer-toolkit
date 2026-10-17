@@ -9289,7 +9289,7 @@
                   "SPELLS-20.T4b3b"
                 ]
               },
-              "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save through the composable failed-save outcomes from SPELLS-20.T4b3b. Proved on Web and Black Tentacles."
+              "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save: widen the frozen test graph and testApplications to a second proposal per result path for the zone condition (the composable set from SPELLS-20.T4b3b refuses it until then). Proved on Web and Black Tentacles."
             },
             {
               "id": "SPELLS-4.T1g",
@@ -10871,7 +10871,7 @@
                   "SPELLS-20.T4b3a"
                 ]
               },
-              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17. Per D142, replace the zone failed-save shape check (including the T1d condition-alone branch) with one composable outcome set: damage rows, at most one stop, grant, System-vocabulary condition and lost action, with at least one outcome; a made save only deals damage.",
+              "text": "LOSE_ACTION from core options (D141): a failed zone save consumes the target's Action for that turn through consumeEncounterActionEconomy, with actionEconomy on the turn-zone phase result; the zone compiler accepts a damage-free failed save carrying it. Stinking Cloud room journey. Split from T4b3 2026-10-17. Per D142, replace the zone failed-save shape check (including the T1d condition-alone branch) with one composable outcome set: damage rows, at most one stop, grant, System-vocabulary condition and lost action, with one graph outcome (damage or a condition, not both until SPELLS-4.T1e) and at least one outcome; a made save only deals damage.",
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
