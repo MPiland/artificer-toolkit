@@ -44,10 +44,11 @@ afterEach(() => {
 const unfilteredShield: SpellAuthored = {
   ...shield,
   effects: shield.effects?.map((effect) => {
-    const { reactionTrigger } = effect.invocation
-    if (reactionTrigger?.kind !== 'TARGETED_SELF') return effect
-    const { sourceEffectIds: _filter, ...unfiltered } = reactionTrigger
-    return { ...effect, invocation: { ...effect.invocation, reactionTrigger: unfiltered } }
+    const { invocation } = effect
+    if (!('reactionTrigger' in invocation) || invocation.reactionTrigger?.kind !== 'TARGETED_SELF')
+      return effect
+    const { sourceEffectIds: _filter, ...unfiltered } = invocation.reactionTrigger
+    return { ...effect, invocation: { ...invocation, reactionTrigger: unfiltered } }
   })
 }
 
