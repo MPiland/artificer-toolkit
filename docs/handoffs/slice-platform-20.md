@@ -6,9 +6,10 @@
 
 ## Resume here
 
-1. Red: the two new test files alone on base, pushed to `ci/platform-20-red`.
-2. Green: the full change on `ci/platform-20`; watch with `pwsh -NoProfile -File scripts/watchCi.ps1`.
-3. Fix CI failures; then 20.4 docs; then report to the orchestrator.
+1. Red `2c37820a9` on `ci/platform-20-red`: Tests run 38987927973 fails in `@artificer-toolkit/shared#build` (base has no `ModifierGrantAuthoredFor`; a flat override of a modifier grant is TS2322 across ~1,000 members). Expected red.
+2. Green attempt 1 `de1d6d7c7` failed: `REPLACE_RANGE/DURATION/SHAPE/CHARGE_RESET_KIND` had `never` payloads (hidden by the old widened union), and the off-hand `max: 0` override spread an uncorrelated payload. Fixed in `2a4a83fba` (typed payloads; generic `keepNegativeOnly`).
+3. Green attempt 2 `2a4a83fba` on `ci/platform-20`: watching with `scripts/watchCi.ps1` (log `local-validation/platform-20/watch-green-2.log`).
+4. 20.4 docs are in ADR 0003 (Compile stage as built) and engine.md (Compile stage). Then report to the orchestrator.
 
 ## ACs
 

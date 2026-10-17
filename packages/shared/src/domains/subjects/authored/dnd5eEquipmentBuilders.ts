@@ -104,6 +104,13 @@ export function whileEquippedWithConditionRestriction(
 }
 
 // ─── Base weapon modifier helpers ────────────────────────────────────────────
+
+/** A weapon's fixed ability modifier on its attack or damage roll. */
+export type WeaponAbilityModifier = Extract<
+  | ModifierGrantAuthoredFor<typeof VALUE_DOMAIN_CODE.ATTACK_ROLL>
+  | ModifierGrantAuthoredFor<typeof VALUE_DOMAIN_CODE.DAMAGE>,
+  { modifierKind: typeof MODIFIER_KIND.ABILITY_MODIFIER_BONUS }
+>
 function fixedAbilityWeaponModifier(
   childId: EquipmentChildId,
   bucket: number,
@@ -111,7 +118,7 @@ function fixedAbilityWeaponModifier(
   valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.DAMAGE,
   attackDomain: keyof typeof ATTACK_DOMAIN_CODE,
   ability: AbilityCode
-): ModifierGrantAuthored {
+): WeaponAbilityModifier {
   return {
     id: childId(bucket, order),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -125,8 +132,8 @@ function fixedAbilityWeaponModifier(
     order
   }
 }
-export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
+export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAbilityModifier[] {
+  const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
       childId,
@@ -152,8 +159,8 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): Modifier
 export function rangedWeaponAbilityModifiers(
   childId: EquipmentChildId,
   ability: AbilityCode = 'DEXTERITY'
-): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
+): WeaponAbilityModifier[] {
+  const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
       childId,
@@ -176,8 +183,8 @@ export function rangedWeaponAbilityModifiers(
   )
   return modifiers
 }
-export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
+export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAbilityModifier[] {
+  const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
       childId,
