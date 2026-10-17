@@ -1295,6 +1295,13 @@
               "origin": [],
               "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions.",
               "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions."
+            },
+            {
+              "id": "PLATFORM-23.3",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them.",
+              "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule."
             }
           ],
           "tasks": [
@@ -1323,6 +1330,20 @@
                 "rr": 8,
                 "size": 3,
                 "after": ["PLATFORM-23.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+            },
+            {
+              "id": "PLATFORM-23.T3",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.3"],
+              "text": "Typecheck lane in scripts/withValidationLock.ps1 running the affected typecheck (changed workspaces and dependents against the phase-branch merge-base); AGENTS.md pre-push rule; measured local time against the CI gate.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
               },
               "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             }
