@@ -1,9 +1,10 @@
 import { runInDurableObject } from 'cloudflare:test'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import type { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
+import { connectPlayer } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 type ActionRoom = Awaited<ReturnType<typeof actionRoom>>
@@ -66,6 +67,48 @@ export async function walkerMoves(
     walked?.terminalPosition ?? (delta?.kind === 'TOKEN_MOVED' ? delta.position : null)
   if (!terminalPosition) throw new Error('The walk moved no token.')
   return { terminalPosition, executions: walked?.executions ?? [] }
+}
+
+/** The Character's Sheet stream version the room holds. */
+export function readSheetStreamVersion(room: ActionRoom, characterId: string) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const play = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((row) => row.characterId === characterId)
+    if (!play) throw new Error('Missing room Character play state.')
+    return play.streamVersion
+  })
+}
+
+/**
+ * The player of `characterId` ends the Character's Concentration on the Sheet, as its holder may at
+ * any time; the room's answer, not yet checked.
+ */
+export async function endConcentrationAtSheet(room: ActionRoom, characterId: string) {
+  const streamVersion = await readSheetStreamVersion(room, characterId)
+  const player = await connectPlayer(room.room.base)
+  const commandId = crypto.randomUUID()
+  player.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'CHARACTER_SHEET',
+        characterId,
+        encounterId: room.room.encounterId,
+        command: { type: 'END_CONCENTRATION', commandId, expectedVersion: streamVersion }
+      }
+    })
+  )
+  return vi.waitFor(() => {
+    const answer = player.messages.find(
+      (message) =>
+        (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+        message.commandId === commandId
+    )
+    if (!answer) throw new Error('The room has not answered yet.')
+    return answer
+  })
 }
 
 /** The GM takes back the last action. */

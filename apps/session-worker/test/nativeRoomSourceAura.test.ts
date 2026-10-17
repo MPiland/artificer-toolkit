@@ -1,4 +1,3 @@
-import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
@@ -9,12 +8,12 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import {
+  endConcentrationAtSheet,
   hitPointsOf,
   readMaintainedStates,
   readZones,
@@ -99,35 +98,8 @@ async function castAura(room: Room, unaffectedActorIds?: string[]) {
 
 /** The caster's player ends their Character's Concentration on the Sheet, as its holder may at any time. */
 async function endCasterConcentration(room: Room) {
-  const streamVersion = await runInDurableObject(room.room.base.stub, (_instance, context) => {
-    const play = new RoomEncounterStore(context.storage)
-      .documents('characterPlayStates')
-      .find((row) => row.characterId === CASTER_ID)
-    if (!play) throw new Error('Missing room Character play state.')
-    return play.streamVersion
-  })
-  const player = await connectPlayer(room.room.base)
-  const commandId = crypto.randomUUID()
-  player.socket.send(
-    JSON.stringify({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'CHARACTER_SHEET',
-        characterId: CASTER_ID,
-        encounterId: room.room.encounterId,
-        command: { type: 'END_CONCENTRATION', commandId, expectedVersion: streamVersion }
-      }
-    })
-  )
-  await vi.waitFor(() => {
-    const answer = player.messages.find(
-      (message) =>
-        (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
-        message.commandId === commandId
-    )
-    expect(answer?.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  })
+  const answer = await endConcentrationAtSheet(room, CASTER_ID)
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
 describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {

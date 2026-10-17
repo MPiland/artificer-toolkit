@@ -1,8 +1,13 @@
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
+import { zonePlacementOf } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
 import {
   characterActor,
+  creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { authoredZone } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
@@ -13,7 +18,13 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { hitPointsOf, readZones } from './placedZoneRoomReads.js'
+import {
+  endConcentrationAtSheet,
+  hitPointsOf,
+  readMaintainedStates,
+  readSheetStreamVersion,
+  readZones
+} from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -49,14 +60,20 @@ const casterActor = {
   snapshot: { kind: 'CHARACTER' as const, id: CASTER_ID, systemId: srdSystemRecord.id }
 }
 
-/** The SRD Spirit Guardians cast by the Character, a Wisdom save at the start of a creature's turn. */
-function auraRoom(wolfAt: { x: number; y: number }) {
+/**
+ * The SRD Spirit Guardians cast by the Character, a Wisdom save at the start of a creature's turn;
+ * `autoRoll` is off when a test answers the dice.
+ */
+function auraRoom(
+  wolfAt: { x: number; y: number },
+  autoRoll?: Parameters<typeof actionRoom>[0]['autoRoll']
+) {
   return actionRoom({
     actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
     positions: { [WOLF_ID]: wolfAt },
     characterSpellcasting: { spells: [spiritGuardians], prepared: [spiritGuardians.id] },
     characterAction: (action) => action.label === 'Spirit Guardians (3rd level)',
-    autoRoll: 'EVERYONE',
+    autoRoll,
     fallbackRoll: DIE
   })
 }
@@ -130,7 +147,7 @@ async function castOnFirstTurn(room: Room, cast: () => ReturnType<Room['startAre
 
 describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)', () => {
   it('rolls the incoming creature’s Spirit Guardians save at its turn start, applies the damage in the same commit and replays exactly', async () => {
-    const room = await auraRoom(INSIDE_THE_AURA)
+    const room = await auraRoom(INSIDE_THE_AURA, 'EVERYONE')
     const zone = await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
     // Real compile evidence: the SRD Spirit Guardians places a source zone that acts at a turn start.
     expect(zone.placement).toMatchObject({
@@ -222,7 +239,7 @@ describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)
   })
 
   it('keeps the stored result free of zone phases for a turn no zone catches anyone in', async () => {
-    const room = await auraRoom(OUTSIDE_THE_AURA)
+    const room = await auraRoom(OUTSIDE_THE_AURA, 'EVERYONE')
     await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
     const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
 
@@ -288,5 +305,222 @@ describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)
     expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
     const stored = await readRoomHistory(room.room.base.stub)
     expect(stored.receipts.at(-1)?.resultJson).toContain('outgoingZoneEffects')
+  })
+})
+
+describe('a room START with a turn-boundary zone (SPELLS-20 T4f)', () => {
+  const SOURCE_ID = testUuid(0x2243)
+  const ZONE_ID = testUuid(0x2244)
+  const ZONE_POINT = { x: 150, y: 150 }
+
+  /**
+   * A Run not started yet whose first creature, the Wolf, stands in a placed zone acting at the start
+   * of a turn: the real planner places the core-options zone (a Caltrops variant, DC 15, 1d4) that
+   * a Zombie left before the Encounter began. Both roll the same die, so the Wolf's higher
+   * initiative modifier puts it first.
+   */
+  function preparedRoom() {
+    return actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: SOURCE_ID, creature: srdByLabel(SRD.creatures, 'Zombie') })
+      ],
+      positions: { [WOLF_ID]: ZONE_POINT, [SOURCE_ID]: { x: 750, y: 750 } },
+      ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+      status: 'PREPARED',
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE,
+      seed: async ({ spatial, encounterId }) => {
+        const { id, definition, lifecycle, placement, spatialState } = planEncounterPlacedZone({
+          zone: zonePlacementOf(authoredZone(['START_TURN_IN_SPACE'])),
+          id: ZONE_ID,
+          maintainedEffectStateId: null,
+          encounterId,
+          occurrenceId: testUuid(0x2245),
+          rootCommandId: testUuid(0x2246),
+          sourceActorId: SOURCE_ID,
+          point: ZONE_POINT,
+          area: { kind: 'CUBE', edgeLength: 100 },
+          sourceToken: null,
+          saveDc: null
+        })
+        await spatial.create({ id, definition, lifecycle, placement, spatialState })
+      }
+    })
+  }
+
+  it('rolls the first creature’s zone save as the Encounter starts, applies the damage in the same commit and replays exactly', async () => {
+    const room = await preparedRoom()
+    expect((await runStateOf(room)).status).toBe('PREPARED')
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const start = {
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    }
+    const answer = await room.send(start)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const state = await runStateOf(room)
+    expect(state).toMatchObject({ status: 'ACTIVE', round: 1, currentActorId: WOLF_ID })
+    const { receipt, outgoing, incoming } = await storedZonePhases(room, start.commandId)
+    expect(receipt.commandType).toBe('START')
+    // No turn ends when the Encounter starts.
+    expect(outgoing).toBeUndefined()
+    expect(incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          ordinal: 0,
+          candidate: {
+            boundaryOrdinal: 0,
+            candidate: { effectId: ZONE_ID, targetActorId: WOLF_ID, trigger: 'START_OF_TURN' }
+          },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: DIE + 1 })]
+        }
+      ],
+      encounterActorTransitions: [{ targetActorId: WOLF_ID }]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - (DIE + 1))
+    expect(state.zoneApplications).toEqual({
+      [`${ZONE_ID}:${WOLF_ID}`]: { turnSequence: state.turnSequence, count: 1 }
+    })
+
+    const held = await readRoomHistory(room.room.base.stub)
+    const dice = room.room.diceDrawn()
+    expect(await room.send(start)).toEqual(answer)
+    expect(room.room.diceDrawn()).toBe(dice)
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(held)
+  })
+})
+
+/**
+ * D138: a placed zone ends only with its source (Concentration, undo, deletion). Each of those, sent
+ * while a save the zone asked for is outstanding, is refused with PENDING_DECISION, so the answer
+ * commits the zone and the plan it staged and nothing is left pending against a zone that is gone.
+ */
+describe('a zone ending while its save is pending (SPELLS-20 T4f)', () => {
+  /** The ways a placed aura can end in play, each sent while its save is pending. */
+  async function endingsWhilePending(room: Room) {
+    const sheetVersion = await readSheetStreamVersion(room, CASTER_ID)
+    const maintained = await readMaintainedStates(room)
+    const concentration = await endConcentrationAtSheet(room, CASTER_ID)
+    // The refused Sheet write rolls back whole: the Sheet and the Concentration slot are untouched.
+    expect(await readSheetStreamVersion(room, CASTER_ID)).toBe(sheetVersion)
+    expect(await readMaintainedStates(room)).toEqual(maintained)
+    const removal = await room.send({
+      type: 'REMOVE_ACTOR',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: CASTER_ACTOR_ID
+    })
+    const undo = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    return { concentration, removal, undo }
+  }
+
+  const REFUSED = {
+    concentration: { type: 'COMMAND_REJECTED', reason: 'PENDING_DECISION' },
+    removal: { type: 'COMMAND_REJECTED', reason: 'PENDING_DECISION' },
+    undo: { type: 'COMMAND_REJECTED', reason: 'PENDING_DECISION' }
+  }
+
+  it('refuses every end of the aura while a turn-start save it asked for is pending, then commits the staged plan', async () => {
+    const room = await auraRoom(INSIDE_THE_AURA)
+    const zone = await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
+    const advance = await advanceCommand(room)
+    const asked = await advance.send()
+    if (
+      asked.type !== 'COMMAND_COMMITTED' ||
+      asked.delta?.scope !== 'ENCOUNTER' ||
+      !('occurrence' in asked.delta.result)
+    )
+      throw new Error(`Expected the pending save in the answer: ${JSON.stringify(asked)}`)
+    const decision = asked.delta.result.occurrence?.pending
+    if (decision?.kind !== 'D20_EVIDENCE') throw new Error('Expected the Wolf’s d20 save.')
+    expect(decision.rollerActorId).toBe(WOLF_ID)
+
+    expect(await endingsWhilePending(room)).toMatchObject(REFUSED)
+    expect(await readZones(room)).toEqual([zone])
+
+    const answered = await room.send({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      occurrenceId: decision.occurrenceId,
+      expectedOccurrenceVersion: decision.occurrenceVersion,
+      correlationId: null,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: decision.request.requestId,
+        rawFaces: [DIE + 1],
+        rollMode: decision.request.rollMode
+      }
+    })
+    // The failed save asks for each of its damage dice; the last answer commits the staged turn.
+    let reply = answered
+    for (let die = 0; die < 8; die += 1) {
+      const pending =
+        reply.type === 'COMMAND_COMMITTED' &&
+        reply.delta?.scope === 'ENCOUNTER' &&
+        'occurrence' in reply.delta.result
+          ? reply.delta.result.occurrence?.pending
+          : null
+      if (!pending) break
+      if (pending.kind !== 'ACTION_OUTCOME_EVIDENCE') throw new Error('Expected a damage die.')
+      reply = await room.send({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version(),
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
+        correlationId: null,
+        resolution: {
+          kind: 'ENTER_INTEGER',
+          requestId: pending.request.requestId,
+          value: pending.request.min
+        }
+      })
+      expect(reply.type, JSON.stringify(reply)).toBe('COMMAND_COMMITTED')
+    }
+    expect((await readRoomHistory(room.room.base.stub)).receipts.at(-1)?.resultJson).toContain(
+      'incomingZoneEffects'
+    )
+  })
+
+  it('refuses every end of the aura while a walk into it awaits its save, then resumes the paused walk', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    const zone = await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
+    await room.advanceTurn()
+    const walk = await room.room.move(
+      [OUTSIDE_THE_AURA, INSIDE_THE_AURA],
+      await room.version(),
+      room.room.scene.version,
+      room.room.scene.tokens[1]!.id
+    )
+    expect(walk.type, JSON.stringify(walk)).toBe('COMMAND_COMMITTED')
+    expect((await room.room.pending())?.context.kind).toBe('ENCOUNTER_SPATIAL_MOVEMENT')
+
+    expect(await endingsWhilePending(room)).toMatchObject(REFUSED)
+    expect(await readZones(room)).toEqual([zone])
+
+    const prompt = await room.room.pendingFor(true)
+    if (prompt?.kind !== 'D20_EVIDENCE') throw new Error('Expected the Wolf’s d20 save.')
+    const answered = await room.room.respond({
+      kind: 'ENTER_DICE',
+      requestId: prompt.request.requestId,
+      rawFaces: [DIE + 1],
+      rollMode: prompt.request.rollMode
+    })
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
   })
 })

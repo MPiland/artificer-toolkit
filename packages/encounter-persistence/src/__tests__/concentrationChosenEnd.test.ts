@@ -31,7 +31,7 @@ function fixture() {
   } as unknown as Parameters<typeof endChosenConcentration>[0]
   const holder = creatureActor({ id: ACTOR_ID, kind: 'CUSTOM', snapshot: {} })
   const state = srdEncounterState({ actors: [holder], currentActorId: null })
-  return { ctx, holder, state, postRulesChatMessage }
+  return { ctx, memory, holder, state, postRulesChatMessage }
 }
 
 describe('endChosenConcentration (SPELLS-5.11)', () => {
@@ -62,6 +62,27 @@ describe('endChosenConcentration (SPELLS-5.11)', () => {
         occurredAt: OCCURRED_AT
       })
     ).rejects.toThrow('is not concentrating.')
+    expect(postRulesChatMessage).not.toHaveBeenCalled()
+  })
+  it('waits for a pending prompt, which may be resolving the zones Concentration holds', async () => {
+    const { ctx, memory, holder, state, postRulesChatMessage } = fixture()
+    memory.load(
+      'encounterRuleOccurrences',
+      [
+        { _id: 'pending', _creationTime: 2, encounterId: ENCOUNTER_ID, state: 'PENDING' }
+      ] as unknown as EncounterDocument<'encounterRuleOccurrences'>[],
+      { validate: false }
+    )
+    await expect(
+      endChosenConcentration(ctx, {
+        state,
+        actors: [holder],
+        holder,
+        commandId: COMMAND_ID,
+        userId: USER_ID,
+        occurredAt: OCCURRED_AT
+      })
+    ).rejects.toMatchObject({ data: { reason: 'PENDING_DECISION' } })
     expect(postRulesChatMessage).not.toHaveBeenCalled()
   })
 })

@@ -14,6 +14,7 @@ import {
   automaticChargedCreature,
   automaticChargedCreatureId
 } from '../../tests/fixtures/encounterAction'
+import { domainRejection } from '../../tests/fixtures/playerControl'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
@@ -26,7 +27,6 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { encounterWriteTransaction } from './encounterPorts'
@@ -309,7 +309,9 @@ describe('trusted account cleanup during another actor pending turn effect', () 
         actorId: actor.id
       }
     }
-    await expect(executeInRoom(base.owner.caller, remove)).rejects.toThrow(RoomCommandRefusal)
+    await expect(domainRejection(executeInRoom(base.owner.caller, remove))).resolves.toMatchObject({
+      reason: 'PENDING_DECISION'
+    })
     expect(await capture(base)).toEqual(before)
 
     // The trusted cleanup runs against the Run's committed rows, not a held room copy.
