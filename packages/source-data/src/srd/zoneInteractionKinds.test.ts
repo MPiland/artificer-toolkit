@@ -7,7 +7,9 @@ import { oilFlask } from './equipment/oil-flask.js'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
 import { bladeBarrier } from './spells/blade-barrier.js'
 import { cloudkill } from './spells/cloudkill.js'
+import { incendiaryCloud } from './spells/incendiary-cloud.js'
 import { insectPlague } from './spells/insect-plague.js'
+import { moonbeam } from './spells/moonbeam.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
@@ -68,6 +70,20 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
       'END_TURN_IN_SPACE'
     ])
   })
+
+  it('catches a creature of Moonbeam on entering and on starting its turn in the beam', () => {
+    expect(interactionKindsByComponent(moonbeam)['Enter the moonlight']).toEqual([
+      'ENTER_SPACE',
+      'START_TURN_IN_SPACE'
+    ])
+  })
+
+  it('catches a creature of Incendiary Cloud on entering and on ending its turn in the cloud', () => {
+    expect(interactionKindsByComponent(incendiaryCloud)['Enter the burning cloud']).toEqual([
+      'ENTER_SPACE',
+      'END_TURN_IN_SPACE'
+    ])
+  })
 })
 
 /**
@@ -89,26 +105,30 @@ function placedZoneOf(spell: SpellAuthored) {
 }
 
 /**
- * SPELLS-4.T1a: SRD rules of Cloudkill and Insect Plague a placed zone cannot run yet. The zone
+ * SPELLS-4.T1a and T1c: SRD rules of the hazard zones a placed zone cannot run yet. The zone
  * compiler refuses any authored option it does not model, so each stays unauthored (the zone then
  * still compiles) and leaves this list when a task models it (registration is the orchestrator's).
  */
-describe('Cloudkill and Insect Plague rules a placed zone does not run yet (SPELLS-4.T1a)', () => {
+describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c)', () => {
   const zoneGaps = [
-    ['Cloudkill', cloudkill, 'heavily obscured area', 'obscurementKind', 'no task yet'],
-    ['Cloudkill', cloudkill, 'fog spreads around corners', 'spreadsAroundCorners', 'no task yet'],
-    ['Insect Plague', insectPlague, 'lightly obscured area', 'obscurementKind', 'no task yet'],
-    [
-      'Insect Plague',
-      insectPlague,
-      'swarm spreads around corners',
-      'spreadsAroundCorners',
-      'no task yet'
-    ]
+    { spell: cloudkill, rule: 'heavily obscured area', option: 'obscurementKind' },
+    { spell: cloudkill, rule: 'fog spreads around corners', option: 'spreadsAroundCorners' },
+    { spell: insectPlague, rule: 'lightly obscured area', option: 'obscurementKind' },
+    { spell: insectPlague, rule: 'swarm spreads around corners', option: 'spreadsAroundCorners' },
+    { spell: incendiaryCloud, rule: 'heavily obscured area', option: 'obscurementKind' },
+    {
+      spell: incendiaryCloud,
+      rule: 'cloud spreads around corners',
+      option: 'spreadsAroundCorners'
+    },
+    { spell: moonbeam, rule: 'dim light filling the cylinder', option: 'light' }
   ] as const
-  it.each(zoneGaps)('%s: the %s is unauthored (%s, %s)', (_name, spell, _rule, option) => {
-    expect(placedZoneOf(spell)).not.toHaveProperty(option)
-  })
+  it.each(zoneGaps)(
+    '$spell.label: the $rule is unauthored ($option, no task yet)',
+    ({ spell, option }) => {
+      expect(placedZoneOf(spell)).not.toHaveProperty(option)
+    }
+  )
 
   it('leaves Insect Plague’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)', () => {
     expect(placedZoneOf(insectPlague).components?.[0]).not.toHaveProperty('movementCostMultiplier')
@@ -118,13 +138,33 @@ describe('Cloudkill and Insect Plague rules a placed zone does not run yet (SPEL
    * Not authorable at all yet, so nothing in the record can show them: Cloudkill's fog moving 10
    * feet away from the caster at the start of each of the caster's turns and sinking to the lowest
    * ground, strong wind dispersing it, and Insect Plague's save for each creature in the area when
-   * it appears (a cast that places a zone has no cast-time area save). Each needs a new core option.
-   * Also not exact: the per-turn limit counts every application, so an Insect Plague creature that
-   * enters and ends the same turn in the area saves once (the SRD text gives two saves).
+   * it appears (a cast that places a zone has no cast-time area save). Incendiary Cloud's cloud
+   * moving 10 feet away from the caster at the start of each of the caster's turns, its wind
+   * dispersal and its save when it appears, and Moonbeam's beam moved 60 feet by the caster's
+   * action. Each needs a new core option. Moonbeam's shapechanger rider (disadvantage on the save,
+   * reverting to its original form on a failure and no new form while in the light) needs a
+   * creature-trait condition on a zone save and a creature form state, which the save contract
+   * does not have. Also not exact: the per-turn limit counts every application, so an Insect
+   * Plague or Incendiary Cloud creature that enters and ends the same turn in the area saves once
+   * (the SRD text gives two saves).
    */
-  it('places only the zone: no cast-time area save beside it', () => {
-    expect(insectPlague.effects?.[0]?.paths).toHaveLength(1)
-    expect(insectPlague.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')
+  it.each([
+    ['Insect Plague', insectPlague],
+    ['Incendiary Cloud', incendiaryCloud]
+  ])('%s places only the zone: no cast-time area save beside it', (_name, spell) => {
+    expect(spell.effects?.[0]?.paths).toHaveLength(1)
+    expect(spell.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')
+  })
+
+  it('authors Moonbeam’s save without a shapechanger condition', () => {
+    const invocation = placedZoneOf(moonbeam).components?.[0]?.behaviors?.[0]?.invocation
+    if (!invocation || !('savingThrow' in invocation) || !invocation.savingThrow)
+      throw new Error('Moonbeam must author a zone save.')
+    expect(Object.keys(invocation.savingThrow).sort()).toEqual([
+      'abilityDefinitionId',
+      'dcMethod',
+      'id'
+    ])
   })
 })
 
