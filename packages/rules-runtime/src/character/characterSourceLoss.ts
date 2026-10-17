@@ -107,14 +107,7 @@ function removeEquipment(character: CharacterAuthored, equipmentId: string): voi
     .map((item) =>
       item.containerId && removedItemIds.has(item.containerId) ? omit(item, 'containerId') : item
     )
-  character.state.equipment.equipped = character.state.equipment.equipped.filter(
-    ({ itemId }) => !removedItemIds.has(itemId)
-  )
-  character.state.equipment.attuned = character.state.equipment.attuned.filter(
-    (itemId) => !removedItemIds.has(itemId)
-  )
-  setEquipmentAssignments(character, 'creatureEquipment', removedItemIds)
-  setEquipmentAssignments(character, 'vehicleEquipment', removedItemIds)
+  character.state = removeCharacterItemReferences(character.state, removedItemIds)
   for (const source of ['class', 'background'] as const) {
     const decision = character.intent.startingEquipment?.[source]
     if (!decision?.groups) continue
@@ -125,12 +118,33 @@ function removeEquipment(character: CharacterAuthored, equipmentId: string): voi
   }
 }
 
-function setEquipmentAssignments(
-  character: CharacterAuthored,
+/**
+ * The Character state without references to removed inventory items: their equipped and attuned
+ * entries and their creature and vehicle assignments, a roster left empty dropped.
+ */
+export function removeCharacterItemReferences(
+  state: CharacterAuthored['state'],
+  removedItemIds: ReadonlySet<string>
+): CharacterAuthored['state'] {
+  const next: CharacterAuthored['state'] = {
+    ...state,
+    equipment: {
+      ...state.equipment,
+      equipped: state.equipment.equipped.filter(({ itemId }) => !removedItemIds.has(itemId)),
+      attuned: state.equipment.attuned.filter((itemId) => !removedItemIds.has(itemId))
+    }
+  }
+  removeEquipmentAssignments(next, 'creatureEquipment', removedItemIds)
+  removeEquipmentAssignments(next, 'vehicleEquipment', removedItemIds)
+  return next
+}
+
+function removeEquipmentAssignments(
+  state: CharacterAuthored['state'],
   key: 'creatureEquipment' | 'vehicleEquipment',
   removedItemIds: ReadonlySet<string>
 ): void {
-  const assignments = character.state[key]
+  const assignments = state[key]
   if (!assignments) return
   const retained = Object.fromEntries(
     Object.entries(assignments).flatMap(([ownerId, values]) => {
@@ -138,8 +152,8 @@ function setEquipmentAssignments(
       return next.length > 0 ? [[ownerId, next]] : []
     })
   )
-  if (Object.keys(retained).length > 0) character.state[key] = retained
-  else delete character.state[key]
+  if (Object.keys(retained).length > 0) state[key] = retained
+  else delete state[key]
 }
 
 function removeCreature(character: CharacterAuthored, creatureId: string): void {

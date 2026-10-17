@@ -903,6 +903,26 @@ it('commits chat and to-GM rolls in the room to their recipients, replays exact 
     ).toHaveLength(2)
 })
 
+// QUALITY-1.T1: the room refused such a nonce ("already sent") where Convex replays its entry.
+it('replays the entry of a chat nonce the journal holds no receipt for, as Convex does, spending nothing', async () => {
+  const room = await sheetRoom()
+  const chatId = crypto.randomUUID()
+  room.owner.socket.send(chatFrame(tableChat(room, chatId, 'Hello table')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, chatId)).toHaveLength(1))
+  const sent = committedChat(room.owner, chatId)
+  // The entry outlives its receipt, as one first sent through Convex or in an earlier epoch does.
+  await runInDurableObject(room.stub, (_instance, state) => {
+    state.storage.sql.exec('DELETE FROM durable_command_receipts WHERE command_id = ?', chatId)
+  })
+  const before = await roomChatEvidence(room)
+
+  room.owner.socket.send(chatFrame(tableChat(room, chatId, 'Hello table')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, chatId)).toHaveLength(2))
+
+  expect(committedChat(room.owner, chatId, 1).delta).toEqual(sent.delta)
+  expect(await roomChatEvidence(room)).toEqual(before)
+})
+
 it('accepts queued test rolls in a local development room and rolls its next dice from them', async () => {
   const room = await sheetRoom()
   const local = {

@@ -102,7 +102,7 @@ export function buildCharacterDerivedRuleFacts(
   registry: CharacterAssemblyRegistry
 ): DerivedFacts {
   const adjustments = snapshot.adjustments ?? []
-  const skillAliases = buildSkillSubjectAliasMap(registry)
+  const skillAliases = buildSkillSubjectAliasMap(registry.system)
   const abilities: DerivedFacts['abilities'] = Object.entries(snapshot.abilities).map(
     ([abilityId, baseScore]) => {
       const abilityAdjustments = adjustments.filter(

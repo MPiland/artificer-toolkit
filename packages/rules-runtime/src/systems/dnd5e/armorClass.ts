@@ -29,6 +29,22 @@ export function combineDnd5eArmorClass(input: {
   return { base, effective: input.additive.reduce((sum, value) => sum + value, base) }
 }
 
+/**
+ * The one shield D&D armor class counts of those held in a hand (D107): the one that adds the most
+ * (`addsOf`), the main hand's on a tie.
+ */
+export function selectDnd5eHeldShield<Shield>(
+  held: readonly { inMainHand: boolean; shield: Shield }[],
+  addsOf: (shield: Shield) => number
+): Shield | null {
+  const best = held.reduce<(typeof held)[number] | undefined>((chosen, candidate) => {
+    if (chosen === undefined) return candidate
+    const difference = addsOf(candidate.shield) - addsOf(chosen.shield)
+    return difference > 0 || (difference === 0 && candidate.inMainHand) ? candidate : chosen
+  }, undefined)
+  return best?.shield ?? null
+}
+
 export type CreatureArmorClassEquipment = {
   id: string
   useState: EquipmentSlotCode
@@ -136,9 +152,6 @@ export function resolveDnd5eCreatureArmorClass(input: {
       twoHanded: entry.compiled.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
     }))
   )
-  const shield = [occupancy.mainHandId, occupancy.offHandId]
-    .map((id) => input.equipment.find((entry) => entry.id === id))
-    .find((entry) => entry?.compiled.category === 'SHIELD')
 
   let armor: { armorClass: number; abilityBonuses: readonly number[] } | null = null
   let flatBonuses: readonly number[] = []
@@ -149,16 +162,25 @@ export function resolveDnd5eCreatureArmorClass(input: {
     armor = { armorClass: wornArmor.compiled.armorClass, abilityBonuses: modifiers.abilityBonuses }
     flatBonuses = modifiers.flatBonuses
   }
-  let shieldBonus = 0
-  if (shield) {
+  const heldShields: { inMainHand: boolean; shield: number }[] = []
+  for (const [inMainHand, id] of [
+    [true, occupancy.mainHandId],
+    [false, occupancy.offHandId]
+  ] as const) {
+    const shield = input.equipment.find((entry) => entry.id === id)
+    if (shield?.compiled.category !== 'SHIELD') continue
     const modifiers = itemArmorClassModifiers(shield.compiled, dexterityModifier)
     if (!modifiers.ok) return modifiers
     if (shield.compiled.armorClass === undefined) return missingArmorClass(shield.compiled.id)
-    shieldBonus = [...modifiers.abilityBonuses, ...modifiers.flatBonuses].reduce(
-      (sum, value) => sum + value,
-      shield.compiled.armorClass
-    )
+    heldShields.push({
+      inMainHand,
+      shield: [...modifiers.abilityBonuses, ...modifiers.flatBonuses].reduce(
+        (sum, value) => sum + value,
+        shield.compiled.armorClass
+      )
+    })
   }
+  const shieldBonus = selectDnd5eHeldShield(heldShields, (bonus) => bonus) ?? 0
   return {
     ok: true,
     armorClass: combineDnd5eArmorClass({
