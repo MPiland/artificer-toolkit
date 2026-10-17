@@ -83,9 +83,10 @@ jobs:
       - name: Package tests
         id: tests
         run: |
-          for package in schema shared source-data rules-runtime encounter-persistence; do
+          for package in schema shared source-data emails design-system rules-runtime encounter-persistence apis; do
             yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
           done
+          yarn vitest run --config vitest.config.ts scripts/*.test.mjs --reporter=default --reporter=json --outputFile.json=local-validation/vitest-scripts.json
       - uses: ./.github/actions/regenerate-snapshots
         if: failure() && steps.tests.outcome == 'failure'
         with:
@@ -129,7 +130,7 @@ jobs:
         run: yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --filter=@artificer-toolkit/apis --concurrency=1 --only --env-mode=loose --continue
       - name: Packages
         if: success() || failure()
-        run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --concurrency=1 --only --env-mode=loose --continue
+        run: yarn turbo run typecheck --filter=@artificer-toolkit/rules-runtime --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/shared --filter=@artificer-toolkit/source-data --filter=@artificer-toolkit/authoring --filter=@artificer-toolkit/emails --filter=@artificer-toolkit/design-system --concurrency=1 --only --env-mode=loose --continue
 
   typecheck-web:
     name: Typecheck web
@@ -149,6 +150,67 @@ jobs:
       - name: Stories
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
+
+  # Proves fail-before in the same run: the slice's new and changed test files run against the production
+  # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
+  # labels each file RED, RED-IMPORT or ALREADY-PASSING (scripts/redProof.mjs). Those outcomes all pass;
+  # the job fails only when a suite cannot report. Merge batches already proved red on their slices.
+  # It holds one of the account's 20 job slots for its own install and build, so beside two other runs it can
+  # queue another run's jobs; a single run is no slower.
+  red:
+    name: Red proof against the phase branch
+    if: ${{ !startsWith(github.ref_name, 'ci/merge-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Restore the phase branch's production code
+        id: restore
+        run: |
+          cp scripts/redProof.mjs "$RUNNER_TEMP/redProof.mjs"
+          tip=$(git rev-parse HEAD)
+          base=$(git merge-base HEAD origin/codex/phase-08-2-convex-cutover)
+          node "$RUNNER_TEMP/redProof.mjs" changed "$base" > "$RUNNER_TEMP/red-files.txt"
+          if ! grep -qE '\.test\.[cm]?[jt]sx?$' "$RUNNER_TEMP/red-files.txt"; then
+            echo "No new or changed test files against the phase branch ($base); nothing to prove red." >> "$GITHUB_STEP_SUMMARY"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tip=$tip" >> "$GITHUB_OUTPUT"
+          git checkout --quiet --detach "$base"
+      # Package builds compile their test files too, so the tip's tests join only after the build.
+      - uses: ./.github/actions/setup
+        if: steps.restore.outputs.skip != 'true'
+        with:
+          build: 'true'
+      - name: Keep the tip's changed test files
+        if: steps.restore.outputs.skip != 'true'
+        run: |
+          xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' git checkout ${{ steps.restore.outputs.tip }} --
+          cat "$RUNNER_TEMP/red-files.txt"
+      - name: Run the changed tests without the slice
+        if: steps.restore.outputs.skip != 'true'
+        run: xargs -a "$RUNNER_TEMP/red-files.txt" -d '\n' node "$RUNNER_TEMP/redProof.mjs" run
+
+  # A type error ends the run once both typecheck jobs have reported, instead of after the ~15-minute test
+  # jobs. It cancels only this run; the cancelled run keeps the failed typecheck jobs, which
+  # scripts/watchCi.ps1 reports. A green run never waits on this job.
+  cancel-on-type-error:
+    name: Cancel the run on a type error
+    needs: [typecheck-packages, typecheck-web]
+    if: ${{ !cancelled() && contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
 
   # A Tests run that failed on snapshot mismatches leaves the corrected files as one `updated-snapshots`
   # artifact (scripts/watchCi.ps1 prints the download command). The failing job stays failed, so snapshot

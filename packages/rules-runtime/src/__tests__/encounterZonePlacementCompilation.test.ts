@@ -101,7 +101,7 @@ describe('placed-space zone compilation from real SRD Caltrops', () => {
       modifiers: [expect.objectContaining({ modifierKind: 'PENALTY' })],
       endOnEvents: ['ON_HIT_POINTS_REGAINED']
     })
-    expect(zone.grant?.modifiers[0]?.grant).toMatchObject({
+    expect(zone.grant?.modifiers[0]).toMatchObject({
       payload: { amount: 10, unit: 'FEET' }
     })
   })

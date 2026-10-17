@@ -122,18 +122,25 @@ export function discoverNativeAttackReaction(input: {
 }
 
 /**
- * Runs a used reaction and works out the attack it answered once the reaction's effect holds: the
- * effect plan to settle with the outcome, and the attack's binding against the reactor's facts as that
- * effect leaves them. Nothing is stored; the commit settles the plan.
+ * Runs a used reaction (to an attack, or to being chosen as a cast's target) and works out the action
+ * it answered once the reaction's effect holds: the effect plan to settle with the outcome, and the
+ * action's binding against the reactor's facts as that effect leaves them. Nothing is stored; the
+ * commit settles the plan.
  */
-export async function applyNativeAttackReaction(input: {
-  reaction: NativeAttackReaction
+export async function applyNativeReactionEffect(input: {
+  reaction: Pick<NativeAttackReaction, 'prepared' | 'triggerDamageTypeIds'>
   runtime: RulesRuntimeService
   occurrenceId: string
   commandId: string
+  /** Names the reactor in the effect id when several creatures react to one command. */
+  reactorActorId?: string
   occurredAt: string
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
-  prepareAttack(movementTargets: MovementTargets): Promise<Prepared>
+  /** Re-prepares the answered action; the reactor's target as the reaction's effect leaves it is given too. */
+  prepareAttack(
+    movementTargets: MovementTargets,
+    adjustedTarget: Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
+  ): Promise<Prepared>
   loadTarget(
     actor: EncounterRunActorState,
     activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
@@ -177,7 +184,8 @@ export async function applyNativeAttackReaction(input: {
     new Map(input.activeEffectsByActorId).set(reactorId, [...held, pending])
   )
   const adjustedAttack = await input.prepareAttack(
-    new Map(prepared.movementTargets).set(reactorId, adjustedTarget)
+    new Map(prepared.movementTargets).set(reactorId, adjustedTarget),
+    adjustedTarget
   )
   return {
     execution,

@@ -100,8 +100,18 @@ describe('effect node maps', () => {
       'MOVEMENT',
       'ATTACKED_SELF',
       'SPELL_CAST',
-      'DAMAGE_TAKEN'
+      'DAMAGE_TAKEN',
+      'TARGETED_SELF'
     ])
+    const sourceEffectIdsNode = reactionMap.nodes.sourceEffectIds
+    if (sourceEffectIdsNode?.kind !== 'INPUT' || sourceEffectIdsNode.type !== 'SELECT_MULTI')
+      throw new Error('Expected the source spells to be a multi select')
+    expect(sourceEffectIdsNode.source).toMatchObject({
+      kind: 'DATA',
+      relationship: { kind: 'TABLE', table: 'spells' }
+    })
+    expect(sourceEffectIdsNode.showIf).toBeDefined()
+    expect(sourceEffectIdsNode.requiredIf).toBeUndefined()
     const higherLevelCheckNode = reactionMap.nodes.higherLevelCheck
     if (higherLevelCheckNode?.kind !== 'GROUP')
       throw new Error('Expected the higher-level check to be a group node')

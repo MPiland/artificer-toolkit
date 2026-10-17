@@ -45,6 +45,8 @@ class CharacterActiveRuleEffectExecutionError extends Error {
 export type ActiveRuleEffectTargetDefense = {
   kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
   damageTypeId: string
+  /** Applies only to damage from actions owned by this authored content; absent or empty: any. */
+  sourceEffectIds?: readonly string[]
 }
 
 const MAX_TARGET_DEFENSES = 128

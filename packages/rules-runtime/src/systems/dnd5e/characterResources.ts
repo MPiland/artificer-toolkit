@@ -5,14 +5,12 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 
 import { abilityModifier } from './abilityModifier.js'
-import { characterPolicyRecord } from './characterPolicyValues.js'
 
 type DerivedStats = Omit<CharacterRulePolicyOutput['derivedStats'], 'armorClass' | 'maxHitPoints'>
 type ResourcesOutput = Pick<CharacterRulePolicyOutput, 'chargeMaximums' | 'resources'>
 type ChargeMaximum = CharacterRulePolicyOutput['chargeMaximums'][number]
 type Resource = CharacterRulePolicyOutput['resources'][number]
 type ChargeCalculation = CharacterRulePolicyInput['chargeCalculations'][number]
-const resetKinds = new Set(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
 
 function clampedInteger(value: number, minimum: number | null, maximum: number | null): number {
   return Math.floor(
@@ -21,10 +19,6 @@ function clampedInteger(value: number, minimum: number | null, maximum: number |
       maximum ?? Number.POSITIVE_INFINITY
     )
   )
-}
-
-function isResetKind(value: unknown): value is Resource['resetKind'] {
-  return typeof value === 'string' && resetKinds.has(value)
 }
 
 function classLevel(input: CharacterRulePolicyInput, classId: string): number | null {
@@ -170,35 +164,6 @@ function calculateChargeMaximums(
   })
 }
 
-function resourceScopedTo(
-  modifier: CharacterGrantFoldOutput['modifiers'][number],
-  resourceId: string
-): boolean {
-  const grant = characterPolicyRecord(modifier.grant)
-  const restrictions = characterPolicyRecord(grant.restrictions)
-  const contexts = (Array.isArray(restrictions.groups) ? restrictions.groups : []).flatMap(
-    (group) => {
-      const record = characterPolicyRecord(group)
-      return (Array.isArray(record.contexts) ? record.contexts : []).filter(
-        (context) => characterPolicyRecord(context).subject === 'RESOURCE'
-      )
-    }
-  )
-  if (contexts.length === 0) return true
-  return contexts.some((context) => {
-    const record = characterPolicyRecord(context)
-    const direct = Array.isArray(record.resourceIds) && record.resourceIds.includes(resourceId)
-    const nested = (Array.isArray(record.conditions) ? record.conditions : []).some((condition) => {
-      const conditionRecord = characterPolicyRecord(condition)
-      return (
-        Array.isArray(conditionRecord.resourceIds) &&
-        conditionRecord.resourceIds.includes(resourceId)
-      )
-    })
-    return direct || nested
-  })
-}
-
 function resolvedReset(
   pool: CharacterRulePolicyInput['resourcePoolCandidates'][number],
   fold: Pick<CharacterGrantFoldOutput, 'modifiers'>
@@ -209,33 +174,29 @@ function resolvedReset(
       resetResolution: { baseResetKind: pool.baseResetKind, appliedGrantId: null, source: null }
     }
   }
-  const replacements = fold.modifiers.filter((modifier) => {
-    const grant = characterPolicyRecord(modifier.grant)
-    const payload = characterPolicyRecord(grant.payload)
-    return (
-      grant.valueDomainCode === 'CHARGE_RESET' &&
-      grant.modifierKind === 'REPLACE_CHARGE_RESET_KIND' &&
-      payload.resetKind != null &&
-      resourceScopedTo(modifier, pool.resourceDefinitionId)
+  // A charge reset scoped to class resources replaces only theirs; the last applicable one wins.
+  const replacement = fold.modifiers
+    .flatMap(({ grantId, valueDomainCode, modifierKind, payload, scopeResourceIds, source }) =>
+      valueDomainCode === 'CHARGE_RESET' &&
+      modifierKind === 'REPLACE_CHARGE_RESET_KIND' &&
+      payload !== undefined &&
+      'resetKind' in payload &&
+      (scopeResourceIds === undefined || scopeResourceIds.includes(pool.resourceDefinitionId))
+        ? [{ grantId, resetKind: payload.resetKind, source }]
+        : []
     )
-  })
-  const replacement = replacements.at(-1)
+    .at(-1)
   if (replacement === undefined) {
     return {
       resetKind: pool.baseResetKind,
       resetResolution: { baseResetKind: pool.baseResetKind, appliedGrantId: null, source: null }
     }
   }
-  const grant = characterPolicyRecord(replacement.grant)
-  if (typeof grant.id !== 'string')
-    throw new Error('Charge reset replacement is missing its grant ID.')
-  const payload = characterPolicyRecord(grant.payload)
-  const resetKind = isResetKind(payload.resetKind) ? payload.resetKind : 'MANUAL'
   return {
-    resetKind,
+    resetKind: replacement.resetKind,
     resetResolution: {
       baseResetKind: pool.baseResetKind,
-      appliedGrantId: grant.id,
+      appliedGrantId: replacement.grantId,
       source: replacement.source
     }
   }

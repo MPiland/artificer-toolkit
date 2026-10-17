@@ -34,6 +34,30 @@ export function discoverCastReactionActions(
 }
 
 /**
+ * The reactions a Character holds that answer being chosen as a target of a cast: authored
+ * `TARGETED_SELF` reactions, among its actions and the spells it may cast now. One limited to
+ * `sourceEffectIds` answers only a cast of one of those spells (`castOwnerId`); absent or empty, any
+ * cast. Whether one is affordable is decided when it is prepared.
+ */
+export function discoverTargetedSelfReactionActions(
+  reactor: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
+  castOwnerId: string
+): readonly Pick<CharacterActionCandidate, 'actionId' | 'effectId'>[] {
+  const candidates: readonly CharacterActionCandidate[] = [
+    ...(reactor.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
+    ...(reactor.characterSpellCast?.candidates ?? [])
+  ].sort((left, right) => left.sequence - right.sequence)
+  return candidates.flatMap(({ actionId, effectId, mechanicFacts: { invocation } }) => {
+    const trigger = invocation.reactionTrigger
+    return invocation.activation?.code === 'REACTION' &&
+      trigger?.kind === 'TARGETED_SELF' &&
+      (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(castOwnerId))
+      ? [{ actionId, effectId }]
+      : []
+  })
+}
+
+/**
  * The level a prepared spell cast is cast at (0 for a cantrip); null when the action is not a spell
  * cast, so nothing can counter it. A Character's is the level of its cast. A Creature capability's is
  * its authored cast level; a spell attack casts no spell (D136).

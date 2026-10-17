@@ -28022,6 +28022,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -31396,6 +31400,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -37533,6 +37541,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -40907,6 +40919,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -47053,6 +47069,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -50427,6 +50447,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -56564,6 +56588,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -59938,6 +59966,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -66110,6 +66142,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -69484,6 +69520,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -75621,6 +75661,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -78995,6 +79039,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -85055,6 +85103,10 @@ export declare const api: {
                           | {
                               damageTypeIds: Array<string>;
                               kind: "DAMAGE_TAKEN";
+                            }
+                          | {
+                              kind: "TARGETED_SELF";
+                              sourceEffectIds?: Array<string>;
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         savingThrow:
@@ -88383,6 +88435,10 @@ export declare const api: {
                           | {
                               damageTypeIds: Array<string>;
                               kind: "DAMAGE_TAKEN";
+                            }
+                          | {
+                              kind: "TARGETED_SELF";
+                              sourceEffectIds?: Array<string>;
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         shape?:
@@ -94515,6 +94571,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -97889,6 +97949,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -104026,6 +104090,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           savingThrow:
@@ -107400,6 +107468,10 @@ export declare const api: {
                             | {
                                 damageTypeIds: Array<string>;
                                 kind: "DAMAGE_TAKEN";
+                              }
+                            | {
+                                kind: "TARGETED_SELF";
+                                sourceEffectIds?: Array<string>;
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           shape?:
@@ -124742,6 +124814,66 @@ export declare const internal: {
         "internal",
         { sourcePublicIds: Array<string>; userId: string },
         null
+      >;
+    };
+  };
+  rules: {
+    modifierOperationMigration: {
+      characterEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      encounterEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      spatialEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
   };

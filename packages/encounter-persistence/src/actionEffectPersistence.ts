@@ -73,7 +73,10 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   // The effect of a reaction the target used lands on the target beside the action's own effects.
   const reactionTransition =
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-      ? (outputs.reaction?.activeEffectTransitions ?? [])
+      ? [
+          ...(outputs.reaction?.activeEffectTransitions ?? []),
+          ...outputs.reactionEffectTransitions
+        ]
       : []
   if (
     input.createdEffects.length > 3 ||
@@ -386,7 +389,10 @@ export async function persistEncounterActionEffects(
     checksumCanonicalJson(reactionReceipts) !==
       checksumCanonicalJson(
         outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-          ? (outputs.reaction?.activeEffectTransitions ?? [])
+          ? [
+              ...(outputs.reaction?.activeEffectTransitions ?? []),
+              ...outputs.reactionEffectTransitions
+            ]
           : []
       )
   )
