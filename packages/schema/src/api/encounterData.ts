@@ -566,7 +566,14 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           /** The unspent one-shot teleports this turn's casts granted (Misty Step); a TELEPORT move spends one. */
           teleport: z
             .array(teleportAllowanceDtoSchema)
-            .check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES))
+            .check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES)),
+          /**
+           * The creatures this actor must Dash away from this turn, because a held condition
+           * authored `fleesSource` (Fear); empty when it flees none. Shown, never enforced.
+           */
+          fleeSourceActorIds: z
+            .array(postgresUuidSchema)
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),

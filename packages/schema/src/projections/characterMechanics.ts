@@ -174,6 +174,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
         z.strictObject({
           conditionId: serverUuidIdentityDtoSchema,
           recordsSource: z._default(z.boolean(), false),
+          fleesSource: z._default(z.boolean(), false),
           consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
           endOnEvents: z._default(activeEffectEndEventsSchema, []),
           endOnTriggers: z._default(activeEffectEndTriggersSchema, [])

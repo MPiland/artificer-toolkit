@@ -11,6 +11,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {
   activeEncounterConditionMechanics,
+  encounterConditionFleeSources,
   encounterConditionLevels,
   encounterConditionSpeed,
   pinEncounterConditionDefinitions
@@ -411,12 +412,14 @@ export async function readTurnMovementView(
       const campaignConditions = (await isDepartedCharacterActor(ctx, state.campaignId, actor))
         ? []
         : await ctx.ports.readCampaignCharacterConditions(input.campaign, actor.sourceId)
+      const conditionIds = [...(sheet.conditions ?? []), ...campaignConditions].map(
+        (condition) => condition.conditionTypeId
+      )
       return {
         speeds: await withGrants(actor, play.speeds),
+        conditionIds,
         conditionLevels: encounterConditionLevels({
-          conditionIds: [...(sheet.conditions ?? []), ...campaignConditions].map(
-            (condition) => condition.conditionTypeId
-          ),
+          conditionIds,
           conditionRows: [],
           exhaustionLevel: sheet.exhaustion?.level ?? 0,
           gameSystemId
@@ -427,6 +430,7 @@ export async function readTurnMovementView(
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     return {
       speeds: await withGrants(actor, snapshotStatBlock(actor)?.speeds ?? []),
+      conditionIds: conditions.ids,
       conditionLevels: encounterConditionLevels({
         conditionIds: conditions.ids,
         conditionRows: conditions.values,
@@ -475,7 +479,13 @@ export async function readTurnMovementView(
             castCommandId,
             maxFeet,
             destinationKind
-          }))
+          })),
+        fleeSourceActorIds: known
+          ? encounterConditionFleeSources({
+              state: { conditions: known.conditionIds },
+              activeEffects: await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id))
+            })
+          : []
       }
     })
   )

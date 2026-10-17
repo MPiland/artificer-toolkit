@@ -1448,7 +1448,8 @@ function repeatingImmediateFollowUpSavePlan(
     initialRemaining,
     conditionContribution: {
       conditionId: condition.conditionId,
-      recordsSource: condition.recordsSource
+      recordsSource: condition.recordsSource,
+      fleesSource: condition.fleesSource
     },
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
@@ -1530,7 +1531,8 @@ function timedImmediateConditionPlan(
     initialRemaining,
     conditionContribution: {
       conditionId: condition.conditionId,
-      recordsSource: condition.recordsSource
+      recordsSource: condition.recordsSource,
+      fleesSource: condition.fleesSource
     },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
     perceptionContributions: [],
@@ -1568,7 +1570,7 @@ function timedConditionPlan(
   // it (Imp Invisibility), so Concentration must maintain it: nothing else bounds it.
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   const indefinite = !entry.duration
-  const { conditionId, recordsSource } = entry.outcome
+  const { conditionId, recordsSource, fleesSource } = entry.outcome
   if (
     (indefinite ? !maintenance : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
@@ -1586,6 +1588,7 @@ function timedConditionPlan(
     conditionContribution: {
       conditionId,
       recordsSource,
+      fleesSource,
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
       endOnEvents: [...new Set(endOnEvents)].sort(),
       endOnTriggers: canonicalEndTriggers(endOnTriggers)
@@ -2174,7 +2177,8 @@ function repeatingDirectFollowUpSavePlan(
       ? {
           conditionContribution: {
             conditionId: lead.conditionId,
-            recordsSource: lead.recordsSource
+            recordsSource: lead.recordsSource,
+            fleesSource: lead.fleesSource
           }
         }
       : grantContribution
