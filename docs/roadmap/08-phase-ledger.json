@@ -8879,7 +8879,7 @@
             },
             {
               "id": "SPELLS-20.T4b2b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Turn zone stage contract and rules: the ENCOUNTER_TURN_ZONE_EFFECTS pending context, candidate and execution DTOs, batch kind and root phase fields in packages/schema; the stage in rules-runtime prepareEncounterTurn after Recharge, the death save and the actor's own turn-boundary effects (active effects then zones, each by effect id; the shared context seams are extended, not cloned), carrying the save then the damage roll through the T4b2a shared resume and consuming the T4b1 counter. Proved by real-code rules-runtime tests: two zones in effect-id order, START and END on a zone authored from core options, the save-then-dice resume, and the per-turn limit.",
               "wsjf": {
@@ -8889,11 +8889,11 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4b2a"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Fast-path merge 15928bd86 of 747f4dd0c (Tests 39020371226, Live 39020371263 green); full backstop ci/merge-m71. The zone evidence refinement is applied by the turn result schemas and tested through them."
             },
             {
               "id": "SPELLS-20.T4b2b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "text": "Turn zone stage persistence and play: staged-plan validation, the mechanics batch and the zone application record in the terminal transaction, the generic encounter-persistence seams (pending reads, admission, replay, void and owner, terminal completion), Session Worker and Convex loading of placed zones and the Scene, the SRD flip, ADR 0034 note and persistence.md section; prompted rolls are not undoable. Proved by a Stinking Cloud journey plus Spirit Guardians start. Unblocks Stinking Cloud and Blade Barrier; Oil Flask stays MANUAL (requiresIgnition, maxApplicationsTotal).",
               "wsjf": {
@@ -8902,7 +8902,8 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T4b2b1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4c",
