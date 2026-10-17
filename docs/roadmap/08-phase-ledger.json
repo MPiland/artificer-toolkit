@@ -8851,7 +8851,7 @@
             },
             {
               "id": "SPELLS-20.T4b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Once-per-turn zone counter per (effect, creature, turn), stored on the Encounter run state keyed by effect and actor with the turn identity in each entry (an entry from another turn counts as unspent and is pruned on write; the placement stays immutable). First ENTER consumes it and maxApplicationsPerTurn gets its runtime consumer; proved on Caltrops and Spirit Guardians.",
               "wsjf": {
@@ -8861,7 +8861,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4a"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Merged in ci/merge-m69 (1b6a82f55; Tests 39015047531, Live 39015047560 green), on the phase branch at 2d68ffd4e."
             },
             {
               "id": "SPELLS-20.T4b2a",
