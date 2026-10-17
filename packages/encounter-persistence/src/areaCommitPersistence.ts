@@ -50,7 +50,11 @@ import {
   type readEncounterMaintenanceCapture
 } from './maintenanceCapture.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
-import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
+import {
+  completeActionOccurrence,
+  recordActionRoot,
+  type ApplyEncounterForcedMovements
+} from './actionCommitRecords.js'
 import {
   combineSpendMutations,
   settleActionSourceSpend,
@@ -179,6 +183,7 @@ export async function persistEncounterAreaCommit(
     persistConcentrationChildren(
       input: Parameters<typeof persistEncounterConcentrationChildren>[1]
     ): ReturnType<typeof persistEncounterConcentrationChildren>
+    applyForcedMovements: ApplyEncounterForcedMovements
   }
 ): Promise<EncounterCommandResultDto> {
   const admission = await readLiveEncounterActionAdmission(ctx, input)
@@ -368,7 +373,9 @@ export async function persistEncounterAreaCommit(
       batch.targetActorId !== actor.id ||
       batch.activeEffectTransitions.length +
         batch.stateEffectTransitions.length +
-        (batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.reactionEffectTransitions.length : 0) !==
+        (batch.kind === 'CHARACTER_MECHANICS_BATCH'
+          ? batch.reactionEffectTransitions.length
+          : 0) !==
         createdEffects.length ||
       (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
@@ -825,6 +832,15 @@ export async function persistEncounterAreaCommit(
       pending: null
     }
   })
+  // Each creature the area pushes or pulls moves on the Scene in this commit (D139).
+  const forcedMovements = input.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: command.actorId,
+        commandId: command.commandId,
+        movements: input.forcedMovements
+      })
+    : []
   await recordActionRoot(ctx, {
     run,
     state,
@@ -848,6 +864,7 @@ export async function persistEncounterAreaCommit(
       failedCounters: failedReceipts,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
+      forcedMovements,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {

@@ -123,53 +123,24 @@ describe('SRD breath weapons breathe areas', () => {
     expect(row.printedAreaCount).toBe(row.effectCount)
   })
 
-  it.each(breathRows)(
-    '$name compiles to a directed area of its printed size',
-    (row) => {
-      const policy = buildCompiledActionTargetPolicy(row.capability)
-      expect(policy.range.rangeKind).toBe('SELF')
-      expect(encounterActionTargetKind(policy)).toBe('DIRECTED')
-      expect(encounterActionChoiceTarget(policy)).toEqual(row.printed)
-    }
-  )
+  it.each(breathRows)('$name compiles to a directed area of its printed size', (row) => {
+    const policy = buildCompiledActionTargetPolicy(row.capability)
+    expect(policy.range.rangeKind).toBe('SELF')
+    expect(encounterActionTargetKind(policy)).toBe('DIRECTED')
+    expect(encounterActionChoiceTarget(policy)).toEqual(row.printed)
+  })
 
   const shapedLeavingMoreThanDamage = breathRows.filter(
     ({ leavesLastingEffect }) => leavesLastingEffect
   )
 
-  // The breaths SPELLS-19 has still to author: the Bronze Dragons' push (T4). The task that
-  // authors them empties this list (AC 19.2).
-  const stillToAuthor = breathRows.filter(({ creatureLabel, leavesLastingEffect }) => {
-    const pending = /Bronze Dragon/.test(creatureLabel)
-    return leavesLastingEffect && pending
-  })
-
   // The System compiles a damage-only breath to a test outcome, a breath whose condition it times
   // and repeats (Silver, Dust Mephit) or ends on damage (Brass), one whose grant it times and
-  // repeats (Gold, Copper) and one whose repeat save escalates to a second condition (Gorgon).
-  // The rest it cannot execute, so discovery never offers them.
-  it('cannot execute exactly the breaths still to author', () => {
+  // repeats (Gold, Copper), one whose repeat save escalates to a second condition (Gorgon) and one
+  // that pushes each creature that fails its save (Bronze).
+  it('finds every breath that leaves more than damage', () => {
     expect(shapedLeavingMoreThanDamage).toHaveLength(22)
-    expect(stillToAuthor).toHaveLength(4)
-    expect(
-      breathRows
-        .filter(({ compiles }) => !compiles)
-        .map(({ effectId }) => effectId)
-        .sort()
-    ).toEqual(stillToAuthor.map(({ effectId }) => effectId).sort())
   })
-
-  it.each(stillToAuthor)(
-    '$name is a shaped area its System cannot execute, so it is listed unavailable and not offered',
-    (row) => {
-      expect(() =>
-        compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, row.capability)
-      ).toThrow(CharacterRuleActionUnsupportedCompilationError)
-      expect(row.offered).toBe(false)
-      expect(row.listedUnavailable).toBe(true)
-    }
-  )
-
   it.each(shapedLeavingMoreThanDamage.filter(({ compiles }) => compiles))(
     '$name leaves its condition through its System and is offered',
     (row) => {
@@ -193,11 +164,16 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty. T4 takes the rows
-  // off `stillToAuthor`; the task that empties it drops `.fails` (vitest errors once it passes).
-  it.fails('leaves no breath its System cannot execute', () => {
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty, so the filtered rows
+  // above are every breath, and discovery offers each of them.
+  it('leaves no breath its System cannot execute, and offers every breath', () => {
     expect(
       breathRows.filter(({ compiles }) => !compiles).map(({ name, refusal }) => ({ name, refusal }))
+    ).toEqual([])
+    expect(
+      breathRows
+        .filter(({ offered, listedUnavailable }) => !offered || listedUnavailable)
+        .map(({ effectId }) => effectId)
     ).toEqual([])
   })
 

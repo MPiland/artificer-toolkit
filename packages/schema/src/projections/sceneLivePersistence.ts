@@ -84,7 +84,17 @@ export const sceneStoredGeometryCommandSchema = lazySchema(() =>
     ...commandIdentity(),
     encoding: z.literal('GEOMETRY'),
     input: sceneNativeGeometryCommandInputSchema,
-    result: sceneGeometryCommandResultSchema
+    result: sceneGeometryCommandResultSchema,
+    /**
+     * The Encounter action whose forced movement made this move (D139). Only that action's undo
+     * reverts it; the Scene's own move undo refuses it. Null for a move a user made.
+     */
+    actionOrigin: z._default(
+      z.nullable(
+        z.strictObject({ encounterId: postgresUuidSchema, commandId: postgresUuidSchema })
+      ),
+      null
+    )
   })
 )
 export const sceneStoredUndoCommandSchema = lazySchema(() =>

@@ -6,13 +6,14 @@ import {
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { bronzeDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/bronze-dragon-wyrmling.js'
 import { winterWolf } from '@artificer-toolkit/source-data/srd/creatures/winter-wolf.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
-import { areaReceipts, vitalsOf } from './areaRoomReads.js'
+import { answerAllSaves, areaReceipts, tokenPositions, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readPendingActionDecision, readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
 
@@ -148,61 +149,109 @@ describe.each([
   }
 )
 
-describe('an SRD breath whose shape the System cannot execute is unavailable', () => {
-  it('lists the Bronze Dragon Wyrmling’s Repulsion Breath as unavailable with its reason, and refuses it at open without changing anything', async () => {
-    const creature = installedSrdCreature(bronzeDragonWyrmling)
-    const { feature, room } = await breathRoom({
-      creature: bronzeDragonWyrmling,
-      featureLabel: 'Breath Weapons'
+describe('every SRD breath weapon is offered and resolves through the area (SPELLS-19.AC2)', () => {
+  it('offers every breath of the corpus, and the Bronze Dragon Wyrmling’s Repulsion Breath pushes each creature that fails its save 30 ft away in one commit the GM’s undo takes back', async () => {
+    // 1. Every breath Effect of every SRD Creature is offered; none is listed unavailable. Among
+    // them, the Silver Dragon Wyrmling's Paralyzing Breath and the Gorgon's Petrifying Breath, whose
+    // area resolution nativeRoomSrdBreathCondition and nativeRoomSrdBreathEscalation run.
+    const breaths = srdBaselineContent.subjects.creatures.flatMap((creature, index) => {
+      const discovery = discoverEncounterFeatureActions({
+        actor: srdCreatureActor({ id: testUuid(0xc00 + index), creature }),
+        conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+        abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+      })
+      return (creature.features ?? [])
+        .filter(({ description }) => /\bexhales?\b/i.test(description ?? ''))
+        .flatMap((feature) =>
+          (feature.effects ?? [])
+            .filter(({ invocation }) => invocation.kind === 'ACTION')
+            .map((effect) => ({
+              name: `${creature.label} ${feature.label}`,
+              offered: discovery.available.some(
+                (action) => action.ownerFeatureId === feature.id && action.effectId === effect.id
+              ),
+              listedUnavailable: discovery.unavailable.some(
+                (action) => action.ownerFeatureId === feature.id
+              )
+            }))
+        )
     })
-    const discovery = discoverEncounterFeatureActions({
-      actor: srdCreatureActor({ id: DRAGON_ID, creature }),
-      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
-      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-    })
-    // The feature's Lightning Breath runs; only the repulsion one, which pushes, does not.
-    const [repulsion, ...others] = discovery.unavailable.filter(
-      ({ ownerFeatureId }) => ownerFeatureId === feature.id
+    expect(breaths).toHaveLength(72)
+    expect(
+      breaths.filter(({ offered, listedUnavailable }) => !offered || listedUnavailable)
+    ).toEqual([])
+    expect(breaths.map(({ name }) => name)).toEqual(
+      expect.arrayContaining([
+        'Silver Dragon Wyrmling Breath Weapons (Recharge 5-6)',
+        'Gorgon Petrifying Breath (Recharge 5-6)',
+        'Bronze Dragon Wyrmling Breath Weapons (Recharge 5-6)'
+      ])
     )
-    if (!repulsion || others.length > 0)
-      throw new Error('Expected exactly one unavailable Bronze Dragon Wyrmling breath.')
-    expect(discovery.available.map(({ actionId }) => actionId)).not.toContain(repulsion.actionId)
 
-    const choices = await room.actionChoices()
-    expect(choices.unavailableActions).toContainEqual({
-      id: repulsion.actionId,
-      label: repulsion.label,
-      reason: repulsion.reason
+    // 2. The Bronze Dragon Wyrmling breathes its 30 ft cone east: the Wolf on its row and the Wolf
+    // below it are caught, the Wolf far off its row is not.
+    const creature = installedSrdCreature(bronzeDragonWyrmling)
+    const feature = creature.features?.find(({ label }) => label.startsWith('Breath Weapons'))
+    const repulsion = feature?.effects?.find(({ paths }) =>
+      paths.some(
+        (path) =>
+          'resultBlock' in path &&
+          path.resultBlock.outcomes.some(({ effectKind }) => effectKind === 'FORCED_MOVEMENT')
+      )
+    )
+    if (!feature || !repulsion)
+      throw new Error('The Bronze Dragon Wyrmling has no Repulsion Breath.')
+    const room = await actionRoom({
+      rolls: [],
+      actors: [
+        srdCreatureActor({ id: DRAGON_ID, creature }),
+        ...[FIRST_ID, SECOND_ID, OFF_ROW_ID].map((id) =>
+          srdCreatureActor({ id, creature: plainWolf })
+        )
+      ],
+      positions: {
+        [DRAGON_ID]: { x: 150, y: 150 },
+        [FIRST_ID]: { x: 250, y: 150 },
+        [SECOND_ID]: { x: 450, y: 250 },
+        [OFF_ROW_ID]: { x: 450, y: 650 }
+      },
+      ownerFeatureId: feature.id,
+      effectId: repulsion.id
     })
-    expect(choices.actions.map(({ id }) => id)).not.toContain(repulsion.actionId)
-
     const stub = room.room.base.stub
     const before = await readRoomHistory(stub)
-    const answer = await room.send({
-      type: 'RESOLVE_ACTION',
-      acceptedWieldConflict: null,
-      acknowledgedWarnings: [],
+    const started = await room.startDirectedAreaAction(EAST.origin, EAST.toward)
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    expect(decision.pending.saves.map(({ actorId }) => actorId).sort()).toEqual(
+      [FIRST_ID, SECOND_ID].sort()
+    )
+
+    // 3. The first Wolf fails its Strength save and the second makes it: the breath commits once and
+    // pushes only the first Wolf 30 ft straight away from the dragon.
+    await answerAllSaves(room, { [FIRST_ID]: 1, [SECOND_ID]: 20 })
+    expect(await readPendingActionDecision(stub)).toBeNull()
+    const committed = await readRoomHistory(stub)
+    expect(
+      committed.commands.slice(before.commands.length).map((entry) => entry.commandType)
+    ).toEqual(['RESOLVE_ACTION'])
+    expect(areaReceipts(committed).children).toHaveLength(2)
+    const pushed = tokenPositions(room)
+    expect(pushed(FIRST_ID)).toEqual({ x: 850, y: 150 })
+    expect(pushed(SECOND_ID)).toEqual({ x: 450, y: 250 })
+    expect(pushed(OFF_ROW_ID)).toEqual({ x: 450, y: 650 })
+    expect(pushed(DRAGON_ID)).toEqual({ x: 150, y: 150 })
+
+    // 4. The GM's undo puts the Wolf back where it stood.
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
       encounterId: room.room.encounterId,
       commandId: crypto.randomUUID(),
-      expectedVersion: await room.version(),
-      actorId: DRAGON_ID,
-      target: {
-        kind: 'DIRECTED',
-        ...EAST,
-        sceneId: room.room.scene.id,
-        expectedSceneVersion: room.room.scene.version
-      },
-      actionId: repulsion.actionId,
-      optionalCombatIntent: null,
-      sceneContext: null
+      expectedVersion: await room.version()
     })
-    expect(answer).toMatchObject({
-      type: 'COMMAND_REJECTED',
-      code: 'DOMAIN_REJECTED',
-      reason: 'SOURCE_REQUIREMENTS_NOT_MET',
-      message: `${repulsion.label} is unavailable: ${repulsion.reason}`
-    })
-    expect(await readPendingActionDecision(stub)).toBeNull()
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(tokenPositions(room)(FIRST_ID)).toEqual({ x: 250, y: 150 })
     expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))
   })
 })

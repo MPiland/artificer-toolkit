@@ -2,6 +2,7 @@ import {
   publishSceneUndo,
   type SceneUndoPublicationCallbacks
 } from '@artificer-toolkit/encounter-persistence/sceneUndoPublication'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { parseGeometryCommand } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { normalizeSceneGeometryEntity } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 import {
@@ -46,7 +47,17 @@ export class SceneMoveSettledMechanicsError extends Error {
   }
 }
 
-/** The caller admits the GM and commits these writes with the room journal in one transaction. */
+/** The latest move was an action's forced movement (D139); only that action's undo reverts it. */
+export class SceneMoveFromActionError extends Error {
+  constructor() {
+    super('This move was part of an Encounter action; undo the action instead.')
+  }
+}
+
+/**
+ * The caller admits the GM, or reverts an Encounter action, and commits these writes with the room
+ * journal in one transaction.
+ */
 export async function publishRoomSceneUndo(input: {
   transaction: RoomTransaction
   userId: string
@@ -56,6 +67,11 @@ export async function publishRoomSceneUndo(input: {
   onUndone?(undoneCommandId: string): Promise<void>
   /** Whether the Encounter recorded rule receipts for the move; those effects outlive the token's position. */
   settledEncounterMechanics: (commandId: string) => Promise<boolean>
+  /**
+   * Reverts this forced move of the named action instead of the Scene's latest move; the action's
+   * revert owns the mechanics, and the token-version check still refuses a token moved since.
+   */
+  actionMove?: { sceneCommandId: string; origin: { encounterId: string; commandId: string } }
 }) {
   const { transaction, scene, userId } = input
   const request = sceneUndoExecuteInputSchema.parse({
@@ -113,24 +129,48 @@ export async function publishRoomSceneUndo(input: {
     if (matching.length > 1) throw new Error('Stored Scene undo command is inconsistent.')
     return matching[0] ?? null
   }
-  const targetCommandId = commands
+  const moves = commands
     .filter(
       (command) => command.encoding === 'GEOMETRY' && command.input.type === 'MOVE_SCENE_TOKEN'
     )
     .map((command) => parseGeometryCommand(command, header.version))
-    .sort((a, b) => b.result.version - a.result.version)
-    .find((command) => {
-      if (command.result.delta === null && command.result.fogPatches.length === 0) return false
-      const undone = undoForMove(command.commandId)
-      if (undone) {
-        parseUndo(undone)
-        return false
-      }
-      return true
-    })?.commandId
-  if (!targetCommandId) throw new NoSceneMoveToUndoError()
-  if (await input.settledEncounterMechanics(targetCommandId))
-    throw new SceneMoveSettledMechanicsError()
+  const { actionMove } = input
+  const target = actionMove
+    ? moves.find(({ commandId }) => commandId === actionMove.sceneCommandId)
+    : moves
+        .sort((a, b) => b.result.version - a.result.version)
+        .find((command) => {
+          if (command.result.delta === null && command.result.fogPatches.length === 0) return false
+          const undone = undoForMove(command.commandId)
+          if (undone) {
+            parseUndo(undone)
+            return false
+          }
+          return true
+        })
+  if (!target) throw new NoSceneMoveToUndoError()
+  const targetCommandId = target.commandId
+  if (actionMove) {
+    if (canonicalizeJson(target.actionOrigin) !== canonicalizeJson(actionMove.origin))
+      throw new Error('Stored forced movement does not belong to this action.')
+    const tokenId = target.input.type === 'MOVE_SCENE_TOKEN' ? target.input.tokenId : null
+    if (
+      moves.some(
+        (command) =>
+          command.result.version > target.result.version &&
+          command.input.type === 'MOVE_SCENE_TOKEN' &&
+          command.input.tokenId === tokenId
+      )
+    )
+      rejectDomain(
+        'REVERT_UNAVAILABLE',
+        'A creature this action moved has moved since; adjust manually.'
+      )
+  } else {
+    if (target.actionOrigin) throw new SceneMoveFromActionError()
+    if (await input.settledEncounterMechanics(targetCommandId))
+      throw new SceneMoveSettledMechanicsError()
+  }
   const callbacks: SceneUndoPublicationCallbacks = {
     readSceneCommand: async (sceneId, commandId) => {
       const value = readRoomSceneRow(transaction, 'sceneLiveCommands', [sceneId, commandId])

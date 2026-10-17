@@ -62,7 +62,8 @@ import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-
 import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
-import { readRoomScene } from './roomSceneRead.js'
+import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
+import { publishRoomSceneUndo } from './roomSceneUndo.js'
 
 /** The room journal's fingerprint of an Encounter command: a reused command ID must match it. */
 export function roomEncounterCommandFingerprint(command: RoomNativeEncounterCommand) {
@@ -104,6 +105,26 @@ export async function executeRoomEncounterCommand(input: {
     ...written,
     ports: {
       ...written.ports,
+      restoreActionForcedMovements: async ({ encounterId, commandId, movements }) => {
+        for (const { sceneId, sceneCommandId } of [...movements].reverse()) {
+          const { scene } = await readRoomSceneState(transaction, sceneId)
+          await publishRoomSceneUndo({
+            transaction,
+            userId,
+            scene,
+            request: {
+              input: {
+                type: 'UNDO_LAST_SCENE_MOVE',
+                commandId: crypto.randomUUID(),
+                sceneId,
+                expectedSceneVersion: scene.version
+              }
+            },
+            settledEncounterMechanics: async () => false,
+            actionMove: { sceneCommandId, origin: { encounterId, commandId } }
+          })
+        }
+      },
       // A GM's Sheet command on an Encounter Character commits on the Run's held play (R06.3); a
       // Run that is not ACTIVE holds no play, so that edit belongs to the Sheet itself.
       executeCharacterCommand: async (

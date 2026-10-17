@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterStoredRuleOccurrenceSchema,
@@ -58,6 +59,17 @@ export async function completeActionOccurrence(
 }
 
 /**
+ * Settles an action's forced movements on its Encounter's Scene in the commit's transaction (D139)
+ * and returns the Scene moves it committed, in the order it made them.
+ */
+export type ApplyEncounterForcedMovements = (input: {
+  state: EncounterRunState
+  sourceActorId: string
+  commandId: string
+  movements: readonly LiveSessionForcedMovement[]
+}) => Promise<{ sceneId: string; sceneCommandId: string }[]>
+
+/**
  * Records a committed action: advances the Run, stores the root's one receipt and inserts the one
  * RESOLVE_ACTION command a replay and an undo find it by.
  */
@@ -92,7 +104,7 @@ export async function recordActionRoot(
             z.infer<typeof encounterStoredRunCommandSchema>,
             { commandType: 'RESOLVE_ACTION' }
           >,
-          'issuerLines' | 'gmLines' | 'failedCounters' | 'idleTurnMarkChanges'
+          'issuerLines' | 'gmLines' | 'failedCounters' | 'idleTurnMarkChanges' | 'forcedMovements'
         >
       >
     occurredAt: string

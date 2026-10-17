@@ -356,15 +356,14 @@ export interface CharacterRuleActionSpatialDirective {
   targetActorId: string
   sourceNodeId: string
   sourceOperationKey: string
-  authoredPath: string | null
-  resolvedPath: string | null
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'CHOICE'
-  distanceMode: 'UP_TO_SPEED' | 'FIXED_DISTANCE'
-  amount: number | null
-  unit: string | null
-  actionEconomy: 'NONE' | 'REACTION'
+  /** The straight line the target moves along: away from, or toward, the action's source (D105). */
+  direction: CharacterRuleActionForcedMovementDirection
+  /** The exact distance the target moves unless a blocked square stops it first. */
+  feet: number
   targetStateChecksum: string
 }
+
+export type CharacterRuleActionForcedMovementDirection = 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
 
 /**
  * A System-owned replacement of an already evidenced failed saving throw.

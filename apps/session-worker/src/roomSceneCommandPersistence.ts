@@ -48,6 +48,8 @@ export function persistRoomSceneCommand(args: {
   /** The fresh geometry save this command publishes. */
   saveId: string
   now: number
+  /** The Encounter action whose forced movement this move settles (D139); omitted for a user's move. */
+  actionOrigin?: { encounterId: string; commandId: string }
 }) {
   const { transaction, header, scene } = args
   const supplied = liveSessionSceneGeometryCommandInputSchema.parse(args.command)
@@ -191,7 +193,8 @@ export function persistRoomSceneCommand(args: {
     input,
     inputChecksum,
     result: retainedResult,
-    resultChecksum: checksumCanonicalJson(retainedResult)
+    resultChecksum: checksumCanonicalJson(retainedResult),
+    actionOrigin: args.actionOrigin ?? null
   })
   parseGeometrySave(save)
   parseGeometryCommand(receipt, state.version)

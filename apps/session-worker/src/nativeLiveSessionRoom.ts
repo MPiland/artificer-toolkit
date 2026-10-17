@@ -112,6 +112,7 @@ import { composeRoomSceneVision } from './roomSceneVision.js'
 import { executeRoomSceneBinding } from './roomSceneBinding.js'
 import {
   NoSceneMoveToUndoError,
+  SceneMoveFromActionError,
   SceneMoveSettledMechanicsError,
   publishRoomSceneUndo
 } from './roomSceneUndo.js'
@@ -1990,6 +1991,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       } catch (error) {
         if (
           error instanceof NoSceneMoveToUndoError ||
+          error instanceof SceneMoveFromActionError ||
           error instanceof SceneMoveSettledMechanicsError
         )
           this.#rejectCommand(socket, commandId, 'INVALID_COMMAND', error.message)
@@ -2839,7 +2841,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               sequence: current.sequence + 1,
               delta: { scope: 'ENCOUNTER', result: ownResult }
             })
-            const composition = sceneCache?.uncomposedScene
+            // An action's forced movement (D139) or its revert moved tokens on the presented Scene.
+            const sceneHeader = sceneCache?.sceneHeader
+              ? readRoomSceneHeader(transaction, sceneCache.sceneHeader.id)
+              : null
+            const sceneState =
+              sceneHeader && sceneHeader.version !== sceneCache?.sceneHeader?.version
+                ? await readRoomSceneState(transaction, sceneHeader.id)
+                : null
+            const uncomposedScene = sceneState?.scene ?? sceneCache?.uncomposedScene
+            const composition = uncomposedScene
               ? await composeRoomSceneVision({
                   store: this.#roomStore,
                   transaction,
@@ -2847,12 +2858,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                   authorization: prepared,
                   campaignId: value.campaignId,
                   epoch: value.authorityEpoch,
-                  scene: sceneCache.uncomposedScene
+                  scene: uncomposedScene
                 })
               : null
             if (composition)
               nextSceneStateJson = createNativeLiveSessionState(composition.scene).stateJson
-            return { ...result, composition }
+            return {
+              ...result,
+              composition,
+              moved: sceneState && sceneHeader ? { ...sceneState, header: sceneHeader } : null
+            }
           },
           (entry) => {
             const latest = this.#authorization.current(value.authorityEpoch)
@@ -2892,7 +2907,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           ...sceneCache,
           ...(result.play ? { encounterId: result.play.encounter?.encounterId ?? null } : {}),
           scene: result.composition.scene,
-          characterRevisions: result.composition.characterRevisions
+          characterRevisions: result.composition.characterRevisions,
+          ...(result.moved
+            ? {
+                uncomposedScene: result.moved.scene,
+                baseOrdinals: result.moved.baseOrdinals,
+                sceneHeader: result.moved.header
+              }
+            : {})
         }
         if (!equalCanonicalJson(sceneCache.scene?.tokens, result.composition.scene.tokens))
           this.#broadcastStateSync()

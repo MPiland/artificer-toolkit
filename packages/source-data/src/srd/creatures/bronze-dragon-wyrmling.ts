@@ -216,12 +216,12 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
               id: S.actionId(6062, 13),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(6062, 13) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: S.actionId(6062, 14),
@@ -231,11 +231,6 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
                     distanceMode: 'FIXED_DISTANCE',
                     amount: 30,
                     unit: S.MEASUREMENT_UNIT_CODE.FEET
-                  },
-                  {
-                    id: S.actionId(6062, 13),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_REPULSION_BREATH
                   }
                 ]
               }

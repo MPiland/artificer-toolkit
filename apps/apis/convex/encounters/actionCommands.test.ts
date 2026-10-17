@@ -1556,7 +1556,7 @@ describe('native encounter actions', () => {
         executeInRoom(base.owner.caller, {
           command: input
         }),
-        'Spatially interpreted actions are not available yet.'
+        "A forced movement needs the source's and target's tokens on the Encounter's Scene."
       )
       // A refused action posts no roll card: the table chat was never opened.
       await expect(readRoomRollCards(base.owner.caller, base.campaign.id)).rejects.toThrow(

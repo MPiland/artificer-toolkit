@@ -15,7 +15,8 @@ import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/e
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
   liveSessionEncounterActionPendingInputSchema,
-  liveSessionEncounterAreaCommitInputSchema
+  liveSessionEncounterAreaCommitInputSchema,
+  type LiveSessionForcedMovement
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
@@ -152,7 +153,7 @@ import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.
 import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
-  refuseSpatialInterpretation
+  interpretForcedMovements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -1761,6 +1762,7 @@ export async function completeAreaCommit(args: {
   )
   const children = []
   const createdEffects = new Map<string, ActiveRuleEffectRecord[]>()
+  const forcedMovements: LiveSessionForcedMovement[] = []
   // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
   // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
   const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
@@ -1875,12 +1877,14 @@ export async function completeAreaCommit(args: {
         : null
     if (joined) maintenanceCarried = true
     createdEffects.set(actor.id, [...earlier, ...created])
-    refuseSpatialInterpretation(prepared, {
-      execution: complete.execution,
-      occurrenceId,
-      published: complete.published,
-      targetActorId: actor.id
-    })
+    forcedMovements.push(
+      ...interpretForcedMovements(prepared, {
+        execution: complete.execution,
+        occurrenceId,
+        published: complete.published,
+        targetActorId: actor.id
+      })
+    )
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
@@ -2232,7 +2236,8 @@ export async function completeAreaCommit(args: {
     label: sourceLabel,
     ruleOverrides,
     concentration,
-    placedZone
+    placedZone,
+    forcedMovements
   }
 }
 
@@ -2266,6 +2271,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
     placedZone: plan.placedZone,
+    forcedMovements: plan.forcedMovements,
     rules: plan.rules,
     resourceConsumption: plan.resourceConsumption,
     itemConsumption: plan.itemConsumption,

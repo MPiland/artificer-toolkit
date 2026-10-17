@@ -1,4 +1,5 @@
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
@@ -93,8 +94,8 @@ export function refuseUnmetItemActionRequirements(
     })
 }
 
-/** A spatially interpreted outcome (forced movement, terrain) has no live settlement yet. */
-export function refuseSpatialInterpretation(
+/** The straight pushes and pulls an action's completed outcome on one target settles in its commit. */
+export function interpretForcedMovements(
   prepared: Pick<Prepared, 'adapter'>,
   input: {
     execution: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['execution']
@@ -102,7 +103,8 @@ export function refuseSpatialInterpretation(
     published: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['published']
     targetActorId: string
   }
-) {
-  if (prepared.adapter.interpretSpatial?.(input).length)
-    throw new Error('Spatially interpreted actions are not available yet.')
+): LiveSessionForcedMovement[] {
+  return (prepared.adapter.interpretSpatial?.(input) ?? []).map(
+    ({ targetActorId, direction, feet }) => ({ targetActorId, direction, feet })
+  )
 }

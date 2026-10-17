@@ -701,6 +701,16 @@ export async function revertLastEncounterAction(
       actorId: source.id,
       castCommandId: root.commandId
     })
+  // D139: the creatures the action pushed or pulled return, last move first; a token moved since refuses.
+  if (root.forcedMovements.length) {
+    if (!ctx.ports.restoreActionForcedMovements)
+      unavailable('This action moved creatures on the Scene; adjust manually.')
+    await ctx.ports.restoreActionForcedMovements({
+      encounterId: state.id,
+      commandId: root.commandId,
+      movements: root.forcedMovements
+    })
+  }
   // The once-per-turn uses the attack spent return to the attacker's turn record.
   if (root.turnUses)
     await restoreTurnUses(ctx, {
