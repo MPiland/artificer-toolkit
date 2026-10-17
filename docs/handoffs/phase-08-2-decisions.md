@@ -873,6 +873,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Shape:** the reaction trigger binding gains `{ kind: 'TARGETED_SELF', sourceEffectIds?: uuid[] }`. The `castReaction` pending context gains a required `kind` (`COUNTER` | `TARGETED_SELF`), with persisted contexts migrated in the same change. The `DAMAGE_IMMUNITY` option gains an optional `sourceEffectIds`. An empty or absent list means unfiltered.
   - **Rule:** the trigger fires when the reactor is a chosen target of an action whose Effect id is listed. A Use spends the slot and reaction and applies its grants before the cast resolves; nothing is countered. Damage resolution skips an immunity whose list lacks the damage's source Effect id. GM undo restores the slot, reaction and grants. Shield against Magic Missile is authored from these core options.
   - **Rejected:** a separate `targetedReaction` pending context (it would duplicate the window and its persistence validators). **Deferred:** ordering when several targets react.
+* **D138** (2026-10-17) Placed zones are fixed at placement (SPELLS-20.T4b2b2, AC 20.1). User ruling.
+  - **Rule:** an edit to a spell takes effect from its next cast and never changes an effect already in play. A GM cannot reshape or edit a spell's zone on the map; the change is an edit to the spell. A GM-placed trap or hazard zone follows the same rule: an edit is a new placement, and anything already pending keeps the zone it started with.
+  - **Consequence:** a placed zone changes in play only by moving with its source, ending (Concentration, undo, deletion) or being revealed. A pending zone save is rechecked at commit only for the zone still being active and the creature still in it under the per-turn limit; the field-by-field pin (`spatialEffectPin.ts`) is deleted.
+  - **Principle (user):** Foundry VTT is the baseline. Do not add GM powers without a good reason; ship the MVP and add flexibility later from real use. Hazard zones may be revisited after testing.
 
 ## Approved implementation decisions
 
