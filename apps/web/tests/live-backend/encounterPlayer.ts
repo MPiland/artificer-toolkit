@@ -232,7 +232,6 @@ export async function verifyEncounterPlayerBrowser(
       'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_ACTION',
-      'RESOLVE_RULE_OCCURRENCE',
       'RESOLVE_RULE_OCCURRENCE'
     ])
     expect(forbiddenLegacyRequests).toEqual([])

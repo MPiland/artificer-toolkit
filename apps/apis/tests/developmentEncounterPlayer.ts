@@ -451,11 +451,11 @@ export async function verifyEncounterPlayer({
       assert.equal(cast.command.target.kind, 'DIRECTED')
       const saves = pendingOf(cast.result, 'AREA_SAVES')
       assert.deepEqual(saves.caught, [wolf.label])
-      const saved = await answerOwnerDice(cast.result, 20)
-      const thunder = pendingOf(saved, 'ACTION_OUTCOME_EVIDENCE')
-      assert.equal(thunder.rollerActorId, hero.id)
-      const thundered = await controls.answerEvidence(thunder.request.min)
-      assert.equal(thundered.result.occurrence?.status, 'COMPLETE')
+      // A 1 fails the Wolf's save; the area's damage is rolled once for the cast, with no further roll.
+      const beforeThunder = (await readRun()).wolfHitPoints
+      const thundered = await answerOwnerDice(cast.result, 1)
+      assert.equal(thundered.occurrence?.status, 'COMPLETE')
+      assert.ok((await readRun()).wolfHitPoints < beforeThunder, 'Thunderwave hurt the Wolf.')
       await controls.endTurn()
       assert.equal((await readRun()).currentActorId, wolf.id)
 
@@ -503,7 +503,15 @@ export async function verifyEncounterPlayer({
           value: pending.request.min
         }
       } else if (pending?.kind === 'AREA_SAVES') {
-        const save = pending.saves.find((entry) => entry.actorId === wolfId)
+        // The caster's command result lists no one else's saves; the owner's view lists the Wolf's.
+        await checkpoint()
+        const { pending: ownerView } = await owner.query(api.encounters.activeReads.active, {
+          campaignId
+        })
+        const save =
+          ownerView?.kind === 'AREA_SAVES'
+            ? ownerView.saves.find((entry) => entry.actorId === wolfId)
+            : undefined
         if (!save) return current
         resolution = {
           kind: 'ENTER_DICE',
