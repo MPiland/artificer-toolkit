@@ -1302,6 +1302,13 @@
               "origin": [],
               "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them.",
               "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule."
+            },
+            {
+              "id": "PLATFORM-23.4",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16 with the user's approval: Worker room tests import the rules-runtime dist, and the light lane refused every build, so a session that changed a package could not run its Worker test locally and pushed blind (SPELLS-20.T4a, two failed CI runs).",
+              "text": "A session can run its scoped test files locally after changing a package they import: the runner builds only the workspaces those files depend on (Turbo-cached, memory-gated, one build at a time) before the tests, and the light lane stays limited to named test files."
             }
           ],
           "tasks": [
@@ -1344,6 +1351,20 @@
                 "rr": 5,
                 "size": 2,
                 "after": []
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+            },
+            {
+              "id": "PLATFORM-23.T4",
+              "status": "TODO",
+              "closes": ["PLATFORM-23.4"],
+              "text": "Scoped dependency build before local test files in scripts/withValidationLock.ps1; AGENTS.md: run the touched test files locally before every push.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": ["PLATFORM-23.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-platform-23.md"
             }
