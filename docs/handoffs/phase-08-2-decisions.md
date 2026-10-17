@@ -895,6 +895,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 * **D143** (2026-10-17) Armor and shields author their Armor Class (QUALITY-1.T2, AC QUALITY-1.1; [slice-quality-1.md](slice-quality-1.md)). Orchestrator ruling.
   - **Rule:** ARMOR and SHIELD equipment require an authored Armor Class at authoring and publication. The one shared Armor Class path refuses a missing value (`missingArmorClass`) for Characters and creatures alike; the Character-only fallbacks (2 for a shield, 10 for armor) are deleted.
   - **Rejected:** creatures adopting the Character fallbacks (a silent guess at an authored value) and a runtime-only refusal with Armor Class still optional in authoring (the author learns of it only at the table).
+* **D144** (2026-10-17) Creature auras are passive zones (SPELLS-20.T6a-T6d, AC 20.1; [slice-spells-20.md](slice-spells-20.md)). Orchestrator ruling.
+  - **Rule:** a creature's PASSIVE manifest-zone feature becomes a token-anchored zone placed at Encounter START or REINFORCE, deleted when its actor is removed or the Encounter finishes, and suppressed (not deleted) while its source is defeated. A new START_OF_SOURCE_TURN interaction kind runs the zone's outcome for every creature in it at the source's turn boundary, ordered by actorId, through the existing turn zone path; a zone outcome may have no save. A melee-hit retaliation rider is its own generic option (Balor, Fire Shield).
+  - **Rejected:** END_OF_SOURCE_TURN with no SRD consumer (add it with its first one), placing the aura lazily at the source's first turn (invisible until then, and a write path in the turn stage), and deferring the retaliation clause (it fires whenever a creature melees a Balor, so it is not rare).
+  - **Deferred:** igniting flammable objects (no object state is modelled; future-enhancements).
 
 ## Approved implementation decisions
 

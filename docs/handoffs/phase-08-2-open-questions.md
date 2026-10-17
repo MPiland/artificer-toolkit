@@ -14,4 +14,4 @@
 - A (recommended): register a SPELLS PBI, "Cast-time choice spells resolve automatically", with one AC listing the three spells, after SPELLS-20.T4e merges. This closes a visible gap at the table for a small cost (size 3).
 - B: leave them MANUAL until after beta, recorded in future-enhancements.
 
-**Answer:** A (user, 2026-10-17): automate them before alpha. AC wording awaits the user's confirmation.
+**Answer:** A (user, 2026-10-17): automate them before alpha. AC confirmed by the user and registered as SPELLS-30.
