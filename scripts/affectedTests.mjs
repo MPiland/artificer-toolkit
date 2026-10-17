@@ -351,6 +351,14 @@ export function fullRunReason(changed, suites) {
 }
 
 /**
+ * The Convex shard matrix. Shards are parallel runners, and one Convex file can take as long as a
+ * hundred others, so any selection spreads over as many shards as it has files, up to four.
+ */
+export function convexShards(selectedCount, full) {
+  return Array.from({ length: full ? 4 : Math.min(4, selectedCount) }, (_, index) => index + 1)
+}
+
+/**
  * What the red job proves (scripts/redProof.mjs): the test files and helpers the slice adds or modifies,
  * and per suite the test files among them, which run against the merge base's production code.
  */
@@ -480,8 +488,6 @@ async function main() {
     const suiteRoot = Object.fromEntries(
       suites.map(({ name, root: suiteRootDir }) => [name, suiteRootDir])
     )
-    const convexCount = selected.convex.length
-    const shards = fullReason ? 4 : Math.min(4, Math.ceil(convexCount / 100))
     appendFileSync(
       output,
       [
@@ -489,7 +495,7 @@ async function main() {
         `merge-base=${mergeBase}`,
         `red-files=${red.files.join(' ')}`,
         `red-suites=${JSON.stringify(red.suites)}`,
-        `convex-shards=${JSON.stringify(Array.from({ length: shards }, (_, index) => index + 1))}`,
+        `convex-shards=${JSON.stringify(convexShards(selected.convex.length, Boolean(fullReason)))}`,
         ...Object.entries(selected).flatMap(([name, files]) => [
           `run-${name}=${files.length > 0}`,
           // Paths relative to the directory the suite's Vitest runs from; empty on a full run.

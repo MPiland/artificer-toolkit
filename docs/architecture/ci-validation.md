@@ -53,7 +53,7 @@ A changed `__snapshots__/<test>.snap` selects its test. A change outside the sou
 
 ## Outputs
 
-The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex shards one runner per 100 selected files, up to 4. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.
+The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex spreads any selection over one shard per selected file, up to 4: one Convex file can take as long as a hundred others, so a count budget left 112 heavy files on 2 shards for 18 minutes. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.
 
 ## Red proof
 

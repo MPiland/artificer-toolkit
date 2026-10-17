@@ -7,6 +7,7 @@ import {
   assertEveryTestRuns,
   buildImportGraph,
   changesSince,
+  convexShards,
   fullRunReason,
   redProof,
   selectTests
@@ -176,6 +177,13 @@ describe('full runs and the suite guard', () => {
     expect(() => assertEveryTestRuns(['a/x.test.ts', 'b/y.test.ts'], suites)).toThrow(
       'Test files outside every CI suite:\nb/y.test.ts'
     )
+  })
+
+  it('spreads any Convex selection over up to four shards, since one file can cost a hundred others', () => {
+    expect(convexShards(112, false)).toEqual([1, 2, 3, 4])
+    expect(convexShards(2, false)).toEqual([1, 2])
+    expect(convexShards(0, false)).toEqual([])
+    expect(convexShards(0, true)).toEqual([1, 2, 3, 4])
   })
 })
 

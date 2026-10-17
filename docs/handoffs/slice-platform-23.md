@@ -32,6 +32,16 @@ Also found by the suite guard and the root config now running whole: `apps/apis/
 
 Full-run baseline (T1, run 38999517415): 15m19s wall; Convex shards 9:03-13:39, packages and Worker 8:30, web 9:18.
 
+Proof runs (Tests workflow wall time, created to last job):
+
+| Run                         | Commit / branch                                                                                                          | Selection                                                          | Wall   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ------ |
+| Config change, 39002759057  | `1b43bbe30` on `ci/platform-23` (the slice changes `turbo.json`, `package.json`)                                         | full                                                               | 19m40s |
+| Merge batch, 39004192086    | `b2326ce1b` on `ci/merge-platform-23-proof` (not a real batch)                                                           | full (`ci/merge-*`), red job skipped                               | 17m43s |
+| Single package, 39004159064 | `b2326ce1b` (one line in `packages/authoring/src/nodeRuntime/srdSourceReader.ts`), dispatched with `base=ci/platform-23` | packages 11/366, Convex 112/397, Worker 0/99 (skipped), web 22/296 | 20m43s |
+
+The single-package run selected 145 of 1158 files but was the slowest: the selector gave Convex one shard per 100 selected files, so its 112 files (the Convex tests whose helpers read source files, among the heaviest) ran on 2 shards for 13 and 18 minutes. Convex now spreads any selection over one shard per file, up to 4 (`convexShards`, regression test in `affectedTests.test.mjs`); the rerun is below.
+
 ## T3: local typecheck lane
 
 `-Lane typecheck` in `scripts/withValidationLock.ps1` runs one fixed command (no `-Script`): Turbo `typecheck` and `typecheck:convex` with `--filter=...[<merge-base with origin/codex/phase-08-2-convex-cutover>]` (web excluded, since its `typecheck` is its `typecheck:app`), then web's `typecheck:app`/`tests`/`stories` with the same filter; `GOMAXPROCS=2`, `--concurrency=1`, `--env-mode=loose`, `--continue`. `turbo.json` gives web's typecheck tasks `^build`, as `typecheck` already had, so the lane builds what they read. `yarn turbo:affected:typecheck` (`--filter=[HEAD]`, empty after a commit) is removed.
