@@ -186,9 +186,14 @@ export function encounterActionChoiceTarget(
   formContribution?: {
     forms: readonly { id: string; label: string; maxTargets: number }[]
     filter: unknown
-  } | null
-):EncounterActionChoiceDto['target'] {
+  } | null,
+  /** The zone the action places; one that lets the caster spare creatures says so. */
+  zonePlacement?: { choosesUnaffected?: boolean } | null
+): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
+  const sparesCreatures = zonePlacement?.choosesUnaffected
+    ? { choosesUnaffected: true as const }
+    : {}
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
   const maxTargets =
@@ -211,8 +216,8 @@ export function encounterActionChoiceTarget(
       ...(formContribution?.filter ? { choosesCreatureForm: true as const } : {})
     }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
-    return { kind: 'CASTER_CENTERED', area }
-  if (area) return { kind: 'POINT', area }
+    return { kind: 'CASTER_CENTERED', area, ...sparesCreatures }
+  if (area) return { kind: 'POINT', area, ...sparesCreatures }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }

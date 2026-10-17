@@ -532,9 +532,14 @@ export async function actionRoom(config: ActionRoomConfig) {
       point: { x: number; y: number },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       /** Whose socket sends it: the GM's, or the player who controls the acting actor. */
-      sender: 'GM' | 'PLAYER' = 'GM'
+      sender: 'GM' | 'PLAYER' = 'GM',
+      unaffectedActorIds?: string[]
     ) {
-      return this.startAreaCommand({ kind: 'POINT', point }, acknowledgedWarnings, sender)
+      return this.startAreaCommand(
+        { kind: 'POINT', point, ...(unaffectedActorIds ? { unaffectedActorIds } : {}) },
+        acknowledgedWarnings,
+        sender
+      )
     },
     /** The acting actor's directed area action from `origin` toward `toward`; not yet checked. */
     startDirectedAreaAction(
@@ -553,7 +558,7 @@ export async function actionRoom(config: ActionRoomConfig) {
     startCasterCenteredAreaAction(
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       sender: 'GM' | 'PLAYER' = 'GM',
-      unaffectedActorIds?: readonly string[]
+      unaffectedActorIds?: string[]
     ) {
       return this.startAreaCommand(
         { kind: 'CASTER_CENTERED', ...(unaffectedActorIds ? { unaffectedActorIds } : {}) },
@@ -564,9 +569,9 @@ export async function actionRoom(config: ActionRoomConfig) {
     /** The acting actor's area action on the Scene as the room holds it now. */
     async startAreaCommand(
       target:
-        | { kind: 'POINT'; point: { x: number; y: number } }
+        | { kind: 'POINT'; point: { x: number; y: number }; unaffectedActorIds?: string[] }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
-        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: readonly string[] },
+        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[] },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
       sender: 'GM' | 'PLAYER'
     ) {

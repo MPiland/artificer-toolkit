@@ -92,7 +92,7 @@ async function aurasListedTo(client: {
   })
 }
 
-async function castAura(room: Room, unaffectedActorIds?: readonly string[]) {
+async function castAura(room: Room, unaffectedActorIds?: string[]) {
   const { answer } = await room.startCasterCenteredAreaAction([], 'GM', unaffectedActorIds)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
@@ -348,7 +348,7 @@ describe('Spirit Guardians designated unaffected creatures (SPELLS-20 T4c)', () 
 
     const { answer } = await room.startCasterCenteredAreaAction([], 'GM', [crypto.randomUUID()])
 
-    expect(answer.type).toBe('COMMAND_REJECTED')
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
     expect(await readZones(room)).toEqual([])
   })
 })

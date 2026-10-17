@@ -988,7 +988,8 @@ function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     geometry: effect.placement.geometry,
     triggerModes: effect.placement.triggerModes,
     movementKinds: effect.placement.movementKinds,
-    bypassAtHalfSpeed: isVisibleHalfSpeedField(effect)
+    bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
+    unaffectedActorIds: effect.placement.unaffectedActorIds
   } as const
 }
 

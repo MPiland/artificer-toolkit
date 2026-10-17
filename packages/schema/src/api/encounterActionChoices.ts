@@ -120,7 +120,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         area: z.discriminatedUnion('kind', [
           z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
           z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
-        ])
+        ]),
+        /** The caster designates creatures at cast that the zone it places never affects. */
+        choosesUnaffected: z.optional(z.literal(true))
       }),
       /**
        * A radius centered on the caster, measured from the edge of their space (a Self sphere,
@@ -128,7 +130,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
        */
       z.strictObject({
         kind: z.literal('CASTER_CENTERED'),
-        area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+        area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+        /** The caster designates creatures at cast that the zone it places never affects. */
+        choosesUnaffected: z.optional(z.literal(true))
       }),
       /**
        * An area that starts on the caster's own token and extends toward a direction: a cone, a

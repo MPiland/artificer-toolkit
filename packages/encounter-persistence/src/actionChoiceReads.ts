@@ -237,6 +237,9 @@ export async function readEncounterActionChoices(
               entry.schemaVersion !== 1 &&
               entry.compilation.kind === 'COMPILED'
               ? entry.compilation.activeEffectPlan?.creatureFormContribution
+              : undefined,
+            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
+              ? entry.compilation.zonePlacement
               : undefined
           ),
           warnings: [

@@ -33,6 +33,17 @@ export interface SpatialPersistedGeometry {
 }
 
 /** A system-neutral spatial instance after its source has been resolved. */
+/**
+ * Whether an effect can catch a creature at all: the one membership question every trigger asks
+ * (movement ENTER, EXIT and CROSS today; turn-stage triggers and movement cost must ask it too).
+ */
+export function spatialEffectAffects(
+  effect: Pick<SpatialEffectInstance, 'unaffectedActorIds'>,
+  actorId: string
+): boolean {
+  return !effect.unaffectedActorIds?.includes(actorId)
+}
+
 export interface SpatialEffectInstance {
   readonly effectId: string
   readonly sourceActorId: string | null
@@ -43,6 +54,8 @@ export interface SpatialEffectInstance {
   readonly movementKinds: readonly SpatialMovementKind[]
   /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
   readonly bypassAtHalfSpeed?: boolean
+  /** Creatures the effect never catches (designated by the caster at cast). */
+  readonly unaffectedActorIds?: readonly string[]
 }
 
 /** The space a token occupies. */
@@ -1109,7 +1122,7 @@ export function collectSpatialMovementCandidates(input: {
       : [movingToken]
     for (const target of targets) {
       const targetActorId = input.actorIdByTokenId.get(target.id)
-      if (!targetActorId) continue
+      if (!targetActorId || !spatialEffectAffects(effect, targetActorId)) continue
       const geometry = sourceMoved
         ? effect.geometry.frame === 'TOKEN_LOCAL'
           ? effect.geometry.shape

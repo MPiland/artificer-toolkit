@@ -115,6 +115,7 @@ export const spiritGuardians: SpellAuthored = {
                     order: 1,
                     label: 'Enter the spirits',
                     interactionKind: 'ENTER_SPACE' as const,
+                    choosesUnaffected: true,
                     behaviors: [
                       {
                         id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x222, 1),

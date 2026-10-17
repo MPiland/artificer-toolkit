@@ -193,6 +193,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
               authoredReferenceCollectionSchema(manifestInteractionKindSchema)
             ),
             bypassAtHalfSpeed: z.optional(z.boolean()),
+            choosesUnaffected: z.optional(z.boolean()),
             movementCostMultiplier: z.optional(z.number().check(z.positive())),
             requiresFullyWithin: z.optional(z.boolean()),
             automaticSaveSuccessConditions: z.optional(

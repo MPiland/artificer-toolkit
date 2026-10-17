@@ -884,6 +884,10 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       )
       .set('bypassAtHalfSpeed', toggle(['bypassAtHalfSpeed'], 'Bypass at Half Speed'))
       .set(
+        'choosesUnaffected',
+        toggle(['choosesUnaffected'], 'Caster Chooses Unaffected Creatures')
+      )
+      .set(
         'movementCostMultiplier',
         number(['movementCostMultiplier'], 'Movement Cost Multiplier', {
           constraints: { minimum: 0.01 }
