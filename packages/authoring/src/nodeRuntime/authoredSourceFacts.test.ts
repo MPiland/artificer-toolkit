@@ -37,9 +37,10 @@ describe('authoredSourceFacts', () => {
       )
     )
     const rows = documents.flatMap((facts) =>
-      (Object.keys(facts.rows) as NodeRuntimeSourceTable[]).map(
-        (table) => [table, facts.rows[table] ?? []] as const
-      )
+      (Object.keys(facts.rows) as NodeRuntimeSourceTable[]).flatMap((table) => {
+        const tableRows = facts.rows[table]
+        return tableRows ? [[table, tableRows] as const] : []
+      })
     )
 
     expect(rows.some(([table]) => table === 'features')).toBe(true)

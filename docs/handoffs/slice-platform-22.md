@@ -36,13 +36,15 @@ Green wall clock today: 17-20 min. A type error failed the run only when the slo
 
 | Test | Red | Green |
 | --- | --- | --- |
-| `nativeLiveSessionRoom.test.ts` "logs a room failure behind a generic retry for the test harness and tells the member nothing" (cause in harness log; member sees only UNAVAILABLE + retry message; nothing written) | pending | pending |
+| `nativeLiveSessionRoom.test.ts` "logs a room failure behind a generic retry for the test harness and tells the member nothing" (cause in harness log; member sees only UNAVAILABLE + retry message; nothing written) | red: run 38990052509 (`ci/platform-22-red`, d9c9b9a30: harness and tests without the room change), the only Worker failure, `expected [] to deep equally contain … "harness-visible cause"` | pending |
 | `nativeLiveSessionRoom.test.ts` "sends an expected domain rejection and keeps an unexpected failure generic" (existing production-behaviour proof, plus the harness sees the logged cause) | n/a (already logged path) | pending |
 | 22.1 proof: `ci/platform-22-typefail` type error in a test file | pending | n/a |
 
 ## Status log
 
 - 2026-10-16: baseline timings recorded; design chosen (cancel job, not a gate).
+- 2026-10-16: run 38989496620 (de1a944a1) was cancelled 6.1 min after it started, on 84 latent type errors in authoring, source-data and emails test files that nothing had typechecked. They were fixed without changing any assertion; the only stale fixture field was `sourcePublicId` in the emails CAMPAIGN_ANNOUNCEMENT input. After merging the phase branch and `ci/merge-m61`, run 38990590658 (978b0bb7a) was cancelled 7.9 min after it started on m61's new test errors. Of that, 2.5 min was waiting for a runner between Build and the typecheck job, and the typecheck itself took 3.5 min. watchCi printed the `error TS` lines both times.
+- 2026-10-16: 22.2 red captured on run 38990052509. The branch was then deleted.
 
 ## Proposed ledger edits
 
