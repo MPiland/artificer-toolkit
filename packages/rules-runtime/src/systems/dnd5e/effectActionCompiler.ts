@@ -4266,33 +4266,34 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome)
     port: 'authorized'
   })
   const multipliedNodeId = `${prefix}multiplied`
-  return {
-    nodes: [
-      {
-        id: enabledNodeId,
-        operation: {
-          key: DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
-          contractVersion: 1
-        },
-        inputs: {
-          resultPath: { kind: 'NODE_OUTPUT' as const, nodeId: 'test', port: 'resultPath' },
-          authoredPath: { kind: 'LITERAL' as const, value: pathCode }
-        }
+  const nodes: RuleGraphDefinition['nodes'] = [
+    {
+      id: enabledNodeId,
+      operation: {
+        key: DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
+        contractVersion: 1
       },
-      ...dice.nodes,
-      ...(outcome.multiplier === 1
-        ? []
-        : [
-            {
-              id: multipliedNodeId,
-              operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-              inputs: {
-                amount: dice.subtotal,
-                multiplier: { kind: 'LITERAL' as const, value: outcome.multiplier }
-              }
+      inputs: {
+        resultPath: { kind: 'NODE_OUTPUT' as const, nodeId: 'test', port: 'resultPath' },
+        authoredPath: { kind: 'LITERAL' as const, value: pathCode }
+      }
+    },
+    ...dice.nodes,
+    ...(outcome.multiplier === 1
+      ? []
+      : [
+          {
+            id: multipliedNodeId,
+            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
+            inputs: {
+              amount: dice.subtotal,
+              multiplier: { kind: 'LITERAL' as const, value: outcome.multiplier }
             }
-          ])
-    ],
+          }
+        ])
+  ]
+  return {
+    nodes,
     amount:
       outcome.multiplier === 1
         ? dice.subtotal
