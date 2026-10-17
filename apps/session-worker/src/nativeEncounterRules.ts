@@ -34,12 +34,14 @@ import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persist
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
+  encounterBasicActionDefinitionId,
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
   actionEndedEffects,
+  actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
   damageTakenEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -1090,15 +1092,25 @@ export async function planNativeLiveEncounterAction(
   ]
   // Damage the target takes ends the effects it holds that end on damage, and releases the
   // conditions only they held in the target's own batch.
+  const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
+    ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
+  )
   const damageEnded = damageTakenEndedEffects({
     holderActorId: prepared.target.id,
-    held: (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
-      ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
-    ),
+    held: targetHeld,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions
   })
+  // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
+  const actionEnded = isEncounterBasicActionId(command.actorId, command.actionId)
+    ? actionUsedOnHolderEndedEffects({
+        holderActorId: prepared.target.id,
+        held: targetHeld,
+        usedByActorId: prepared.actor.id,
+        basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
+      })
+    : null
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1111,7 +1123,7 @@ export async function planNativeLiveEncounterAction(
       applications,
       sourceReleases,
       targetReleases: reactionEnded?.sourceReleases,
-      damageReleases: damageEnded.releases,
+      damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1285,8 +1297,12 @@ export async function planNativeLiveEncounterAction(
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     failedSpends,
     revisions,
-    // The attacker's one-roll grants and the target's effects the damage ended, one receipt.
-    consumedGrants: [...consumedGrants, ...damageEnded.endedEffects]
+    // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
+    consumedGrants: [
+      ...consumedGrants,
+      ...damageEnded.endedEffects,
+      ...(actionEnded?.endedEffects ?? [])
+    ]
   }
 }
 

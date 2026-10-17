@@ -53,6 +53,12 @@ export function isEncounterBasicActionId(actorId: string, actionId: string): boo
   return actionId.startsWith(`${actorId}${ACTION_ID_SEPARATOR}`)
 }
 
+/** The catalogue definition a basic action id names. */
+export function encounterBasicActionDefinitionId(actionId: string): string {
+  const start = actionId.indexOf(ACTION_ID_SEPARATOR) + ACTION_ID_SEPARATOR.length
+  return actionId.slice(start, actionId.lastIndexOf(EFFECT_ID_SEPARATOR))
+}
+
 /** The authored Effect of a catalogue entry that a basic action id names. */
 export function readEncounterBasicActionEffect(
   entry: EncounterBasicActionEntry,

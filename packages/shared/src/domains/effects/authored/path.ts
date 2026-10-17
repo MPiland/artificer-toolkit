@@ -37,7 +37,8 @@ export type PathLifecycleAuthored = {
   /**
    * Events that end the effect early. Damage taken is filtered by whose damage counts (`SOURCE_SIDE`
    * is the effect source and its allies, for Charm Person) and, when set, which damage types; an
-   * attack roll or a cast ends it only against an enemy (Sanctuary).
+   * attack roll or a cast ends it only against an enemy (Sanctuary); another creature using one of
+   * the named basic actions on the holder ends it (rousing a sleeper).
    */
   endOnTriggers?: (
     | {
@@ -46,6 +47,7 @@ export type PathLifecycleAuthored = {
         damageTypeIds?: string[]
       }
     | { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }
+    | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: string[] }
   )[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]

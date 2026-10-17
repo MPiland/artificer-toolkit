@@ -9,6 +9,7 @@ import {
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import {
   actionEndedEffects,
+  actionUsedOnHolderEndedEffects,
   damageTakenEndedEffects,
   endedEffectConditionReleases
 } from '../encounterEndedEffectRelease.js'
@@ -281,6 +282,70 @@ describe('what damage ends on its target', () => {
     const ended = sleeper(FIRST_ID, anyDamage)
     const untriggered = sleeper(SECOND_ID, [], 2)
     const { endedEffects, releases } = taken([ended, untriggered], [damage(FIRE)])
+    expect(endedEffects).toEqual([ended])
+    expect(releases).toEqual([])
+  })
+})
+
+describe('what another creature rousing the holder ends (SPELLS-27.T12)', () => {
+  const ROUSE_ID = '00000000-0000-4000-8000-000000000b0a'
+  const STRANGER_ID = '00000000-0000-4000-8000-00000000f2b1'
+  const sleeper = (id: string, actionDefinitionIds: string[], createdOrdinal = 1) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal,
+      endOnTriggers: [{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }],
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+  const roused = (
+    held: ReturnType<typeof sleeper>[],
+    basicActionDefinitionId: string,
+    usedByActorId = STRANGER_ID
+  ) =>
+    actionUsedOnHolderEndedEffects({
+      holderActorId: HOLDER_ID,
+      held,
+      usedByActorId,
+      basicActionDefinitionId
+    })
+
+  it('ends the effect naming the action and releases the condition it owned', () => {
+    const held = sleeper(FIRST_ID, [ROUSE_ID])
+    const { endedEffects, releases } = roused([held], ROUSE_ID)
+    expect(endedEffects).toEqual([held])
+    expect(releases).toEqual(
+      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+    )
+    expect(releases).toHaveLength(1)
+  })
+
+  it('ends nothing for an action the trigger does not name', () => {
+    const held = sleeper(FIRST_ID, [ROUSE_ID])
+    expect(roused([held], '00000000-0000-4000-8000-000000000b04')).toEqual({
+      endedEffects: [],
+      releases: []
+    })
+  })
+
+  it('ends nothing when the holder uses the action on itself', () => {
+    const held = sleeper(FIRST_ID, [ROUSE_ID])
+    expect(roused([held], ROUSE_ID, HOLDER_ID)).toEqual({ endedEffects: [], releases: [] })
+  })
+
+  it('leaves an effect with no such trigger and keeps a condition another effect owns', () => {
+    const ended = sleeper(FIRST_ID, [ROUSE_ID])
+    const untriggered = activeEffect({
+      id: SECOND_ID,
+      owner,
+      createdOrdinal: 2,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+    const { endedEffects, releases } = roused([ended, untriggered], ROUSE_ID)
     expect(endedEffects).toEqual([ended])
     expect(releases).toEqual([])
   })

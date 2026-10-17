@@ -1697,6 +1697,11 @@ function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
 ): ActiveEffectEndTrigger[] {
   const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
+    if (trigger.event === 'ACTION_USED_ON_HOLDER')
+      return {
+        event: trigger.event,
+        actionDefinitionIds: [...new Set(trigger.actionDefinitionIds)].sort()
+      }
     if (trigger.event !== 'DAMAGE_TAKEN') return trigger
     const { event, by, damageTypeIds } = trigger
     return {

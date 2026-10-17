@@ -46,7 +46,7 @@ import {
 import { facetDtoSchema } from '../shared/facet.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { damageTypeFilterDtoSchema } from '../shared/reaction.js'
+import { basicActionFilterDtoSchema, damageTypeFilterDtoSchema } from '../shared/reaction.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -146,6 +146,10 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
           z.strictObject({
             event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
             against: pathLifecycleEndTriggerAgainstSchema
+          }),
+          z.strictObject({
+            event: z.literal('ACTION_USED_ON_HOLDER'),
+            actionDefinitionIds: basicActionFilterDtoSchema
           })
         ])
       )
