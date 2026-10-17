@@ -173,7 +173,7 @@ function discoverWindows(input: {
       ),
     loadSystem: async () => system,
     definitions: srdDefinitions,
-    createRuntime: createSrdRulesRuntime
+    createRuntime: async () => createSrdRulesRuntime()
   })
 }
 
@@ -229,7 +229,7 @@ describe('Legendary Action eligibility policy', () => {
       { outgoingActorId: WOLF_ID, capabilityState: able, poolRemaining: 1, windowUsed: true }
     ]
     const evaluated = await evaluateLegendaryActionEligibility({
-      runtime: await createSrdRulesRuntime(),
+      runtime: createSrdRulesRuntime(),
       definitions: srdDefinitions,
       occurrenceId: OCCURRENCE_ID,
       candidates: cases.map((facts) => ({ source, facts }))
@@ -433,7 +433,7 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         },
         loadSystem: async () => system,
         definitions: srdDefinitions,
-        createRuntime: createSrdRulesRuntime
+        createRuntime: async () => createSrdRulesRuntime()
       })
     expect(await discover(wolves)).toEqual([])
     expect(loaded).toEqual([])
@@ -574,7 +574,7 @@ describe('Legendary Action turn window', () => {
           loadRelationshipFacts: async () => []
         }),
       definitions: srdDefinitions,
-      createRuntime: createSrdRulesRuntime,
+      createRuntime: async () => createSrdRulesRuntime(),
       random: (maximum) => {
         const face = faces.shift()
         if (face === undefined || face >= maximum) throw new Error(`Unexpected roll (d${maximum}).`)

@@ -96,7 +96,7 @@ async function tickTimedCondition(input: {
     targetConditionIds: [srdCondition('Poisoned')],
     targetDerivedFacts: {},
     defenses: [],
-    runtime: await createSrdRulesRuntime(),
+    runtime: createSrdRulesRuntime(),
     adapters: characterRuleActionSystemAdapterRegistry
   })
   if ('continuation' in result) throw new Error('A timed condition asks for no dice.')

@@ -1203,23 +1203,22 @@ module-load budget. Public functions keep generated Convex argument validators.
 
 ## Configuration
 
-| Owner               | Name                              | Purpose                                                                               |
-| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
-| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                       |
-| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                       |
-| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                           |
-| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                          |
-| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                            |
-| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                           |
-| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker                    |
-| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte secret for Worker-to-Convex routes and Convex-to-Worker control      |
-| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach        |
-| Worker              | `CONVEX_SITE_URL`                 | Matching Convex HTTP Actions origin for room calls                                    |
-| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                                 |
-| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                                   |
-| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching shared secret                                                                |
-| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                      |
-| Worker              | `RULES_CONTINUATION_SECRET`       | At least 32-byte rules continuation sealing secret; Worker-only, never sent over HTTP |
+| Owner               | Name                              | Purpose                                                                          |
+| ------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
+| Browser             | `VITE_CONVEX_URL`                 | Public Convex query/mutation WebSocket endpoint                                  |
+| Browser             | `VITE_LIVE_SESSION_WEBSOCKET_URL` | Session Worker WebSocket origin                                                  |
+| Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                      |
+| Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                     |
+| Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                       |
+| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                      |
+| Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker               |
+| Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte secret for Worker-to-Convex routes and Convex-to-Worker control |
+| Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach   |
+| Worker              | `CONVEX_SITE_URL`                 | Matching Convex HTTP Actions origin for room calls                               |
+| Worker              | `LIVE_SESSION_ALLOWED_ORIGINS`    | Exact comma-separated browser origins                                            |
+| Worker              | `LIVE_SESSION_TICKET_SECRET`      | Matching ticket-verification secret                                              |
+| Worker              | `LIVE_SESSION_WORKER_SECRET`      | Matching shared secret                                                           |
+| Worker              | `LIVE_SESSION_ROOMS`              | Durable Object namespace binding                                                 |
 
 Browser variables must never contain either secret. Staging and production bind each Worker to the matching
 Convex deployment and web origin. The Worker also binds the R2 content-snapshot bucket (see

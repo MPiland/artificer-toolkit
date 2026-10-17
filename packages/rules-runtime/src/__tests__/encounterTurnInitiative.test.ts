@@ -108,7 +108,7 @@ async function prepare(input: {
     loadDeclarations: async () => {
       throw new Error('Actor-roll initiative has no declarations.')
     },
-    createRuntime: createSrdRulesRuntime,
+    createRuntime: async () => createSrdRulesRuntime(),
     integerSource: (request) => dice.next(request),
     createRequestId: () => {
       throw new Error('Actor-roll initiative issues no declaration requests.')

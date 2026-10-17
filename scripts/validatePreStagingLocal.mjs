@@ -32,8 +32,7 @@ const localSessionWorker = {
   secretNames: [
     'LIVE_SESSION_TICKET_SECRET',
     'LIVE_SESSION_WORKER_SECRET',
-    'CONTENT_SNAPSHOT_TOKEN_SECRET',
-    'RULES_CONTINUATION_SECRET'
+    'CONTENT_SNAPSHOT_TOKEN_SECRET'
   ],
   selfManagedStage: 'r08-browser-vtt-browser'
 }

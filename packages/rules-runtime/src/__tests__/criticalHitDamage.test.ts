@@ -144,7 +144,6 @@ describe('critical hits double every damage die of the attack (SRD 5.1)', () => 
     const rolls = [NATURAL_20, 3, 6]
     const critical = await executeNativeActionGraphs({
       runtime: createPlatformRulesRuntime({
-        continuationIntegrityKey: new Uint8Array(32).fill(1),
         definitions: {
           async requireCurrent() {
             throw new Error('Definitions are not used by sealed graphs.')

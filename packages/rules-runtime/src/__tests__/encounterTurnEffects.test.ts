@@ -44,7 +44,7 @@ const OWNER = {
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await createSrdRulesRuntime()
+  runtime = createSrdRulesRuntime()
 })
 
 function effect(seed: number, input: Partial<TurnSaveDamageEffectInput> = {}) {

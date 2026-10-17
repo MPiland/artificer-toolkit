@@ -93,7 +93,7 @@ export async function seedTurnSaveEffect(input: {
     },
     sourceEntryBindings: [{ sourceEntryId: entryId, nodeId: 'proposal-on_save_fail' }]
   } satisfies RuleGraphDefinition
-  const runtime = await createSrdRulesRuntime()
+  const runtime = createSrdRulesRuntime()
   const prepared = await runtime.executeResolvedWithGraph?.({
     command: {
       definitionId,

@@ -41,7 +41,7 @@ const zone = placedZone(0x3a1, authoredZone(['ENTER_SPACE']), 1)
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
-  runtime = await createSrdRulesRuntime()
+  runtime = createSrdRulesRuntime()
 })
 
 function rootOver(path: readonly { x: number; y: number }[]): SpatialMovementRuleRoot {

@@ -7,7 +7,6 @@ import {
   type ServerRuleExecutionInputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
-  serverRuleExecutionContinuationDtoSchema,
   serverRuleExecutionResumeInputDtoSchema,
   serverRuleExecutionResultDtoSchema,
   type ServerRuleExecutionResultDto
@@ -24,7 +23,7 @@ import {
   type RuleOperationContract
 } from '@artificer-toolkit/shared/rules'
 
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 export class RuleRuntimeConfigurationError extends Error {
   constructor(message: string) {
@@ -89,81 +88,18 @@ export interface RulesRuntimeService {
     graph: CompiledRuleGraph
   }>
   resume(input: unknown): Promise<ServerRuleExecutionResultDto>
-  /** Server-only: preserves the sealed graph that was resumed. */
+  /** Server-only: preserves the admitted graph that was resumed. */
   resumeWithGraph?(input: unknown): Promise<{
     result: ServerRuleExecutionResultDto
     graph: CompiledRuleGraph
   }>
 }
 
-async function sealContinuation(candidate: unknown, integrityKey: Uint8Array<ArrayBuffer>) {
-  const parsed = serverRuleExecutionContinuationDtoSchema.parse({
-    ...(candidate as object),
-    seal: '0'.repeat(64)
-  })
-  const { seal: _seal, ...continuation } = parsed
-  const key = await crypto.subtle.importKey(
-    'raw',
-    integrityKey,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    new TextEncoder().encode(canonicalizeRuleDocument(continuation))
-  )
-  return {
-    ...continuation,
-    seal: Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, '0')).join(
-      ''
-    )
-  }
-}
-
-async function unsealContinuation(
-  candidate: unknown,
-  integrityKey: Uint8Array<ArrayBuffer>
-): Promise<RuleExecutionContinuation> {
-  const continuation = serverRuleExecutionContinuationDtoSchema.parse(candidate)
-  const { seal, ...unsealed } = continuation
-  const key = await crypto.subtle.importKey(
-    'raw',
-    integrityKey,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  )
-  const signature = Uint8Array.from({ length: 32 }, (_, index) =>
-    Number.parseInt(seal.slice(index * 2, index * 2 + 2), 16)
-  )
-  if (
-    !(await crypto.subtle.verify(
-      'HMAC',
-      key,
-      signature,
-      new TextEncoder().encode(canonicalizeRuleDocument(unsealed))
-    ))
-  ) {
-    throw new RuleRuntimeSourceIntegrityError(
-      'Frozen rule continuation checksum does not match its contents.'
-    )
-  }
-  return unsealed as RuleExecutionContinuation
-}
-
 export function createRulesRuntimeService(input: {
   capabilities: readonly unknown[]
   definitions: PublishedRuleDefinitionSource
-  continuationIntegrityKey: Uint8Array
   operations?: readonly RuleOperationContract[]
 }): RulesRuntimeService {
-  if (input.continuationIntegrityKey.byteLength < 32)
-    throw new RuleRuntimeConfigurationError(
-      'Rule continuation integrity key must contain at least 32 bytes.'
-    )
-  const continuationIntegrityKey = Uint8Array.from(input.continuationIntegrityKey)
   const capabilities = new Map(
     input.capabilities.map((candidate) => {
       const capability = gameSystemRuleCapabilityDtoSchema.parse(candidate)
@@ -237,30 +173,11 @@ export function createRulesRuntimeService(input: {
       facts: command.facts,
       operations
     })
-    return {
-      result: serverRuleExecutionResultDtoSchema.parse(
-        result.status === 'PAUSED'
-          ? {
-              status: 'PAUSED',
-              continuation: await sealContinuation(result.continuation, continuationIntegrityKey)
-            }
-          : result
-      ),
-      graph
-    }
+    return { result: serverRuleExecutionResultDtoSchema.parse(result), graph }
   }
 
-  async function executeFrozen(input: {
-    graph: CompiledRuleGraph
-    occurrenceId: string
-    facts: Readonly<Record<string, import('@artificer-toolkit/shared/rules').RuleValue>>
-  }): Promise<{ result: ServerRuleExecutionResultDto; graph: CompiledRuleGraph }> {
-    const graph = compiledRuleGraphDtoSchema.parse(input.graph) as CompiledRuleGraph
-    const command = serverRuleExecutionInputDtoSchema.parse({
-      definitionId: graph.source.definitionId,
-      occurrenceId: input.occurrenceId,
-      facts: input.facts
-    })
+  /** Admits a graph this service did not compile in this call, as the compiler would. */
+  function requireAdmittedFrozenGraph(graph: CompiledRuleGraph) {
     const capability = capabilities.get(graph.source.gameSystemId)
     if (!capability) {
       throw new RuleRuntimeConfigurationError(
@@ -282,23 +199,38 @@ export function createRulesRuntimeService(input: {
         validation.diagnostics.map((entry) => `${entry.code}: ${entry.message}`).join('\n')
       )
     }
+  }
+
+  function executeFrozen(input: {
+    graph: CompiledRuleGraph
+    occurrenceId: string
+    facts: Readonly<Record<string, import('@artificer-toolkit/shared/rules').RuleValue>>
+  }): { result: ServerRuleExecutionResultDto; graph: CompiledRuleGraph } {
+    const graph = compiledRuleGraphDtoSchema.parse(input.graph) as CompiledRuleGraph
+    const command = serverRuleExecutionInputDtoSchema.parse({
+      definitionId: graph.source.definitionId,
+      occurrenceId: input.occurrenceId,
+      facts: input.facts
+    })
+    requireAdmittedFrozenGraph(graph)
     const result = executeRuleGraph({
       graph,
       occurrenceId: command.occurrenceId,
       facts: command.facts,
       operations
     })
-    return {
-      result: serverRuleExecutionResultDtoSchema.parse(
-        result.status === 'PAUSED'
-          ? {
-              status: 'PAUSED',
-              continuation: await sealContinuation(result.continuation, continuationIntegrityKey)
-            }
-          : result
-      ),
-      graph
-    }
+    return { result: serverRuleExecutionResultDtoSchema.parse(result), graph }
+  }
+
+  function resumeAdmitted(candidate: unknown): {
+    result: ServerRuleExecutionResultDto
+    graph: CompiledRuleGraph
+  } {
+    const command = serverRuleExecutionResumeInputDtoSchema.parse(candidate)
+    const continuation = command.continuation as RuleExecutionContinuation
+    requireAdmittedFrozenGraph(continuation.graph)
+    const result = resumeRuleGraph({ continuation, response: command.response, operations })
+    return { result: serverRuleExecutionResultDtoSchema.parse(result), graph: continuation.graph }
   }
 
   return {
@@ -317,38 +249,10 @@ export function createRulesRuntimeService(input: {
       return executeFrozen(frozen)
     },
     async resume(candidate) {
-      const command = serverRuleExecutionResumeInputDtoSchema.parse(candidate)
-      const continuation = await unsealContinuation(command.continuation, continuationIntegrityKey)
-      const response = command.response
-      const result = resumeRuleGraph({ continuation, response, operations })
-      return serverRuleExecutionResultDtoSchema.parse(
-        result.status === 'PAUSED'
-          ? {
-              status: 'PAUSED',
-              continuation: await sealContinuation(result.continuation, continuationIntegrityKey)
-            }
-          : result
-      )
+      return resumeAdmitted(candidate).result
     },
     async resumeWithGraph(candidate) {
-      const command = serverRuleExecutionResumeInputDtoSchema.parse(candidate)
-      const continuation = await unsealContinuation(command.continuation, continuationIntegrityKey)
-      const result = resumeRuleGraph({
-        continuation,
-        response: command.response,
-        operations
-      })
-      return {
-        result: serverRuleExecutionResultDtoSchema.parse(
-          result.status === 'PAUSED'
-            ? {
-                status: 'PAUSED',
-                continuation: await sealContinuation(result.continuation, continuationIntegrityKey)
-              }
-            : result
-        ),
-        graph: continuation.graph
-      }
+      return resumeAdmitted(candidate)
     }
   }
 }

@@ -12,7 +12,7 @@ export async function seedSpatialSaveEffect(
 ) {
   return base.owner.caller.run(async (ctx) => {
     const effect = await buildSpatialDamageEffect({
-      runtime: await createRulesRuntime(ctx, base.owner.userId),
+      runtime: createRulesRuntime(ctx, base.owner.userId),
       encounterId: base.base.run.id,
       targetActorId: input.targetActorId,
       targetHitPoints: 10,

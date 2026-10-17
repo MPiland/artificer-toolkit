@@ -42,7 +42,6 @@ import { buildMovementTarget } from '../encounterMovementTargets.js'
 import {
   compileInstalledCreatureRuleFacts,
   createPlatformRulesRuntime,
-  deriveRulesContinuationKey,
   evaluateInstalledEncounterActors
 } from '../platformRulesRuntime.js'
 import type { CurrentReusableDefinitionSource } from '../ruleCapabilityStateService.js'
@@ -111,11 +110,8 @@ export const srdDefinitions: CurrentReusableDefinitionSource = {
 }
 
 /** The installed platform runtime; resolved or frozen graphs are passed in, so its source is unused. */
-export async function createSrdRulesRuntime() {
+export function createSrdRulesRuntime() {
   return createPlatformRulesRuntime({
-    continuationIntegrityKey: await deriveRulesContinuationKey(
-      'artificer-toolkit pure rules test continuation secret'
-    ),
     definitions: {
       requireCurrent() {
         throw new Error('The pure rules test runtime resolves no definitions itself.')

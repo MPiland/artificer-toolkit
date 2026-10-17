@@ -53,7 +53,7 @@ async function harness(input: {
   const state = input.state ?? preparingRound({ actors: ACTORS, policy: input.policy })
   const staged = inMemoryInitiativeRepository(state)
   const dice = scriptedDice(input.dice ?? [])
-  const runtime = await createSrdRulesRuntime()
+  const runtime = createSrdRulesRuntime()
   const shared = {
     repository: staged.repository,
     runtime,

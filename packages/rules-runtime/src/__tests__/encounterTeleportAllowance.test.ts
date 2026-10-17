@@ -39,7 +39,6 @@ function plan(effect: object) {
 async function cast(effect: object) {
   return executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({
-      continuationIntegrityKey: new Uint8Array(32).fill(1),
       definitions: {
         async requireCurrent() {
           throw new Error('Definitions are not used by sealed graphs.')
