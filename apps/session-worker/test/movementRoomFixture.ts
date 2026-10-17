@@ -284,7 +284,9 @@ export async function movementRoom(config: MovementRoomConfig) {
     id: encounterId,
     campaignId
   })
-  const tokenIdByActorId = new Map(actors.map((actor) => [actor.id, crypto.randomUUID()]))
+  // A Token's id derives from its actor's, so area targets, served in token-id order, keep the
+  // actors' order from run to run.
+  const tokenIdByActorId = new Map(actors.map((actor) => [actor.id, `f${actor.id.slice(1)}`]))
   const moverTokenId = tokenIdByActorId.get(config.moverActorId)
   if (!moverTokenId) throw new Error('The mover is not an actor of the Run.')
   const scene: CampaignSceneStateDto = {

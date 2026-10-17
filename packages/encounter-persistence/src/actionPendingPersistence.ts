@@ -1,7 +1,8 @@
 import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type {
-  ActionAreaSceneRequestDto,
-  ActionSceneRequestDto
+import {
+  actionAreaSceneRequestDtoSchema,
+  type ActionAreaSceneRequestDto,
+  type ActionSceneRequestDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
@@ -87,9 +88,8 @@ export async function persistEncounterActionPending(
   if (target.kind !== 'ACTOR') {
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
-    if (resume) {
+    if (resume?.area) {
       // An area answer stores the same area with that one save answered, or that one choice decided.
-      if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
       if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
@@ -102,8 +102,46 @@ export async function persistEncounterActionPending(
           next: snapshot,
           requestId: resume.pending.snapshot.request.requestId
         })
-    } else
-      await requireAreaActionPendingRoot(
+    } else if (resume && !resume.pending.context.castReaction)
+      throw new Error('Live Session pending area answer mismatch.')
+    else if (snapshot.snapshotKind === 'KERNEL_EVIDENCE') {
+      // Before a multi-creature cast does anything, another Character may counter it. The pause is
+      // the cast's own root, held with only the counter on offer.
+      const context = snapshot.applicationContext
+      if (
+        context.kind !== 'ENCOUNTER_ACTION' ||
+        context.castReaction === undefined ||
+        context.initiatorUserId !== initiatorUserId ||
+        context.commandFingerprint !== fingerprint ||
+        checksumCanonicalJson(JSON.parse(context.commandJson)) !== fingerprint ||
+        snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+        snapshot.graph.source.gameSystemId !== state.gameSystemId ||
+        snapshot.deferredCleaving !== undefined ||
+        context.contest !== undefined ||
+        context.legendaryResistance !== undefined ||
+        context.reactionChoice !== undefined ||
+        context.onHitChoice !== undefined ||
+        (resume &&
+          (snapshot.occurrenceId !== resume.occurrence.id ||
+            context.currentnessChecksum !== resume.pending.context.currentnessChecksum ||
+            !castPendingContinues(resume.pending.context, input.response, context)))
+      )
+        throw new Error('Live Session pending action root mismatch.')
+      evidence = context
+      const aimed = target.kind === 'ACTORS' ? target.scene : target
+      if (aimed)
+        await callbacks.readAreaSceneInputs(
+          state,
+          actionAreaSceneRequestDtoSchema.parse({
+            actorId: admission.input.actorId,
+            sceneId: aimed.sceneId,
+            expectedSceneVersion: aimed.expectedSceneVersion
+          })
+        )
+    } else {
+      // The cast went through its pause; the area it opens continues the same occurrence, carrying
+      // the counters that failed against it.
+      const area = await requireAreaActionPendingRoot(
         {
           snapshot,
           command: { ...admission.input, target },
@@ -113,6 +151,15 @@ export async function persistEncounterActionPending(
         },
         callbacks.readAreaSceneInputs
       )
+      const failedCounters = area.failedCounters ?? []
+      if (
+        resume
+          ? snapshot.occurrenceId !== resume.occurrence.id ||
+            !castPendingContinues(resume.pending.context, input.response, { failedCounters })
+          : failedCounters.length > 0
+      )
+        throw new Error('Live Session pending area action root mismatch.')
+    }
   } else {
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
@@ -150,21 +197,6 @@ export async function persistEncounterActionPending(
     )
       throw new Error('Live Session pending action root mismatch.')
     evidence = snapshot.applicationContext
-    const { castReaction } = evidence
-    if (
-      castReaction &&
-      !castReaction.reactions.every((reaction) =>
-        actors.some(
-          (actor) =>
-            actor.id === reaction.reactorActorId &&
-            // The caster may counter a counter to its spell, never its own cast (D127).
-            (actor.id !== admission.input.actorId || castReaction.chain !== undefined) &&
-            actor.kind === 'CHARACTER' &&
-            actor.sourceId === reaction.characterId
-        )
-      )
-    )
-      throw new Error('Live Session pending cast reaction mismatch.')
     if (!actors.some((actor) => actor.id === target.actorId))
       throw new Error('Encounter action target was not found.')
     await callbacks.readActionSceneInputs(
@@ -177,6 +209,21 @@ export async function persistEncounterActionPending(
       membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
     )
   }
+  const castReaction = evidence?.castReaction
+  if (
+    castReaction &&
+    !castReaction.reactions.every((reaction) =>
+      actors.some(
+        (actor) =>
+          actor.id === reaction.reactorActorId &&
+          // The caster may counter a counter to its spell, never its own cast (D127).
+          (actor.id !== admission.input.actorId || castReaction.chain !== undefined) &&
+          actor.kind === 'CHARACTER' &&
+          actor.sourceId === reaction.characterId
+      )
+    )
+  )
+    throw new Error('Live Session pending cast reaction mismatch.')
   await callbacks.validateReadFence(state, [...characterIds], input.revisions)
   const collision = await ctx.db
     .query('encounterRuleOccurrences')
@@ -222,9 +269,9 @@ export async function persistEncounterActionPending(
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         // An area answer's receipt names the request it answered; the area keeps no single next one.
-        request: resume.area
-          ? resume.pending.snapshot.request
-          : requireServerKernelRuleExecutionPendingSnapshot(snapshot).request,
+        request: evidence
+          ? requireServerKernelRuleExecutionPendingSnapshot(snapshot).request
+          : resume.pending.snapshot.request,
         ...(d20Policy
           ? {
               pending: {

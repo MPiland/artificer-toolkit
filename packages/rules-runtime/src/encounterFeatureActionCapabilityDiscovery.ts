@@ -51,6 +51,8 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   label: string
   /** The grip of one variant of a versatile weapon attack; each grip is its own action. */
   grip: NonNullable<EncounterFeatureEffect['grip']> | null
+  /** The spell the action casts, which Counterspell answers; null when it casts none (D136). */
+  spellCast: NonNullable<EncounterFeatureEffect['spellCast']> | null
 }
 
 /** A Creature action whose authored mechanics cannot run; it is listed unavailable, not thrown. */
@@ -595,6 +597,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               actionId: exactActionId,
               label,
               grip: effect.grip ?? null,
+              spellCast: effect.spellCast ?? null,
               sourceId: ownerFeatureId,
               mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
               conditionDefinitionIds:

@@ -82,7 +82,9 @@ export function evaluateDnd5eCharacterModifiers(
         'ADD_OPTION',
         'REMOVE_OPTION',
         'ADD_BONUS_DIE',
-        'ENABLE'
+        'ENABLE',
+        // A fraction is read from its payload by the domain that owns it (a speed).
+        'MULTIPLY'
       ].includes(group.modifierKind)
     )
       return 1

@@ -1,6 +1,9 @@
 import { Migrations } from '@convex-dev/migrations'
 import { runActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  restoreStoredRunActor,
+  serializeStoredRunActor
+} from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
 import schema from '../schema'
@@ -21,12 +24,12 @@ export const runActorAbsence = migrations.define({
     const stored: unknown = JSON.parse(row.stateJson)
     if (typeof stored !== 'object' || stored === null || !('outOfInitiative' in stored)) return
     const { outOfInitiative, ...current } = stored
-    const actor = encounterStoredRunActorStateSchema.parse({
+    const actor = restoreStoredRunActor(row, {
       ...current,
       absence: outOfInitiative === true ? 'GM_REMOVED' : null
     })
     await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(actor),
+      stateJson: serializeStoredRunActor(actor),
       stateChecksum: checksumCanonicalJson(runActorPlayState(actor))
     })
   }

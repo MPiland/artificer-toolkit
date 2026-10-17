@@ -151,6 +151,7 @@ export function createSpatialRuleEffectStore(ctx: EncounterWriteContext) {
         get,
         async create(input: {
           id: string
+          maintainedEffectStateId?: string | null
           definition: ActiveRuleEffectDefinitionDto
           lifecycle: ActiveRuleEffectLifecycleDto
           placement: SpatialRuleEffectPlacementDto
@@ -176,6 +177,7 @@ export function createSpatialRuleEffectStore(ctx: EncounterWriteContext) {
             createdOrdinal:
               Math.max(0, ...currentEffects.map((effect) => effect.createdOrdinal)) + 1,
             version: 1,
+            maintainedEffectStateId: input.maintainedEffectStateId ?? null,
             definitionJson: JSON.stringify(definition),
             definitionChecksum: checksumCanonicalJson(definition),
             lifecycle: current.lifecycle,

@@ -89,3 +89,28 @@ Closes AC SPELLS-28.1. Two stages, each red on `ci/spells-28-t4-red` then green 
 - Green: `ci/spells-28-t4` 2b10ea73f (includes the merge of `codex/phase-08-2-convex-cutover` and the regenerated SRD manifest), Tests 38957200514, Live 38957200558.
 - Proof: `packages/rules-runtime/src/__tests__/encounterFormChoice.test.ts`, `encounterAreaActionCompilation.test.ts`, `packages/schema/src/__tests__/encounter-action-actors-target.test.ts`, `packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts`, `apps/session-worker/test/nativeRoomPolymorph.test.ts`, `CampaignTabletopActionDrawer.test.tsx`.
 - Stage 2 (Character Run actors, retained INT/WIS/CHA and proficiencies, casting refused in form, one revert path) is NOT built; AC SPELLS-28.1 stays open until it is.
+
+## Resume here (2026-10-16)
+
+T1, T3, T2, T1b and T4 stage 1 are merged. **T4c is done and green**; **T4b (the form outliving the Run, D99 carry-over) is next**, then T4d (form action-list swap, form defenses/speeds/senses, creature-proficiency merge).
+
+## T4c status (2026-10-16)
+
+- Red: `ci/spells-28-t4c-red` 8582fe60a, Tests 38964372322, Live 38964372830 (failed as intended).
+- Green: `ci/spells-28-t4c` 23de9c2cd, Tests 38975553592, Live 38977759895.
+- Proof: `packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts` (Creature forms, D130 amendment: baked INT/WIS/CHA, form HP, carry-over to the Sheet in the same batch, one revert), `apps/session-worker/test/nativeRoomPolymorph.test.ts` (Character journey: self-cast, form, no casting, undo ends the form), `apps/session-worker/test/nativeRoomGiantInsect.test.ts` (Character-refused assertion superseded by the amendment).
+- Bug found on the way: ending a Character-owned form effect (undo, expiry) deleted the effect without ending the form; `endCharacterFormHeldBy` now ends it, covered by the Polymorph undo assertions.
+- Deferred: T4d, T4b, per-form authorable retained abilities, undo of an auto-reverted damage application, form-max-HP effect nuance (see `docs/roadmap/future-enhancements.md`).
+
+## D130 amendment, 2026-10-16: a Character takes a creature form (SPELLS-28.T4c)
+
+Approved by the orchestrator (Phase 8) on 2026-10-16. Changes a persisted contract: the `form` field on Run actors, today CREATURE and CUSTOM only (D130), is also carried by CHARACTER actors. T4d (the form's action list replacing the Character's) is out of T4c.
+
+- **Shape.** A CHARACTER actor's `form` is `null | { effectId, excessDamageCarriesOver, sourceId, sourceRevision, snapshot, currentHitPoints, maxHitPoints, tempHitPoints }`. There is no `origin`: the Character's own state stays on the Sheet, untouched while the form lasts. The form creature's snapshot is stored inline in the form (a Character's snapshot is not a shared row). The migration `runActorForm` backfills `form: null` on Character rows too.
+- **Retained abilities.** Intelligence, Wisdom and Charisma are baked into the form's snapshot at entry from the Character's effective scores (a per-System map in `encounterActorForm.ts`; D&D today). Save and skill proficiencies are kept live through the Character's own evaluation. Merging the creature's proficiencies, and the form's defenses, speeds and senses, is T4d. Polymorph's "mental scores are replaced" nuance is deferred: the retained set should become authorable per form.
+- **Hit points.** While `form` is set, the Character actor's current, temporary and maximum hit points are the form's (`sheetMaximumHitPoints` carries the Sheet's maximum for the carry-over). Damage and healing applied in the mechanics batch change the form's hit points and never the Sheet's. Death saves are not touched while in form.
+- **One revert path.** `revertActorForm` also covers a Character actor: it runs when the form's hit points reach 0, when the effect ends, and on cast undo. Excess damage past the form's last hit point, when `excessDamageCarriesOver`, becomes a `DAMAGE` application on the Sheet in the same mechanics batch (the normal Sheet damage fold, with its temporary then current hit points and its 0 hit point rules). Healing never carries over.
+- **Armor class.** While in form, attacks against the Character use the form creature's armor class.
+- **Projection.** The GM sees the form's stat block (with the retained abilities) and the form's hit points; the Character's own sheet panel is unchanged.
+- **Casting.** The Character cannot cast while in a form (Polymorph's form cannot cast); Concentration on a spell cast before the form is kept.
+- **Not in T4c:** the form's actions replacing the Character's (T4d), the form outliving the Run (T4b), object forms, True Polymorph permanence, Shapechange re-form.

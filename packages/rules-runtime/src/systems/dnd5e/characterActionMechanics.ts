@@ -171,18 +171,27 @@ function resolveOutcomeValue(
   return selected.amount
 }
 
-/** The contributions of one value domain and modifier kinds in an attack's modifier domain. */
+/**
+ * The contributions of one value domain and modifier kinds in an attack's modifier domain, plus
+ * those scoped to the ability the attack is made with (Weakening Breath's Strength-based attacks).
+ */
 function attackModifierContributions(
   input: CharacterActionModelInput,
   attackDomain: string,
   valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
-  modifierKinds: readonly string[]
+  modifierKinds: readonly string[],
+  attackAbility: string | null = null
 ): ModifierContribution[] {
   return input.modifierGroups
     .filter((group) =>
-      modifierKinds.some(
-        (kind) => group.domainKey === `${valueDomainCode}:${kind}|attackDomain=${attackDomain}`
-      )
+      modifierKinds.some((kind) => {
+        const key = `${valueDomainCode}:${kind}`
+        return (
+          group.domainKey === `${key}|attackDomain=${attackDomain}` ||
+          (attackAbility !== null &&
+            group.domainKey === `${key}|ability=${attackAbility}|attackDomain=${attackDomain}`)
+        )
+      })
     )
     .flatMap((group) => group.contributions)
 }
@@ -248,9 +257,13 @@ export function resolveDnd5eActionMechanic(
   ): ModifierContribution[] =>
     attackDomain === null
       ? []
-      : attackModifierContributions(input, attackDomain, valueDomainCode, modifierKinds).filter(
-          applies
-        )
+      : attackModifierContributions(
+          input,
+          attackDomain,
+          valueDomainCode,
+          modifierKinds,
+          target.attackAbility
+        ).filter(applies)
   const appliedTotal = (contributions: readonly ModifierContribution[]): number =>
     contributions
       .filter((contribution) => contribution.state === 'APPLIED')
@@ -444,6 +457,7 @@ export function resolveDnd5eActionMechanic(
         : null,
     rangeLabel: rangeLabel(invocation.range),
     attackKind,
+    attackAbility: target.attackAbility === null ? null : canonicalAbility(target.attackAbility),
     attackBonus: resolveAttackBonus(),
     attackRollMode: resolveAttackRollMode(),
     save: resolveSave(),

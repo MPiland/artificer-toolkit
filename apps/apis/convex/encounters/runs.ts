@@ -130,6 +130,7 @@ export async function createEncounterRun(
         sourceId: character.id,
         frozenState: null,
         absence: null,
+        form: null,
         label: character.label,
         systemId: character.systemId,
         stableTieKey: crypto.randomUUID(),

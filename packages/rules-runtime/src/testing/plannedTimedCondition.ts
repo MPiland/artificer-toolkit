@@ -66,6 +66,7 @@ export function plannedTimedCondition(input: {
             activation: null,
             rangeLabel: null,
             attackKind: null,
+            attackAbility: null,
             attackBonus: null,
             attackRollMode: null,
             save: null,
