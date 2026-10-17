@@ -67,4 +67,5 @@ export const ruleEffectTables = {
       'createdOrdinal',
       'id'
     ])
+    .index('by_state_encounter', ['maintainedEffectStateId', 'encounterId', 'id'])
 }

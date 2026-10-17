@@ -55,6 +55,10 @@ import {
   RULE_WARNINGS_MESSAGE
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
+import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
@@ -589,10 +593,22 @@ export async function planNativeLiveEncounterAction(
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
+  const fleeWarnings = encounterFleeActionWarnings({
+    sourceActorIds: encounterConditionFleeSources(actorTarget),
+    activationCode,
+    dash: mechanicFacts.outcomes.some(
+      (outcome) =>
+        outcome.kind === 'EFFECT' &&
+        outcome.effectKind === 'MOVEMENT_RULE' &&
+        outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
+    )
+  })
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
-    preparedWarnings: suppressed
-      ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
-      : prepared.ruleWarnings,
+    preparedWarnings: [
+      ...prepared.ruleWarnings,
+      ...fleeWarnings,
+      ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
+    ],
     target: {
       actor: prepared.actor,
       target: prepared.target,

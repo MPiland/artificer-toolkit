@@ -30,6 +30,13 @@ export const authoredLengthAmountSchema = lazySchema(() =>
 export const authoredLengthSchema = lazySchema(() =>
   z.strictObject({ amount: authoredLengthAmountSchema, unit: lengthUnitCodeSchema })
 )
+/** A fraction a value is multiplied by, such as 1/2 for "halved". */
+export const authoredFractionSchema = lazySchema(() =>
+  z.strictObject({
+    numerator: z.number().check(z.int()).check(z.positive()),
+    denominator: z.number().check(z.int()).check(z.positive())
+  })
+)
 /** An authored length that must be more than nothing, such as a movement cost or a wall thickness. */
 export const authoredPositiveLengthAmountSchema = lazySchema(() =>
   z.number().check(z.positive()).check(z.lte(AUTHORED_LENGTH_AMOUNT_MAX))

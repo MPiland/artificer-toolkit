@@ -53,6 +53,7 @@ async function cast(effect: object) {
       actionMechanic: {
         attackBonus: null,
         attackKind: null,
+        attackAbility: null,
         attackRollMode: 'NORMAL',
         save: null,
         outcomes: []

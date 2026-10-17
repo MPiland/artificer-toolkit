@@ -63,7 +63,7 @@ describe('readNativeLiveMaintenanceSlot', () => {
     // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake((request) =>
       request.kind === 'MAINTENANCE_SLOT'
-        ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState }
+        ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState, zoneIds: [] }
         : {
             kind: 'MAINTENANCE_DEPENDENTS',
             ...captureEnvelope,
@@ -84,7 +84,7 @@ describe('readNativeLiveMaintenanceSlot', () => {
     // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake((request) =>
       request.kind === 'MAINTENANCE_SLOT'
-        ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState }
+        ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState, zoneIds: [] }
         : {
             kind: 'MAINTENANCE_DEPENDENTS',
             ...captureEnvelope,
@@ -108,7 +108,8 @@ describe('readNativeLiveMaintenanceSlot', () => {
     const fake = captureFake(() => ({
       kind: 'MAINTENANCE_SLOT',
       ...captureEnvelope,
-      state: foreign
+      state: foreign,
+      zoneIds: []
     }))
 
     await expect(readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })).rejects.toThrow(
@@ -223,7 +224,8 @@ describe('readNativeLiveMovementConcentrationState', () => {
     const fake = captureFake(() => ({
       kind: 'MAINTENANCE_SLOT',
       ...captureEnvelope,
-      state: foreign
+      state: foreign,
+      zoneIds: []
     }))
 
     await expect(read(fake)).rejects.toThrow(

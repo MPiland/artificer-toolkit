@@ -19,6 +19,7 @@ describe('Concentration end receipts', () => {
     cleanup: {
       maintainedStateId: id(2),
       removedDependentEffectIds: [],
+      removedZoneIds: [],
       characterOwnerTransitions: []
     }
   }

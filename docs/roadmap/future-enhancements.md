@@ -87,6 +87,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Fleeing a source (SPELLS-29.T2):** the `CONDITION_SOURCE_FLEE` warning covers an Action other than Dash taken through `RESOLVE_ACTION` and area actions. Disarm, escapes and held-grant flows do not warn, and the rider never inspects the distance a move actually covers after the Dash.
 - **Trait invisibility that also ends on using a named action (SPELLS-27.T10).** The Quasit (Scare), Will-o'-Wisp (Consume Life) and Duergar (Enlarge) invisibility also ends when the creature uses that action. No end event covers using a named action, so it ends only on an attack, a cast or Concentration; the GM undoes it by hand. Rare; fix with an action-used end event if it arises.
 - **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
 - **A maintained-state owner Character that is not a Run actor has no room fixture (ROOM-6.T2, D-pending-room-6-t2).** The room test covers a GM-removed Character (D82; still a Run actor) but not a Character absent from the Run's actors: the memory store's `effects.create` requires the target actor in the Run, and the fixture lists Character dependents only through Run actors. Production loads such an owner through `maintenanceCharacterOwnersAtLoad`, the same path the GM-removed case exercises. Fix by seeding a `CHARACTER`-owned effect when the fixture gains a Character table.
@@ -106,6 +107,7 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Spells and features whose printed end is a GM call (SPELLS-27.T5):** Animal Friendship, Awaken, Calm Emotions, Eyebite, Mass Suggestion, Mislead, Modify Memory, Phantom Steed, Produce Flame, Project Image, Sequester, Suggestion and Oath of Devotion's Turn the Unholy are closed rules or manual adjudications that create no effect, so a harm, damage, attack or cast that ends them is applied by the GM at the table. They are listed with their covering mechanism in `packages/source-data/src/srd/endEvents.test.ts`. Authoring any of them as a real effect removes its entry there.
 - **Charm Person's save advantage while fighting (SPELLS-27.T5):** the target has advantage on the saving throw if the caster or their companions are fighting it. No conditional save advantage exists on the spell's save, and it is not an end event.
 - **Waking a Brass Dragon's Sleep Breath target with an action (SPELLS-19.T3):** the unconscious condition ends on damage taken, but "someone uses an action to wake it" is not a commit event; the GM ends the condition by hand.
+- **A Creature attack with no ability bonus escapes an ability-scoped attack grant (SPELLS-19.T3b):** a Creature's attack ability is read from its first damage outcome's `ABILITY_BONUS`, so an attack whose stat block carries fixed damage only (no ability bonus) is never matched by Weakening Breath's Strength-scoped disadvantage. The SRD stat blocks carry 285 such bonuses, so it shows only on a hand-authored Creature; the fix is an explicit attack ability on the Creature attack.
 - **A projectile aimed again at a creature whose form its earlier dart ended (SPELLS-28.T2, D130):** the dice settle each entry against the hit points the earlier entry left, which are the form's, so the commit finds the actor back at its origin's hit points and refuses the second dart as stale. The caster re-aims; the fix is a settle that follows the revert (carry-over included).
 - **Undo of a damage action that auto-reverted a creature form (SPELLS-28.T2, D130):** the revert restores the form's hit points, which `restoreHitPoints` refuses once the actor is out of its form. The GM corrects the hit points by hand; a form-aware undo can follow if it shows up in play.
 - **"You must have seen the creature" for Shapechange and Wild Shape (SPELLS-28.T4, D130):** the filtered form choice checks creature type, challenge-rating cap and excluded speeds against the System's creature list, but not whether the caster has met that creature. The table polices it; a per-Character known-forms list can follow if it shows up in play.
@@ -284,6 +286,8 @@ MOVE-3 ships the small version: the GM places zones through the zone node map, t
 Raised by the user on 2026-10-14 during the hazards and traps design; post-launch.
 
 ## Other future enhancements (parked)
+
+- Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
 
 ### Adventure Module Packages
 

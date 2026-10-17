@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
+  authoredFractionSchema,
   authoredIdentifierSchema,
   authoredLengthSchema,
   authoredNestedCollectionSchema,
@@ -27,6 +28,14 @@ const emptyDomainDtoSchema = lazySchema(() => z.strictObject({}))
 const attackDomainParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema
+  })
+)
+
+/** An attack roll advantage or disadvantage that names an ability covers only attacks made with it. */
+const attackRollRollModeParamDtoSchema = lazySchema(() =>
+  z.object({
+    attackDomain: attackDomainCodeSchema,
+    ability: z.optional(abilityCodeSchema)
   })
 )
 
@@ -67,6 +76,13 @@ const skillParamDtoSchema = lazySchema(() =>
 const speedParamDtoSchema = lazySchema(() =>
   z.object({
     speedId: authoredIdentifierSchema
+  })
+)
+
+/** A speed fraction names one speed, or every speed of its holder when `speedId` is omitted. */
+const speedFractionParamDtoSchema = lazySchema(() =>
+  z.object({
+    speedId: z.optional(authoredIdentifierSchema)
   })
 )
 
@@ -381,8 +397,8 @@ const buildModifierGrantVariants = () => {
       attackDomainParamDtoSchema,
       optionalAbilityModifierBonusPayloadDtoSchema
     ),
-    buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackDomainParamDtoSchema),
-    buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackDomainParamDtoSchema),
+    buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackRollRollModeParamDtoSchema),
+    buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackRollRollModeParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
@@ -507,6 +523,12 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant('SPEED', 'PENALTY', speedParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant('SPEED', 'SET_VALUE', speedParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(
+      'SPEED',
+      'MULTIPLY',
+      speedFractionParamDtoSchema,
+      authoredFractionSchema
+    ),
+    buildModifierGrantVariant(
       'MOVEMENT_MODE',
       'ADD_OPTION',
       emptyDomainDtoSchema,
@@ -519,12 +541,6 @@ const buildModifierGrantVariants = () => {
       optionPayloadByDomainDtoSchema.MOVEMENT_MODE
     ),
     buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
-    buildModifierGrantVariant(
-      'SENSE_RANGE',
-      'SET_VALUE',
-      senseParamDtoSchema,
-      authoredLengthSchema
-    ),
     buildModifierGrantVariant(
       'RANGE',
       'REPLACE_RANGE_KIND',
@@ -729,7 +745,27 @@ const buildModifierDomainUnions = () => {
     else modifierVariantsByDomain.set(domain, [variant])
   }
   return [...modifierVariantsByDomain.values()].map((variants) =>
-    z.discriminatedUnion('modifierKind', variants)
+    z.discriminatedUnion('modifierKind', variants, { error: unsupportedModifierKindError })
+  )
+}
+
+/** A kind with no variant, such as SENSE_RANGE SET_VALUE, still gets the "not supported yet" message. */
+function unsupportedModifierKindError(issue: { input?: unknown }): string | undefined {
+  const { input } = issue
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    !('valueDomainCode' in input) ||
+    !('modifierKind' in input) ||
+    typeof input.valueDomainCode !== 'string' ||
+    typeof input.modifierKind !== 'string'
+  )
+    return undefined
+  return (
+    unsupportedModifierMessage({
+      valueDomainCode: input.valueDomainCode,
+      modifierKind: input.modifierKind
+    }) ?? undefined
   )
 }
 

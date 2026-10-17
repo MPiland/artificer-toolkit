@@ -91,7 +91,13 @@ export function dnd5eAttackRollContributors(
   target: Dnd5eModifierTarget
 ): RollContributor[] {
   return dnd5eRollContributors(policy, target)
-    .filter((entry) => entry.valueDomainCode === 'ATTACK_ROLL' && entry.attackDomain === attackKind)
+    .filter(
+      (entry) =>
+        entry.valueDomainCode === 'ATTACK_ROLL' &&
+        entry.attackDomain === attackKind &&
+        // A grant naming an ability covers only attacks made with it.
+        (entry.ability === null || entry.ability === target.attackAbility)
+    )
     .map((entry) => entry.evidence)
     .sort(compareCanonicalD20Contributors)
 }

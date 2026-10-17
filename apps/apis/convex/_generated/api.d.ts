@@ -113283,6 +113283,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -114013,6 +114014,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -114043,6 +114045,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -114064,6 +114067,7 @@ export declare const api: {
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
                 | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
@@ -114154,6 +114158,12 @@ export declare const api: {
         "public",
         { campaignId: string },
         {
+          auras: Array<{
+            id: string;
+            label: string | null;
+            radius: number;
+            sourceTokenId: string;
+          }>;
           encounter:
             | {
                 actors: Array<{
@@ -114690,6 +114700,7 @@ export declare const api: {
               label: string;
               speedId: string;
             }>;
+            fleeSourceActorIds: Array<string>;
             speedId: string | null;
             teleport: Array<{
               castCommandId: string;
@@ -124502,6 +124513,36 @@ export declare const internal: {
         any
       >;
       runActorForm: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
+    actorIdentityMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorIdentity: FunctionReference<
         "mutation",
         "internal",
         {

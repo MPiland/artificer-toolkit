@@ -57,7 +57,8 @@ import type {
   EquipmentChildId,
   EquipmentEffectAuthored,
   EquipmentGrip,
-  ModifierGrantAuthored
+  ModifierGrantAuthored,
+  WeaponAbilityModifier
 } from '@artificer-toolkit/shared'
 import {
   SRD_CONDITION_TYPES,
@@ -363,16 +364,16 @@ export function fixedMeleeWeaponEffect(
     bucket
   )
 }
-export function meleeWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
+export function meleeWeaponAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
   return sharedMeleeWeaponAbilityModifiers(srdChildId(equipmentId))
 }
 export function rangedWeaponAbilityModifiers(
   equipmentId: string,
   ability: AbilityCode = 'DEXTERITY'
-): ModifierGrantAuthored[] {
+): WeaponAbilityModifier[] {
   return sharedRangedWeaponAbilityModifiers(srdChildId(equipmentId), ability)
 }
-export function thrownWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
+export function thrownWeaponAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
   return sharedThrownWeaponAbilityModifiers(srdChildId(equipmentId))
 }
 export function finesseWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {

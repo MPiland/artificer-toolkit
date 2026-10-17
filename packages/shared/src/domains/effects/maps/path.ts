@@ -1789,6 +1789,15 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'fleesSource',
+      toggle(['fleesSource'], 'The Holder Must Dash Away From Its Source', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
+          local.field(['recordsSource']).eq(true)
+        ])
+      })
+    )
+    .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {
         presentation: 'inline',

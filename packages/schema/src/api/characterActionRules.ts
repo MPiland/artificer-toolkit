@@ -310,6 +310,8 @@ const characterActionMechanicFactSchema = lazySchema(() =>
             kind: z.literal('EFFECT'),
             pathCode: identitySchema,
             effectKind: identitySchema,
+            /** A movement rule's kind, so a consumer can tell Dash (`ADD_SPEED_TO_MOVEMENT`) apart. */
+            ruleKind: z.optional(identitySchema),
             label: z.nullable(
               stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
             )
@@ -375,6 +377,8 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
       stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
     ),
     attackKind: z.nullable(attackKindSchema),
+    // The ability the attack is made with, which an ability-scoped attack grant is read against.
+    attackAbility: z.nullable(abilityCodeSchema),
     attackBonus: z.nullable(integerSchema),
     attackRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
     save: z.nullable(

@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [
 ## Resume here
 
 - T1 is merged or merging (green `df9d20bb5`). The T1 merge exposed a Worker-suite timing flake, fixed on `ci/spells-29-t1-fix` (`79b73e3d1`, Tests [38975274041](https://github.com/MPiland/artificer-toolkit/actions/runs/38975274041), Live [38975297402](https://github.com/MPiland/artificer-toolkit/actions/runs/38975297402); red `eb7cdd6b1`): the suite outlasts the room's 5-minute idle release, so rooms of finished tests woke mid-suite and logged failed releases into other tests' `console.error` spies. A setup-file `afterEach` now cancels the alarms of the rooms a test created.
-- Next: SPELLS-29.T2 (the `fleesSource` rider). The work is on branch `claude/bold-chaplygin-b95f96`: red `04e6af8c5`, impl `841de7cfc`, and an unpushed generated-files commit `b1935d755`. Rebase on the phase branch (bc or later), push to `ci/spells-29-t2`, and fix what the stale-base run showed: TS2339 `ruleKind` in `nativeEncounterRules.ts(604)`, `fleeSourceActorIds` missing in `CampaignVttStage.teleport.test.tsx`, the `effect-compiler` roll-table test, and the seed manifest drift (regenerate from the CI artifact).
+- SPELLS-29.T2 (the `fleesSource` rider) is DONE and green on `ci/spells-29-t2`: `dc9caf7c2` (Tests [38986121910](https://github.com/MPiland/artificer-toolkit/actions/runs/38986121910), Live [38986122174](https://github.com/MPiland/artificer-toolkit/actions/runs/38986122174)), then merged with `ci/merge-m60` (one conflict in `CampaignVttStage.teleport.test.tsx`, both sides kept); the branch tip's CI run ids are in the orchestrator's report. Red `04e6af8c5`: Tests 38960560081, Live 38960560070. No further T2 work; AC 29.2 closes with the batch.
 
 Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-b95f96`, CI branches `ci/spells-29-t1-red` (red) and `ci/spells-29-t1` (green). Decision numbers: `D134`.
 
@@ -135,3 +135,20 @@ Base: `3ce5883f1` (SPELLS-19.T2, merged locally), branch `claude/bold-chaplygin-
   - The acknowledged move reused the Scene version from before the sideways move.
 - 2026-10-16: merged `ci/merge-batch-av` (`27de27fde`); Tests [38951912964](https://github.com/MPiland/artificer-toolkit/actions/runs/38951912964) failed (red proof): the Fear out-of-sight save journey ("The active-effect resolution does not answer its pending request"). SPELLS-20's `isDamageDieRequest` read Fear's gated d20 (also an optional 1..N range) as a damage die. Fixed in `df9d20bb5`: a policy's own request node is never a damage die. The only other failure was a Web `window is not defined` teardown error in `AuthForms.test.tsx` (all tests passed), which did not recur.
 - 2026-10-16: green on `df9d20bb5`: Tests [38956790464](https://github.com/MPiland/artificer-toolkit/actions/runs/38956790464), Live backend [38956790334](https://github.com/MPiland/artificer-toolkit/actions/runs/38956790334).
+
+## Scope (T2, closes AC 29.2)
+
+- Ruling (orchestrator, 2026-10-16), recorded as the D134 amendment: build the generic `fleesSource` rider, the turn-start "Dash away from the source" prompt and the `CONDITION_SOURCE_FLEE` soft warning with "Do it anyway". Author and prove SRD Fear (including GM undo); a homebrew Panicked condition is the authoring parity proof. No Eyebite task (it stays `GM_ADJUDICATED` under D122); a future-enhancements line covers it. AC 29.2 needs no change.
+- Base: `0f37758cf` merged with `origin/ci/merge-batch-ax`. CI branches `ci/spells-29-t2-red` (red `04e6af8c5`) and `ci/spells-29-t2`.
+
+## Design (T2)
+
+- **Authored (core option, ADR 0038):** CONDITION outcome `fleesSource?: boolean`, shown only with `recordsSource`; the node map clears it otherwise.
+- **Compiled:** `compileConditionEffect` states `fleesSource: false` by default; every condition plan carries it on `conditionContribution`; the room writes `fleesSource: true` on the `CONDITION_OWNERSHIP` contribution next to `sourceActorId`.
+- **Runtime:** `encounterConditionFleeSources` (held, sourced, fleeing owners) and `encounterFleeActionWarnings` (an Action other than Dash). The Worker adds the warning to the prepared warnings of single-target and area actions; Dash is the action whose outcomes include `MOVEMENT_RULE` `ADD_SPEED_TO_MOVEMENT`.
+- **Prompt:** `readTurnMovementView` returns `fleeSourceActorIds`; the tabletop readout shows "Dash away from the source".
+- **Moves are not warned:** the approach warning already covers moving closer, and a stricter not-farther check would flag the sideways move T1 allows.
+
+## Log (T2)
+
+- 2026-10-16: red pushed to `ci/spells-29-t2-red` (`04e6af8c5`); green implementation follows.

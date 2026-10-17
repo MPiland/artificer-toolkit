@@ -83,6 +83,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackAbility: null,
     attackBonus: null,
     attackRollMode: null,
     save: null,
@@ -623,6 +624,15 @@ describe('the Concentration a cast starts', () => {
     })
     expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
       recordsSource: false
+    })
+  })
+
+  it('plans the Frightened of SRD Fear as fleeing its caster; Hold Person flees none (SPELLS-29.T2)', () => {
+    expect(compiledCast(FEAR)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      fleesSource: true
+    })
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContribution).toMatchObject({
+      fleesSource: false
     })
   })
 

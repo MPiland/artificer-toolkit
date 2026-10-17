@@ -29,7 +29,8 @@ function heldAt(version: number): HeldEncounterSession {
       pending: null,
       waitingOn: null,
       turnMovement: [],
-      halfSpeedFields: []
+      halfSpeedFields: [],
+      auras: []
     },
     preparedPending: [],
     actorSides: null,

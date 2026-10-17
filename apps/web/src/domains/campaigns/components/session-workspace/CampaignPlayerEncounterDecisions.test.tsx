@@ -150,7 +150,8 @@ describe('CampaignPlayerEncounterDecisions', () => {
           pending: null,
           waitingOn: null,
           turnMovement: [],
-          halfSpeedFields: []
+          halfSpeedFields: [],
+          auras: []
         },
         preparedPending: [{ encounter: prepared, pending }],
         actorSides: null,

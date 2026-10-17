@@ -173,7 +173,8 @@ describe('CampaignEncounterWorkspace controls', () => {
         pending: null,
         waitingOn: null,
         turnMovement: [],
-        halfSpeedFields: []
+        halfSpeedFields: [],
+        auras: []
       },
       preparedPending: [],
       actorSides: null,
@@ -268,7 +269,8 @@ describe('CampaignEncounterWorkspace controls', () => {
           pending: null,
           waitingOn: null,
           turnMovement: [],
-          halfSpeedFields: []
+          halfSpeedFields: [],
+          auras: []
         },
         preparedPending: [],
         actorSides: null,

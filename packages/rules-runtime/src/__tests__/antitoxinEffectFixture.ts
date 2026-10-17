@@ -7,6 +7,7 @@ import {
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
+import { goldDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/gold-dragon-wyrmling.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
@@ -172,6 +173,59 @@ export function longstriderEffect(input: { id: string; holderActorId: string }) 
   })
 }
 
+/**
+ * The active effect the real compiler plans for a "speed multiplied by n/d" grant (Slowing Breath
+ * halves it), the SRD Longstrider's grant path with its bonus made the fraction. With no speed
+ * named it covers every speed.
+ */
+export function speedFractionEffect(input: {
+  id: string
+  holderActorId: string
+  fraction: { numerator: number; denominator: number }
+  speedId?: string
+}) {
+  const effect = longstrider.effects?.[0]
+  if (!effect) throw new Error('The SRD Longstrider has no effect.')
+  return plannedGrantEffect({
+    id: input.id,
+    holderActorId: input.holderActorId,
+    effect: {
+      ...effect,
+      paths: effect.paths.map((path) =>
+        'resultBlock' in path
+          ? {
+              ...path,
+              resultBlock: {
+                ...path.resultBlock,
+                outcomes: path.resultBlock.outcomes.map((outcome) =>
+                  outcome.effectKind === 'APPLY_GRANT'
+                    ? {
+                        ...outcome,
+                        grants: {
+                          ...outcome.grants,
+                          modifiers: outcome.grants.modifiers?.map(
+                            (modifier) =>
+                              ({
+                                ...modifier,
+                                domain:
+                                  input.speedId === undefined ? {} : { speedId: input.speedId },
+                                modifierKind: 'MULTIPLY',
+                                payload: input.fraction
+                              }) as typeof modifier
+                          )
+                        }
+                      }
+                    : outcome
+                )
+              }
+            }
+          : path
+      )
+    },
+    sourceLabel: 'Speed fraction'
+  })
+}
+
 /** The active effect the real compiler plans for the SRD Heroism (immunity to Frightened). */
 export function heroismEffect(input: { id: string; holderActorId: string }) {
   return plannedGrantEffect({ ...input, effect: heroism.effects?.[0], sourceLabel: heroism.label })
@@ -188,6 +242,45 @@ export function viciousMockeryEffect(input: { id: string; holderActorId: string 
     effect:
       effect && grantOnly(effect, { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } }),
     sourceLabel: viciousMockery.label
+  })
+}
+
+/**
+ * The active effect the real compiler plans for the Gold Dragon Wyrmling's Weakening Breath grants
+ * (Strength checks, Strength saves and Strength attacks at disadvantage), held for the next turn.
+ * The wyrmling's authored grants ride in Vicious Mockery's grant path so the compiler plans them
+ * as a plain timed grant.
+ */
+export function goldWeakeningEffect(input: { id: string; holderActorId: string }) {
+  const grants = goldDragonWyrmling.features
+    ?.flatMap((feature) => feature.effects ?? [])
+    .flatMap((effect) => effect.paths)
+    .flatMap((path) => ('resultBlock' in path ? path.resultBlock.outcomes : []))
+    .flatMap((outcome) => (outcome.effectKind === 'APPLY_GRANT' ? [outcome.grants] : []))[0]
+  const mockery = viciousMockery.effects?.[0]
+  if (!grants || !mockery) throw new Error('The Weakening Breath grants are not authored.')
+  return plannedGrantEffect({
+    ...input,
+    effect: grantOnly(
+      {
+        ...mockery,
+        paths: mockery.paths.map((path) =>
+          'resultBlock' in path
+            ? {
+                ...path,
+                resultBlock: {
+                  ...path.resultBlock,
+                  outcomes: path.resultBlock.outcomes.map((outcome) =>
+                    outcome.effectKind === 'APPLY_GRANT' ? { ...outcome, grants } : outcome
+                  )
+                }
+              }
+            : path
+        )
+      },
+      { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }, consumeOnFirstEvents: [] }
+    ),
+    sourceLabel: 'Weakening Breath'
   })
 }
 

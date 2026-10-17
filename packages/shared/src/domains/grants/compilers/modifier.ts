@@ -1,19 +1,39 @@
-import { compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
+import {
+  COMPILE_DIAGNOSTIC_SEVERITY,
+  compileFailure,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 import type { FacetAuthored, ModifierGrantAuthored } from '#authored'
-import { GRANT_KIND } from '#core'
-import type { ModifierKind, ModifierScopeKind } from '#core'
-import type { CompiledStaticGrant } from './grant.js'
+import { MODIFIER_KINDS_BY_DOMAIN } from '#core'
+import type {
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  ModifierKind,
+  ModifierPayloadFor,
+  ModifierScopeKind,
+  ValueDomainCode,
+  ValueDomainParam
+} from '#core'
+import type { CompiledGrantBase } from './grant.js'
 
 /* ──────────────────────────────────────────────
  * Compiled type
  * ────────────────────────────────────────────── */
 
-export type CompiledModifierGrant<K extends ModifierKind = ModifierKind> = CompiledStaticGrant<
-  typeof GRANT_KIND.MODIFIER_GRANT,
-  ModifierGrantAuthored
-> & {
-  modifierKind: K
+/**
+ * One flat modifier grant: value domain and modifier kind are independent fields, so engine
+ * transforms can spread and override them. The compiler checks the kind against the domain.
+ */
+export type CompiledModifierGrant = CompiledGrantBase & {
+  grantKind: typeof GRANT_KIND.MODIFIER_GRANT
+  selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
+  valueDomainCode: ValueDomainCode
+  modifierKind: ModifierKind
   scope: ModifierScopeKind
+  domain: ValueDomainParam<ValueDomainCode>
+  payload?: NonNullable<ModifierPayloadFor<ValueDomainCode, ModifierKind>>
   /**
    * Restriction facet carried from the authored grant.
    * The engine evaluates this at two points:
@@ -33,18 +53,27 @@ export type CompiledModifierGrant<K extends ModifierKind = ModifierKind> = Compi
 export function compileModifierGrantResult(
   authored: ModifierGrantAuthored
 ): CompileResult<CompiledModifierGrant> {
-  const base = {
-    id: authored.id,
-    order: authored.order,
-
-    scope: authored.scope,
-    modifierKind: authored.modifierKind
+  const supportedKinds: readonly ModifierKind[] = MODIFIER_KINDS_BY_DOMAIN[authored.valueDomainCode]
+  if (!supportedKinds.includes(authored.modifierKind)) {
+    return compileFailure({
+      code: 'MODIFIER_KIND_UNSUPPORTED_FOR_DOMAIN',
+      message: `${authored.valueDomainCode} does not support ${authored.modifierKind} modifiers.`,
+      severity: COMPILE_DIAGNOSTIC_SEVERITY.ERROR,
+      path: ['modifierKind']
+    })
   }
 
-  const { id: _id, ...rest } = authored
   return compileSuccess({
-    ...base,
-    ...rest
+    id: authored.id,
+    order: authored.order,
+    grantKind: authored.grantKind,
+    selectionKind: authored.selectionKind,
+    valueDomainCode: authored.valueDomainCode,
+    modifierKind: authored.modifierKind,
+    scope: authored.scope,
+    domain: authored.domain,
+    ...(authored.payload === undefined ? {} : { payload: authored.payload }),
+    ...(authored.restrictions === undefined ? {} : { restrictions: authored.restrictions })
   })
 }
 

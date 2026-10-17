@@ -5,6 +5,7 @@ import {
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { MAX_TURN_TELEPORT_ALLOWANCES } from '../shared/teleportAllowance.js'
 import { reusableDefinitionCurrentDtoSchema } from '../shared/reusableDefinitions.js'
 import {
@@ -346,7 +347,9 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('MAINTENANCE_SLOT'),
       revisions: liveSessionRulesRevisionsSchema,
-      state: z.nullable(encounterMaintainedEffectStateRecordSchema)
+      state: z.nullable(encounterMaintainedEffectStateRecordSchema),
+      /** The Scene zones that depend on the state; ending the state removes them (D135). */
+      zoneIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
     }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_STATE'),

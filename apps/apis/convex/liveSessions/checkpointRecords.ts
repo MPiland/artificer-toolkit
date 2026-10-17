@@ -6,10 +6,8 @@ import {
   type LiveSessionCheckpointTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { encounterStoreIndexes } from '@artificer-toolkit/schema/projections/encounterStore'
-import {
-  encounterStoredRunActorStateSchema,
-  encounterSourceProjectionFactsSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { liveRoomActorSourceSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { encounterSourceProjectionFactsSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   canonicalJsonRecordSchema,
   type JsonValue
@@ -91,7 +89,7 @@ function holdInput(
   if (!record) return null
   if (table === 'encounterRuns') return String(record.status)
   if (table !== 'encounterRunActors') return null
-  const state = encounterStoredRunActorStateSchema.parse(record.stateJson)
+  const state = liveRoomActorSourceSchema.parse(record.stateJson)
   return state.kind === 'CHARACTER'
     ? `${state.sourceId}:${state.frozenState ? 'frozen' : 'live'}`
     : null

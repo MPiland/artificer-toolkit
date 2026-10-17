@@ -2,7 +2,7 @@ import migrations from '@convex-dev/migrations/test'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it, vi } from 'vitest'
 import { runActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 
@@ -55,7 +55,7 @@ it('rewrites the retired outOfInitiative flag to absence and re-checksums stored
 
   const migrated = await readRows()
   for (const row of migrated) {
-    const actor = encounterStoredRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    const actor = readStoredRunActor(row)
     expect(actor).not.toHaveProperty('outOfInitiative')
     expect(row.stateChecksum).toBe(checksumCanonicalJson(runActorPlayState(actor)))
     expect(actor.absence).toBe(row.id === removedId ? 'GM_REMOVED' : null)
