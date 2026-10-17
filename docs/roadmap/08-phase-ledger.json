@@ -14578,7 +14578,7 @@
         {
           "id": "QUALITY-1",
           "title": "Diverging duplicates behave the same everywhere",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -14599,7 +14599,7 @@
             {
               "id": "QUALITY-1.T1",
               "text": "Write failing-first regression tests for each divergence, then move each to one shared implementation (rules-runtime or encounter-persistence ports) used by Convex, the Worker and the web.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "QUALITY-1.1"
               ],
@@ -14608,11 +14608,12 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 5
-              }
+              },
+              "note": "CI ci/quality-1 d8be81998 (Tests 39048646466, Live 39048646465; red proof RED on all six files); merged via ci/merge-m83 6f4cae06a (Tests 39067166450), phase merge 0c5580dc4. Workbook docs/handoffs/slice-quality-1.md. One shared implementation each: removeCharacterItemReferences, settleCharacterEndedEffects, readConversationEntryReplay, selectHitPointPoolTargets exclusions, resolveAbilityAlias/buildSkillSubjectAliasMap, selectDnd5eHeldShield. Armor Class fallback divergence ruled D143 (T2)."
             },
             {
               "id": "QUALITY-1.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "QUALITY-1.1"
               ],
@@ -14625,9 +14626,11 @@
                   "QUALITY-1.T1"
                 ]
               },
-              "text": "Armor Class defaults (D143): ARMOR and SHIELD equipment require an authored Armor Class (schema, authored type, node map required state; development data migrated), and the shared Armor Class path refuses a missing value for Characters and creatures alike instead of the Character-only 2 and 10 fallbacks. Failing-first test that a Character and a creature holding the same equipment get the same result."
+              "text": "Armor Class defaults (D143): ARMOR and SHIELD equipment require an authored Armor Class (schema, authored type, node map required state; development data migrated), and the shared Armor Class path refuses a missing value for Characters and creatures alike instead of the Character-only 2 and 10 fallbacks. Failing-first test that a Character and a creature holding the same equipment get the same result.",
+              "activeWorkbook": "docs/handoffs/slice-quality-1.md"
             }
-          ]
+          ],
+          "activeWorkbook": "docs/handoffs/slice-quality-1.md"
         },
         {
           "id": "QUALITY-2",
