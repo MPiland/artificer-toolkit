@@ -32,10 +32,14 @@ const TOO_HIGH_ID = testUuid(0x8a6)
 const UNDEAD_ID = testUuid(0x8a7)
 const FAR_ID = testUuid(0x8a8)
 
-const unconscious = srdSystemRecord.conditionTypes.find(({ code }) => code === 'UNCONSCIOUS')
-const undead = SRD_CREATURE_TYPES.find(({ code }) => code === 'UNDEAD')
-if (!unconscious || !undead) throw new Error('The SRD vocabulary lacks Unconscious or Undead.')
-if (!unconscious || !undead) throw new Error('The SRD names the Unconscious condition and Undead.')
+const missingVocabulary = (name: string): never => {
+  throw new Error(`The SRD vocabulary lacks ${name}.`)
+}
+const unconscious =
+  srdSystemRecord.conditionTypes.find(({ code }) => code === 'UNCONSCIOUS') ??
+  missingVocabulary('Unconscious')
+const undead =
+  SRD_CREATURE_TYPES.find(({ code }) => code === 'UNDEAD') ?? missingVocabulary('Undead')
 
 afterEach(() => {
   closeTrackedSockets()

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import {
+  SRD_CONDITION_TYPES,
   SRD_CREATURE_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -53,15 +54,18 @@ function compile(
   spellCastLevel?: number,
   characterLevel?: number
 ) {
-  const action = characterActionDescriptor(
-    compileEffect({
-      ...effect,
-      id: ACTION_EFFECT_ID,
-      invocation: JSON.parse(JSON.stringify({ ...effect.invocation, ...invocation }))
-    }),
-    spellCastLevel,
-    characterLevel
-  )
+  const action = {
+    ...characterActionDescriptor(
+      compileEffect({
+        ...effect,
+        id: ACTION_EFFECT_ID,
+        invocation: JSON.parse(JSON.stringify({ ...effect.invocation, ...invocation }))
+      }),
+      spellCastLevel,
+      characterLevel
+    ),
+    conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id)
+  }
   const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
     action,
     compilerSource: buildCompiledActionCompilerSource(action)

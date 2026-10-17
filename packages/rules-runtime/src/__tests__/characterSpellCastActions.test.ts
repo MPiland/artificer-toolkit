@@ -210,6 +210,7 @@ const WATCHFUL_MIASMA: SpellAuthored = (() => {
 })()
 const authoredById = new Map(
   [
+    SLEEP,
     SCORCHED_INVISIBILITY,
     FIREBALL,
     MEND,
