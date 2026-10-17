@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import {
+  SRD_CONDITION_TYPES,
+  SRD_CREATURE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
@@ -49,15 +54,18 @@ function compile(
   spellCastLevel?: number,
   characterLevel?: number
 ) {
-  const action = characterActionDescriptor(
-    compileEffect({
-      ...effect,
-      id: ACTION_EFFECT_ID,
-      invocation: JSON.parse(JSON.stringify({ ...effect.invocation, ...invocation }))
-    }),
-    spellCastLevel,
-    characterLevel
-  )
+  const action = {
+    ...characterActionDescriptor(
+      compileEffect({
+        ...effect,
+        id: ACTION_EFFECT_ID,
+        invocation: JSON.parse(JSON.stringify({ ...effect.invocation, ...invocation }))
+      }),
+      spellCastLevel,
+      characterLevel
+    ),
+    conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id)
+  }
   const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
     action,
     compilerSource: buildCompiledActionCompilerSource(action)
@@ -364,9 +372,7 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
       const untimed = JSON.parse(JSON.stringify(spellEffect('Polymorph'))) as typeof GIANT_INSECT
       for (const path of untimed.paths ?? [])
         if (path.selectionKind === 'FIXED') path.resultBlock.duration = undefined
-      expect(() => compile({}, untimed, 4)).toThrow(
-        CharacterRuleActionUnsupportedCompilationError
-      )
+      expect(() => compile({}, untimed, 4)).toThrow(CharacterRuleActionUnsupportedCompilationError)
     })
   })
 
@@ -639,4 +645,113 @@ describe('a timed save condition with no authored way to end early (SPELLS-19.T3
       )
     }
   )
+})
+
+describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {
+  const SLEEP = spellEffect('Sleep')
+  const unconscious = srdSystemRecord.conditionTypes.find(({ code }) => code === 'UNCONSCIOUS')
+  const undead = SRD_CREATURE_TYPES.find(({ code }) => code === 'UNDEAD')
+  if (!unconscious || !undead)
+    throw new Error('The SRD names the Unconscious condition and Undead.')
+
+  /** Sleep written out from core options alone: the SRD helpers and ids are not used. */
+  const AUTHORED_SLEEP: typeof SLEEP = {
+    id: '00000000-0000-4000-8000-000000008201',
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: 'ACTIVATED',
+      activation: { code: 'ACTION', amount: 1 },
+      range: {
+        id: '00000000-0000-4000-8000-000000008202',
+        rangeKind: 'DISTANCE',
+        amount: 90,
+        unit: 'FEET'
+      },
+      targeting: {
+        selectionKind: 'AREA_CONTENTS',
+        dispositionKind: 'ANY',
+        excludedCreatureTypeIds: [undead.id],
+        hitPointPool: { diceConfig: '5d8' },
+        hitPointPoolScaling: {
+          scalingKind: 'BREAKPOINTS',
+          scalingSource: 'SPELL_CAST_LEVEL',
+          breakpoints: Array.from({ length: 8 }, (_, index) => ({
+            id: `00000000-0000-4000-8000-00000000821${index}`,
+            level: index + 2,
+            order: index + 1,
+            value: { diceConfig: `${7 + index * 2}d8` }
+          }))
+        }
+      },
+      shape: {
+        id: '00000000-0000-4000-8000-000000008203',
+        shapeKind: 'SPHERE',
+        radius: { amount: 20, unit: 'FEET' }
+      }
+    },
+    paths: [
+      {
+        id: '00000000-0000-4000-8000-000000008204',
+        order: 1,
+        pathCode: 'ON_USE',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: '00000000-0000-4000-8000-000000008205',
+          resultKind: 'SINGLE',
+          duration: {
+            id: '00000000-0000-4000-8000-000000008206',
+            durationKind: 'MINUTE',
+            amount: 1
+          },
+          lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE' }] },
+          outcomes: [
+            {
+              id: '00000000-0000-4000-8000-000000008207',
+              effectKind: 'CONDITION',
+              conditionId: unconscious.id
+            }
+          ]
+        }
+      }
+    ]
+  }
+
+  it('compiles Sleep to the one-roll plan over a point sphere, carrying its pool and exclusions', () => {
+    const { action, plan } = compile({}, SLEEP, 1)
+    expect(plan?.kind).toBe('SINGLE_GRAPH')
+    const policy = buildCompiledActionTargetPolicy(action)
+    expect(encounterActionTargetKind(policy)).toBe('POINT')
+    expect(policy.range).toMatchObject({ rangeKind: 'DISTANCE', amount: 90, unit: 'FEET' })
+    expect(policy.shape).toMatchObject({ shapeKind: 'SPHERE', radius: feet(20) })
+    expect(policy.targeting).toMatchObject({
+      selectionKind: 'AREA_CONTENTS',
+      excludedCreatureTypeIds: [undead.id],
+      hitPointPool: { diceConfig: '5d8' }
+    })
+  })
+
+  it.each([
+    [1, '5d8'],
+    [2, '7d8'],
+    [5, '13d8'],
+    [9, '21d8']
+  ])('rolls the pool the slot level %i gives: %s', (level, diceConfig) => {
+    const policy = buildCompiledActionTargetPolicy(compile({}, SLEEP, level).action)
+    expect(policy.targeting).toMatchObject({ hitPointPool: { diceConfig } })
+    expect(policy.targeting).not.toHaveProperty('hitPointPoolScaling')
+  })
+
+  it('compiles Sleep authored from core options alone to the same plan and policy as the SRD', () => {
+    for (const level of [1, 4]) {
+      const srd = compile({}, SLEEP, level)
+      const authored = compile({}, AUTHORED_SLEEP, level)
+      expect(authored.plan?.kind).toBe(srd.plan?.kind)
+      expect(buildCompiledActionTargetPolicy(authored.action).targeting).toEqual(
+        buildCompiledActionTargetPolicy(srd.action).targeting
+      )
+    }
+  })
 })

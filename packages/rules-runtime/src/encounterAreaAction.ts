@@ -98,6 +98,46 @@ export function resolveChosenCreaturesTargeting(
   return row ? { ...rest, maxTargets: row.value.amount } : targeting
 }
 
+type AreaContentsTargeting = Extract<TargetingDto, { selectionKind: 'AREA_CONTENTS' }>
+
+/**
+ * An area-contents targeting whose hit-point pool scales with the spell's cast level (Sleep's
+ * 5d8, and 2d8 more per slot level above 1st), with that pool resolved to the dice it is at the
+ * level the cast names (the authored base below the first row). A level the cast does not name
+ * leaves the scaling as authored, so the pool stays unresolved and the action is refused.
+ */
+export function resolveAreaContentsTargeting(
+  targeting: AreaContentsTargeting,
+  levels: { spellCastLevel?: number }
+): AreaContentsTargeting {
+  const { hitPointPoolScaling, ...rest } = targeting
+  if (
+    hitPointPoolScaling?.scalingSource !== 'SPELL_CAST_LEVEL' ||
+    levels.spellCastLevel === undefined
+  )
+    return targeting
+  const row = selectScalingRow(hitPointPoolScaling.breakpoints, levels.spellCastLevel)
+  return row ? { ...rest, hitPointPool: row.value } : rest
+}
+
+/**
+ * Whether an area-contents targeting rolls a hit-point pool that every cast can resolve: a fixed
+ * pool, or one that scales only with the spell's cast level ({@link resolveAreaContentsTargeting}).
+ */
+export function hitPointPoolIsAuthored(targeting: AreaContentsTargeting): boolean {
+  return targeting.hitPointPoolScaling
+    ? targeting.hitPointPoolScaling.scalingSource === 'SPELL_CAST_LEVEL'
+    : targeting.hitPointPool !== undefined
+}
+
+/** Every dice expression the pool can be at a cast, the authored base and each scaled row. */
+export function hitPointPoolDiceOptions(targeting: AreaContentsTargeting): string[] {
+  return [
+    ...(targeting.hitPointPool ? [targeting.hitPointPool.diceConfig] : []),
+    ...(targeting.hitPointPoolScaling?.breakpoints.map(({ value }) => value.diceConfig) ?? [])
+  ]
+}
+
 /**
  * Whether a list of chosen creatures may be bounded by an area (Mass Cure Wounds): a round shape
  * around a point picked within the range, the same point the creatures are then chosen inside.
@@ -187,7 +227,7 @@ export function encounterActionChoiceTarget(
     forms: readonly { id: string; label: string; maxTargets: number }[]
     filter: unknown
   } | null
-):EncounterActionChoiceDto['target'] {
+): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting

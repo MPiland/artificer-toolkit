@@ -7,6 +7,9 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
+  SCALING_SOURCE,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -15,7 +18,14 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  conditionTypeId,
+  creatureTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const sleep: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SLEEP,
@@ -47,7 +57,24 @@ export const sleep: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          excludedCreatureTypeIds: [creatureTypeId('UNDEAD')],
+          hitPointPool: { diceConfig: '5d8' },
+          hitPointPoolScaling: {
+            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            breakpoints: Array.from({ length: 8 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.SLEEP, 0x215, index + 1),
+              level: index + 2,
+              order: index + 1,
+              value: { diceConfig: `${7 + index * 2}d8` }
+            }))
+          }
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.SLEEP, 0x214, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [
@@ -66,11 +93,14 @@ export const sleep: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            lifecycle: {
+              endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SLEEP, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SLEEP' as const
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('UNCONSCIOUS')
               }
             ]
           }
