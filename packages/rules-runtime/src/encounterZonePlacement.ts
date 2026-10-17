@@ -41,6 +41,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'interactionKind',
   'bypassAtHalfSpeed',
   'choosesUnaffected',
+  'maxApplicationsPerTurn',
   'behaviors'
 ])
 

@@ -43,6 +43,47 @@ export function spatialEffectAffects(
   return !effect.unaffectedActorIds?.includes(actorId)
 }
 
+/** How often a zone has caught one creature on one turn; the Run keeps it, keyed by {@link zoneApplicationKey}. */
+export interface ZoneApplicationsEntry {
+  readonly turnSequence: number
+  readonly count: number
+}
+
+export type ZoneApplications = Readonly<Record<string, ZoneApplicationsEntry>>
+
+export function zoneApplicationKey(effectId: string, actorId: string): string {
+  return `${effectId}:${actorId}`
+}
+
+function zoneApplicationsSpent(
+  applications: ZoneApplications | undefined,
+  turnSequence: number,
+  key: string
+): number {
+  const entry = applications?.[key]
+  return entry?.turnSequence === turnSequence ? entry.count : 0
+}
+
+/**
+ * The applications after a turn's zone triggers settled. An entry from an earlier turn counts as
+ * unspent and is dropped here, so the map never outgrows one turn's triggers.
+ */
+export function recordZoneApplications(
+  applications: ZoneApplications | undefined,
+  turnSequence: number,
+  applied: readonly { readonly effectId: string; readonly targetActorId: string }[]
+): ZoneApplications | undefined {
+  if (!applied.length) return applications
+  const next: Record<string, ZoneApplicationsEntry> = {}
+  for (const [key, entry] of Object.entries(applications ?? {}))
+    if (entry.turnSequence === turnSequence) next[key] = entry
+  for (const { effectId, targetActorId } of applied) {
+    const key = zoneApplicationKey(effectId, targetActorId)
+    next[key] = { turnSequence, count: (next[key]?.count ?? 0) + 1 }
+  }
+  return next
+}
+
 /** A system-neutral spatial instance after its source has been resolved. */
 export interface SpatialEffectInstance {
   readonly effectId: string
@@ -56,6 +97,8 @@ export interface SpatialEffectInstance {
   readonly bypassAtHalfSpeed?: boolean
   /** Creatures the effect never catches (designated by the caster at cast). */
   readonly unaffectedActorIds?: readonly string[]
+  /** How many times the effect may catch one creature in one turn; absent for no limit. */
+  readonly maxApplicationsPerTurn?: number
 }
 
 /** The space a token occupies. */
@@ -1096,6 +1139,9 @@ export function collectSpatialMovementCandidates(input: {
   readonly movingTokenId: string
   /** The voluntary mover chose to move carefully: fields that allow it raise no candidate. */
   readonly carefully?: boolean
+  /** What the Run recorded for the current turn; effects with a per-turn limit stop catching at it. */
+  readonly zoneApplications?: ZoneApplications
+  readonly turnSequence: number
 }): SpatialMovementCandidate[] {
   const movingToken = input.tokens.find((token) => token.id === input.movingTokenId)
   const tokenIds = new Set(input.tokens.map((token) => token.id))
@@ -1159,11 +1205,26 @@ export function collectSpatialMovementCandidates(input: {
     const existing = unique.get(key)
     if (!existing || candidate.pathDistance < existing.pathDistance) unique.set(key, candidate)
   }
-  return [...unique.values()].sort(
-    (left, right) =>
-      left.pathDistance - right.pathDistance ||
-      compareText(left.effectId, right.effectId) ||
-      compareText(left.targetActorId, right.targetActorId) ||
-      compareText(left.trigger, right.trigger)
+  const limits = new Map(
+    input.effects.map((effect) => [effect.effectId, effect.maxApplicationsPerTurn])
   )
+  return [...unique.values()]
+    .sort(
+      (left, right) =>
+        left.pathDistance - right.pathDistance ||
+        compareText(left.effectId, right.effectId) ||
+        compareText(left.targetActorId, right.targetActorId) ||
+        compareText(left.trigger, right.trigger)
+    )
+    .filter((candidate) => {
+      const limit = limits.get(candidate.effectId)
+      return (
+        limit === undefined ||
+        zoneApplicationsSpent(
+          input.zoneApplications,
+          input.turnSequence,
+          zoneApplicationKey(candidate.effectId, candidate.targetActorId)
+        ) < limit
+      )
+    })
 }

@@ -6,6 +6,7 @@ import {
 } from '../api/encounterData.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
@@ -266,6 +267,32 @@ export const encounterRunStateSchema = lazySchema(() =>
        * or round, so an effect scoped to one turn never revives when the turn returns to its actor.
        */
       turnSequence: z.number().check(z.int()).check(z.nonnegative()),
+      /**
+       * How often each zone has caught each creature this turn, keyed `effectId:actorId`. An entry
+       * whose turn differs from `turnSequence` counts as unspent and is dropped on the next write.
+       */
+      zoneApplications: z.optional(
+        z
+          .record(
+            z.string(),
+            z.strictObject({
+              turnSequence: z.number().check(z.int()).check(z.nonnegative()),
+              count: z.number().check(z.int()).check(z.positive())
+            })
+          )
+          .check(
+            z.superRefine((applications, context) => {
+              if (
+                Object.keys(applications).length >
+                MAX_ENCOUNTER_ACTORS * MAX_SPATIAL_RULE_EFFECTS_PER_SCENE
+              )
+                context.addIssue({
+                  code: 'custom',
+                  message: 'Zone applications exceed the actors and zones an Encounter holds.'
+                })
+            })
+          )
+      ),
       sides: z
         .array(
           z.strictObject({

@@ -207,7 +207,7 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
           'Only actions from these spells',
           {
             kind: 'DATA',
-            relationship: table('spells', { selectColumns: ['id', 'label', 'description'] })
+            relationship: table('spells', { selectColumns: ['id', 'label'] })
           },
           { order: 7, showIf: isTargetedSelf, hiddenBehavior: 'CLEAR' }
         )

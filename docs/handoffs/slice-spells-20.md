@@ -7,6 +7,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - T1, T1b, T2a and T3 are done (T2a at `16e4493c7`; T3 at `897458fa0` on `ci/spells-20-t3`, based on the T2a tip plus `ci/merge-batch-bf`).
 - T2b done: red Tests 38989834002 on `877ceb4ce`; green `6a67e415b` on `ci/spells-20-t2b`, Tests 38991779131 (attempt 2; attempt 1 hit the Escape test flake), Live 38991779168. Next: T4 and later.
 - T4 is split (T4a-T4d, all close AC SPELLS-20.1). T4a (half damage on a made zone save, slot-level scaling) is done: red Tests 38998091848 on `8b55d392a`; green `5c9c90a54` on `ci/spells-20-t4a`, Tests 39001554879, Live 39001554886. Then T4b (turn triggers + once-per-turn counter), T4c (unaffected creatures, parallel-capable), T4d (half speed via a movement-cost seam shared with terrain, after T4b); T6 after T4b.
+- T4c merged as `d90f99153`. T4b is split: T4b1 (once-per-turn zone counter, ENTER triggers, proved on Spirit Guardians) is done: green `4dd367255` on `ci/spells-20-t4b1`, Tests 39009226378, Live 39009226404; T4b2 (turn-stage zone effects, one shared save-then-dice resume helper) follows after its design delta goes to the orchestrator.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -103,3 +104,9 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 
 - Red proof: the Tests run's "Red proof against the phase branch" job (no separate red branch).
 - Design: authored component flag `choosesUnaffected` (precedent `bypassAtHalfSpeed`) -> compiled zone placement -> choice DTO `choosesUnaffected` on `POINT` / `CASTER_CENTERED` -> optional command `unaffectedActorIds` on those targets -> optional `placement.unaffectedActorIds` (omitted when empty) -> `SpatialEffectInstance.unaffectedActorIds` filtered in `collectSpatialMovementCandidates`. No migration (additive optional fields); web drawer shows a MultiSelect.
+
+### T4b1 (once-per-turn zone-application counter)
+
+- Red proof: the Tests run's "Red proof against the phase branch" job (no separate red branch).
+- Design (orchestrator ruling): `zoneApplications` on the Encounter run state, keyed `effectId:actorId`, entry `{ turnSequence, count }`; stale entries count as unspent and are pruned on write; any creature's turn counts (key on the current `turnSequence`); bounded by the actor and effect caps. Authored `maxApplicationsPerTurn` is compiled onto the zone placement and instance; `collectSpatialMovementCandidates` drops a candidate whose limit is spent; `recordZoneApplications` writes executions at the two terminal movement publications (the initial automatic advance deliberately does not record).
+- Spirit Guardians now authors `maxApplicationsPerTurn: 1` ("first time on a turn").
