@@ -8,6 +8,7 @@ import {
 import type { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import type { StagedTurnZonePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
 
 type DamageBatch = {
   targetActorId: string
@@ -112,13 +113,8 @@ export function legendaryActionDamage(
   })
 }
 
-/** A turn's zone phase as damage sources against the creature whose boundary it is. */
-function zoneEffectDamage(
-  phase: Extract<
-    StoredRuleExecutionResultDto,
-    { status: 'TURN_LIFECYCLE_COMPLETE' }
-  >['outgoingZoneEffects']
-): DamageBatch[] {
+/** A turn's zone phase, staged or executed, as damage sources against the creature whose boundary it is. */
+export function zoneEffectDamage(phase: StagedTurnZonePlanDto | undefined): DamageBatch[] {
   return (phase?.executions ?? []).map(({ candidate, applications }) => ({
     targetActorId: candidate.candidate.targetActorId,
     applications

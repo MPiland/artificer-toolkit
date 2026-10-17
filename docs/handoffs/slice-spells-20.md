@@ -10,6 +10,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - T4c merged as `d90f99153`. T4b is split: T4b1 (once-per-turn zone counter, ENTER triggers, proved on Spirit Guardians) is done: green `4dd367255` on `ci/spells-20-t4b1`, Tests 39009226378, Live 39009226404; T4b2 (turn-stage zone effects, one shared save-then-dice resume helper) follows after its design delta goes to the orchestrator.
 - T4b2 is split (orchestrator ruling). T4b1 accepted at `18f1e3cc3` (in `ci/merge-m69`). T4b2a (authoring + containment + shared resume helper) is on `ci/spells-20-t4b2a`; T4b2b is the turn stage: one ordered candidate list per boundary, evaluate extending `ENCOUNTER_TURN_ACTIVE_EFFECTS` with a discriminated `ACTIVE_EFFECT | ZONE` candidate (`diceStage` on the zone kind only) and bring the evidence before taking a new context; Spirit Guardians' SRD flip to ENTER + START_TURN lands there. Future enhancement: the creature whose turn it is chooses the order. T4d and T6 wait on T4b2b; T5 is independent.
 - T4b2b1 (schema + rules-runtime: `ENCOUNTER_TURN_ZONE_EFFECTS`, zone phases on the terminal turn result, real zones stage) is done: green `747f4dd0c` on `ci/spells-20-t4b2b1` (phase branch `dafd15cb1` merged), Tests 39020371226 (attempt 2; attempt 1 hit a CharacterSheetRestControl web flake), Live 39020371263. Next: T4b2b2 (persistence seams, Scene loading, `zoneApplications` write, Spirit Guardians SRD flip, journey, ADR 0034 note, `persistence.md`).
+- T4b2b2 (persistence + play: zones act at turn boundaries) is pushed on `ci/spells-20-t4b2b2`; CI result pending. Proved: ADVANCE_TURN START_OF_TURN on real Spirit Guardians, END_OF_TURN on a core-options zone, no-zone byte-identical result, stale-plan refusals at package level. Not proved: a START-command journey (the room harness builds only ACTIVE Runs). Next: T4b3 (Stinking Cloud), T4d, T4e, T6; T5 independent. Zone table below.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -124,3 +125,32 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Ruling: new `ENCOUNTER_TURN_ZONE_EFFECTS` pending context; at each boundary the active-effect batch runs, then the zone batch, each sorted by effectId. Oil Flask cannot prove END (second component, `requiresIgnition`, `maxApplicationsTotal`); END is proved on a core-options zone, the journey on Spirit Guardians START.
 - Why the existing candidate/execution cannot be reused: they bind to an active-effect row (`activeEffectId`, `createdOrdinal`, `effectVersion`, lifecycle). The spatial execution DTOs bind to a movement path (`pathDistance`, `contact`), so they do not fit a turn boundary either. The zone turn candidate/execution is a third shape: `{ordinal, boundaryOrdinal, stage, targetActorId, owner, effectId (placed spatial effect), sourceActorId, definition checksums, placement checksum, targetStateChecksum, d20Policy, diceStage}` with the execution adding `execution`, `d20`, `targetTransition`, `applications`.
 - Cascade that makes this the largest slice so far: the staged phases live on the root (`outgoingTurn`) and in the terminal `incomingEffects`; the stored terminal result is a union (`BATCH_COMPLETE ENCOUNTER_TURN_ACTIVE_EFFECTS` or `TURN_LIFECYCLE_COMPLETE` with `outgoingTurn` / `incomingTurn` phase evidence) read by replay, response replay, command admission, void/owner and terminal completion. A zone batch must appear in each of them.
+
+### T4b2b2 (persistence and play: zones act at turn boundaries)
+
+- `persistEncounterTurnZoneEffects` is the one zone-specific persistence; it re-derives containment and the per-turn counter with `selectTurnZoneContacts` (shared with room prep) from the locked Scene, so a moved token, an edited zone or a spent limit refuses the plan. The generic turn seams take `ENCOUNTER_TURN_ZONE_EFFECTS` through their existing dispatch. A turn without zones stores a byte-identical result. Order per boundary: active effects, then zones, each by effectId. The "creature chooses the order" prompt is a parked enhancement.
+- Spirit Guardians authors ENTER_SPACE + START_TURN_IN_SPACE and proves START and ADVANCE_TURN START_OF_TURN; END is proved on a core-options zone. Stinking Cloud cannot compile (SPELLS-20.T4b3); Oil Flask stays MANUAL.
+
+#### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
+
+A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.
+
+| Zone | Trigger | Authored today | Placeable | Exact blocker / verdict |
+|---|---|---|---|---|
+| Spirit Guardians | E+S | ENTER_SPACE, START_TURN_IN_SPACE | yes | Flipped in this slice. Evil-caster necrotic choice: SPELLS-20.T4e. Half speed: T4d |
+| Cloudkill | E+S | bare ZONE | no | No label/shape/component; full zone authoring (SPELLS-4.2 T1a). Drift/obscurement unmodeled |
+| Insect Plague | E+N | bare ZONE | no | Same (T1a) |
+| Incendiary Cloud | E+N | CLOSED_RULE | no | Not a ZONE; no closed-rule compile path (T1c) |
+| Moonbeam | E+S | CLOSED_RULE | no | Same, plus shapechanger rider (T1c) |
+| Blade Barrier | E+S | ENTER_OR_PASS_THROUGH, START_TURN_IN_SPACE | no | WALL/ring shape; `movementCostMultiplier`, `blockingRules`, `hollow`, `wallThickness` unmodeled (T1b) |
+| Wall of Fire | E/N, no save | CLOSED_RULE | no | Not a ZONE; wall geometry; no-save damage (T1b) |
+| Wall of Thorns | E/N | CLOSED_RULE | no | Not a ZONE; wall geometry; movement cost (T1b) |
+| Stinking Cloud | S | START_TURN_IN_SPACE | no | LOSE_ACTION outcome, `requiresFullyWithin`, auto-success conditions (SPELLS-20.T4b3) |
+| Black Tentacles, Web | E+S | bare ZONE | no | RESTRAINED failure outcome (T1d) |
+| Grease, Sleet Storm | E/N | bare ZONE / CLOSED_RULE | no | Prone, no damage row (T1d) |
+| Forbiddance | E+S, no save | bare ZONE | no | No-save damage, creature-type filter, password |
+| Hallow, Control Water (whirlpool), Zone of Truth, Gust of Wind | E+S | bare / CLOSED_RULE | no | Non-damage, multi-mode or push outcomes |
+| Prismatic Wall | proximity, S | ENTER_OR_PASS_THROUGH + `proximityRule` | no | Blinded outcome, proximityRule, multi-component. Named rules-gap exclusion in the corpus test |
+| Oil Flask | E or N, no save | ENTER_OR_PASS_THROUGH, END_TURN_IN_SPACE | no | No-save fixed damage, `requiresIgnition`, 2 components; stays MANUAL |
+
+No turn text: Sunbeam (saves on cast and new line only), Wall of Ice, Spike Growth, Entangle, Silence, Darkness, Fog Cloud. Not zones: Flaming Sphere (mobile), Guardian of Faith (enter-only). Creature/item auras with turn text are not audited (ATTACK-5.15). Corpus test: `packages/source-data/src/srd/zoneInteractionKinds.test.ts` fails while an authored zone with turn text lacks START/END (bare zones join once authored).

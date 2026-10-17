@@ -22,7 +22,7 @@ import type { RoomInputs } from './roomInputs.js'
 import { planNativeLiveEncounterTurn } from './nativeEncounterTurn.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
-import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
+import { readRoomSceneHeader, readRoomSceneEntities, readRoomSceneState } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -126,6 +126,8 @@ export async function executeRoomEncounterTurn(input: {
           observed,
           batch
         }),
+      readSceneTokens: async (sceneId) =>
+        (await readRoomSceneState(transaction, sceneId)).scene.tokens,
       readDefinition: async (id, userId) => {
         await ctx.ports.requireCampaignAuthority(scope.campaignId, userId)
         return (await inputs.definition(id, observed, transaction)).definition

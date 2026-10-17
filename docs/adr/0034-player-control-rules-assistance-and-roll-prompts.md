@@ -47,6 +47,11 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
      prompts.
    - **Manual**: a digital tracker for a table that runs the rules itself (initiative and turns, HP and
      conditions, dice roller, map). The app resolves no attacks and tracks no rules.
+   - Zones placed on the Scene act at turn boundaries in Assisted mode (SPELLS-20.T4b2b): the creature
+     whose turn starts or ends inside one is caught, rolls its save as a turn prompt for its controllers
+     and takes the effect in the same terminal turn transaction. A creature that must choose between
+     several simultaneous effects is not asked; effects apply in a fixed order (active effects first,
+     then zones, each by effect id). Manual mode resolves no zones.
    - `AUTOMATIC` is removed. Each person has an "Auto-roll my dice" preference (players for their own
      rolls, the GM for monster rolls). It only produces dice results, recorded as app rolls, and never
      makes a choice.

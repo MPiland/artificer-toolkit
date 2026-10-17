@@ -20,6 +20,7 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
+import { assertSpatialEffectPin } from './spatialEffectPin.js'
 import {
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState
@@ -78,27 +79,7 @@ export async function persistLiveMovementSpatial(
       effect.definition.frozenGraph.source.gameSystemId !== state.gameSystemId
     )
       throw new Error('Spatial settlement source or target is unavailable.')
-    const pin = candidate.effect
-    if (
-      pin.version !== effect.version ||
-      pin.definitionChecksum !== effect.definitionChecksum ||
-      pin.lifecycleChecksum !== effect.lifecycleChecksum ||
-      pin.placementChecksum !== effect.placementChecksum ||
-      pin.spatialStateChecksum !== effect.spatialStateChecksum ||
-      pin.authoredEffectId !== effect.definition.authoredEffectId ||
-      pin.compiledEntryId !== effect.definition.compiledEntryId ||
-      pin.frozenGraphNodeId !== effect.definition.frozenGraphNodeId ||
-      pin.frozenSourceChecksum !== effect.definition.frozenGraph.source.checksum ||
-      pin.capabilityContractVersion !== effect.definition.frozenGraph.capabilityContractVersion ||
-      pin.activation !== effect.placement.activation ||
-      pin.revealed !== effect.spatialState.revealed ||
-      pin.revealOnTrigger !== effect.placement.revealOnTrigger ||
-      checksumRuleDocument(effect.definition) !== effect.definitionChecksum ||
-      checksumRuleDocument(effect.lifecycle) !== effect.lifecycleChecksum ||
-      checksumRuleDocument(effect.placement) !== effect.placementChecksum ||
-      checksumRuleDocument(effect.spatialState) !== effect.spatialStateChecksum
-    )
-      throw new Error('Spatial settlement effect pin is stale.')
+    assertSpatialEffectPin(candidate.effect, effect)
     if (actor.kind === 'CHARACTER') {
       const streamVersion =
         characterBeforeVersions.get(targetActorId) ??
