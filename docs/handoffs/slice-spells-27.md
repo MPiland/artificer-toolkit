@@ -241,9 +241,17 @@ The test walks every SRD subject record and splits its description into sentence
 
 - SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.
 
-## Resume here (after SPELLS-27.T8, on ci/spells-27-t8)
+## Resume here (after SPELLS-27.T12, on ci/spells-27-t12)
 
-**Next task: SPELLS-27.T12 (generic `ACTION_USED_ON_HOLDER` end, wake by action), then T9 Hypnotic Pattern; T6 after REACTION-4.T3 merges.** One task per session.
+**Next task: SPELLS-27.T9 Hypnotic Pattern, then T7 and T11; T6 after REACTION-4.T3 merges.** One task per session.
+
+### T12 result (wake by action)
+
+- New generic end trigger `ACTION_USED_ON_HOLDER { actionDefinitionIds }` in all four layers (schema, authored type, node map, compiler `canonicalEndTriggers`). `actionUsedOnHolderEndedEffects` (`encounterEndedEffectRelease.ts`) ends the holder's matching effects and releases the conditions they owned, in the target's mechanics batch of the same transaction; GM undo restores them.
+- New SRD basic action Rouse (TOUCH, single target, manual adjudication). Sleep ends on `DAMAGE_TAKEN` by ANYONE or Rouse. Nothing Sleep-specific in the engine.
+- Proofs: `encounterEndedEffectRelease.test.ts` (four unit cases), `nativeRoomHitPointPoolSpell.test.ts` (rouse wakes only the target; undo restores sleep), `characterSpellCastActions.test.ts` (compiled plan has both triggers), catalogue tests list Rouse.
+- Deferred edges: only the single-target action path consumes the trigger (area, legendary, movement-reaction and turn-resource actions do not); two effects sharing one condition ended in a single action.
+- Run ids: Tests 39007537795 and Live 39007537775 green on 9b4074f8e (earlier reds: 39004910347 catalogue tests, 39006207872 Sleep plan expectation).
 
 ### T8 result (Sleep)
 
