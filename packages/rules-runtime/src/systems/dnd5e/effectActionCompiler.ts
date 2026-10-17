@@ -2187,6 +2187,9 @@ function zonePlacementPlan(
     triggerModes,
     bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
     ...(zone.component.choosesUnaffected ? { choosesUnaffected: true } : {}),
+    ...(zone.component.maxApplicationsPerTurn
+      ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
+      : {}),
     entry: {
       ...entryPlan,
       frozenGraph: stops.length ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph

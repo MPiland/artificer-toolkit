@@ -27,7 +27,7 @@ import type { sceneStoredLiveCommandSchema } from '@artificer-toolkit/schema/pro
 import type { EncounterDocument } from './store.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readRunActors, readRunState } from './documents.js'
+import { readRunActors, readRunState, runZoneApplicationsAfter } from './documents.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import {
@@ -624,7 +624,8 @@ export async function publishMovementResponse(
     ctx,
     current,
     preparation.occurredAt,
-    callbacks.project
+    callbacks.project,
+    retained
   )
   const occurrence = encounterCommandResultDtoSchema.parse({
     projection,
@@ -679,12 +680,17 @@ async function advanceMovementResponseRun(
   ctx: EncounterPersistenceTransaction,
   current: Awaited<ReturnType<typeof assertMovementResolutionCurrent>>,
   occurredAt: string,
-  project: SpatialTerminalPublicationCallbacks['project']
+  project: SpatialTerminalPublicationCallbacks['project'],
+  /** The terminal result whose zone triggers the Run counts; absent while the movement is pending. */
+  settled?: Parameters<typeof runZoneApplicationsAfter>[1]
 ) {
   const version = current.state.version + 1
   const nextState = encounterRunStateSchema.parse({
     ...current.state,
     version,
+    zoneApplications: settled
+      ? runZoneApplicationsAfter(current.state, settled)
+      : current.state.zoneApplications,
     updatedAt: occurredAt
   })
   const actors = await readRunActors(ctx, nextState)

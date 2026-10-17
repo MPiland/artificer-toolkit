@@ -332,6 +332,37 @@ describe('a zone whose caster designates unaffected creatures (SPELLS-20 T4c)', 
   })
 })
 
+describe('a zone that applies once per turn (SPELLS-20 T4b1)', () => {
+  const authored = variantEquipment(({ component }) => {
+    Object.assign(component, { maxApplicationsPerTurn: 1 })
+  })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('compiles the limit onto the zone and its placement, which the SRD Caltrops zone does not offer', () => {
+    expect(zonePlacementOf(authored).maxApplicationsPerTurn).toBe(1)
+    expect(zonePlacementOf().maxApplicationsPerTurn).toBeUndefined()
+    const place = (zone: ReturnType<typeof zonePlacementOf>) =>
+      planEncounterPlacedZone({
+        zone,
+        id: ZONE_ID,
+        maintainedEffectStateId: null,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: OCCURRENCE_ID,
+        rootCommandId: SPREAD_COMMAND_ID,
+        sourceActorId: SOURCE_ID,
+        point: { x: 250, y: 350 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: null
+      }).placement
+    expect(place(zonePlacementOf(authored)).maxApplicationsPerTurn).toBe(1)
+    expect(place(zonePlacementOf())).not.toHaveProperty('maxApplicationsPerTurn')
+  })
+})
+
 describe('a zone authored with another save DC and a circle shape', () => {
   const authored = variantEquipment(({ zone, invocation }) => {
     zone.label = 'Spike field'

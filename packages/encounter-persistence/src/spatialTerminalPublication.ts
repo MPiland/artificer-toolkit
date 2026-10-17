@@ -21,7 +21,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { terminalMovementChangedAggregates } from '@artificer-toolkit/rules-runtime/encounterMovementChangedAggregates'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readRunActors, readRunState } from './documents.js'
+import { readRunActors, readRunState, runZoneApplicationsAfter } from './documents.js'
 import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
 import {
   encounterReplayReceipt,
@@ -246,6 +246,7 @@ export async function publishSpatialTerminal(
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version,
+    zoneApplications: runZoneApplicationsAfter(state, retained),
     updatedAt: preparation.occurredAt
   })
   const actors = await readRunActors(ctx, nextState)
