@@ -1,5 +1,6 @@
 import {
   characterActor,
+  installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -176,9 +177,12 @@ describe("Polymorph turns a Character into a beast and keeps what is the Charact
     // The caster concentrates on the form; Concentration stays while the form is worn.
     expect(cast.maintainedStates.length).toBeGreaterThan(0)
 
-    // In the form the Character can cast nothing.
+    // In the form the Character can cast nothing, and acts from the form's stat block (T4d).
     const offered = await room.actionChoices()
     expect(offered.actions.some((action) => action.label.startsWith(polymorph.label))).toBe(false)
+    expect(offered.actions.map((action) => action.label)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^Bite/)])
+    )
 
     const undone = await room.send({
       type: 'REVERT_LAST_ACTION',
@@ -191,5 +195,65 @@ describe("Polymorph turns a Character into a beast and keeps what is the Charact
     expect(reverted.activeEffects).toHaveLength(0)
     expect(JSON.parse(characterRow(reverted).stateJson).form).toBeNull()
     expect(reverted.characterEffects).toEqual(sheetBefore)
+    // Reverting restores the Sheet's actions and drops the form's.
+    const restored = (await room.actionChoices()).actions.map((action) => action.label)
+    expect(restored.some((label) => label.startsWith(polymorph.label))).toBe(true)
+    expect(restored.some((label) => label.startsWith('Bite'))).toBe(false)
+  }, 120000)
+})
+
+describe("a Character in a form attacks with the form's stat block (SPELLS-28.T4d)", () => {
+  const FORM_EFFECT_ID = testUuid(0x8d4)
+  const FORM_ACTOR_ID = testUuid(0x8d5)
+
+  /** The Character already wearing the Giant Centipede's form; every attack d20 shows 15 (a hit) and d4 shows 2. */
+  const formRoom = () => {
+    const creature = srdCreatureActor({
+      id: FORM_ACTOR_ID,
+      creature: installedSrdCreature(giantCentipede)
+    })
+    if (creature.kind !== 'CREATURE' || !creature.sourceId || !creature.sourceRevision)
+      throw new Error('Expected a Creature actor.')
+    const character = characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+    if (character.kind !== 'CHARACTER') throw new Error('Expected a Character actor.')
+    return actionRoom({
+      autoRoll: 'BOTH',
+      rolls: Array.from({ length: 12 }, (_, index) => (index % 2 === 0 ? 14 : 1)),
+      actors: [
+        {
+          ...character,
+          snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id },
+          form: {
+            effectId: FORM_EFFECT_ID,
+            excessDamageCarriesOver: true,
+            sourceId: creature.sourceId,
+            sourceRevision: creature.sourceRevision,
+            snapshot: creature.snapshot,
+            currentHitPoints: creature.currentHitPoints,
+            maxHitPoints: creature.maxHitPoints,
+            tempHitPoints: 0
+          }
+        },
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      characterAction: (action) => action.label.startsWith('Bite')
+    })
+  }
+
+  it("resolves the form's Bite on a target and hurts it", async () => {
+    const room = await formRoom()
+    const before = JSON.parse(
+      (await readRoomHistory(room.room.base.stub)).actors.find((actor) => actor.id === WOLF_ID)!
+        .stateJson
+    ).currentHitPoints
+
+    const { answer } = await room.startAction(WOLF_ID, RANGE_UNCHECKED)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = JSON.parse(
+      (await readRoomHistory(room.room.base.stub)).actors.find((actor) => actor.id === WOLF_ID)!
+        .stateJson
+    ).currentHitPoints
+    expect(after).toBeLessThan(before)
   }, 120000)
 })
