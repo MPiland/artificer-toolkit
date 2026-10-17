@@ -167,8 +167,7 @@ describe('dbg', () => {
       const sn = a.snapshot as Record<string, unknown>
       return JSON.stringify({ id: a.id.slice(-3), k: a.kind, ak: sn.kind, s: a.systemId, as: sn.systemId, r: a.sourceRevision, sr: sn.sourceRevision, sid: a.sourceId, snid: sn.id })
     })
-    throw new Error(out.join('
-'))
+    throw new Error(out.join(' | '))
   }, 120000)
 })
 
