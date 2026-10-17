@@ -37,6 +37,9 @@ const WIZARD_SAVE_DC = 11
 /** Every die the room rolls shows this face (zero-based): the save is a 2 against DC 11, each d8 a 2. */
 const DIE = 1
 const ROLLED_DAMAGE = 3 * (DIE + 1)
+/** Every die shows a d20 20 and a d8 4 (zero-based 19), so the save is made and each d8 deals 4. */
+const MADE_SAVE_DIE = 19
+const D8_FACE_ON_MADE_SAVE = 4
 
 /** A token is 100 px and a cell 5 ft: the caster stands at (150, 150), the aura reaches 300 px past its edge. */
 const OUTSIDE_THE_AURA = { x: 150, y: 650 }
@@ -50,7 +53,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function auraRoom(wolfAt: { x: number; y: number }) {
+function auraRoom(
+  wolfAt: { x: number; y: number },
+  { label = 'Spirit Guardians (3rd level)', die = DIE }: { label?: string; die?: number } = {}
+) {
   return actionRoom({
     actors: [
       {
@@ -61,9 +67,9 @@ function auraRoom(wolfAt: { x: number; y: number }) {
     ],
     positions: { [WOLF_ID]: wolfAt },
     characterSpellcasting: { spells: [spiritGuardians], prepared: [spiritGuardians.id] },
-    characterAction: (action) => action.label === 'Spirit Guardians (3rd level)',
+    characterAction: (action) => action.label === label,
     autoRoll: 'EVERYONE',
-    fallbackRoll: DIE
+    fallbackRoll: die
   })
 }
 
@@ -267,4 +273,47 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
     const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
     expect(walk.executions).toEqual([])
   })
+})
+
+describe('Spirit Guardians damage by save and slot level (SPELLS-20 T4a)', () => {
+  async function enteringDamage(room: Room) {
+    await castAura(room)
+    await room.advanceTurn()
+    const hitPointsBefore = (await hitPointsOf(room, WOLF_ID)) ?? 0
+    const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
+    return { walk, lost: hitPointsBefore - ((await hitPointsOf(room, WOLF_ID)) ?? 0) }
+  }
+
+  it.each([
+    { label: 'Spirit Guardians (3rd level)', dice: 3 },
+    { label: 'Spirit Guardians (4th level)', dice: 4 }
+  ])('rolls $dice d8 for a creature that fails the save at $label', async ({ label, dice }) => {
+    const room = await auraRoom(OUTSIDE_THE_AURA, { label })
+
+    const { walk, lost } = await enteringDamage(room)
+
+    expect(walk.executions[0]).toMatchObject({
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: dice * (DIE + 1) })]
+    })
+    expect(lost).toBe(dice * (DIE + 1))
+  })
+
+  it.each([
+    { label: 'Spirit Guardians (3rd level)', dice: 3 },
+    { label: 'Spirit Guardians (4th level)', dice: 4 }
+  ])(
+    'deals half the rolled damage to a creature that makes the save at $label',
+    async ({ label, dice }) => {
+      const room = await auraRoom(OUTSIDE_THE_AURA, { label, die: MADE_SAVE_DIE })
+      const half = Math.floor((dice * D8_FACE_ON_MADE_SAVE) / 2)
+
+      const { walk, lost } = await enteringDamage(room)
+
+      expect(walk.executions).toHaveLength(1)
+      expect(walk.executions[0]).toMatchObject({
+        applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: half })]
+      })
+      expect(lost).toBe(half)
+    }
+  )
 })
