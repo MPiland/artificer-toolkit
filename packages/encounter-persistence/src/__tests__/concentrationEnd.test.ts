@@ -223,6 +223,7 @@ describe('persistEncounterConcentrationChildren refuses a forged Concentration e
               cleanup: {
                 maintainedStateId: SLOT_ID,
                 removedDependentEffectIds: [],
+                removedZoneIds: [],
                 characterOwnerTransitions: []
               }
             }
@@ -434,6 +435,7 @@ describe('persistLiveMovementConcentrationEnd refuses a forged movement end', ()
                 cleanup: {
                   maintainedStateId: SLOT_ID,
                   removedDependentEffectIds: [],
+                  removedZoneIds: [],
                   characterOwnerTransitions: []
                 }
               }
@@ -506,6 +508,7 @@ describe('persistLiveMovementConcentrationEnd binds the owner projection to stor
               cleanup: {
                 maintainedStateId: SLOT_ID,
                 removedDependentEffectIds: [],
+                removedZoneIds: [],
                 characterOwnerTransitions: []
               }
             }

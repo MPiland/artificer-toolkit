@@ -272,6 +272,10 @@ store.
   exactly that id, so an undone Concentration never ends outside grants. Every checkpoint
   (`checkpointRecords`) compares the previous and next Run row and `endOutsideCarriedGrants` ends the
   stamped grants of the newly added ids on Characters outside any ACTIVE Run (D99).
+  A placed zone records the maintained state it depends on (`maintainedEffectStateId`, index
+  `by_state_encounter`) and counts as a dependent: ending, dropping or replacing the state deletes its zones
+  in the same transaction (`maintainedStateZones.ts`; the Concentration cleanup carries `removedZoneIds`),
+  and `deleteMaintainedStateCas` refuses a state a zone still depends on (D135).
   The caster stamp is also a top-level column of `characterActiveRuleEffects`
   (`concentrationCasterCharacterId`, index `by_concentrationCaster`), written with the lifecycle and
   checked against it on read, so a caster's carried grants are found without scanning Characters

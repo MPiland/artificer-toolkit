@@ -32,8 +32,13 @@ import {
   sourceEncounterIdForDefinition
 } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { z } from 'zod'
-import { endActorFormHeldBy, endCharacterFormHeldBy, holdsActorForm } from './actorFormPersistence.js'
+import {
+  endActorFormHeldBy,
+  endCharacterFormHeldBy,
+  holdsActorForm
+} from './actorFormPersistence.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
+import { listStateZones } from './maintainedStateZones.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const positiveIntegerSchema = z.number().int().positive()
@@ -465,6 +470,17 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       const dependents = await dependentEffects(encounterId, stateId)
       return [...dependents.characters, ...dependents.actors]
     },
+    /** Whether any effect or zone still depends on the state (D135), which then outlives its last effect. */
+    async hasDependents(input: { encounterId: string; stateId: string }) {
+      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+      const stateId = serverUuidIdentityDtoSchema.parse(input.stateId)
+      const dependents = await dependentEffects(encounterId, stateId)
+      return (
+        dependents.characters.length > 0 ||
+        dependents.actors.length > 0 ||
+        (await listStateZones(ctx, { encounterId, stateId })).length > 0
+      )
+    },
     async deleteMaintainedStateCas(input: {
       id: string
       encounterId: string
@@ -485,6 +501,9 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       const dependents = await dependentEffects(encounterId, id)
       if (dependents.characters.length)
         throw new Error('Maintained effect state still has Character dependents.')
+      // A zone ends through the cleanup that ends its state, never by being orphaned here (D135).
+      if ((await listStateZones(ctx, { encounterId, stateId: id })).length)
+        throw new Error('Maintained effect state still has zone dependents.')
       for (const effect of dependents.actors) {
         const actorRow = await ctx.db
           .query('encounterActiveRuleEffects')

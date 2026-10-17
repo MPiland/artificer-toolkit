@@ -50,7 +50,7 @@ export async function endCharacterRunEffects(
     if (!state) continue
     if (
       maintainedStateTerminatesWhenEmpty(state) &&
-      (await store.listDependentEffects({ encounterId, stateId })).length === 0
+      !(await store.hasDependents({ encounterId, stateId }))
     )
       await store.deleteMaintainedStateCas({
         id: state.id,

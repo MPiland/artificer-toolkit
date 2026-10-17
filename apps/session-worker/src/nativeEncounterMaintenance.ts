@@ -44,7 +44,7 @@ export async function readNativeLiveMaintenanceSlot(input: {
   const response = await capture({ kind: 'MAINTENANCE_SLOT', actorId, definitionId })
   if (response.kind !== 'MAINTENANCE_SLOT') throw new Error('Maintenance slot is unavailable.')
   const state = response.state
-  if (!state) return { state: null, dependents: [] }
+  if (!state) return { state: null, dependents: [], zoneIds: [] }
   if (
     state.encounterId !== encounterId ||
     state.ownerActorId !== actorId ||
@@ -91,7 +91,7 @@ export async function readNativeLiveMaintenanceSlot(input: {
   const dependents = pages.flat()
   if (dependents.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
     throw new Error('Maintained effect dependents exceed the supported bound.')
-  return { state, dependents }
+  return { state, dependents, zoneIds: response.zoneIds }
 }
 
 export async function readNativeLiveMaintenanceOwners(input: {

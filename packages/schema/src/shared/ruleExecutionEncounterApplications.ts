@@ -25,6 +25,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
+import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from './spatial.js'
 import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
@@ -67,6 +68,7 @@ const concentrationCleanupDtoSchema = lazySchema(() =>
     removedDependentEffectIds: z
       .array(uuidSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
+    removedZoneIds: z.array(uuidSchema).check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
     characterOwnerTransitions: z
       .array(
         z.strictObject({

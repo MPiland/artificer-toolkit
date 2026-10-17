@@ -127,6 +127,7 @@ describe('a used automatic reaction followed by a failed Concentration save', ()
         cleanup: {
           maintainedStateId: CONCENTRATION_STATE_ID,
           removedDependentEffectIds: room.dependentEffectIds,
+          removedZoneIds: [],
           // The cleanup advances the Character exactly one step past the damage.
           characterOwnerTransitions: [
             {

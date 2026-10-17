@@ -129,8 +129,8 @@ function owner(actorId: string, effects: ActiveRuleEffectRecord[]) {
 
 function concentrationEnd(owners: MovementMaintenanceOwner<MovementCharacterRow>[]) {
   const priorSlots = new Map([
-    [SLOT_KEY, { state, dependents: [firstRemoved, secondRemoved] }],
-    [OTHER_SLOT_KEY, { state: null, dependents: [] }]
+    [SLOT_KEY, { state, dependents: [firstRemoved, secondRemoved], zoneIds: [] }],
+    [OTHER_SLOT_KEY, { state: null, dependents: [], zoneIds: [] }]
   ])
   return projectEncounterMovementConcentrationEnd(
     {
@@ -165,11 +165,12 @@ describe('projectEncounterMovementConcentrationEnd', () => {
     expect(result.cleanup).toEqual({
       maintainedStateId: STATE_ID,
       removedDependentEffectIds: [firstRemoved.id, secondRemoved.id],
+      removedZoneIds: [],
       characterOwnerTransitions: []
     })
     expect([...result.projection.slots]).toEqual([
-      [SLOT_KEY, { state: null, dependents: [] }],
-      [OTHER_SLOT_KEY, { state: null, dependents: [] }]
+      [SLOT_KEY, { state: null, dependents: [], zoneIds: [] }],
+      [OTHER_SLOT_KEY, { state: null, dependents: [], zoneIds: [] }]
     ])
     expect([...result.projection.owners]).toEqual([
       [checksumCanonicalJson(firstOwner.owner), { ...firstOwner, effects: [firstKept] }],
