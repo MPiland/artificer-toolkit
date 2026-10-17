@@ -785,7 +785,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   })
   if (opened.kind === 'PLAN') return opened.plan
   // An area that asks no save commits at once, as one cast on the creatures it reached.
-  if (lead.prepared.plan.kind === 'SINGLE_GRAPH') {
+  if (contents?.hitPointPool && lead.prepared.plan.kind === 'SINGLE_GRAPH') {
     const { window } = opened
     const settled = await executeEncounterActorsAction({
       runtime: input.runtime,
