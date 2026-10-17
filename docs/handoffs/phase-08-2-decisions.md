@@ -901,6 +901,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Deferred:** igniting flammable objects (no object state is modelled; future-enhancements).
 * **D145** (2026-10-17) Lint guardrails land rule by rule (QUALITY-3.T1a-T1d, AC QUALITY-3.1; [slice-quality-3.md](slice-quality-3.md)). Orchestrator ruling.
   - **Rule:** lint runs as a failing CI job. Each rule lands with its violations fixed. The double-cast ban covers non-test code only, as the AC says. The package boundary matrix is proposed from a survey of the current imports and ruled before it is enforced. The large-file flag is a 1,500-line lint error with a reviewed allowlist that may only shrink, so lint stays at zero warnings while AGENTS.md's split-by-responsibility rule decides each file.
+  - **Amended (user, 2026-10-17):** scope cut for time to market. Only T1a ships before alpha; T1b-T1d and QUALITY-2 and 4-8 moved to future-enhancements (Code-quality refactors).
   - **Rejected:** one slice for all rules (the barrel codemod alone touches 1,068 files), a warning-level large-file rule (zero warnings would forbid it, and a warning nobody clears is noise), and a 500-line threshold (205 files, mostly cohesive).
 
 ## Approved implementation decisions

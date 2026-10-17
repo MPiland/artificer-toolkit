@@ -12476,58 +12476,23 @@
           "journeyStatus": "verified"
         },
         {
-          "id": "QUALITY-2",
-          "title": "Each rule has one implementation",
-          "status": "TODO",
-          "origin": [],
-          "wsjf": {
-            "bv": 3,
-            "tc": 3,
-            "rr": 8,
-            "size": 8
-          },
-          "acs": [
-            {
-              "id": "QUALITY-2.1",
-              "status": "TODO",
-              "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Temporary-HP-first damage and temporary HP non-stacking, Polymorph carry-over, action source-spend settlement, the Character campaign context, currency group validation, the random number source, System-dispatched armor class and the mechanics receipt validation each have one implementation called from every site, with existing tests green and no assertion weakened."
-            }
-          ],
-          "tasks": [
-            {
-              "id": "QUALITY-2.T1",
-              "text": "Consolidate each listed rule into its owning package and delete the copies. Includes Convex endCarriedConcentration, a local copy of the shared endChosenConcentration (found by QUALITY-1.T1).",
-              "status": "TODO",
-              "closes": ["QUALITY-2.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 3,
-                "rr": 8,
-                "size": 8
-              }
-            }
-          ]
-        },
-        {
           "id": "QUALITY-3",
-          "title": "Lint guardrails stop duplication and escapes returning",
+          "title": "Lint in CI stops double casts and component-file exports returning",
           "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 3,
             "tc": 3,
             "rr": 8,
-            "size": 5
+            "size": 3
           },
           "acs": [
             {
               "id": "QUALITY-3.1",
               "status": "TODO",
               "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Lint fails on double casts through unknown outside tests, on dead exports (knip), on imports that cross the package boundaries (domain logic into Convex or the Worker), and on non-component exports from component files; a large-file warning flags files for responsibility review. Each rule ships with its existing violations fixed, so lint stays at zero warnings."
+              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user. Narrowed 2026-10-17 by the user (scope cut for time to market): knip, package boundaries, the root-barrel ban and the large-file flag moved post-launch.",
+              "text": "Lint runs as a failing CI job at zero warnings and fails on double casts through unknown outside tests and on non-component exports from component files, with each rule's existing violations fixed."
             }
           ],
           "tasks": [
@@ -12542,235 +12507,6 @@
                 "size": 3
               },
               "text": "A lint job in tests.yml running yarn lint (fails the run); fix the 6 no-unused-vars errors on the tip; ban double casts through unknown outside tests (~49 sites fixed by typing them properly) and non-component exports from component files (10 sites, moved to non-component files). Measured 2026-10-17 in slice-quality-3.md."
-            },
-            {
-              "id": "QUALITY-3.T1b",
-              "status": "TODO",
-              "closes": ["QUALITY-3.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 2,
-                "rr": 5,
-                "size": 3,
-                "after": ["QUALITY-3.T1a"]
-              },
-              "text": "knip in CI for dead exports, files and dependencies, configured per workspace (entry points: routes, Convex functions, Worker entry, stories, tests); its current findings deleted (deleting unused code is pre-approved) or listed as public package entry points."
-            },
-            {
-              "id": "QUALITY-3.T1c1",
-              "status": "TODO",
-              "closes": ["QUALITY-3.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 2,
-                "rr": 8,
-                "size": 3,
-                "after": ["QUALITY-3.T1a"]
-              },
-              "text": "Package boundary rule (D145): survey each web import of rules-runtime (38), source-data (38), authoring (6) and design-system (5) and each Convex and Worker package import, propose the allowed matrix in the workbook for an orchestrator ruling, then enforce it in lint with the crossing imports fixed."
-            },
-            {
-              "id": "QUALITY-3.T1c2",
-              "status": "TODO",
-              "closes": ["QUALITY-3.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 2,
-                "rr": 5,
-                "size": 3,
-                "after": ["QUALITY-3.T1c1"]
-              },
-              "text": "Root-barrel ban: codemod the 1,072 root @artificer-toolkit/schema and @artificer-toolkit/shared imports in non-test code to their narrow subpaths, then make the root barrel import a lint error."
-            },
-            {
-              "id": "QUALITY-3.T1d",
-              "status": "TODO",
-              "closes": ["QUALITY-3.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 2,
-                "rr": 3,
-                "size": 3,
-                "after": ["QUALITY-3.T1a"]
-              },
-              "text": "Large-file flag (D145): a non-test file over 1,500 lines fails lint unless it is in a reviewed allowlist. Each of the 18 current files gets a responsibility review: split at a real seam, or stays allowlisted with a one-line reason. The allowlist may only shrink."
-            }
-          ]
-        },
-        {
-          "id": "QUALITY-4",
-          "title": "Contracts and primitives come from one place",
-          "status": "TODO",
-          "origin": [],
-          "wsjf": {
-            "bv": 2,
-            "tc": 2,
-            "rr": 5,
-            "size": 8
-          },
-          "acs": [
-            {
-              "id": "QUALITY-4.1",
-              "status": "TODO",
-              "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Checksum, integer, boolean and uniqueness schema primitives, the Scene command input unions, the mutable Scene table list, account and import-preview validators, and web-local types come from packages/schema; the campaign DTO carries a canManage flag replacing the 12 owner-and-active checks; token control and formatting helpers have one shared home per package."
-            }
-          ],
-          "tasks": [
-            {
-              "id": "QUALITY-4.T1",
-              "text": "Move each duplicated contract and primitive into packages/schema or a domain-named shared module and update every caller.",
-              "status": "TODO",
-              "closes": ["QUALITY-4.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 2,
-                "rr": 5,
-                "size": 8
-              }
-            }
-          ]
-        },
-        {
-          "id": "QUALITY-5",
-          "title": "Pre-launch shims and dead code are gone",
-          "status": "TODO",
-          "origin": [],
-          "wsjf": {
-            "bv": 2,
-            "tc": 2,
-            "rr": 5,
-            "size": 5
-          },
-          "acs": [
-            {
-              "id": "QUALITY-5.1",
-              "status": "TODO",
-              "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Legacy optional fields are migrated in development data and made required or deleted, old schemaVersion branches are normalized at load, completed one-off migrations are deleted, dead exports, re-export chains and compatibility aliases are removed, frontend names drop the word runtime, and the 19 legacy authored URL redirect routes are removed."
-            }
-          ],
-          "tasks": [
-            {
-              "id": "QUALITY-5.T1",
-              "text": "Migrate development data, tighten the schemas and delete each shim, migration, alias, dead export and legacy redirect route.",
-              "status": "TODO",
-              "closes": ["QUALITY-5.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 2,
-                "rr": 5,
-                "size": 5
-              }
-            }
-          ]
-        },
-        {
-          "id": "QUALITY-6",
-          "title": "The live room is split along its seams",
-          "status": "TODO",
-          "origin": [],
-          "wsjf": {
-            "bv": 3,
-            "tc": 2,
-            "rr": 8,
-            "size": 13
-          },
-          "acs": [
-            {
-              "id": "QUALITY-6.1",
-              "status": "TODO",
-              "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Every room command goes through one journaled-command path; nativeLiveSessionRoom is a thin router over admission, command pipeline, per-scope executors, transient relay and Scene cache modules; the single-target and area encounter planners are split into phases; the web holds one live-session WebSocket per campaign."
-            }
-          ],
-          "tasks": [
-            {
-              "id": "QUALITY-6.T1",
-              "text": "Extract runJournaledCommand, split the room and planners by responsibility, and share one live-session connection per campaign on the web.",
-              "status": "TODO",
-              "closes": ["QUALITY-6.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 2,
-                "rr": 8,
-                "size": 13,
-                "after": ["SPELLS-19.T4", "SPELLS-20.T4f"]
-              }
-            }
-          ]
-        },
-        {
-          "id": "QUALITY-7",
-          "title": "Monolithic modules are split by responsibility",
-          "status": "TODO",
-          "origin": [],
-          "wsjf": {
-            "bv": 2,
-            "tc": 1,
-            "rr": 5,
-            "size": 13
-          },
-          "acs": [
-            {
-              "id": "QUALITY-7.1",
-              "status": "TODO",
-              "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "effectActionCompiler, sheetCommandReducer, path.ts, facet.ts and nodeDefinition.ts are split by responsibility, with the duplicated node maps built by one factory and their casts removed; the authoring form context becomes a narrow read context with explicit props; CampaignVttStage, the VTT Scene renderer and the form renderer factories are split into plain modules and components; guided authoring forms are typed by their schema DTOs."
-            }
-          ],
-          "tasks": [
-            {
-              "id": "QUALITY-7.T1",
-              "text": "Split each listed module along its responsibilities and remove the casts and single-use factories that the splits expose.",
-              "status": "TODO",
-              "closes": ["QUALITY-7.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 5,
-                "size": 13,
-                "after": ["SPELLS-19.T4"]
-              }
-            }
-          ]
-        },
-        {
-          "id": "QUALITY-8",
-          "title": "Each game System has one policy bundle",
-          "status": "TODO",
-          "origin": [],
-          "wsjf": {
-            "bv": 2,
-            "tc": 1,
-            "rr": 5,
-            "size": 8
-          },
-          "acs": [
-            {
-              "id": "QUALITY-8.1",
-              "status": "TODO",
-              "origin": [],
-              "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user.",
-              "text": "Generic encounter and character modules resolve System behaviour through one per-System policy bundle instead of direct dnd5e imports, one-entry maps and separate registries; compiled graph node roles are exported constants or graph tags rather than repeated string ids."
-            }
-          ],
-          "tasks": [
-            {
-              "id": "QUALITY-8.T1",
-              "text": "Introduce the per-System policy bundle, migrate every lookup to it and replace string node ids.",
-              "status": "TODO",
-              "closes": ["QUALITY-8.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 5,
-                "size": 8
-              }
             }
           ]
         }
