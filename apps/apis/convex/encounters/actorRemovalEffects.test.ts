@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { definition, descriptor, lifecycle } from '../../tests/fixtures/maintainedEffects'
+import { domainRejection } from '../../tests/fixtures/playerControl'
 
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -326,10 +327,12 @@ describe('native actor maintained-effect cleanup', () => {
     await attachFixtureRoom(fixture.t, fixture.campaign.id)
     const before = await records(fixture)
     await expect(
-      executeInRoom(fixture.owner.caller, {
-        command: { ...command, actorId: other.id }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
+      domainRejection(
+        executeInRoom(fixture.owner.caller, {
+          command: { ...command, actorId: other.id }
+        })
+      )
+    ).resolves.toMatchObject({ reason: 'PENDING_DECISION' })
     await checkpointLiveRoom(fixture.campaign.id)
     expect(await records(fixture)).toEqual(before)
     if (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
