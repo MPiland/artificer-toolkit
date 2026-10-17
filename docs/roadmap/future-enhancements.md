@@ -259,7 +259,7 @@ Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`)
 
 ### Turn-boundary effect order chosen by the creature
 
-SPELLS-20.T4b2b resolves a turn boundary's effects (the actor's own start- or end-of-turn effects and the zones it is in, such as Spirit Guardians) as one list in a fixed, deterministic order. The SRD lets the creature whose turn it is choose the order of simultaneous effects. Candidate: an order prompt for that creature when more than one effect is due. Raised 2026-10-17 during SPELLS-20.T4b2 design; post-launch.
+SPELLS-20.T4b2b resolves a turn boundary's effects in a fixed, deterministic order: the actor's own start- or end-of-turn effects first, then the zones it is in (such as Spirit Guardians), each batch by effect id. The SRD lets the creature whose turn it is choose the order of simultaneous effects. Candidate: an order prompt for that creature when more than one effect is due. Raised 2026-10-17 during SPELLS-20.T4b2 design; post-launch.
 
 ### Level-gated check on an effect (Dispel Magic)
 

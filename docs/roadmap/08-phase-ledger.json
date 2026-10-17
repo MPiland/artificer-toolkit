@@ -8881,7 +8881,7 @@
               "id": "SPELLS-20.T4b2b",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
-              "text": "The turn stage for START/END_TURN_IN_SPACE zones through encounterTurnPending (ADR 0034), after Recharge and the death save, ordered in one list with the actor's own turn-boundary effects; carries the save then the damage roll through the T4b2a shared resume; consumes the T4b1 counter; prompted rolls are not undoable. Proved on Spirit Guardians (start) and an end-of-turn zone, plus a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "text": "The turn stage for START/END_TURN_IN_SPACE zones as a new pending context ENCOUNTER_TURN_ZONE_EFFECTS through encounterTurnPending (ADR 0034), run after Recharge, the death save and the actor's own turn-boundary effects (active effects then zones, each by effect id; the shared context seams are extended, not cloned); carries the save then the damage roll through the T4b2a shared resume; consumes the T4b1 counter; prompted rolls are not undoable. Proved on Spirit Guardians (start), an end-of-turn zone, and a creature in two zones at one boundary, plus a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
