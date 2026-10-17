@@ -476,12 +476,12 @@ export const ancientBronzeDragon: CreatureAuthored = {
               id: S.actionId(5407, 38),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(5407, 38) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: S.actionId(5407, 608),
@@ -491,11 +491,6 @@ export const ancientBronzeDragon: CreatureAuthored = {
                     distanceMode: 'FIXED_DISTANCE',
                     amount: 60,
                     unit: S.MEASUREMENT_UNIT_CODE.FEET
-                  },
-                  {
-                    id: S.actionId(5407, 38),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_REPULSION_BREATH
                   }
                 ]
               }
