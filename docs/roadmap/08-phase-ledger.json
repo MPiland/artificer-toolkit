@@ -9221,7 +9221,7 @@
             },
             {
               "id": "SPELLS-4.T1c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-4.2",
                 "SPELLS-4.1"
@@ -9235,7 +9235,8 @@
                   "SPELLS-20.T4b2b2"
                 ]
               },
-              "text": "Re-author Moonbeam and Incendiary Cloud from CLOSED_RULE as zones from core options with their turn triggers, including Moonbeam's shapechanger rider (disadvantage on the save and reverting on a failure) as a generic creature-trait condition on a zone save."
+              "text": "Re-author Moonbeam and Incendiary Cloud from CLOSED_RULE as zones from core options with their turn triggers, including Moonbeam's shapechanger rider (disadvantage on the save and reverting on a failure) as a generic creature-trait condition on a zone save.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1d",
@@ -10804,7 +10805,7 @@
             },
             {
               "id": "SPELLS-20.T4e",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10817,7 +10818,8 @@
                   "SPELLS-20.T4b2b2"
                 ]
               },
-              "text": "Spirit Guardians damage type chosen at cast (radiant, or necrotic for an evil caster) as a cast-time choice from core options stored on the zone; proved on Spirit Guardians."
+              "text": "Spirit Guardians damage type chosen at cast (radiant, or necrotic for an evil caster) as a cast-time choice from core options stored on the zone; proved on Spirit Guardians.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4f",
