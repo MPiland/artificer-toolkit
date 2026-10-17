@@ -116,7 +116,7 @@ export const poisonBasicVial: EquipmentAuthored = {
                         id: S.equipmentChildId(S.equipId(364), 0x215, 1),
                         order: 1,
                         label: 'Poisoned hit',
-                        interactionKind: 'SOURCE_HIT' as const,
+                        interactionKinds: ['SOURCE_HIT' as const],
                         behaviors: [poisonedHitBehavior(0x220)]
                       }
                     ]
@@ -156,7 +156,7 @@ export const poisonBasicVial: EquipmentAuthored = {
                         id: S.equipmentChildId(S.equipId(364), 0x215, 2),
                         order: 1,
                         label: 'Poisoned hit',
-                        interactionKind: 'SOURCE_HIT' as const,
+                        interactionKinds: ['SOURCE_HIT' as const],
                         behaviors: [poisonedHitBehavior(0x230)]
                       }
                     ]

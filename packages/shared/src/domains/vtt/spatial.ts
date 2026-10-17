@@ -18,6 +18,8 @@ export type SpatialAnchorKind = 'FIXED' | 'TOKEN'
 type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
 export type SpatialMovementKind = 'VOLUNTARY' | 'FORCED' | 'TELEPORT'
 export type SpatialTriggerMode = 'ENTER' | 'EXIT' | 'CROSS'
+/** The turn boundary at which a creature standing in an effect is caught. */
+export type SpatialTurnTrigger = 'START_OF_TURN' | 'END_OF_TURN'
 
 export type SpatialGeometry =
   | {
@@ -92,6 +94,8 @@ export interface SpatialEffectInstance {
   readonly anchorKind: SpatialAnchorKind
   readonly geometry: SpatialPersistedGeometry
   readonly triggerModes: readonly SpatialTriggerMode[]
+  /** Turn boundaries at which a creature inside is caught; absent for none. */
+  readonly turnTriggers?: readonly SpatialTurnTrigger[]
   readonly movementKinds: readonly SpatialMovementKind[]
   /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
   readonly bypassAtHalfSpeed?: boolean
@@ -217,7 +221,7 @@ function validSpatialEffect(effect: SpatialEffectInstance, tokenIds: ReadonlySet
   return (
     anchorValid &&
     validSpatialGeometry(effect.geometry.shape) &&
-    effect.triggerModes.length > 0 &&
+    (effect.triggerModes.length > 0 || (effect.turnTriggers?.length ?? 0) > 0) &&
     effect.movementKinds.length > 0
   )
 }
@@ -1227,4 +1231,56 @@ export function collectSpatialMovementCandidates(input: {
         ) < limit
       )
     })
+}
+
+export interface SpatialTurnCandidate {
+  readonly effectId: string
+  readonly sourceActorId: string | null
+  readonly targetActorId: string
+  readonly trigger: SpatialTurnTrigger
+}
+
+/**
+ * The effects that catch a creature at a turn boundary: those with that turn trigger whose area
+ * the target's footprint currently shares area with, that do not exempt it and whose per-turn limit
+ * is not spent. Like {@link collectSpatialMovementCandidates} it only reports contact facts.
+ */
+export function collectSpatialTurnCandidates(input: {
+  readonly actorIdByTokenId: ReadonlyMap<string, string>
+  readonly effects: readonly SpatialEffectInstance[]
+  readonly targetTokenId: string
+  readonly tokens: readonly SpatialSceneToken[]
+  readonly trigger: SpatialTurnTrigger
+  readonly zoneApplications?: ZoneApplications
+  readonly turnSequence: number
+}): SpatialTurnCandidate[] {
+  const target = input.tokens.find((token) => token.id === input.targetTokenId)
+  const targetActorId = input.actorIdByTokenId.get(input.targetTokenId)
+  if (!target || !targetActorId || input.tokens.some((token) => !validSpatialToken(token)))
+    return []
+  const tokenIds = new Set(input.tokens.map((token) => token.id))
+  return input.effects
+    .filter((effect) => {
+      if (
+        !validSpatialEffect(effect, tokenIds) ||
+        !effect.turnTriggers?.includes(input.trigger) ||
+        !spatialEffectAffects(effect, targetActorId) ||
+        (effect.maxApplicationsPerTurn !== undefined &&
+          zoneApplicationsSpent(
+            input.zoneApplications,
+            input.turnSequence,
+            zoneApplicationKey(effect.effectId, targetActorId)
+          ) >= effect.maxApplicationsPerTurn)
+      )
+        return false
+      const geometry = effectiveSpatialGeometry(effect, input.tokens)
+      return !!geometry && spatialGeometryOverlapsTokenFootprint({ geometry, token: target })
+    })
+    .map((effect) => ({
+      effectId: effect.effectId,
+      sourceActorId: effect.sourceActorId,
+      targetActorId,
+      trigger: input.trigger
+    }))
+    .sort((left, right) => compareText(left.effectId, right.effectId))
 }

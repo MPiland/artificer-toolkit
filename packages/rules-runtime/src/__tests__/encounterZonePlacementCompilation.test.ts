@@ -363,6 +363,60 @@ describe('a zone that applies once per turn (SPELLS-20 T4b1)', () => {
   })
 })
 
+describe('a zone that triggers at turn boundaries (SPELLS-20 T4b2a)', () => {
+  const withInteractions = (
+    interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']>
+  ) =>
+    variantEquipment(({ component }) => {
+      component.interactionKinds = interactionKinds
+    })
+
+  it('compiles entering and starting the turn in the space to an ENTER and a START_OF_TURN trigger', () => {
+    const authored = withInteractions(['ENTER_SPACE', 'START_TURN_IN_SPACE'])
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+    expect(zonePlacementOf(authored)).toMatchObject({
+      triggerModes: ['ENTER'],
+      turnTriggers: ['START_OF_TURN']
+    })
+  })
+
+  it('compiles a zone that only acts at turn boundaries to no movement trigger, in canonical order', () => {
+    const zone = zonePlacementOf(withInteractions(['END_TURN_IN_SPACE', 'START_TURN_IN_SPACE']))
+    expect(zone.triggerModes).toEqual([])
+    expect(zone.turnTriggers).toEqual(['START_OF_TURN', 'END_OF_TURN'])
+  })
+
+  it('leaves a movement-only zone without turn triggers, as the SRD Caltrops zone is', () => {
+    expect(zonePlacementOf().turnTriggers).toBeUndefined()
+    expect(zonePlacementOf().triggerModes).toEqual(['ENTER', 'CROSS'])
+  })
+
+  it('stores the turn triggers on the placed zone, and nothing when there are none', () => {
+    const place = (equipment?: EquipmentAuthored) =>
+      planEncounterPlacedZone({
+        zone: zonePlacementOf(equipment),
+        id: ZONE_ID,
+        maintainedEffectStateId: null,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: OCCURRENCE_ID,
+        rootCommandId: SPREAD_COMMAND_ID,
+        sourceActorId: SOURCE_ID,
+        point: { x: 250, y: 350 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: null
+      }).placement
+    expect(place(withInteractions(['START_TURN_IN_SPACE'])).turnTriggers).toEqual(['START_OF_TURN'])
+    expect(place()).not.toHaveProperty('turnTriggers')
+  })
+
+  it('stays manual for an interaction the System does not model', () => {
+    expect(
+      compileItemEntry(withInteractions(['ENTER_SPACE', 'SOURCE_HIT'])).compilation
+    ).toMatchObject({ kind: 'MANUAL', reasonCode: 'NOT_NORMALIZED' })
+  })
+})
+
 describe('a zone authored with another save DC and a circle shape', () => {
   const authored = variantEquipment(({ zone, invocation }) => {
     zone.label = 'Spike field'

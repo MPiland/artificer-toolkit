@@ -306,7 +306,7 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
       initialRemaining: 600,
       actorLinkContribution: { linkKind: 'TELEPATHIC', excludesIntelligenceAtOrBelow: 2 }
     })
-    expect(plan?.conditionContribution ?? null).toBeNull()
+    expect(plan?.conditionContributions ?? []).toEqual([])
     expect(plan?.modifierGrantContribution ?? null).toBeNull()
   })
 

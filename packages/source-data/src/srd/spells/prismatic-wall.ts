@@ -115,7 +115,7 @@ const createDamageLayer = (
   id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope, layer),
   order: layer,
   label,
-  interactionKind: 'ENTER_OR_PASS_THROUGH',
+  interactionKinds: ['ENTER_OR_PASS_THROUGH'],
   behaviors: [
     createLayerBehavior(
       formScope,
@@ -134,7 +134,7 @@ const createIndigoLayer = (formScope: number): ManifestComponentAuthored => {
     id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope, layer),
     order: layer,
     label: 'Indigo',
-    interactionKind: 'ENTER_OR_PASS_THROUGH',
+    interactionKinds: ['ENTER_OR_PASS_THROUGH'],
     behaviors: [
       createLayerBehavior(
         formScope,
@@ -198,7 +198,7 @@ const createVioletLayer = (formScope: number): ManifestComponentAuthored => {
     id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope, layer),
     order: layer,
     label: 'Violet',
-    interactionKind: 'ENTER_OR_PASS_THROUGH',
+    interactionKinds: ['ENTER_OR_PASS_THROUGH'],
     behaviors: [
       createLayerBehavior(
         formScope,

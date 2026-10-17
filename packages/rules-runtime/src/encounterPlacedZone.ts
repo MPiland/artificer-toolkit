@@ -98,6 +98,7 @@ export function planEncounterPlacedZone(input: {
       schemaVersion: 1,
       ...zoneAnchor(zone.attachment, area, point, input.sourceToken),
       triggerModes: zone.triggerModes,
+      ...(zone.turnTriggers ? { turnTriggers: zone.turnTriggers } : {}),
       movementKinds: ['VOLUNTARY', 'FORCED', 'TELEPORT'],
       activation: 'REPEATABLE',
       visibility: 'PUBLIC',
