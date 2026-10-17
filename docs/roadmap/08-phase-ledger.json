@@ -8811,7 +8811,7 @@
             },
             {
               "id": "SPELLS-20.T4b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones, with one once-per-turn counter per (effect, creature, turn) shared by first entry and start of turn (maxApplicationsPerTurn gets its runtime consumer). Turn-boundary save and damage rolls run as a turn stage through the existing turn pending path (encounterTurnPending), after Recharge and the death save and with the start-of-turn effects, prompted per ADR 0034 like the death save and not undoable like other turn-stage rolls. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
               "wsjf": {
@@ -8820,21 +8820,21 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-20.T4a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
-              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface.",
+              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface. (Red proof in Tests 39005327342 on 8abd5d451. Green: ci/spells-20-t4c 961579e7a, Tests 39006742783, Live 39006742832. Membership seam: spatialEffectAffects in packages/shared/src/domains/vtt/spatial.ts; generic flag choosesUnaffected with authoring parity. Merged directly as d90f99153.)",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
               "id": "SPELLS-20.T4d",
