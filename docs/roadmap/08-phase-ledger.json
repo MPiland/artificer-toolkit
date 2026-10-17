@@ -8864,16 +8864,30 @@
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
-              "id": "SPELLS-20.T4b2",
+              "id": "SPELLS-20.T4b2a",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-20.1"],
+              "text": "Turn-trigger authoring and seams: zones author interactionKinds (the single interactionKind is deleted and data migrated, no fallback); START_TURN_IN_SPACE and END_TURN_IN_SPACE compile to placement turnTriggers (immutable with the placement checksum); one shared containment function in shared/vtt beside collectSpatialMovementCandidates selects the zones containing an actor at a turn boundary through spatialEffectAffects and the T4b1 counter; the save-then-dice resume moves out of encounterSpatialMovementRuleService into one helper in targetBoundActiveRuleEffectExecutor.ts that the spatial path calls. Proved on Spirit Guardians compiling ENTER plus START.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T4b1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b2b",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
-              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones as a new turn stage (pending context ENCOUNTER_TURN_ZONE_EFFECTS) through encounterTurnPending, after Recharge, the death save and the start-of-turn effects, carrying the save then the damage roll through one save-then-dice resume shared with the spatial movement path; membership through spatialEffectAffects; consumes the T4b1 counter; prompted per ADR 0034 and not undoable like other turn-stage rolls. Proved on Spirit Guardians and a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "text": "The turn stage for START/END_TURN_IN_SPACE zones through encounterTurnPending (ADR 0034), after Recharge and the death save, ordered in one list with the actor's own turn-boundary effects; carries the save then the damage roll through the T4b2a shared resume; consumes the T4b1 counter; prompted rolls are not undoable. Proved on Spirit Guardians (start) and an end-of-turn zone, plus a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["SPELLS-20.T4b1"]
+                "after": ["SPELLS-20.T4b2a"]
               }
             },
             {
@@ -8899,7 +8913,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-20.T4b2"]
+                "after": ["SPELLS-20.T4b2b"]
               }
             },
             {
@@ -8925,7 +8939,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4b2"]
+                "after": ["SPELLS-20.T4b2b"]
               }
             }
           ]
