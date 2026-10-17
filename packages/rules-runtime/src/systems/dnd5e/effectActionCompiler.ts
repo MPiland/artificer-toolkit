@@ -2221,11 +2221,12 @@ function zonePlacementPlan(
         : 'A placed zone takes a point or the caster as its center.'
     )
   const pinnedDc = pinnedSaveDc(savingThrow)
-  const { requiresFullyWithin, automaticSaveSuccessConditions = [] } = zone.component
+  const { requiresFullyWithin, automaticSaveSuccessImmunityDamageTypeIds = [] } = zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
-  if (automaticSaveSuccessConditions.some((condition) => condition !== 'POISON_IMMUNE'))
-    unsupported('A zone save succeeds unrolled only for a creature immune to poison.')
+  const [successImmunity, ...otherImmunities] = automaticSaveSuccessImmunityDamageTypeIds
+  if (otherImmunities.length)
+    unsupported('A zone save succeeds unrolled for immunity to one damage type at most.')
   if (
     !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
@@ -2279,10 +2280,10 @@ function zonePlacementPlan(
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20',
-      ...(automaticSaveSuccessConditions.includes('POISON_IMMUNE')
+      ...(successImmunity
         ? {
             [DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]:
-              DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID
+              damageTypeIdentity(successImmunity)
           }
         : {})
     },

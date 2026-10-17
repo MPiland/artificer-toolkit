@@ -631,9 +631,9 @@ describe('a zone the System cannot honor in full stays manual', () => {
       }
     ],
     [
-      'an automatic save success the System cannot judge',
+      'an automatic save success on immunity to more than one damage type',
       ({ component }) => {
-        component.automaticSaveSuccessConditions = ['DOES_NOT_BREATHE']
+        component.automaticSaveSuccessImmunityDamageTypeIds = [extraId(0x3c1), extraId(0x3c2)]
       }
     ],
     [

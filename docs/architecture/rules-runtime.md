@@ -402,10 +402,10 @@ containment seam for turn triggers: it applies `spatialEffectAffects` and the pe
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's
-`automaticSaveSuccessConditions` `POISON_IMMUNE` pins the poison damage type as an adapter fact on the zone entry;
-when the target holds an IMMUNITY defense to it, the dnd5e binder sets the `SAVE_AUTO_SUCCESS` outcome rule (the mirror
-of D94's `SAVE_AUTO_FAIL`), so the made-save path runs whatever the roll. `DOES_NOT_BREATHE` has no creature fact yet
-and keeps the zone manual.
+`automaticSaveSuccessImmunityDamageTypeIds` (D141: any authored damage type, at most one per zone today) pins that
+damage type as an adapter fact on the zone entry; when the target holds an IMMUNITY defense to it, the dnd5e binder sets
+the `SAVE_AUTO_SUCCESS` outcome rule (the mirror of D94's `SAVE_AUTO_FAIL`), so the made-save path runs whatever the
+roll. A "does not breathe" rider has no creature fact and stays unauthored (a deferred edge case).
 The turn stage that runs them lands with SPELLS-20 T4b2b. SRD text
 that says a creature "enters the area" (Caltrops, Ball Bearings) authors `ENTER_OR_PASS_THROUGH`, so a drag that
 ends beyond the field still triggers the save and, on a failure, stops at the first field square it entered. The System, not the authored zone, owns the placement defaults: `planEncounterPlacedZone` sets

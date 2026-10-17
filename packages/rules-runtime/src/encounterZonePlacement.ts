@@ -46,7 +46,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'choosesUnaffected',
   'maxApplicationsPerTurn',
   'requiresFullyWithin',
-  'automaticSaveSuccessConditions',
+  'automaticSaveSuccessImmunityDamageTypeIds',
   'behaviors'
 ])
 

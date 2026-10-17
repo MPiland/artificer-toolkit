@@ -4,6 +4,7 @@ import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { initiativeCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResultBranches'
 import { zoneApplicationKey } from '@artificer-toolkit/shared/vtt'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { planEncounterInitiativeAdvance } from '../encounterInitiativeStateSettlement.js'
@@ -257,24 +258,36 @@ describe('a zone that catches only some creatures (SPELLS-20 T4b3a)', () => {
     expect(effectIds(caught.plan)).toEqual([overlap.id])
   })
 
-  it('lets a poison-immune creature succeed automatically on a zone save that names it', async () => {
+  it('lets a creature immune to the authored damage type succeed automatically on the zone save', async () => {
     const skeleton = srdCreatureActor({
       id: GOBLIN_ID,
       creature: srdByLabel(SRD.creatures, 'Skeleton')
     })
-    const zone = placedZone(
-      0x3a1,
-      authoredZone(['START_TURN_IN_SPACE'], undefined, {
-        automaticSaveSuccessConditions: ['POISON_IMMUNE']
-      }),
-      1
-    )
+    const immunityZone = (offset: number, damageTypeCode: string) =>
+      placedZone(
+        offset,
+        authoredZone(['START_TURN_IN_SPACE'], undefined, {
+          automaticSaveSuccessImmunityDamageTypeIds: SRD_DAMAGE_TYPES.filter(
+            ({ code }) => code === damageTypeCode
+          ).map(({ id }) => id)
+        }),
+        1
+      )
+    const zone = immunityZone(0x3a1, 'POISON')
     const phase = await complete(
       prepare({ zones: [zone], boundary: START, actors: [skeleton, source] })
     )
     // The scripted roll is the lowest face, which fails the save unless it succeeds unrolled.
     const [execution] = phase.plan!.executions
     expect(execution!.targetTransition.after).toEqual(execution!.targetTransition.before)
+    // The Skeleton is not immune to fire, so a zone naming fire takes its roll.
+    const firePhase = await complete(
+      prepare({ zones: [immunityZone(0x3a2, 'FIRE')], boundary: START, actors: [skeleton, source] })
+    )
+    const [burned] = firePhase.plan!.executions
+    expect(burned!.targetTransition.after.currentHitPoints).toBe(
+      burned!.targetTransition.before.currentHitPoints - 1
+    )
     // A creature without the immunity fails the same save.
     const goblinPhase = await complete(prepare({ zones: [zone], boundary: START }))
     const [failed] = goblinPhase.plan!.executions
