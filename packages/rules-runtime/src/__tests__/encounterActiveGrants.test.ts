@@ -230,12 +230,15 @@ describe('Creature holder of an active grant', () => {
               ? {
                   ...contribution,
                   modifiers: contribution.modifiers.map((modifier) => {
-                    const payload = modifier.grant?.payload
+                    const { grant } = modifier
+                    if (typeof grant !== 'object' || grant === null || Array.isArray(grant))
+                      throw new Error('A defense grant stores an object.')
+                    const { payload } = grant
                     if (typeof payload !== 'object' || payload === null || Array.isArray(payload))
                       throw new Error('A defense grant stores an object payload.')
                     return {
                       ...modifier,
-                      grant: { ...modifier.grant, payload: { ...payload, sourceEffectIds: ids } }
+                      grant: { ...grant, payload: { ...payload, sourceEffectIds: ids } }
                     }
                   })
                 }

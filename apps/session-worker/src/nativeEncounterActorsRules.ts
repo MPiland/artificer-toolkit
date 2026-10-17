@@ -160,14 +160,14 @@ export async function planNativeLiveEncounterActorsAction(
     const reactorId = receipt.reaction.reactorActorId
     const reactor = chosen.find((actor) => actor.id === reactorId)
     if (!reactor) throw new Error('Reaction evidence is stale.')
-    const prepareReactor = (reactedTargets: ReadonlyMap<string, Awaited<ReturnType<typeof input.loadTarget>>>) =>
+    const prepareReactor = (reactorTarget: Awaited<ReturnType<typeof input.loadTarget>>) =>
       prepareAreaTarget({
         ...input,
-        base: { ...reach, movementTargets: new Map(reactedTargets) },
+        base: { ...reach, movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget) },
         actor: reactor,
         token: reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
       })
-    let adjusted: Parameters<typeof prepareReactor>[0] = reach.movementTargets
+    const adjusted: { target?: Parameters<typeof prepareReactor>[0] } = {}
     const applied = await applyNativeReactionEffect({
       reaction: { prepared: found.prepared, triggerDamageTypeIds: [] },
       runtime: input.runtime,
@@ -177,15 +177,16 @@ export async function planNativeLiveEncounterActorsAction(
       occurredAt: window.occurredAt,
       activeEffectsByActorId: input.activeEffectsByActorId,
       loadTarget: input.loadTarget,
-      prepareAttack: async (reactedTargets) => {
-        adjusted = reactedTargets
-        return (await prepareReactor(reactedTargets)).prepared
+      prepareAttack: async (_reactedTargets, adjustedTarget) => {
+        adjusted.target = adjustedTarget
+        return (await prepareReactor(adjustedTarget)).prepared
       }
     })
+    if (!adjusted.target) throw new Error('Reaction evidence is stale.')
     reactionEffects.set(reactorId, applied.reactionEffect)
     for (const [index, entry] of prepared.entries())
       if (entry.actor.id === reactorId)
-        prepared[index] = { ...entry, ...(await prepareReactor(adjusted)) }
+        prepared[index] = { ...entry, ...(await prepareReactor(adjusted.target)) }
   }
   const settled = await executeEncounterActorsAction({
     runtime: input.runtime,

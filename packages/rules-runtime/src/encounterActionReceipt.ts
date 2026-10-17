@@ -126,14 +126,12 @@ export function buildEncounterActionStoredExecution(input: {
             sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
-            activeEffectTransitions: [
-              ...activeEffectTransitions.map((transition) =>
-                characterEffectReceipt(transition, input.maintainedState?.id ?? null)
-              ),
-              ...(input.reactionEffectTransitions ?? []).map((transition) =>
-                characterEffectReceipt(transition, null)
-              )
-            ],
+            activeEffectTransitions: activeEffectTransitions.map((transition) =>
+              characterEffectReceipt(transition, input.maintainedState?.id ?? null)
+            ),
+            reactionEffectTransitions: (input.reactionEffectTransitions ?? []).map((transition) =>
+              characterEffectReceipt(transition, null)
+            ),
             stateEffectTransitions,
             reaction: input.reaction
               ? {

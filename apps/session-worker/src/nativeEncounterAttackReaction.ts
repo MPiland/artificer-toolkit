@@ -136,7 +136,11 @@ export async function applyNativeReactionEffect(input: {
   reactorActorId?: string
   occurredAt: string
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
-  prepareAttack(movementTargets: MovementTargets): Promise<Prepared>
+  /** Re-prepares the answered action; the reactor's target as the reaction's effect leaves it is given too. */
+  prepareAttack(
+    movementTargets: MovementTargets,
+    adjustedTarget: Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
+  ): Promise<Prepared>
   loadTarget(
     actor: EncounterRunActorState,
     activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
@@ -180,7 +184,8 @@ export async function applyNativeReactionEffect(input: {
     new Map(input.activeEffectsByActorId).set(reactorId, [...held, pending])
   )
   const adjustedAttack = await input.prepareAttack(
-    new Map(prepared.movementTargets).set(reactorId, adjustedTarget)
+    new Map(prepared.movementTargets).set(reactorId, adjustedTarget),
+    adjustedTarget
   )
   return {
     execution,
