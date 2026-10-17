@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1, T1b, T2a and T3 are done (T2a at `16e4493c7`; T3 at `897458fa0` on `ci/spells-20-t3`, based on the T2a tip plus `ci/merge-batch-bf`).
-- T2b implemented (red `ci/spells-20-t2b-red` at `877ceb4ce`; green on `ci/spells-20-t2b`, see its log). Next after T2b: T4 and later.
+- T2b done: red Tests 38989834002 on `877ceb4ce`; green `6a67e415b` on `ci/spells-20-t2b`, Tests 38991779131 (attempt 2; attempt 1 hit the Escape test flake), Live 38991779168. Next: T4 and later.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -78,6 +78,7 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Red: `ci/spells-20-t2b-red` at `877ceb4ce`.
 - Seam: `by_state_encounter` index on `encounterSpatialRuleEffects` (room store and Convex); `maintainedStateZones.ts` (`listStateZones`, `deleteStateZones`); `store.hasDependents` (effects or zones) replaces the effect-only emptiness test at the three `TERMINATE_WHEN_EMPTY` sites; `deleteMaintainedStateCas` refuses a state a zone still depends on. Cleanup DTO `removedZoneIds` is derived and applied in `concentrationCleanupPersistence.ts`; `MAINTENANCE_SLOT` carries `zoneIds` so the Worker and `projectEncounterMovementConcentrationEnd` produce the same DTO. `applyMaintenanceReplacement` and `cleanupRemovedActorEffects` delete the zones of the states they end. Turn completion no longer ends a zone-only state.
 - Undo: GM undo of any Concentration end or replacement stays refused (D95), so no zone restore exists; undo of the zone-placing cast already removes zone and state (the zone now goes first, before the guarded state delete).
+- Flake (preexisting, also T2a/T3): `nativeRoomEscapeAction` "refuses a check the effect does not allow" asserts `causes` from a process-wide `console.error` spy in `invalidEscape`, so other rooms' logged errors can land in it. Registered as a phase-branch follow-up.
 - Known edge, not fixed: Concentration lost in the same settlement that created it, with a zone created afterwards.
 
 ### T3 (auras in the session state, viewer-redacted)
