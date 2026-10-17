@@ -350,7 +350,7 @@ describe('Creature holder of an active grant', () => {
                 ...contribution,
                 modifiers: contribution.modifiers.map((modifier) =>
                   modifier.valueDomainCode === 'ABILITY_CHECK'
-                    ? { ...modifier, domain: { ability: 'STRENGTH' } }
+                    ? { ...modifier, domain: { ability: 'STRENGTH' as const } }
                     : modifier
                 )
               }

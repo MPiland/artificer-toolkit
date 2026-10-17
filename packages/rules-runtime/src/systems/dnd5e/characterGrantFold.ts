@@ -326,7 +326,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
         modifierKind: modifier.modifierKind,
         scope: modifier.scope,
         domain: modifier.domain,
-        payload: modifier.payload,
+        ...(modifier.payload === undefined ? {} : { payload: modifier.payload }),
         sourceId,
         source: mechanicSource,
         ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),

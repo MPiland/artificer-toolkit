@@ -167,7 +167,7 @@ export function buildCharacterGrantFoldModifierFacts(
     modifierKind: grant.modifierKind,
     scope: grant.scope,
     domain: grant.domain,
-    payload: grant.payload,
+    ...(grant.payload === undefined ? {} : { payload: grant.payload }),
     restrictions: normalizeCharacterGrantRestrictions(
       grant.restrictions,
       normalizeProficiencyTarget
