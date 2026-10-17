@@ -981,7 +981,7 @@ describe('planCarriedOverEffects', () => {
   const carriedForm = {
     sourceId: testUuid(0xc371),
     sourceRevision: 1,
-    snapshot: { label: 'Giant Ape' },
+    snapshotJson: JSON.stringify({ label: 'Giant Ape' }),
     currentHitPoints: 40,
     maxHitPoints: 157,
     tempHitPoints: 0
