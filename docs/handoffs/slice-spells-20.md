@@ -133,6 +133,16 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - `persistEncounterTurnZoneEffects` is the one zone-specific persistence; it re-derives containment and the per-turn counter with `selectTurnZoneContacts` (shared with room prep) from the locked Scene, so a moved token, an edited zone or a spent limit refuses the plan. The generic turn seams take `ENCOUNTER_TURN_ZONE_EFFECTS` through their existing dispatch. A turn without zones stores a byte-identical result. Order per boundary: active effects, then zones, each by effectId. The "creature chooses the order" prompt is a parked enhancement.
 - Spirit Guardians authors ENTER_SPACE + START_TURN_IN_SPACE and proves START and ADVANCE_TURN START_OF_TURN; END is proved on a core-options zone. Stinking Cloud cannot compile (SPELLS-20.T4b3); Oil Flask stays MANUAL.
 
+### T4e (cast-time damage type, stopped for a ruling)
+
+- Core options cannot express "evil caster": no facet or predicate reads alignment (`shared/facet.ts` predicates cover equipped source, subclass, spellcasting, range, duration, Concentration, ritual, size, and feature or option obtained), and a choice option carries only a label, description and result block.
+- What exists: a cast-time `CHOICE` ON_USE path whose options each carry a result block (Protection from Energy's damage type, Blade Barrier's wall shape), resolved through the kernel choice prompt (`selectedOptionId`). Zone placement does not accept it yet: `placedSpaceManifest` needs exactly one compiled entry whose outcome is the zone.
+- Options sent to Phase 8:
+  - A (recommended): the caster chooses, with no alignment check. Spirit Guardians' ON_USE becomes a `CHOICE` path with two options, "Radiant (good or neutral caster)" and "Necrotic (evil caster)", each with the same zone and a different damage type. Generic change: placement accepts a CHOICE path whose chosen option's one outcome is a zone, and the chosen option's behavior is stored on the zone. Cost: the zone is authored twice (as Protection from Energy authors its options).
+  - B: a generic damage-type alternative on DAMAGE outcomes, chosen at cast and stored on the placement (the T4c `choosesUnaffected` route). Authored once and reusable (Chromatic Orb, Dragon's Breath), but it is a second cast-time choice mechanism beside CHOICE paths.
+  - C: a caster-alignment predicate that picks the type automatically. This is new alignment logic, which the brief rules out.
+  - D: radiant only; the GM adjusts necrotic by hand (status quo). Does not meet the task.
+
 ### T4f (START journey, pending-prompt interleaves, spatial resume checks)
 
 - START journey: the room harness (`movementRoom`/`actionRoom`) takes `status: 'PREPARED'` (round 0, no current actor, an ACTOR_ROLL initiative policy at Encounter start) and a `seed` that receives the Scene spatial scope. `nativeRoomTurnZoneEffects.test.ts` places a core-options START_TURN zone under the Wolf with the real planner, sends START, and proves the incoming zone save, the damage, `zoneApplications` and an exact replay.
