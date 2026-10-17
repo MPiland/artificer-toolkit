@@ -7,7 +7,7 @@ import { checkpointLiveRoom, useLocalRoomWorker } from '../../tests/fixtures/loc
 
 useLocalRoomWorker()
 
-const cancelSealedDecisions = makeFunctionReference<'mutation', Record<string, never>, unknown>(
+const cancelSealedDecisions = makeFunctionReference<'mutation', { reset: boolean }, unknown>(
   'encounters/continuationSealMigration:run'
 )
 
@@ -24,8 +24,9 @@ it('cancels a decision paused with a sealed continuation and leaves current ones
   onTestFinished(() => {
     vi.useRealTimers()
   })
+  // The component records a finished migration and skips it; each pass restarts it.
   const migrate = async () => {
-    await base.t.mutation(cancelSealedDecisions, {})
+    await base.t.mutation(cancelSealedDecisions, { reset: true })
     await base.t.finishAllScheduledFunctions(vi.runAllTimers)
   }
 
