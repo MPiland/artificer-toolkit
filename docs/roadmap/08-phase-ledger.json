@@ -778,7 +778,7 @@
             },
             {
               "id": "PLATFORM-13.T11",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 1,
@@ -7927,7 +7927,7 @@
           "tasks": [
             {
               "id": "SPELLS-7.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-7.2"],
               "text": "Bug (found by ATTACK-2.T2): 19 SRD spells whose text gives half as much damage on a successful save encode only ON_SAVE_FAIL damage, so a made save takes none: call-lightning, cloudkill, delayed-blast-fireball, earthquake, flaming-sphere, glyph-of-warding, guardian-of-faith, ice-storm, incendiary-cloud, insect-plague, moonbeam, storm-of-vengeance, sunbeam, symbol, thunderwave, wall-of-fire, wall-of-ice, wall-of-thorns, wind-wall. Add the ON_SAVE_SUCCESS half-damage path in source data, with a source-data regression test that walks every SRD spell and fails while any save-for-half text lacks it (red on these 19), plus a Thunderwave area-save resolution test proving a made save takes half. Zone spells in the list resolve the path through SPELLS-20.T4a.",
               "wsjf": {
@@ -8798,7 +8798,7 @@
             {
               "id": "SPELLS-19.T4",
               "text": "Bronze Repulsion Breath (4): an area pushes each creature that fails 30 ft away from the breather through the forced-movement path; the SPELLS-21 corpus list of non-compiling breaths is empty.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 5,
@@ -8806,7 +8806,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-19.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             }
           ]
         },
@@ -8999,7 +9000,7 @@
             },
             {
               "id": "SPELLS-20.T4f",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 2,
@@ -9008,7 +9009,8 @@
                 "size": 2,
                 "after": ["SPELLS-20.T4b2b2"]
               },
-              "text": "Raised 2026-10-17 by T4b2b2. (1) A room journey for the START turn command with a turn zone (the harness builds only ACTIVE Runs today; START is covered at persistence level). (2) Prove with a real-code test that Concentration end, zone deletion and GM undo between a pending zone or movement prompt and its commit refuse the commit (state.version bump or pending-occurrence fence); fix if any path does not. (3) Cover the frozen reaction/terminal selection checks and \"remaining spatial contacts changed\" (second queued contact) on the spatial movement resume."
+              "text": "Raised 2026-10-17 by T4b2b2. (1) A room journey for the START turn command with a turn zone (the harness builds only ACTIVE Runs today; START is covered at persistence level). (2) Prove with a real-code test that Concentration end, zone deletion and GM undo between a pending zone or movement prompt and its commit refuse the commit (state.version bump or pending-occurrence fence); fix if any path does not. (3) Cover the frozen reaction/terminal selection checks and \"remaining spatial contacts changed\" (second queued contact) on the spatial movement resume.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T4c",
