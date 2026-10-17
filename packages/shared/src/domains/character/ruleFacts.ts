@@ -98,12 +98,12 @@ export function resolveSkillAlias(subjectId: string, skillAliases: Map<string, s
 }
 
 export function buildSkillSubjectAliasMap(
-  registry: CharacterAssemblyRegistry
+  system: CharacterAssemblyRegistry['system']
 ): Map<string, string> {
   const aliases = new Map<string, string>()
 
-  if (registry.system?.schemaVersion === 4) {
-    for (const skill of registry.system.skills ?? []) {
+  if (system?.schemaVersion === 4) {
+    for (const skill of system.skills ?? []) {
       const canonical = toSkillCanonicalId(skill.code ?? '')
       if (!canonical) throw new Error(`System check definition "${skill.id}" has no code.`)
       for (const alias of [skill.id, skill.code, skill.code?.toUpperCase(), canonical]) {
@@ -123,7 +123,7 @@ export function buildSkillSubjectAliasMap(
     aliases.set(canonical.toUpperCase(), canonical)
   }
 
-  for (const skill of registry.system?.skills ?? []) {
+  for (const skill of system?.skills ?? []) {
     const canonicalByCode = toSkillCanonicalId(skill.code ?? '')
     const canonical =
       SKILL_ABILITY_MAP[canonicalByCode] !== undefined

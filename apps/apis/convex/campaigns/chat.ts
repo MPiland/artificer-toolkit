@@ -27,6 +27,7 @@ import {
   openConversation,
   presentChatEntries,
   presentChatEntry,
+  readConversationEntryReplay,
   readEntryPayload,
   readCampaignAccessTime
 } from './conversationDocuments'
@@ -139,30 +140,18 @@ export async function postCampaignChatEntry(
 ): Promise<CampaignChatEntryDto> {
   const userId = authority.membership.userId
   if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-  const { conversation, member } = await openConversation(
-    ctx,
-    authority,
-    input.room,
-    input.directUserId
-  )
+  const access = await openConversation(ctx, authority, input.room, input.directUserId)
+  const { conversation } = access
   const clientNonce = input.clientNonce.toLowerCase()
-  const prior = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
-      q
-        .eq('campaignId', authority.campaign.id)
-        .eq('authorUserId', userId)
-        .eq('clientNonce', clientNonce)
+  const prior = await readConversationEntryReplay(ctx, access, userId, clientNonce, 'CHAT')
+  if (prior)
+    return presentChatEntry(
+      ctx,
+      prior.header,
+      prior.payload,
+      conversation,
+      authority.campaign.contentMaturity
     )
-    .unique()
-  if (prior) {
-    if (prior.conversationId !== conversation.id)
-      throw new Error('Chat nonce was used in another conversation.')
-    if (prior.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
-    const payload = await readEntryPayload(ctx, prior.id)
-    if (payload.kind !== 'CHAT') throw new Error('Chat nonce was used for a different entry kind.')
-    return presentChatEntry(ctx, prior, payload, conversation, authority.campaign.contentMaturity)
-  }
   const now = await readCampaignAccessTime(ctx, authority.campaign)
   await consumeUserRateLimit(ctx, 'campaignConversation', userId)
   const character =

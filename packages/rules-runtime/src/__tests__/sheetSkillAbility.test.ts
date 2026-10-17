@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { createSkillReference } from '../character/characterSheetVocabulary.js'
 import {
   prepareFixtureBuilder,
   prepareFixtureSheet,
@@ -39,6 +40,23 @@ describe('Sheet skill governing ability', () => {
       label: 'Tumbling',
       ability: 'WISDOM'
     })
+  })
+
+  // QUALITY-1.T1: the Sheet kept its own alias map, which let the later skill silently take the alias.
+  it('refuses a System whose skill id is another skill’s code, as the rule facts do', () => {
+    const v4 = srdSystemV4()
+    const wisdom = v4.abilities.find((ability) => ability.code === 'WISDOM')
+    if (!wisdom) throw new Error('Expected the SRD Wisdom ability.')
+    const juggling = {
+      id: 'ACROBATICS',
+      code: 'JUGGLING',
+      label: 'Juggling',
+      governingAbilityDefinitionId: wisdom.id
+    }
+
+    expect(() => createSkillReference({ ...v4, skills: [...v4.skills, juggling] })).toThrow(
+      'System check alias "ACROBATICS" is ambiguous.'
+    )
   })
 
   it('rejects a skill whose governing ability the System does not define, never defaulting it', async () => {

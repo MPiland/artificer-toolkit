@@ -87,6 +87,20 @@ describe('resolveDnd5eCreatureArmorClass', () => {
     ).toBe(15)
   })
 
+  // QUALITY-1.T1: a Creature took the main hand's shield; D107 counts the one that adds the most.
+  it('counts the held shield that adds the most, as a Character does', () => {
+    expect(
+      armorClassOf({
+        ...goblin,
+        equipment: [
+          entry('Leather Armor', 'WORN'),
+          entry('Shield', 'MAIN_HAND'),
+          entry('Shield +1', 'OFF_HAND')
+        ]
+      })
+    ).toBe(16)
+  })
+
   it('caps Dexterity for medium armor and ignores it for heavy armor', () => {
     expect(
       armorClassOf({
