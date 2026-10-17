@@ -4,9 +4,11 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
+import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
+import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -105,9 +107,11 @@ describe('the source aura through the equipment node map', () => {
     ['Cloudkill', cloudkill],
     ['Insect Plague', insectPlague],
     ['Moonbeam', moonbeam],
-    ['Incendiary Cloud', incendiaryCloud]
+    ['Incendiary Cloud', incendiaryCloud],
+    ['Grease', grease],
+    ['Sleet Storm', sleetStorm]
   ])(
-    'keeps the SRD %s placed zone exactly as authored (SPELLS-4.T1a, T1c)',
+    'keeps the SRD %s placed zone exactly as authored (SPELLS-4.T1a, T1c, T1d)',
     async (_name, spell) => {
       const authored = carrying(spell.effects as EquipmentAuthored['effects'])
       const result = await normalize(authored)

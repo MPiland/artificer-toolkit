@@ -8,9 +8,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
+import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
+import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
 import { stinkingCloud } from '@artificer-toolkit/source-data/srd/spells/stinking-cloud.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
@@ -23,8 +26,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
+import { closeTrackedSockets } from './liveRoomFixture.js'
 import { hitPointsOf, readZones, walkerMoves } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -52,6 +55,13 @@ const WIZARD_SAVE_DC = 11
 const ZONE_CENTER = { x: 600, y: 600 }
 const OUTSIDE_THE_ZONE = { x: 950, y: 150 }
 
+/**
+ * A 35-foot walk through the area that starts and ends outside it: the line runs 330 units off the
+ * center, inside the 20-foot spheres' 400-unit reach, while the Wolf's 100-unit token at either end
+ * stays clear of it.
+ */
+const SPHERE_CROSSING_Y = ZONE_CENTER.y + 330
+
 afterEach(() => {
   closeTrackedSockets()
   vi.restoreAllMocks()
@@ -73,6 +83,7 @@ const SPELLS = [
   {
     spell: cloudkill,
     slotSpell: chainLightning,
+    crossingY: SPHERE_CROSSING_Y,
     ability: 'CONSTITUTION',
     turnTrigger: 'START_OF_TURN',
     casts: [
@@ -83,6 +94,7 @@ const SPELLS = [
   {
     spell: insectPlague,
     slotSpell: chainLightning,
+    crossingY: SPHERE_CROSSING_Y,
     ability: 'CONSTITUTION',
     turnTrigger: 'END_OF_TURN',
     casts: [
@@ -93,6 +105,8 @@ const SPELLS = [
   {
     spell: moonbeam,
     slotSpell: undefined,
+    // The 5-foot beam: a walk through its center.
+    crossingY: ZONE_CENTER.y,
     ability: 'CONSTITUTION',
     turnTrigger: 'START_OF_TURN',
     casts: [
@@ -104,6 +118,7 @@ const SPELLS = [
     // No higher-level damage, so the cast is offered only at the 8th level.
     spell: incendiaryCloud,
     slotSpell: undefined,
+    crossingY: SPHERE_CROSSING_Y,
     ability: 'DEXTERITY',
     turnTrigger: 'END_OF_TURN',
     casts: [{ label: 'Incendiary Cloud (8th level)', dice: 10 }]
@@ -129,8 +144,8 @@ function zoneRoom(
   })
 }
 
-async function castAtTheCenter(room: Room) {
-  const { answer } = await room.startAreaAction(ZONE_CENTER)
+async function castAtTheCenter(room: Room, center = ZONE_CENTER) {
+  const { answer } = await room.startAreaAction(center)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   const [zone, ...others] = await readZones(room)
   expect(others).toEqual([])
@@ -160,7 +175,7 @@ async function advanceTurn(room: Room) {
 }
 
 describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject) => {
-  const { spell, ability, turnTrigger, casts } = subject
+  const { spell, ability, turnTrigger, casts, crossingY } = subject
   const [firstCast] = casts
   it('is placed at the chosen point and acts on entry and at its turn boundary', async () => {
     const room = await zoneRoom(subject, firstCast.label, OUTSIDE_THE_ZONE)
@@ -168,7 +183,7 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
     expect(zone.placement).toMatchObject({
       anchorKind: 'FIXED',
       label: spell.label,
-      triggerModes: ['ENTER'],
+      triggerModes: ['ENTER', 'CROSS'],
       turnTriggers: [turnTrigger],
       maxApplicationsPerTurn: 1
     })
@@ -198,6 +213,24 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
     }
   )
 
+  it('deals the damage to a creature that passes through the area and ends its move outside (SPELLS-4.T1f)', async () => {
+    const start = { x: 250, y: crossingY }
+    const end = { x: 950, y: crossingY }
+    const room = await zoneRoom(subject, firstCast.label, start)
+    await castAtTheCenter(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [start, end])
+
+    expect(walk.terminalPosition).toEqual(end)
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]).toMatchObject({
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: firstCast.dice })]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - firstCast.dice)
+  })
+
   it(`makes a creature in the area save at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'} and take the damage`, async () => {
     const room = await zoneRoom(subject, firstCast.label, ZONE_CENTER)
     const zone = await castAtTheCenter(room)
@@ -224,6 +257,103 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
       ]
     })
     expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - firstCast.dice)
+  })
+})
+
+const PRONE_ID = conditionTypeId('PRONE')
+
+async function conditionsOf(room: Room, actorId: string) {
+  return vitalsOf(await readRoomHistory(room.room.base.stub)).find(({ id }) => id === actorId)
+    ?.conditions
+}
+
+/**
+ * SPELLS-4.T1d: zones whose failed save applies a condition and deals no damage. Sleet Storm's
+ * 40-foot-radius cylinder covers most of the map, so it is centered in a corner, away from the
+ * caster, and the Wolf walks in from the far side.
+ */
+const CONDITION_ZONES = [
+  {
+    spell: grease,
+    castLabel: 'Grease (1st level)',
+    turnTrigger: 'END_OF_TURN',
+    perTurnLimit: undefined,
+    center: ZONE_CENTER,
+    outside: OUTSIDE_THE_ZONE,
+    inside: ZONE_CENTER
+  },
+  {
+    spell: sleetStorm,
+    castLabel: 'Sleet Storm (3rd level)',
+    turnTrigger: 'START_OF_TURN',
+    perTurnLimit: 1,
+    center: { x: 950, y: 950 },
+    outside: { x: 100, y: 950 },
+    inside: { x: 450, y: 950 }
+  }
+] as const
+
+describe.each(CONDITION_ZONES)('the SRD $spell.label zone (SPELLS-4.T1d)', (subject) => {
+  const { spell, castLabel, turnTrigger, perTurnLimit, center, outside, inside } = subject
+  const room = (wolfAt: { x: number; y: number }) => zoneRoom({ spell }, castLabel, wolfAt)
+
+  it('is placed at the chosen point with a Dexterity save at the caster’s DC', async () => {
+    const zone = await castAtTheCenter(await room(outside), center)
+    expect(zone.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: spell.label,
+      triggerModes: ['ENTER', 'CROSS'],
+      turnTriggers: [turnTrigger]
+    })
+    expect(zone.placement.maxApplicationsPerTurn).toBe(perTurnLimit)
+    expect(JSON.parse(zone.definitionJson)).toMatchObject({
+      adapterFacts: {
+        [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
+          SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+        [DND5E_SAVE_DC_FACT_KEY]: WIZARD_SAVE_DC
+      }
+    })
+  })
+
+  it('knocks prone a creature that enters the area and fails its save, dealing no damage', async () => {
+    const zoneRoomed = await room(outside)
+    await castAtTheCenter(zoneRoomed, center)
+    await zoneRoomed.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(zoneRoomed, WOLF_ID)
+
+    const walk = await walkerMoves(zoneRoomed, [outside, inside])
+
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]).toMatchObject({
+      applications: [{ kind: 'CONDITION_APPLY', conditionId: PRONE_ID, applied: true }]
+    })
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([{ conditionTypeId: PRONE_ID }])
+    expect(await hitPointsOf(zoneRoomed, WOLF_ID)).toBe(hitPointsBefore)
+  })
+
+  it(`knocks prone a creature in the area at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'}`, async () => {
+    const zoneRoomed = await room(inside)
+    const zone = await castAtTheCenter(zoneRoomed, center)
+
+    const wolfStarts = await advanceTurn(zoneRoomed)
+    expect(wolfStarts.outgoing).toBeUndefined()
+    const wolfEnds = await advanceTurn(zoneRoomed)
+    const [acting, quiet] =
+      turnTrigger === 'START_OF_TURN'
+        ? [wolfStarts.incoming, wolfEnds.outgoing]
+        : [wolfEnds.outgoing, wolfStarts.incoming]
+
+    expect(quiet).toBeUndefined()
+    expect(acting).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { effectId: zone.id, targetActorId: WOLF_ID } },
+          applications: [{ kind: 'CONDITION_APPLY', conditionId: PRONE_ID, applied: true }]
+        }
+      ]
+    })
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([{ conditionTypeId: PRONE_ID }])
   })
 })
 

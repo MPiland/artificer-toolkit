@@ -7,9 +7,11 @@ import { oilFlask } from './equipment/oil-flask.js'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
 import { bladeBarrier } from './spells/blade-barrier.js'
 import { cloudkill } from './spells/cloudkill.js'
+import { grease } from './spells/grease.js'
 import { incendiaryCloud } from './spells/incendiary-cloud.js'
 import { insectPlague } from './spells/insect-plague.js'
 import { moonbeam } from './spells/moonbeam.js'
+import { sleetStorm } from './spells/sleet-storm.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
 import { stinkingCloud } from './spells/stinking-cloud.js'
 import { damageTypeId } from './spells/shared.js'
@@ -36,7 +38,9 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     ['Ball Bearings', ballBearingsBagOf1000, 'Move across the ball bearings'],
     ['Oil Flask', oilFlask, 'Enter burning oil'],
     ['Hunting Trap', huntingTrap, 'Pressure plate'],
-    ['Blade Barrier', bladeBarrier, 'Whirling Blades']
+    ['Blade Barrier', bladeBarrier, 'Whirling Blades'],
+    ['Grease', grease, 'Enter the grease'],
+    ['Sleet Storm', sleetStorm, 'Enter the sleet storm']
   ])('%s authors its enter component as ENTER_OR_PASS_THROUGH', (_name, subject, component) => {
     const kinds = interactionKindsByComponent(subject)[component]
     expect(kinds).toContain('ENTER_OR_PASS_THROUGH')
@@ -52,39 +56,26 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     )
   })
 
-  it('catches a creature of Spirit Guardians on entering and on starting its turn in the area', () => {
-    expect(interactionKindsByComponent(spiritGuardians)['Enter the spirits']).toEqual([
-      'ENTER_SPACE',
+  it.each([
+    ['Spirit Guardians', spiritGuardians, 'Enter the spirits', 'START_TURN_IN_SPACE'],
+    ['Cloudkill', cloudkill, 'Enter the poisonous fog', 'START_TURN_IN_SPACE'],
+    ['Insect Plague', insectPlague, 'Enter the locust swarm', 'END_TURN_IN_SPACE'],
+    ['Moonbeam', moonbeam, 'Enter the moonlight', 'START_TURN_IN_SPACE'],
+    ['Incendiary Cloud', incendiaryCloud, 'Enter the burning cloud', 'END_TURN_IN_SPACE']
+  ])(
+    'catches a creature of %s on entering or passing through the area and at its turn boundary (SPELLS-4.T1f)',
+    (_name, spell, component, turnTrigger) => {
+      expect(interactionKindsByComponent(spell)[component]).toEqual([
+        'ENTER_OR_PASS_THROUGH',
+        turnTrigger
+      ])
+    }
+  )
+  it('knocks a creature of Grease prone on ending its turn in the grease, and of Sleet Storm on starting it in the storm', () => {
+    expect(interactionKindsByComponent(grease)['Enter the grease']).toContain('END_TURN_IN_SPACE')
+    expect(interactionKindsByComponent(sleetStorm)['Enter the sleet storm']).toContain(
       'START_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Cloudkill on entering and on starting its turn in the fog', () => {
-    expect(interactionKindsByComponent(cloudkill)['Enter the poisonous fog']).toEqual([
-      'ENTER_SPACE',
-      'START_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Insect Plague on entering and on ending its turn in the swarm', () => {
-    expect(interactionKindsByComponent(insectPlague)['Enter the locust swarm']).toEqual([
-      'ENTER_SPACE',
-      'END_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Moonbeam on entering and on starting its turn in the beam', () => {
-    expect(interactionKindsByComponent(moonbeam)['Enter the moonlight']).toEqual([
-      'ENTER_SPACE',
-      'START_TURN_IN_SPACE'
-    ])
-  })
-
-  it('catches a creature of Incendiary Cloud on entering and on ending its turn in the cloud', () => {
-    expect(interactionKindsByComponent(incendiaryCloud)['Enter the burning cloud']).toEqual([
-      'ENTER_SPACE',
-      'END_TURN_IN_SPACE'
-    ])
+    )
   })
 })
 
@@ -107,11 +98,11 @@ function placedZoneOf(spell: SpellAuthored) {
 }
 
 /**
- * SPELLS-4.T1a, T1c and SPELLS-20.T4b3a: SRD rules of the hazard zones a placed zone cannot run yet. The zone
+ * SPELLS-4.T1a, T1c, T1d and SPELLS-20.T4b3a: SRD rules of the hazard zones a placed zone cannot run yet. The zone
  * compiler refuses any authored option it does not model, so each stays unauthored (the zone then
  * still compiles) and leaves this list when a task models it (registration is the orchestrator's).
  */
-describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c, SPELLS-20.T4b3a)', () => {
+describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1c, T1d, SPELLS-20.T4b3a)', () => {
   const zoneGaps = [
     { spell: cloudkill, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: cloudkill, rule: 'fog spreads around corners', option: 'spreadsAroundCorners' },
@@ -124,6 +115,7 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
       option: 'spreadsAroundCorners'
     },
     { spell: moonbeam, rule: 'dim light filling the cylinder', option: 'light' },
+    { spell: sleetStorm, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: stinkingCloud, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: stinkingCloud, rule: 'cloud spreads around corners', option: 'spreadsAroundCorners' },
     { spell: stinkingCloud, rule: 'wind dispersal', option: 'destructionCriteria' }
@@ -135,9 +127,16 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
     }
   )
 
-  it('leaves Insect Plague’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)', () => {
-    expect(placedZoneOf(insectPlague).components?.[0]).not.toHaveProperty('movementCostMultiplier')
-  })
+  it.each([
+    ['Insect Plague', insectPlague],
+    ['Grease', grease],
+    ['Sleet Storm', sleetStorm]
+  ])(
+    'leaves %s’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)',
+    (_name, spell) => {
+      expect(placedZoneOf(spell).components?.[0]).not.toHaveProperty('movementCostMultiplier')
+    }
+  )
 
   // D141: no creature fact says a creature does not breathe; the rider is a deferred edge case.
   it('authors Stinking Cloud’s automatic success only for immunity to poison damage', () => {
@@ -149,8 +148,8 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
   /**
    * Not authorable at all yet, so nothing in the record can show them: Cloudkill's fog moving 10
    * feet away from the caster at the start of each of the caster's turns and sinking to the lowest
-   * ground, strong wind dispersing it, and Insect Plague's save for each creature in the area when
-   * it appears (a cast that places a zone has no cast-time area save). Incendiary Cloud's cloud
+   * ground, strong wind dispersing it, and Insect Plague's and Grease's save for each creature in the area
+   * when it appears (a cast that places a zone has no cast-time area save). Incendiary Cloud's cloud
    * moving 10 feet away from the caster at the start of each of the caster's turns, its wind
    * dispersal and its save when it appears, and Moonbeam's beam moved 60 feet by the caster's
    * action. Each needs a new core option. Moonbeam's shapechanger rider (disadvantage on the save,
@@ -158,11 +157,14 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
    * creature-trait condition on a zone save and a creature form state, which the save contract
    * does not have. Also not exact: the per-turn limit counts every application, so an Insect
    * Plague or Incendiary Cloud creature that enters and ends the same turn in the area saves once
-   * (the SRD text gives two saves).
+   * (the SRD text gives two saves). Sleet Storm's Constitution save to keep Concentration for a
+   * creature concentrating in the area, and its dousing of exposed flames, need a zone save that
+   * targets a maintained effect and a light-source state, which no core option has.
    */
   it.each([
     ['Insect Plague', insectPlague],
-    ['Incendiary Cloud', incendiaryCloud]
+    ['Incendiary Cloud', incendiaryCloud],
+    ['Grease', grease]
   ])('%s places only the zone: no cast-time area save beside it', (_name, spell) => {
     expect(spell.effects?.[0]?.paths).toHaveLength(1)
     expect(spell.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')
@@ -228,6 +230,28 @@ describe('SRD zones with turn-trigger text author the turn trigger', () => {
             !subject.kinds.includes('END_TURN_IN_SPACE')
         )
         .map((subject) => subject.label)
+    ).toEqual([])
+  })
+})
+
+/**
+ * SPELLS-4.T1f: the SRD's "enters the area" includes a move that passes through it (SPELLS-17.5), so
+ * no zone whose text says a creature enters its area may author ENTER_SPACE, which fires only when a
+ * move ends inside.
+ */
+describe('SRD zones whose text says a creature enters the area', () => {
+  const ENTERS_THE_AREA = /\benters\b[^.]*\barea\b/i
+  const entered = describedZones(srdBaselineContent.subjects).filter(
+    (subject) => subject.kinds.length > 0 && ENTERS_THE_AREA.test(subject.description)
+  )
+
+  it('finds authored zones that a creature enters', () => {
+    expect(entered.length).toBeGreaterThan(0)
+  })
+
+  it('lists every such zone that authors ENTER_SPACE', () => {
+    expect(
+      entered.filter((subject) => subject.kinds.includes('ENTER_SPACE')).map(({ label }) => label)
     ).toEqual([])
   })
 })
