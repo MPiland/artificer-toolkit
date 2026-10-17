@@ -7,7 +7,8 @@ import type {
   ClassResourceAuthored,
   ClassSpellcastingAuthored,
   ClassSpellLimitsAuthored,
-  ClassSpecializationAuthored
+  ClassSpecializationAuthored,
+  StartingEquipmentAuthored
 } from '#authored'
 import {
   type AbilityCode,
@@ -23,9 +24,7 @@ import {
   compileProficiencyGrant,
   type CompiledProficiencyGrant,
   compileCharge,
-  type CompiledCharge,
-  compileStartingEquipment,
-  type CompiledStartingEquipment
+  type CompiledCharge
 } from '#compilers'
 
 export interface CompiledClassResource {
@@ -120,7 +119,7 @@ export type CompiledClass = CompiledClassBase &
     | {
         category: typeof CLASS_CATEGORY.BASE
         startingGold: CompiledStartingGold
-        startingEquipment: CompiledStartingEquipment
+        startingEquipment: StartingEquipmentAuthored
         hitpoint: CompiledHitpoint
         multiclass: CompiledMulticlass
       }
@@ -239,7 +238,7 @@ export function compileClass(authored: ClassAuthored): CompiledClass {
         ...base,
         category: authored.category,
         startingGold: authored.startingGold,
-        startingEquipment: compileStartingEquipment(authored.startingEquipment),
+        startingEquipment: authored.startingEquipment,
         hitpoint: authored.hitpoint,
         multiclass: compileMulticlass(authored.multiclass)
       }

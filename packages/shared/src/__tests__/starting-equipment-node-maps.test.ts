@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { STARTING_EQUIPMENT_ITEM_NODE_MAP, STARTING_EQUIPMENT_OPTION_NODE_MAP } from '#maps'
-import { compileStartingEquipmentOption } from '../domains/shared/compilers/startingEquipment.js'
+import { compileBackground } from '#compilers'
 
 describe('starting equipment node maps', () => {
   it('exposes and compiles option eligibility through the character facet vocabulary', () => {
@@ -50,12 +50,29 @@ describe('starting equipment node maps', () => {
     }
 
     expect(
-      compileStartingEquipmentOption({
-        id: 'option-1',
-        order: 1,
-        eligibility,
-        items: []
-      }).eligibility
+      compileBackground({
+        kind: 'BACKGROUND',
+        id: 'background-1',
+        label: 'Background',
+        userId: 'user-1',
+        systemId: 'system-1',
+        startingEquipment: {
+          id: 'starting-equipment-1',
+          sets: [
+            {
+              id: 'set-1',
+              order: 1,
+              groups: [
+                {
+                  id: 'group-1',
+                  order: 1,
+                  options: [{ id: 'option-1', order: 1, eligibility, items: [] }]
+                }
+              ]
+            }
+          ]
+        }
+      }).startingEquipment?.sets[0]?.groups[0]?.options[0]?.eligibility
     ).toEqual(eligibility)
   })
 

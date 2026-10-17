@@ -1,26 +1,17 @@
 import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 
-import type { GrantPayloadAuthored, SenseGrantAuthored } from '#authored'
+import type { GrantPayloadAuthored, SenseGrantAuthored, SenseRangeAuthored } from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
-import { compileChargeUse, compileRange, compileScalingSource } from '#compilers'
-import type {
-  CompiledGrantTarget,
-  CompiledScalingGrant,
-  CompiledChargeUse,
-  CompiledRange
-} from '#compilers'
+import { compileChargeUse } from '#compilers'
+import type { CompiledGrantTarget, CompiledScalingGrant, CompiledChargeUse } from '#compilers'
 import { SCALING } from '#core'
-
-export type CompiledSenseRange =
-  | Extract<CompiledRange, { rangeKind: 'DISTANCE' }>
-  | { id: string; rangeKind: 'UNLIMITED' }
 
 export type CompiledSenseGrant = CompiledScalingGrant<
   typeof GRANT_KIND.SENSE_GRANT,
   CompiledGrantTarget<{ senseIds: string[] }>
 > & {
   charges?: CompiledChargeUse
-  range: CompiledSenseRange
+  range: SenseRangeAuthored
 }
 
 // IMPORTANT: return `authored` for ALL so you don't drop extra fields (like `count`)
@@ -49,10 +40,6 @@ export function compileSenseGrantResult(
   }
 
   const charges = authored.charges ? compileChargeUse(authored.charges) : undefined
-  const range: CompiledSenseRange =
-    authored.range.rangeKind === 'DISTANCE'
-      ? compileRange(authored.range)
-      : { id: authored.range.id, rangeKind: authored.range.rangeKind }
 
   switch (authored.scalingKind) {
     case SCALING.NONE: {
@@ -62,7 +49,7 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
-            range,
+            range: authored.range,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.NONE,
             ...compileSenseTarget(authored)
@@ -74,7 +61,7 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
-            range,
+            range: authored.range,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             ...compileSenseTarget(authored),
@@ -89,16 +76,17 @@ export function compileSenseGrantResult(
     }
 
     case SCALING.PER_LEVEL: {
+      const { levels: _levels, ...scalingSource } = authored.progression
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.GRANTED: {
           return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
-            range,
+            range: authored.range,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.progression),
+            ...scalingSource,
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileSenseTarget(entry),
@@ -113,10 +101,10 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
-            range,
+            range: authored.range,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.progression),
+            ...scalingSource,
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileSenseTarget(entry),

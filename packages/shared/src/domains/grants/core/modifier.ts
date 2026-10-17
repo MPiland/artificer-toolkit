@@ -183,7 +183,7 @@ export const MODIFIER_SCOPE_OPTIONS = valuesOf(
   MODIFIER_SCOPE_REGISTRY
 ) as readonly ModifierScopeOption[]
 
-export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly ModifierKind[]> = {
+export const MODIFIER_KINDS_BY_DOMAIN = {
   /* ──────────────────────────────────────────────
    * CORE NUMERIC VALUES
    * ────────────────────────────────────────────── */
@@ -329,7 +329,7 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
   CONDITION_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
   ATTRIBUTE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION]
-} as const
+} as const satisfies Record<ValueDomainCode, readonly ModifierKind[]>
 
 export type ModifierKindsByDomain<V extends ValueDomainCode> =
   (typeof MODIFIER_KINDS_BY_DOMAIN)[V][number]
@@ -355,9 +355,6 @@ export type ModifierValueDomainOptionPayloadByDomain = {
 
   MOVEMENT_MODE: { movementModeId: string }
 }
-
-export type ModifierKindsByDomiain<V extends ValueDomainCode> =
-  (typeof MODIFIER_KINDS_BY_DOMAIN)[V][number]
 
 export const MODIFIER_VALUE_SOURCE_CODE = {
   FIXED: 'FIXED',
@@ -467,8 +464,3 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                       ? ValueDomainOptionPayloadByDomain[V]
                       : never
                     : never
-
-export type ModifierPayloadByDomain<
-  V extends ValueDomainCode,
-  K extends ModifierKindsByDomiain<V>
-> = ModifierPayloadFor<V, K>

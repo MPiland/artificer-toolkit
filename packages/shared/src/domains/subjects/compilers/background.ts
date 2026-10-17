@@ -1,13 +1,12 @@
-import type { BackgroundAuthored } from '#authored'
+import type { BackgroundAuthored, StartingEquipmentAuthored } from '#authored'
 import { compileFeature, type CompiledFeature } from '#compilers'
-import { compileStartingEquipment, compileProficiencyGrant } from '#compilers'
-import type { CompiledStartingEquipment, CompiledProficiencyGrant } from '#compilers'
+import { compileProficiencyGrant, type CompiledProficiencyGrant } from '#compilers'
 
 export type CompiledBackground = {
   id: string
   proficiencies?: CompiledProficiencyGrant[]
   features?: CompiledFeature[]
-  startingEquipment?: CompiledStartingEquipment
+  startingEquipment?: StartingEquipmentAuthored
 }
 
 export function compileBackground(authored: BackgroundAuthored) {
@@ -21,14 +20,10 @@ export function compileBackground(authored: BackgroundAuthored) {
       ? authored.features.map(compileFeature)
       : undefined
 
-  const startingEquipment = authored.startingEquipment
-    ? compileStartingEquipment(authored.startingEquipment)
-    : undefined
-
   return {
     id: authored.id,
     features,
     proficiencies,
-    startingEquipment
+    startingEquipment: authored.startingEquipment
   }
 }

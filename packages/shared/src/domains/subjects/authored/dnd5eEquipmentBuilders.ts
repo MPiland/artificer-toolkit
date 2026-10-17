@@ -22,7 +22,11 @@ import {
   type EquipmentGrip,
   type SizeCode
 } from '#core'
-import { type FacetConditionAuthored, type ModifierGrantAuthored } from '#authored'
+import {
+  type FacetConditionAuthored,
+  type ModifierGrantAuthored,
+  type ModifierGrantAuthoredFor
+} from '#authored'
 
 import type { EquipmentEffectAuthored } from './equipment.js'
 
@@ -131,7 +135,7 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): Modifier
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -141,7 +145,7 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): Modifier
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   return modifiers
 }
@@ -158,7 +162,7 @@ export function rangedWeaponAbilityModifiers(
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.RANGED,
       ability
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -168,7 +172,7 @@ export function rangedWeaponAbilityModifiers(
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.RANGED,
       ability
-    ) as ModifierGrantAuthored
+    )
   )
   return modifiers
 }
@@ -182,7 +186,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -192,7 +196,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -202,7 +206,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.RANGED,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -212,7 +216,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.RANGED,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   return modifiers
 }
@@ -1014,6 +1018,26 @@ export function withOffHandAttack(
   ]
 }
 
+type MeleeDamageAbilityModifier = Extract<
+  ModifierGrantAuthoredFor<typeof VALUE_DOMAIN_CODE.DAMAGE>,
+  {
+    modifierKind:
+      | typeof MODIFIER_KIND.ABILITY_MODIFIER_BONUS
+      | typeof MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+  }
+>
+
+function isMeleeDamageAbilityModifier(
+  modifier: ModifierGrantAuthored
+): modifier is MeleeDamageAbilityModifier {
+  return (
+    modifier.valueDomainCode === VALUE_DOMAIN_CODE.DAMAGE &&
+    modifier.domain.attackDomain === ATTACK_DOMAIN_CODE.MELEE &&
+    (modifier.modifierKind === MODIFIER_KIND.ABILITY_MODIFIER_BONUS ||
+      modifier.modifierKind === MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS)
+  )
+}
+
 /**
  * The off-hand attack adds no ability modifier to damage unless it is negative (SRD 5.1). Splits
  * each melee damage ability modifier into the Action attack's and a bonus-action attack's that
@@ -1023,16 +1047,19 @@ export function withOffHandDamage(
   childId: EquipmentChildId,
   modifiers: ModifierGrantAuthored[]
 ): ModifierGrantAuthored[] {
-  const bonusActionOnly = (
-    modifier: ModifierGrantAuthored,
+  const bonusActionOnly = <M extends ModifierGrantAuthored>(
+    modifier: M,
     entry: number,
     constraint: 'INCLUDE' | 'EXCLUDE'
-  ) =>
-    // Object.assign: spreading the whole modifier union is too complex for the compiler to compare.
-    Object.assign({}, modifier, {
+  ): M => {
+    const restrictions = modifier.restrictions
+    if (!restrictions)
+      throw new Error('An off-hand damage modifier needs its equipped restriction.')
+    return {
+      ...modifier,
       restrictions: {
-        ...modifier.restrictions!,
-        groups: modifier.restrictions!.groups.map((group) => ({
+        ...restrictions,
+        groups: restrictions.groups.map((group) => ({
           ...group,
           contexts: [
             ...group.contexts,
@@ -1055,23 +1082,22 @@ export function withOffHandDamage(
           ]
         }))
       }
-    }) as ModifierGrantAuthored
+    }
+  }
   let node = 0
   return modifiers
-    .flatMap((modifier, index) => {
-      const abilityModifier =
-        modifier.valueDomainCode === VALUE_DOMAIN_CODE.DAMAGE &&
-        modifier.domain.attackDomain === ATTACK_DOMAIN_CODE.MELEE &&
-        (modifier.modifierKind === MODIFIER_KIND.ABILITY_MODIFIER_BONUS ||
-          modifier.modifierKind === MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS)
-      if (!abilityModifier) return [modifier]
+    .flatMap((modifier, index): ModifierGrantAuthored[] => {
+      if (!isMeleeDamageAbilityModifier(modifier)) return [modifier]
       const offHand = withFreshIds(bonusActionOnly(modifier, 2 * index + 2, 'INCLUDE'), () =>
         childId(0x270, ++node)
       )
       return [
         bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'),
-        { ...offHand, payload: { ...offHand.payload, max: 0 } } as ModifierGrantAuthored
+        { ...offHand, payload: { ...offHand.payload, max: 0 } }
       ]
     })
-    .map((modifier, index) => ({ ...modifier, order: index + 1 }))
+    .map(<M extends ModifierGrantAuthored>(modifier: M, index: number): M => ({
+      ...modifier,
+      order: index + 1
+    }))
 }

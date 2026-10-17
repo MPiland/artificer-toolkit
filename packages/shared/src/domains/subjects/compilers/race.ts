@@ -11,11 +11,11 @@ import type {
   SubraceAuthored
 } from '#authored'
 import { RACE_CATEGORY_CODE, type RaceSelectionMode, type SizeCode } from '#core'
-import { compileFeature, type CompiledFeature, compileSpeed, type CompiledSpeed } from '#compilers'
+import { compileFeature, type CompiledFeature } from '#compilers'
 
 export interface CompiledRaceCharacteristics {
   sizeId: string
-  speeds: CompiledSpeed[]
+  speeds: SpeedAuthored[]
 }
 
 export interface CompiledRaceAncestry {
@@ -70,14 +70,14 @@ export type CompiledRace = (
       selectionMode: RaceSelectionMode
       ancestry?: CompiledRaceAncestry
       size: SizeCode
-      speeds: CompiledSpeed[]
+      speeds: SpeedAuthored[]
     }
   | {
       category: typeof RACE_CATEGORY_CODE.SUBRACE
       parentRaceId: string
       ancestry?: CompiledRaceAncestry
       size: SizeCode
-      speeds: CompiledSpeed[]
+      speeds: SpeedAuthored[]
     }
 ) &
   CompiledRaceBase
@@ -248,7 +248,7 @@ export function compileRace(authored: ResolvedRace): CompiledRace {
         selectionMode: authored.selectionMode,
         ancestry,
         size: authored.size,
-        speeds: authored.speeds.map(compileSpeed)
+        speeds: authored.speeds
       }
     }
 
@@ -261,7 +261,7 @@ export function compileRace(authored: ResolvedRace): CompiledRace {
         parentRaceId: authored.parentRaceId,
         ancestry,
         size: authored.size,
-        speeds: authored.speeds.map(compileSpeed)
+        speeds: authored.speeds
       }
     }
 

@@ -4,7 +4,6 @@ import {
   ABILITY_OPTIONS,
   type AbilityCode
 } from '../domains/core/ability.js'
-import { compileCurrencyGroups } from '../domains/subjects/compilers/character/state.js'
 import { currencies, CurrencyCode } from '../domains/vocabulary/authored/currency.js'
 import { passives, PassiveCode } from '../domains/vocabulary/authored/passive.js'
 
@@ -43,16 +42,5 @@ describe('shared D&D 5e correctness regressions', () => {
     expect(passives.find((passive) => passive.code === PassiveCode.INVESTIGATION)?.ability).toBe(
       'INTELLIGENCE'
     )
-  })
-
-  it('preserves stable currency-group identity through compilation', () => {
-    const groups = [
-      {
-        id: 'coin-purse',
-        currencies: [{ currencyId: 'gold', amount: 12 }]
-      }
-    ]
-
-    expect(compileCurrencyGroups(groups)).toEqual(groups)
   })
 })
