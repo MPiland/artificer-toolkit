@@ -111517,6 +111517,12 @@ export declare const api: {
         "public",
         { campaignId: string },
         {
+          auras: Array<{
+            id: string;
+            label: string | null;
+            radius: number;
+            sourceTokenId: string;
+          }>;
           encounter:
             | {
                 actors: Array<{
@@ -121865,6 +121871,36 @@ export declare const internal: {
         any
       >;
       runActorForm: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
+    actorIdentityMigration: {
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorIdentity: FunctionReference<
         "mutation",
         "internal",
         {

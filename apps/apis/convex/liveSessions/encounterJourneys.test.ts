@@ -1,4 +1,4 @@
-import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
@@ -310,8 +310,7 @@ describe('Encounter journeys through the room (V13.1)', () => {
     expect(bitten.projection.version).toBe(bite.expectedVersion + 1)
     // The player sees no enemy hit points, so the damage shows in the enemy's stored state.
     const enemy = (await stored(base)).actors.find((actor) => actor.id === base.enemy.id)
-    const enemyState =
-      enemy && encounterStoredRunActorStateSchema.parse(JSON.parse(enemy.stateJson))
+    const enemyState = enemy && readStoredRunActor(enemy)
     if (!enemyState || !('currentHitPoints' in enemyState))
       throw new Error('Missing the stored enemy health.')
     expect(enemyState.currentHitPoints).toBeLessThan(base.enemy.currentHitPoints)

@@ -522,7 +522,7 @@ export const adultGoldDragon: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(8, 36) + '__result',
+                id: S.actionId(8, 900),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(8, 615),
@@ -530,6 +530,64 @@ export const adultGoldDragon: CreatureAuthored = {
                   amount: 1
                 },
                 outcomes: [
+                  {
+                    id: S.actionId(8, 901),
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(8, 902),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ABILITY_CHECK',
+                          domain: { ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(8, 903),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'SAVING_THROW_MODIFIER',
+                          domain: { ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 2
+                        },
+                        {
+                          id: S.actionId(8, 904),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'MELEE', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 3
+                        },
+                        {
+                          id: S.actionId(8, 905),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'RANGED', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 4
+                        },
+                        {
+                          id: S.actionId(8, 906),
+                          grantKind: 'MODIFIER_GRANT',
+                          valueDomainCode: 'ATTACK_ROLL',
+                          domain: { attackDomain: 'UNARMED', ability: S.ABILITY_CODE.STRENGTH },
+                          modifierKind: 'DISADVANTAGE',
+                          scope: 'GLOBAL',
+                          selectionKind: 'GRANTED',
+                          order: 5
+                        }
+                      ]
+                    }
+                  },
                   {
                     id: S.actionId(8, 616),
                     effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
@@ -543,11 +601,6 @@ export const adultGoldDragon: CreatureAuthored = {
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
                     onSuccess: { kind: 'END' },
                     onFailure: { kind: 'CONTINUE' }
-                  },
-                  {
-                    id: S.actionId(8, 36),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_WEAKENING_BREATH
                   }
                 ]
               }

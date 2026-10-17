@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
+  authoredFractionSchema,
   authoredIdentifierSchema,
   authoredLengthSchema,
   authoredNestedCollectionSchema,
@@ -27,6 +28,14 @@ const emptyDomainDtoSchema = lazySchema(() => z.strictObject({}))
 const attackDomainParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema
+  })
+)
+
+/** An attack roll advantage or disadvantage that names an ability covers only attacks made with it. */
+const attackRollRollModeParamDtoSchema = lazySchema(() =>
+  z.object({
+    attackDomain: attackDomainCodeSchema,
+    ability: z.optional(abilityCodeSchema)
   })
 )
 
@@ -67,6 +76,13 @@ const skillParamDtoSchema = lazySchema(() =>
 const speedParamDtoSchema = lazySchema(() =>
   z.object({
     speedId: authoredIdentifierSchema
+  })
+)
+
+/** A speed fraction names one speed, or every speed of its holder when `speedId` is omitted. */
+const speedFractionParamDtoSchema = lazySchema(() =>
+  z.object({
+    speedId: z.optional(authoredIdentifierSchema)
   })
 )
 
@@ -384,8 +400,8 @@ const buildModifierGrantVariants = () => {
       attackDomainParamDtoSchema,
       optionalAbilityModifierBonusPayloadDtoSchema
     ),
-    buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackDomainParamDtoSchema),
-    buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackDomainParamDtoSchema),
+    buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackRollRollModeParamDtoSchema),
+    buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackRollRollModeParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
@@ -509,6 +525,12 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant('SPEED', 'BONUS', speedParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant('SPEED', 'PENALTY', speedParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant('SPEED', 'SET_VALUE', speedParamDtoSchema, authoredLengthSchema),
+    buildModifierGrantVariant(
+      'SPEED',
+      'MULTIPLY',
+      speedFractionParamDtoSchema,
+      authoredFractionSchema
+    ),
     buildModifierGrantVariant(
       'MOVEMENT_MODE',
       'ADD_OPTION',

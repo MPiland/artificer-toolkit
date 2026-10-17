@@ -13,6 +13,7 @@ export const MODIFIER_KIND = {
   BONUS: 'BONUS',
   PENALTY: 'PENALTY',
   SET_VALUE: 'SET_VALUE',
+  MULTIPLY: 'MULTIPLY',
   ABILITY_MODIFIER_BONUS: 'ABILITY_MODIFIER_BONUS',
 
   // Dice / damage
@@ -62,6 +63,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.SET_VALUE,
     label: 'Set Value',
     description: 'Set the value to a specific amount.'
+  },
+
+  MULTIPLY: {
+    code: MODIFIER_KIND.MULTIPLY,
+    label: 'Multiply',
+    description: 'Multiply the value by a fraction, rounded down.'
   },
 
   ABILITY_MODIFIER_BONUS: {
@@ -260,7 +267,12 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
    * MOVEMENT & SENSES
    * ────────────────────────────────────────────── */
 
-  SPEED: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
+  SPEED: [
+    MODIFIER_KIND.BONUS,
+    MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.SET_VALUE,
+    MODIFIER_KIND.MULTIPLY
+  ],
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
@@ -422,35 +434,40 @@ export type ModifierScalarValueAuthored =
 /** A speed or sense range modifier is a typed length, never a bare number (D112). */
 export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
 
+/** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
+export type ModifierFractionAuthored = { numerator: number; denominator: number }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  K extends 'BONUS' | 'PENALTY' | 'SET_VALUE'
-    ? V extends 'SPEED' | 'SENSE_RANGE'
-      ? ModifierLengthAuthored
-      : K extends 'SET_VALUE'
-        ? V extends 'ARMOR_CLASS'
-          ? // An armor class formula: the amount plus each listed ability modifier.
-            { amount: number; abilities: AbilityCode[] }
-          : { amount: number }
-        : ModifierScalarValueAuthored
-    : K extends 'ABILITY_MODIFIER_BONUS'
-      ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
-      : K extends 'MODIFY_CHARGE_LIMIT'
-        ? ChargeLimitPayload
-        : K extends 'ADD_BONUS_DIE'
-          ? { dice: string }
-          : K extends 'REPLACE_DAMAGE_TYPE'
-            ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-            : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-              ? undefined
-              : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                ? { abilities: AbilityCode[]; min?: number; max?: number }
-                : // option-like operations must be domain-supported
-                  K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                  ? V extends keyof ValueDomainOptionPayloadByDomain
-                    ? ValueDomainOptionPayloadByDomain[V]
+  K extends 'MULTIPLY'
+    ? ModifierFractionAuthored
+    : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE'
+      ? V extends 'SPEED' | 'SENSE_RANGE'
+        ? ModifierLengthAuthored
+        : K extends 'SET_VALUE'
+          ? V extends 'ARMOR_CLASS'
+            ? // An armor class formula: the amount plus each listed ability modifier.
+              { amount: number; abilities: AbilityCode[] }
+            : { amount: number }
+          : ModifierScalarValueAuthored
+      : K extends 'ABILITY_MODIFIER_BONUS'
+        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+        : K extends 'MODIFY_CHARGE_LIMIT'
+          ? ChargeLimitPayload
+          : K extends 'ADD_BONUS_DIE'
+            ? { dice: string }
+            : K extends 'REPLACE_DAMAGE_TYPE'
+              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+              : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                ? undefined
+                : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                  ? { abilities: AbilityCode[]; min?: number; max?: number }
+                  : // option-like operations must be domain-supported
+                    K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                    ? V extends keyof ValueDomainOptionPayloadByDomain
+                      ? ValueDomainOptionPayloadByDomain[V]
+                      : never
                     : never
-                  : never
 
 export type ModifierPayloadByDomain<
   V extends ValueDomainCode,

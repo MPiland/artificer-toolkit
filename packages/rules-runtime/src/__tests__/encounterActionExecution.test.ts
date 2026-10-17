@@ -246,6 +246,7 @@ function binding(
     actionMechanic: {
       attackBonus: input.attack ? 5 : null,
       attackKind: input.attack ? 'MELEE' : null,
+      attackAbility: null,
       attackRollMode: 'NORMAL',
       save: null,
       outcomes: input.outcomes ?? []

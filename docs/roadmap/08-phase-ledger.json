@@ -1054,6 +1054,177 @@
               }
             }
           ]
+        },
+        {
+          "id": "PLATFORM-20",
+          "title": "One flat compile stage: no dead or copy-only compilers",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 8,
+            "size": 5
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-20.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request after the compiler audit: three slices hit TypeScript union-complexity limits (TS2589/TS2590/TS2859) because CompiledModifierGrant carries the whole authored union, and SPELLS-19.T3d is blocked on it. The audit found the Character compilers dead, several compilers copy-only, and the stored compilation projection written at publish but never read (the runtime recompiles every evaluation).",
+              "text": "No unused compiler code: the Character compilers (packages/shared subjects/compilers/character: compileCharacter, intent, state, profile) and the unused shape compiler type are deleted, and every remaining compiler has a production caller."
+            },
+            {
+              "id": "PLATFORM-20.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "No copy-only compilers: a compiler whose output is the authored shape copied (range, duration, scaling source, speed, starting equipment, feature option, background and any other found) is deleted and its callers use the authored type; every remaining compiler validates, resolves or reshapes, and its compiled type differs from the authored one."
+            },
+            {
+              "id": "PLATFORM-20.3",
+              "status": "TODO",
+              "origin": [],
+              "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold and every fold consumer read those typed fields with no Record<string, unknown> casts, and the persisted fold contract carries typed scope and payload instead of a JSON dump of the grant, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859.",
+              "note": "Orchestrator ruling 2026-10-17 on the session question: option A (typed persisted contract plus a dev-data migration), per the user's best-practice direction and the pre-launch no-compat rule."
+            },
+            {
+              "id": "PLATFORM-20.4",
+              "status": "TODO",
+              "origin": [],
+              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-20.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-20.1", "PLATFORM-20.2"],
+              "text": "Delete the dead and copy-only compilers; flatten the compiled modifier grant so the fold builds from typed fields; type the SRD builders per domain and remove the union workarounds.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-20.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-20.3", "PLATFORM-20.4"],
+              "text": "The persisted fold contract is typed: modifierOperationSchema replaces the grant JSON dump with typed scope and payload, the rules-runtime consumers read typed fields (no record() casts), stored development rows are migrated in the same change, and the docs describe the compile stage as built.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-20.T1"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-21",
+          "title": "The engine loads compiled content instead of recompiling",
+          "status": "TODO",
+          "origin": [],
+          "wsjf": {
+            "bv": 8,
+            "tc": 5,
+            "rr": 8,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-21.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "User decision 2026-10-17 (option a): compile once at publish, as ADR 0003 describes, for performance and reliability.",
+              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics."
+            },
+            {
+              "id": "PLATFORM-21.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-21.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
+              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8,
+                "after": ["PLATFORM-20.T1"]
+              }
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-22",
+          "title": "Fewer and faster CI cycles per slice",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 5,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-22.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-17 at the user's request: about half of the day's failed CI cycles were type errors found only after a 15-20 minute run.",
+              "text": "A push with a type error in any workspace, tests included, fails its Tests run within about five minutes and stops the run's remaining jobs, and scripts/watchCi.ps1 reports the type error; a green run is no slower than today."
+            },
+            {
+              "id": "PLATFORM-22.2",
+              "status": "TODO",
+              "origin": [],
+              "text": "A room command that fails inside the Worker test harness reports the underlying error in the test failure, while a production rejection stays the generic UNAVAILABLE with no internal detail sent to clients."
+            },
+            {
+              "id": "PLATFORM-22.3",
+              "status": "TODO",
+              "origin": [],
+              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-22.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-22.1", "PLATFORM-22.2"],
+              "text": "Fail-fast typecheck gate in tests.yml and the watcher; test-only error detail on Worker room rejections.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              }
+            },
+            {
+              "id": "PLATFORM-22.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-22.3"],
+              "text": "Single-slice merge rule in AGENTS.md, applied at the next single-slice merge.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              }
+            }
+          ]
         }
       ]
     },
@@ -4052,7 +4223,8 @@
                 "rr": 5,
                 "size": 8
               },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md"
+              "activeWorkbook": "docs/handoffs/slice-room-6.md",
+              "note": "Projection-budget gate cleared: stored actors keep identity in row columns only (actorIdentityMigration). Red ci/room-6-budget-red 8cf39bdf5 (Tests 38978140021, 255280 > 230400); green 50e365a3f (Tests 38984324373, Live 38984286163); merged in m59 ea6b4a50f (Tests 38986074614, Live 38986074610). 100-actor read 226707 B OWNER / 227378 B PLAYER."
             },
             {
               "id": "ROOM-6.T4",
@@ -8238,7 +8410,7 @@
             {
               "id": "SPELLS-19.T3b",
               "text": "Gold Weakening (4) and the speed and reaction riders of Copper Slowing (4) re-authored from core options as a grant plus repeat save, the grant gated on the failed save (compiler fix), no closed rule. Additive core options: an optional ability scope on the ATTACK_ROLL domain read by Creature and Character folds, plain ability-scoped save advantage/disadvantage read for Creature holders, and a SPEED fraction payload rounded down per D94. Corpus pin updated row by row.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8247,12 +8419,12 @@
                 "size": 5,
                 "after": ["SPELLS-19.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "proof": "Red ci/spells-19-t3b-red 2c8351736 (Tests 38950478150); green ci/spells-19-t3b 05cf244f1 (Tests 38974361848, Live 38974361808); merged with T3c at dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3c",
               "text": "Gorgon Petrifying Breath: 30 ft cone shaped, the printed repeat save and the petrify stage authored from core options.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8261,20 +8433,21 @@
                 "size": 3,
                 "after": ["SPELLS-19.T3"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "proof": "Red ci/spells-19-t3c-red f53086a3f (Tests 38976770402 failed on the three Gorgon assertions); green ci/spells-19-t3c dd3b86ee1 (Tests 38981836646, Live 38981836670)."
             },
             {
               "id": "SPELLS-19.T3d",
               "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-19.T3b"]
-              }
+                "after": ["SPELLS-19.T3b", "PLATFORM-20.T1"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             },
             {
               "id": "SPELLS-19.T4",
@@ -8359,7 +8532,7 @@
             {
               "id": "SPELLS-20.T2b",
               "text": "Ending, dropping or replacing Concentration removes the zones dependent on that maintained state in the same transaction (one cleanup path, D135), and GM undo restores them; serves every lasting zone.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -8367,12 +8540,13 @@
                 "rr": 5,
                 "size": 3,
                 "after": ["SPELLS-20.T2a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T3",
               "text": "Encounter session state carries each aura's label, radius and source token only to viewers allowed to see the source (Convex and room parity); unblocks VTT_UI-3.1.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 8,
@@ -8381,7 +8555,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "proof": "Red ci/spells-20-t3-red c6f4813bd (Tests 38978456915 failed on the two aura room tests and activeReads); green ci/spells-20-t3 897458fa0 (Tests 38984886789, Live 38984886833); merged in m60 3f46d92b1 (Tests 38987673112, Live 38987673094)."
             },
             {
               "id": "SPELLS-20.T4",

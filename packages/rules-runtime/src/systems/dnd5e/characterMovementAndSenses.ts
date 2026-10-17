@@ -9,7 +9,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { lengthInUnit, widestLengthByKey } from '../../modifierLength.js'
+import { lengthInUnit, speedAfterFractions, widestLengthByKey } from '../../modifierLength.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
@@ -103,6 +103,19 @@ export function evaluateDnd5eCharacterMovementAndSenses(
             }
     }
   }
+  /** "Your speed is multiplied by n/d" grants, each for one speed or, with none named, for every speed. */
+  const speedFractions = modifierGroups
+    .filter((group) => group.valueDomainCode === 'SPEED' && group.modifierKind === 'MULTIPLY')
+    .flatMap((group) => {
+      const speedId = groupDomain(group).speedId
+      return characterWide([group]).map((contribution) => ({
+        speedId: typeof speedId === 'string' ? speedId : null,
+        contribution,
+        payload: characterPolicyRecord(
+          grantFold.modifiers[contribution.acceptedModifierIndex]?.grant
+        ).payload
+      }))
+    })
   const factSpeeds = input.movementFacts?.speeds ?? []
   const speeds = [
     ...factSpeeds.map(({ speedId, base, override }) => {
@@ -124,7 +137,39 @@ export function evaluateDnd5eCharacterMovementAndSenses(
         ? null
         : { sourceId: override.sourceId, value: lengthInUnit(override.value, base.unit) }
     )
-    return { speedId, amount: resolved.effective, unit: base.unit, calculation: resolved }
+    // A manual override is the speed itself, so no fraction applies to it.
+    const fractions =
+      override === null
+        ? speedFractions.filter(
+            (fraction) => fraction.speedId === null || fraction.speedId === speedId
+          )
+        : []
+    let running = resolved.effective
+    const fractionContributions = fractions.map(({ contribution }, index) => {
+      const next = speedAfterFractions(
+        resolved.effective,
+        fractions.slice(0, index + 1).map(({ payload }) => payload)
+      )
+      const value = next - running
+      running = next
+      return {
+        sourceId: contribution.sourceId,
+        source: contribution.source,
+        value,
+        state: contribution.state,
+        reasonCode: contribution.reasonCode
+      }
+    })
+    return {
+      speedId,
+      amount: running,
+      unit: base.unit,
+      calculation: {
+        ...resolved,
+        effective: running,
+        contributions: [...resolved.contributions, ...fractionContributions]
+      }
+    }
   })
   const preference = input.movementFacts?.preference
   const primaryMovementSpeedId =

@@ -1099,7 +1099,12 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     ...healingWord,
     id: 'spell-polymorph:cast',
     label: 'Polymorph',
-    target: { kind: 'ACTORS' as const, maxTargets: 1, area: null, choosesCreatureForm: true as const }
+    target: {
+      kind: 'ACTORS' as const,
+      maxTargets: 1,
+      area: null,
+      choosesCreatureForm: true as const
+    }
   })
 
   async function chooseTargets(user: ReturnType<typeof userEvent.setup>) {

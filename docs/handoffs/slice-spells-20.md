@@ -4,8 +4,8 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Resume here
 
-- T1, T1b and T2a are done and accepted (T2a at `16e4493c7`).
-- Next: T3 (aura label, radius and source token only to viewers allowed to see the source, Convex and room parity), then T2b (cleanup removes dependent zones, GM undo restores them, replacement removes the old zone).
+- T1, T1b, T2a and T3 are done (T2a at `16e4493c7`; T3 at `897458fa0` on `ci/spells-20-t3`, based on the T2a tip plus `ci/merge-batch-bf`).
+- Next: T2b (cleanup removes dependent zones, GM undo restores them, replacement removes the old zone).
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -58,11 +58,7 @@ Registered by Phase 8 (commits 287f7d0c2 and a97894a8d, ruling D133 in 81d760bdf
 - Red: Tests 38947417012, Live backend 38947417027 on 7ea6348fd (`ci/spells-20-t1b-red`). Tests: `apps/session-worker/test/nativeRoomSourceAura.test.ts` (cast leaves a token-anchored zone with the pinned caster DC; entry damage; caster walking onto a creature; GM undo) and `packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts` (ADR 0038 parity).
 - Authoring: `spirit-guardians.ts` is a SOURCE `ZONE` (15 ft sphere, 10 minutes, `ENTER_SPACE`, Wisdom save against `SOURCE_SAVE_DC`, 3d8 radiant on a failed save). The closed `SPIRIT_GUARDIANS` rule kind is deleted.
 - Seams: `zonePlacement.attachment`, `zoneEntrySavingThrow` (zone save in the action facts), token-anchored `planEncounterPlacedZone` with `sourceToken` and `saveDc`.
-- `D-pending-spells-20` (T1b decisions, Phase 8 assigns the number):
-  5. A SOURCE zone reuses the placed-zone compile and creator; the caster's save DC is pinned at placement from the resolved action mechanic, not rolled.
-  6. Radius is the authored radius plus half the token width (circle, not the rounded rectangle of the SRD wording): smaller than the rule on diagonals for a square token.
-  7. Until T4 a higher-slot cast deals the base 3d8, a made save deals 0 (no half damage), and there is no half-speed or start-of-turn damage. Each is a refused or absent zone feature, not partly honored.
-  8. Spirit Guardians' necrotic-or-radiant alignment choice has no generic option; the zone is radiant.
+- `D-pending-spells-20` (T1b decisions, Phase 8 assigns the number): 5. A SOURCE zone reuses the placed-zone compile and creator; the caster's save DC is pinned at placement from the resolved action mechanic, not rolled. 6. Radius is the authored radius plus half the token width (circle, not the rounded rectangle of the SRD wording): smaller than the rule on diagonals for a square token. 7. Until T4 a higher-slot cast deals the base 3d8, a made save deals 0 (no half damage), and there is no half-speed or start-of-turn damage. Each is a refused or absent zone feature, not partly honored. 8. Spirit Guardians' necrotic-or-radiant alignment choice has no generic option; the zone is radiant.
 - Follow-up: the aura's alignment-damage choice (generic authoring option).
 - CI fixes on 4ee8b1c65: `zoneAttachment.test.ts` now expects Spirit Guardians among the SOURCE zones (the intended T1b change, assertion widened by the one new owner, none removed); the zone-save helper moved into `characterActionRuleFacts.ts` because the web boundary test (ADR 0036 S6) forbids the web bundle reaching `encounter*` rules modules.
 
@@ -76,3 +72,12 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Left to T2b: cleanup removes dependent zones (`removedZoneIds`, `by_state_encounter` index), GM undo restores them, a replacement removes the old zone (until then a replaced state leaves its old zone pointing at a deleted state).
 
 - Done: green `16e4493c7` on `ci/spells-20-t2a`, Tests 38972849265 (re-run of the failed jobs after a room-authority Escape flake and a budget-cap run, neither T2a) and Live 38974795282. Fixes on the way: fixtures name `maintainedEffectStateId`; a zone-only state has no created dependent effects (schema minimum removed, D135); the aura test reads `descriptorJson`.
+
+### T3 (auras in the session state, viewer-redacted)
+
+- Red: Tests 38978456915 on `c6f4813bd` (`ci/spells-20-t3-red`): the two aura room tests and `activeReads` fail (the other red jobs were the Escape flake and the `encounterWriteSets` budget).
+- Green: `897458fa0` on `ci/spells-20-t3`: Tests 38984886789, Live backend 38984886833.
+- Seam: `EncounterSessionStateDto.auras` (`id`, `label`, `radius`, `sourceTokenId`). `readEncounterSessionState` (shared by `encounters/activeReads:active` and the room feed) reads the Scene zones once (`readSceneSpatialRows`) for `halfSpeedFieldsOf` and `readSessionAuras`. An aura is listed only when its source actor (found through the token binding) is in the member's own presented projection, so redaction is the one D121 rule, not a second filter. Convex reads pass no fog, so they list only sources the projection lists; the room lists more.
+- Only circle zones centered on a token (`anchorKind: 'TOKEN'`) that are public or revealed are auras.
+- The second zone read pushed the `encounterWriteSets` 100-actor read over its 250 KiB cap (256197 B), so the two readers share one read. ROOM-6 still owns the real trim.
+- Not in T3: drawing the aura on the map (VTT_UI-3.1 consumes `auras`).

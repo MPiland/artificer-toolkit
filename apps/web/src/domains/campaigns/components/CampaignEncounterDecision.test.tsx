@@ -47,7 +47,8 @@ const heldRoom: HeldEncounterSession = {
     pending,
     waitingOn: null,
     turnMovement: [],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   },
   preparedPending: [],
   actorSides: null,
