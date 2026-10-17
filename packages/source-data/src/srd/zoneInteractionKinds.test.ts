@@ -77,7 +77,11 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
 function placedZoneOf(spell: SpellAuthored) {
   const path = spell.effects?.[0]?.paths[0]
   const outcome = (
-    path?.selectionKind === 'FIXED' ? path.resultBlock : path?.options[0]?.resultBlock
+    path?.selectionKind === 'FIXED'
+      ? path.resultBlock
+      : path?.selectionKind === 'CHOICE'
+        ? path.options[0]?.resultBlock
+        : undefined
   )?.outcomes[0]
   if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
     throw new Error(`${spell.label} must place a zone.`)

@@ -41,7 +41,9 @@ function auraZones(equipment: EquipmentAuthored) {
   const blocks =
     path?.selectionKind === 'FIXED'
       ? [path.resultBlock]
-      : (path?.options ?? []).map((option) => option.resultBlock)
+      : path?.selectionKind === 'CHOICE'
+        ? path.options.map((option) => option.resultBlock)
+        : []
   const zones = blocks.flatMap(({ outcomes }) =>
     outcomes[0]?.effectKind === 'MANIFEST' && outcomes[0].manifestKind === 'ZONE'
       ? [outcomes[0]]

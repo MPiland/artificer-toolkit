@@ -55,7 +55,8 @@ function pickBetween(changeSecond: (parts: ZoneParts) => void): EquipmentAuthore
 }
 
 const harderSave = ({ invocation }: ZoneParts) => {
-  invocation.savingThrow = { ...invocation.savingThrow, baseDc: 18 }
+  const { id, abilityDefinitionId } = invocation.savingThrow
+  invocation.savingThrow = { id, abilityDefinitionId, dcMethod: 'FIXED_DC', baseDc: 18 }
 }
 
 /** The pick compiled through the real policy and entry compiler, required to compile. */
