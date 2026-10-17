@@ -53,7 +53,6 @@ Character creation is intentionally a different module. The Builder coordinates 
 ```text
 yarn dev
 yarn turbo:typecheck:web
-yarn turbo:affected:typecheck
 yarn turbo:test:authoring
 yarn workspace @artificer-toolkit/web test:forms
 yarn workspace @artificer-toolkit/web test:authoring

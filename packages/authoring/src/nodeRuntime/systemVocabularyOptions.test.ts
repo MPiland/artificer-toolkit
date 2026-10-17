@@ -105,4 +105,16 @@ describe('System vocabulary option descriptions', () => {
     expect(selects.length).toBeGreaterThan(30)
     for (const plan of selects) expect(plan.selectColumns, plan.table).toContain('description')
   })
+
+  it('selects only columns the node runtime source manifest serves, on every node map select', () => {
+    const selects = listRuntimeNodeMapIds()
+      .flatMap((mapId) => collectTablePlans(getRuntimeNodeMap(mapId).nodes))
+      .filter((plan) => plan.selectColumns)
+
+    for (const plan of selects) {
+      const served: readonly string[] =
+        nodeRuntimeSourceManifest[plan.table as keyof typeof nodeRuntimeSourceManifest]
+      for (const column of plan.selectColumns ?? []) expect(served, plan.table).toContain(column)
+    }
+  })
 })

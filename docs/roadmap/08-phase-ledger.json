@@ -1293,7 +1293,7 @@
         {
           "id": "PLATFORM-23",
           "title": "CI runs exactly the tests a change can affect",
-          "status": "TODO",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -1304,37 +1304,56 @@
           "acs": [
             {
               "id": "PLATFORM-23.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all.",
-              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test."
+              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all. Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test.",
+              "proof": [
+                "scripts/affectedTests.test.mjs",
+                "docs/architecture/ci-validation.md",
+                "docs/handoffs/slice-platform-23.md#t2-affected-test-selection"
+              ]
             },
             {
               "id": "PLATFORM-23.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions.",
-              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions."
+              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions. Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions.",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/offHandAttackAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/escapeDcOptions.test.ts",
+                "packages/authoring/src/nodeRuntime/concealmentAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts",
+                "docs/handoffs/slice-platform-23.md#t1-the-12-authoring-failures"
+              ]
             },
             {
               "id": "PLATFORM-23.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them.",
-              "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule."
+              "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them. Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule.",
+              "proof": ["scripts/withValidationLock.ps1", "docs/handoffs/slice-platform-23.md"]
             },
             {
               "id": "PLATFORM-23.4",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-16 with the user's approval: Worker room tests import the rules-runtime dist, and the light lane refused every build, so a session that changed a package could not run its Worker test locally and pushed blind (SPELLS-20.T4a, two failed CI runs).",
-              "text": "A session can run its scoped test files locally after changing a package they import: the runner builds only the workspaces those files depend on (Turbo-cached, memory-gated, one build at a time) before the tests, and the light lane stays limited to named test files."
+              "note": "Registered 2026-10-16 with the user's approval: Worker room tests import the rules-runtime dist, and the light lane refused every build, so a session that changed a package could not run its Worker test locally and pushed blind (SPELLS-20.T4a, two failed CI runs). Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "A session can run its scoped test files locally after changing a package they import: the runner builds only the workspaces those files depend on (Turbo-cached, memory-gated, one build at a time) before the tests, and the light lane stays limited to named test files.",
+              "proof": [
+                "scripts/withValidationLock.ps1",
+                "docs/handoffs/slice-platform-23.md#t4-scoped-build-before-local-test-files"
+              ]
             }
           ],
           "tasks": [
             {
               "id": "PLATFORM-23.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.2"],
               "text": "Fix the 12 failing packages/authoring tests at their cause; re-verify the ACs that cite them.",
               "wsjf": {
@@ -1347,7 +1366,7 @@
             },
             {
               "id": "PLATFORM-23.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.1"],
               "text": "tests.yml: affected-only test selection per slice from the module graph across all packages; full suite on merge batches; remove the hand-kept package list.",
               "wsjf": {
@@ -1360,7 +1379,7 @@
             },
             {
               "id": "PLATFORM-23.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.3"],
               "text": "Typecheck lane in scripts/withValidationLock.ps1 running the affected typecheck (changed workspaces and dependents against the phase-branch merge-base); AGENTS.md pre-push rule; measured local time against the CI gate.",
               "wsjf": {
@@ -1373,7 +1392,7 @@
             },
             {
               "id": "PLATFORM-23.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.4"],
               "text": "Scoped dependency build before local test files in scripts/withValidationLock.ps1; AGENTS.md: run the touched test files locally before every push.",
               "wsjf": {
@@ -1384,7 +1403,8 @@
                 "after": ["PLATFORM-23.T3"]
               }
             }
-          ]
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-24",
@@ -7790,7 +7810,7 @@
         {
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
-          "status": "DONE",
+          "status": "TODO",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
             "apps/web/tests/live-backend/encounterArea.ts"
@@ -7816,7 +7836,7 @@
             },
             {
               "text": "Every caught creature's save is asked at once, each by the creature's own roller; damage is rolled once and applies in full on a failed save and halved on a success, per target with its own defenses; the action commits once when the last save is in, and GM undo reverts every target.",
-              "status": "DONE",
+              "status": "TODO",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
                 "apps/session-worker/test/nativeRoomAreaAction.test.ts",
@@ -7837,7 +7857,27 @@
               "note": "User ruling 2026-10-10 (no metagaming, like ATTACK-10.1 and ATTACK-17.3). A failed save shows the creature in the results; revealing its token on the map stays the GM's call. Built 2026-10-10 (D103). Proved by a room test where a player controls an Invisible creature the caster cannot perceive: that player reads and answers their own save prompt, the caster's view shows nothing of it, and the GM reads all. The roller's own roll card stays GM-private until ATTACK-17.5.",
               "id": "SPELLS-7.3"
             }
-          ]
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-7.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-7.2"],
+              "text": "Bug (found by ATTACK-2.T2): 19 SRD spells whose text gives half as much damage on a successful save encode only ON_SAVE_FAIL damage, so a made save takes none: call-lightning, cloudkill, delayed-blast-fireball, earthquake, flaming-sphere, glyph-of-warding, guardian-of-faith, ice-storm, incendiary-cloud, insect-plague, moonbeam, storm-of-vengeance, sunbeam, symbol, thunderwave, wall-of-fire, wall-of-ice, wall-of-thorns, wind-wall. Add the ON_SAVE_SUCCESS half-damage path in source data, with a source-data regression test that walks every SRD spell and fails while any save-for-half text lacks it (red on these 19), plus a Thunderwave area-save resolution test proving a made save takes half. Zone spells in the list resolve the path through SPELLS-20.T4a.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2
+              }
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 3,
+            "size": 2
+          }
         },
         {
           "id": "SPELLS-8",
@@ -8811,7 +8851,7 @@
             },
             {
               "id": "SPELLS-20.T4b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Once-per-turn zone counter per (effect, creature, turn), stored on the Encounter run state keyed by effect and actor with the turn identity in each entry (an entry from another turn counts as unspent and is pruned on write; the placement stays immutable). First ENTER consumes it and maxApplicationsPerTurn gets its runtime consumer; proved on Caltrops and Spirit Guardians.",
               "wsjf": {
@@ -8821,19 +8861,47 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4a"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Merged in ci/merge-m69 (1b6a82f55; Tests 39015047531, Live 39015047560 green), on the phase branch at 2d68ffd4e."
             },
             {
-              "id": "SPELLS-20.T4b2",
-              "status": "TODO",
+              "id": "SPELLS-20.T4b2a",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
-              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones as a new turn stage (pending context ENCOUNTER_TURN_ZONE_EFFECTS) through encounterTurnPending, after Recharge, the death save and the start-of-turn effects, carrying the save then the damage roll through one save-then-dice resume shared with the spatial movement path; membership through spatialEffectAffects; consumes the T4b1 counter; prompted per ADR 0034 and not undoable like other turn-stage rolls. Proved on Spirit Guardians and a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "text": "Turn-trigger authoring and seams: zones author interactionKinds (the single interactionKind is deleted and data migrated, no fallback); START_TURN_IN_SPACE and END_TURN_IN_SPACE compile to placement turnTriggers (immutable with the placement checksum); one shared containment function in shared/vtt beside collectSpatialMovementCandidates selects the zones containing an actor at a turn boundary through spatialEffectAffects and the T4b1 counter; the save-then-dice resume moves out of encounterSpatialMovementRuleService into one helper in targetBoundActiveRuleEffectExecutor.ts that the spatial path calls. Proved on Spirit Guardians compiling ENTER plus START.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-20.T4b1"]
+              },
+              "note": "Merged in ci/merge-m70 (bf28ba704; Tests 39016326656, Live 39016326595 green), on the phase branch at f23112bd8."
+            },
+            {
+              "id": "SPELLS-20.T4b2b1",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-20.1"],
+              "text": "Turn zone stage contract and rules: the ENCOUNTER_TURN_ZONE_EFFECTS pending context, candidate and execution DTOs, batch kind and root phase fields in packages/schema; the stage in rules-runtime prepareEncounterTurn after Recharge, the death save and the actor's own turn-boundary effects (active effects then zones, each by effect id; the shared context seams are extended, not cloned), carrying the save then the damage roll through the T4b2a shared resume and consuming the T4b1 counter. Proved by real-code rules-runtime tests: two zones in effect-id order, START and END on a zone authored from core options, the save-then-dice resume, and the per-turn limit.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T4b2a"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b2b2",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "Turn zone stage persistence and play: staged-plan validation, the mechanics batch and the zone application record in the terminal transaction, the generic encounter-persistence seams (pending reads, admission, replay, void and owner, terminal completion), Session Worker and Convex loading of placed zones and the Scene, the SRD flip, ADR 0034 note and persistence.md section; prompted rolls are not undoable. Proved by a Stinking Cloud journey plus Spirit Guardians start. Unblocks Stinking Cloud and Blade Barrier; Oil Flask stays MANUAL (requiresIgnition, maxApplicationsTotal).",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-20.T4b2b1"]
               }
             },
             {
@@ -8859,7 +8927,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-20.T4b2"]
+                "after": ["SPELLS-20.T4b2b2"]
               }
             },
             {
@@ -8885,7 +8953,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4b2"]
+                "after": ["SPELLS-20.T4b2b2"]
               }
             }
           ]
@@ -9150,7 +9218,7 @@
         {
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomDepartAction.test.ts",
             "apps/session-worker/test/nativeRoomActorLink.test.ts",
@@ -9158,13 +9226,13 @@
             "apps/session-worker/test/nativeRoomPolymorph.test.ts",
             "apps/session-worker/test/nativeRoomTeleportAction.test.ts"
           ],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "id": "SPELLS-28.1",
               "text": "SRD spells whose outcome is TELEPORT (Word of Recall, the travel half of Plane Shift), MANIFEST (Giant Insect) or TELEPATHIC_LINK (Telepathic Bond) cast in an Encounter through outcome executors authored from core options, each with a test against the real compiler and one journey.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
                 "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
@@ -9173,7 +9241,7 @@
                 "T4-T4d creature form for Characters: apps/session-worker/test/nativeRoomPolymorph.test.ts (Polymorph, form outlasting the Run, acting in the form: the form Bite resolves and hurts its target); characterFormActions.test.ts. Merged in m65 22e21b5c5."
               ],
               "origin": [],
-              "note": "Held open: its core-options parity proof packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts is one of the 12 failing authoring tests CI never ran; closes when PLATFORM-23.2 makes it green. Giant Centipede Bite (GIANT_CENTIPEDE_VENOM outcome) is not plannable, so a Giant Insect centipede cannot bite yet."
+              "note": "Re-verified 2026-10-17 after PLATFORM-23.2: the parity test runs in CI and passes in the full m68 run (Tests 39012209131 on d045e5248). Giant Centipede Bite (closed rule GIANT_CENTIPEDE_VENOM) is not plannable yet, so a Giant Insect centipede cannot bite; that closed rule converts in SPELLS-4.T2."
             },
             {
               "id": "SPELLS-28.2",
@@ -9480,7 +9548,7 @@
             {
               "id": "SPELLS-27.T9",
               "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9489,7 +9557,7 @@
                 "size": 3,
                 "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              "note": "Merged in ci/merge-m70 (bf28ba704; Tests 39016326656, Live 39016326595 green), on the phase branch at f23112bd8. Narrowed: an ON_SAVE_FAIL APPLY_GRANT is plan-owned only when timedConditionPlan accepts the action; a whole-SRD compile comparison against the base moved no spell to MANUAL (upgrades: Charm Person, Fear, Hold Person, Hypnotic Pattern, Invisibility, Greater Invisibility, Sleep)."
             },
             {
               "id": "SPELLS-27.T10",
@@ -9535,7 +9603,7 @@
         {
           "id": "SPELLS-29",
           "title": "Frightened follows its source",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/session-worker/test/nativeRoomFearSource.test.ts"],
           "origin": [
             "SPELLS-19.T2 escalation 2026-10-16: Frightened applies while present and its source is not tracked (D-limits at SPELLS-2)"
@@ -9564,7 +9632,7 @@
             {
               "id": "SPELLS-29.2",
               "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
               ],
@@ -9574,7 +9642,7 @@
                 "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts (homebrew Panicked from core options), packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts, characterSpellCastActions.test.ts, packages/shared/src/__tests__/effect-compiler.test.ts (fleesSource).",
                 "Red 04e6af8c5 (Tests 38960560081, Live 38960560070); green 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
               ],
-              "note": "Reopened 2026-10-16: its cited proof conditionSourceAuthoringParity.test.ts fails on the phase branch (CI never ran authoring tests). Closes again with PLATFORM-23.2."
+              "note": "Re-verified 2026-10-17 after PLATFORM-23.2: the parity test runs in CI and passes in the full m68 run (Tests 39012209131 on d045e5248)."
             }
           ],
           "tasks": [
@@ -9617,7 +9685,8 @@
                 "after": ["SPELLS-29.T1a"]
               }
             }
-          ]
+          ],
+          "journeyStatus": "verified"
         }
       ]
     },

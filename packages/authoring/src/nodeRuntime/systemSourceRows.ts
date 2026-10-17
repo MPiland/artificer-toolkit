@@ -17,6 +17,7 @@ export function systemVocabularyRows(
     heritages: system.heritages,
     languages: system.languages,
     magic_schools: system.magicSchools,
+    passives: system.passives,
     rarities: system.rarities,
     senses: system.senses,
     skills: system.skills,

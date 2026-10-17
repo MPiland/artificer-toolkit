@@ -9,13 +9,9 @@ import { polymorph } from '@artificer-toolkit/source-data/srd/spells/polymorph.j
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
-const reader = createNodeRuntimeSourceReader({
-  system: srdSystemRecord,
-  readAuthoredRows: () => [],
-  readReusableDefinitions: async () => []
-})
+const reader = createSrdNodeRuntimeReader()
 
 /**
  * Equipment carrying spell effects, so the effect node map is what normalizes them; an item authors them

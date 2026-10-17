@@ -260,7 +260,7 @@ export function compileCharacterActionEntryPoints(
           activeEffectPlans.some(
             (plan) =>
               !plan.modifierGrantContribution &&
-              !plan.conditionContribution &&
+              !plan.conditionContributions?.length &&
               !plan.creatureFormContribution
           )
         ) {

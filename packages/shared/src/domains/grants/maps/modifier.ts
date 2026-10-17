@@ -362,7 +362,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Only damage from these spells',
           {
             kind: 'DATA',
-            relationship: table('spells', { selectColumns: ['id', 'label', 'description'] })
+            relationship: table('spells', { selectColumns: ['id', 'label'] })
           },
           {
             showIf: parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY'),
@@ -587,7 +587,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       .set(
         'numerator',
         number(['numerator'], 'Numerator', {
-          constraints: { minimum: 1 },
+          constraints: { minimum: 0 },
           showIf: isMultiply,
           requiredIf: true
         })

@@ -727,7 +727,7 @@ const MANIFEST_CREATURE_FORM_FILTER_NODE_MAP: NodeMap<ManifestCreatureFormFilter
         'excludedSpeedIds',
         selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
           kind: 'DATA',
-          relationship: table('speeds', { selectColumns: ['id', 'label'] })
+          relationship: table('speeds', { selectColumns: ['id', 'label', 'description'] })
         })
       )
   })
@@ -1798,7 +1798,8 @@ function registerOutcomeFields(
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
           local.field(['recordsSource']).eq(true)
-        ])
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(

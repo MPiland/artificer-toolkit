@@ -16,6 +16,10 @@
       "types": "./dist/nodeRuntime/authoredSourceFacts.d.ts",
       "default": "./dist/nodeRuntime/authoredSourceFacts.js"
     },
+    "./nodeRuntime/srdSourceReader": {
+      "types": "./dist/nodeRuntime/srdSourceReader.d.ts",
+      "default": "./dist/nodeRuntime/srdSourceReader.js"
+    },
     "./imports": {
       "types": "./dist/imports/index.d.ts",
       "default": "./dist/imports/index.js"
@@ -33,6 +37,7 @@
   "dependencies": {
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
+    "@artificer-toolkit/source-data": "workspace:^",
     "zod": "4.4.3"
   },
   "devDependencies": {

@@ -1,4 +1,7 @@
-import { authoredLengthSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
+import {
+  authoredFractionSchema,
+  authoredLengthSchema
+} from '@artificer-toolkit/schema/shared/authoredLimits'
 import { describe, expect, it } from 'vitest'
 
 import { srdBaselineContent } from './index.js'
@@ -21,16 +24,19 @@ function lengthModifierGrants(value: unknown): LengthModifierGrant[] {
 describe('SRD speed and sense range modifiers (RELIABILITY-5.1)', () => {
   const grants = lengthModifierGrants(srdBaselineContent)
 
-  it('carries a bonus, a penalty and a set value, so the corpus exercises every kind', () => {
+  it('carries a bonus, a penalty, a set value and a multiplier, so the corpus exercises every kind', () => {
     const kinds = new Set(
       grants.filter((grant) => grant.valueDomainCode === 'SPEED').map((grant) => grant.modifierKind)
     )
-    expect([...kinds].sort()).toEqual(['BONUS', 'PENALTY', 'SET_VALUE'])
+    expect([...kinds].sort()).toEqual(['BONUS', 'MULTIPLY', 'PENALTY', 'SET_VALUE'])
   })
 
-  it('authors every one as a length with an amount and a unit', () => {
+  it('authors every one as a length with an amount and a unit, a multiplier as a fraction', () => {
     const malformed = grants.filter(
-      (grant) => !authoredLengthSchema.safeParse(grant.payload).success
+      (grant) =>
+        !(
+          grant.modifierKind === 'MULTIPLY' ? authoredFractionSchema : authoredLengthSchema
+        ).safeParse(grant.payload).success
     )
     expect(malformed).toEqual([])
   })
