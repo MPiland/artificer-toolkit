@@ -40,6 +40,7 @@ import {
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
+import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -143,6 +144,8 @@ export async function executeRoomEncounterAction(input: {
         observed,
         batch
       }),
+    applyForcedMovements: (movement) =>
+      applyRoomForcedMovements({ ctx, transaction, userId: scope.expectedUserId, movement }),
     prepareActionMaintenance: (maintenance) => prepareEncounterActionMaintenance(ctx, maintenance),
     persistActionEffects: (effects) => persistEncounterActionEffects(ctx, effects),
     persistActionChildren: (children) =>

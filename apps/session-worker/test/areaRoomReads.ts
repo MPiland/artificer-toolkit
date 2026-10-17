@@ -51,6 +51,16 @@ export const vitalsOf = (history: RoomHistory) =>
     }
   })
 
+/** Where each actor's token stands in the Scene the room last synced to the GM. */
+export function tokenPositions(room: Awaited<ReturnType<typeof actionRoom>>) {
+  const sync = room.room.base.messages.findLast((message) => message.type === 'STATE_SYNC')
+  if (sync?.type !== 'STATE_SYNC' || !sync.state.scene)
+    throw new Error('The room has sent the GM no Scene.')
+  const tokens = sync.state.scene.tokens
+  return (actorId: string) =>
+    tokens.find(({ id }) => id === `f${actorId.slice(1)}`)?.position ?? null
+}
+
 /** Answers every save the area still waits on with `faces[actorId]` (a failing 1 unless named). */
 export async function answerAllSaves(
   room: Awaited<ReturnType<typeof actionRoom>>,

@@ -140,7 +140,7 @@ import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.
 import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
-  refuseSpatialInterpretation,
+  interpretForcedMovements,
   refuseUnmetBasicActionRestrictions,
   refuseUnmetItemActionRequirements
 } from './nativeEncounterActionInputs.js'
@@ -1080,7 +1080,7 @@ export async function planNativeLiveEncounterAction(
   )
   const failedTargetEconomy = failedTarget?.economy ?? null
   const targetFailedCounterSpend = Boolean(failedTarget?.spellConsumption)
-  refuseSpatialInterpretation(prepared, {
+  const forcedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
     published: execution.published,
@@ -1296,6 +1296,7 @@ export async function planNativeLiveEncounterAction(
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     failedSpends,
+    forcedMovements,
     revisions,
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
     consumedGrants: [
@@ -1389,6 +1390,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
     consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
-    turnUses: plan.turnUses
+    turnUses: plan.turnUses,
+    forcedMovements: plan.forcedMovements
   })
 }

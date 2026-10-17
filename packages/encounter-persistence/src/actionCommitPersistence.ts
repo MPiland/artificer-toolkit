@@ -26,7 +26,11 @@ import {
   settleActionSourceSpend
 } from './actionSourceSpend.js'
 import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
-import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
+import {
+  completeActionOccurrence,
+  recordActionRoot,
+  type ApplyEncounterForcedMovements
+} from './actionCommitRecords.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -87,6 +91,7 @@ export async function persistEncounterActionCommit(
     persistActionChildren(
       input: Parameters<typeof persistEncounterActionChildren>[1]
     ): ReturnType<typeof persistEncounterActionChildren>
+    applyForcedMovements: ApplyEncounterForcedMovements
   }
 ): Promise<EncounterCommandResultDto> {
   const admission = await readLiveEncounterActionAdmission(ctx, input)
@@ -484,6 +489,15 @@ export async function persistEncounterActionCommit(
     : null
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
+  // A push or pull moves its target's token on the Scene in this commit (D139).
+  const forcedMovements = input.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: source.id,
+        commandId: command.commandId,
+        movements: input.forcedMovements
+      })
+    : []
   await recordActionRoot(ctx, {
     run,
     state,
@@ -506,6 +520,7 @@ export async function persistEncounterActionCommit(
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
       teleportAllowanceTurn,
+      forcedMovements,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

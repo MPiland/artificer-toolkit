@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   classifySquareGridFootprintFacingArcs,
   classifySquareGridFacingArc,
+  deriveSquareGridForcedMovementDestination,
   deriveSquareGridShoveAsideDestinations,
   enumerateSquareGridFootprint,
   findSquareGridCreatureCoverIntervenors,
@@ -416,5 +417,62 @@ describe('optional combat square-grid geometry', () => {
       target
     })
     expect(euclidean.map((candidate) => candidate.direction)).toEqual(['NORTH', 'SOUTH'])
+  })
+})
+
+describe('square-grid forced movement', () => {
+  const source = token({ x: 15, y: 45 })
+  const push = (
+    overrides: Partial<Parameters<typeof deriveSquareGridForcedMovementDestination>[0]> = {}
+  ) =>
+    deriveSquareGridForcedMovementDestination({
+      direction: 'AWAY_FROM_SOURCE',
+      distance: 15,
+      source,
+      target: token({ x: 25, y: 45 }),
+      occupants: [source],
+      state: state(),
+      ...overrides
+    })
+
+  it('moves the exact distance straight away from or toward the source', () => {
+    expect(push()).toEqual({ x: 55, y: 45 })
+    expect(
+      push({ direction: 'TOWARD_SOURCE', distance: 20, target: token({ x: 75, y: 45 }) })
+    ).toEqual({ x: 35, y: 45 })
+    expect(
+      push({
+        distance: 10,
+        source: token({ x: 15, y: 15 }),
+        target: token({ x: 25, y: 25 }),
+        occupants: [token({ x: 15, y: 15 })]
+      })
+    ).toEqual({ x: 45, y: 45 })
+    expect(push({ distance: 0 })).toEqual({ x: 25, y: 45 })
+  })
+
+  it('stops before the first barrier, token or map edge on its line', () => {
+    const wall = {
+      a: { x: 40, y: 40 },
+      b: { x: 40, y: 50 },
+      blocksLight: true,
+      blocksMovement: true,
+      id: 'wall',
+      kind: 'WALL' as const
+    }
+    expect(push({ state: state({ barriers: [wall] }) })).toEqual({ x: 35, y: 45 })
+    expect(push({ occupants: [source, token({ x: 45, y: 45 })] })).toEqual({ x: 35, y: 45 })
+    expect(push({ distance: 50, target: token({ x: 85, y: 45 }) })).toEqual({ x: 95, y: 45 })
+    expect(
+      push({ direction: 'TOWARD_SOURCE', distance: 25, target: token({ x: 45, y: 45 }) })
+    ).toEqual({ x: 25, y: 45 })
+  })
+
+  it('fails closed without a square grid or a line to follow', () => {
+    expect(
+      push({ state: state({ grid: { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' } }) })
+    ).toBeNull()
+    expect(push({ target: token({ x: 15, y: 45 }) })).toBeNull()
+    expect(push({ target: token({ x: 26, y: 45 }) })).toBeNull()
   })
 })

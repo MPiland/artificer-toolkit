@@ -117,6 +117,29 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 )
 
+/**
+ * A creature an action's outcome pushes away from or pulls toward the acting creature, straight and
+ * by an exact distance (ATTACK-7.T5a). The room settles it on the Encounter's Scene in the commit.
+ */
+export type LiveSessionForcedMovement = {
+  targetActorId: string
+  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
+  feet: number
+}
+
+const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> = lazySchema(
+  () =>
+    z
+      .array(
+        z.strictObject({
+          targetActorId: postgresUuidSchema,
+          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE']),
+          feet: z.number().check(z.positive())
+        })
+      )
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
 export type LiveSessionEncounterActionCommitInput = Omit<
   LiveSessionEncounterActionPendingInput,
@@ -165,6 +188,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
   turnUses: z.infer<typeof encounterTurnUseKeysSchema>
+  /** The forced movements this action's outcomes settle on the Scene in its commit (D139). */
+  forcedMovements: LiveSessionForcedMovement[]
 }
 export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
@@ -210,7 +235,8 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
-      turnUses: encounterTurnUseKeysSchema
+      turnUses: encounterTurnUseKeysSchema,
+      forcedMovements: liveSessionForcedMovementsSchema
     })
   )
 
@@ -230,6 +256,7 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'endedGrants'
   | 'cleaving'
   | 'turnUses'
+  | 'forcedMovements'
 >
 
 export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCounteredCastCommitInput> =
@@ -346,6 +373,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      forcedMovements: liveSessionForcedMovementsSchema,
       ...liveSessionEncounterConcentrationFields()
     })
   )

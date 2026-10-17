@@ -221,6 +221,15 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
     input: CharacterEncounterCommandInput,
     encounterId: string
   ): Promise<CharacterEncounterCommandResult>
+  /**
+   * Reverts an action's forced movements on its Scene (D139), last first, refusing a token moved
+   * since. Only the room settles forced movement, so only the room provides it.
+   */
+  restoreActionForcedMovements?(input: {
+    encounterId: string
+    commandId: string
+    movements: readonly { sceneId: string; sceneCommandId: string }[]
+  }): Promise<void>
 }
 
 /** A read transaction over the Encounter store and the ports it reads beside it. */
@@ -250,7 +259,10 @@ export interface EncounterCharacterWriteTransaction<
   CharacterSources = never
 > extends EncounterPersistenceTransaction {
   readonly ports: EncounterReadPorts &
-    Pick<EncounterWritePorts<CharacterSources>, 'writeCharacterRecord'>
+    Pick<
+      EncounterWritePorts<CharacterSources>,
+      'writeCharacterRecord' | 'restoreActionForcedMovements'
+    >
 }
 
 export interface EncounterWriteTransaction<

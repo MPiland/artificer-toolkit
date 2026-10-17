@@ -418,6 +418,61 @@ export function deriveSquareGridShoveAsideDestinations(input: {
   })
 }
 
+/**
+ * Where a forced movement leaves its target on a square grid: straight along the ray from the
+ * source's centre through the target's (reversed toward the source), one cell along the ray's major
+ * axis per step, up to `distance` in the Scene's measurement domain. It stops before the first step
+ * that crosses a barrier, overlaps another token or leaves the map, so a blocked target can stay
+ * where it is. Null fails closed: a gridless Scene, a footprint off the grid, or a target centred on
+ * its source has no straight line to follow.
+ */
+export function deriveSquareGridForcedMovementDestination(input: {
+  readonly direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
+  /** Exact, already-converted distance in this Scene's measurement domain. */
+  readonly distance: number
+  readonly source: Pick<SceneToken, 'height' | 'position' | 'width'>
+  readonly target: Pick<SceneToken, 'height' | 'position' | 'width'>
+  /** Every other token on the Scene, the source included. */
+  readonly occupants: readonly Pick<SceneToken, 'height' | 'position' | 'width'>[]
+  readonly state: Pick<CampaignSceneState, 'barriers' | 'doorStates' | 'grid' | 'map'>
+}): ScenePoint | null {
+  const grid = input.state.grid
+  if (
+    !validSquareGrid(grid) ||
+    !Number.isFinite(input.distance) ||
+    input.distance < 0 ||
+    input.occupants.length > MAX_SQUARE_GRID_INTERACTION_EVIDENCE ||
+    !enumerateSquareGridFootprint(grid, input.target)
+  )
+    return null
+  const occupants = input.occupants.map((token) => enumerateSquareGridFootprint(grid, token))
+  if (occupants.some((footprint) => footprint === null)) return null
+  const sign = input.direction === 'AWAY_FROM_SOURCE' ? 1 : -1
+  const rayX = sign * (input.target.position.x - input.source.position.x)
+  const rayY = sign * (input.target.position.y - input.source.position.y)
+  const major = Math.max(Math.abs(rayX), Math.abs(rayY))
+  if (major <= EPSILON) return null
+  const size = { width: input.target.width, height: input.target.height }
+  let reached = input.target.position
+  for (let step = 1; step <= MAX_SQUARE_GRID_LINE_CHECKS; step += 1) {
+    const next = {
+      x: input.target.position.x + Math.round((step * rayX) / major) * grid.cellSize,
+      y: input.target.position.y + Math.round((step * rayY) / major) * grid.cellSize
+    }
+    if (measureSceneDistance(grid, input.target.position, next) > input.distance + EPSILON) break
+    const footprint = enumerateSquareGridFootprint(grid, { ...size, position: next })
+    if (
+      footprint === null ||
+      !footprintIsWithinMap(footprint, input.state.map) ||
+      !canTokenFootprintMoveBetween(input.state, reached, next, size) ||
+      occupants.some((occupant) => footprintsOverlap(footprint, occupant!))
+    )
+      break
+    reached = next
+  }
+  return reached
+}
+
 /** Returns exact adjacent, opposite-cell pairs; reach/range intentionally has no role here. */
 export function findSquareGridFlankingPairs(input: {
   readonly allied: SquareGridFootprint

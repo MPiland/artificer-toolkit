@@ -336,6 +336,19 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         ),
         null
       ),
+      /**
+       * The Scene token moves this action's forced movement committed, farthest-first. The Scene
+       * command records hold the positions; its undo reverts each, last first, and is refused once
+       * a pushed token moved again (ATTACK-7.T5a, D139).
+       */
+      forcedMovements: z._default(
+        z
+          .array(
+            z.strictObject({ sceneId: postgresUuidSchema, sceneCommandId: postgresUuidSchema })
+          )
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
       /** The once-per-turn uses this action spent from the actor's turn record; its undo gives them back. */
       turnUses: z._default(
         z.nullable(

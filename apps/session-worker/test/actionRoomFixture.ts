@@ -294,6 +294,53 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
   })
 }
 
+/** `base` with its Bite's failed save moving the target `feet` in `direction` instead of damage. */
+export function forceOnFailedSave(
+  base: CreatureAuthored,
+  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE',
+  feet: number
+): CreatureAuthored {
+  return creatureAuthoredDtoSchema.parse({
+    ...base,
+    features: base.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              paths: effect.paths.slice(0, 1).map((path) => {
+                if (!('resultBlock' in path)) return path
+                return {
+                  id: path.id,
+                  order: path.order,
+                  pathCode: 'ON_SAVE_FAIL' as const,
+                  groupType: 'SINGLE' as const,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: '00000000-0000-4000-8000-0000000000ae',
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [
+                      {
+                        id: '00000000-0000-4000-8000-0000000000af',
+                        effectKind: 'FORCED_MOVEMENT' as const,
+                        direction,
+                        actionEconomy: 'NONE' as const,
+                        distanceMode: 'FIXED_DISTANCE' as const,
+                        amount: feet,
+                        unit: 'FEET' as const
+                      }
+                    ]
+                  }
+                }
+              })
+            }))
+          }
+    )
+  })
+}
+
 /** `actor` with its frozen check totals replaced (a skill or ability definition ID to its total). */
 export function withCheckTotals(
   actor: EncounterRunActorState,

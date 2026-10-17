@@ -157,6 +157,12 @@ copy. The room enforces the 30 day retention (`SCENE_COMMAND_RETENTION_MS`) with
 evidence older than the cutoff, so the purge happens at the next load. `buildRoomCheckpointRecords` ignores the
 kind, so no checkpoint, journal delta or Convex row carries it, and it is never a chat entry, so it never counts toward the backlog bound. A fog save keeps
 `geometrySaveId` as an opaque back-reference to a save the room may have dropped; Convex never resolves it.
+A geometry command an Encounter action wrote (a push or pull, D139) names that action in `actionOrigin`
+(`{encounterId, commandId}`; `null` for a user's move, the parse default for older records). It is the one
+record of the move: the action's `RESOLVE_ACTION` receipt keeps only references (`forcedMovements`:
+`{sceneId, sceneCommandId}[]`, default `[]`), the GM's `UNDO_LAST_SCENE_MOVE` refuses a latest move whose
+origin is an action, and the action's `REVERT_LAST_ACTION` undoes each referenced move through
+`publishSceneUndo`, refused (`REVERT_UNAVAILABLE`) once the token has moved since.
 
 ## Encounter persistence package
 

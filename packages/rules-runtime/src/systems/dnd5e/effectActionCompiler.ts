@@ -55,7 +55,8 @@ import type {
   CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
   CharacterRuleActionZonePlacementPlan,
-  CharacterRuleActionSpatialDirective
+  CharacterRuleActionSpatialDirective,
+  CharacterRuleActionForcedMovementDirection as ForcedMovementDirection
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
   ActiveEffectEndTrigger,
@@ -280,6 +281,7 @@ type Outcome =
       destinationKind: TeleportAllowanceDestinationKind
     }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
+  | { kind: 'FORCED_MOVEMENT'; direction: ForcedMovementDirection; feet: number }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -1260,6 +1262,11 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
       terminalConsequence: outcome.terminalConsequence
     }
   }
+  if (outcome.effectKind === 'FORCED_MOVEMENT')
+    return (
+      exactForcedMovement(outcome) ??
+      unsupported('D&D forced movement must move an exact distance away from or toward its source.')
+    )
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D test action outcome is not supported.')
   if (
@@ -1281,6 +1288,31 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
     amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
     damageTypeId: outcome.damageTypeId
   }
+}
+
+/**
+ * An authored push or pull the room settles along the straight line from the action's source
+ * (D105): an exact distance, away from or toward the source, that costs the target nothing. Null
+ * for any other forced movement, which the System cannot settle yet.
+ */
+function exactForcedMovement(outcome: {
+  direction: string
+  actionEconomy: string
+  distanceMode: string
+  amount?: number
+  unit?: string
+}): Extract<Outcome, { kind: 'FORCED_MOVEMENT' }> | null {
+  if (
+    (outcome.direction !== 'AWAY_FROM_SOURCE' && outcome.direction !== 'TOWARD_SOURCE') ||
+    outcome.actionEconomy !== 'NONE' ||
+    outcome.distanceMode !== 'FIXED_DISTANCE' ||
+    outcome.unit !== 'FEET' ||
+    typeof outcome.amount !== 'number' ||
+    !Number.isSafeInteger(outcome.amount) ||
+    outcome.amount <= 0
+  )
+    return null
+  return { kind: 'FORCED_MOVEMENT', direction: outcome.direction, feet: outcome.amount }
 }
 
 /**
@@ -2614,11 +2646,7 @@ function exactImmediateFollowUpSaveShape(
     failed.outcomes.length === 1 &&
     failure?.effectKind === 'FORCED_MOVEMENT' &&
     UUID.test(failure.id) &&
-    failure.direction === 'TOWARD_SOURCE' &&
-    failure.actionEconomy === 'NONE' &&
-    failure.distanceMode === 'FIXED_DISTANCE' &&
-    failure.amount === 25 &&
-    failure.unit === 'FEET' &&
+    exactForcedMovement(failure) &&
     commonBoundedSave
   ) {
     return 'FORCED_MOVEMENT_ONLY'
@@ -3674,6 +3702,10 @@ export const dnd5eScalarReductionProposalOperation: ProposalRuleOperationContrac
     }
   }
 }
+/**
+ * Proposes an authored push or pull on its result path: the room settles it along the straight line
+ * from the action's source (D105), so the proposal changes no target state of its own.
+ */
 export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract = {
   key: DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
   contractVersion: 1,
@@ -3684,10 +3716,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     resultPath: RULE_VALUE_KIND.TEXT,
     authoredPath: RULE_VALUE_KIND.TEXT,
     direction: RULE_VALUE_KIND.TEXT,
-    distanceMode: RULE_VALUE_KIND.TEXT,
-    amount: RULE_VALUE_KIND.NUMBER,
-    unit: RULE_VALUE_KIND.TEXT,
-    actionEconomy: RULE_VALUE_KIND.TEXT,
+    feet: RULE_VALUE_KIND.NUMBER,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
   },
   outputs: {
@@ -3696,10 +3725,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     resultPath: RULE_VALUE_KIND.TEXT,
     authoredPath: RULE_VALUE_KIND.TEXT,
     direction: RULE_VALUE_KIND.TEXT,
-    distanceMode: RULE_VALUE_KIND.TEXT,
-    amount: RULE_VALUE_KIND.NUMBER,
-    unit: RULE_VALUE_KIND.TEXT,
-    actionEconomy: RULE_VALUE_KIND.TEXT,
+    feet: RULE_VALUE_KIND.NUMBER,
     applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
     authorized: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
@@ -3711,10 +3737,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       resultPath,
       authoredPath,
       direction,
-      distanceMode,
-      amount,
-      unit,
-      actionEconomy,
+      feet,
       targetStateChecksum
     } = inputs
     if (
@@ -3722,13 +3745,12 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       !UUID.test(targetActorId) ||
       typeof sourceEntryId !== 'string' ||
       !UUID.test(sourceEntryId) ||
-      (resultPath !== 'ON_SAVE_FAIL' && resultPath !== 'ON_SAVE_SUCCESS') ||
-      authoredPath !== 'ON_HIT' ||
-      direction !== 'TOWARD_SOURCE' ||
-      distanceMode !== 'FIXED_DISTANCE' ||
-      amount !== 25 ||
-      unit !== 'FEET' ||
-      actionEconomy !== 'NONE' ||
+      typeof resultPath !== 'string' ||
+      typeof authoredPath !== 'string' ||
+      (direction !== 'AWAY_FROM_SOURCE' && direction !== 'TOWARD_SOURCE') ||
+      typeof feet !== 'number' ||
+      !Number.isSafeInteger(feet) ||
+      feet <= 0 ||
       typeof targetStateChecksum !== 'string' ||
       !/^[a-f0-9]{64}$/.test(targetStateChecksum)
     ) {
@@ -3740,13 +3762,33 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       resultPath,
       authoredPath,
       direction,
-      distanceMode,
-      amount,
-      unit,
-      actionEconomy,
+      feet,
       applicationCandidate: true,
-      authorized: resultPath === 'ON_SAVE_FAIL',
+      authorized: resultPath === authoredPath,
       targetStateChecksum
+    }
+  }
+}
+
+/** The proposal node of an authored push or pull, authorized when the test resolves to its path. */
+function forcedMovementProposalNode(input: {
+  id: string
+  sourceEntryId: string
+  resultPath: RuleInputBinding
+  authoredPath: string
+  outcome: Extract<Outcome, { kind: 'FORCED_MOVEMENT' }>
+}) {
+  return {
+    id: input.id,
+    operation: { key: DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
+    inputs: {
+      targetActorId: { kind: 'FACT' as const, factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+      sourceEntryId: { kind: 'LITERAL' as const, value: input.sourceEntryId },
+      resultPath: input.resultPath,
+      authoredPath: { kind: 'LITERAL' as const, value: input.authoredPath },
+      direction: { kind: 'LITERAL' as const, value: input.outcome.direction },
+      feet: { kind: 'LITERAL' as const, value: input.outcome.feet },
+      targetStateChecksum: { kind: 'FACT' as const, factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
     }
   }
 }
@@ -4285,6 +4327,8 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
     unsupported('D&D teleport outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
+  if (outcome.kind === 'FORCED_MOVEMENT')
+    unsupported('D&D forced movement resolves only in its selected outcome phase.')
   const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
@@ -5019,8 +5063,12 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
   if (!shape) unsupported('D&D immediate follow-up save shape is unavailable.')
   const failure = save.onFailure.outcomes[0]
   const reduction = immediateFollowUpSaveMaximumReduction(input.action)
+  const forcedMovementOutcome =
+    shape === 'FORCED_MOVEMENT_ONLY' && failure?.effectKind === 'FORCED_MOVEMENT'
+      ? exactForcedMovement(failure)
+      : null
   const forcedMovement =
-    shape === 'FORCED_MOVEMENT_ONLY' && failure?.effectKind === 'FORCED_MOVEMENT' ? failure : null
+    forcedMovementOutcome && failure ? { id: failure.id, outcome: forcedMovementOutcome } : null
   // Damage only on a failed save is proposed against the save's own result path.
   const failureOnlyDamage = shape === 'REPEATING_CONDITION' || shape === 'DAMAGE_ON_FAILURE'
   const nestedDamage =
@@ -5246,52 +5294,15 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
             }
           ]
         : []),
-      ...(forcedMovement && forcedMovement.distanceMode === 'FIXED_DISTANCE'
+      ...(forcedMovement
         ? [
-            {
+            forcedMovementProposalNode({
               id: 'nested-save-forced-movement',
-              operation: {
-                key: DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                targetActorId: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_ACTOR_FACT_KEY
-                },
-                sourceEntryId: {
-                  kind: 'LITERAL' as const,
-                  value: forcedMovement.id
-                },
-                resultPath: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: 'nested-save-test',
-                  port: 'resultPath'
-                },
-                authoredPath: { kind: 'LITERAL' as const, value: 'ON_HIT' },
-                direction: {
-                  kind: 'LITERAL' as const,
-                  value: forcedMovement.direction
-                },
-                distanceMode: {
-                  kind: 'LITERAL' as const,
-                  value: forcedMovement.distanceMode
-                },
-                amount: {
-                  kind: 'LITERAL' as const,
-                  value: forcedMovement.amount
-                },
-                unit: { kind: 'LITERAL' as const, value: forcedMovement.unit },
-                actionEconomy: {
-                  kind: 'LITERAL' as const,
-                  value: forcedMovement.actionEconomy
-                },
-                targetStateChecksum: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-                }
-              }
-            }
+              sourceEntryId: forcedMovement.id,
+              resultPath: { kind: 'NODE_OUTPUT', nodeId: 'nested-save-test', port: 'resultPath' },
+              authoredPath: 'ON_SAVE_FAIL',
+              outcome: forcedMovement.outcome
+            })
           ]
         : []),
       ...(failureCondition
@@ -5400,6 +5411,29 @@ function fixedOutcomeGraphDefinition(input: {
   conditionOrdinal?: number
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
+  // The OUTCOME phase runs only on its selected path, so the push is authorized by construction.
+  if (input.outcome.kind === 'FORCED_MOVEMENT') {
+    uuid(input.entry.entryId, 'D&D forced movement identity')
+    return {
+      schemaVersion: 1,
+      id: input.action.effectId,
+      gameSystemId: DND5E_SYSTEM_ID,
+      definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+      nodes: [
+        forcedMovementProposalNode({
+          id: proposalId,
+          sourceEntryId: input.entry.entryId,
+          resultPath: { kind: 'LITERAL', value: input.entry.pathCode },
+          authoredPath: input.entry.pathCode,
+          outcome: input.outcome
+        })
+      ],
+      outputs: {
+        targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' }
+      },
+      sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
+    }
+  }
   const operation =
     input.outcome.kind === 'HEAL'
       ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
@@ -5999,6 +6033,8 @@ function compileDnd5eEffectAction({
   }
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
+  if (outcome.kind === 'FORCED_MOVEMENT')
+    unsupported('D&D forced movement requires an authored test phase.')
   const operation =
     outcome.kind === 'HEAL'
       ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
@@ -6755,7 +6791,9 @@ function interpretDirectProposal(
     trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY ||
     trace.operation.key === DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
+    trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY ||
+    // A push changes no stored target state; the room settles it on the Scene (interpretSpatial).
+    trace.operation.key === DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY
   )
     return []
   if (trace.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY) {
@@ -7017,6 +7055,7 @@ function interpretDirect(
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+    DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
@@ -7328,47 +7367,43 @@ function interpretSpatial(
   const node = input.published.definition.nodes.find((candidate) => candidate.id === trace.nodeId)
   const value = (key: string) => trace.outputs[key]
   const sourceEntryId = value('sourceEntryId')
+  const direction = value('direction')
+  const feet = value('feet')
   const bindings = input.published.definition.sourceEntryBindings?.filter(
     (binding) => binding.nodeId === trace.nodeId
   )
+  // The trace must echo the published node's literals: the evidence moves only what was authored.
+  const literalsEchoed =
+    node !== undefined &&
+    (['sourceEntryId', 'authoredPath', 'direction', 'feet'] as const).every((port) => {
+      const binding = node.inputs[port]
+      return (
+        binding?.kind === 'LITERAL' &&
+        binding.value === trace.inputs[port] &&
+        trace.inputs[port] === value(port)
+      )
+    })
   if (
     !node ||
-    node.id !== 'nested-save-forced-movement' ||
+    !literalsEchoed ||
     node.operation.key !== DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY ||
     node.operation.contractVersion !== 1 ||
     trace.operation.contractVersion !== 1 ||
     value('targetActorId') !== input.targetActorId ||
+    trace.inputs.targetActorId !== input.targetActorId ||
     typeof sourceEntryId !== 'string' ||
     !UUID.test(sourceEntryId) ||
     bindings?.length !== 1 ||
     bindings[0]?.sourceEntryId !== sourceEntryId ||
-    (value('resultPath') !== 'ON_SAVE_FAIL' && value('resultPath') !== 'ON_SAVE_SUCCESS') ||
-    value('authoredPath') !== 'ON_HIT' ||
-    value('direction') !== 'TOWARD_SOURCE' ||
-    value('distanceMode') !== 'FIXED_DISTANCE' ||
-    value('amount') !== 25 ||
-    value('unit') !== 'FEET' ||
-    value('actionEconomy') !== 'NONE' ||
+    (direction !== 'AWAY_FROM_SOURCE' && direction !== 'TOWARD_SOURCE') ||
+    typeof feet !== 'number' ||
+    !Number.isSafeInteger(feet) ||
+    feet <= 0 ||
+    trace.inputs.resultPath !== value('resultPath') ||
     value('targetStateChecksum') !==
       input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY] ||
-    trace.inputs.targetActorId !== input.targetActorId ||
-    trace.inputs.sourceEntryId !== sourceEntryId ||
-    trace.inputs.resultPath !== value('resultPath') ||
-    trace.inputs.authoredPath !== 'ON_HIT' ||
-    trace.inputs.direction !== 'TOWARD_SOURCE' ||
-    trace.inputs.distanceMode !== 'FIXED_DISTANCE' ||
-    trace.inputs.amount !== 25 ||
-    trace.inputs.unit !== 'FEET' ||
-    trace.inputs.actionEconomy !== 'NONE' ||
     trace.inputs.targetStateChecksum !== value('targetStateChecksum') ||
-    node.inputs.resultPath?.kind !== 'NODE_OUTPUT' ||
-    node.inputs.resultPath.nodeId !== 'nested-save-test' ||
-    node.inputs.resultPath.port !== 'resultPath' ||
-    node.inputs.authoredPath?.kind !== 'LITERAL' ||
-    node.inputs.authoredPath.value !== 'ON_HIT' ||
-    node.inputs.sourceEntryId?.kind !== 'LITERAL' ||
-    node.inputs.sourceEntryId.value !== sourceEntryId ||
-    value('authorized') !== (value('resultPath') === 'ON_SAVE_FAIL')
+    value('authorized') !== (value('resultPath') === value('authoredPath'))
   ) {
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D forced movement proposal is invalid.'
@@ -7381,18 +7416,12 @@ function interpretSpatial(
       targetActorId: input.targetActorId,
       sourceNodeId: trace.nodeId,
       sourceOperationKey: trace.operation.key,
-      authoredPath: 'ON_HIT',
-      resolvedPath: 'ON_SAVE_FAIL',
-      direction: 'TOWARD_SOURCE',
-      distanceMode: 'FIXED_DISTANCE',
-      amount: 25,
-      unit: 'FEET',
-      actionEconomy: 'NONE',
+      direction,
+      feet,
       targetStateChecksum: String(value('targetStateChecksum'))
     }
   ]
 }
-
 type Dnd5eSaveContributor = {
   sourceId: string
   grantId: string
