@@ -474,6 +474,14 @@ export async function verifyEncounterPlayer({
       const saveRolled = await controls.answerEvidence(12)
       assert.equal(saveRolled.result.occurrence?.status, 'COMPLETE')
       await controls.assertDeathSaveSettled()
+      // The roll's outcome is on the player's Character Sheet: the tabletop shows only the prompt.
+      await checkpoint()
+      const sheet = await player.query(api.characters.sheet.get, { id: characterId })
+      assert.ok(sheet)
+      assert.deepEqual(
+        { successes: sheet.overview.deathSaves.successes, failures: sheet.overview.deathSaves.failures },
+        { successes: 1, failures: 0 }
+      )
       const timeline = await readTimeline()
       assert.ok(timeline, 'The room must push the held Run timeline.')
     }
