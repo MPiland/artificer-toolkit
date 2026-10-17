@@ -164,10 +164,16 @@ describe('SRD breath weapons breathe areas', () => {
     }
   )
 
-  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty.
-  it('leaves no breath its System cannot execute', () => {
+  // SPELLS-19.AC2: the list of breaths the System cannot execute is empty, so the filtered rows
+  // above are every breath, and discovery offers each of them.
+  it('leaves no breath its System cannot execute, and offers every breath', () => {
     expect(
       breathRows.filter(({ compiles }) => !compiles).map(({ name, refusal }) => ({ name, refusal }))
+    ).toEqual([])
+    expect(
+      breathRows
+        .filter(({ offered, listedUnavailable }) => !offered || listedUnavailable)
+        .map(({ effectId }) => effectId)
     ).toEqual([])
   })
 
