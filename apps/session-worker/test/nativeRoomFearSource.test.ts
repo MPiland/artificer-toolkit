@@ -2,9 +2,14 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { fear } from '@artificer-toolkit/source-data/srd/spells/fear.js'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -32,6 +37,7 @@ const CHARACTER_ID = testUuid(0x8e1)
 const FRIGHTENED_WOLF_ID = testUuid(0x8e2)
 const OTHER_WOLF_ID = testUuid(0x8e3)
 const APPROACH: EncounterRuleWarningCodeDto = 'CONDITION_SOURCE_APPROACH'
+const FLEE: EncounterRuleWarningCodeDto = 'CONDITION_SOURCE_FLEE'
 
 /** The caster's token is at x = 150; the Wolves stand 15 and 20 feet east of it, inside the cone. */
 const WOLF_START: ScenePoint = { x: 450, y: 150 }
@@ -122,8 +128,9 @@ async function frightenedWolfBiteMode(room: FearRoom) {
   if (!bite) throw new Error('The Wolf has a Bite.')
   const { answer } = await room.startAction(
     OTHER_WOLF_ID,
-    // The Bite names no Scene context, so its range goes unchecked.
-    ['TARGET_RANGE_UNCHECKED'],
+    // The Bite names no Scene context, so its range goes unchecked; a frightened creature that
+    // does not Dash is warned (SPELLS-29.T2), which this roll-mode probe acknowledges.
+    ['TARGET_RANGE_UNCHECKED', FLEE],
     null,
     null,
     room.featureActionId(wolves[0]!, bite.id),
@@ -181,6 +188,20 @@ async function moveFrightenedWolf(
   })
 }
 
+/** The sources the frightened Wolf must Dash away from, as the GM's Encounter session shows them. */
+async function fleeSources(room: FearRoom) {
+  const { base } = room.room
+  const first = base.messages.length
+  base.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
+  const state = await vi.waitFor(() => {
+    const message = base.messages.slice(first).find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
+    if (message?.type !== 'ENCOUNTER_SESSION' || !message.session.held)
+      throw new Error('The room has not sent the held Encounter session.')
+    return message.session.state
+  })
+  return state.turnMovement.find(({ actorId }) => actorId === FRIGHTENED_WOLF_ID)?.fleeSourceActorIds
+}
+
 describe('room Fear follows its caster (SPELLS-29.T1)', () => {
   it('records the caster as the source of every Frightened it leaves', async () => {
     const room = await fearRoom()
@@ -194,7 +215,8 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
         kind: 'CONDITION_OWNERSHIP',
         conditionId: frightenedId(),
         baselinePresent: false,
-        sourceActorId: CASTER_ID
+        sourceActorId: CASTER_ID,
+        fleesSource: true
       })
   })
 
@@ -328,5 +350,94 @@ describe('room Fear follows its caster (SPELLS-29.T1)', () => {
     await room.advanceTurn()
     const moved = await moveFrightenedWolf(room, [WOLF_START, { x: 350, y: 150 }])
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+  })
+})
+
+describe('room Fear makes its Frightened creatures flee the caster (SPELLS-29.T2)', () => {
+  const dashDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DASH)
+  if (dashDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('The SRD authors Dash.')
+  const dashActionId = encounterBasicActionId(
+    FRIGHTENED_WOLF_ID,
+    SRD_BASIC_ACTION_IDS.DASH,
+    dashDefinition.document.effects[0]!.id
+  )
+
+  /** The frightened Wolf's turn, its Bite at the other Wolf: the room's answer. */
+  async function biteOnItsTurn(room: FearRoom, acknowledged: readonly EncounterRuleWarningCodeDto[]) {
+    const bite = plainWolf.features?.find((feature) => feature.label === 'Bite')
+    if (!bite) throw new Error('The Wolf has a Bite.')
+    const { answer } = await room.startAction(
+      OTHER_WOLF_ID,
+      [...acknowledged],
+      null,
+      null,
+      room.featureActionId(wolves[0]!, bite.id),
+      FRIGHTENED_WOLF_ID
+    )
+    return answer
+  }
+
+  it('warns when the frightened Wolf takes an action other than Dash, and goes ahead when acknowledged', async () => {
+    const room = await fearRoom()
+    await castFear(room)
+    await room.advanceTurn()
+
+    const refused = await biteOnItsTurn(room, ['TARGET_RANGE_UNCHECKED'])
+    expect(refused).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'RULE_WARNINGS',
+      warnings: expect.arrayContaining([expect.objectContaining({ code: FLEE })])
+    })
+    const overridden = await biteOnItsTurn(room, ['TARGET_RANGE_UNCHECKED', FLEE])
+    expect(overridden.type, JSON.stringify(overridden)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('prompts the frightened Wolf’s controller to Dash away from the caster on its turn, until the GM undoes Fear', async () => {
+    const room = await fearRoom()
+    expect(await fleeSources(room)).toEqual([])
+    await castFear(room)
+    expect(await fleeSources(room)).toEqual([CASTER_ID])
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await fleeSources(room)).toEqual([])
+  })
+
+  it('lets the frightened Wolf Dash without a warning, then move away from the caster', async () => {
+    const room = await fearRoom()
+    await castFear(room)
+    await room.advanceTurn()
+
+    const { answer } = await room.startAction(
+      FRIGHTENED_WOLF_ID,
+      [],
+      null,
+      null,
+      dashActionId,
+      FRIGHTENED_WOLF_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const away = await moveFrightenedWolf(room, [WOLF_START, { x: 500, y: 150 }])
+    expect(away.type, JSON.stringify(away)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('takes the flee requirement with the cast when the GM undoes Fear', async () => {
+    const room = await fearRoom()
+    await castFear(room)
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+
+    const answer = await biteOnItsTurn(room, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   })
 })

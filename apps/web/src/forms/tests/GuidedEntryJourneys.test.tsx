@@ -22,9 +22,9 @@ import { masterRaceFixture, raceListResponseFixture } from '#domains/races/race.
 import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
 import {
   normalizeFixtureNodeRuntimeValues,
-  resolveFixtureNodeRuntime,
-  warmFixtureAuthoredSources
+  resolveFixtureNodeRuntime
 } from '#test/nodeRuntimeResolver'
+import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
 

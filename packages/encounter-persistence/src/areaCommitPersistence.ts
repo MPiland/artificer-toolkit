@@ -215,10 +215,13 @@ export async function persistEncounterAreaCommit(
   let scope: CommitScope
   const failedReceipts = input.failedCounters.map(({ receipt }) => receipt)
   if (input.area === null) {
-    // A chosen list that asked for no save waits on no one, so nothing is removed. Only a counter
-    // offered before it did anything can pause it, and its answer resumes the cast (D127).
+    // An action that asked for no save waits on no one, so nothing is removed. Only a counter
+    // offered before it did anything can pause it, and its answer resumes the cast (D127). It
+    // reaches the creatures a chosen list names or, for an area that picks its own (a hit-point
+    // pool), the ones its commit carries.
+    const reachedActorIds =
+      target.kind === 'ACTORS' ? target.actorIds : input.targets.map(({ actorId }) => actorId)
     if (
-      target.kind !== 'ACTORS' ||
       removal ||
       input.removal ||
       (resume
@@ -228,12 +231,12 @@ export async function persistEncounterAreaCommit(
             failedCounters: failedReceipts
           })
         : input.response || failedReceipts.length > 0) ||
-      target.actorIds.some((actorId) => !state.actorIds.includes(actorId))
+      reachedActorIds.some((actorId) => !state.actorIds.includes(actorId))
     )
       throw new Error('Live Session chosen creatures scope mismatch.')
     scope = {
-      targets: target.actorIds.map((actorId) => ({ actorId, perceivedByCaster: true })),
-      caughtChecksum: encounterChosenActorsChecksum(target.actorIds),
+      targets: reachedActorIds.map((actorId) => ({ actorId, perceivedByCaster: true })),
+      caughtChecksum: encounterChosenActorsChecksum(reachedActorIds),
       removedActorIds: [],
       zoneSceneId: null
     }
@@ -363,7 +366,9 @@ export async function persistEncounterAreaCommit(
       batch.parentOccurrenceId !== areaOccurrenceId ||
       batch.sourceActorId !== source.id ||
       batch.targetActorId !== actor.id ||
-      batch.activeEffectTransitions.length + batch.stateEffectTransitions.length !==
+      batch.activeEffectTransitions.length +
+        batch.stateEffectTransitions.length +
+        (batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.reactionEffectTransitions.length : 0) !==
         createdEffects.length ||
       (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&

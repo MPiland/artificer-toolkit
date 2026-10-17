@@ -10,7 +10,8 @@ import type { DevelopmentClient } from './developmentClient'
 
 export async function createDevelopmentSpellCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
-  characterId: string
+  characterId: string,
+  spells: readonly Pick<typeof shield, 'id' | 'label'>[] = [magicMissile, shield, detectMagic]
 ) {
   assert.ok(wizard.spellcasting)
   const result = await createDevelopmentCharacter(owner, characterId, {
@@ -22,7 +23,8 @@ export async function createDevelopmentSpellCharacter(
   })
   const classId = result.character.intent.classes[0]?.classId
   if (!classId) throw new Error('Spell fixture Character must retain its Class identity.')
-  for (const spell of [magicMissile, shield, detectMagic]) {
+  const spellSubjectIds = new Map<string, string>()
+  for (const spell of spells) {
     const copied = await owner.mutation(api.content.drafts.duplicate, {
       subjectKind: 'SPELL',
       subjectId: spell.id
@@ -40,6 +42,7 @@ export async function createDevelopmentSpellCharacter(
       subjectId: copied.subjectId,
       expectedDraftUpdatedAt: saved.updatedAt
     })
+    spellSubjectIds.set(spell.id, copied.subjectId)
   }
-  return result
+  return { ...result, classId, spellSubjectIds }
 }

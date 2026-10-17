@@ -36,7 +36,8 @@ export const SRD_BASIC_ACTION_IDS = {
   READY: '00000000-0000-4000-8000-000000000b06',
   SEARCH: '00000000-0000-4000-8000-000000000b07',
   USE_AN_OBJECT: '00000000-0000-4000-8000-000000000b08',
-  FIRST_AID: '00000000-0000-4000-8000-000000000b09'
+  FIRST_AID: '00000000-0000-4000-8000-000000000b09',
+  ROUSE: '00000000-0000-4000-8000-000000000b0a'
 } as const
 
 /** Deterministic ids of an authored basic action's nested rows, derived from the entry's id. */
@@ -78,7 +79,10 @@ function selfActionEffect(
   actionId: string,
   outcome: Record<string, unknown>,
   resultBlockExtras: Record<string, unknown> = {},
-  reach?: { rangeKind: typeof RANGE_KIND.UNLIMITED; targeting: Record<string, unknown> }
+  reach?: {
+    rangeKind: typeof RANGE_KIND.UNLIMITED | typeof RANGE_KIND.TOUCH
+    targeting: Record<string, unknown>
+  }
 ) {
   return {
     id: basicActionChildId(actionId, 0x210, 1),
@@ -487,6 +491,33 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
         SRD_BASIC_ACTION_IDS.USE_AN_OBJECT,
         'Adjudicate Use an Object',
         'Rule the result of interacting with the object.'
+      )
+    ]
+  }),
+  defineBasicAction({
+    id: SRD_BASIC_ACTION_IDS.ROUSE,
+    label: 'Rouse',
+    rulesText:
+      'You shake or slap a creature within reach awake. It wakes from any effect that ends when a creature uses an action to rouse it.',
+    effects: [
+      selfActionEffect(
+        SRD_BASIC_ACTION_IDS.ROUSE,
+        {
+          id: basicActionChildId(SRD_BASIC_ACTION_IDS.ROUSE, 0x213, 1),
+          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+          label: 'Adjudicate Rouse',
+          reasonCode: 'PLAYER_DECLARATION' as const,
+          instructions: 'The creature wakes from any effect that ends when it is roused.'
+        },
+        {},
+        {
+          rangeKind: RANGE_KIND.TOUCH,
+          targeting: {
+            selectionKind: 'SINGLE_TARGET' as const,
+            dispositionKind: 'ANY' as const,
+            self: 'REFUSED' as const
+          }
+        }
       )
     ]
   }),

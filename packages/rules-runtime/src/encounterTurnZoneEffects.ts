@@ -1,0 +1,331 @@
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import type { StagedTurnZonePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
+import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import {
+  serverKernelRuleExecutionPendingSnapshotDtoSchema,
+  type ServerKernelRuleExecutionPendingSnapshotDto,
+  type ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { collectSpatialTurnCandidates, type SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
+
+import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
+import type { MovementTarget } from './encounterMovementTargets.js'
+import {
+  settleAutomaticSpatialEvidence,
+  spatialCandidateEvidence,
+  spatialExecutionInput,
+  spatialExecutionOutcome,
+  toSpatialInstance,
+  toSpatialMovementTarget,
+  requireSupportedD20Policy,
+  type SpatialD20Roll,
+  type SpatialTargetState
+} from './encounterSpatialCandidateExecution.js'
+import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
+import { kernelContinuation } from './encounterTurnEffects.js'
+import type { TurnEffectBoundary } from './encounterTurnEffectState.js'
+import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
+import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  executeTargetBoundActiveRuleEffectWithPause,
+  reconstructTargetBoundActiveRuleEffectCompletion,
+  resumeTargetBoundActiveRuleEffectWithAnswer,
+  type TargetBoundActiveRuleEffectExecutionPaused,
+  type TargetBoundActiveRuleEffectExecutionResult
+} from './targetBoundActiveRuleEffectExecutor.js'
+
+type TurnZoneExecution = StagedTurnZonePlanDto['executions'][number]
+type TurnZoneCandidate = TurnZoneExecution['candidate']
+type TurnZonePending = Extract<
+  ServerRuleExecutionPendingSnapshotDto['applicationContext'],
+  { kind: 'ENCOUNTER_TURN_ZONE_EFFECTS' }
+>
+
+/** The Scene facts the zones of a boundary are read from, locked for the whole turn. */
+export type TurnZoneScene = {
+  effects: readonly EncounterSpatialRuleEffectRecord[]
+  tokens: readonly SpatialSceneToken[]
+  actorIdByTokenId: ReadonlyMap<string, string>
+}
+
+function same(left: unknown, right: unknown) {
+  return checksumCanonicalJson(left) === checksumCanonicalJson(right)
+}
+
+function requirePending(pending: ServerRuleExecutionPendingSnapshotDto): {
+  context: TurnZonePending
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+} {
+  if (
+    pending.snapshotKind !== 'KERNEL_EVIDENCE' ||
+    pending.applicationContext.kind !== 'ENCOUNTER_TURN_ZONE_EFFECTS'
+  )
+    throw new Error('The pending occurrence is not turn zone evidence.')
+  return { context: pending.applicationContext, snapshot: pending }
+}
+
+/**
+ * Executes the zones that catch the creature whose turn boundary this is, after its active
+ * effects, in effect-id order. Like the active-effect stage it plans without changing the Run.
+ * No zone batch runs when none catches the creature, so such a turn stores no zone evidence.
+ */
+export async function prepareEncounterTurnZoneEffects<
+  TCharacterFacts extends ProjectableCharacterFacts
+>(input: {
+  state: EncounterRunState
+  userId: string
+  root: TurnCoordinatorRootDto
+  occurrenceId: string
+  actors: EncounterRunActorState[]
+  boundary: TurnEffectBoundary
+  /** Null when the Encounter has no Scene in play. */
+  loadScene: () => Promise<TurnZoneScene | null>
+  loadTarget: (actorId: string) => Promise<MovementTarget<TCharacterFacts> | undefined>
+  createRuntime: () => Promise<RulesRuntimeService>
+  random: (maxExclusive: number) => number
+  autoRollByActorId: Readonly<Record<string, boolean>>
+  pending?: ServerRuleExecutionPendingSnapshotDto
+  resolution?: EncounterResponseAnswer
+  retainedPlan?: StagedTurnZonePlanDto
+  movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+}): Promise<
+  | { kind: 'PENDING'; snapshot: ServerRuleExecutionPendingSnapshotDto }
+  | {
+      kind: 'COMPLETE'
+      actors: EncounterRunActorState[]
+      movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+      plan: StagedTurnZonePlanDto | null
+    }
+> {
+  const targets = new Map(input.movementTargets)
+  const none = () => {
+    if (input.pending || input.retainedPlan)
+      throw new Error('Retained turn zone selection is stale.')
+    return { kind: 'COMPLETE' as const, actors: input.actors, movementTargets: targets, plan: null }
+  }
+  const { state, boundary } = input
+  const actor = input.actors.find((candidate) => candidate.id === boundary.actorId)
+  // A manual Run leaves its zones to the GM, as it does its active effects.
+  if (!actor || state.automationMode === 'MANUAL') return none()
+  const scene = await input.loadScene()
+  const tokenId = scene && [...scene.actorIdByTokenId].find(([, id]) => id === actor.id)?.[0]
+  if (!scene || !tokenId) return none()
+  const contacts = collectSpatialTurnCandidates({
+    actorIdByTokenId: scene.actorIdByTokenId,
+    effects: scene.effects.map(toSpatialInstance),
+    targetTokenId: tokenId,
+    tokens: scene.tokens,
+    trigger: boundary.stage,
+    zoneApplications: state.zoneApplications,
+    // The turn commit advances the sequence once: the outgoing turn is the current one.
+    turnSequence: state.turnSequence + (boundary.stage === 'START_OF_TURN' ? 1 : 0)
+  })
+  if (!contacts.length) return none()
+  const effects = contacts.map(({ effectId }) => {
+    const effect = scene.effects.find((candidate) => candidate.id === effectId)
+    if (!effect) throw new Error('Turn zone is unavailable.')
+    return effect
+  })
+  const selectionChecksum = checksumCanonicalJson({
+    commandType: input.root.commandType,
+    boundaryOrdinal: boundary.ordinal,
+    stage: boundary.stage,
+    targetActorId: actor.id,
+    zones: contacts.map((contact, index) => ({
+      contact,
+      version: effects[index]!.version,
+      placementChecksum: effects[index]!.placementChecksum
+    }))
+  })
+  const retained = input.pending ? requirePending(input.pending) : null
+  const pending = retained?.context
+  if (
+    pending &&
+    (!same(pending.root, input.root) ||
+      pending.selectionChecksum !== selectionChecksum ||
+      pending.completedExecutions.length !== pending.currentCandidate.ordinal ||
+      pending.completedExecutions.length + pending.remainingCandidates.length + 1 !==
+        contacts.length)
+  )
+    throw new Error('Turn zone evidence is stale.')
+  if (
+    input.retainedPlan &&
+    (input.retainedPlan.selectionChecksum !== selectionChecksum ||
+      input.retainedPlan.executions.length !== contacts.length)
+  )
+    throw new Error('Retained turn zone selection is stale.')
+  if (pending && input.retainedPlan) throw new Error('Turn zone evidence is ambiguous.')
+
+  const source = targets.get(actor.id) ?? (await input.loadTarget(actor.id))
+  if (!source) throw new Error('Turn zone target facts are unavailable.')
+  // Root-owned transient facts may include earlier phase mechanics and resource refreshes.
+  const target = rebuildEncounterTurnTarget({
+    source,
+    actor,
+    characterFacts: source.characterFacts,
+    activeEffects: source.activeEffects,
+    state
+  })
+  const spatialTarget = toSpatialMovementTarget(target)
+  const runtime = await input.createRuntime()
+  const executions: TurnZoneExecution[] = []
+  let targetState: SpatialTargetState = spatialTarget.state
+
+  const candidateAt = (
+    ordinal: number,
+    sealed: Pick<TurnZoneCandidate, 'd20Policy' | 'diceStage'> | null
+  ): TurnZoneCandidate => ({
+    ordinal,
+    boundaryOrdinal: boundary.ordinal,
+    candidate: contacts[ordinal]!,
+    ...spatialCandidateEvidence({
+      effect: effects[ordinal]!,
+      target: spatialTarget,
+      state: targetState,
+      d20Policy: sealed?.d20Policy ?? null,
+      diceStage: sealed?.diceStage ?? null
+    })
+  })
+
+  for (const [ordinal, contact] of contacts.entries()) {
+    const effect = effects[ordinal]!
+    const existing =
+      input.retainedPlan?.executions[ordinal] ?? pending?.completedExecutions[ordinal]
+    const resuming = pending !== undefined && ordinal === pending.currentCandidate.ordinal
+    const sealed = existing?.candidate ?? (resuming ? pending.currentCandidate : null)
+    const current = candidateAt(ordinal, sealed)
+    if (resuming && !same(current, pending.currentCandidate))
+      throw new Error('Turn zone target evidence is stale.')
+    if (pending && ordinal > pending.currentCandidate.ordinal) {
+      const expected = pending.remainingCandidates[ordinal - pending.currentCandidate.ordinal - 1]
+      if (!expected || !same(current, expected)) throw new Error('Remaining turn zones changed.')
+    }
+    const effectInput = spatialExecutionInput({
+      effect,
+      target: spatialTarget,
+      state: targetState,
+      occurrenceId: input.occurrenceId,
+      runtime
+    })
+    let result:
+      | TargetBoundActiveRuleEffectExecutionResult
+      | TargetBoundActiveRuleEffectExecutionPaused
+    let d20: SpatialD20Roll | null = null
+    if (existing) {
+      result = reconstructTargetBoundActiveRuleEffectCompletion({
+        executionInput: effectInput,
+        execution: existing.execution,
+        d20Evidence: existing.d20
+      })
+    } else if (resuming) {
+      const answer = input.resolution
+      if (
+        answer?.kind !== 'ENTER_DICE' &&
+        answer?.kind !== 'ENTER_INTEGER' &&
+        answer?.kind !== 'SYSTEM_ROLL'
+      )
+        throw new Error('Turn zone evidence is required.')
+      const resumed = await resumeTargetBoundActiveRuleEffectWithAnswer({
+        effectInput,
+        continuation: kernelContinuation(retained!.snapshot),
+        policy: requireSupportedD20Policy(pending.currentCandidate.d20Policy),
+        diceStage: pending.currentCandidate.diceStage,
+        answer,
+        random: input.random
+      })
+      result = resumed.result
+      d20 = resumed.d20
+    } else {
+      result = await executeTargetBoundActiveRuleEffectWithPause(effectInput)
+    }
+    if (!existing)
+      ({ result, d20 } = await settleAutomaticSpatialEvidence({
+        effectInput,
+        candidate: contact,
+        result,
+        d20,
+        autoRoll: input.autoRollByActorId,
+        random: input.random
+      }))
+    if ('continuation' in result) {
+      requireSupportedD20Policy(result.evidencePolicy)
+      const paused = candidateAt(ordinal, { d20Policy: result.evidencePolicy, diceStage: d20 })
+      return {
+        kind: 'PENDING',
+        snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+          ...result.continuation,
+          snapshotKind: 'KERNEL_EVIDENCE',
+          applicationContext: {
+            kind: 'ENCOUNTER_TURN_ZONE_EFFECTS',
+            schemaVersion: 1,
+            root: input.root,
+            selectionChecksum,
+            completedExecutions: executions,
+            currentCandidate: paused,
+            remainingCandidates: contacts
+              .slice(ordinal + 1)
+              .map((_, offset) => candidateAt(ordinal + offset + 1, null))
+          }
+        })
+      }
+    }
+    const outcome = spatialExecutionOutcome({
+      target: spatialTarget,
+      state: targetState,
+      targetStateChecksum: current.target.targetStateChecksum,
+      result
+    })
+    const execution: TurnZoneExecution = { ordinal, candidate: current, ...outcome }
+    if (existing && !same(existing, execution))
+      throw new Error('Retained turn zone execution is stale.')
+    executions.push(execution)
+    const after = outcome.targetTransition.after
+    targetState = {
+      current: after.currentHitPoints,
+      temporary: after.temporaryHitPoints,
+      conditions: [...after.conditionIds],
+      deathSaves: after.deathSaves
+    }
+  }
+
+  const plan: StagedTurnZonePlanDto = { selectionChecksum, executions }
+  const occurredAt = target.characterFacts?.active.updatedAt ?? '1970-01-01T00:00:00.000Z'
+  const settled = planNativeSpatialMovementPrefix<TCharacterFacts>({
+    targets: new Map([[actor.id, target]]),
+    executions,
+    encounterId: state.id,
+    expectedEncounterVersion: state.version,
+    campaignId: state.campaignId,
+    gameSystemId: state.gameSystemId,
+    occurrenceId: input.occurrenceId,
+    sourceCommandId: input.root.rootCommandId,
+    occurredAt,
+    userId: input.userId,
+    commandId: { phase: 'TURN_ZONE_EFFECT', ordinal: boundary.ordinal },
+    settleUnchanged: true
+  })
+  const projected = settled.projectedTargets.get(actor.id)!
+  const updatedActor = settled.settlements[0]?.plan.updatedActor ?? actor
+  targets.set(
+    actor.id,
+    rebuildEncounterTurnTarget({
+      source: target,
+      actor: projected.actor,
+      characterFacts: projected.characterFacts,
+      activeEffects: projected.activeEffects,
+      state
+    })
+  )
+  return {
+    kind: 'COMPLETE',
+    actors: input.actors.map((value) => (value.id === actor.id ? updatedActor : value)),
+    movementTargets: targets,
+    plan
+  }
+}

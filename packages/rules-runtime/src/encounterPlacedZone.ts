@@ -39,6 +39,8 @@ export function planEncounterPlacedZone(input: {
   sourceToken: { tokenId: string; width: number } | null
   /** The user's spell save DC as the cast resolved it. */
   saveDc: number | null
+  /** Creatures the caster designated at cast; the zone never catches them. */
+  unaffectedActorIds?: readonly string[]
 }): LiveSessionPlacedSpatialEffect {
   const { zone, point, area } = input
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
@@ -96,12 +98,19 @@ export function planEncounterPlacedZone(input: {
       schemaVersion: 1,
       ...zoneAnchor(zone.attachment, area, point, input.sourceToken),
       triggerModes: zone.triggerModes,
+      ...(zone.turnTriggers ? { turnTriggers: zone.turnTriggers } : {}),
       movementKinds: ['VOLUNTARY', 'FORCED', 'TELEPORT'],
       activation: 'REPEATABLE',
       visibility: 'PUBLIC',
       revealOnTrigger: false,
       label: zone.label,
-      bypassAtHalfSpeed: zone.bypassAtHalfSpeed
+      bypassAtHalfSpeed: zone.bypassAtHalfSpeed,
+      ...(zone.maxApplicationsPerTurn !== undefined
+        ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
+        : {}),
+      ...(input.unaffectedActorIds?.length
+        ? { unaffectedActorIds: [...input.unaffectedActorIds] }
+        : {})
     }),
     spatialState: { schemaVersion: 1, revealed: true }
   }

@@ -23,7 +23,8 @@ import {
   legendaryActionEvidencePendingContextDtoSchema,
   turnDeathSavePendingContextDtoSchema,
   turnEffectPendingContextDtoSchema,
-  turnRechargePendingContextDtoSchema
+  turnRechargePendingContextDtoSchema,
+  turnZoneEffectsPendingContextDtoSchema
 } from './ruleExecutionTurnPending.js'
 
 const noPendingApplicationContextDtoSchema = lazySchema(() =>
@@ -36,6 +37,7 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof noPendingApplicationContextDtoSchema>
   | z.infer<typeof encounterActionPendingContextDtoSchema>
   | z.infer<typeof turnEffectPendingContextDtoSchema>
+  | z.infer<typeof turnZoneEffectsPendingContextDtoSchema>
   | z.infer<typeof turnRechargePendingContextDtoSchema>
   | z.infer<typeof turnDeathSavePendingContextDtoSchema>
   | z.infer<typeof spatialPendingContextDtoSchema>
@@ -59,6 +61,7 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         noPendingApplicationContextDtoSchema,
         encounterActionPendingContextDtoSchema,
         turnEffectPendingContextDtoSchema,
+        turnZoneEffectsPendingContextDtoSchema,
         turnRechargePendingContextDtoSchema,
         turnDeathSavePendingContextDtoSchema,
         spatialPendingContextDtoSchema,

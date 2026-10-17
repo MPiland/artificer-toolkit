@@ -1,21 +1,11 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { describe, expect, it } from 'vitest'
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
-import {
-  hydrateStagedState,
-  inMemoryInitiativeRepository,
-  serializeStagedInitiativeRoundState
-} from '../encounterInitiativeStaging.js'
-import {
-  applyEncounterInitiativeAdvance,
-  planEncounterInitiativeAdvance,
-  settleEncounterInitiativeRound
-} from '../encounterInitiativeStateSettlement.js'
 import { planEncounterTurnAdvance, prepareEncounterTurn } from '../encounterTurnPreparation.js'
+import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
 import {
   srdCreatureActor,
   srdEncounterState,
@@ -26,47 +16,16 @@ import {
   ACTOR_A,
   ACTOR_B,
   ACTOR_C,
-  SIDE_FOES,
-  preparingRound
+  roundAt as fixtureRoundAt
 } from './encounterInitiativeFixtures.js'
-import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 
 type Stages = Parameters<typeof prepareEncounterTurn<ProjectableCharacterFacts>>[1]
 
 const ORDER = [ACTOR_A, ACTOR_B, ACTOR_C]
 const OWNER_ID = testUuid(0x70)
 
-/** The round with `currentActorId` taking its turn, the order A, B, C. */
-async function roundAt(
-  currentActorId: string,
-  cadence: 'ENCOUNTER_START' | 'EACH_ROUND'
-): Promise<EncounterInitiativeRoundStateDto> {
-  let state = preparingRound({
-    actors: ORDER.map((id) => ({ id, sideId: SIDE_FOES })),
-    ...(cadence === 'EACH_ROUND'
-      ? { policy: initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence }) }
-      : {})
-  })
-  state = await settleEncounterInitiativeRound({
-    repository: inMemoryInitiativeRepository(state).repository,
-    state,
-    orderedActorIds: ORDER
-  })
-  for (const actorId of ORDER.slice(0, ORDER.indexOf(currentActorId))) {
-    const plan = planEncounterInitiativeAdvance({
-      state,
-      currentActorId: actorId,
-      defeatedActorIds: new Set()
-    })
-    state = await applyEncounterInitiativeAdvance({
-      repository: inMemoryInitiativeRepository(state).repository,
-      state,
-      plan,
-      defeatedActorIds: new Set()
-    })
-  }
-  return hydrateStagedState(serializeStagedInitiativeRoundState(state))
-}
+const roundAt = (currentActorId: string, cadence: 'ENCOUNTER_START' | 'EACH_ROUND') =>
+  fixtureRoundAt(ORDER, currentActorId, cadence)
 
 function defeating(
   actors: readonly EncounterRunActorState[],
@@ -110,6 +69,14 @@ async function endTurn(input: {
         phase: { kind: 'NONE' }
       }
     },
+    zones: (stage) =>
+      prepareEncounterTurnZoneEffects({
+        ...stage,
+        loadScene: async () => null,
+        loadTarget: async () => undefined,
+        createRuntime: () => Promise.reject(new Error('A turn without zones needs no runtime.')),
+        random: () => 0
+      }),
     async legendary(stage) {
       const incoming = stage.root.proposedTerminalTransition.currentActorId
       if (stage.refreshIncoming !== false && incoming) seen.refreshedActorIds.push(incoming)
@@ -172,8 +139,19 @@ async function endTurn(input: {
     stages
   )
   if (prepared.kind !== 'COMPLETE') throw new Error('Expected a complete turn.')
-  return { root: prepared.root, seen, initiativeAdvance }
+  return { root: prepared.root, prepared, seen, initiativeAdvance }
 }
+
+describe('a turn without zones (SPELLS-20 T4b2b)', () => {
+  it('keeps no zone state, so its stored result is the one it had before zones existed', async () => {
+    const { root, prepared } = await endTurn({ currentActorId: ACTOR_A })
+    if (prepared.kind !== 'COMPLETE') throw new Error('Expected a complete turn.')
+    expect(prepared.outgoingZones).toBeNull()
+    expect(prepared.incomingZones).toBeNull()
+    expect(root).not.toHaveProperty('incomingTurn')
+    expect(root).not.toHaveProperty('outgoingZoneTurn')
+  })
+})
 
 describe('the next turn is chosen after the turn transition settles (D63)', () => {
   it('skips the next actor when the outgoing turn’s effects defeat it', async () => {

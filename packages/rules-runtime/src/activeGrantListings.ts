@@ -9,7 +9,6 @@ import type {
 } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { ValueDomainCode } from '@artificer-toolkit/shared/core'
 
-import { record } from './character/activeEffectGrantTotals.js'
 import { isLengthModifierDomain } from './modifierLength.js'
 
 type GrantPolarity = ActiveGrantListingDto['polarity']
@@ -50,18 +49,19 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
 }
 
 /** A bonus or penalty's sign: a negative amount or multiplier flips it, zero cancels it. */
-function scalarSign(domain: ValueDomainCode, payload: Record<string, unknown> | null): number {
+function scalarSign(
+  domain: ValueDomainCode,
+  payload: CharacterGrantFoldModifier['payload']
+): number {
+  if (payload === undefined) return 1
   // A fixed amount or a typed length (speed, sense range) carries its sign in `amount`.
-  const value =
-    payload?.valueKind === 'FIXED' || isLengthModifierDomain(domain)
-      ? payload?.amount
-      : (payload?.multiplier ?? 1)
-  return typeof value === 'number' ? Math.sign(value) : 1
+  if (('valueKind' in payload && payload.valueKind === 'FIXED') || isLengthModifierDomain(domain))
+    return 'amount' in payload ? Math.sign(payload.amount) : 1
+  return 'multiplier' in payload ? Math.sign(payload.multiplier ?? 1) : 1
 }
 
 function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
-  const { modifierKind: kind, valueDomainCode: domain } = modifier
-  const payload = record(record(modifier.grant)?.payload)
+  const { modifierKind: kind, valueDomainCode: domain, payload } = modifier
   switch (kind) {
     case 'ADVANTAGE':
       return domain === 'ATTACKS_AGAINST' ? 'HARMFUL' : 'BENEFICIAL'
@@ -83,8 +83,8 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
     case 'ENABLE':
       return ENABLE_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'
     case 'SET_VALUE': {
-      const amount = payload?.amount
-      if (typeof amount !== 'number') return 'NEUTRAL'
+      if (payload === undefined || !('amount' in payload)) return 'NEUTRAL'
+      const { amount } = payload
       const byValue = SET_VALUE_DOMAIN_POLARITY[domain]
       return (
         (amount === 0 ? byValue?.zero : amount > 0 ? byValue?.positive : undefined) ?? 'NEUTRAL'

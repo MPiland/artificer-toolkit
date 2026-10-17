@@ -34,6 +34,10 @@ import {
   turnEffectEncounterActorTransitionDtoSchema,
   turnEffectExecutionDtoSchema
 } from './ruleExecutionEffectEvidence.js'
+import {
+  refineTurnZoneEffectsEvidence,
+  turnZoneEffectsEvidenceFields
+} from './ruleExecutionTurnPhaseEvidence.js'
 import { serverUuidIdentityDtoSchema } from './serverUuidIdentity.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
@@ -187,10 +191,12 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
       encounterActorTransitions: z
         .array(turnEffectEncounterActorTransitionDtoSchema)
         .check(z.minLength(0))
-        .check(z.maxLength(2))
+        .check(z.maxLength(2)),
+      ...turnZoneEffectsEvidenceFields()
     })
     .check(
       z.superRefine((batch, context) => {
+        refineTurnZoneEffectsEvidence(batch, context)
         const terminatedStateIds = new Set<string>()
         let priorTerminatedState = ''
         for (const [index, state] of (batch.terminatedMaintainedStates ?? []).entries()) {

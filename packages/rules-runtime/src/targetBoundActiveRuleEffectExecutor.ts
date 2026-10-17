@@ -25,9 +25,13 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import type { CharacterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import { EncounterConflictError } from './encounterErrors.js'
 import {
+  resolveEncounterD20Answer,
+  resolveEncounterIntegerAnswer,
   selectEncounterActionD20Natural,
-  type EncounterD20RollMode
+  type EncounterD20RollMode,
+  type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 
 /**
@@ -45,6 +49,8 @@ class CharacterActiveRuleEffectExecutionError extends Error {
 export type ActiveRuleEffectTargetDefense = {
   kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
   damageTypeId: string
+  /** Applies only to damage from actions owned by this authored content; absent or empty: any. */
+  sourceEffectIds?: readonly string[]
 }
 
 const MAX_TARGET_DEFENSES = 128
@@ -277,6 +283,11 @@ function requireSupportedApplications(input: {
 }): void {
   const { applications, execution, frozenGraphNodeId, activeEffectId, emptyApplicationAllowed } =
     input
+  // The frozen node, plus any other node the graph binds to a source entry (a zone's made save).
+  const sourceNodeIds = new Set([
+    frozenGraphNodeId,
+    ...(execution.evidence.sourceEntryBindings ?? []).map((binding) => binding.nodeId)
+  ])
   const suppressedCondition =
     applications.length === 0 &&
     execution.evidence.trace.filter(
@@ -289,7 +300,7 @@ function requireSupportedApplications(input: {
     (!suppressedCondition && !emptyApplicationAllowed && applications.length === 0) ||
     applications.some(
       (application) =>
-        application.sourceNodeId !== frozenGraphNodeId ||
+        !sourceNodeIds.has(application.sourceNodeId) ||
         (application.kind === 'CONDITION_REMOVE' &&
           application.sourceActiveEffectId !== activeEffectId) ||
         !['HEAL', 'TEMPORARY_HIT_POINTS', 'DAMAGE', 'CONDITION_APPLY', 'CONDITION_REMOVE'].includes(
@@ -699,4 +710,67 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     graph: resumed.graph,
     roll
   })
+}
+
+/**
+ * Resume a paused effect with the player's answer to its pending request: the frozen d20 policy's
+ * save, or the one die of the graph's own damage that follows a save (answered with the save's
+ * d20, which the caller kept as `diceStage`). A stale request or answer throws a conflict.
+ */
+export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
+  effectInput: TargetBoundActiveRuleEffectExecutionInput
+  continuation: ServerRuleExecutionContinuationDto
+  policy: ServerRuleExecutionD20PolicyDto
+  /** The resolved d20 when the pending request is the damage die; null when it is the d20. */
+  diceStage: { rollMode: EncounterD20RollMode; rawFaces: readonly number[] } | null
+  answer: EncounterEvidenceAnswer
+  random: (maxExclusive: number) => number
+}): Promise<{
+  result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
+  d20: { rollMode: EncounterD20RollMode; rawFaces: number[] }
+}> {
+  const { effectInput, continuation, policy, diceStage, answer } = input
+  const { request } = continuation
+  if (request.requestId !== answer.requestId || request.kind !== 'INTEGER_RANGE')
+    throw new EncounterConflictError('The evidence request is stale.')
+  if (isDamageDieRequest(continuation, policy)) {
+    if (!diceStage) throw new EncounterConflictError('The evidence request is stale.')
+    const value = resolveEncounterIntegerAnswer({
+      min: request.min,
+      max: request.max,
+      answer,
+      random: input.random
+    })
+    const d20 = { rollMode: diceStage.rollMode, rawFaces: [...diceStage.rawFaces] }
+    return {
+      d20,
+      result: await resumeTargetBoundActiveRuleEffectWithPause({
+        ...effectInput,
+        continuation,
+        resolution: { requestId: answer.requestId, value, d20 },
+        expectedEvidencePolicy: policy
+      })
+    }
+  }
+  if (
+    diceStage ||
+    request.min !== 1 ||
+    request.max !== 20 ||
+    request.nodeId !== policy.requestNodeId
+  )
+    throw new EncounterConflictError('The evidence request is stale.')
+  const { faces, rollMode } = resolveEncounterD20Answer({
+    derivedRollMode: policy.rollMode,
+    answer,
+    rollD20: () => input.random(20) + 1
+  })
+  return {
+    d20: { rollMode, rawFaces: faces },
+    result: await resumeTargetBoundActiveRuleEffectWithPause({
+      ...effectInput,
+      continuation,
+      resolution: { requestId: answer.requestId, rawFaces: faces, rollMode },
+      expectedEvidencePolicy: policy
+    })
+  }
 }

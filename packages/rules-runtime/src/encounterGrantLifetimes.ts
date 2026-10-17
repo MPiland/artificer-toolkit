@@ -1,10 +1,14 @@
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunCharacterActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   ActiveEffectConsumeEvent,
   ActiveEffectEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { carriedCreatureForm } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import {
@@ -178,7 +182,10 @@ export function attackedHostileCreature(input: {
 }) {
   return (
     encounterActorRelationship(input.source.disposition, input.target.disposition) === 'HOSTILE' &&
-    input.d20s.some((d20) => d20 !== null && d20 !== undefined && ATTACK_ROLL_RESULT_PATHS.includes(d20.resultPath))
+    input.d20s.some(
+      (d20) =>
+        d20 !== null && d20 !== undefined && ATTACK_ROLL_RESULT_PATHS.includes(d20.resultPath)
+    )
   )
 }
 
@@ -213,20 +220,32 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
 export function planCarriedOverEffects(input: {
   effects: readonly ActiveRuleEffectRecord[]
   clockMinute: number | null
+  /** The creature form the Character wears at completion, carried on the effect that holds it. */
+  form?: EncounterRunCharacterActorState['form']
 }) {
   return input.effects.flatMap((effect) => {
+    const wornForm = input.form?.effectId === effect.id ? input.form : null
     const remaining = effect.lifecycle.remainingTicks
     if (
       remaining === null ||
-      !(isModifierGrant(effect) || ownsCondition(effect)) ||
+      !(isModifierGrant(effect) || ownsCondition(effect) || wornForm) ||
       effect.definition.recurrence.expiration.kind !== 'TICKS'
     )
-      return []
+      // An already carried form effect keeps its Campaign expiry and takes the hit points it ended on.
+      return wornForm && remaining === null
+        ? [
+            {
+              effect,
+              lifecycle: { ...effect.lifecycle, carriedCreatureForm: carriedCreatureForm(wornForm) }
+            }
+          ]
+        : []
     const { concentrationCasterCharacterId } = effect.lifecycle
     const lifecycle: ActiveRuleEffectRecord['lifecycle'] = {
       schemaVersion: 1,
       remainingTicks: null,
       ...(concentrationCasterCharacterId === undefined ? {} : { concentrationCasterCharacterId }),
+      ...(wornForm ? { carriedCreatureForm: carriedCreatureForm(wornForm) } : {}),
       expiresAtCampaignMinute:
         input.clockMinute === null ? null : input.clockMinute + Math.ceil(remaining / 10)
     }

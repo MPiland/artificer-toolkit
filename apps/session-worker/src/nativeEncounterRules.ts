@@ -34,12 +34,14 @@ import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persist
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
+  encounterBasicActionDefinitionId,
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
   actionEndedEffects,
+  actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
   damageTakenEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -54,6 +56,10 @@ import {
   overridesActionEconomy,
   RULE_WARNINGS_MESSAGE
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
@@ -87,7 +93,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import {
-  applyNativeAttackReaction,
+  applyNativeReactionEffect,
   discoverNativeAttackReaction
 } from './nativeEncounterAttackReaction.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
@@ -589,10 +595,22 @@ export async function planNativeLiveEncounterAction(
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
+  const fleeWarnings = encounterFleeActionWarnings({
+    sourceActorIds: encounterConditionFleeSources(actorTarget),
+    activationCode,
+    dash: mechanicFacts.outcomes.some(
+      (outcome) =>
+        outcome.kind === 'EFFECT' &&
+        outcome.effectKind === 'MOVEMENT_RULE' &&
+        outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
+    )
+  })
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
-    preparedWarnings: suppressed
-      ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
-      : prepared.ruleWarnings,
+    preparedWarnings: [
+      ...prepared.ruleWarnings,
+      ...fleeWarnings,
+      ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
+    ],
     target: {
       actor: prepared.actor,
       target: prepared.target,
@@ -800,6 +818,8 @@ export async function planNativeLiveEncounterAction(
     command,
     prepared,
     movementTargets,
+    // A single-target cast has no chosen list to react to being chosen (T4 covers a chosen list).
+    chosenActorIds: null,
     reactionSources: actionSources,
     // Range is read from the Scene, so a cast made without one offers no reaction.
     readScene: command.sceneContext
@@ -862,7 +882,7 @@ export async function planNativeLiveEncounterAction(
     const [found] = await discoverReaction({ answering, critical })
     if (!found) throw new Error('Reaction evidence is stale.')
     const applied = used
-      ? await applyNativeAttackReaction({
+      ? await applyNativeReactionEffect({
           reaction: found,
           runtime: executionOptions.runtime,
           occurrenceId,
@@ -1072,15 +1092,25 @@ export async function planNativeLiveEncounterAction(
   ]
   // Damage the target takes ends the effects it holds that end on damage, and releases the
   // conditions only they held in the target's own batch.
+  const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
+    ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
+  )
   const damageEnded = damageTakenEndedEffects({
     holderActorId: prepared.target.id,
-    held: (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
-      ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
-    ),
+    held: targetHeld,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions
   })
+  // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
+  const actionEnded = isEncounterBasicActionId(command.actorId, command.actionId)
+    ? actionUsedOnHolderEndedEffects({
+        holderActorId: prepared.target.id,
+        held: targetHeld,
+        usedByActorId: prepared.actor.id,
+        basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
+      })
+    : null
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1093,7 +1123,7 @@ export async function planNativeLiveEncounterAction(
       applications,
       sourceReleases,
       targetReleases: reactionEnded?.sourceReleases,
-      damageReleases: damageEnded.releases,
+      damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1267,8 +1297,12 @@ export async function planNativeLiveEncounterAction(
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     failedSpends,
     revisions,
-    // The attacker's one-roll grants and the target's effects the damage ended, one receipt.
-    consumedGrants: [...consumedGrants, ...damageEnded.endedEffects]
+    // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
+    consumedGrants: [
+      ...consumedGrants,
+      ...damageEnded.endedEffects,
+      ...(actionEnded?.endedEffects ?? [])
+    ]
   }
 }
 

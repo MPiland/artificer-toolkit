@@ -23,7 +23,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
     "generate:creature-attack-bonuses": "yarn --cwd ../.. exec tsx packages/source-data/scripts/generateCreatureAttackBonuses.ts",
     "generate:creature-attack-damage": "yarn --cwd ../.. exec tsx packages/source-data/scripts/generateCreatureAttackDamage.ts",
     "generate:creature-stat-blocks": "yarn --cwd ../.. exec tsx packages/source-data/scripts/generateCreatureStatBlocks.ts",

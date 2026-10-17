@@ -7,6 +7,7 @@ import {
   MAX_SPATIAL_PATH_POINTS,
   spatialMovementCandidateDtoSchema,
   spatialMovementKindDtoSchema,
+  spatialTurnContactDtoSchema,
   spatialPointDtoSchema
 } from './spatialFacts.js'
 import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
@@ -59,6 +60,32 @@ export const spatialEffectCurrentnessPinDtoSchema = lazySchema(() =>
   })
 )
 
+/** What a spatial candidate pins besides its contact: the effect and target currentness and the d20 it waits on. */
+const spatialCandidateEvidenceFields = lazySchemaParts(() => ({
+  effect: spatialEffectCurrentnessPinDtoSchema,
+  target: spatialTargetCurrentnessPinDtoSchema,
+  d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
+  /** The resolved d20 of a candidate now answering its damage dice (a placed zone's failed entry save). */
+  diceStage: z.nullable(
+    z.strictObject({
+      rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
+      rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2))
+    })
+  )
+}))
+
+const refineSpatialCandidateEffect = (
+  value: { candidate: { effectId: string }; effect: { effectId: string } },
+  context: z.core.$RefinementCtx
+) => {
+  if (value.candidate.effectId !== value.effect.effectId)
+    context.addIssue({
+      code: 'custom',
+      path: ['effect', 'effectId'],
+      message: 'Spatial candidate and effect currentness identity must agree.'
+    })
+}
+
 export const spatialPendingCandidateDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -68,27 +95,25 @@ export const spatialPendingCandidateDtoSchema = lazySchema(() =>
         .check(z.gte(0))
         .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
       candidate: spatialMovementCandidateDtoSchema,
-      effect: spatialEffectCurrentnessPinDtoSchema,
-      target: spatialTargetCurrentnessPinDtoSchema,
-      d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
-      /** The resolved d20 of a candidate now answering its damage dice (a placed zone's failed entry save). */
-      diceStage: z.nullable(
-        z.strictObject({
-          rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
-          rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2))
-        })
-      )
+      ...spatialCandidateEvidenceFields()
     })
-    .check(
-      z.superRefine((value, context) => {
-        if (value.candidate.effectId !== value.effect.effectId)
-          context.addIssue({
-            code: 'custom',
-            path: ['effect', 'effectId'],
-            message: 'Spatial candidate and effect currentness identity must agree.'
-          })
-      })
-    )
+    .check(z.superRefine(refineSpatialCandidateEffect))
+)
+
+/** One zone a creature stands in at a turn boundary, pinned like a movement contact. */
+export const spatialTurnCandidateDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      ordinal: z
+        .number()
+        .check(z.int())
+        .check(z.gte(0))
+        .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
+      boundaryOrdinal: integerSchema.check(z.gte(0)).check(z.lte(1)),
+      candidate: spatialTurnContactDtoSchema,
+      ...spatialCandidateEvidenceFields()
+    })
+    .check(z.superRefine(refineSpatialCandidateEffect))
 )
 
 export const pendingD20FaceSchema = lazySchema(() => integerSchema.check(z.gte(1)).check(z.lte(20)))

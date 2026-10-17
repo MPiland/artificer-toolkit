@@ -229,7 +229,7 @@ The test walks every SRD subject record and splits its description into sentence
 
 - **Authored (7):** Invisibility, the four Brass Dragon breaths (already), Charm Person (`DAMAGE_TAKEN` by `SOURCE_SIDE`) and Duergar Invisibility (`endOnEvents` `ON_ATTACK_ROLL` / `ON_CAST_SPELL`; its duration was 1 minute against "up to 1 hour" in the text and is now 1 hour).
 - **`GM_ADJUDICATED` (13, per both D122 amendments):** Animal Friendship, Awaken, Calm Emotions, Eyebite, Mass Suggestion, Mislead, Modify Memory, Phantom Steed, Produce Flame, Project Image, Sequester, Suggestion, Oath of Devotion's Turn the Unholy. One future-enhancements line covers them.
-- **`REGISTERED_FOLLOW_UP` (10), each names its task:** Sanctuary (T7); Sleep (T8: hit point pool targeting; also waking with an action); Hypnotic Pattern (T9: charmed, incapacitated and speed 0 from one timed effect, but the timed condition plan takes exactly one condition); Imp, Quasit, Green Hag, Sprite and Will-o'-Wisp invisibility (T10: no duration, kept by concentration); the Drow, Pseudodragon and Sprite stings (T11: unconscious on failing the save by 5 or more). Sleep and Hypnotic Pattern do not compile from existing plans, so they stay with T8 and T9.
+- **`REGISTERED_FOLLOW_UP` (10), each names its task:** Sanctuary (T7); Sleep (T8: hit point pool targeting; also waking with an action); Imp, Quasit, Green Hag, Sprite and Will-o'-Wisp invisibility (T10: no duration, kept by concentration); the Drow, Pseudodragon and Sprite stings (T11: unconscious on failing the save by 5 or more). Sleep and Hypnotic Pattern do not compile from existing plans, so they stay with T8 and T9.
 - **Categories `CONCENTRATION`, `DISMISSAL`, `DISTANCE`, `DURATION`** are in the type; no current hit needs them.
 - Charm Person's "advantage on the saving throw if you or your companions are fighting it" is not authored (no conditional save advantage exists); noted for a follow-up.
 
@@ -241,11 +241,36 @@ The test walks every SRD subject record and splits its description into sentence
 
 - SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.
 
-## Resume here (after SPELLS-27.T10, on ci/spells-27-t10)
+## Resume here (after SPELLS-27.T9, on ci/spells-27-t9)
 
-**Next task: SPELLS-27.T6 (D122: unify `consumeOnFirstEvents` and `endOnEvents`) once REACTION-4.T3 has merged, otherwise the next REGISTERED_FOLLOW_UP in `packages/source-data/src/srd/endEvents.test.ts` (T7 Sanctuary, T8 Sleep, T9 Hypnotic Pattern, T11 margin-of-failure riders).** One task per session.
+**Next task: SPELLS-27.T7 and T11; T6 after REACTION-4.T3 merges.** One task per session.
+
+### T9 result (Hypnotic Pattern)
+
+- A timed active effect now owns a **list** of conditions: the compiled plan's `conditionContribution` is replaced by `conditionContributions` (no shim), and the end events move to a plan-level `lifecycle { consumeOnFirstEvents, endOnEvents, endOnTriggers }`. `prepareRecurringActiveEffect` stores one `CONDITION_OWNERSHIP` per condition and unions the lifecycle with a grant's; the expiry path emits a `CONDITION_REMOVE` for each. `timedConditionPlan` accepts several condition entries and at most one failed-save `APPLY_GRANT` that rides the same effect (counted by the turn-effect kernel, `countedByTurnEffects`).
+- Speed 0 is the existing `MODIFIER_GRANT SPEED MULTIPLY` with no `speedId`. The one gap: the shared fraction allowed no zero numerator, so `authoredFractionSchema` and the node map now take `numerator >= 0` (`ruleState.ts` already allowed it). A failed-save grant is left to the plan only when `timedConditionPlan(action)` accepts the action, so every other ON_SAVE_FAIL grant compiles as before (corpus check against the base compiler: no spell moved from compiled to manual). Condition ids stay scalar outputs (`conditionId`, `conditionId2`, …) because `ruleValueDtoSchema` allows only boolean, number or string (`packages/schema/src/api/rulesRuntime.ts`).
+- **Speed call sites.** Already consuming MULTIPLY with no `speedId`: `withActiveGrantSpeeds` via `encounter-persistence/turnMovement.ts` (the `turnMovement` allowances the Worker session sends and the web movement preview reads), `encounterMovementTargets.ts` and `encounterHolderDefense.ts`. Added: none.
+- Proofs: `characterSpellCastActions.test.ts` (compiled plan, core-options parity), `nativeRoomHypnoticPattern.test.ts` (save fails charm, incapacitate and take the walking budget to 0; damage and Rouse each release one creature's conditions, effect and speed; undo of the damage and of the cast restore both). `closedRuleKind` loses `HYPNOTIC_PATTERN`; `endEvents.test.ts` loses its follow-up entry.
+- **T6 wording.** T6's row still reads correctly for the stored recurrence fields, but `consumeOnFirstEvents` and `endOnEvents` now also arrive on the plan-level `lifecycle` (alongside `endOnTriggers`), so T6 should say it unifies the lifecycle on the plan `lifecycle` and the stored recurrence/contribution fields together.
+- Deferred edges: a failed-save grant other than one beside timed conditions stays refused; two grants on one failed-save path stay refused; an effect holding several conditions whose individual immunities differ (immune creatures still receive the whole effect).
+
+### T12 result (wake by action)
+
+- New generic end trigger `ACTION_USED_ON_HOLDER { actionDefinitionIds }` in all four layers (schema, authored type, node map, compiler `canonicalEndTriggers`). `actionUsedOnHolderEndedEffects` (`encounterEndedEffectRelease.ts`) ends the holder's matching effects and releases the conditions they owned, in the target's mechanics batch of the same transaction; GM undo restores them.
+- New SRD basic action Rouse (TOUCH, single target, manual adjudication). Sleep ends on `DAMAGE_TAKEN` by ANYONE or Rouse. Nothing Sleep-specific in the engine.
+- Proofs: `encounterEndedEffectRelease.test.ts` (four unit cases), `nativeRoomHitPointPoolSpell.test.ts` (rouse wakes only the target; undo restores sleep), `characterSpellCastActions.test.ts` (compiled plan has both triggers), catalogue tests list Rouse.
+- Deferred edges: only the single-target action path consumes the trigger (area, legendary, movement-reaction and turn-resource actions do not); two effects sharing one condition ended in a single action.
+- Run ids: Tests 39007537795 and Live 39007537775 green on 9b4074f8e (earlier reds: 39004910347 catalogue tests, 39006207872 Sleep plan expectation).
+
+### T8 result (Sleep)
+
+- Targeting gains `hitPointPool: { diceConfig }` and `hitPointPoolScaling` (breakpoints over `SPELL_CAST_LEVEL`) on `AREA_CONTENTS`, in all four layers (schema, authored type, node map, compiled projection via `resolveAreaContentsTargeting`). `sleep.ts` is authored from them (sphere 20 ft, undead excluded, unconscious with a `DAMAGE_TAKEN` by ANYONE end); the `SLEEP` closed rule is deleted.
+- `effectActionCompiler.ts` accepts a no-save ACTIVATED area with a pool as `SINGLE_GRAPH`. The Worker (`planNativeLiveEncounterAreaAction`) rolls the pool, picks creatures lowest current HP first (`selectHitPointPoolTargets`) and commits once through the actors commit path.
+- Wake by action is **not** in T8 (ruling): it arrives as SPELLS-27.T12, a generic `ACTION_USED_ON_HOLDER` end, before T9. `endEvents.test.ts` now registers Sleep under `T12 wake by action`.
+- Deferred edges: charm-immune and condition-immune creatures are still affected; a Character caught in the pool; no pool roll card for players; Sheet targeting-count display for pool scaling; an area with nobody covered commits with no targets.
 
 ### T10 result
+
 - `timedConditionPlan` (`effectActionCompiler.ts`) accepts a condition entry with no duration when Concentration maintains it: `initialRemaining: null`, `recurrenceStage: 'NONE'`, planned as `{ kind: 'INDEFINITE' }`. `endOnEvents` ride on the condition contribution as before.
 - `packages/source-data/src/srd/creatures/indefiniteInvisibility.ts` builds the five traits (Imp, Quasit, Will-o'-Wisp: `ON_ATTACK_ROLL`; Sprite, Green Hag: plus `ON_CAST_SPELL`) from core options. Sprite and Green Hag were closed rules; their `CLOSED_RULE_KIND` entries are deleted.
 - Proofs: `creatureIndefiniteInvisibility.test.ts` (plan, journey with release, authoring parity). The five T10 entries are gone from `endEvents.test.ts`.

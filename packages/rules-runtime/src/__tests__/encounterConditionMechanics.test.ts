@@ -11,6 +11,8 @@ import {
   activeEncounterConditionMechanics,
   applyEncounterConditionMechanics,
   encounterConditionApproachWarnings,
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings,
   encounterConditionAttackContributors,
   encounterConditionHitIsCritical,
   encounterConditionLevels,
@@ -400,7 +402,8 @@ function owningEffect(
   id: number,
   conditionDefinitionId: string,
   sourceActorId: string | null,
-  baselinePresent = false
+  baselinePresent = false,
+  fleesSource = false
 ) {
   return activeEffect({
     id: `44444444-4444-4444-8444-44444444444${id}`,
@@ -412,7 +415,8 @@ function owningEffect(
         kind: 'CONDITION_OWNERSHIP',
         conditionId: conditionDefinitionId,
         baselinePresent,
-        ...(sourceActorId ? { sourceActorId } : {})
+        ...(sourceActorId ? { sourceActorId } : {}),
+        ...(fleesSource ? { fleesSource } : {})
       }
     ]
   })
@@ -538,6 +542,58 @@ describe('a condition that follows its source (SPELLS-29)', () => {
         end: token(1),
         sourceTokens: new Map([[SOURCE_ID, token(0)]])
       })
+    ).toEqual([])
+  })
+})
+
+describe('a condition that flees its source (SPELLS-29.T2)', () => {
+  const fleeing = (...effects: ReturnType<typeof owningEffect>[]) =>
+    holding([FRIGHTENED], effects)
+
+  it('the sources to flee are the recorded sources of the held condition owners that flee', () => {
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID, false, true)))
+    ).toEqual([SOURCE_ID])
+    expect(
+      encounterConditionFleeSources(
+        fleeing(
+          owningEffect(1, FRIGHTENED, OTHER_SOURCE_ID, false, true),
+          owningEffect(2, FRIGHTENED, SOURCE_ID, false, true),
+          owningEffect(3, FRIGHTENED, SOURCE_ID, false, true)
+        )
+      )
+    ).toEqual([SOURCE_ID, OTHER_SOURCE_ID].sort())
+    // A Frightened that does not flee, one held before its effect, an unsourced owner and a
+    // condition the creature no longer holds flee nothing.
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID)))
+    ).toEqual([])
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID, true, true)))
+    ).toEqual([])
+    expect(
+      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, null, false, true)))
+    ).toEqual([])
+    expect(
+      encounterConditionFleeSources({
+        ...holding([], [owningEffect(1, FRIGHTENED, SOURCE_ID, false, true)])
+      })
+    ).toEqual([])
+  })
+
+  it('an action other than Dash warns for a fleeing creature; Dash and other allowances do not', () => {
+    const warns = [{ code: 'CONDITION_SOURCE_FLEE', message: expect.any(String) }]
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'ACTION', dash: false })
+    ).toEqual(warns)
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'ACTION', dash: true })
+    ).toEqual([])
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'BONUS_ACTION', dash: false })
+    ).toEqual([])
+    expect(
+      encounterFleeActionWarnings({ sourceActorIds: [], activationCode: 'ACTION', dash: false })
     ).toEqual([])
   })
 })

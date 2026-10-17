@@ -51,6 +51,7 @@ __metadata:
   dependencies:
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
+    "@artificer-toolkit/source-data": "workspace:^"
     typescript: "npm:^7.0.2"
     zod: "npm:4.4.3"
   languageName: unknown

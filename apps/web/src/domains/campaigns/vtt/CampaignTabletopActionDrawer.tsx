@@ -155,6 +155,7 @@ export function CampaignTabletopActionDrawer({
   // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
+  const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
@@ -225,6 +226,11 @@ export function CampaignTabletopActionDrawer({
         : null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
+  // A zone the action places can spare creatures the caster designates at cast.
+  const sparesCreatures =
+    (choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'CASTER_CENTERED') &&
+    choiceTarget.choosesUnaffected === true
+  const unaffected = sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}
   const namesNoCreature = areaTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none.
   const optionalRuleId = namesNoCreature ? null : pickedOptionalRuleId
@@ -261,7 +267,8 @@ export function CampaignTabletopActionDrawer({
             kind: 'POINT',
             sceneId: scene.id,
             expectedSceneVersion: scene.version,
-            point: areaAim.origin
+            point: areaAim.origin,
+            ...unaffected
           }
         : areaAim.toward
           ? {
@@ -293,7 +300,12 @@ export function CampaignTabletopActionDrawer({
       ? areaCommandTarget
       : centeredTarget
         ? scene
-          ? { kind: 'CASTER_CENTERED', sceneId: scene.id, expectedSceneVersion: scene.version }
+          ? {
+              kind: 'CASTER_CENTERED',
+              sceneId: scene.id,
+              expectedSceneVersion: scene.version,
+              ...unaffected
+            }
           : null
         : targetActorId
           ? { kind: 'ACTOR', actorId: targetActorId }
@@ -453,6 +465,7 @@ export function CampaignTabletopActionDrawer({
   // So do the creatures chosen.
   useEffect(() => {
     setPickedActorIds([])
+    setUnaffectedActorIds([])
     setPickedFormId(null)
   }, [selectedActionId])
 
@@ -708,6 +721,19 @@ export function CampaignTabletopActionDrawer({
                   searchable
                   value={pickedActorIds}
                   onChange={setPickedActorIds}
+                />
+              ) : null}
+              {sparesCreatures ? (
+                <MultiSelect
+                  comboboxProps={{ withinPortal: false }}
+                  data={encounter.actors
+                    .filter((actor) => actor.id !== currentActor?.id)
+                    .map((actor) => ({ label: actor.label, value: actor.id }))}
+                  disabled={selectionControlsDisabled}
+                  label='Unaffected creatures'
+                  searchable
+                  value={unaffectedActorIds}
+                  onChange={setUnaffectedActorIds}
                 />
               ) : null}
               {areaTarget ? (

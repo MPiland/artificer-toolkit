@@ -191,6 +191,14 @@ export function prepareEncounterConcealmentEffect(
   })
 }
 
+/** The distinct events of both lists, sorted. */
+function sortedUnion<Event extends string>(
+  first: readonly Event[] | undefined,
+  second: readonly Event[] | undefined
+): Event[] {
+  return [...new Set([...(first ?? []), ...(second ?? [])])].sort()
+}
+
 /**
  * Resistance to "the triggering damage type" becomes one resistance per damage type that triggered the
  * reaction; any other modifier stays as authored.
@@ -199,16 +207,8 @@ function bindTriggerDamageTypes(
   modifier: CharacterGrantFoldModifier,
   damageTypeIds: readonly string[]
 ): CharacterGrantFoldModifier[] {
-  const { grant } = modifier
-  if (typeof grant !== 'object' || grant === null || Array.isArray(grant)) return [modifier]
-  const { payload } = grant
-  if (
-    typeof payload !== 'object' ||
-    payload === null ||
-    Array.isArray(payload) ||
-    payload.damageTypeSource !== 'TRIGGER'
-  )
-    return [modifier]
+  const { payload } = modifier
+  if (payload === undefined || !('damageTypeSource' in payload)) return [modifier]
   if (damageTypeIds.length === 0)
     throw new EncounterActionEffectPlanError(
       'A resistance to the triggering damage type needs the damage that triggered the reaction.'
@@ -216,7 +216,7 @@ function bindTriggerDamageTypes(
   return damageTypeIds.map((damageTypeId) => ({
     ...modifier,
     grantId: `${modifier.grantId}:${damageTypeId}`,
-    grant: { ...grant, payload: { damageTypeId } }
+    payload: { damageTypeId }
   }))
 }
 
@@ -235,7 +235,8 @@ function prepareRecurringActiveEffect(
     ).length !== 1
   )
     throw new EncounterActionEffectPlanError('Encounter Feature recurring-effect plan is stale.')
-  const conditionContribution = plan.conditionContribution ?? null
+  const conditionContributions = plan.conditionContributions ?? []
+  const endLifecycle = plan.lifecycle
   const relationshipContribution = plan.actorRelationshipContribution ?? null
   const grantContribution = plan.modifierGrantContribution ?? null
   if (plan.concealmentContribution && input.concealment === undefined)
@@ -358,9 +359,6 @@ function prepareRecurringActiveEffect(
       )
     return baselinePresent
   }
-  const baselinePresent = conditionContribution
-    ? conditionBaselinePresent(conditionContribution.conditionId)
-    : null
   const relationshipConditionIds = relationshipContribution
     ? [
         ...relationshipContribution.conditionIds,
@@ -393,7 +391,7 @@ function prepareRecurringActiveEffect(
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion:
-      conditionContribution ||
+      conditionContributions.length > 0 ||
       relationshipContribution ||
       grantContribution ||
       concealment ||
@@ -423,20 +421,22 @@ function prepareRecurringActiveEffect(
         grantContribution && !grantContribution.countedByTurnEffects
           ? 'NONE'
           : plan.recurrenceStage,
-      consumeOnFirstEvents:
+      // A grant held beside conditions (Hypnotic Pattern's speed 0) ends with them, so the plan's
+      // own lifecycle joins the grant's.
+      consumeOnFirstEvents: sortedUnion(
         grantContribution?.consumeOnFirstEvents ??
-        plan.concealmentContribution?.consumeOnFirstEvents ??
-        conditionContribution?.consumeOnFirstEvents ??
-        [],
-      endOnEvents: grantContribution?.endOnEvents ?? conditionContribution?.endOnEvents ?? [],
-      endOnTriggers: conditionContribution?.endOnTriggers ?? [],
+          plan.concealmentContribution?.consumeOnFirstEvents,
+        endLifecycle?.consumeOnFirstEvents
+      ),
+      endOnEvents: sortedUnion(grantContribution?.endOnEvents, endLifecycle?.endOnEvents),
+      endOnTriggers: endLifecycle?.endOnTriggers ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.
       lifetimeScope:
-        grantContribution || conditionContribution || linkContribution
+        grantContribution || conditionContributions.length > 0 || linkContribution
           ? input.target.lifetimeScope
           : 'ENCOUNTER',
       expiration:
@@ -449,7 +449,7 @@ function prepareRecurringActiveEffect(
               anchor: tickAnchor
             }
     },
-    ...(conditionContribution ||
+    ...(conditionContributions.length > 0 ||
     relationshipContribution ||
     grantContribution ||
     concealment ||
@@ -499,18 +499,15 @@ function prepareRecurringActiveEffect(
                   }
                 ]
               : []),
-            ...(conditionContribution
-              ? [
-                  {
-                    kind: 'CONDITION_OWNERSHIP' as const,
-                    conditionId: conditionContribution.conditionId,
-                    baselinePresent,
-                    ...(conditionContribution.recordsSource && {
-                      sourceActorId: input.sourceActorId
-                    })
-                  }
-                ]
-              : []),
+            ...conditionContributions.map((contribution) => ({
+              kind: 'CONDITION_OWNERSHIP' as const,
+              conditionId: contribution.conditionId,
+              baselinePresent: conditionBaselinePresent(contribution.conditionId),
+              ...(contribution.recordsSource && {
+                sourceActorId: input.sourceActorId,
+                ...(contribution.fleesSource && { fleesSource: true })
+              })
+            })),
             ...relationshipConditionIds.map((conditionId) => ({
               kind: 'CONDITION_OWNERSHIP' as const,
               conditionId,

@@ -18,6 +18,10 @@ export const spatialPointDtoSchema = lazySchema(() =>
   z.strictObject({ x: coordinateSchema, y: coordinateSchema })
 )
 export const spatialTriggerDtoSchema = lazySchema(() => z.enum(['ENTER', 'EXIT', 'CROSS']))
+/** The turn boundary at which a creature standing in a zone is caught (not a movement). */
+export const spatialTurnTriggerDtoSchema = lazySchema(() =>
+  z.enum(['START_OF_TURN', 'END_OF_TURN'])
+)
 export const spatialMovementKindDtoSchema = lazySchema(() =>
   z.enum(['VOLUNTARY', 'FORCED', 'TELEPORT'])
 )
@@ -38,6 +42,16 @@ export const spatialMovementCandidateDtoSchema = lazySchema(() =>
     sourceMoved: z.boolean(),
     targetActorId: postgresUuidSchema,
     trigger: spatialTriggerDtoSchema
+  })
+)
+
+/** A creature standing in a zone at a turn boundary: no path, no contact point. */
+export const spatialTurnContactDtoSchema = lazySchema(() =>
+  z.strictObject({
+    effectId: postgresUuidSchema,
+    sourceActorId: z.nullable(postgresUuidSchema),
+    targetActorId: postgresUuidSchema,
+    trigger: spatialTurnTriggerDtoSchema
   })
 )
 

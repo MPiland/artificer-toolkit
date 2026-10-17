@@ -1,5 +1,11 @@
-import { z, lazySchema } from '../zod.js'
-import { modifierKindSchema, sizeCodeSchema, valueDomainCodeSchema } from '../shared/enums.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
+import {
+  modifierKindSchema,
+  modifierScopeKindSchema,
+  sizeCodeSchema,
+  valueDomainCodeSchema
+} from '../shared/enums.js'
+import { modifierDomainParamsDtoSchema, modifierPayloadDtoSchema } from '../grants/modifier.js'
 import { senseRangeDtoSchema } from '../grants/sense.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
@@ -9,13 +15,6 @@ const identitySchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
 )
 const codeSchema = lazySchema(() => z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,79}$/)))
-const boundedJsonSchema = lazySchema(() =>
-  z
-    .json()
-    .check(
-      z.refine((value) => JSON.stringify(value).length <= 8_192, 'Mechanic facts are too large.')
-    )
-)
 
 export const characterMechanicSourceSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -155,15 +154,23 @@ export const senseOperationSchema = lazySchema(() =>
   })
 )
 
+/** A compiled modifier grant's typed fields, as the fold carries them (ADR 0003). */
+const foldModifierShape = lazySchemaParts(() => ({
+  valueDomainCode: valueDomainCodeSchema,
+  modifierKind: modifierKindSchema,
+  scope: modifierScopeKindSchema,
+  domain: modifierDomainParamsDtoSchema,
+  payload: z.optional(modifierPayloadDtoSchema)
+}))
+
 export const modifierOperationSchema = lazySchema(() =>
   z.strictObject({
     grantId: identitySchema,
-    valueDomainCode: valueDomainCodeSchema,
-    modifierKind: modifierKindSchema,
-    domain: boundedJsonSchema,
-    grant: boundedJsonSchema,
+    ...foldModifierShape(),
     restrictions: characterGrantFoldRestrictionSchema,
-    scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
+    scopeSpellIds: z.array(identitySchema).check(z.maxLength(500)),
+    /** The class resources a RESOURCE-scoped modifier (a charge reset) applies to; empty is all. */
+    scopeResourceIds: z.array(identitySchema).check(z.maxLength(500))
   })
 )
 
@@ -334,12 +341,13 @@ const senseResultSchema = lazySchema(() =>
 const modifierResultSchema = lazySchema(() =>
   z.strictObject({
     domainKey: identitySchema,
-    modifierKind: modifierKindSchema,
-    grant: boundedJsonSchema,
+    grantId: identitySchema,
+    ...foldModifierShape(),
     /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
     sourceId: identitySchema,
     source: characterMechanicSourceSchema,
     scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
+    scopeResourceIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     /**
      * Conditions still to be met where they are known, as OR-of-AND groups: the attacking item's,
      * or the holder's state in the Encounter. Empty means the modifier is unconditional; a
@@ -385,8 +393,7 @@ export const characterGrantFoldOutputSchema = lazySchema(() =>
                     .check(z.gte(0))
                     .check(z.lte(9_999)),
                   sourceId: identitySchema,
-                  grantId: identitySchema,
-                  grant: boundedJsonSchema
+                  grantId: identitySchema
                 })
               )
               .check(z.maxLength(10_000))

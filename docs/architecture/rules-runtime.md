@@ -386,12 +386,17 @@ uses `pointCubeOutline`), the same geometry the room catches with.
 that leaves a zone behind instead of catching creatures. The System compiler (`zonePlacementPlan`) turns the
 outcome into a `zonePlacement` on the v4 `CHARACTER_ACTION` compiled entry: label, shape, trigger modes, the entry
 graph (the authored save, `ON_SAVE_FAIL` damage and, when authored, a `STOP_CURRENT_MOVEMENT` that surfaces as the
-graph's `movementInterruption` output) and an optional lingering modifier-grant template (its modifiers, senses and
+graph's `movementInterruption` output; a made save may deal the same dice halved, as a second gated dice set (`damage-success-*`) behind a 0.5 multiplier, and a PER_LEVEL `SPELL_CAST_LEVEL` damage row is picked by the action's own cast level, so each slot level freezes its own graph) and an optional lingering modifier-grant template (its modifiers, senses and
 `endOnEvents`). Only point shapes (`SPHERE`, `CYLINDER`, `CIRCLE`, a cube) compile; a directed zone (cone, line, a
 Self cube) and any authored feature the System cannot honor in full (a second component, behavior or outcome, an
 unmodeled field, a save DC other than fixed, an end event the System never reads) stay manual with
-`NOT_NORMALIZED`. The component's `interactionKind` picks the trigger modes (`ZONE_INTERACTION_TRIGGER_MODES`):
-`ENTER_SPACE` is ENTER (the path ends inside), `MOVE_ACROSS` is CROSS, and `ENTER_OR_PASS_THROUGH` is both. SRD text
+`NOT_NORMALIZED`. The component's `interactionKinds` (a non-empty list; there is no single-kind field) pick what catches a
+creature (`zoneTriggers`): `ENTER_SPACE` is ENTER (the path ends inside), `MOVE_ACROSS` is CROSS, and
+`ENTER_OR_PASS_THROUGH` is both (`triggerModes`); `START_TURN_IN_SPACE` and `END_TURN_IN_SPACE` are the
+placement's `turnTriggers` `START_OF_TURN` and `END_OF_TURN`, in that order. A zone may have either set or both;
+a kind the System does not model keeps the whole zone manual. `collectSpatialTurnCandidates` (shared/vtt) is the
+containment seam for turn triggers: it applies `spatialEffectAffects` and the per-turn limit, as movement does.
+The turn stage that runs them lands with SPELLS-20 T4b2b. SRD text
 that says a creature "enters the area" (Caltrops, Ball Bearings) authors `ENTER_OR_PASS_THROUGH`, so a drag that
 ends beyond the field still triggers the save and, on a failure, stops at the first field square it entered. The System, not the authored zone, owns the placement defaults: `planEncounterPlacedZone` sets
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
@@ -410,7 +415,11 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (`effectsEndedBy`). A zone whose component authors `bypassAtHalfSpeed`
+application heals at least 1 hit point (`effectsEndedBy`). A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
+DTO advertises `choosesUnaffected` on its `POINT` / `CASTER_CENTERED` target, the cast command carries optional
+`unaffectedActorIds` on those targets (the Worker refuses it for an action whose zone does not offer it, or for an id
+that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
+never catches a listed creature. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
@@ -494,7 +503,7 @@ waits and the Scene is held (D26, text "Waiting on a reaction decision"). The an
 `OPTION`, read as the `REACTION_CHOICE` summary; the room re-opens the choice graph by occurrence id, as
 Legendary Resistance does.
 
-DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeAttackReaction`),
+DECLINE continues the OUTCOME unchanged. USE runs the reaction's own plan (`applyNativeReactionEffect`),
 prices the reaction through the action economy and the slot through Character mechanics, builds the effect
 it creates on its reactor, and re-evaluates the TEST: `reconstructNativeActionTest` rebinds the recorded
 dice to the attack's defense as the effect leaves it. That rebinding is a sealed `adjustment`
@@ -737,6 +746,15 @@ moves never warn) refuses an unacknowledged approach with `RULE_WARNINGS` (`COND
 which `MOVE_SCENE_TOKEN.acknowledgedWarnings` overrides; the tabletop shows "Do it anyway". The move
 receipt records no override yet. Undoing the action that applied the condition removes its effect and so
 its source.
+
+**Fleeing a condition's source (SPELLS-29.T2, D134).** A condition outcome authored with `fleesSource`
+(the toggle "The Holder Must Dash Away From Its Source", shown only with `recordsSource`) adds `fleesSource`
+to the effect's `CONDITION_OWNERSHIP` contribution. `encounterConditionFleeSources` lists the recorded
+sources of the held, sourced, fleeing owners. An Action other than Dash taken by such a creature
+(`RESOLVE_ACTION` and area actions; `encounterFleeActionWarnings`) raises the overridable
+`CONDITION_SOURCE_FLEE` warning, and the turn movement projection (`turnMovement[].fleeSourceActorIds`,
+read by `readTurnMovementView`) drives the tabletop's "Dash away from the source" prompt. Shown and
+softly enforced, never blocked. SRD Fear authors it.
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
@@ -1167,7 +1185,8 @@ a creature-style Bite Feature, gets no rider.
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
-attacks, timed conditions and multi-condition hits are defined by the compiler
+attacks, timed conditions (one effect owning several conditions and, beside them, a speed grant:
+`conditionContributions` and the plan-level `lifecycle`, SPELLS-27.T9) and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one
 measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
@@ -1207,6 +1226,7 @@ An event that ends a condition-owning effect (Invisibility on its holder's attac
 A structured end trigger (`recurrence.endOnTriggers`, SPELLS-27.T4) ends an effect on an event that needs a qualifier. Today the one event is `DAMAGE_TAKEN` with `by` (`ANYONE` or `SOURCE_SIDE`, the effect source and its allies) and the same damage-type filter the reaction trigger uses (`damageTypeFilterDtoSchema`). `damageTakenEndedEffects` reads the action's `DAMAGE` applications on the holder (`resolvedAmount > 0`) and returns the ended effects and their condition releases; the single-action path passes the releases to the holder's batch after the outcome (`damageReleases`, beside the Shield-style `targetReleases` that go first) and the effects through `consumedGrants`, so GM undo restores both by receipt: `actionRevert` gives back the target's `CONDITION_REMOVE` applications named `active-effect.ended` (`restoreReleasedConditions`) and refuses (`REVERT_UNAVAILABLE`) any other removed condition. Only the timed-condition plan can author a trigger.
 
 SPELLS-27.T4b wires every other damage root and adds the actions that end an effect against an enemy. `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` joins `endOnTriggers` (Sanctuary): `actionEndedEffects` takes a required `againstEnemy` (`actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor, never `NEUTRAL`) and ends the holder's effect when the action makes an attack roll, or casts a spell (the T3 cast fact), against an enemy; an ally or a neutral target ends nothing. `damageTakenEndedEffects` is called by the area commit (per target, deduped across a creature named twice; `consumedGrants` carries the ended effects, so GM undo restores them), the Legendary window (the planner computes it; `turnResourcesPersistence` recomputes it from live effects and refuses a stored receipt that lacks a planned release), the movement reaction (the mover's ended effects ride the REACTION step's `consumedGrants`) and turn effects (`turnEffectDamageEnded`: an execution's own damage ends the holder's other effects, a later candidate of the same turn expires at its own execution, an earlier one is not ended retroactively; the releases are `active-effect.ended` `CONDITION_REMOVE` applications on that execution, which `turnEffectsPersistence` recomputes and deletes the effects for). Death-save damage is an ordinary `DAMAGE` application folded by `encounterCharacterMechanicsBatch`, so the roots above already cover it. Legendary, movement reaction and turn effects have no GM undo, so they are proved without it.
+SPELLS-27.T12 adds `{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }` (Sleep, authored with the SRD Rouse basic action): `actionUsedOnHolderEndedEffects` ends, on the target of a basic action another creature uses, the effects whose trigger names that action's definition, and releases the conditions only they held in the target's own mechanics batch, beside the damage ends in the same receipt. Only the single-target action path (`nativeEncounterRules`) consumes it today; the area, legendary, movement-reaction and turn-resource paths do not.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,

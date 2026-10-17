@@ -1099,7 +1099,12 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     ...healingWord,
     id: 'spell-polymorph:cast',
     label: 'Polymorph',
-    target: { kind: 'ACTORS' as const, maxTargets: 1, area: null, choosesCreatureForm: true as const }
+    target: {
+      kind: 'ACTORS' as const,
+      maxTargets: 1,
+      area: null,
+      choosesCreatureForm: true as const
+    }
   })
 
   async function chooseTargets(user: ReturnType<typeof userEvent.setup>) {
@@ -1400,6 +1405,57 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
         }
       })
     )
+  })
+
+  it('lets the caster designate unaffected creatures for a zone that offers it, and sends them', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const aura = validatedChoice({
+      ...breath,
+      id: 'creature-wolf:aura',
+      label: 'Aura',
+      target: {
+        kind: 'CASTER_CENTERED' as const,
+        area: { kind: 'RADIUS' as const, radius: { amount: 15, unit: 'FEET' as const } },
+        choosesUnaffected: true as const
+      }
+    })
+    const spared = tabletopGmEncounter.actors.find(
+      (actor) => actor.id !== tabletopGmEncounter.currentActorId
+    )
+    if (!spared) throw new Error('The fixture needs a second creature.')
+    renderDrawer(onResolve, { choices: [aura], actorIdByTokenId })
+    await chooseBreath(user)
+
+    await user.click(screen.getByRole('combobox', { name: 'Unaffected creatures' }))
+    await user.click(screen.getByRole('option', { name: spared.label }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({
+          kind: 'CASTER_CENTERED',
+          unaffectedActorIds: [spared.id]
+        })
+      })
+    )
+  })
+
+  it('offers no designation for an area that does not place a zone with the choice', async () => {
+    const user = userEvent.setup()
+    const burst = validatedChoice({
+      ...breath,
+      id: 'creature-wolf:burst',
+      label: 'Burst',
+      target: {
+        kind: 'CASTER_CENTERED' as const,
+        area: { kind: 'RADIUS' as const, radius: { amount: 10, unit: 'FEET' as const } }
+      }
+    })
+    renderDrawer(vi.fn(), { choices: [burst], actorIdByTokenId })
+    await chooseBreath(user)
+
+    expect(screen.queryByText('Unaffected creatures')).not.toBeInTheDocument()
   })
 
   it('clears the aim', async () => {

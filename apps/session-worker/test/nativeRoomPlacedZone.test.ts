@@ -182,6 +182,17 @@ describe('spreading Caltrops (SPELLS-17)', () => {
     })
   })
 
+  it('refuses a designation of unaffected creatures, because Caltrops lets the caster spare no one', async () => {
+    const room = await caltropsRoom(0)
+    const before = await readRoomHistory(room.room.base.stub)
+
+    const { answer } = await room.startAreaAction(FIELD_POINT, [], 'GM', [WALKER_ID])
+
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+    expect(await readZones(room)).toEqual([])
+    expect(vitalsOf(await readRoomHistory(room.room.base.stub))).toEqual(vitalsOf(before))
+  })
+
   it('removes the field with the Action when the GM takes it back', async () => {
     const room = await caltropsRoom(0)
     const before = await readRoomHistory(room.room.base.stub)

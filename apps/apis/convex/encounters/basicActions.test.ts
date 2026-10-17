@@ -315,6 +315,7 @@ describe('basic combat actions in the room (Q11)', () => {
       'Help',
       'Hide',
       'Ready',
+      'Rouse',
       'Search',
       'Use an Object'
     ])

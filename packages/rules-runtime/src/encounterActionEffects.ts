@@ -121,11 +121,13 @@ export function prepareNativeActionEffectsPlan<
     (application) =>
       application.kind === 'CONDITION_APPLY' &&
       application.targetActorId === prepared.target.id &&
-      (!plan?.conditionContribution ||
-        application.conditionId === plan.conditionContribution.conditionId)
+      (!plan?.conditionContributions?.length ||
+        plan.conditionContributions.some(
+          ({ conditionId }) => application.conditionId === conditionId
+        ))
   )
   const appliedRecurringOutcome =
-    !plan?.conditionContribution &&
+    !plan?.conditionContributions?.length &&
     execution.applications.some(
       (application) =>
         application.targetActorId === prepared.target.id &&

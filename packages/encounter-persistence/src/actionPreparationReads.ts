@@ -157,7 +157,9 @@ async function loadActionSource(
     definitions: campaignDefinitions(tx, campaign)
   })
   const system =
-    input.actor.kind === 'CREATURE' || basicActions.length > 0
+    input.actor.kind === 'CREATURE' ||
+    (input.actor.kind === 'CHARACTER' && input.actor.form !== null) ||
+    basicActions.length > 0
       ? await tx.ports.requireSystem(input.gameSystemId)
       : undefined
   return resolveEncounterActionSource({ ...input, system, basicActions })

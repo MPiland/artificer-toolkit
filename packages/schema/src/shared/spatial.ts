@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
@@ -13,7 +14,8 @@ import {
   spatialMovementKindDtoSchema,
   spatialPointDtoSchema,
   spatialPositiveDistanceDtoSchema,
-  spatialTriggerDtoSchema
+  spatialTriggerDtoSchema,
+  spatialTurnTriggerDtoSchema
 } from './spatialFacts.js'
 
 export {
@@ -23,7 +25,8 @@ export {
   spatialMovementKindDtoSchema,
   spatialPointDtoSchema,
   spatialPositiveDistanceDtoSchema,
-  spatialTriggerDtoSchema
+  spatialTriggerDtoSchema,
+  spatialTurnTriggerDtoSchema
 } from './spatialFacts.js'
 export type { SpatialMovementCandidateDto } from './spatialFacts.js'
 
@@ -31,6 +34,7 @@ const uuidSchema = postgresUuidSchema
 const positiveDistanceSchema = spatialPositiveDistanceDtoSchema
 const pointSchema = spatialPointDtoSchema
 const triggerSchema = spatialTriggerDtoSchema
+const turnTriggerSchema = spatialTurnTriggerDtoSchema
 const movementSchema = spatialMovementKindDtoSchema
 const MAX_SPATIAL_POINTS = 128
 
@@ -38,6 +42,7 @@ const MAX_SPATIAL_POINTS = 128
 export const MAX_SPATIAL_RULE_EFFECTS_PER_SCENE = 64
 
 const triggerOrder = ['ENTER', 'EXIT', 'CROSS'] as const
+const turnTriggerOrder = ['START_OF_TURN', 'END_OF_TURN'] as const
 const movementOrder = ['VOLUNTARY', 'FORCED', 'TELEPORT'] as const
 
 function sortedUniqueEnum<T extends string>(values: readonly T[], order: readonly T[]): boolean {
@@ -124,10 +129,11 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       anchorKind: z.enum(['FIXED', 'TOKEN']),
       sourceTokenId: z.nullable(uuidSchema),
       geometry: spatialPersistedGeometryDtoSchema,
-      triggerModes: z
-        .array(triggerSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(triggerOrder.length)),
+      triggerModes: z.array(triggerSchema).check(z.maxLength(triggerOrder.length)),
+      /** Turn boundaries at which a creature inside is caught; a zone needs a movement or turn trigger. */
+      turnTriggers: z.optional(
+        z.array(turnTriggerSchema).check(z.minLength(1)).check(z.maxLength(turnTriggerOrder.length))
+      ),
       movementKinds: z
         .array(movementSchema)
         .check(z.minLength(1))
@@ -137,10 +143,29 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       revealOnTrigger: z.boolean(),
       label: z.optional(spatialZoneLabelSchema),
       /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
-      bypassAtHalfSpeed: z.optional(z.boolean())
+      bypassAtHalfSpeed: z.optional(z.boolean()),
+      /** Creatures the caster designated at cast; the zone never catches them. Absent when none. */
+      unaffectedActorIds: z.optional(
+        z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
+      /** How many times the zone may catch one creature in one turn; absent for no limit. */
+      maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive()))
     })
     .check(
       z.superRefine((placement, context) => {
+        if (placement.triggerModes.length === 0 && !placement.turnTriggers)
+          context.addIssue({
+            code: 'custom',
+            path: ['triggerModes'],
+            message: 'A spatial effect needs a movement trigger or a turn trigger.'
+          })
+        if (placement.turnTriggers && !sortedUniqueEnum(placement.turnTriggers, turnTriggerOrder))
+          context.addIssue({
+            code: 'custom',
+            path: ['turnTriggers'],
+            message:
+              'Spatial turn triggers must be unique and use START_OF_TURN, END_OF_TURN order.'
+          })
         if (!sortedUniqueEnum(placement.triggerModes, triggerOrder))
           context.addIssue({
             code: 'custom',
@@ -217,12 +242,31 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
       sourceTokenId: z.nullable(uuidSchema),
       anchorKind: z.enum(['FIXED', 'TOKEN']),
       geometry: spatialPersistedGeometryDtoSchema,
-      triggerModes: z.array(triggerSchema).check(z.minLength(1)).check(z.maxLength(3)),
+      triggerModes: z.array(triggerSchema).check(z.maxLength(3)),
+      turnTriggers: z.optional(
+        z.array(turnTriggerSchema).check(z.minLength(1)).check(z.maxLength(turnTriggerOrder.length))
+      ),
       movementKinds: z.array(movementSchema).check(z.minLength(1)).check(z.maxLength(3)),
-      bypassAtHalfSpeed: z.optional(z.boolean())
+      bypassAtHalfSpeed: z.optional(z.boolean()),
+      unaffectedActorIds: z.optional(
+        z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
+      maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive()))
     })
     .check(
       z.superRefine((effect, context) => {
+        if (effect.triggerModes.length === 0 && !effect.turnTriggers)
+          context.addIssue({
+            code: 'custom',
+            path: ['triggerModes'],
+            message: 'A spatial effect needs a movement trigger or a turn trigger.'
+          })
+        if (effect.turnTriggers && new Set(effect.turnTriggers).size !== effect.turnTriggers.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['turnTriggers'],
+            message: 'Spatial turn triggers must be unique.'
+          })
         if (new Set(effect.triggerModes).size !== effect.triggerModes.length)
           context.addIssue({
             code: 'custom',

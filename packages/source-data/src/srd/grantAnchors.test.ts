@@ -5,16 +5,20 @@ const { creatures, spells } = srdBaselineContent.subjects
 
 type Effects = (typeof spells)[number]['effects']
 
-/** The lifecycle of the one timed APPLY_GRANT result block the effects carry. */
+/** The lifecycle the timed APPLY_GRANT result blocks carry; Shield's two reactions share one. */
 function grantLifecycle(effects: Effects) {
   const blocks = (effects ?? [])
     .flatMap((effect) => effect.paths)
-    .map((path) => path.resultBlock)
+    .map((path) => {
+      if (path.selectionKind !== 'FIXED') throw new Error('A spell grant path must be FIXED.')
+      return path.resultBlock
+    })
     .filter(
       (block) =>
         block.duration && block.outcomes.some((outcome) => outcome.effectKind === 'APPLY_GRANT')
     )
-  expect(blocks).toHaveLength(1)
+  expect(blocks.length).toBeGreaterThan(0)
+  for (const block of blocks) expect(block.lifecycle).toEqual(blocks[0]?.lifecycle)
   return blocks[0]?.lifecycle
 }
 

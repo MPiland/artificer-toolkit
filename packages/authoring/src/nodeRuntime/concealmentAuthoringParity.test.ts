@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -12,13 +13,9 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
-const reader = createNodeRuntimeSourceReader({
-  system: srdSystemRecord,
-  readAuthoredRows: () => [],
-  readReusableDefinitions: async () => []
-})
+const reader = createSrdNodeRuntimeReader()
 
 /** The effects of an SRD basic action, as the catalogue authors them. */
 function catalogueEffects(actionId: string) {
@@ -48,7 +45,7 @@ describe('the concealment effects through the effect node map (ADR 0038)', () =>
     const authored = equipmentWith(catalogueEffects(actionId))
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
   it('keeps a variant Hide that checks another skill, so an author builds what the SRD does', async () => {
@@ -60,6 +57,6 @@ describe('the concealment effects through the effect node map (ADR 0038)', () =>
     const authored = equipmentWith(effects)
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 })

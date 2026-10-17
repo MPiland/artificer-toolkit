@@ -4,8 +4,11 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Resume here
 
-- T1, T1b and T2a are done and accepted (T2a at `16e4493c7`).
-- Next: T3 (aura label, radius and source token only to viewers allowed to see the source, Convex and room parity), then T2b (cleanup removes dependent zones, GM undo restores them, replacement removes the old zone).
+- T1, T1b, T2a and T3 are done (T2a at `16e4493c7`; T3 at `897458fa0` on `ci/spells-20-t3`, based on the T2a tip plus `ci/merge-batch-bf`).
+- T2b done: red Tests 38989834002 on `877ceb4ce`; green `6a67e415b` on `ci/spells-20-t2b`, Tests 38991779131 (attempt 2; attempt 1 hit the Escape test flake), Live 38991779168. Next: T4 and later.
+- T4 is split (T4a-T4d, all close AC SPELLS-20.1). T4a (half damage on a made zone save, slot-level scaling) is done: red Tests 38998091848 on `8b55d392a`; green `5c9c90a54` on `ci/spells-20-t4a`, Tests 39001554879, Live 39001554886. Then T4b (turn triggers + once-per-turn counter), T4c (unaffected creatures, parallel-capable), T4d (half speed via a movement-cost seam shared with terrain, after T4b); T6 after T4b.
+- T4c merged as `d90f99153`. T4b is split: T4b1 (once-per-turn zone counter, ENTER triggers, proved on Spirit Guardians) is done: green `4dd367255` on `ci/spells-20-t4b1`, Tests 39009226378, Live 39009226404; T4b2 (turn-stage zone effects, one shared save-then-dice resume helper) follows after its design delta goes to the orchestrator.
+- T4b2 is split (orchestrator ruling). T4b1 accepted at `18f1e3cc3` (in `ci/merge-m69`). T4b2a (authoring + containment + shared resume helper) is on `ci/spells-20-t4b2a`; T4b2b is the turn stage: one ordered candidate list per boundary, evaluate extending `ENCOUNTER_TURN_ACTIVE_EFFECTS` with a discriminated `ACTIVE_EFFECT | ZONE` candidate (`diceStage` on the zone kind only) and bring the evidence before taking a new context; Spirit Guardians' SRD flip to ENTER + START_TURN lands there. Future enhancement: the creature whose turn it is chooses the order. T4d and T6 wait on T4b2b; T5 is independent.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
 
 ## Scope
@@ -58,11 +61,7 @@ Registered by Phase 8 (commits 287f7d0c2 and a97894a8d, ruling D133 in 81d760bdf
 - Red: Tests 38947417012, Live backend 38947417027 on 7ea6348fd (`ci/spells-20-t1b-red`). Tests: `apps/session-worker/test/nativeRoomSourceAura.test.ts` (cast leaves a token-anchored zone with the pinned caster DC; entry damage; caster walking onto a creature; GM undo) and `packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts` (ADR 0038 parity).
 - Authoring: `spirit-guardians.ts` is a SOURCE `ZONE` (15 ft sphere, 10 minutes, `ENTER_SPACE`, Wisdom save against `SOURCE_SAVE_DC`, 3d8 radiant on a failed save). The closed `SPIRIT_GUARDIANS` rule kind is deleted.
 - Seams: `zonePlacement.attachment`, `zoneEntrySavingThrow` (zone save in the action facts), token-anchored `planEncounterPlacedZone` with `sourceToken` and `saveDc`.
-- `D-pending-spells-20` (T1b decisions, Phase 8 assigns the number):
-  5. A SOURCE zone reuses the placed-zone compile and creator; the caster's save DC is pinned at placement from the resolved action mechanic, not rolled.
-  6. Radius is the authored radius plus half the token width (circle, not the rounded rectangle of the SRD wording): smaller than the rule on diagonals for a square token.
-  7. Until T4 a higher-slot cast deals the base 3d8, a made save deals 0 (no half damage), and there is no half-speed or start-of-turn damage. Each is a refused or absent zone feature, not partly honored.
-  8. Spirit Guardians' necrotic-or-radiant alignment choice has no generic option; the zone is radiant.
+- `D-pending-spells-20` (T1b decisions, Phase 8 assigns the number): 5. A SOURCE zone reuses the placed-zone compile and creator; the caster's save DC is pinned at placement from the resolved action mechanic, not rolled. 6. Radius is the authored radius plus half the token width (circle, not the rounded rectangle of the SRD wording): smaller than the rule on diagonals for a square token. 7. Until T4 a higher-slot cast deals the base 3d8, a made save deals 0 (no half damage), and there is no half-speed or start-of-turn damage. Each is a refused or absent zone feature, not partly honored. 8. Spirit Guardians' necrotic-or-radiant alignment choice has no generic option; the zone is radiant.
 - Follow-up: the aura's alignment-damage choice (generic authoring option).
 - CI fixes on 4ee8b1c65: `zoneAttachment.test.ts` now expects Spirit Guardians among the SOURCE zones (the intended T1b change, assertion widened by the one new owner, none removed); the zone-save helper moved into `characterActionRuleFacts.ts` because the web boundary test (ADR 0036 S6) forbids the web bundle reaching `encounter*` rules modules.
 
@@ -76,3 +75,51 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Left to T2b: cleanup removes dependent zones (`removedZoneIds`, `by_state_encounter` index), GM undo restores them, a replacement removes the old zone (until then a replaced state leaves its old zone pointing at a deleted state).
 
 - Done: green `16e4493c7` on `ci/spells-20-t2a`, Tests 38972849265 (re-run of the failed jobs after a room-authority Escape flake and a budget-cap run, neither T2a) and Live 38974795282. Fixes on the way: fixtures name `maintainedEffectStateId`; a zone-only state has no created dependent effects (schema minimum removed, D135); the aura test reads `descriptorJson`.
+
+### T2b (ending, dropping or replacing Concentration removes its zones, D135)
+
+- Red: `ci/spells-20-t2b-red` at `877ceb4ce`.
+- Seam: `by_state_encounter` index on `encounterSpatialRuleEffects` (room store and Convex); `maintainedStateZones.ts` (`listStateZones`, `deleteStateZones`); `store.hasDependents` (effects or zones) replaces the effect-only emptiness test at the three `TERMINATE_WHEN_EMPTY` sites; `deleteMaintainedStateCas` refuses a state a zone still depends on. Cleanup DTO `removedZoneIds` is derived and applied in `concentrationCleanupPersistence.ts`; `MAINTENANCE_SLOT` carries `zoneIds` so the Worker and `projectEncounterMovementConcentrationEnd` produce the same DTO. `applyMaintenanceReplacement` and `cleanupRemovedActorEffects` delete the zones of the states they end. Turn completion no longer ends a zone-only state.
+- Undo: GM undo of any Concentration end or replacement stays refused (D95), so no zone restore exists; undo of the zone-placing cast already removes zone and state (the zone now goes first, before the guarded state delete).
+- Flake (preexisting, also T2a/T3): `nativeRoomEscapeAction` "refuses a check the effect does not allow" asserts `causes` from a process-wide `console.error` spy in `invalidEscape`, so other rooms' logged errors can land in it. Registered as a phase-branch follow-up.
+- Known edge, not fixed: Concentration lost in the same settlement that created it, with a zone created afterwards.
+
+### T3 (auras in the session state, viewer-redacted)
+
+- Red: Tests 38978456915 on `c6f4813bd` (`ci/spells-20-t3-red`): the two aura room tests and `activeReads` fail (the other red jobs were the Escape flake and the `encounterWriteSets` budget).
+- Green: `897458fa0` on `ci/spells-20-t3`: Tests 38984886789, Live backend 38984886833.
+- Seam: `EncounterSessionStateDto.auras` (`id`, `label`, `radius`, `sourceTokenId`). `readEncounterSessionState` (shared by `encounters/activeReads:active` and the room feed) reads the Scene zones once (`readSceneSpatialRows`) for `halfSpeedFieldsOf` and `readSessionAuras`. An aura is listed only when its source actor (found through the token binding) is in the member's own presented projection, so redaction is the one D121 rule, not a second filter. Convex reads pass no fog, so they list only sources the projection lists; the room lists more.
+- Only circle zones centered on a token (`anchorKind: 'TOKEN'`) that are public or revealed are auras.
+- The second zone read pushed the `encounterWriteSets` 100-actor read over its 250 KiB cap (256197 B), so the two readers share one read. ROOM-6 still owns the real trim.
+- Not in T3: drawing the aura on the map (VTT_UI-3.1 consumes `auras`).
+
+### T4a (half damage on a made zone save, slot-level scaling)
+
+- Red: `8b55d392a` on `ci/spells-20-t4a-red`, Tests 38998091848 (Worker aura tests and the zone compile tests).
+- Seam: the cast level is a per-action compile input (each slot level is its own compiled action), so the frozen zone entry graph is per level and no schema or placement pinning changed. `zoneDamageRow` picks the PER_LEVEL `SPELL_CAST_LEVEL` row with `selectScalingRow`. An `ON_SAVE_SUCCESS` path with `amountKind: HALF` damage compiles to its own gated dice set (`damage-success-*`) plus a 0.5 `DND5E_DAMAGE_MULTIPLIER` node and a `proposal-on_save_success`; the movement interruption stays on the failed save. A made-save path that applies a grant or doubles stays manual (`NOT_NORMALIZED`).
+- A made save's damage comes from its own proposal node, so the zone graph binds it as a second source entry (`sourceEntryBindings`); `requireSupportedApplications` and the spatial evidence schema accept any bound node, not only `frozenGraphNodeId`.
+- Spirit Guardians is authored as 3d8 at the 3rd level plus 1d8 per slot level (levels 3-9), half on a made save.
+- `semantic-ledger.json` `authoredSha256` is not verified by any code, so it was not regenerated.
+
+### T4c (creatures designated unaffected at cast)
+
+- Red proof: the Tests run's "Red proof against the phase branch" job (no separate red branch).
+- Design: authored component flag `choosesUnaffected` (precedent `bypassAtHalfSpeed`) -> compiled zone placement -> choice DTO `choosesUnaffected` on `POINT` / `CASTER_CENTERED` -> optional command `unaffectedActorIds` on those targets -> optional `placement.unaffectedActorIds` (omitted when empty) -> `SpatialEffectInstance.unaffectedActorIds` filtered in `collectSpatialMovementCandidates`. No migration (additive optional fields); web drawer shows a MultiSelect.
+
+### T4b1 (once-per-turn zone-application counter)
+
+- Red proof: the Tests run's "Red proof against the phase branch" job (no separate red branch).
+- Design (orchestrator ruling): `zoneApplications` on the Encounter run state, keyed `effectId:actorId`, entry `{ turnSequence, count }`; stale entries count as unspent and are pruned on write; any creature's turn counts (key on the current `turnSequence`); bounded by the actor and effect caps. Authored `maxApplicationsPerTurn` is compiled onto the zone placement and instance; `collectSpatialMovementCandidates` drops a candidate whose limit is spent; `recordZoneApplications` writes executions at the two terminal movement publications (the initial automatic advance deliberately does not record).
+- Spirit Guardians now authors `maxApplicationsPerTurn: 1` ("first time on a turn").
+
+### T4b2a (turn-trigger authoring, containment, shared resume helper)
+
+- `interactionKind` is deleted for `interactionKinds` (SRD rows migrated, no fallback). The placement and effect instance carry optional `turnTriggers` (`START_OF_TURN`, `END_OF_TURN`; a turn-only zone has empty `triggerModes`).
+- `collectSpatialTurnCandidates` (shared/vtt) is the one containment function: footprint overlap through the movement geometry, `spatialEffectAffects`, and the T4b1 per-turn limit.
+- `resumeTargetBoundActiveRuleEffectWithAnswer` (executor) is the shared save-then-dice resume; the spatial service now uses it, behavior unchanged. Spirit Guardians still authors ENTER only until T4b2b.
+
+### T4b2b design (draft, awaiting orchestrator decision on the persisted-result shape)
+
+- Ruling: new `ENCOUNTER_TURN_ZONE_EFFECTS` pending context; at each boundary the active-effect batch runs, then the zone batch, each sorted by effectId. Oil Flask cannot prove END (second component, `requiresIgnition`, `maxApplicationsTotal`); END is proved on a core-options zone, the journey on Spirit Guardians START.
+- Why the existing candidate/execution cannot be reused: they bind to an active-effect row (`activeEffectId`, `createdOrdinal`, `effectVersion`, lifecycle). The spatial execution DTOs bind to a movement path (`pathDistance`, `contact`), so they do not fit a turn boundary either. The zone turn candidate/execution is a third shape: `{ordinal, boundaryOrdinal, stage, targetActorId, owner, effectId (placed spatial effect), sourceActorId, definition checksums, placement checksum, targetStateChecksum, d20Policy, diceStage}` with the execution adding `execution`, `d20`, `targetTransition`, `applications`.
+- Cascade that makes this the largest slice so far: the staged phases live on the root (`outgoingTurn`) and in the terminal `incomingEffects`; the stored terminal result is a union (`BATCH_COMPLETE ENCOUNTER_TURN_ACTIVE_EFFECTS` or `TURN_LIFECYCLE_COMPLETE` with `outgoingTurn` / `incomingTurn` phase evidence) read by replay, response replay, command admission, void/owner and terminal completion. A zone batch must appear in each of them.

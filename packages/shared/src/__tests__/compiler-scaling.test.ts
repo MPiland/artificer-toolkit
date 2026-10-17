@@ -9,7 +9,8 @@ import {
   EFFECT_KIND,
   GRANT_KIND,
   SCALING,
-  SCALING_SOURCE
+  SCALING_SOURCE,
+  type ScalingSourceAuthored
 } from '#core'
 import {
   compileCharge,
@@ -19,29 +20,54 @@ import {
   compileFeatGrant,
   compileFeatGrantResult,
   compileFeatureResult,
-  compileScalingSource,
   compileSpellGrant
 } from '#compilers'
 
+function scalingProgression(source: ScalingSourceAuthored) {
+  return {
+    ...source,
+    levels: [
+      {
+        id: 'scaled-feat-1',
+        level: 1,
+        order: 1,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        featIds: ['alert']
+      }
+    ]
+  }
+}
+
 describe('shared compiler scaling', () => {
   it('compiles scaling sources with their required payload', () => {
+    const grantScaledBy = (progression: ScalingSourceAuthored) =>
+      compileFeatGrant({
+        grantKind: GRANT_KIND.FEAT_GRANT,
+        id: 'scaled-feat',
+        order: 1,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        scalingKind: SCALING.PER_LEVEL,
+        progression: scalingProgression(progression)
+      })
+
     expect(
-      compileScalingSource({
+      grantScaledBy({
         scalingSource: SCALING_SOURCE.CLASS_LEVEL,
         classId: 'wizard'
       })
-    ).toEqual({
+    ).toMatchObject({
       scalingSource: SCALING_SOURCE.CLASS_LEVEL,
       classId: 'wizard'
     })
-    expect(
-      compileScalingSource({
-        scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
-      })
-    ).toEqual({
+    const spellCastLevel = grantScaledBy({
       scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
     })
+    expect(spellCastLevel).toMatchObject({
+      scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
+    })
+    expect(spellCastLevel).not.toHaveProperty('classId')
   })
+
   it('compiles per-level fixed charge progressions without flattening levels', () => {
     const compiled = compileCharge({
       id: 'arcane-recovery-uses',

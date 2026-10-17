@@ -1,9 +1,11 @@
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ActiveRuleEffectLifecycleDto } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type {
   EncounterActorForm,
   EncounterRunActorState,
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { JsonValue } from '@artificer-toolkit/schema/projections/identity'
+import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
 
@@ -11,17 +13,19 @@ import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './systems/
  * The ability scores a Character keeps in a Creature form (D130 amendment), by authored code and
  * definition id. D&D: Intelligence, Wisdom and Charisma; the form brings the physical ones.
  */
-const retainedFormAbilityIdsBySystemId: ReadonlyMap<string, Readonly<Record<string, string>>> =
-  new Map([
-    [
-      DND5E_SYSTEM_ID,
-      {
-        INTELLIGENCE: DND5E_ABILITY_DEFINITION_ID_BY_CODE.INTELLIGENCE!,
-        WISDOM: DND5E_ABILITY_DEFINITION_ID_BY_CODE.WISDOM!,
-        CHARISMA: DND5E_ABILITY_DEFINITION_ID_BY_CODE.CHARISMA!
-      }
-    ]
-  ])
+const retainedFormAbilityIdsBySystemId: ReadonlyMap<
+  string,
+  Readonly<Record<string, string>>
+> = new Map([
+  [
+    DND5E_SYSTEM_ID,
+    {
+      INTELLIGENCE: DND5E_ABILITY_DEFINITION_ID_BY_CODE.INTELLIGENCE!,
+      WISDOM: DND5E_ABILITY_DEFINITION_ID_BY_CODE.WISDOM!,
+      CHARISMA: DND5E_ABILITY_DEFINITION_ID_BY_CODE.CHARISMA!
+    }
+  ]
+])
 
 function jsonRecord(value: unknown): Record<string, JsonValue> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
@@ -131,6 +135,86 @@ export function enterCharacterForm(
       tempHitPoints: 0
     }
   }
+}
+
+type CharacterActorForm = NonNullable<EncounterRunCharacterActorState['form']>
+
+/** The creature form a Character's effect holds (D130), or null when the effect holds none. */
+export function creatureFormContribution(effect: Pick<ActiveRuleEffectRecord, 'definition'>) {
+  const { definition } = effect
+  if (definition.schemaVersion !== 2) return null
+  for (const contribution of definition.stateContributions)
+    if (contribution.kind === 'CREATURE_FORM') return contribution
+  return null
+}
+
+/**
+ * The form a Character takes out of its Run on the effect that holds it (D99, SPELLS-28.T4b): the
+ * Creature and hit points the next Run's actor resumes.
+ */
+export function carriedCreatureForm(
+  form: CharacterActorForm
+): NonNullable<ActiveRuleEffectLifecycleDto['carriedCreatureForm']> {
+  const { sourceId, sourceRevision, snapshot, currentHitPoints, maxHitPoints, tempHitPoints } = form
+  return {
+    sourceId,
+    sourceRevision,
+    snapshotJson: JSON.stringify(snapshot),
+    currentHitPoints,
+    maxHitPoints,
+    tempHitPoints
+  }
+}
+
+/**
+ * The Creature a Character in a form acts as (SPELLS-28.T4d): the form's snapshot and hit points,
+ * the Character's identity. Its action list is the form stat block's, found by the Creature action
+ * discovery; null while the Character wears no form.
+ */
+export function characterFormCreatureView(
+  actor: EncounterRunCharacterActorState
+): FormableActor | null {
+  const { form } = actor
+  if (form === null) return null
+  return {
+    ...actor,
+    kind: 'CREATURE',
+    sourceId: form.sourceId,
+    sourceRevision: form.sourceRevision,
+    snapshot: form.snapshot,
+    currentHitPoints: form.currentHitPoints,
+    maxHitPoints: form.maxHitPoints,
+    tempHitPoints: form.tempHitPoints,
+    conditions: [],
+    defeated: false,
+    form: null
+  }
+}
+
+/** A new Run's Character actor resumes the form its carried effect holds, with the hit points it kept. */
+export function resumeCharacterForm(
+  actor: EncounterRunCharacterActorState,
+  effects: readonly ActiveRuleEffectRecord[]
+): EncounterRunCharacterActorState {
+  for (const effect of effects) {
+    const { carriedCreatureForm: carried } = effect.lifecycle
+    const contribution = creatureFormContribution(effect)
+    if (carried && contribution)
+      return {
+        ...actor,
+        form: {
+          effectId: effect.id,
+          excessDamageCarriesOver: contribution.excessDamageCarriesOver,
+          sourceId: carried.sourceId,
+          sourceRevision: carried.sourceRevision,
+          snapshot: jsonValueSchema.parse(JSON.parse(carried.snapshotJson)),
+          currentHitPoints: carried.currentHitPoints,
+          maxHitPoints: carried.maxHitPoints,
+          tempHitPoints: carried.tempHitPoints
+        }
+      }
+  }
+  return actor
 }
 
 /**

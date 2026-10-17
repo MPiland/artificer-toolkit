@@ -106,6 +106,39 @@ export function damageTakenEndedEffects(input: {
   }
 }
 
+/**
+ * What another creature's action ends on its target: the effects whose `ACTION_USED_ON_HOLDER` end
+ * trigger names the basic action used, and the conditions only they held. The holder's own mechanics
+ * batch applies the releases in the same transaction as the effects' deletion.
+ */
+export function actionUsedOnHolderEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  usedByActorId: string
+  basicActionDefinitionId: string
+}) {
+  const endedEffects =
+    input.usedByActorId === input.holderActorId
+      ? []
+      : input.held.filter(
+          ({ definition }) =>
+            definition.schemaVersion === 2 &&
+            definition.recurrence.endOnTriggers.some(
+              (trigger) =>
+                trigger.event === 'ACTION_USED_ON_HOLDER' &&
+                trigger.actionDefinitionIds.includes(input.basicActionDefinitionId)
+            )
+        )
+  return {
+    endedEffects,
+    releases: endedEffectConditionReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: endedEffects
+    })
+  }
+}
+
 /** Whether any of an action's targets is an enemy of its actor: hostile dispositions, never neutral. */
 export function actsAgainstEnemy(input: {
   actorId: string
@@ -150,7 +183,9 @@ export function actionEndedEffects(input: {
     if (
       definition.schemaVersion === 2 &&
       definition.recurrence.endOnTriggers.some(
-        (trigger) => trigger.event !== 'DAMAGE_TAKEN' && endsOn.includes(trigger.event)
+        (trigger) =>
+          (trigger.event === 'ATTACK_ROLL' || trigger.event === 'SPELL_CAST') &&
+          endsOn.includes(trigger.event)
       )
     )
       ended.add(id)

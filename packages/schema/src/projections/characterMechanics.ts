@@ -10,7 +10,7 @@ import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { shapeDtoSchema } from '../shared/shape.js'
-import { spatialTriggerDtoSchema } from '../shared/spatialFacts.js'
+import { spatialTriggerDtoSchema, spatialTurnTriggerDtoSchema } from '../shared/spatialFacts.js'
 import { spatialZoneLabelSchema } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -169,17 +169,25 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       null
     ),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
-    conditionContribution: z._default(
-      z.nullable(
-        z.strictObject({
-          conditionId: serverUuidIdentityDtoSchema,
-          recordsSource: z._default(z.boolean(), false),
-          consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
-          endOnEvents: z._default(activeEffectEndEventsSchema, []),
-          endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
-        })
-      ),
-      null
+    conditionContributions: z._default(
+      z
+        .array(
+          z.strictObject({
+            conditionId: serverUuidIdentityDtoSchema,
+            recordsSource: z._default(z.boolean(), false),
+            fleesSource: z._default(z.boolean(), false)
+          })
+        )
+        .check(z.maxLength(8)),
+      []
+    ),
+    lifecycle: z._default(
+      z.strictObject({
+        consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
+        endOnEvents: z._default(activeEffectEndEventsSchema, []),
+        endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
+      }),
+      { consumeOnFirstEvents: [], endOnEvents: [], endOnTriggers: [] }
     ),
     modifierGrantContribution: z._default(
       z.nullable(
@@ -286,9 +294,17 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
     attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,
     shape: shapeDtoSchema,
-    triggerModes: z.array(spatialTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(3)),
+    triggerModes: z.array(spatialTriggerDtoSchema).check(z.maxLength(3)),
+    /** Turn boundaries at which a creature standing in the zone is caught; absent for none. */
+    turnTriggers: z.optional(
+      z.array(spatialTurnTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(2))
+    ),
     /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
     bypassAtHalfSpeed: z.optional(z.boolean()),
+    /** Whether the caster designates creatures at cast that the zone never affects. */
+    choosesUnaffected: z.optional(z.boolean()),
+    /** How many times the zone may catch one creature in one turn; absent for no limit. */
+    maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */

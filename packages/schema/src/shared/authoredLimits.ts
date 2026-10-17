@@ -30,10 +30,10 @@ export const authoredLengthAmountSchema = lazySchema(() =>
 export const authoredLengthSchema = lazySchema(() =>
   z.strictObject({ amount: authoredLengthAmountSchema, unit: lengthUnitCodeSchema })
 )
-/** A fraction a value is multiplied by, such as 1/2 for "halved". */
+/** A fraction a value is multiplied by, such as 1/2 for "halved" or 0/1 for "reduced to nothing". */
 export const authoredFractionSchema = lazySchema(() =>
   z.strictObject({
-    numerator: z.number().check(z.int()).check(z.positive()),
+    numerator: z.number().check(z.int()).check(z.nonnegative()),
     denominator: z.number().check(z.int()).check(z.positive())
   })
 )

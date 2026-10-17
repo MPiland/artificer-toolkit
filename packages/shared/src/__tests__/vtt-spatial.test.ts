@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
+  collectSpatialTurnCandidates,
+  recordZoneApplications,
+  zoneApplicationKey,
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
@@ -48,8 +51,9 @@ function effect(overrides: Partial<SpatialEffectInstance> = {}): SpatialEffectIn
 function collect(
   input: Omit<
     Parameters<typeof collectSpatialMovementCandidates>[0],
-    'actorIdByTokenId' | 'effects' | 'tokens' | 'movingTokenId'
+    'actorIdByTokenId' | 'effects' | 'tokens' | 'movingTokenId' | 'turnSequence'
   > & {
+    readonly turnSequence?: number
     readonly effects?: readonly SpatialEffectInstance[]
     readonly tokens?: readonly SpatialSceneToken[]
   }
@@ -62,7 +66,8 @@ function collect(
     effects: input.effects ?? [effect()],
     movingTokenId: ids.targetToken,
     tokens: input.tokens ?? [token(ids.targetToken, input.path[0]!.x, input.path[0]!.y)],
-    ...input
+    ...input,
+    turnSequence: input.turnSequence ?? 1
   })
 }
 
@@ -87,6 +92,157 @@ describe('spatial movement candidates', () => {
     expect(cross[0]?.contact.x).toBeCloseTo(-2)
     expect(exit).toMatchObject([{ trigger: 'EXIT', sourceMoved: false }])
     expect(exit[0]?.contact.x).toBeCloseTo(2)
+  })
+
+  describe('creatures designated unaffected (SPELLS-20 T4c)', () => {
+    const walk = [
+      { x: -5, y: 0 },
+      { x: 5, y: 0 }
+    ]
+
+    const spared = effect({ unaffectedActorIds: [ids.targetActor] })
+    const otherSpared = effect({ unaffectedActorIds: [ids.sourceActor] })
+    const movements = [
+      { trigger: 'CROSS', movementKind: 'VOLUNTARY', path: walk },
+      {
+        trigger: 'EXIT',
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 0, y: 0 },
+          { x: 5, y: 0 }
+        ]
+      },
+      {
+        trigger: 'ENTER',
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: -5, y: 0 },
+          { x: 0, y: 0 }
+        ]
+      },
+      { trigger: 'CROSS', movementKind: 'FORCED', path: walk },
+      {
+        trigger: 'ENTER',
+        movementKind: 'TELEPORT',
+        path: [
+          { x: -5, y: 0 },
+          { x: 0, y: 0 }
+        ]
+      },
+      {
+        trigger: 'EXIT',
+        movementKind: 'TELEPORT',
+        path: [
+          { x: 0, y: 0 },
+          { x: 5, y: 0 }
+        ]
+      }
+    ] as const
+
+    it.each(movements)(
+      'never catches a creature the effect names unaffected on a $movementKind $trigger, and still catches the others',
+      ({ trigger, movementKind, path }) => {
+        expect(collect({ effects: [otherSpared], movementKind, path })).toMatchObject([{ trigger }])
+        expect(collect({ effects: [spared], movementKind, path })).toEqual([])
+      }
+    )
+
+    it('never catches a spared creature a moving source aura passes over', () => {
+      const aura = (unaffectedActorIds: readonly string[]) =>
+        effect({
+          anchorKind: 'TOKEN',
+          geometry: {
+            frame: 'TOKEN_LOCAL',
+            shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 1 }
+          },
+          sourceTokenId: ids.sourceToken,
+          unaffectedActorIds
+        })
+      const sweep = (unaffectedActorIds: readonly string[]) =>
+        collectSpatialMovementCandidates({
+          turnSequence: 1,
+          actorIdByTokenId: new Map([
+            [ids.sourceToken, ids.sourceActor],
+            [ids.targetToken, ids.targetActor]
+          ]),
+          effects: [aura(unaffectedActorIds)],
+          movementKind: 'FORCED',
+          movingTokenId: ids.sourceToken,
+          path: walk,
+          tokens: [token(ids.sourceToken, -5), token(ids.targetToken, 0)]
+        })
+      expect(sweep([ids.targetActor])).toEqual([])
+      expect(sweep([])).toHaveLength(1)
+    })
+  })
+
+  describe('applications per turn', () => {
+    const walk = [
+      { x: -5, y: 0 },
+      { x: 5, y: 0 }
+    ]
+    const key = zoneApplicationKey(ids.effect, ids.targetActor)
+
+    it.each([
+      ['has no limit', undefined, { turnSequence: 3, count: 9 }, 1],
+      ['is spent this turn', 1, { turnSequence: 3, count: 1 }, 0],
+      ['has one application left this turn', 2, { turnSequence: 3, count: 1 }, 1],
+      ['was only spent on an earlier turn', 1, { turnSequence: 2, count: 1 }, 1]
+    ])('an effect whose limit %s', (_name, maxApplicationsPerTurn, entry, caught) => {
+      expect(
+        collect({
+          effects: [effect({ maxApplicationsPerTurn })],
+          movementKind: 'VOLUNTARY',
+          path: walk,
+          turnSequence: 3,
+          zoneApplications: { [key]: entry }
+        })
+      ).toHaveLength(caught)
+    })
+
+    it('catches a creature once per move by a zone that triggers on enter, exit and cross', () => {
+      const through = collect({
+        effects: [effect({ maxApplicationsPerTurn: 1 })],
+        movementKind: 'VOLUNTARY',
+        path: [walk[0]!, { x: 0, y: 0 }, walk[1]!]
+      })
+      expect(through).toHaveLength(1)
+    })
+
+    it('counts a creature against the zone it was caught by, not other creatures or zones', () => {
+      const spent = { turnSequence: 3, count: 1 }
+      for (const stale of [
+        zoneApplicationKey(ids.effect, ids.sourceActor),
+        zoneApplicationKey(ids.sourceActor, ids.targetActor)
+      ])
+        expect(
+          collect({
+            effects: [effect({ maxApplicationsPerTurn: 1 })],
+            movementKind: 'VOLUNTARY',
+            path: walk,
+            turnSequence: 3,
+            zoneApplications: { [stale]: spent }
+          })
+        ).toHaveLength(1)
+    })
+
+    it('records each settled trigger against the current turn and drops entries from earlier turns', () => {
+      const earlier = { turnSequence: 2, count: 4 }
+      const other = zoneApplicationKey(ids.effect, ids.sourceActor)
+      expect(recordZoneApplications({ [other]: earlier }, 3, [])).toEqual({ [other]: earlier })
+      const recorded = recordZoneApplications(
+        { [other]: earlier, [key]: { turnSequence: 3, count: 1 } },
+        3,
+        [
+          { effectId: ids.effect, targetActorId: ids.targetActor },
+          { effectId: ids.effect, targetActorId: ids.sourceActor }
+        ]
+      )
+      expect(recorded).toEqual({
+        [key]: { turnSequence: 3, count: 2 },
+        [other]: { turnSequence: 3, count: 1 }
+      })
+    })
   })
 
   describe('half-speed passage', () => {
@@ -222,6 +378,7 @@ describe('spatial movement candidates', () => {
       sourceTokenId: ids.sourceToken
     })
     const candidates = collectSpatialMovementCandidates({
+      turnSequence: 1,
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
@@ -254,6 +411,7 @@ describe('spatial movement candidates', () => {
       sourceTokenId: ids.sourceToken
     })
     const candidates = collectSpatialMovementCandidates({
+      turnSequence: 1,
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
@@ -898,5 +1056,95 @@ describe('spatialTokensWithinSpaceRadius', () => {
     expect(() =>
       spatialTokensWithinSpaceRadius({ radius: 10, tokens: [at('a1', 2)], casterTokenId: casterId })
     ).toThrow('caster')
+  })
+})
+
+describe('spatial turn candidates', () => {
+  const key = zoneApplicationKey(ids.effect, ids.targetActor)
+  const collectTurn = (
+    input: Partial<Parameters<typeof collectSpatialTurnCandidates>[0]> & {
+      readonly targetAt?: number
+    } = {}
+  ) =>
+    collectSpatialTurnCandidates({
+      actorIdByTokenId: new Map([
+        [ids.sourceToken, ids.sourceActor],
+        [ids.targetToken, ids.targetActor]
+      ]),
+      effects: [effect({ turnTriggers: ['START_OF_TURN', 'END_OF_TURN'] })],
+      targetTokenId: ids.targetToken,
+      tokens: [token(ids.targetToken, input.targetAt ?? 0)],
+      trigger: 'START_OF_TURN',
+      turnSequence: 1,
+      ...input
+    })
+
+  it('catches a creature inside the area at a trigger the effect has, with the effect facts', () => {
+    expect(collectTurn()).toEqual([
+      {
+        effectId: ids.effect,
+        sourceActorId: ids.sourceActor,
+        targetActorId: ids.targetActor,
+        trigger: 'START_OF_TURN'
+      }
+    ])
+    expect(collectTurn({ trigger: 'END_OF_TURN' })).toHaveLength(1)
+  })
+
+  it.each([
+    ['outside the area', { targetAt: 10 }],
+    ['at a boundary the effect lacks', { effects: [effect({ turnTriggers: ['END_OF_TURN'] })] }],
+    ['for an effect without turn triggers', { effects: [effect()] }],
+    [
+      'a creature the effect never catches',
+      {
+        effects: [
+          effect({ turnTriggers: ['START_OF_TURN'], unaffectedActorIds: [ids.targetActor] })
+        ]
+      }
+    ],
+    [
+      'an effect whose per-turn limit is spent',
+      {
+        effects: [effect({ turnTriggers: ['START_OF_TURN'], maxApplicationsPerTurn: 1 })],
+        zoneApplications: { [key]: { turnSequence: 1, count: 1 } }
+      }
+    ]
+  ])('catches nothing: %s', (_name, input) => {
+    expect(collectTurn(input)).toEqual([])
+  })
+
+  it('counts a limit spent on an earlier turn as unspent', () => {
+    expect(
+      collectTurn({
+        effects: [effect({ turnTriggers: ['START_OF_TURN'], maxApplicationsPerTurn: 1 })],
+        zoneApplications: { [key]: { turnSequence: 0, count: 1 } }
+      })
+    ).toHaveLength(1)
+  })
+
+  it('follows a token-anchored effect to its source token and orders effects by id', () => {
+    const anchored = effect({
+      anchorKind: 'TOKEN',
+      effectId: ids.effectTwo,
+      geometry: {
+        frame: 'TOKEN_LOCAL',
+        shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 3 }
+      },
+      sourceTokenId: ids.sourceToken,
+      turnTriggers: ['START_OF_TURN']
+    })
+    const tokens = [token(ids.targetToken, 0), token(ids.sourceToken, 2)]
+    const found = collectTurn({
+      effects: [anchored, effect({ turnTriggers: ['START_OF_TURN'] })],
+      tokens
+    })
+    expect(found.map((candidate) => candidate.effectId)).toEqual([ids.effect, ids.effectTwo])
+    expect(
+      collectTurn({
+        effects: [anchored],
+        tokens: [token(ids.targetToken, 0), token(ids.sourceToken, 20)]
+      })
+    ).toEqual([])
   })
 })

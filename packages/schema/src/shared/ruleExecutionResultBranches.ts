@@ -31,6 +31,10 @@ import {
   turnLegendaryActionRefreshDtoSchema,
   turnRechargeExecutionDtoSchema
 } from './ruleExecutionTurnResources.js'
+import {
+  refineTurnZoneEffectsEvidence,
+  turnZoneEffectsEvidenceFields
+} from './ruleExecutionTurnPhaseEvidence.js'
 export const pausedRuleExecutionResultDtoSchema = lazySchema(() =>
   z.strictObject({
     status: z.literal('PAUSED'),
@@ -181,11 +185,13 @@ export const initiativeCompleteRuleExecutionResultDtoSchema = lazySchema(() =>
       ),
       actionEconomyRefreshes: z.optional(
         z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      )
+      ),
+      ...turnZoneEffectsEvidenceFields()
     })
     .check(
       z.refine((result) => result.initiative !== null || result.initiativeAdvance !== null, {
         message: 'Initiative completion requires settlement or advancement evidence.'
       })
     )
+    .check(z.superRefine(refineTurnZoneEffectsEvidence))
 )

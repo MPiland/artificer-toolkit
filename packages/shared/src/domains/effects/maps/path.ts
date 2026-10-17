@@ -333,6 +333,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
     const event = cond.local().field(['event'])
     const isDamageTaken = event.eq('DAMAGE_TAKEN')
     const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
+    const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
 
     map
       .set(
@@ -345,7 +346,11 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
             options: [
               { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
               { code: 'ATTACK_ROLL', label: 'The holder attacks an enemy' },
-              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' }
+              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' },
+              {
+                code: 'ACTION_USED_ON_HOLDER',
+                label: 'Another creature uses an action on the holder'
+              }
             ]
           },
           { requiredIf: true }
@@ -385,6 +390,18 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
           'Against',
           { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
           { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+        )
+      )
+      .set(
+        'actionDefinitionIds',
+        selectMulti(
+          ['actionDefinitionIds'],
+          'Actions',
+          {
+            kind: 'DATA',
+            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
+          },
+          { requiredIf: isActionUsed, showIf: isActionUsed }
         )
       )
   }
@@ -710,7 +727,7 @@ const MANIFEST_CREATURE_FORM_FILTER_NODE_MAP: NodeMap<ManifestCreatureFormFilter
         'excludedSpeedIds',
         selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
           kind: 'DATA',
-          relationship: table('speeds', { selectColumns: ['id', 'label'] })
+          relationship: table('speeds', { selectColumns: ['id', 'label', 'description'] })
         })
       )
   })
@@ -849,23 +866,6 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       .set('order', number(['order'], 'Order', { requiredIf: true }))
       .set('label', text(['label'], 'Label', { requiredIf: true }))
       .set(
-        'interactionKind',
-        selectSingle(['interactionKind'], 'Interaction', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ENTER_OR_PASS_THROUGH', label: 'Enter or Pass Through' },
-            { code: 'MOVE_ACROSS', label: 'Move Across' },
-            { code: 'ENTER_SPACE', label: 'Enter Space' },
-            { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
-            { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
-            { code: 'SOURCE_HIT', label: 'Source Hits' },
-            { code: 'TARGET_TAKES_FIRE_DAMAGE', label: 'Target Takes Fire Damage' },
-            { code: 'START_OF_ATTACHED_TARGET_TURN', label: 'Start of Attached Target Turn' },
-            { code: 'END_OF_ATTACHED_TARGET_NEXT_TURN', label: 'End of Attached Target Next Turn' }
-          ]
-        })
-      )
-      .set(
         'interactionKinds',
         selectMulti(['interactionKinds'], 'Interactions', {
           kind: 'INLINE_OPTIONS',
@@ -883,6 +883,10 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
         })
       )
       .set('bypassAtHalfSpeed', toggle(['bypassAtHalfSpeed'], 'Bypass at Half Speed'))
+      .set(
+        'choosesUnaffected',
+        toggle(['choosesUnaffected'], 'Caster Chooses Unaffected Creatures')
+      )
       .set(
         'movementCostMultiplier',
         number(['movementCostMultiplier'], 'Movement Cost Multiplier', {
@@ -1786,6 +1790,16 @@ function registerOutcomeFields(
       'recordsSource',
       toggle(['recordsSource'], 'The Acting Creature Is Its Source', {
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
+      })
+    )
+    .set(
+      'fleesSource',
+      toggle(['fleesSource'], 'The Holder Must Dash Away From Its Source', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
+          local.field(['recordsSource']).eq(true)
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(

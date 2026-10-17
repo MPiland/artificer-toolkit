@@ -117,7 +117,8 @@ export async function prepareNativeLiveTurnCompletion(input: {
       capture: input.capture
     })
     if (slot.state?.id !== stateId) throw new Error('Turn maintenance slot changed.')
-    if (slot.dependents.flatMap(projectEffect).length === 0) endedStates.add(stateId)
+    if (slot.dependents.flatMap(projectEffect).length === 0 && slot.zoneIds.length === 0)
+      endedStates.add(stateId)
   }
   const nextState = encounterRunStateSchema.parse({
     ...state,

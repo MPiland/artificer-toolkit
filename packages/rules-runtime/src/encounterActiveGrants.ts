@@ -5,7 +5,6 @@ import type {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
@@ -43,7 +42,9 @@ export function encounterActiveGrantCapabilitySuppressions(
     modifiers.flatMap((modifier) =>
       modifier.valueDomainCode === 'REACTION_COUNT' &&
       modifier.modifierKind === 'SET_VALUE' &&
-      record(record(modifier.grant)?.payload)?.amount === 0
+      modifier.payload !== undefined &&
+      'amount' in modifier.payload &&
+      modifier.payload.amount === 0
         ? [
             {
               activeEffectId: effectId,
@@ -113,14 +114,14 @@ export function withCreatureActiveGrantSaves(
   const plain = new Map<string, EncounterRelationshipD20Contributor[]>()
   for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
-      const domain = record(modifier.domain)
-      const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain?.ability)]
-      const conditionTypeId = domain?.conditionTypeId
+      const { domain } = modifier
+      const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
+      const { conditionTypeId } = domain
       if (
         (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
         modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
         abilityDefinitionId === undefined ||
-        record(modifier.grant)?.scope !== 'GLOBAL'
+        modifier.scope !== 'GLOBAL'
       )
         continue
       const contributor: EncounterRelationshipD20Contributor = {
@@ -132,13 +133,13 @@ export function withCreatureActiveGrantSaves(
         domainKey: `active-grant:${holderActorId}`,
         influence: modifier.modifierKind
       }
-      if (typeof conditionTypeId === 'string') {
+      if (conditionTypeId !== undefined) {
         const key = `${abilityDefinitionId}:${conditionTypeId}`
         const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
         entry.contributors.push(contributor)
         scoped.set(key, entry)
       } else if (
-        domain?.ruleDefinitionId === undefined &&
+        domain.ruleDefinitionId === undefined &&
         !hasHolderStateRestriction(modifier.restrictions) &&
         !dnd5eSaveRequiresSourceSight(modifier)
       ) {
@@ -280,17 +281,16 @@ export function encounterAttackAgainstContributors(
 ): EncounterAttackAgainstContributor[] {
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
-      const domain = attackDomainCodeSchema.safeParse(record(modifier.domain)?.attackDomain)
+      const { attackDomain, requiresHolderSeesAttacker } = modifier.domain
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         modifier.valueDomainCode === 'ATTACKS_AGAINST' &&
-        domain.success &&
-        record(modifier.grant)?.scope === 'GLOBAL' &&
+        attackDomain !== undefined &&
+        modifier.scope === 'GLOBAL' &&
         holderStateRestrictionsHold(modifier.restrictions, holderState)
         ? [
             {
-              attackDomain: domain.data,
-              requiresHolderSeesAttacker:
-                record(modifier.domain)?.requiresHolderSeesAttacker === true,
+              attackDomain,
+              requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
               contributor: {
                 sourceId: createCharacterMechanicSourceKey({
                   kind: 'ACTIVE_EFFECT',
@@ -323,12 +323,12 @@ export function withHolderStateGrantSaves(
   for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const abilityDefinitionId =
-        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(record(modifier.domain)?.ability)]
+        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(modifier.domain.ability)]
       if (
         (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
         modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
         abilityDefinitionId === undefined ||
-        record(modifier.grant)?.scope !== 'GLOBAL' ||
+        modifier.scope !== 'GLOBAL' ||
         dnd5eSaveRequiresSourceSight(modifier) ||
         !hasHolderStateRestriction(modifier.restrictions) ||
         !holderStateRestrictionsHold(modifier.restrictions, holderState)
@@ -396,12 +396,10 @@ export function encounterSourceSightSaveGrants(input: {
       contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
         const modifier = grantFold.modifiers[acceptedModifierIndex]!
         const abilityDefinitionId =
-          DND5E_ABILITY_DEFINITION_ID_BY_CODE[
-            String(record(record(modifier.grant)?.domain)?.ability)
-          ]
+          DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(modifier.domain.ability)]
         return (modifier.modifierKind === 'ADVANTAGE' ||
           modifier.modifierKind === 'DISADVANTAGE') &&
-          dnd5eSaveRequiresSourceSight(modifier.grant) &&
+          dnd5eSaveRequiresSourceSight(modifier) &&
           abilityDefinitionId !== undefined
           ? [
               {
@@ -421,10 +419,10 @@ export function encounterSourceSightSaveGrants(input: {
   return listActiveEffectGrants(input.effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
       const abilityDefinitionId =
-        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(record(modifier.domain)?.ability)]
+        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(modifier.domain.ability)]
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         dnd5eSaveRequiresSourceSight(modifier) &&
-        record(modifier.grant)?.scope === 'GLOBAL' &&
+        modifier.scope === 'GLOBAL' &&
         abilityDefinitionId !== undefined
         ? [
             {
@@ -477,6 +475,12 @@ export function mergedRollContributors(
   return { contributors, rollMode: resolveD20Contributors(contributors).rollMode }
 }
 
+const defenseKey = (defense: {
+  kind: string
+  damageTypeId: string
+  sourceEffectIds?: readonly string[]
+}) => `${defense.kind}:${defense.damageTypeId}:${(defense.sourceEffectIds ?? []).join(',')}`
+
 /**
  * A Creature holder's damage defenses and condition immunities with its active grants' options
  * added or removed (Protection from Energy's resistance, Heroism's immunity to Frightened); defenses
@@ -488,41 +492,53 @@ export function withCreatureActiveGrantProtection<
     defenses: readonly {
       kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
       damageTypeId: string
+      sourceEffectIds?: readonly string[]
     }[]
     conditionImmunityIds: readonly string[]
   }
 >(protection: TProtection, effects: readonly ActiveRuleEffectRecord[]): TProtection {
-  const defenses = new Map(
-    protection.defenses.map((defense) => [`${defense.kind}:${defense.damageTypeId}`, defense])
-  )
+  const defenses = new Map(protection.defenses.map((defense) => [defenseKey(defense), defense]))
   const conditionImmunityIds = new Set(protection.conditionImmunityIds)
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
-      const grant = record(modifier.grant)
+      const { payload } = modifier
       const adding = modifier.modifierKind === 'ADD_OPTION'
-      if ((!adding && modifier.modifierKind !== 'REMOVE_OPTION') || grant?.scope !== 'GLOBAL')
-        continue
-      const payload = record(grant.payload)
-      const kind = CREATURE_DEFENSE_KIND_BY_DOMAIN[modifier.valueDomainCode]
-      const option = kind ? payload?.damageTypeId : payload?.conditionTypeId
       if (
-        typeof option !== 'string' ||
-        (!kind && modifier.valueDomainCode !== 'CONDITION_IMMUNITY')
+        (!adding && modifier.modifierKind !== 'REMOVE_OPTION') ||
+        modifier.scope !== 'GLOBAL' ||
+        payload === undefined
       )
         continue
+      const kind = CREATURE_DEFENSE_KIND_BY_DOMAIN[modifier.valueDomainCode]
+      const option = kind
+        ? 'damageTypeId' in payload
+          ? payload.damageTypeId
+          : undefined
+        : modifier.valueDomainCode === 'CONDITION_IMMUNITY' && 'conditionTypeId' in payload
+          ? payload.conditionTypeId
+          : undefined
+      if (option === undefined) continue
       if (kind) {
-        if (adding) defenses.set(`${kind}:${option}`, { kind, damageTypeId: option })
-        else defenses.delete(`${kind}:${option}`)
+        const sourceEffectIds =
+          'sourceEffectIds' in payload ? [...(payload.sourceEffectIds ?? [])].sort() : []
+        const defense = {
+          kind,
+          damageTypeId: option,
+          ...(sourceEffectIds.length > 0 && { sourceEffectIds })
+        }
+        if (adding) defenses.set(defenseKey(defense), defense)
+        else defenses.delete(defenseKey(defense))
       } else if (adding) conditionImmunityIds.add(option)
       else conditionImmunityIds.delete(option)
     }
   }
   return {
     ...protection,
-    defenses: [...defenses.values()].sort((left, right) =>
-      left.damageTypeId === right.damageTypeId
-        ? left.kind.localeCompare(right.kind)
-        : left.damageTypeId.localeCompare(right.damageTypeId)
+    defenses: [...defenses.values()].sort(
+      (left, right) =>
+        left.damageTypeId.localeCompare(right.damageTypeId) ||
+        left.kind.localeCompare(right.kind) ||
+        defenseKey(left).localeCompare(defenseKey(right))
     ),
     conditionImmunityIds: [...conditionImmunityIds]
   }
@@ -553,12 +569,12 @@ export function creatureActiveGrantAttackContributors(
 ): EncounterRelationshipD20Contributor[] {
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
-      const grantAbility = record(modifier.domain)?.ability ?? null
+      const grantAbility = modifier.domain.ability ?? null
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         modifier.valueDomainCode === 'ATTACK_ROLL' &&
-        record(modifier.domain)?.attackDomain === attackDomain &&
+        modifier.domain.attackDomain === attackDomain &&
         (grantAbility === null || grantAbility === attackAbility) &&
-        record(modifier.grant)?.scope === 'GLOBAL'
+        modifier.scope === 'GLOBAL'
         ? [
             {
               sourceId: createCharacterMechanicSourceKey({
@@ -588,11 +604,11 @@ export function creatureActiveGrantCheckContributors(
 ): EncounterRelationshipD20Contributor[] {
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
-      const grantAbility = record(modifier.domain)?.ability ?? null
+      const grantAbility = modifier.domain.ability ?? null
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         modifier.valueDomainCode === 'ABILITY_CHECK' &&
         (grantAbility === null || grantAbility === abilityCode) &&
-        record(modifier.grant)?.scope === 'GLOBAL'
+        modifier.scope === 'GLOBAL'
         ? [
             {
               sourceId: createCharacterMechanicSourceKey({
@@ -635,13 +651,12 @@ export function withActiveGrantSpeeds(
   const replacements = widestLengthByKey(
     listActiveEffectGrants(effects).flatMap(({ modifiers }) =>
       modifiers.flatMap((modifier) => {
-        const speedId = record(modifier.domain)?.speedId
-        const grant = record(modifier.grant)
+        const { speedId } = modifier.domain
         return modifier.valueDomainCode === 'SPEED' &&
           modifier.modifierKind === 'SET_VALUE' &&
-          grant?.scope === 'GLOBAL' &&
-          typeof speedId === 'string'
-          ? [{ key: speedId, payload: grant.payload }]
+          modifier.scope === 'GLOBAL' &&
+          speedId !== undefined
+          ? [{ key: speedId, payload: modifier.payload }]
           : []
       })
     )
@@ -654,16 +669,15 @@ export function withActiveGrantSpeeds(
       .map(([speedId, { amount, unit }]) => ({ speedId, amount, unit }))
   ].map((speed) => {
     const replacement = replacements.get(speed.speedId)
-    const bonusFeet = activeSpeedGrantFeet(effects, (domain) => domain?.speedId === speed.speedId)
+    const bonusFeet = activeSpeedGrantFeet(effects, (domain) => domain.speedId === speed.speedId)
     const fractions = listActiveEffectGrants(effects).flatMap(({ modifiers }) =>
       modifiers.flatMap((modifier) => {
-        const speedId = record(modifier.domain)?.speedId
-        const grant = record(modifier.grant)
+        const { speedId } = modifier.domain
         return modifier.valueDomainCode === 'SPEED' &&
           modifier.modifierKind === 'MULTIPLY' &&
-          grant?.scope === 'GLOBAL' &&
+          modifier.scope === 'GLOBAL' &&
           (speedId === undefined || speedId === speed.speedId)
-          ? [grant.payload]
+          ? [modifier.payload]
           : []
       })
     )

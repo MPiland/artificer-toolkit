@@ -310,6 +310,8 @@ const characterActionMechanicFactSchema = lazySchema(() =>
             kind: z.literal('EFFECT'),
             pathCode: identitySchema,
             effectKind: identitySchema,
+            /** A movement rule's kind, so a consumer can tell Dash (`ADD_SPEED_TO_MOVEMENT`) apart. */
+            ruleKind: z.optional(identitySchema),
             label: z.nullable(
               stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
             )

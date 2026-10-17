@@ -356,6 +356,21 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'sourceEffectIds',
+        selectMulti(
+          ['sourceEffectIds'],
+          'Only damage from these spells',
+          {
+            kind: 'DATA',
+            relationship: table('spells', { selectColumns: ['id', 'label'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'damageTypeSource',
         selectSingle(
           ['damageTypeSource'],
@@ -573,7 +588,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       .set(
         'numerator',
         number(['numerator'], 'Numerator', {
-          constraints: { minimum: 1 },
+          constraints: { minimum: 0 },
           showIf: isMultiply,
           requiredIf: true
         })

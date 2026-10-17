@@ -23,9 +23,7 @@ function grantOf(effect: ReturnType<typeof plannedAbsorbElements>) {
 }
 
 function payloads(effect: ReturnType<typeof plannedAbsorbElements>) {
-  return grantOf(effect).modifiers.map(
-    (modifier) => (modifier.grant as { payload: unknown }).payload
-  )
+  return grantOf(effect).modifiers.map((modifier) => modifier.payload)
 }
 
 describe('the resistance an Absorb Elements reaction leaves', () => {

@@ -93,7 +93,8 @@ const REACTION_TRIGGER_KIND_OPTIONS: {
   { code: 'MOVEMENT', label: 'A creature moves' },
   { code: 'ATTACKED_SELF', label: 'You are hit by an attack' },
   { code: 'SPELL_CAST', label: 'A creature casts a spell' },
-  { code: 'DAMAGE_TAKEN', label: 'You take damage' }
+  { code: 'DAMAGE_TAKEN', label: 'You take damage' },
+  { code: 'TARGETED_SELF', label: 'You are chosen as a target' }
 ]
 
 const higherLevelCheck = buildNodeMap<ReactionHigherLevelCheckAuthored>()
@@ -135,6 +136,7 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
     const isMovement = local.field(['kind']).eq('MOVEMENT')
     const isDamageTaken = local.field(['kind']).eq('DAMAGE_TAKEN')
     const isSpellCast = local.field(['kind']).eq('SPELL_CAST')
+    const isTargetedSelf = local.field(['kind']).eq('TARGETED_SELF')
 
     map
       .set(
@@ -196,6 +198,18 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
             relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
           },
           { order: 5, requiredIf: isDamageTaken, showIf: isDamageTaken }
+        )
+      )
+      .set(
+        'sourceEffectIds',
+        selectMulti(
+          ['sourceEffectIds'],
+          'Only actions from these spells',
+          {
+            kind: 'DATA',
+            relationship: table('spells', { selectColumns: ['id', 'label'] })
+          },
+          { order: 7, showIf: isTargetedSelf, hiddenBehavior: 'CLEAR' }
         )
       )
       .set(

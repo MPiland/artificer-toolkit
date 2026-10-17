@@ -2,7 +2,8 @@ import {
   encounterSourceProjectionFactsSchema,
   encounterStoredRunActorStateSchema,
   type EncounterRunActorState,
-  type EncounterRunState
+  type EncounterRunState,
+  type EncounterStoredRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -75,15 +76,41 @@ export async function releaseSourceFacts(
   if (source) await ctx.db.delete(source._id)
 }
 
+/**
+ * An actor's stored state as its row keeps it. The row's columns carry the actor's identity and the
+ * checksums of the shared rows it names (they back the row's indexes), so the state omits them.
+ */
+export function serializeStoredRunActor(stored: EncounterStoredRunActorState) {
+  const {
+    id: _id,
+    encounterId: _encounterId,
+    snapshotChecksum: _snapshotChecksum,
+    ...kept
+  } = stored
+  if (kept.kind === 'CHARACTER') return JSON.stringify(kept)
+  const { sourceFactsChecksum: _sourceFactsChecksum, ...creature } = kept
+  return JSON.stringify(creature)
+}
+
+/** The inverse of `serializeStoredRunActor`: a stored state with its row's identity restored. */
+export function restoreStoredRunActor(
+  row: EncounterDocument<'encounterRunActors'>,
+  state: unknown
+) {
+  const isCharacter =
+    typeof state === 'object' && state !== null && 'kind' in state && state.kind === 'CHARACTER'
+  return encounterStoredRunActorStateSchema.parse({
+    ...(typeof state === 'object' ? state : null),
+    id: row.id,
+    encounterId: row.encounterId,
+    snapshotChecksum: row.snapshotChecksum,
+    ...(isCharacter ? {} : { sourceFactsChecksum: row.sourceFactsChecksum })
+  })
+}
+
 function parseStoredActor(row: EncounterDocument<'encounterRunActors'>) {
-  const stored = encounterStoredRunActorStateSchema.parse(JSON.parse(row.stateJson))
-  if (
-    stored.id !== row.id ||
-    stored.encounterId !== row.encounterId ||
-    stored.snapshotChecksum !== row.snapshotChecksum ||
-    (stored.kind === 'CHARACTER' ? null : stored.sourceFactsChecksum) !== row.sourceFactsChecksum ||
-    checksumCanonicalJson(runActorPlayState(stored)) !== row.stateChecksum
-  )
+  const stored = restoreStoredRunActor(row, JSON.parse(row.stateJson))
+  if (checksumCanonicalJson(runActorPlayState(stored)) !== row.stateChecksum)
     throw new Error('Encounter actor state checksum mismatch.')
   return stored
 }

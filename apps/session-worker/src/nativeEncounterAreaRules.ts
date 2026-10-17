@@ -43,6 +43,10 @@ import {
   overridesActionEconomy,
   RULE_WARNINGS_MESSAGE
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   decideEncounterAreaLegendaryResistance,
@@ -69,6 +73,7 @@ import {
   encounterAreaTargetCommandId,
   encounterAreaSettled,
   encounterChosenActorEntries,
+  encounterChosenActorsChecksum,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
@@ -103,6 +108,10 @@ import {
   buildEncounterActionStoredExecution,
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
+import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/encounterHitPointPool'
+import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
+import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
@@ -190,7 +199,10 @@ export type AreaPlanBase = {
   system: Extract<LiveSessionEncounterRulesResponse, { kind: 'INPUTS' }>['system']
   actors: readonly EncounterRunActorState[]
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
-  loadTarget: (actor: EncounterRunActorState) => Promise<MovementTargets>
+  loadTarget: (
+    actor: EncounterRunActorState,
+    effectsByActorId?: Map<string, ActiveRuleEffectRecord[]>
+  ) => Promise<MovementTargets>
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => ReturnType<LiveCaptureReads['encounterRules']>
@@ -323,14 +335,35 @@ export async function prepareAreaScene(
     source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
       ? source.entry.compilation.zonePlacement
       : null
+  const unaffectedActorIds =
+    target.kind === 'POINT' || target.kind === 'CASTER_CENTERED'
+      ? (target.unaffectedActorIds ?? [])
+      : []
+  if (
+    unaffectedActorIds.length &&
+    (!zone?.choosesUnaffected ||
+      unaffectedActorIds.some((id) => !input.actors.some((actor) => actor.id === id)))
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'This action cannot spare those creatures.'
+    })
   return {
     caster,
     casterFacts,
     movementTargets,
+    targetPolicy,
     scene: { ...scene, grid },
     area: { ...area, origin },
     placement: zone
-      ? { zone, origin, shape: area.shape, sourceToken: scene.sourceToken ?? null }
+      ? {
+          zone,
+          origin,
+          shape: area.shape,
+          sourceToken: scene.sourceToken ?? null,
+          unaffectedActorIds
+        }
       : null
   }
 }
@@ -530,6 +563,7 @@ function reachCastPause(
   cast: {
     reach: Pick<AreaReach, 'scene' | 'movementTargets'>
     lead: AreaPrepared
+    chosenActorIds: readonly string[] | null
     occurrenceId: string
     occurredAt: string
     answer: NativeCastReactionAnswer | null
@@ -559,6 +593,7 @@ function reachCastPause(
     },
     // Range is read from the Scene, so a cast aimed at none offers no reaction.
     readScene: scene ? async () => scene : null,
+    chosenActorIds: cast.chosenActorIds,
     occurrenceId: cast.occurrenceId,
     occurredAt: cast.occurredAt,
     userId: input.initial.expectedUserId,
@@ -590,6 +625,8 @@ export async function openReachCastWindow(
   cast: {
     reach: AreaReach
     lead: AreaPrepared
+    /** The creatures a chosen-list cast names, who may answer being chosen; null for any other shape. */
+    chosenActorIds: readonly string[] | null
     evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
     ruleOverrides: ReturnType<typeof reachRuleOverrides>
   }
@@ -613,6 +650,7 @@ export async function openReachCastWindow(
   const pause = reachCastPause(input, {
     reach: cast.reach,
     lead,
+    chosenActorIds: cast.chosenActorIds,
     occurrenceId,
     occurredAt,
     answer: castResume?.answer ?? null,
@@ -650,6 +688,29 @@ export async function openReachCastWindow(
   }
 }
 
+/** The creatures a rolled hit-point pool covers, lowest current hit points first (Sleep). */
+function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
+  caught: readonly Caught[],
+  pool: number,
+  excludedCreatureTypeIds: readonly string[],
+  movementTargets: ReadonlyMap<string, { state: { current: number } }>
+) {
+  const eligible = caught.filter(({ actor }) => {
+    const creatureTypeId = snapshotCreatureTypeId(actor)
+    return creatureTypeId === null || !excludedCreatureTypeIds.includes(creatureTypeId)
+  })
+  const covered = new Set(
+    selectHitPointPoolTargets(
+      pool,
+      eligible.map(({ actor }) => ({
+        actorId: actor.id,
+        currentHitPoints: movementTargets.get(actor.id)!.state.current
+      }))
+    )
+  )
+  return eligible.filter(({ actor }) => covered.has(actor.id))
+}
+
 /**
  * Plans a point-area action up to its pending saves. Whom the area catches is decided here, from the
  * Scene the caster saw (fenced by its version); every caught creature, allies and the caster
@@ -658,7 +719,7 @@ export async function openReachCastWindow(
 export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { command, state, actors, capture } = input
   const base = await prepareAreaScene(input)
-  const { caster, casterFacts, movementTargets, scene, area } = base
+  const { caster, casterFacts, movementTargets, scene, area, targetPolicy } = base
 
   // A zone is entered later, by movement; placing it puts nobody through its save.
   const caughtActorIds = base.placement
@@ -670,14 +731,27 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
         tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
         fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
       })
-  const caught = caughtActorIds.map((actorId) => {
+  const caughtInArea = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
     return { actor, token }
   })
-  for (const { actor } of caught)
+  for (const { actor } of caughtInArea)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
+  // An area with a hit-point pool affects the creatures the pool covers, lowest hit points first.
+  const contents =
+    targetPolicy.targeting?.selectionKind === 'AREA_CONTENTS' ? targetPolicy.targeting : null
+  const caught = contents?.hitPointPool
+    ? hitPointPoolCovered(
+        caughtInArea,
+        evaluateRollExpression(parseRollExpression(contents.hitPointPool.diceConfig), {
+          nextInt: input.random ?? nextRollInt
+        }).evidence.total,
+        contents.excludedCreatureTypeIds ?? [],
+        movementTargets
+      )
+    : caughtInArea
 
   // Whom the caster perceives is decided once, as the area opens, and sealed with each creature's
   // save: a later change of sight or lighting does not change what the caster is told (D100).
@@ -738,10 +812,53 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const opened = await openReachCastWindow(input, {
     reach: base,
     lead: lead.prepared,
+    chosenActorIds: null,
     evaluation,
     ruleOverrides
   })
   if (opened.kind === 'PLAN') return opened.plan
+  // An area that asks no save commits at once, as one cast on the creatures it reached.
+  if (contents?.hitPointPool && lead.prepared.plan.kind === 'SINGLE_GRAPH') {
+    const { window } = opened
+    const settled = await executeEncounterActorsAction({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: lead.prepared.adapter,
+      plan: lead.prepared.plan,
+      occurrenceId: window.occurrenceId,
+      rollsPerTarget: false,
+      targets: reached.map(({ actor, prepared }) => ({
+        actorId: actor.id,
+        binding: prepared.binding
+      }))
+    })
+    return completeAreaCommit({
+      input,
+      command,
+      caster,
+      occurredAt: window.occurredAt,
+      failedCounters: await window.pause.planFailedCounters(window.failedCounters),
+      movementTargets,
+      kept: reached.map(({ actor, prepared }) => ({ actor, target: { prepared } })),
+      lead: lead.prepared,
+      formCreature: null,
+      ruleOverrides,
+      actionEconomy: evaluation.economy?.consumption ?? null,
+      attackAction: evaluation.attackAction,
+      settled,
+      rollsPerTarget: false,
+      tests: [],
+      audits: new Map(),
+      areaOccurrenceId: window.occurrenceId,
+      areaSnapshot: null,
+      caughtChecksum: encounterChosenActorsChecksum(caught.map(({ actor }) => actor.id)),
+      removedActorIds: [],
+      placement: null,
+      occurrenceVersion: window.occurrenceVersion,
+      response: window.response,
+      removal: null
+    })
+  }
   return sealReachSaves(input, {
     reach: base,
     lead: lead.prepared,
@@ -1306,10 +1423,18 @@ export function reachRuleOverrides(input: {
   movementTargets: ReadonlyMap<string, MovementTargets>
 }): EncounterRuleWarningDto[] {
   const { activationCode, economy, suppressed } = input.evaluation
+  const caster = input.movementTargets.get(input.lead.actor.id)
+  if (!caster) throw new Error('Encounter rules input binding mismatch.')
   const shared = {
-    preparedWarnings: suppressed
-      ? [...input.lead.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
-      : input.lead.ruleWarnings,
+    preparedWarnings: [
+      ...input.lead.ruleWarnings,
+      ...encounterFleeActionWarnings({
+        sourceActorIds: encounterConditionFleeSources(caster),
+        activationCode,
+        dash: false
+      }),
+      ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
+    ],
     areaWarnings: input.areaWarnings,
     actionEconomy: economy,
     activationCode,
@@ -1492,6 +1617,7 @@ export async function planNativeLiveEncounterAreaCommit(
     failedCounters: await reachCastPause(input, {
       reach: base,
       lead,
+      chosenActorIds: null,
       occurrenceId: areaOccurrenceId,
       occurredAt,
       answer: null,
@@ -1562,6 +1688,11 @@ export async function completeAreaCommit(args: {
   occurredAt: string
   /** What each counter that failed against the cast spends with this commit (D127). */
   failedCounters: Awaited<ReturnType<ReachCastWindow['pause']['planFailedCounters']>>
+  /** The effect each creature's used reaction to being chosen leaves on it, by actor id. */
+  reactionEffects?: ReadonlyMap<
+    string,
+    { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }
+  >
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -1597,6 +1728,7 @@ export async function completeAreaCommit(args: {
     caster,
     occurredAt,
     failedCounters,
+    reactionEffects,
     movementTargets,
     kept,
     lead,
@@ -1712,7 +1844,14 @@ export async function completeAreaCommit(args: {
         ...effectInput,
         maintainedEffectStateId: joined?.id
       })
-    const created = [stateEffect, recurringEffect].flatMap((effect) => (effect ? [effect] : []))
+    const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
+    // The effect of a reaction the creature used on being chosen lands with its first outcome.
+    const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
+    const reactionRecord =
+      reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
+    const created = [stateEffect, recurringEffect, reactionRecord].flatMap((effect) =>
+      effect ? [effect] : []
+    )
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
@@ -1746,9 +1885,7 @@ export async function completeAreaCommit(args: {
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
     const carriesFailedCounterSpend =
-      actor.id !== caster.id &&
-      failedReactorSlots.has(actor.id) &&
-      kept.findIndex((entry) => entry.actor.id === actor.id) === index
+      actor.id !== caster.id && failedReactorSlots.has(actor.id) && firstEntry
     const applications = [...complete.applications, ...effects.relationshipConditionApplications]
     const damageEnded = damageTakenEndedEffects({
       holderActorId: actor.id,
@@ -1827,7 +1964,12 @@ export async function completeAreaCommit(args: {
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
-        targetFailedCounterSpend: carriesFailedCounterSpend
+        targetFailedCounterSpend: carriesFailedCounterSpend,
+        reactionEffectTransitions: projectNativeActionEffectTransitions({
+          state: null,
+          recurring: reactionRecord ?? null,
+          targetActorId: actor.id
+        }).activeEffectTransitions
       })
     })
   }
@@ -1910,7 +2052,8 @@ export async function completeAreaCommit(args: {
         point: placement.origin,
         area: placement.shape,
         sourceToken: placement.sourceToken,
-        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null
+        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
+        unaffectedActorIds: placement.unaffectedActorIds
       })
     : null
   const execution = buildEncounterAreaStoredExecution({

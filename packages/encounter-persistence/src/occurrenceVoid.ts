@@ -88,6 +88,8 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
       return answerRequired('A death save')
     case 'ENCOUNTER_TURN_ACTIVE_EFFECTS':
       return answerRequired('A turn-effect save')
+    case 'ENCOUNTER_TURN_ZONE_EFFECTS':
+      return answerRequired('A zone save')
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
       return answerRequired('A Legendary Action roll')
     case 'ENCOUNTER_SPATIAL_MOVEMENT':

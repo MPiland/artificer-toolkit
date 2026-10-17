@@ -6,6 +6,7 @@ import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtim
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
+import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
@@ -132,7 +133,14 @@ export async function readEncounterActionChoices(
   const openAttackAction = encounterAttackActionState(actor)
   let actions: EncounterActionChoiceDto[] = []
   let unavailableActions: EncounterActionChoicesDto['unavailableActions'] = []
-  if (actor.kind === 'CHARACTER') {
+  // A Character in a creature form offers the form stat block's actions, not its Sheet's (SPELLS-28.T4d).
+  const creature =
+    actor.kind === 'CHARACTER'
+      ? characterFormCreatureView(actor)
+      : actor.kind === 'CREATURE'
+        ? actor
+        : null
+  if (actor.kind === 'CHARACTER' && creature === null) {
     const facts = actorTarget?.characterFacts
     const mechanics = actorTarget?.characterReactionSource?.mechanics
     const spellCast = actorTarget?.characterSpellCast
@@ -237,6 +245,9 @@ export async function readEncounterActionChoices(
               entry.schemaVersion !== 1 &&
               entry.compilation.kind === 'COMPILED'
               ? entry.compilation.activeEffectPlan?.creatureFormContribution
+              : undefined,
+            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
+              ? entry.compilation.zonePlacement
               : undefined
           ),
           warnings: [
@@ -255,17 +266,17 @@ export async function readEncounterActionChoices(
         }
       })
     )
-  } else if (actor.kind === 'CREATURE') {
+  } else if (creature) {
     const system = await tx.ports.requireSystem(state.gameSystemId)
     const discovered = discoverEncounterFeatureActions({
-      actor,
+      actor: creature,
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions:
         'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
     })
     // A Legendary Action is taken only at the end of another creature's turn (SRD 5.1), in its
     // Legendary window, never from the owner's own action drawer; the room refuses it too.
-    const legendaryFeatureIds = encounterLegendaryActionFeatureIds(actor)
+    const legendaryFeatureIds = encounterLegendaryActionFeatureIds(creature)
     unavailableActions = discovered.unavailable
       .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
       .map(({ actionId, label, reason }) => ({ id: actionId, label, reason }))

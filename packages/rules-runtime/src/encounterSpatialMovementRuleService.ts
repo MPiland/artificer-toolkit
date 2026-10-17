@@ -1,8 +1,5 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type {
-  EncounterRunActorState,
-  EncounterRunState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
   StoredRuleExecutionResultDto
@@ -13,7 +10,6 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   storedRuleExecutionResultDtoSchema
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shared/reaction'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import {
@@ -25,30 +21,31 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { z } from 'zod'
 
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
-  isDamageDieRequest,
   reconstructTargetBoundActiveRuleEffectCompletion,
-  resumeTargetBoundActiveRuleEffectWithPause,
+  resumeTargetBoundActiveRuleEffectWithAnswer,
   type TargetBoundActiveRuleEffectExecutionPaused,
   type TargetBoundActiveRuleEffectExecutionInput,
   type TargetBoundActiveRuleEffectExecutionResult
 } from './targetBoundActiveRuleEffectExecutor.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
+import {
+  requireSupportedD20Policy,
+  settleAutomaticSpatialEvidence,
+  spatialCandidateEvidence,
+  spatialExecutionInput,
+  spatialExecutionOutcome,
+  toSpatialInstance,
+  type SpatialD20Roll,
+  type SpatialMovementTarget,
+  type SpatialTargetState
+} from './encounterSpatialCandidateExecution.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
-import { isVisibleHalfSpeedField } from './halfSpeedField.js'
-import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
-import {
-  resolveEncounterD20Answer,
-  resolveEncounterIntegerAnswer,
-  type EncounterD20RollMode,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 export { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
 
 type SpatialBatch = Extract<
@@ -67,30 +64,10 @@ const pointSchema = z.strictObject({
   x: z.number().finite(),
   y: z.number().finite()
 })
-type TargetState = {
-  current: number
-  temporary: number
-  conditions: string[]
-  deathSaves: CharacterDeathSaves | null
-}
-export type SpatialMovementTarget = {
-  actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'systemId'>
-  character: {
-    id: string
-    streamVersion: number
-    projectionChecksum: string
-    mechanicalContextChecksum: string
-  } | null
-  /** The target's effective maximum: Run-owned for creatures, live-evaluated for Characters. */
-  maximumHitPoints: number
-  state: TargetState
-  targetDerivedFacts: Readonly<Record<string, unknown>>
-  defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
-  conditionImmunityIds: readonly string[]
-  scalarValues: Readonly<Record<string, number>>
-}
-type LockedTarget = SpatialMovementTarget
-type SpatialMovementEncounter = Pick<EncounterRunState, 'id' | 'version' | 'automationMode'> & {
+type SpatialMovementEncounter = Pick<
+  EncounterRunState,
+  'id' | 'version' | 'automationMode' | 'turnSequence' | 'zoneApplications'
+> & {
   actors: readonly { id: string }[]
 }
 
@@ -124,8 +101,6 @@ type SpatialMovementRuleResolution = Extract<
   { kind: 'ENTER_DICE' | 'ENTER_INTEGER' | 'SYSTEM_ROLL' }
 >
 type SpatialResolutionCommand = z.infer<typeof movementReactionActionEvidenceCommandDtoSchema>
-/** The resolved d20 of a candidate whose damage dice are being answered. */
-type SpatialD20Roll = { rollMode: EncounterD20RollMode; rawFaces: number[] }
 type MovementRuleResolutionCommand = z.infer<typeof movementRuleResolutionCommandDtoSchema>
 type MovementReactionPendingContext = Extract<
   ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
@@ -380,7 +355,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         path: root.originalPath,
         tokens: input.sceneTokens,
         movingTokenId: root.tokenId,
-        carefully: input.carefully
+        carefully: input.carefully,
+        zoneApplications: input.encounter.zoneApplications,
+        turnSequence: input.encounter.turnSequence
       })
   const computedSelectionChecksum = checksumSpatialMovementSelection({
     encounterId: input.encounter.id,
@@ -534,7 +511,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         path: root.originalPath,
         tokens: input.sceneTokens,
         movingTokenId: root.tokenId,
-        carefully: input.carefully
+        carefully: input.carefully,
+        zoneApplications: input.encounter.zoneApplications,
+        turnSequence: input.encounter.turnSequence
       })
   if (checksumRuleDocument(lockedCandidates) !== checksumRuleDocument(candidates))
     throw new EncounterConflictError('Spatial candidates changed after target locking.')
@@ -609,7 +588,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       d20Policy: sealed?.d20Policy ?? null,
       diceStage: sealed?.diceStage ?? null
     })
-    const effectInput = executionInput({
+    const effectInput = spatialExecutionInput({
       effect,
       target,
       state,
@@ -626,7 +605,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       const rebuilt = completeExecution({
         ordinal,
         pending: currentCandidate,
-        effect,
         target,
         state,
         result: reconstructed
@@ -679,24 +657,14 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     } else {
       result = await executeTargetBoundActiveRuleEffectWithPause(effectInput)
     }
-    // A spatial save belongs to the contacted actor, so its roller's preference applies.
-    if ('continuation' in result && !d20 && input.autoRoll[candidate.targetActorId] === true) {
-      const automatic = await resolveAutomatic({
-        effectInput,
-        paused: result,
-        random: input.random
-      })
-      result = automatic.result
-      d20 = automatic.d20
-    }
-    // Its damage dice belong to the zone source's controller, who may auto-roll them.
-    while (
-      'continuation' in result &&
-      d20 &&
-      isDamageDieRequest(result.continuation, result.evidencePolicy) &&
-      input.autoRoll[spatialPendingRollerActorId({ candidate, diceStage: d20 })] === true
-    )
-      result = await resolveAutomaticDie({ effectInput, paused: result, d20, random: input.random })
+    ;({ result, d20 } = await settleAutomaticSpatialEvidence({
+      effectInput,
+      candidate,
+      result,
+      d20,
+      autoRoll: input.autoRoll,
+      random: input.random
+    }))
     if ('continuation' in result) {
       requireSupportedD20Policy(result.evidencePolicy)
       const contactPosition = pathPointAtDistance(root.originalPath, candidate.pathDistance)
@@ -775,7 +743,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     const completed = completeExecution({
       ordinal,
       pending: currentCandidate,
-      effect,
       target,
       state,
       result
@@ -978,20 +945,6 @@ function normalizeInterruptDistance(
   return value
 }
 
-function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
-  return {
-    effectId: effect.id,
-    sourceActorId:
-      effect.definition.origin.kind === 'ENCOUNTER' ? effect.definition.origin.sourceActorId : null,
-    sourceTokenId: effect.placement.sourceTokenId,
-    anchorKind: effect.placement.anchorKind,
-    geometry: effect.placement.geometry,
-    triggerModes: effect.placement.triggerModes,
-    movementKinds: effect.placement.movementKinds,
-    bypassAtHalfSpeed: isVisibleHalfSpeedField(effect)
-  } as const
-}
-
 function sameSpatialRoot(
   snapshot: EncounterSpatialRuleEffectRecord,
   locked: EncounterSpatialRuleEffectRecord
@@ -1009,122 +962,44 @@ function sameSpatialRoot(
   )
 }
 
-function executionInput(input: {
-  effect: EncounterSpatialRuleEffectRecord
-  target: LockedTarget
-  state: TargetState
-  occurrenceId: string
-  runtime: RulesRuntimeService
-}): TargetBoundActiveRuleEffectExecutionInput {
-  if (input.effect.definition.frozenGraph.source.gameSystemId !== input.target.actor.systemId)
-    throw new EncounterValidationError('The spatial effect and target Game Systems do not match.')
-  return {
-    activeEffectId: input.effect.id,
-    activeEffectVersion: input.effect.version,
-    definition: input.effect.definition,
-    lifecycle: input.effect.lifecycle,
-    lifecycleChecksum: input.effect.lifecycleChecksum,
-    occurrenceId: input.occurrenceId,
-    targetActorId: input.target.actor.id,
-    currentHitPoints: input.state.current,
-    temporaryHitPoints: input.state.temporary,
-    maximumHitPoints: input.target.maximumHitPoints,
-    targetScalarValues: input.target.scalarValues,
-    targetConditionIds: input.state.conditions,
-    targetDerivedFacts: input.target.targetDerivedFacts,
-    defenses: input.target.defenses,
-    conditionImmunityIds: input.target.conditionImmunityIds,
-    runtime: input.runtime,
-    adapters: characterRuleActionSystemAdapterRegistry
-  }
-}
-
 function pendingCandidate(input: {
   ordinal: number
   candidate: SpatialMovementCandidate
   effect: EncounterSpatialRuleEffectRecord
-  target: LockedTarget
-  state: TargetState
+  target: SpatialMovementTarget
+  state: SpatialTargetState
   d20Policy: TargetBoundActiveRuleEffectExecutionPaused['evidencePolicy']
   diceStage: SpatialD20Roll | null
 }) {
-  const targetStateChecksum = checksumRuleDocument({
-    targetActorId: input.target.actor.id,
-    currentHitPoints: input.state.current,
-    temporaryHitPoints: input.state.temporary,
-    maximumHitPoints: input.target.maximumHitPoints,
-    conditionIds: input.state.conditions,
-    scalarValues: input.target.scalarValues
-  })
   return {
     ordinal: input.ordinal,
     candidate: input.candidate,
-    effect: {
-      effectId: input.effect.id,
-      version: input.effect.version,
-      definitionChecksum: input.effect.definitionChecksum,
-      lifecycleChecksum: input.effect.lifecycleChecksum,
-      placementChecksum: input.effect.placementChecksum,
-      spatialStateChecksum: input.effect.spatialStateChecksum,
-      authoredEffectId: input.effect.definition.authoredEffectId,
-      compiledEntryId: input.effect.definition.compiledEntryId,
-      frozenGraphNodeId: input.effect.definition.frozenGraphNodeId,
-      frozenSourceChecksum: input.effect.definition.frozenGraph.source.checksum,
-      capabilityContractVersion: input.effect.definition.frozenGraph.capabilityContractVersion,
-      activation: input.effect.placement.activation,
-      revealed: input.effect.spatialState.revealed,
-      revealOnTrigger: input.effect.placement.revealOnTrigger
-    },
-    target: input.target.character
-      ? {
-          kind: 'CHARACTER' as const,
-          characterId: input.target.character.id,
-          streamVersion: input.target.character.streamVersion,
-          projectionChecksum: input.target.character.projectionChecksum,
-          mechanicalContextChecksum: input.target.character.mechanicalContextChecksum,
-          targetStateChecksum
-        }
-      : { kind: 'ENCOUNTER_ACTOR' as const, targetStateChecksum },
-    d20Policy: input.d20Policy,
-    diceStage: input.diceStage
+    ...spatialCandidateEvidence(input)
   }
 }
 
 function completeExecution(input: {
   ordinal: number
   pending: ReturnType<typeof pendingCandidate>
-  effect: EncounterSpatialRuleEffectRecord
-  target: LockedTarget
-  state: TargetState
+  target: SpatialMovementTarget
+  state: SpatialTargetState
   result: TargetBoundActiveRuleEffectExecutionResult
 }): SpatialExecution {
-  const folded = foldCharacterMechanicsApplications({
-    targetActorId: input.target.actor.id,
-    currentHitPoints: input.state.current,
-    temporaryHitPoints: input.state.temporary,
-    maximumHitPoints: input.target.maximumHitPoints,
-    deathSaves: input.state.deathSaves,
-    conditionIds: input.state.conditions,
-    scalarValues: input.target.scalarValues,
-    applications: input.result.applications
-  })
   return {
     ordinal: input.ordinal,
     candidate: input.pending,
-    execution: input.result.execution,
-    d20: input.result.d20,
-    targetTransition: {
-      checksum: input.pending.target.targetStateChecksum,
-      before: folded.before,
-      after: folded.after
-    },
-    applications: folded.applications
+    ...spatialExecutionOutcome({
+      target: input.target,
+      state: input.state,
+      targetStateChecksum: input.pending.target.targetStateChecksum,
+      result: input.result
+    })
   }
 }
 
 function stageExecution(input: {
   execution: SpatialExecution
-  states: Map<string, TargetState>
+  states: Map<string, SpatialTargetState>
   applications: Map<string, CharacterRuleActionApplication[]>
   executions: SpatialExecution[]
 }) {
@@ -1142,61 +1017,6 @@ function stageExecution(input: {
     }))
   ])
   input.executions.push(input.execution)
-}
-
-async function resolveAutomatic(input: {
-  effectInput: TargetBoundActiveRuleEffectExecutionInput
-  paused: TargetBoundActiveRuleEffectExecutionPaused
-  random: (maxExclusive: number) => number
-}) {
-  const paused = input.paused
-  if (!paused.evidencePolicy)
-    throw new EncounterConflictError('Automatic spatial execution requested unsupported evidence.')
-  const requestId = paused.continuation.request.requestId
-  const { faces, rollMode } = resolveEncounterD20Answer({
-    derivedRollMode: paused.evidencePolicy.rollMode,
-    answer: { kind: 'AUTO_ROLL', requestId },
-    rollD20: () => input.random(20) + 1
-  })
-  return {
-    d20: { rollMode, rawFaces: faces },
-    result: await resumeTargetBoundActiveRuleEffectWithPause({
-      ...input.effectInput,
-      continuation: paused.continuation,
-      resolution: { requestId, rawFaces: faces, rollMode },
-      expectedEvidencePolicy: paused.evidencePolicy
-    })
-  }
-}
-
-function resolveAutomaticDie(input: {
-  effectInput: TargetBoundActiveRuleEffectExecutionInput
-  paused: TargetBoundActiveRuleEffectExecutionPaused
-  d20: SpatialD20Roll
-  random: (maxExclusive: number) => number
-}) {
-  const { request } = input.paused.continuation
-  if (request.kind !== 'INTEGER_RANGE')
-    throw new EncounterConflictError('Automatic spatial execution requested unsupported evidence.')
-  const value = resolveEncounterIntegerAnswer({
-    min: request.min,
-    max: request.max,
-    answer: { kind: 'AUTO_ROLL', requestId: request.requestId },
-    random: input.random
-  })
-  return resumeTargetBoundActiveRuleEffectWithPause({
-    ...input.effectInput,
-    continuation: input.paused.continuation,
-    resolution: { requestId: request.requestId, value, d20: input.d20 },
-    expectedEvidencePolicy: input.paused.evidencePolicy
-  })
-}
-
-function requireSupportedD20Policy(
-  policy: TargetBoundActiveRuleEffectExecutionPaused['evidencePolicy']
-): NonNullable<TargetBoundActiveRuleEffectExecutionPaused['evidencePolicy']> {
-  if (!policy) throw new EncounterConflictError('Spatial execution requested unsupported evidence.')
-  return policy
 }
 
 function appendResolutionCommand(input: {
@@ -1234,57 +1054,20 @@ async function resumeSpatial(input: {
   result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
   d20: SpatialD20Roll
 }> {
-  const resolution = input.resolution
-  const policy = requireSupportedD20Policy(input.pending.d20Policy)
-  const request = input.pendingSnapshot.request
   const {
     optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
     applicationContext: _applicationContext,
     snapshotKind: _snapshotKind,
     ...continuation
   } = input.pendingSnapshot
-  if (request.requestId !== resolution.requestId || request.kind !== 'INTEGER_RANGE')
-    throw new EncounterConflictError('The spatial evidence request is stale.')
-  if (isDamageDieRequest(continuation, policy)) {
-    const d20 = input.pending.diceStage
-    if (!d20) throw new EncounterConflictError('The spatial evidence request is stale.')
-    const value = resolveEncounterIntegerAnswer({
-      min: request.min,
-      max: request.max,
-      answer: resolution,
-      random: input.random
-    })
-    return {
-      d20: { rollMode: d20.rollMode, rawFaces: [...d20.rawFaces] },
-      result: await resumeTargetBoundActiveRuleEffectWithPause({
-        ...input.effectInput,
-        continuation,
-        resolution: { requestId: resolution.requestId, value, d20 },
-        expectedEvidencePolicy: policy
-      })
-    }
-  }
-  if (
-    input.pending.diceStage ||
-    request.min !== 1 ||
-    request.max !== 20 ||
-    request.nodeId !== policy.requestNodeId
-  )
-    throw new EncounterConflictError('The spatial evidence request is stale.')
-  const { faces, rollMode } = resolveEncounterD20Answer({
-    derivedRollMode: policy.rollMode,
-    answer: resolution,
-    rollD20: () => input.random(20) + 1
+  return resumeTargetBoundActiveRuleEffectWithAnswer({
+    effectInput: input.effectInput,
+    continuation,
+    policy: requireSupportedD20Policy(input.pending.d20Policy),
+    diceStage: input.pending.diceStage,
+    answer: input.resolution,
+    random: input.random
   })
-  return {
-    d20: { rollMode, rawFaces: faces },
-    result: await resumeTargetBoundActiveRuleEffectWithPause({
-      ...input.effectInput,
-      continuation,
-      resolution: { requestId: resolution.requestId, rawFaces: faces, rollMode },
-      expectedEvidencePolicy: policy
-    })
-  }
 }
 
 function pendingSnapshot(input: {
@@ -1450,7 +1233,7 @@ function completeMovementWithoutSpatial(input: {
   return result
 }
 
-function copyState(state: TargetState): TargetState {
+function copyState(state: SpatialTargetState): SpatialTargetState {
   return {
     current: state.current,
     temporary: state.temporary,

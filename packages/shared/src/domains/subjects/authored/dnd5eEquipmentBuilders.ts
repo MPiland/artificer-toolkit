@@ -22,7 +22,11 @@ import {
   type EquipmentGrip,
   type SizeCode
 } from '#core'
-import { type FacetConditionAuthored, type ModifierGrantAuthored } from '#authored'
+import {
+  type FacetConditionAuthored,
+  type ModifierGrantAuthored,
+  type ModifierGrantAuthoredFor
+} from '#authored'
 
 import type { EquipmentEffectAuthored } from './equipment.js'
 
@@ -100,6 +104,13 @@ export function whileEquippedWithConditionRestriction(
 }
 
 // ─── Base weapon modifier helpers ────────────────────────────────────────────
+
+/** A weapon's fixed ability modifier on its attack or damage roll. */
+export type WeaponAbilityModifier = Extract<
+  | ModifierGrantAuthoredFor<typeof VALUE_DOMAIN_CODE.ATTACK_ROLL>
+  | ModifierGrantAuthoredFor<typeof VALUE_DOMAIN_CODE.DAMAGE>,
+  { modifierKind: typeof MODIFIER_KIND.ABILITY_MODIFIER_BONUS }
+>
 function fixedAbilityWeaponModifier(
   childId: EquipmentChildId,
   bucket: number,
@@ -107,7 +118,7 @@ function fixedAbilityWeaponModifier(
   valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.DAMAGE,
   attackDomain: keyof typeof ATTACK_DOMAIN_CODE,
   ability: AbilityCode
-): ModifierGrantAuthored {
+): WeaponAbilityModifier {
   return {
     id: childId(bucket, order),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -121,8 +132,8 @@ function fixedAbilityWeaponModifier(
     order
   }
 }
-export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
+export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAbilityModifier[] {
+  const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
       childId,
@@ -131,7 +142,7 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): Modifier
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -141,15 +152,15 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): Modifier
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   return modifiers
 }
 export function rangedWeaponAbilityModifiers(
   childId: EquipmentChildId,
   ability: AbilityCode = 'DEXTERITY'
-): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
+): WeaponAbilityModifier[] {
+  const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
       childId,
@@ -158,7 +169,7 @@ export function rangedWeaponAbilityModifiers(
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.RANGED,
       ability
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -168,12 +179,12 @@ export function rangedWeaponAbilityModifiers(
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.RANGED,
       ability
-    ) as ModifierGrantAuthored
+    )
   )
   return modifiers
 }
-export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
+export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAbilityModifier[] {
+  const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
       childId,
@@ -182,7 +193,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -192,7 +203,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.MELEE,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -202,7 +213,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.RANGED,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -212,7 +223,7 @@ export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): Modifie
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.RANGED,
       'STRENGTH'
-    ) as ModifierGrantAuthored
+    )
   )
   return modifiers
 }
@@ -333,14 +344,16 @@ function heavyWeaponDisadvantage(
   }
 }
 export function heavyMeleeWeaponModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  return meleeWeaponAbilityModifiers(childId).concat(
+  return [
+    ...meleeWeaponAbilityModifiers(childId),
     heavyWeaponDisadvantage(childId, ATTACK_DOMAIN_CODE.MELEE, 3)
-  )
+  ]
 }
 export function heavyRangedWeaponModifiers(childId: EquipmentChildId): ModifierGrantAuthored[] {
-  return rangedWeaponAbilityModifiers(childId).concat(
+  return [
+    ...rangedWeaponAbilityModifiers(childId),
     heavyWeaponDisadvantage(childId, ATTACK_DOMAIN_CODE.RANGED, 3)
-  )
+  ]
 }
 /**
  * Light and medium armor AC: + DEX modifier while worn (medium caps it at 2). Armor proficiency
@@ -941,16 +954,6 @@ export function rangedFixedDamageWeaponEffects(
 // 0x260/0x261 = a damage grant's activation context and condition, 0x270 = the off-hand damage
 // grant's cloned nodes.
 
-/** Caps a grant's payload at zero; generic so the compiler never expands the full modifier union. */
-function withZeroMax<T extends ModifierGrantAuthored>(modifier: T): T {
-  return { ...modifier, payload: { ...modifier.payload, max: 0 } } as T
-}
-
-/** Spreads through a type parameter so the compiler never expands the full modifier union. */
-function withOrder<T extends ModifierGrantAuthored>(modifier: T, order: number): T {
-  return { ...modifier, order }
-}
-
 /** Copies `value` with every `id` replaced by the next id, so a clone shares no node with its source. */
 function withFreshIds<T>(value: T, nextId: () => string): T {
   if (Array.isArray(value)) return value.map((entry) => withFreshIds(entry, nextId)) as T
@@ -1022,6 +1025,26 @@ export function withOffHandAttack(
   ]
 }
 
+type MeleeDamageAbilityModifier = Extract<
+  ModifierGrantAuthoredFor<typeof VALUE_DOMAIN_CODE.DAMAGE>,
+  {
+    modifierKind:
+      | typeof MODIFIER_KIND.ABILITY_MODIFIER_BONUS
+      | typeof MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+  }
+>
+
+function isMeleeDamageAbilityModifier(
+  modifier: ModifierGrantAuthored
+): modifier is MeleeDamageAbilityModifier {
+  return (
+    modifier.valueDomainCode === VALUE_DOMAIN_CODE.DAMAGE &&
+    modifier.domain.attackDomain === ATTACK_DOMAIN_CODE.MELEE &&
+    (modifier.modifierKind === MODIFIER_KIND.ABILITY_MODIFIER_BONUS ||
+      modifier.modifierKind === MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS)
+  )
+}
+
 /**
  * The off-hand attack adds no ability modifier to damage unless it is negative (SRD 5.1). Splits
  * each melee damage ability modifier into the Action attack's and a bonus-action attack's that
@@ -1031,16 +1054,19 @@ export function withOffHandDamage(
   childId: EquipmentChildId,
   modifiers: ModifierGrantAuthored[]
 ): ModifierGrantAuthored[] {
-  const bonusActionOnly = (
-    modifier: ModifierGrantAuthored,
+  const bonusActionOnly = <M extends ModifierGrantAuthored>(
+    modifier: M,
     entry: number,
     constraint: 'INCLUDE' | 'EXCLUDE'
-  ) =>
-    // Object.assign: spreading the whole modifier union is too complex for the compiler to compare.
-    Object.assign({}, modifier, {
+  ): M => {
+    const restrictions = modifier.restrictions
+    if (!restrictions)
+      throw new Error('An off-hand damage modifier needs its equipped restriction.')
+    return {
+      ...modifier,
       restrictions: {
-        ...modifier.restrictions!,
-        groups: modifier.restrictions!.groups.map((group) => ({
+        ...restrictions,
+        groups: restrictions.groups.map((group) => ({
           ...group,
           contexts: [
             ...group.contexts,
@@ -1063,22 +1089,23 @@ export function withOffHandDamage(
           ]
         }))
       }
-    }) as ModifierGrantAuthored
+    }
+  }
+  const keepNegativeOnly = <M extends MeleeDamageAbilityModifier>(modifier: M): M => ({
+    ...modifier,
+    payload: { ...modifier.payload, max: 0 }
+  })
   let node = 0
   return modifiers
     .flatMap((modifier, index): ModifierGrantAuthored[] => {
-      const abilityModifier =
-        modifier.valueDomainCode === VALUE_DOMAIN_CODE.DAMAGE &&
-        modifier.domain.attackDomain === ATTACK_DOMAIN_CODE.MELEE &&
-        (modifier.modifierKind === MODIFIER_KIND.ABILITY_MODIFIER_BONUS ||
-          modifier.modifierKind === MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS)
-      if (!abilityModifier) return [modifier]
+      if (!isMeleeDamageAbilityModifier(modifier)) return [modifier]
       const offHand = withFreshIds(bonusActionOnly(modifier, 2 * index + 2, 'INCLUDE'), () =>
         childId(0x270, ++node)
       )
-      const mainHand: ModifierGrantAuthored = bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE')
-      const restrictedOffHand: ModifierGrantAuthored = withZeroMax(offHand)
-      return [mainHand, restrictedOffHand]
+      return [bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'), keepNegativeOnly(offHand)]
     })
-    .map((modifier, index) => withOrder(modifier, index + 1))
+    .map(<M extends ModifierGrantAuthored>(modifier: M, index: number): M => ({
+      ...modifier,
+      order: index + 1
+    }))
 }

@@ -112,6 +112,19 @@ export function legendaryActionDamage(
   })
 }
 
+/** A turn's zone phase as damage sources against the creature whose boundary it is. */
+function zoneEffectDamage(
+  phase: Extract<
+    StoredRuleExecutionResultDto,
+    { status: 'TURN_LIFECYCLE_COMPLETE' }
+  >['outgoingZoneEffects']
+): DamageBatch[] {
+  return (phase?.executions ?? []).map(({ candidate, applications }) => ({
+    targetActorId: candidate.candidate.targetActorId,
+    applications
+  }))
+}
+
 /** Names each turn-effect execution's damage after its authored effect definition. */
 export async function labelTurnEffectDamage<
   TExecution extends DamageBatch & { definition: { authoredEffectId: string } }
@@ -172,8 +185,10 @@ export function nativeConcentrationParentDamage(
   if (result.status === 'TURN_LIFECYCLE_COMPLETE')
     return nativeConcentrationDamageApplications([
       ...(result.outgoingTurn.kind === 'EXECUTED' ? result.outgoingTurn.executions : []),
+      ...zoneEffectDamage(result.outgoingZoneEffects),
       ...legendaryActionDamage(result.legendaryActions),
-      ...(result.incomingTurn.kind === 'EXECUTED' ? result.incomingTurn.executions : [])
+      ...(result.incomingTurn.kind === 'EXECUTED' ? result.incomingTurn.executions : []),
+      ...zoneEffectDamage(result.incomingZoneEffects)
     ])
   if (result.status === 'INITIATIVE_COMPLETE')
     return nativeConcentrationDamageApplications(legendaryActionDamage(result.legendaryActions))

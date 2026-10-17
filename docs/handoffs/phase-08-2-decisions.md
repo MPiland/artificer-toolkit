@@ -873,6 +873,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Shape:** the reaction trigger binding gains `{ kind: 'TARGETED_SELF', sourceEffectIds?: uuid[] }`. The `castReaction` pending context gains a required `kind` (`COUNTER` | `TARGETED_SELF`), with persisted contexts migrated in the same change. The `DAMAGE_IMMUNITY` option gains an optional `sourceEffectIds`. An empty or absent list means unfiltered.
   - **Rule:** the trigger fires when the reactor is a chosen target of an action whose Effect id is listed. A Use spends the slot and reaction and applies its grants before the cast resolves; nothing is countered. Damage resolution skips an immunity whose list lacks the damage's source Effect id. GM undo restores the slot, reaction and grants. Shield against Magic Missile is authored from these core options.
   - **Rejected:** a separate `targetedReaction` pending context (it would duplicate the window and its persistence validators). **Deferred:** ordering when several targets react.
+* **D138** (2026-10-17) Placed zones are fixed at placement (SPELLS-20.T4b2b2, AC 20.1). User ruling.
+  - **Rule:** an edit to a spell takes effect from its next cast and never changes an effect already in play. A GM cannot reshape or edit a spell's zone on the map; the change is an edit to the spell. A GM-placed trap or hazard zone follows the same rule: an edit is a new placement, and anything already pending keeps the zone it started with.
+  - **Consequence:** a placed zone changes in play only by moving with its source, ending (Concentration, undo, deletion) or being revealed. A pending zone save is rechecked at commit only for the zone still being active and the creature still in it under the per-turn limit; the field-by-field pin (`spatialEffectPin.ts`) is deleted.
+  - **Principle (user):** Foundry VTT is the baseline. Do not add GM powers without a good reason; ship the MVP and add flexibility later from real use. Hazard zones may be revisited after testing.
 
 ## Approved implementation decisions
 
@@ -1255,6 +1259,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **Q23, rules continuation seal (PLATFORM-24, 2026-10-16).** The product owner chose removal. No client holds a continuation and Convex never verifies one; resume gains the graph validation executeFrozen already runs; the key, seal field, fixtures and env names go, with an ADR 0029 amendment. The earlier "user ruling 2026-09-24" for a dedicated key was never confirmed by the user.
+
 - **Q22, username moderation (ACCOUNTS-7.T1, 2026-10-15).** The substring profanity check refused ordinary names (Cassandra, Classic, Dickens, Essex, Glasshouse, Assassin) and random test names. The product owner approved the tiered policy:
   - Normalize: lowercase, digit and look-alike swaps, collapse repeats.
   - Split into parts at `_`, lower-to-upper case changes and letter-digit changes; refuse a blocked part (`ass_muncher`, `AssMuncher`, `Ass1Muncher`).
@@ -1376,3 +1382,5 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 * **Q3 (2026-09-25).** Done. Removed the 12 `supabase_*_artificer-toolkit` containers and their 3 volumes, the local `supabase/` folder (empty directories and the `.temp` generated secrets; migrations remain in git history), the 11 Supabase and database variables in `.env.local` (removed by name, values never read) and the dead `.gitignore` entry. Left alone: the `faye-frame` project's volumes and one unattributable `supabase_edge_runtime_` volume. `scripts/auditNativeBoundaries.mjs` keeps guarding against Supabase being reintroduced.
 * **Q4 (2026-09-25).** Scene fog save retention is folded into S7.
 * **Q5 (2026-09-25).** Done in the player-control slice (S6b): `CampaignSessionPlayerEncounters` is now `CampaignPlayerEncounterDecisions`.
+  - **Amendment (2026-10-16, SPELLS-29.T2, AC 29.2):** a condition outcome's `fleesSource` (a core authoring toggle, shown only with `recordsSource`) makes the same `CONDITION_OWNERSHIP` contribution carry `fleesSource`. A creature holding such a condition must take the Dash action on its turn: any Action other than Dash raises the `CONDITION_SOURCE_FLEE` rule warning, which the controller overrides with "Do it anyway" (ADR 0034) and the GM sees in the log. The turn movement readout tells the controller "Dash away from the source" through `turnMovement[].fleeSourceActorIds`. SRD Fear authors it; a homebrew Panicked condition built from the same options is the authoring parity proof. Moves are not blocked for fleeing: the approach warning (D134) already covers moving closer, and a bonus action or reaction is not a substitute for the Dash.
+  - **Ruling (orchestrator, 2026-10-16):** Eyebite stays `GM_ADJUDICATED` under the D122 amendment and gets no task; a line in future-enhancements records authoring it from core options reusing this rider. AC 29.2 needs no change.

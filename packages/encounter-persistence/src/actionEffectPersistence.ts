@@ -24,6 +24,7 @@ import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/sha
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { deleteStateZones, listStateZones } from './maintainedStateZones.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import { armIdleTurnActor } from './idleTurnMark.js'
 
@@ -72,7 +73,10 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   // The effect of a reaction the target used lands on the target beside the action's own effects.
   const reactionTransition =
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-      ? (outputs.reaction?.activeEffectTransitions ?? [])
+      ? [
+          ...(outputs.reaction?.activeEffectTransitions ?? []),
+          ...outputs.reactionEffectTransitions
+        ]
       : []
   if (
     input.createdEffects.length > 3 ||
@@ -268,13 +272,22 @@ export async function applyMaintenanceReplacement(
   const store = createActiveRuleEffectStore(ctx)
   for (const effect of input.maintenance.removed)
     await store.deleteCas({ id: effect.id, owner: effect.owner, expectedVersion: effect.version })
-  if (input.maintenance.prior)
+  if (input.maintenance.prior) {
+    // The replaced Concentration's zones end with it (D135).
+    await deleteStateZones(
+      ctx,
+      await listStateZones(ctx, {
+        encounterId: input.state.id,
+        stateId: input.maintenance.prior.id
+      })
+    )
     await store.deleteMaintainedStateCas({
       id: input.maintenance.prior.id,
       encounterId: input.state.id,
       ownerActorId: input.actorId,
       expectedVersion: input.maintenance.prior.version
     })
+  }
   const created = await store.createMaintainedState({
     id: input.created.id,
     encounterId: input.created.encounterId,
@@ -376,7 +389,10 @@ export async function persistEncounterActionEffects(
     checksumCanonicalJson(reactionReceipts) !==
       checksumCanonicalJson(
         outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-          ? (outputs.reaction?.activeEffectTransitions ?? [])
+          ? [
+              ...(outputs.reaction?.activeEffectTransitions ?? []),
+              ...outputs.reactionEffectTransitions
+            ]
           : []
       )
   )

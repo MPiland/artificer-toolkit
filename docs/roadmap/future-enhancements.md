@@ -87,6 +87,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Fleeing a source (SPELLS-29.T2):** the `CONDITION_SOURCE_FLEE` warning covers an Action other than Dash taken through `RESOLVE_ACTION` and area actions. Disarm, escapes and held-grant flows do not warn, and the rider never inspects the distance a move actually covers after the Dash.
 - **Trait invisibility that also ends on using a named action (SPELLS-27.T10).** The Quasit (Scare), Will-o'-Wisp (Consume Life) and Duergar (Enlarge) invisibility also ends when the creature uses that action. No end event covers using a named action, so it ends only on an attack, a cast or Concentration; the GM undoes it by hand. Rare; fix with an action-used end event if it arises.
 - **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
 - **A maintained-state owner Character that is not a Run actor has no room fixture (ROOM-6.T2, D-pending-room-6-t2).** The room test covers a GM-removed Character (D82; still a Run actor) but not a Character absent from the Run's actors: the memory store's `effects.create` requires the target actor in the Run, and the fixture lists Character dependents only through Run actors. Production loads such an owner through `maintenanceCharacterOwnersAtLoad`, the same path the GM-removed case exercises. Fix by seeding a `CHARACTER`-owned effect when the fixture gains a Character table.
@@ -256,6 +257,14 @@ D107 tracks what each hand holds, but spellcasting ignores it: a caster with a s
 
 Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`). Candidate: track the SRD's one free object interaction per turn, so a second draw or stow costs the Use an Object action. Raised 2026-10-10 during ATTACK-7 design; post-launch.
 
+### Turn-boundary effect order chosen by the creature
+
+SPELLS-20.T4b2b resolves a turn boundary's effects in a fixed, deterministic order: the actor's own start- or end-of-turn effects first, then the zones it is in (such as Spirit Guardians), each batch by effect id. The SRD lets the creature whose turn it is choose the order of simultaneous effects. Candidate: an order prompt for that creature when more than one effect is due. Raised 2026-10-17 during SPELLS-20.T4b2 design; post-launch.
+
+### Death save outcome on the tabletop
+
+A death save rolled in play shows its outcome only on the Character Sheet (CharacterSheetDeathSaves); the tabletop shows the prompt, then the decision settles, with no tally, token mark or log entry for the player or the GM. Candidate: a success/failure tally on the dying creature's token or in the play log. Raised 2026-10-17 by the ATTACK-2.T2 journey; post-launch.
+
 ### Level-gated check on an effect (Dispel Magic)
 
 REACTION-4.T3c authors the level-gated check as `higherLevelCheck` on a `SPELL_CAST` reaction binding (roll only when the triggering level exceeds the level the reaction is cast at; DC = base DC + the triggering level). Dispel Magic is not a reaction: it ends an effect of a given level on a target, and an effect above the slot owes the same check. Its gate needs the same shape authored on the effect side, with the check resolved by the same rules-runtime requirement, before Dispel Magic can reuse it. Raised by Phase 8 on 2026-10-16; post-launch.
@@ -286,6 +295,8 @@ Raised by the user on 2026-10-14 during the hazards and traps design; post-launc
 
 ## Other future enhancements (parked)
 
+- Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
+
 ### Adventure Module Packages
 
 Allow creators to assemble reusable Game-System-bound packages for GMs from existing UUID-backed
@@ -309,5 +320,5 @@ lifecycle and Encounter Blueprint model are accepted.
 - “View as player” and deliberate co-GM/assistant-GM roles with a separate permission model rather than treating every helper as the owner.
 - Ambience libraries, playlists, scene audio, and player presentation controls after the VTT/media usage model is known.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
-- **Creature forms, later pieces (SPELLS-28):** T4d (the form's actions replace the Character's, plus the form's defenses, speeds, senses and proficiency merge), T4b (a form outliving the Run), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
+- **Creature forms, later pieces (SPELLS-28):** the form's defenses, speeds, senses and proficiency merge (rest of T4d), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.

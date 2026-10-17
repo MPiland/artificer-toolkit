@@ -272,6 +272,10 @@ store.
   exactly that id, so an undone Concentration never ends outside grants. Every checkpoint
   (`checkpointRecords`) compares the previous and next Run row and `endOutsideCarriedGrants` ends the
   stamped grants of the newly added ids on Characters outside any ACTIVE Run (D99).
+  A placed zone records the maintained state it depends on (`maintainedEffectStateId`, index
+  `by_state_encounter`) and counts as a dependent: ending, dropping or replacing the state deletes its zones
+  in the same transaction (`maintainedStateZones.ts`; the Concentration cleanup carries `removedZoneIds`),
+  and `deleteMaintainedStateCas` refuses a state a zone still depends on (D135).
   The caster stamp is also a top-level column of `characterActiveRuleEffects`
   (`concentrationCasterCharacterId`, index `by_concentrationCaster`), written with the lifecycle and
   checked against it on read, so a caster's carried grants are found without scanning Characters
@@ -322,7 +326,7 @@ receipt; a matching replay returns the stored projection before loading sources.
 A placed zone (SPELLS-17) is one `encounterSpatialRuleEffects` row written by the area commit
 (`persistEncounterAreaCommit` takes it as `placedZone` on its input). Its `placement` carries `label` (one shared
 rule, `spatialZoneLabelSchema`), `visibility`, `activation`, `movementKinds`, `triggerModes` and
-`bypassAtHalfSpeed` (the zone may be crossed carefully at double cost); `recurrence.endOnEvents` stays empty, and a
+`bypassAtHalfSpeed` (the zone may be crossed carefully at double cost) and, when the caster designated creatures at cast (SPELLS-20 T4c), `unaffectedActorIds` (a non-empty Encounter actor list the zone never catches; omitted when empty, immutable with the placement checksum) and, when authored (SPELLS-20 T4b1), `maxApplicationsPerTurn` (a positive integer; also immutable). The count of applications lives on the Encounter run state, never on the placement: `zoneApplications` (optional, keyed `effectId:actorId`, each entry `{ turnSequence, count }`, bounded by `MAX_ENCOUNTER_ACTORS * MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`). An entry whose `turnSequence` differs from the run's current `turnSequence` counts as unspent; no step clears it on a turn change, and `recordZoneApplications` prunes stale entries whenever it writes the map. The terminal movement publications (`publishSpatialTerminal`, the movement-response terminal) write it from the settled executions; `recurrence.endOnEvents` stays empty, and a
 creature's lingering grant takes its end events from the grant template. The area receipt names the row as
 `placedSpatialEffectId`, so GM undo deletes it with the commit. The Scene holds at most
 `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE` rows; the next placement is refused with `TARGET_UNAVAILABLE`.

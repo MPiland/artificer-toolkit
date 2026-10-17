@@ -188,11 +188,11 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             id: authoredIdentifierSchema,
             order: z.number().check(z.int()),
             label: authoredShortTextSchema,
-            interactionKind: z.optional(manifestInteractionKindSchema),
             interactionKinds: z.optional(
               authoredReferenceCollectionSchema(manifestInteractionKindSchema)
             ),
             bypassAtHalfSpeed: z.optional(z.boolean()),
+            choosesUnaffected: z.optional(z.boolean()),
             movementCostMultiplier: z.optional(z.number().check(z.positive())),
             requiresFullyWithin: z.optional(z.boolean()),
             automaticSaveSuccessConditions: z.optional(
