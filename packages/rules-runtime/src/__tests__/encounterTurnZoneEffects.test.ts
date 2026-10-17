@@ -20,12 +20,18 @@ import {
   srdCreatureActor,
   srdCreatureTarget,
   srdDefinitions,
-  srdEncounterState
+  srdEncounterState,
+  testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from '../encounterActorState.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { failedSaveOnly, losesAction, lostActionOutcome } from '../testing/authoredZoneFixture.js'
+import {
+  failedSaveOnly,
+  losesAction,
+  lostActionOutcome,
+  noSave
+} from '../testing/authoredZoneFixture.js'
 import { roundAt } from './encounterInitiativeFixtures.js'
 import {
   actorIdByTokenId,
@@ -61,6 +67,7 @@ function prepare(input: {
   /** The Scene's tokens and the encounter's actors; the fixture's by default. */
   tokens?: typeof tokens
   actors?: typeof actors
+  actorIdByTokenId?: typeof actorIdByTokenId
 }) {
   const sceneActors = input.actors ?? actors
   return prepareEncounterTurnZoneEffects({
@@ -75,7 +82,7 @@ function prepare(input: {
     loadScene: async () => ({
       effects: input.zones,
       tokens: input.tokens ?? tokens,
-      actorIdByTokenId
+      actorIdByTokenId: input.actorIdByTokenId ?? actorIdByTokenId
     }),
     loadTarget: async (actorId) =>
       srdCreatureTarget(sceneActors.find((actor) => actor.id === actorId)!),
@@ -391,6 +398,141 @@ describe('a zone whose failed save costs the Action (SPELLS-20 T4b3b, D141)', ()
     expect(execution!.actionEconomy).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
     expect(hitPoints(phase.actors, GOBLIN_ID)).toBe(hitPoints(actors, GOBLIN_ID)! - 1)
     expect(actionsUsed(phase.actors, GOBLIN_ID)).toBe(1)
+  })
+})
+
+describe('a zone outcome with no save at the start of its source’s turn (SPELLS-20 T6a, D144)', () => {
+  // A second goblin whose id sorts before the first, listed last in the Scene, and the source
+  // itself, all standing in the zone.
+  const OTHER_ID = testUuid(0x300)
+  const OTHER_TOKEN_ID = testUuid(0x30a)
+  const other = srdCreatureActor({ id: OTHER_ID, creature: srdByLabel(SRD.creatures, 'Goblin') })
+  const crowd = [goblin, source, other]
+  const crowdTokens = [
+    tokens[0]!,
+    { ...tokens[1]!, position: tokens[0]!.position },
+    { ...tokens[0]!, id: OTHER_TOKEN_ID }
+  ]
+  const crowdBindings = new Map([...actorIdByTokenId, [OTHER_TOKEN_ID, OTHER_ID]])
+  const SOURCE_START = { ...START, actorId: SOURCE_ID }
+  const aura = () =>
+    placedZone(
+      0x3a1,
+      authoredZone([], undefined, {}, (parts) => noSave()(parts)),
+      1
+    )
+  const prepareCrowd = (input: Omit<Parameters<typeof prepare>[0], 'zones'>) =>
+    prepare({
+      zones: [aura()],
+      actors: crowd,
+      tokens: crowdTokens,
+      actorIdByTokenId: crowdBindings,
+      ...input
+    })
+
+  it('deals its damage to every other creature in it, ordered by actorId, with no save', async () => {
+    const phase = await complete(prepareCrowd({ boundary: SOURCE_START }))
+    const executions = phase.plan!.executions
+    expect(executions.map(({ candidate }) => candidate.candidate)).toMatchObject([
+      { targetActorId: OTHER_ID, sourceActorId: SOURCE_ID, trigger: 'START_OF_SOURCE_TURN' },
+      { targetActorId: GOBLIN_ID, sourceActorId: SOURCE_ID, trigger: 'START_OF_SOURCE_TURN' }
+    ])
+    for (const execution of executions) {
+      expect(execution.candidate.d20Policy).toBeNull()
+      expect(execution.targetTransition.after.currentHitPoints).toBe(
+        execution.targetTransition.before.currentHitPoints - 1
+      )
+    }
+    for (const id of [OTHER_ID, GOBLIN_ID])
+      expect(hitPoints(phase.actors, id)).toBe(hitPoints(crowd, id)! - 1)
+    expect(hitPoints(phase.actors, SOURCE_ID)).toBe(hitPoints(crowd, SOURCE_ID))
+  })
+
+  it('stays quiet at the start of another creature’s turn and at the end of its source’s', async () => {
+    for (const boundary of [START, { ...END, actorId: SOURCE_ID }]) {
+      const phase = await complete(prepareCrowd({ boundary }))
+      expect(phase.plan).toBeNull()
+    }
+  })
+
+  it('waits on its source for each creature’s damage die when the source does not auto-roll', async () => {
+    let result = await prepareCrowd({ boundary: SOURCE_START, autoRollByActorId: {} })
+    const values = [4, 2]
+    while (result.kind === 'PENDING') {
+      const snapshot = result.snapshot
+      expect(turnPendingActorId(snapshot)).toBe(SOURCE_ID)
+      expect(
+        projectNativeTurnPending({
+          snapshot,
+          occurrenceId: OCCURRENCE_ID,
+          occurrenceVersion: 1,
+          encounterVersion: 7
+        })
+      ).toMatchObject({ kind: 'ACTION_OUTCOME_EVIDENCE', rollerActorId: SOURCE_ID })
+      if (snapshot.snapshotKind !== 'KERNEL_EVIDENCE') throw new Error('Expected a kernel request.')
+      const value = values.shift()
+      if (value === undefined) throw new Error('Expected one die per creature.')
+      result = await prepareCrowd({
+        boundary: SOURCE_START,
+        autoRollByActorId: {},
+        pending: snapshot,
+        resolution: { kind: 'ENTER_INTEGER', requestId: snapshot.request.requestId, value }
+      })
+    }
+    expect(values).toEqual([])
+    const damage = result.plan!.executions.map(
+      ({ targetTransition }) =>
+        targetTransition.before.currentHitPoints - targetTransition.after.currentHitPoints
+    )
+    expect(damage).toEqual([4, 2])
+  })
+
+  it('stores one chained mechanics batch per creature it caught, in canonical order', async () => {
+    const plan = (await complete(prepareCrowd({ boundary: SOURCE_START }))).plan!
+    const round = await roundAt([GOBLIN_ID, SOURCE_ID, OTHER_ID], SOURCE_ID, 'ENCOUNTER_START')
+    const result = {
+      status: 'INITIATIVE_COMPLETE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: OCCURRENCE_ID,
+      occurrenceVersion: 1,
+      encounterId: ENCOUNTER_ID,
+      commandType: 'ADVANCE_TURN' as const,
+      initiativeAdvance: planEncounterInitiativeAdvance({
+        state: round,
+        currentActorId: SOURCE_ID,
+        defeatedActorIds: new Set<string>()
+      }),
+      incomingZoneEffects: {
+        kind: 'EXECUTED' as const,
+        selectionChecksum: plan.selectionChecksum,
+        executions: plan.executions,
+        characterTransitions: [],
+        encounterActorTransitions: plan.executions.map(({ candidate, targetTransition }) => ({
+          targetActorId: candidate.candidate.targetActorId,
+          before: targetTransition.before,
+          after: targetTransition.after
+        }))
+      }
+    }
+    const parse = (value: object) =>
+      initiativeCompleteRuleExecutionResultDtoSchema.safeParse(value).success
+    const phase = result.incomingZoneEffects
+    expect(parse(result)).toBe(true)
+    expect(
+      parse({
+        ...result,
+        incomingZoneEffects: { ...phase, executions: [...phase.executions].reverse() }
+      })
+    ).toBe(false)
+    expect(
+      parse({
+        ...result,
+        incomingZoneEffects: {
+          ...phase,
+          encounterActorTransitions: phase.encounterActorTransitions.slice(1)
+        }
+      })
+    ).toBe(false)
   })
 })
 

@@ -13,6 +13,7 @@ import {
   spatialEffectTransition,
   spatialMovementEffectBeforeTransition
 } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
+import { orderSpatialSettlementActors } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -138,22 +139,15 @@ export async function persistLiveMovementSpatial(
       throw new Error('Spatial target state is stale.')
   }
 
-  const changed = [...byTarget].flatMap(([id, executions]) => {
-    const first = executions[0]!
-    const last = executions.at(-1)!
-    return checksumRuleDocument(first.targetTransition.before) ===
-      checksumRuleDocument(last.targetTransition.after)
-      ? []
-      : [[id, actors.get(id)!] as const]
-  })
-  changed.sort(([leftId, left], [rightId, right]) =>
-    left.kind === 'CHARACTER' && right.kind !== 'CHARACTER'
-      ? -1
-      : left.kind !== 'CHARACTER' && right.kind === 'CHARACTER'
-        ? 1
-        : left.kind === 'CHARACTER' && right.kind === 'CHARACTER'
-          ? left.sourceId.localeCompare(right.sourceId)
-          : leftId.localeCompare(rightId)
+  const changed = orderSpatialSettlementActors(
+    [...byTarget].flatMap(([id, executions]) => {
+      const first = executions[0]!
+      const last = executions.at(-1)!
+      return checksumRuleDocument(first.targetTransition.before) ===
+        checksumRuleDocument(last.targetTransition.after)
+        ? []
+        : [actors.get(id)!]
+    })
   )
   const characterTransitions: Array<{
     characterId: string
@@ -163,7 +157,8 @@ export async function persistLiveMovementSpatial(
     before: SpatialExecution['targetTransition']['before']
     after: SpatialExecution['targetTransition']['after']
   }> = []
-  for (const [ordinal, [targetActorId, actor]] of changed.entries()) {
+  for (const [ordinal, actor] of changed.entries()) {
+    const targetActorId = actor.id
     const executions = byTarget.get(targetActorId)!
     const first = executions[0]!
     const last = executions.at(-1)!

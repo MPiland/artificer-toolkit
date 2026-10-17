@@ -18,10 +18,16 @@ export const spatialPointDtoSchema = lazySchema(() =>
   z.strictObject({ x: coordinateSchema, y: coordinateSchema })
 )
 export const spatialTriggerDtoSchema = lazySchema(() => z.enum(['ENTER', 'EXIT', 'CROSS']))
-/** The turn boundary at which a creature standing in a zone is caught (not a movement). */
-export const spatialTurnTriggerDtoSchema = lazySchema(() =>
-  z.enum(['START_OF_TURN', 'END_OF_TURN'])
-)
+/**
+ * The turn boundaries at which a creature standing in a zone is caught (not a movement), in
+ * canonical order: the start or end of its own turn, or the start of the zone source's turn (D144).
+ */
+export const SPATIAL_TURN_TRIGGERS = [
+  'START_OF_TURN',
+  'END_OF_TURN',
+  'START_OF_SOURCE_TURN'
+] as const
+export const spatialTurnTriggerDtoSchema = lazySchema(() => z.enum(SPATIAL_TURN_TRIGGERS))
 export const spatialMovementKindDtoSchema = lazySchema(() =>
   z.enum(['VOLUNTARY', 'FORCED', 'TELEPORT'])
 )

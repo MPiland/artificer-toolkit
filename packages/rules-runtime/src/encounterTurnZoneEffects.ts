@@ -3,7 +3,10 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type { StagedTurnZonePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
+import {
+  followsInZoneTurnOrder,
+  type StagedTurnZonePlanDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -25,7 +28,6 @@ import {
   spatialExecutionOutcome,
   toSpatialInstance,
   toSpatialMovementTarget,
-  requireSupportedD20Policy,
   type SpatialD20Roll,
   type SpatialTargetState
 } from './encounterSpatialCandidateExecution.js'
@@ -74,9 +76,12 @@ function requirePending(pending: ServerRuleExecutionPendingSnapshotDto): {
 }
 
 /**
- * The zones that catch a creature at a turn boundary, with the checksum that pins them. The turn
- * preparation plans against it and the terminal transaction re-derives it from the locked Scene.
- * Null when the creature has no token in the Scene or no zone catches it.
+ * The zones that catch creatures at a turn boundary, with the checksum that pins them. At its own
+ * boundary a creature is caught by the zones it stands in; at the start of its turn every other
+ * creature standing in one of its zones that acts at its source's turn is caught too (D144).
+ * Contacts run in canonical zone turn order. The turn preparation plans against them and the
+ * terminal transaction re-derives them from the locked Scene. Null when the boundary creature has
+ * no token in the Scene or no zone catches anyone.
  */
 export function selectTurnZoneContacts(input: {
   state: Pick<EncounterRunState, 'turnSequence' | 'zoneApplications'>
@@ -86,20 +91,30 @@ export function selectTurnZoneContacts(input: {
   scene: TurnZoneScene
 }) {
   const { scene, boundary } = input
-  const tokenId = [...scene.actorIdByTokenId].find(([, id]) => id === input.actorId)?.[0]
-  if (!tokenId) return null
-  const contacts = collectSpatialTurnCandidates({
-    actorIdByTokenId: scene.actorIdByTokenId,
-    effects: scene.effects.map(toSpatialInstance),
-    targetTokenId: tokenId,
-    tokens: scene.tokens,
-    trigger: boundary.stage,
-    zoneApplications: input.state.zoneApplications,
-    // The turn commit advances the sequence once: the outgoing turn is the current one.
-    turnSequence: input.state.turnSequence + (boundary.stage === 'START_OF_TURN' ? 1 : 0)
-  })
+  if (![...scene.actorIdByTokenId.values()].includes(input.actorId)) return null
+  const effects = scene.effects.map(toSpatialInstance)
+  const sourced =
+    boundary.stage === 'START_OF_TURN'
+      ? effects.filter((effect) => effect.sourceActorId === input.actorId)
+      : []
+  const contacts = [...scene.actorIdByTokenId]
+    .flatMap(([tokenId, actorId]) => {
+      const own = actorId === input.actorId
+      if (!own && !sourced.length) return []
+      return collectSpatialTurnCandidates({
+        actorIdByTokenId: scene.actorIdByTokenId,
+        effects: own ? effects : sourced,
+        targetTokenId: tokenId,
+        tokens: scene.tokens,
+        trigger: own ? boundary.stage : 'START_OF_SOURCE_TURN',
+        zoneApplications: input.state.zoneApplications,
+        // The turn commit advances the sequence once: the outgoing turn is the current one.
+        turnSequence: input.state.turnSequence + (boundary.stage === 'START_OF_TURN' ? 1 : 0)
+      })
+    })
+    .sort((left, right) => (followsInZoneTurnOrder(left, right) ? -1 : 1))
   if (!contacts.length) return null
-  const effects = contacts.map(({ effectId }) => {
+  const contactEffects = contacts.map(({ effectId }) => {
     const effect = scene.effects.find((candidate) => candidate.id === effectId)
     if (!effect) throw new Error('Turn zone is unavailable.')
     return effect
@@ -108,20 +123,21 @@ export function selectTurnZoneContacts(input: {
     commandType: input.commandType,
     boundaryOrdinal: boundary.ordinal,
     stage: boundary.stage,
-    targetActorId: input.actorId,
+    boundaryActorId: input.actorId,
     zones: contacts.map((contact, index) => ({
       contact,
-      version: effects[index]!.version,
-      placementChecksum: effects[index]!.placementChecksum
+      version: contactEffects[index]!.version,
+      placementChecksum: contactEffects[index]!.placementChecksum
     }))
   })
-  return { contacts, effects, selectionChecksum }
+  return { contacts, effects: contactEffects, selectionChecksum }
 }
 
 /**
- * Executes the zones that catch the creature whose turn boundary this is, after its active
- * effects, in effect-id order. Like the active-effect stage it plans without changing the Run.
- * No zone batch runs when none catches the creature, so such a turn stores no zone evidence.
+ * Executes the zones that catch creatures at this turn boundary, after the boundary creature's
+ * active effects, in canonical zone turn order. Like the active-effect stage it plans without
+ * changing the Run. No zone batch runs when none catches anyone, so such a turn stores no zone
+ * evidence.
  */
 export async function prepareEncounterTurnZoneEffects<
   TCharacterFacts extends ProjectableCharacterFacts
@@ -194,22 +210,41 @@ export async function prepareEncounterTurnZoneEffects<
     throw new Error('Retained turn zone selection is stale.')
   if (pending && input.retainedPlan) throw new Error('Turn zone evidence is ambiguous.')
 
-  const source = targets.get(actor.id) ?? (await input.loadTarget(actor.id))
-  if (!source) throw new Error('Turn zone target facts are unavailable.')
-  // Root-owned transient facts may include earlier phase mechanics and resource refreshes.
-  const target = rebuildEncounterTurnTarget({
-    source,
-    actor,
-    characterFacts: source.characterFacts,
-    activeEffects: source.activeEffects,
-    state
-  })
-  const spatialTarget = toSpatialMovementTarget(target)
+  // Each creature caught, rebuilt once from root-owned transient facts (earlier phase mechanics and
+  // resource refreshes included), with its state and allowances after each zone that caught it.
+  const caught = new Map<
+    string,
+    {
+      target: MovementTarget<TCharacterFacts>
+      spatialTarget: ReturnType<typeof toSpatialMovementTarget>
+      state: SpatialTargetState
+      economyActor: EncounterRunActorState
+    }
+  >()
+  for (const { targetActorId } of contacts) {
+    if (caught.has(targetActorId)) continue
+    const caughtActor = input.actors.find((candidate) => candidate.id === targetActorId)
+    const source =
+      caughtActor && (targets.get(targetActorId) ?? (await input.loadTarget(targetActorId)))
+    if (!caughtActor || !source) throw new Error('Turn zone target facts are unavailable.')
+    const target = rebuildEncounterTurnTarget({
+      source,
+      actor: caughtActor,
+      characterFacts: source.characterFacts,
+      activeEffects: source.activeEffects,
+      state
+    })
+    const spatialTarget = toSpatialMovementTarget(target)
+    caught.set(targetActorId, {
+      target,
+      spatialTarget,
+      state: spatialTarget.state,
+      economyActor: caughtActor
+    })
+  }
+  const caughtAt = (ordinal: number) => caught.get(contacts[ordinal]!.targetActorId)!
   const runtime = await input.createRuntime()
   const executions: TurnZoneExecution[] = []
-  let targetState: SpatialTargetState = spatialTarget.state
-  // The creature's allowances after each Action a failed zone save has cost it so far.
-  let economyActor = actor
 
   const candidateAt = (
     ordinal: number,
@@ -220,8 +255,8 @@ export async function prepareEncounterTurnZoneEffects<
     candidate: contacts[ordinal]!,
     ...spatialCandidateEvidence({
       effect: effects[ordinal]!,
-      target: spatialTarget,
-      state: targetState,
+      target: caughtAt(ordinal).spatialTarget,
+      state: caughtAt(ordinal).state,
       d20Policy: sealed?.d20Policy ?? null,
       diceStage: sealed?.diceStage ?? null
     })
@@ -229,6 +264,7 @@ export async function prepareEncounterTurnZoneEffects<
 
   for (const [ordinal, contact] of contacts.entries()) {
     const effect = effects[ordinal]!
+    const entry = caughtAt(ordinal)
     const existing =
       input.retainedPlan?.executions[ordinal] ?? pending?.completedExecutions[ordinal]
     const resuming = pending !== undefined && ordinal === pending.currentCandidate.ordinal
@@ -242,8 +278,8 @@ export async function prepareEncounterTurnZoneEffects<
     }
     const effectInput = spatialExecutionInput({
       effect,
-      target: spatialTarget,
-      state: targetState,
+      target: entry.spatialTarget,
+      state: entry.state,
       occurrenceId: input.occurrenceId,
       runtime
     })
@@ -268,7 +304,7 @@ export async function prepareEncounterTurnZoneEffects<
       const resumed = await resumeTargetBoundActiveRuleEffectWithAnswer({
         effectInput,
         continuation: kernelContinuation(retained!.snapshot),
-        policy: requireSupportedD20Policy(pending.currentCandidate.d20Policy),
+        policy: pending.currentCandidate.d20Policy,
         diceStage: pending.currentCandidate.diceStage,
         answer,
         random: input.random
@@ -288,7 +324,6 @@ export async function prepareEncounterTurnZoneEffects<
         random: input.random
       }))
     if ('continuation' in result) {
-      requireSupportedD20Policy(result.evidencePolicy)
       const paused = candidateAt(ordinal, { d20Policy: result.evidencePolicy, diceStage: d20 })
       return {
         kind: 'PENDING',
@@ -310,13 +345,13 @@ export async function prepareEncounterTurnZoneEffects<
       }
     }
     const outcome = spatialExecutionOutcome({
-      target: spatialTarget,
-      state: targetState,
+      target: entry.spatialTarget,
+      state: entry.state,
       targetStateChecksum: current.target.targetStateChecksum,
       result
     })
     const after = outcome.targetTransition.after
-    targetState = {
+    const targetState: SpatialTargetState = {
       current: after.currentHitPoints,
       temporary: after.temporaryHitPoints,
       conditions: [...after.conditionIds],
@@ -327,25 +362,30 @@ export async function prepareEncounterTurnZoneEffects<
       effect.placement.failedSaveLosesAction &&
       result.execution.outputs.resultPath === 'ON_SAVE_FAIL'
         ? await evaluateEncounterActionEconomy({
-            actor: economyActor,
+            actor: entry.economyActor,
             state,
             activation: { code: 'ACTION', amount: 1 },
             target: {
-              ...target,
-              actor: economyActor,
-              state: { ...target.state, conditions: targetState.conditions }
+              ...entry.target,
+              actor: entry.economyActor,
+              state: { ...entry.target.state, conditions: targetState.conditions }
             },
             loadTarget: async () => undefined,
             definitions: input.definitions
           })
         : null
     const actionEconomy = allowance?.available ? allowance.consumption : null
-    if (actionEconomy)
-      economyActor = consumeEncounterActionEconomy({
-        actor: economyActor,
-        consumption: actionEconomy,
-        overridden: false
-      })
+    caught.set(contact.targetActorId, {
+      ...entry,
+      state: targetState,
+      economyActor: actionEconomy
+        ? consumeEncounterActionEconomy({
+            actor: entry.economyActor,
+            consumption: actionEconomy,
+            overridden: false
+          })
+        : entry.economyActor
+    })
     const execution: TurnZoneExecution = { ordinal, candidate: current, ...outcome, actionEconomy }
     if (existing && !same(existing, execution))
       throw new Error('Retained turn zone execution is stale.')
@@ -353,9 +393,10 @@ export async function prepareEncounterTurnZoneEffects<
   }
 
   const plan: StagedTurnZonePlanDto = { selectionChecksum, executions }
-  const occurredAt = target.characterFacts?.active.updatedAt ?? '1970-01-01T00:00:00.000Z'
+  const occurredAt =
+    caughtAt(0).target.characterFacts?.active.updatedAt ?? '1970-01-01T00:00:00.000Z'
   const settled = planNativeSpatialMovementPrefix<TCharacterFacts>({
-    targets: new Map([[actor.id, target]]),
+    targets: new Map([...caught].map(([targetActorId, { target }]) => [targetActorId, target])),
     executions,
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -368,11 +409,10 @@ export async function prepareEncounterTurnZoneEffects<
     commandId: { phase: 'TURN_ZONE_EFFECT', ordinal: boundary.ordinal },
     settleUnchanged: true
   })
-  const projected = settled.projectedTargets.get(actor.id)!
-  const spendLostActions = (settledActor: EncounterRunActorState) =>
+  const spendLostActions = (targetActorId: string, settledActor: EncounterRunActorState) =>
     executions.reduce(
-      (spent, { actionEconomy }) =>
-        actionEconomy
+      (spent, { candidate, actionEconomy }) =>
+        actionEconomy && candidate.candidate.targetActorId === targetActorId
           ? consumeEncounterActionEconomy({
               actor: spent,
               consumption: actionEconomy,
@@ -381,20 +421,28 @@ export async function prepareEncounterTurnZoneEffects<
           : spent,
       settledActor
     )
-  const updatedActor = spendLostActions(settled.settlements[0]?.plan.updatedActor ?? actor)
-  targets.set(
-    actor.id,
-    rebuildEncounterTurnTarget({
-      source: target,
-      actor: spendLostActions(projected.actor),
-      characterFacts: projected.characterFacts,
-      activeEffects: projected.activeEffects,
-      state
-    })
+  const updatedActors = new Map(
+    settled.settlements.map(({ batch, plan: settlement }) => [
+      batch.targetActorId,
+      spendLostActions(batch.targetActorId, settlement.updatedActor)
+    ])
   )
+  for (const [targetActorId, { target }] of caught) {
+    const projected = settled.projectedTargets.get(targetActorId)!
+    targets.set(
+      targetActorId,
+      rebuildEncounterTurnTarget({
+        source: target,
+        actor: spendLostActions(targetActorId, projected.actor),
+        characterFacts: projected.characterFacts,
+        activeEffects: projected.activeEffects,
+        state
+      })
+    )
+  }
   return {
     kind: 'COMPLETE',
-    actors: input.actors.map((value) => (value.id === actor.id ? updatedActor : value)),
+    actors: input.actors.map((value) => updatedActors.get(value.id) ?? value),
     movementTargets: targets,
     plan
   }
