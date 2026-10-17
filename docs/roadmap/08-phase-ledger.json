@@ -8784,7 +8784,7 @@
             {
               "id": "SPELLS-19.T3d",
               "text": "Action-economy limits from core options, enforced in the room: a cap on attacks per Attack action that lowers Extra Attack, and action-or-bonus-action exclusivity for the turn. Copper Slowing's attack and action riders authored with them, closing the Copper rows. Generic, so the SRD Slow spell can reuse it.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-19.2"],
               "wsjf": {
                 "bv": 8,
@@ -8793,7 +8793,7 @@
                 "size": 5,
                 "after": ["SPELLS-19.T3b", "PLATFORM-20.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-19.md"
+              "note": "CI ci/spells-19-t3d 9b61c3f81 (Tests 39036458551 with red proof, Live backend 39036458501); fast-path merge cb84a0d4d, backstop ci/merge-m73. New CAP_VALUE modifier kind on ATTACKS_PER_ATTACK_ACTION (lowest cap clamps the SET_VALUE total, read by activeCapValueGrantMinimum through the shared activeGlobalAmounts step) and ACTION_BONUS_ACTION_EXCLUSIVITY (ENABLE) enforced in encounterAttackAction and encounterActionEconomy; all four Copper Slowing Breaths authored from core options."
             },
             {
               "id": "SPELLS-19.T4",
