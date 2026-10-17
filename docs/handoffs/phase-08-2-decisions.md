@@ -892,6 +892,9 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 * **D142** (2026-10-17) A zone's condition is held by the zone (SPELLS-4.T1e, AC 4.2; [slice-spells-4.md](slice-spells-4.md)). Orchestrator ruling.
   - **Rule:** a condition a zone applies on a failed save (Web, Black Tentacles and Entangle: restrained) ends when the zone ends and, when authored, when the creature leaves the area. It may author an escape that reuses the existing escape check, with a new escape DC kind for the caster's spell save DC beside fixed and contested. A zone's failed save composes its outcomes (damage rows, at most one stop, grant, condition and lost action) instead of one branch per shape; SPELLS-20.T4b3b owns that compiler change. Damage and a condition are both proposals in the frozen test graph, which holds one proposal per result path, so the set holds one graph outcome (damage or a condition) beside any stop, grant and lost action, and refuses damage plus a condition until SPELLS-4.T1e widens the graph with the zone-held condition.
   - **Rejected:** modelling the restraint as a relationship held by the zone like a creature's grapple (a zone is not an actor), and leaving the three spells manual.
+* **D143** (2026-10-17) Armor and shields author their Armor Class (QUALITY-1.T2, AC QUALITY-1.1; [slice-quality-1.md](slice-quality-1.md)). Orchestrator ruling.
+  - **Rule:** ARMOR and SHIELD equipment require an authored Armor Class at authoring and publication. The one shared Armor Class path refuses a missing value (`missingArmorClass`) for Characters and creatures alike; the Character-only fallbacks (2 for a shield, 10 for armor) are deleted.
+  - **Rejected:** creatures adopting the Character fallbacks (a silent guess at an authored value) and a runtime-only refusal with Armor Class still optional in authoring (the author learns of it only at the table).
 
 ## Approved implementation decisions
 

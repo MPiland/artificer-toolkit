@@ -14609,6 +14609,23 @@
                 "rr": 8,
                 "size": 5
               }
+            },
+            {
+              "id": "QUALITY-1.T2",
+              "status": "TODO",
+              "closes": [
+                "QUALITY-1.1"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": [
+                  "QUALITY-1.T1"
+                ]
+              },
+              "text": "Armor Class defaults (D143): ARMOR and SHIELD equipment require an authored Armor Class (schema, authored type, node map required state; development data migrated), and the shared Armor Class path refuses a missing value for Characters and creatures alike instead of the Character-only 2 and 10 fallbacks. Failing-first test that a Character and a creature holding the same equipment get the same result."
             }
           ]
         },
@@ -14635,7 +14652,7 @@
           "tasks": [
             {
               "id": "QUALITY-2.T1",
-              "text": "Consolidate each listed rule into its owning package and delete the copies.",
+              "text": "Consolidate each listed rule into its owning package and delete the copies. Includes Convex endCarriedConcentration, a local copy of the shared endChosenConcentration (found by QUALITY-1.T1).",
               "status": "TODO",
               "closes": [
                 "QUALITY-2.1"
