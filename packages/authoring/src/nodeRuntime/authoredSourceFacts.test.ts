@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import {
   authoredNodeRuntimeSourceFactsSchema,
-  nodeRuntimeSourceManifest
+  nodeRuntimeSourceManifest,
+  type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
 
@@ -35,7 +36,11 @@ describe('authoredSourceFacts', () => {
         authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
       )
     )
-    const rows = documents.flatMap((facts) => Object.entries(facts.rows))
+    const rows = documents.flatMap((facts) =>
+      (Object.keys(facts.rows) as NodeRuntimeSourceTable[]).map(
+        (table) => [table, facts.rows[table] ?? []] as const
+      )
+    )
 
     expect(rows.some(([table]) => table === 'features')).toBe(true)
     expect(rows.some(([table]) => table === 'effect_paths')).toBe(true)

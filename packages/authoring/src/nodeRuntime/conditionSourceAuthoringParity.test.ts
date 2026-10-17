@@ -111,13 +111,13 @@ describe('a condition whose holder flees its source through the effect node map 
     const authored = equipmentWith(fear.effects)
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
   it("leaves a dragon's Frightful Presence from fleeing", () => {
-    expect(
-      outcomesOf(adultRedDragon, 'CONDITION').map((outcome) => outcome.fleesSource)
-    ).toEqual([undefined])
+    expect(outcomesOf(adultRedDragon, 'CONDITION').map((outcome) => outcome.fleesSource)).toEqual([
+      undefined
+    ])
   })
 
   it('lets an author make any sourced condition flee, so a homebrew Panicked builds what Fear does', async () => {
@@ -129,7 +129,7 @@ describe('a condition whose holder flees its source through the effect node map 
     const authored = equipmentWith(effects)
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
   it('clears fleesSource when the source is not recorded', async () => {
@@ -137,7 +137,9 @@ describe('a condition whose holder flees its source through the effect node map 
     for (const outcome of outcomesOf(effects, 'CONDITION')) outcome.recordsSource = false
     const result = await normalize('equipment', equipmentWith(effects))
     expect(
-      outcomesOf(result.values.effects, 'CONDITION').map((outcome) => outcome.fleesSource)
+      outcomesOf(getValueAtPath(result.values, ['effects']), 'CONDITION').map(
+        (outcome) => outcome.fleesSource
+      )
     ).toEqual([undefined])
   })
 })

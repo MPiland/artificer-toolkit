@@ -10,6 +10,7 @@ import { ABILITY_CODE, ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
 import { SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
+import type { EffectPathAuthored } from '@artificer-toolkit/shared/authored'
 import type { BaselineContentBundle } from '../content.js'
 
 function emptySubjectBundle(): BaselineContentBundle {
@@ -43,6 +44,12 @@ function basicActionOf(
   return document && 'kind' in document && document.kind === 'BASIC_ACTION' ? document : undefined
 }
 
+/** A basic action's path resolves one fixed result block. */
+function fixedResultBlock(path: EffectPathAuthored) {
+  if (path.selectionKind !== 'FIXED') throw new Error('A basic action path must be FIXED.')
+  return path.resultBlock
+}
+
 describe('canonical Convex import preparation', () => {
   it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
     const catalogue = preparedDefinitions().filter(
@@ -59,7 +66,7 @@ describe('canonical Convex import preparation', () => {
                   action.actionCost,
                   action.effects.flatMap((effect) =>
                     effect.paths.flatMap((path) =>
-                      path.resultBlock.outcomes.map((outcome) => outcome.effectKind)
+                      fixedResultBlock(path).outcomes.map((outcome) => outcome.effectKind)
                     )
                   )
                 ]
@@ -89,7 +96,7 @@ describe('canonical Convex import preparation', () => {
     const dodgeModifiers = dodgeAction
       ? dodgeAction.effects.flatMap((effect) =>
           effect.paths.flatMap((path) =>
-            path.resultBlock.outcomes.flatMap((outcome) =>
+            fixedResultBlock(path).outcomes.flatMap((outcome) =>
               outcome.effectKind === 'APPLY_GRANT' ? (outcome.grants.modifiers ?? []) : []
             )
           )
@@ -123,7 +130,7 @@ describe('canonical Convex import preparation', () => {
       expect(
         modifier.restrictions?.groups.flatMap((group) =>
           group.contexts.flatMap((context) =>
-            context.conditions.map((condition) =>
+            (context.conditions ?? []).map((condition) =>
               condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
             )
           )
@@ -135,7 +142,7 @@ describe('canonical Convex import preparation', () => {
       catalogue.find((definition) => definition.label === 'Help')!.document
     )
     const helpBlocks = helpAction
-      ? helpAction.effects.flatMap((effect) => effect.paths.map((path) => path.resultBlock))
+      ? helpAction.effects.flatMap((effect) => effect.paths.map(fixedResultBlock))
       : []
     const helpModifiers = helpBlocks.flatMap((block) =>
       block.outcomes.flatMap((outcome) =>
