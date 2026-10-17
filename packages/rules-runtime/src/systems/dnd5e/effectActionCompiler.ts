@@ -293,6 +293,8 @@ type EntryDiceDamageOutcome = {
   kind: 'ENTRY_DICE_DAMAGE'
   diceConfig: string
   damageTypeId: string
+  /** The compiled entry this result's proposal node is bound to. */
+  entryId: string
   /** The share of the roll this result deals: 1 for the failed save, one half for the made save. */
   multiplier: number
 }
@@ -1325,6 +1327,7 @@ function zoneDamageOutcome(
     kind: 'ENTRY_DICE_DAMAGE',
     diceConfig: outcome.dice,
     damageTypeId: outcome.damageTypeId,
+    entryId: entry.entryId,
     multiplier
   }
 }
@@ -4374,7 +4377,19 @@ function compileTestDefinition(
             {
               sourceEntryId: recurringPlan.compiledEntryId,
               nodeId: recurringPlan.frozenGraphNodeId
-            }
+            },
+            // A zone's made save deals its own damage from its own proposal node.
+            ...[...plan.branches].flatMap(([pathCode, outcome]) =>
+              outcome.kind === 'ENTRY_DICE_DAMAGE' &&
+              `proposal-${pathCode.toLowerCase()}` !== recurringPlan.frozenGraphNodeId
+                ? [
+                    {
+                      sourceEntryId: outcome.entryId,
+                      nodeId: `proposal-${pathCode.toLowerCase()}`
+                    }
+                  ]
+                : []
+            )
           ]
         }
       : {})

@@ -277,6 +277,11 @@ function requireSupportedApplications(input: {
 }): void {
   const { applications, execution, frozenGraphNodeId, activeEffectId, emptyApplicationAllowed } =
     input
+  // The frozen node, plus any other node the graph binds to a source entry (a zone's made save).
+  const sourceNodeIds = new Set([
+    frozenGraphNodeId,
+    ...(execution.evidence.sourceEntryBindings ?? []).map((binding) => binding.nodeId)
+  ])
   const suppressedCondition =
     applications.length === 0 &&
     execution.evidence.trace.filter(
@@ -289,7 +294,7 @@ function requireSupportedApplications(input: {
     (!suppressedCondition && !emptyApplicationAllowed && applications.length === 0) ||
     applications.some(
       (application) =>
-        application.sourceNodeId !== frozenGraphNodeId ||
+        !sourceNodeIds.has(application.sourceNodeId) ||
         (application.kind === 'CONDITION_REMOVE' &&
           application.sourceActiveEffectId !== activeEffectId) ||
         !['HEAL', 'TEMPORARY_HIT_POINTS', 'DAMAGE', 'CONDITION_APPLY', 'CONDITION_REMOVE'].includes(
