@@ -3,10 +3,15 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
   SHAPE_KIND,
+  SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -15,8 +20,22 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_MAGIC_SCHOOLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
+import { damageTypeId, spellChildId } from './shared.js'
+/** The embers' fire damage: 10d8 at any slot level (the spell has no higher-level text). */
+const zoneDamage = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, kind, 1),
+  effectKind: EFFECT_KIND.DAMAGE,
+  damageTypeId: damageTypeId('FIRE'),
+  valueKind: DAMAGE_VALUE_KIND.DICE,
+  scalingKind: SCALING.NONE,
+  diceConfig: '10d8'
+})
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -34,6 +53,7 @@ export const incendiaryCloud: SpellAuthored = {
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
   magicSchoolId: schoolId('CONJURATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x210, 1),
@@ -75,11 +95,81 @@ export const incendiaryCloud: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x213, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x214, 1),
+              durationKind: 'MINUTE',
+              amount: 1
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'INCENDIARY_CLOUD' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Incendiary Cloud',
+                shape: {
+                  id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x220, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x221, 1),
+                    order: 1,
+                    label: 'Enter the burning cloud',
+                    interactionKinds: ['ENTER_SPACE' as const, 'END_TURN_IN_SPACE' as const],
+                    maxApplicationsPerTurn: 1,
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [zoneDamage(0x226)]
+                            }
+                          },
+                          {
+                            id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x227, 1),
+                            order: 2,
+                            pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x227, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                { ...zoneDamage(0x228), amountKind: SCALING_AMOUNT_KIND.HALF }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

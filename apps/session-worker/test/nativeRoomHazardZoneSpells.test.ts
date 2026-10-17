@@ -2,14 +2,15 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
+import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
+import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
@@ -24,10 +25,10 @@ import { hitPointsOf, readZones, walkerMoves } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
- * SPELLS-4.T1a: the SRD Cloudkill and Insect Plague, authored from core options, place their zone
- * at a chosen point through a real cast in the local room. A creature makes the Constitution save
- * when it enters the area and at the turn boundary each spell names (Cloudkill: starting its turn
- * there; Insect Plague: ending it there), and takes the rolled damage on a failure.
+ * SPELLS-4.T1a and T1c: the SRD Cloudkill, Insect Plague, Moonbeam and Incendiary Cloud, authored
+ * from core options, place their zone at a chosen point through a real cast in the local room. A
+ * creature makes the save when it enters the area and at the turn boundary each spell names
+ * (starting or ending its turn there), and takes the rolled damage on a failure.
  */
 
 const CASTER_ACTOR_ID = testUuid(0x2440)
@@ -59,29 +60,66 @@ const casterActor = {
   snapshot: { kind: 'CHARACTER' as const, id: CASTER_ID, systemId: srdSystemRecord.id }
 }
 
+/**
+ * Each spell is cast at its own level and, when its damage scales, one above. `slotSpell` is a higher-level spell the Class
+ * also publishes so the Character holds that slot (it gets slots up to its highest published spell,
+ * at least the 5th). `dice` is the number of damage dice each cast rolls.
+ */
 const SPELLS = [
   {
     spell: cloudkill,
+    slotSpell: chainLightning,
+    ability: 'CONSTITUTION',
     turnTrigger: 'START_OF_TURN',
-    dice: { 5: 5, 6: 6 }
+    casts: [
+      { label: 'Cloudkill (5th level)', dice: 5 },
+      { label: 'Cloudkill (6th level)', dice: 6 }
+    ]
   },
   {
     spell: insectPlague,
+    slotSpell: chainLightning,
+    ability: 'CONSTITUTION',
     turnTrigger: 'END_OF_TURN',
-    dice: { 5: 4, 6: 5 }
+    casts: [
+      { label: 'Insect Plague (5th level)', dice: 4 },
+      { label: 'Insect Plague (6th level)', dice: 5 }
+    ]
+  },
+  {
+    spell: moonbeam,
+    slotSpell: undefined,
+    ability: 'CONSTITUTION',
+    turnTrigger: 'START_OF_TURN',
+    casts: [
+      { label: 'Moonbeam (2nd level)', dice: 2 },
+      { label: 'Moonbeam (3rd level)', dice: 3 }
+    ]
+  },
+  {
+    // No higher-level damage, so the cast is offered only at the 8th level.
+    spell: incendiaryCloud,
+    slotSpell: undefined,
+    ability: 'DEXTERITY',
+    turnTrigger: 'END_OF_TURN',
+    casts: [{ label: 'Incendiary Cloud (8th level)', dice: 10 }]
   }
 ] as const
 
-/**
- * The Character casts `spell` at `level`; the Wolf stands at `wolfAt`. The Class also publishes
- * the 6th-level Chain Lightning, so the Character holds a 6th-level slot.
- */
-function zoneRoom(spell: SpellAuthored, level: 5 | 6, wolfAt: { x: number; y: number }) {
+/** The Character casts the action labelled `castLabel`; the Wolf stands at `wolfAt`. */
+function zoneRoom(
+  { spell, slotSpell }: (typeof SPELLS)[number],
+  castLabel: string,
+  wolfAt: { x: number; y: number }
+) {
   return actionRoom({
     actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
     positions: { [WOLF_ID]: wolfAt },
-    characterSpellcasting: { spells: [spell, chainLightning], prepared: [spell.id] },
-    characterAction: (action) => action.label === `${spell.label} (${level}th level)`,
+    characterSpellcasting: {
+      spells: slotSpell ? [spell, slotSpell] : [spell],
+      prepared: [spell.id]
+    },
+    characterAction: (action) => action.label === castLabel,
     autoRoll: 'EVERYONE',
     fallbackRoll: DIE
   })
@@ -117,72 +155,70 @@ async function advanceTurn(room: Room) {
   }
 }
 
-describe.each(SPELLS)(
-  'the SRD $spell.label zone (SPELLS-4.T1a)',
-  ({ spell, turnTrigger, dice }) => {
-    it('is placed at the chosen point as a 20-foot sphere that acts on entry and at its turn boundary', async () => {
-      const room = await zoneRoom(spell, 5, OUTSIDE_THE_ZONE)
-      const zone = await castAtTheCenter(room)
-      expect(zone.placement).toMatchObject({
-        anchorKind: 'FIXED',
-        label: spell.label,
-        triggerModes: ['ENTER'],
-        turnTriggers: [turnTrigger],
-        maxApplicationsPerTurn: 1
-      })
-      expect(JSON.parse(zone.definitionJson)).toMatchObject({
-        adapterFacts: {
-          [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
-            SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
-          [DND5E_SAVE_DC_FACT_KEY]: WIZARD_SAVE_DC
-        }
-      })
+describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject) => {
+  const { spell, ability, turnTrigger, casts } = subject
+  const [firstCast] = casts
+  it('is placed at the chosen point and acts on entry and at its turn boundary', async () => {
+    const room = await zoneRoom(subject, firstCast.label, OUTSIDE_THE_ZONE)
+    const zone = await castAtTheCenter(room)
+    expect(zone.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: spell.label,
+      triggerModes: ['ENTER'],
+      turnTriggers: [turnTrigger],
+      maxApplicationsPerTurn: 1
     })
-
-    it.each([5, 6] as const)(
-      'deals the rolled damage of a %ith-level cast to a creature that enters the area and fails its save',
-      async (level) => {
-        const room = await zoneRoom(spell, level, OUTSIDE_THE_ZONE)
-        await castAtTheCenter(room)
-        await room.advanceTurn()
-        const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
-
-        const walk = await walkerMoves(room, [OUTSIDE_THE_ZONE, ZONE_CENTER])
-
-        expect(walk.executions).toHaveLength(1)
-        expect(walk.executions[0]).toMatchObject({
-          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: dice[level] })]
-        })
-        expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - dice[level])
+    expect(JSON.parse(zone.definitionJson)).toMatchObject({
+      adapterFacts: {
+        [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: SRD_ABILITY_DEFINITION_IDS[ability],
+        [DND5E_SAVE_DC_FACT_KEY]: WIZARD_SAVE_DC
       }
-    )
+    })
+  })
 
-    it(`makes a creature in the area save at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'} and take the damage`, async () => {
-      const room = await zoneRoom(spell, 5, ZONE_CENTER)
-      const zone = await castAtTheCenter(room)
+  it.each<{ label: string; dice: number }>([...casts])(
+    'deals the rolled damage of $label to a creature that enters the area and fails its save',
+    async ({ label, dice }) => {
+      const room = await zoneRoom(subject, label, OUTSIDE_THE_ZONE)
+      await castAtTheCenter(room)
+      await room.advanceTurn()
       const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
 
-      // The caster's turn ends outside the area; the Wolf's turn starts in it.
-      const wolfStarts = await advanceTurn(room)
-      expect(wolfStarts.outgoing).toBeUndefined()
-      // The Wolf's turn ends in the area.
-      const wolfEnds = await advanceTurn(room)
-      const [acting, quiet] =
-        turnTrigger === 'START_OF_TURN'
-          ? [wolfStarts.incoming, wolfEnds.outgoing]
-          : [wolfEnds.outgoing, wolfStarts.incoming]
+      const walk = await walkerMoves(room, [OUTSIDE_THE_ZONE, ZONE_CENTER])
 
-      expect(quiet).toBeUndefined()
-      expect(acting).toMatchObject({
-        kind: 'EXECUTED',
-        executions: [
-          {
-            candidate: { candidate: { effectId: zone.id, targetActorId: WOLF_ID } },
-            applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: dice[5] })]
-          }
-        ]
+      expect(walk.executions).toHaveLength(1)
+      expect(walk.executions[0]).toMatchObject({
+        applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: dice })]
       })
-      expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - dice[5])
+      expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - dice)
+    }
+  )
+
+  it(`makes a creature in the area save at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'} and take the damage`, async () => {
+    const room = await zoneRoom(subject, firstCast.label, ZONE_CENTER)
+    const zone = await castAtTheCenter(room)
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    // The caster's turn ends outside the area; the Wolf's turn starts in it.
+    const wolfStarts = await advanceTurn(room)
+    expect(wolfStarts.outgoing).toBeUndefined()
+    // The Wolf's turn ends in the area.
+    const wolfEnds = await advanceTurn(room)
+    const [acting, quiet] =
+      turnTrigger === 'START_OF_TURN'
+        ? [wolfStarts.incoming, wolfEnds.outgoing]
+        : [wolfEnds.outgoing, wolfStarts.incoming]
+
+    expect(quiet).toBeUndefined()
+    expect(acting).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { effectId: zone.id, targetActorId: WOLF_ID } },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: firstCast.dice })]
+        }
+      ]
     })
-  }
-)
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - firstCast.dice)
+  })
+})

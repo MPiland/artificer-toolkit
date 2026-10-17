@@ -3,9 +3,15 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
+  SCALING_SOURCE,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -15,7 +21,30 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The beam: a 5-foot-radius, 40-foot-high cylinder. */
+const beam = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.MOONBEAM, kind, 1),
+  shapeKind: SHAPE_KIND.CYLINDER,
+  radius: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET },
+  height: { amount: 40, unit: MEASUREMENT_UNIT_CODE.FEET }
+})
+/** The ghostly flames' radiant damage: 2d10 cast at the 2nd level, and 1d10 more for each slot level above it. */
+const zoneDamage = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.MOONBEAM, kind, 1),
+  effectKind: EFFECT_KIND.DAMAGE,
+  damageTypeId: damageTypeId('RADIANT'),
+  valueKind: DAMAGE_VALUE_KIND.DICE,
+  scalingKind: SCALING.PER_LEVEL,
+  scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+  levels: Array.from({ length: 8 }, (_, index) => ({
+    id: spellChildId(SPELL_IDS.MOONBEAM, kind, index + 2),
+    level: index + 2,
+    order: index + 1,
+    diceConfig: `${index + 2}d10`
+  }))
+})
 export const moonbeam: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.MOONBEAM,
@@ -46,6 +75,7 @@ export const moonbeam: SpellAuthored = {
           amount: 120,
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
+        shape: beam(0x215),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -62,11 +92,77 @@ export const moonbeam: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.MOONBEAM, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.MOONBEAM, 0x214, 1),
+              durationKind: 'MINUTE',
+              amount: 1
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MOONBEAM, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MOONBEAM' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Moonbeam',
+                shape: beam(0x220),
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.MOONBEAM, 0x221, 1),
+                    order: 1,
+                    label: 'Enter the moonlight',
+                    interactionKinds: ['ENTER_SPACE' as const, 'START_TURN_IN_SPACE' as const],
+                    maxApplicationsPerTurn: 1,
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.MOONBEAM, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.MOONBEAM, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.MOONBEAM, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.MOONBEAM, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.MOONBEAM, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [zoneDamage(0x226)]
+                            }
+                          },
+                          {
+                            id: spellChildId(SPELL_IDS.MOONBEAM, 0x227, 1),
+                            order: 2,
+                            pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.MOONBEAM, 0x227, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                { ...zoneDamage(0x228), amountKind: SCALING_AMOUNT_KIND.HALF }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

@@ -18,8 +18,6 @@ const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Flaming Sphere': 'MANUAL_ADJUDICATION: the sphere is not authored',
   'Glyph of Warding': 'CLOSED_RULE',
   'Guardian of Faith': 'CLOSED_RULE',
-  'Incendiary Cloud': 'CLOSED_RULE',
-  Moonbeam: 'CLOSED_RULE',
   'Storm of Vengeance': 'CLOSED_RULE',
   Sunbeam: 'CLOSED_RULE',
   Symbol: 'CLOSED_RULE',

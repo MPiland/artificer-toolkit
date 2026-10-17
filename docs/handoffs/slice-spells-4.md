@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1 (audit) is done: the zone table is in [slice-spells-20.md](slice-spells-20.md#zone-table-srd-zones-with-turn-startend-text-static-audit-2026-10-17).
-- T1a (Cloudkill and Insect Plague as full zones) is on `ci/spells-4-t1a`. Next: T1b (wall geometry), T1c (Moonbeam, Incendiary Cloud), T1d (Restrained and Prone outcomes).
+- T1a (Cloudkill and Insect Plague) merged in m80. T1c (Moonbeam and Incendiary Cloud) is on `ci/spells-4-t1c`; the Moonbeam shapechanger rider waits on the ruling below. Next: T1b (wall geometry), T1d (Restrained and Prone outcomes).
 
 ## Scope
 
@@ -38,3 +38,31 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 | Insect Plague | A creature that enters and ends the same turn in it saves twice (SRD); once here | per-turn limit counts every application    | orchestrator decision         |
 
 - The last row is a semantic question for the orchestrator: `maxApplicationsPerTurn` counts entry and turn-boundary applications together (T4b1 ruling), while the SRD "for the first time on a turn" limits only entries. Options: (a) keep it (one save on enter-then-end; Spirit Guardians has the same shape on start-then-re-enter); (b) count only movement triggers against the limit, which changes T4b1 for Spirit Guardians too; (c) drop the limit on Insect Plague (two saves, but repeated entries in one turn each trigger).
+
+### T1c (Moonbeam and Incendiary Cloud)
+
+- Authoring only, plus the retired `CLOSED_RULE_KIND` entries `MOONBEAM` and `INCENDIARY_CLOUD` deleted (nothing else used them). Both now place a `PLACED_SPACE` `ZONE` with the T1a shape:
+  - Moonbeam: a 5-foot-radius, 40-foot-high cylinder, `ENTER_SPACE` + `START_TURN_IN_SPACE`, Constitution save, 2d10 radiant `PER_LEVEL` (one die more per slot level up to the 9th), halved on a made save.
+  - Incendiary Cloud: a 20-foot sphere, `ENTER_SPACE` + `END_TURN_IN_SPACE`, Dexterity save, 10d8 fire with no scaling, halved on a made save. It also gains the SRD Concentration attribute it was missing.
+  - Both: `maxApplicationsPerTurn: 1`, a 1-minute duration.
+- Proofs: the same four files as T1a, now covering both spells. In the room test Moonbeam casts at the 2nd and 3rd level. Incendiary Cloud casts only at the 8th, because a spell whose effects do not read the cast level is offered only at its own level.
+- Named gaps (recorded in `zoneInteractionKinds.test.ts`):
+
+| Spell            | SRD rule                                                                             | Authoring option                           | Owner                 |
+| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------------------ | --------------------- |
+| Moonbeam         | Shapechanger saves with disadvantage, reverts on a failure, no new form in the light | none: see the ruling below                 | orchestrator decision |
+| Moonbeam         | Dim light fills the cylinder                                                         | `light` (radius-based, not area fill)      | none registered       |
+| Moonbeam         | Move the beam 60 feet with an action on later turns                                  | none (new core option)                     | none registered       |
+| Incendiary Cloud | Heavily obscured area; spreads around corners                                        | `obscurementKind`, `spreadsAroundCorners`  | none registered       |
+| Incendiary Cloud | Drift 10 feet away from the caster each turn; wind disperses it                      | none (new core option)                     | none registered       |
+| Incendiary Cloud | Each creature in the area saves when it appears                                      | none: a zone-placing cast has no area save | none registered       |
+| Incendiary Cloud | Enter and end the same turn in it: two saves (SRD), one here                         | per-turn limit counts every application    | T1a ruling            |
+
+- Ruling needed for the shapechanger rider. It needs two things the contracts lack:
+  - A creature-trait condition on a save. `savingThrowDtoSchema` has no roll-influence field, and "shapechanger" lives only in free-text creature `tags`, which no rule reads.
+  - A creature form state to revert. Shapechanger traits are `CREATURE_*_SHAPECHANGER` closed rules, so the Encounter has no "original form" to restore or form change to block.
+- Options:
+  - (a) Add an optional `rollInfluence: { influence: 'DISADVANTAGE', when: { kind: 'TARGET_TAG', tag } }` to the saving throw contract, and author creature tags as a controlled vocabulary. This ships the disadvantage now and leaves the revert as a gap until shapechanger forms are modeled.
+  - (b) The same condition keyed on a trait vocabulary id instead of a tag (needs a new System vocabulary).
+  - (c) Leave the rider as a named gap until shapechanger form state exists, then do both halves together.
+  - Recommendation: (c), since half a rider (disadvantage without the revert) gives a shapechanger a worse save with no lasting effect, and the form model decides which key the condition reads.

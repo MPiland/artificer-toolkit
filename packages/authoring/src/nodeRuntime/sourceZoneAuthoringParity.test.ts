@@ -4,7 +4,9 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
+import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
+import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -89,13 +91,18 @@ describe('the source aura through the equipment node map', () => {
 
   it.each([
     ['Cloudkill', cloudkill],
-    ['Insect Plague', insectPlague]
-  ])('keeps the SRD %s placed zone exactly as authored (SPELLS-4.T1a)', async (_name, spell) => {
-    const authored = carrying(spell.effects as EquipmentAuthored['effects'])
-    const result = await normalize(authored)
-    expect(result.clearedPaths).toEqual([])
-    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
-  })
+    ['Insect Plague', insectPlague],
+    ['Moonbeam', moonbeam],
+    ['Incendiary Cloud', incendiaryCloud]
+  ])(
+    'keeps the SRD %s placed zone exactly as authored (SPELLS-4.T1a, T1c)',
+    async (_name, spell) => {
+      const authored = carrying(spell.effects as EquipmentAuthored['effects'])
+      const result = await normalize(authored)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+    }
+  )
 
   it('keeps an aura with another radius and a fixed DC the same way, so it resolves like the SRD aura', async () => {
     const authored = variant()
