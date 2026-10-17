@@ -293,7 +293,9 @@ export const spatialMovementExecutionDtoSchema = lazySchema(() =>
                         trace.outputs.damageTypeId === application.damageTypeId))
           )
           if (
-            application.sourceNodeId !== effect.frozenGraphNodeId ||
+            !evidence.sourceEntryBindings?.some(
+              (binding) => binding.nodeId === application.sourceNodeId
+            ) ||
             matches.length !== 1 ||
             matches[0]!.traceIndex <= priorTraceIndex ||
             boundTraceIndexes.has(matches[0]!.traceIndex)
