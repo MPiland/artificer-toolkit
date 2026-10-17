@@ -166,6 +166,31 @@ export function carriedCreatureForm(
   }
 }
 
+/**
+ * The Creature a Character in a form acts as (SPELLS-28.T4d): the form's snapshot and hit points,
+ * the Character's identity. Its action list is the form stat block's, found by the Creature action
+ * discovery; null while the Character wears no form.
+ */
+export function characterFormCreatureView(
+  actor: EncounterRunCharacterActorState
+): Extract<EncounterRunActorState, { kind: 'CREATURE' }> | null {
+  const { form } = actor
+  if (form === null) return null
+  return {
+    ...actor,
+    kind: 'CREATURE',
+    sourceId: form.sourceId,
+    sourceRevision: form.sourceRevision,
+    snapshot: form.snapshot,
+    currentHitPoints: form.currentHitPoints,
+    maxHitPoints: form.maxHitPoints,
+    tempHitPoints: form.tempHitPoints,
+    conditions: [],
+    defeated: false,
+    form: null
+  }
+}
+
 /** A new Run's Character actor resumes the form its carried effect holds, with the hit points it kept. */
 export function resumeCharacterForm(
   actor: EncounterRunCharacterActorState,
