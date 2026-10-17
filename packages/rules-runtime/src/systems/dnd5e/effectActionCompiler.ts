@@ -1639,6 +1639,11 @@ function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
 ): ActiveEffectEndTrigger[] {
   const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
+    if (trigger.event === 'ACTION_USED_ON_HOLDER')
+      return {
+        event: trigger.event,
+        actionDefinitionIds: [...new Set(trigger.actionDefinitionIds)].sort()
+      }
     if (trigger.event !== 'DAMAGE_TAKEN') return trigger
     const { event, by, damageTypeIds } = trigger
     return {
@@ -2231,7 +2236,9 @@ function repeatingDirectFollowUpSavePlan(
         ? { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: lead.conditionId }
         : { 'dnd5e.grant-authored-path': leadEntry.pathCode }),
       ...(escalation
-        ? { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: escalation.conditionId }
+        ? {
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: escalation.conditionId
+          }
         : {}),
       ...(save.repeatRollInfluence
         ? {
