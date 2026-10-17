@@ -187,7 +187,9 @@ export function buildCharacterSpellCastActions(input: {
     const effects = activeSpellEffects(spell)
     if (
       effects.length > 1 &&
-      !effects.every((effect) => effect.invocation.activation.code === 'REACTION')
+      !effects.every(
+        ({ invocation }) => 'activation' in invocation && invocation.activation.code === 'REACTION'
+      )
     )
       continue
     const mechanics = mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
