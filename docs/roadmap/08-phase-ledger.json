@@ -1293,7 +1293,7 @@
         {
           "id": "PLATFORM-23",
           "title": "CI runs exactly the tests a change can affect",
-          "status": "TODO",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -1304,37 +1304,56 @@
           "acs": [
             {
               "id": "PLATFORM-23.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all.",
-              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test."
+              "note": "Registered 2026-10-16 at the user's request: slices ran whole package suites they cannot affect, while tests.yml:86 hand-kept a package list that never ran packages/authoring tests at all. Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "Each slice runs only the test files whose imports reach its changed files (Vitest's module graph / --changed), across all packages, with no hand-kept list; merge batches run every test.",
+              "proof": [
+                "scripts/affectedTests.test.mjs",
+                "docs/architecture/ci-validation.md",
+                "docs/handoffs/slice-platform-23.md#t2-affected-test-selection"
+              ]
             },
             {
               "id": "PLATFORM-23.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions.",
-              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions."
+              "note": "12 packages/authoring tests fail on the phase branch, unseen because CI never ran them: conditionSourceAuthoringParity, creatureFormAuthoringParity, offHandAttackAuthoringParity x4, concealmentAuthoringParity x2, escapeDcOptions, systemVocabularyOptions. Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "The 12 failing authoring parity tests are fixed at their cause and the ACs that cite them are re-verified, with no weakened assertions.",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/offHandAttackAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/conditionSourceAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/escapeDcOptions.test.ts",
+                "packages/authoring/src/nodeRuntime/concealmentAuthoringParity.test.ts",
+                "packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts",
+                "docs/handoffs/slice-platform-23.md#t1-the-12-authoring-failures"
+              ]
             },
             {
               "id": "PLATFORM-23.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them.",
-              "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule."
+              "note": "Registered 2026-10-16 at the user's request: type errors must be caught before a push, not by a CI run. The light lane refused every typecheck (withValidationLock.ps1), so sessions pushed to find them. Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "Before every push a session typechecks its changed workspaces and their dependents locally, through a typecheck lane of the validation runner (one batch at a time, memory-gated, Turbo-cached, the same typecheck tasks CI runs), and pushes only when it passes; a type error is reported locally without a CI run, and AGENTS.md states the rule.",
+              "proof": ["scripts/withValidationLock.ps1", "docs/handoffs/slice-platform-23.md"]
             },
             {
               "id": "PLATFORM-23.4",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-16 with the user's approval: Worker room tests import the rules-runtime dist, and the light lane refused every build, so a session that changed a package could not run its Worker test locally and pushed blind (SPELLS-20.T4a, two failed CI runs).",
-              "text": "A session can run its scoped test files locally after changing a package they import: the runner builds only the workspaces those files depend on (Turbo-cached, memory-gated, one build at a time) before the tests, and the light lane stays limited to named test files."
+              "note": "Registered 2026-10-16 with the user's approval: Worker room tests import the rules-runtime dist, and the light lane refused every build, so a session that changed a package could not run its Worker test locally and pushed blind (SPELLS-20.T4a, two failed CI runs). Proof: docs/handoffs/slice-platform-23.md; green ci/platform-23 77daf24f9 (Tests 39010954729, Live 39010954709); fast-path merged as d045e5248 with full backstop ci/merge-m68.",
+              "text": "A session can run its scoped test files locally after changing a package they import: the runner builds only the workspaces those files depend on (Turbo-cached, memory-gated, one build at a time) before the tests, and the light lane stays limited to named test files.",
+              "proof": [
+                "scripts/withValidationLock.ps1",
+                "docs/handoffs/slice-platform-23.md#t4-scoped-build-before-local-test-files"
+              ]
             }
           ],
           "tasks": [
             {
               "id": "PLATFORM-23.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.2"],
               "text": "Fix the 12 failing packages/authoring tests at their cause; re-verify the ACs that cite them.",
               "wsjf": {
@@ -1343,12 +1362,11 @@
                 "rr": 8,
                 "size": 3,
                 "after": []
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+              }
             },
             {
               "id": "PLATFORM-23.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.1"],
               "text": "tests.yml: affected-only test selection per slice from the module graph across all packages; full suite on merge batches; remove the hand-kept package list.",
               "wsjf": {
@@ -1357,12 +1375,11 @@
                 "rr": 8,
                 "size": 3,
                 "after": ["PLATFORM-23.T1"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+              }
             },
             {
               "id": "PLATFORM-23.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.3"],
               "text": "Typecheck lane in scripts/withValidationLock.ps1 running the affected typecheck (changed workspaces and dependents against the phase-branch merge-base); AGENTS.md pre-push rule; measured local time against the CI gate.",
               "wsjf": {
@@ -1371,12 +1388,11 @@
                 "rr": 5,
                 "size": 2,
                 "after": []
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+              }
             },
             {
               "id": "PLATFORM-23.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-23.4"],
               "text": "Scoped dependency build before local test files in scripts/withValidationLock.ps1; AGENTS.md: run the touched test files locally before every push.",
               "wsjf": {
@@ -1385,10 +1401,10 @@
                 "rr": 5,
                 "size": 2,
                 "after": ["PLATFORM-23.T3"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+              }
             }
-          ]
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-24",
