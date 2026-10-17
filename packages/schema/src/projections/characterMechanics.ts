@@ -307,6 +307,8 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
     maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
     /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
     requiresFullyWithin: z.optional(z.boolean()),
+    /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
+    failedSaveLosesAction: z.optional(z.boolean()),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */

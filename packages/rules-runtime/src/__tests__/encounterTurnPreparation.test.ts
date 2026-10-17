@@ -75,6 +75,10 @@ async function endTurn(input: {
         loadScene: async () => null,
         loadTarget: async () => undefined,
         createRuntime: () => Promise.reject(new Error('A turn without zones needs no runtime.')),
+        definitions: {
+          requireCurrent: () =>
+            Promise.reject(new Error('A turn without zones reads no definition.'))
+        },
         random: () => 0
       }),
     async legendary(stage) {

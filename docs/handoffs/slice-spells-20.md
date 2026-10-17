@@ -160,6 +160,18 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterZonePlacementCompilation.test.ts`: the flag on the zone and its placement; the refusal for a movement trigger.
   - `encounterTurnZoneEffects.test.ts`: a real turn stage. A goblin half out of the zone is not caught, but the same footprint is caught by an overlap zone. A real SRD Skeleton (poison-immune) takes no damage on the lowest roll from a zone naming poison, but is hit by one naming fire; the goblin is hit by both.
 
+### T4b3b (LOSE_ACTION, one composable zone failure set, Stinking Cloud journey)
+
+- `zonePlacementPlan` classifies the failed save into one set (D142): damage rows, at most one stop, grant, System-vocabulary condition and lost Action, at least one outcome; a made save only deals damage. No branch per shape remains, and T1d's condition-alone case is a member of the set. Damage plus a condition is refused until SPELLS-4.T1e (D142 amendment, one graph outcome).
+- With no graph outcome (a lost Action alone) the entry binds the save's `test` node; the executor allows empty applications on a path with no proposal node (`emptyApplicationAllowed`).
+- `LOSE_ACTION` (D141) compiles only at the start of a turn and sets `failedSaveLosesAction` on the placement. The turn stage spends an unspent Action after the refresh (`actionEconomy` on the spatial turn execution, null when already spent) and persistence settles it through `consumeNativeActionEconomy`.
+- Stinking Cloud now compiles and plays.
+- Proofs:
+  - `encounterZonePlacementCompilation.test.ts`: the composable set (lost Action alone, damage+stop+grant+lost Action, condition alone, condition+lost Action) and every refusal variant (damage+condition, two of a single, out-of-vocabulary condition, an unheld kind, made-save-only, a made save costing the Action, a lost Action with a movement or end-of-turn trigger).
+  - `encounterTurnZoneEffects.test.ts`: the Action spent, a no-op when spent, spent once by two zones, nothing on a made save, damage and the lost Action together.
+  - `turnZoneEffectsPersistence.test.ts`: the stored actor's Action, a forged transition refused, a stale actor refused.
+  - `nativeRoomHazardZoneSpells.test.ts`: the SRD Stinking Cloud cast in the room costs the Wolf its Action at its turn start.
+
 ### T4f (START journey, pending-prompt interleaves, spatial resume checks)
 
 - START journey: the room harness (`movementRoom`/`actionRoom`) takes `status: 'PREPARED'` (round 0, no current actor, an ACTOR_ROLL initiative policy at Encounter start) and a `seed` that receives the Scene spatial scope. `nativeRoomTurnZoneEffects.test.ts` places a core-options START_TURN zone under the Wolf with the real planner, sends START, and proves the incoming zone save, the damage, `zoneApplications` and an exact replay.

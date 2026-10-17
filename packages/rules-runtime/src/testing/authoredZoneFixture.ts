@@ -112,3 +112,26 @@ export function diceDamage(diceConfig: string, change?: (damage: Record<string, 
     change?.(authored)
   }
 }
+
+type FailedSaveOutcome = ZoneParts['savePath']['resultBlock']['outcomes'][number]
+
+/** A failed-save outcome that costs the target its Action for the turn (D141). */
+export const lostActionOutcome = (offset = 20): FailedSaveOutcome => ({
+  id: extraId(offset),
+  effectKind: 'ACTION_ECONOMY_RULE',
+  ruleKind: 'LOSE_ACTION'
+})
+
+/** The zone's failed save also costs the target its Action. */
+export function losesAction({ savePath }: ZoneParts) {
+  savePath.resultBlock.outcomes.push(lostActionOutcome())
+}
+
+/** The zone's failed save has only `outcomes`; the grant's lifetime goes with the grant. */
+export function failedSaveOnly(...outcomes: FailedSaveOutcome[]) {
+  return ({ savePath }: ZoneParts) => {
+    savePath.resultBlock.outcomes = outcomes
+    if (!outcomes.some((outcome) => outcome.effectKind === 'APPLY_GRANT'))
+      delete savePath.resultBlock.lifecycle
+  }
+}

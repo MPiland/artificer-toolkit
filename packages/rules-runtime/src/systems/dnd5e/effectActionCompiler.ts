@@ -2243,34 +2243,66 @@ function zonePlacementPlan(
     unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
   const failEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_FAIL')
   const madeEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
-  const outcomeEntries = (effectKind: string) =>
-    failEntries.filter((entry) => 'outcome' in entry && entry.outcome.effectKind === effectKind)
-  const stops = outcomeEntries('MOVEMENT_RULE').filter(
-    (entry) =>
-      'outcome' in entry &&
-      entry.outcome.effectKind === 'MOVEMENT_RULE' &&
-      entry.outcome.ruleKind === 'STOP_CURRENT_MOVEMENT'
-  )
+  // D142: a failed save composes damage rows with at most one of each other outcome kind.
+  const outcomeEntries = (effectKind: string, ruleKind?: string) =>
+    failEntries.filter(
+      (entry) =>
+        'outcome' in entry &&
+        entry.outcome.effectKind === effectKind &&
+        (ruleKind === undefined ||
+          ('ruleKind' in entry.outcome && entry.outcome.ruleKind === ruleKind))
+    )
   const damageRows = outcomeEntries('DAMAGE')
-  const [grant] = outcomeEntries('APPLY_GRANT')
+  const singles = {
+    stop: outcomeEntries('MOVEMENT_RULE', 'STOP_CURRENT_MOVEMENT'),
+    grant: outcomeEntries('APPLY_GRANT'),
+    condition: outcomeEntries('CONDITION'),
+    lostAction: outcomeEntries('ACTION_ECONOMY_RULE', 'LOSE_ACTION')
+  }
+  const [stop] = singles.stop
+  const [grant] = singles.grant
+  const [condition] = singles.condition
+  const [lostAction] = singles.lostAction
+  const composed = Object.values(singles).reduce((count, list) => count + list.length, 0)
   if (
-    damageRows.length === 0 ||
-    outcomeEntries('APPLY_GRANT').length > 1 ||
-    stops.length > 1 ||
-    damageRows.length + stops.length + (grant ? 1 : 0) !== failEntries.length ||
+    failEntries.length === 0 ||
+    Object.values(singles).some((list) => list.length > 1) ||
+    damageRows.length + composed !== failEntries.length ||
     madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE')
   )
     unsupported(
-      'A placed zone failure stops movement, deals damage and may apply one grant; a made save only deals damage.'
+      'A placed zone failure composes damage with at most one stop, grant, condition and lost action; a made save only deals damage.'
     )
-  const damage = zoneDamageRow(damageRows, action.spellCastLevel)
+  // The frozen test graph holds one proposal per result path (D142, until SPELLS-4.T1e).
+  if (damageRows.length > 0 && condition)
+    unsupported('A placed zone failure deals damage or applies a condition, not both.')
+  if (
+    condition &&
+    'outcome' in condition &&
+    condition.outcome.effectKind === 'CONDITION' &&
+    !(action.conditionDefinitionIds ?? []).includes(condition.outcome.conditionId)
+  )
+    unsupported('A placed zone condition is not in the pinned System vocabulary.')
+  // The Action is lost for the turn just starting, after its allowances refresh.
+  if (
+    lostAction &&
+    (triggers.triggerModes.length > 0 ||
+      triggers.turnTriggers?.length !== 1 ||
+      triggers.turnTriggers[0] !== 'START_OF_TURN')
+  )
+    unsupported('A placed zone failure that costs the Action acts only at the start of a turn.')
+  // The graph proposes the damage or the condition; a failure without either binds the save itself.
+  const proposed =
+    damageRows.length > 0 ? zoneDamageRow(damageRows, action.spellCastLevel) : condition
+  const primary = proposed ?? lostAction ?? grant ?? stop
   const madeDamageRows =
     madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
-  if (!UUID.test(damage.entryId)) unsupported('A placed zone damage needs a compiled identity.')
+  if (!primary || !UUID.test(primary.entryId))
+    unsupported('A placed zone outcome needs a compiled identity.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
-    compiledEntryId: damage.entryId,
-    frozenGraphNodeId: 'proposal-on_save_fail',
+    compiledEntryId: primary.entryId,
+    frozenGraphNodeId: proposed ? 'proposal-on_save_fail' : 'test',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'NONE',
     initialRemaining: null,
@@ -2294,7 +2326,9 @@ function zonePlacementPlan(
     {
       kind: 'SAVE',
       branches: new Map([
-        ['ON_SAVE_FAIL', zoneDamageOutcome(damage, 'ON_SAVE_FAIL')],
+        ...(proposed
+          ? [['ON_SAVE_FAIL', zoneDamageOutcome(proposed, 'ON_SAVE_FAIL')] as const]
+          : []),
         ...madeDamageRows.map(
           (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
         )
@@ -2329,9 +2363,10 @@ function zonePlacementPlan(
       ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(lostAction ? { failedSaveLosesAction: true } : {}),
     entry: {
       ...entryPlan,
-      frozenGraph: stops.length ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
+      frozenGraph: stop ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
     },
     grant: lingering
       ? {
@@ -2341,7 +2376,7 @@ function zonePlacementPlan(
           endOnEvents: [...lingering.endOnEvents]
         }
       : null,
-    maintenance: maintenancePlan(action, damage)
+    maintenance: maintenancePlan(action, primary)
   }
 }
 
@@ -8755,6 +8790,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       interpretDirect({ execution, ...target }, graph, {
         fullTrace: true
       })
-    return { applications, terminal: false }
+    // A result path the graph authors no proposal for applies nothing (a zone failure that only
+    // costs the Action, or a made save that deals no damage).
+    const resultPath = execution.outputs.resultPath
+    const unproposedPath =
+      resolvedTest !== null &&
+      typeof resultPath === 'string' &&
+      !published.definition.nodes.some(({ id }) => id === `proposal-${resultPath.toLowerCase()}`)
+    return {
+      applications,
+      terminal: false,
+      ...(unproposedPath ? { emptyApplicationAllowed: true } : {})
+    }
   }
 }

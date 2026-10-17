@@ -2,7 +2,10 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { TurnEffectBoundary } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
@@ -12,6 +15,7 @@ import {
   ENCOUNTER_ID,
   srdCreatureTarget,
   SRD_SYSTEM_ID,
+  srdDefinitions,
   srdEncounterState,
   TIMESTAMP
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
@@ -44,6 +48,15 @@ import {
   tokens
 } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRuleUsageUsed,
+  withEncounterRuleUsageUsed
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import {
+  failedSaveOnly,
+  lostActionOutcome
+} from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
 import { insertRunActor, readRunActor, readRunActorWithRow, writeRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import {
@@ -170,6 +183,7 @@ async function stagedPlan(
     loadScene: async () => ({ effects: await scene.scope.list(), tokens, actorIdByTokenId }),
     loadTarget,
     createRuntime: async () => runtime,
+    definitions: srdDefinitions,
     random,
     autoRollByActorId: AUTO_ROLL
   })
@@ -350,6 +364,58 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     expect(creature(await readRunActor(scene.ctx, runState(), GOBLIN_ID)).currentHitPoints).toBe(
       actor.currentHitPoints - 1
     )
+  })
+
+  describe('for a zone whose failed save costs the Action (SPELLS-20 T4b3b, D141)', () => {
+    const lostAction = () =>
+      authoredZone(['START_TURN_IN_SPACE'], undefined, {}, failedSaveOnly(lostActionOutcome()))
+
+    it('spends the Action the plan names on the stored actor and returns it', async () => {
+      const scene = await seededScene(lostAction())
+      const plan = await stagedPlan(scene)
+      expect(plan.executions[0]?.actionEconomy).toMatchObject({ beforeUsed: 0, afterUsed: 1 })
+      const settled = await persist(scene, { plan }).result
+
+      const stored = await readRunActor(scene.ctx, runState(), GOBLIN_ID)
+      expect(encounterRuleUsageUsed(stored, ACTION)).toBe(1)
+      expect(settled?.actor).toEqual(stored)
+      expect(settled?.phase.executions[0]?.actionEconomy).toEqual(plan.executions[0]?.actionEconomy)
+    })
+
+    it('refuses a lost Action staged for a zone that does not cost one, without settling', async () => {
+      const lostActionPlan = await stagedPlan(await seededScene(lostAction()))
+      const scene = await seededScene()
+      const plan = await stagedPlan(scene)
+      const forged = {
+        ...plan,
+        executions: plan.executions.map((execution) => ({
+          ...execution,
+          actionEconomy: lostActionPlan.executions[0]!.actionEconomy
+        }))
+      }
+      const { result, applyMechanics } = persist(scene, { plan: forged })
+
+      await expect(result).rejects.toThrow('Staged turn zone action economy is stale.')
+      expect(applyMechanics).not.toHaveBeenCalled()
+    })
+
+    it('refuses a plan made before the creature spent its Action', async () => {
+      const scene = await seededScene(lostAction())
+      const plan = await stagedPlan(scene)
+      const { row, actor } = await readRunActorWithRow(scene.ctx, runState(), GOBLIN_ID)
+      await writeRunActor(
+        scene.ctx,
+        row._id,
+        encounterRunActorStateSchema.parse({
+          ...actor,
+          resources: withEncounterRuleUsageUsed(actor, ACTION, 1)
+        })
+      )
+
+      await expect(persist(scene, { plan }).result).rejects.toThrow(
+        'The selected action allowance changed before settlement.'
+      )
+    })
   })
 
   describe('on the START command', () => {
