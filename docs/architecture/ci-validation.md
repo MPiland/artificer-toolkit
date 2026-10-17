@@ -15,7 +15,7 @@ Every Vitest run CI makes is one suite in `SUITES` (`scripts/affectedTests.mjs`)
 | `worker`   | `apps/session-worker/vitest.config.ts` | `apps/session-worker` | Worker tests (workerd)                                |
 | `web`      | `apps/web/vitest.config.ts`, `unit`    | `apps/web`            | Web tests                                             |
 
-The selector fails the run when a tracked `*.test.*` or `*.spec.*` file belongs to no suite. Only `apps/web/tests/**` (Playwright, run locally) is exempt. This replaces the hand-kept package list that left `packages/authoring` and `packages/design-system` tests unrun.
+The selector fails the run when a tracked `*.test.*` or `*.spec.*` file belongs to no suite. Only `apps/web/tests/**` (Playwright, run locally) is exempt. This replaces the hand-kept package list, which left the `apps/apis/src` and `scripts/*.test.mjs` tests unrun.
 
 ## Full runs
 
@@ -36,14 +36,18 @@ Otherwise the changed files are `git diff --name-only --no-renames <merge-base w
 - Workspace package `exports` and `imports` resolve to the `src` file their `dist` target is compiled from. That is why Vitest's `--changed` and `vitest related` were not used: tests import packages through `dist` behind `node_modules` symlinks, which Vitest's module graph does not trace back to source, and a package change must also reach the other configs' suites (Convex, Worker, web). If a target cannot be mapped, the whole package is the dependency.
 - `tsconfig.json` `paths` (the web `#app/*` aliases).
 - `new URL('./file', import.meta.url)` file references (a Worker module, the SRD corpus text).
-- `import.meta.glob` patterns: every non-test module a glob matches. convex-test globs every Convex module and runs the ones a test reaches through `ctx.run*` by name at run time, so any Convex module change selects the Convex tests that use it.
+- `import.meta.glob` patterns: every non-test module a glob matches. convex-test globs every Convex module and runs the ones a test reaches through `ctx.run*` by name at run time, so any Convex module change selects every Convex test that globs the modules (most of the suite), not only the tests that call it.
 - Uncommitted generated modules (`GENERATED`) depend on their generator, e.g. the SRD manifest on `apps/apis/scripts/generateSrdManifest.ts`.
 - A relative import that no longer resolves depends on the deleted path, so deleting a module selects its importers.
 
 Two rules widen the selection for tests the graph cannot see into:
 
-- A test that imports `node:fs` reads files itself, for example a boundary or architecture scan. Every change under `apps/`, `packages/` or `scripts/` selects it.
+- A test or test helper (`isTestPath` in `redProof.mjs`: a `.test.`, `.testUtils.` or `.fixtures.` file, or a file under a test directory) that imports `node:fs` reads files itself, for example a boundary scan or the web route tests reading `routeTree.gen.ts`. Every change under `apps/`, `packages/` or `scripts/` selects the tests that reach it. So the Convex, packages and web jobs run some tests for almost any source change.
 - A suite whose setup file is reached runs in full.
+
+Known blind spots, each covered elsewhere: a file URL built from a template literal (only quoted literals are read), and a deleted module that was imported through a `#` alias or package subpath (only relative specifiers are tracked). The always-full typecheck catches a deleted import. A non-test helper that reads files at run time is not followed: name it `*.testUtils.*` or put it under a test directory.
+
+The selection decides what a slice's green run proves. The phase branch itself only runs in full through a `ci/merge-*` batch, a push of its tip to a `ci/` branch, or a `full: true` dispatch.
 
 A changed `__snapshots__/<test>.snap` selects its test. A change outside the source roots (docs, the ledger) selects nothing.
 

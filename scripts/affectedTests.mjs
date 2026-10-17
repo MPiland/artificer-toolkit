@@ -94,23 +94,22 @@ function globToRegExp(glob) {
   return new RegExp(`^${source}$`)
 }
 
-/** Parses tsconfig JSONC: comments and trailing commas outside strings. */
+/**
+ * Parses tsconfig JSONC (TypeScript 7 ships no JS API). Each pass matches a whole string literal first
+ * and keeps it, so only comments and trailing commas outside strings are removed.
+ */
 function readJsonc(path) {
-  const text = readFileSync(path, 'utf8')
-  let output = ''
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index]
-    if (char === '"') {
-      const end = text.indexOf('"', index + 1)
-      let close = end
-      while (text[close - 1] === '\\') close = text.indexOf('"', close + 1)
-      output += text.slice(index, close + 1)
-      index = close
-    } else if (text.startsWith('//', index)) index = text.indexOf('\n', index) - 1
-    else if (text.startsWith('/*', index)) index = text.indexOf('*/', index) + 1
-    else output += char
-  }
-  return JSON.parse(output.replace(/,(\s*[}\]])/g, '$1'))
+  const string = /("(?:[^"\\]|\\.)*")/.source
+  const text = readFileSync(path, 'utf8').replace(
+    new RegExp(`${string}|//[^\\n]*|/\\*[\\s\\S]*?\\*/`, 'g'),
+    (_, literal) => literal ?? ''
+  )
+  return JSON.parse(
+    text.replace(
+      new RegExp(`${string}|,(\\s*[}\\]])`, 'g'),
+      (_, literal, close) => literal ?? close
+    )
+  )
 }
 
 /** The string a package.json `exports`/`imports` entry points at for `subpath`. */
@@ -250,9 +249,9 @@ export function buildImportGraph(root, tracked) {
     const text = readFileSync(resolve(root, importer), 'utf8')
     const specifiers = IMPORT_PATTERNS.flatMap((pattern) => matchAll(text, pattern))
     for (const specifier of specifiers) {
-      if (FS_MODULES.has(specifier) && TEST_FILE.test(importer)) {
-        // A test that reads source files itself (an architecture or boundary scan) can depend on any
-        // of them, so every source change selects it.
+      if (FS_MODULES.has(specifier) && isTestPath(importer)) {
+        // A test or test helper that reads source files itself (an architecture or boundary scan, the
+        // generated route tree) can depend on any of them, so every source change selects its tests.
         predicates.push({ importer, matches: (path) => SOURCE_ROOT.test(path) })
         continue
       }
@@ -428,7 +427,9 @@ export function changesSince(root, base) {
   )
   return {
     changed: diff.map(([, path]) => path),
-    addedOrModified: diff.filter(([status]) => status === 'A' || status === 'M').map(([, path]) => path)
+    addedOrModified: diff
+      .filter(([status]) => status === 'A' || status === 'M')
+      .map(([, path]) => path)
   }
 }
 

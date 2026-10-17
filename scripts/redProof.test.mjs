@@ -15,6 +15,7 @@ describe('isTestPath', () => {
         'apps/web/src/test/setup.ts',
         'packages/authoring/src/fixtures/zone.ts',
         'apps/web/src/domains/characters/characterList.fixtures.ts',
+        'apps/web/src/routes/-routeTreeSource.testUtils.ts',
         'apps/apis/convex/__snapshots__/a.test.ts.snap'
       ].every(isTestPath)
     ).toBe(true)
@@ -58,11 +59,29 @@ describe('classify', () => {
         ]
       }
     ]
-    expect(classify(['a/import.test.ts', 'a/missing.test.ts', 'a/pass.test.ts', 'a/red.test.ts'], reports, root)).toEqual([
-      { file: 'a/import.test.ts', outcome: 'RED-IMPORT', detail: 'Error: Failed to load url ../newModule' },
-      { file: 'a/missing.test.ts', outcome: 'NOT-RUN', detail: 'No Vitest report holds this file.' },
+    expect(
+      classify(
+        ['a/import.test.ts', 'a/missing.test.ts', 'a/pass.test.ts', 'a/red.test.ts'],
+        reports,
+        root
+      )
+    ).toEqual([
+      {
+        file: 'a/import.test.ts',
+        outcome: 'RED-IMPORT',
+        detail: 'Error: Failed to load url ../newModule'
+      },
+      {
+        file: 'a/missing.test.ts',
+        outcome: 'NOT-RUN',
+        detail: 'No Vitest report holds this file.'
+      },
       { file: 'a/pass.test.ts', outcome: 'ALREADY-PASSING', detail: '' },
-      { file: 'a/red.test.ts', outcome: 'RED', detail: '1 of 2 failing: "test 1". First: AssertionError: expected 1 to be 2' }
+      {
+        file: 'a/red.test.ts',
+        outcome: 'RED',
+        detail: '1 of 2 failing: "test 1". First: AssertionError: expected 1 to be 2'
+      }
     ])
   })
 })

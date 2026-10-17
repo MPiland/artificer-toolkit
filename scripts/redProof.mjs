@@ -11,15 +11,28 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join, posix, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const TEST_DIRECTORIES = new Set(['test', 'tests', '__tests__', 'testing', 'fixtures', '__snapshots__'])
+const TEST_DIRECTORIES = new Set([
+  'test',
+  'tests',
+  '__tests__',
+  'testing',
+  'fixtures',
+  '__snapshots__'
+])
 
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/
 
-/** Test files and test-only helpers: a `.test.` or `.fixtures.` file, or anything under a test directory. */
+/**
+ * Test files and test-only helpers: a `.test.`, `.testUtils.` or `.fixtures.` file, or anything under a
+ * test directory.
+ */
 export const isTestPath = (path) =>
   TEST_FILE.test(path) ||
-  /\.fixtures?\.[cm]?[jt]sx?$/.test(path) ||
-  path.split('/').slice(0, -1).some((part) => TEST_DIRECTORIES.has(part))
+  /\.(testUtils|fixtures?)\.[cm]?[jt]sx?$/.test(path) ||
+  path
+    .split('/')
+    .slice(0, -1)
+    .some((part) => TEST_DIRECTORIES.has(part))
 
 /**
  * Packages whose build output carries a changed test helper (such as rules-runtime's `src/testing`),
@@ -41,7 +54,9 @@ export const packagesToRebuild = (files) => [
  */
 export function classify(files, reports, root) {
   const results = new Map(
-    reports.flatMap((report) => report.testResults).map((result) => [relative(root, result.name).replaceAll('\\', '/'), result])
+    reports
+      .flatMap((report) => report.testResults)
+      .map((result) => [relative(root, result.name).replaceAll('\\', '/'), result])
   )
   return files.map((file) => {
     const result = results.get(file)
@@ -85,13 +100,15 @@ export function summary(rows) {
  */
 function runSuites(root, files, suites) {
   // tsc still emits when the phase branch's code fails to type the tip's helper; the tests then report it.
-  for (const name of packagesToRebuild(files)) run(root, ['workspace', `@artificer-toolkit/${name}`, 'build'])
+  for (const name of packagesToRebuild(files))
+    run(root, ['workspace', `@artificer-toolkit/${name}`, 'build'])
   mkdirSync(join(root, 'local-validation'), { recursive: true })
   const rows = []
   for (const suite of suites) {
     const cwd = join(root, suite.root)
     const report = join(root, 'local-validation', `red-${suite.name}.json`)
-    if (suite.name === 'worker') run(root, ['workspace', '@artificer-toolkit/session-worker', 'types'])
+    if (suite.name === 'worker')
+      run(root, ['workspace', '@artificer-toolkit/session-worker', 'types'])
     run(cwd, [
       'vitest',
       'run',
@@ -105,7 +122,8 @@ function runSuites(root, files, suites) {
       `--outputFile.json=${report}`,
       ...suite.tests.map((file) => posix.relative(suite.root, file))
     ])
-    if (!existsSync(report)) throw new Error(`The ${suite.name} run wrote no report; see its output above.`)
+    if (!existsSync(report))
+      throw new Error(`The ${suite.name} run wrote no report; see its output above.`)
     rows.push(...classify(suite.tests, [JSON.parse(readFileSync(report, 'utf8'))], root))
   }
   return rows.sort((a, b) => a.file.localeCompare(b.file))

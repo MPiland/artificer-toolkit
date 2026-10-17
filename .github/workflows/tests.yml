@@ -99,7 +99,7 @@ jobs:
         env:
           CONVEX_WORKERS: ${{ inputs.convex_workers || '1' }}
           FILES: ${{ needs.build.outputs.convex-files }}
-          SHARD: --shard=${{ matrix.shard }}/${{ strategy.job-total }} --passWithNoTests
+          SHARD: --shard=${{ matrix.shard }}/${{ strategy.job-total }}
           REPORT: --reporter=default --reporter=json --outputFile.json=local-validation/vitest-convex.json
         # FILES is empty on a full run. set -f keeps route paths such as $id from globbing.
         run: |

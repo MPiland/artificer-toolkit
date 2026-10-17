@@ -112,6 +112,30 @@ describe('affected test selection', () => {
     expect(select(tracked, ['docs/notes.md'])).toEqual([])
   })
 
+  it('selects a test whose helper reads files itself on every source change', () => {
+    const tracked = write({
+      ...workspace,
+      'apps/app/src/-source.testUtils.ts': "import { readFileSync } from 'node:fs'\n",
+      'apps/app/src/routes.test.ts': "import { source } from './-source.testUtils.js'\n"
+    })
+    expect(select(tracked, ['apps/app/src/routeTree.gen.ts'])).toEqual([
+      'apps/app/src/routes.test.ts',
+      'apps/app/src/scan.test.ts'
+    ])
+  })
+
+  it('reads tsconfig comments at the end of the file and escaped backslashes in strings', () => {
+    const tracked = write({
+      ...workspace,
+      'apps/app/tsconfig.json':
+        '{ "compilerOptions": { "rootDir": "C:\\\\", "paths": { "#app/*": ["./src/*",], }, }, }\n// end'
+    })
+    expect(select(tracked, ['apps/app/src/view.ts'])).toEqual([
+      'apps/app/src/scan.test.ts',
+      'apps/app/src/view.test.ts'
+    ])
+  })
+
   it('runs a whole suite when its setup files are affected', () => {
     const tracked = write({
       ...workspace,
@@ -159,7 +183,15 @@ describe('the red proof', () => {
   const git = (...args) =>
     execFileSync(
       'git',
-      ['-c', 'user.name=test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', ...args],
+      [
+        '-c',
+        'user.name=test',
+        '-c',
+        'user.email=test@example.invalid',
+        '-c',
+        'commit.gpgsign=false',
+        ...args
+      ],
       { cwd: root, stdio: 'pipe', encoding: 'utf8' }
     )
   let base
@@ -198,7 +230,12 @@ describe('the red proof', () => {
       'pkg/test/fixture.ts'
     ])
     const suites = [
-      { name: 'unit', config: 'vitest.config.ts', root: '.', tests: ['pkg/src/a.test.ts', 'pkg/src/b.test.ts'] },
+      {
+        name: 'unit',
+        config: 'vitest.config.ts',
+        root: '.',
+        tests: ['pkg/src/a.test.ts', 'pkg/src/b.test.ts']
+      },
       { name: 'other', config: 'other.config.ts', root: 'other', tests: ['other/c.test.ts'] }
     ]
     expect(redProof(suites, addedOrModified)).toEqual({
@@ -218,7 +255,12 @@ describe('the red proof', () => {
   it('proves nothing for a production-only change', () => {
     write({ 'pkg/src/a.ts': 'export const a = 3\n' })
     git('commit', '--quiet', '-am', 'fix')
-    const suites = [{ name: 'unit', config: 'vitest.config.ts', root: '.', tests: ['pkg/src/a.test.ts'] }]
-    expect(redProof(suites, changesSince(root, base).addedOrModified)).toEqual({ files: [], suites: [] })
+    const suites = [
+      { name: 'unit', config: 'vitest.config.ts', root: '.', tests: ['pkg/src/a.test.ts'] }
+    ]
+    expect(redProof(suites, changesSince(root, base).addedOrModified)).toEqual({
+      files: [],
+      suites: []
+    })
   })
 })
