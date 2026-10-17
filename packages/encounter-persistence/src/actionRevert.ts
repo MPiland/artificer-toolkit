@@ -559,7 +559,8 @@ export async function revertLastEncounterAction(
     const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
     for (const effect of [
       ...action.activeEffectTransitions,
-      ...(reaction?.activeEffectTransitions ?? [])
+      ...(reaction?.activeEffectTransitions ?? []),
+      ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : [])
     ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,

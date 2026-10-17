@@ -43,7 +43,7 @@ afterEach(() => {
 /** Shield with the cast filter taken off its "chosen as a target" reaction: it answers any cast. */
 const unfilteredShield: SpellAuthored = {
   ...shield,
-  effects: shield.effects?.map((effect) => {
+  effects: shield.effects?.map((effect): NonNullable<SpellAuthored['effects']>[number] => {
     const { invocation } = effect
     if (!('reactionTrigger' in invocation) || invocation.reactionTrigger?.kind !== 'TARGETED_SELF')
       return effect
