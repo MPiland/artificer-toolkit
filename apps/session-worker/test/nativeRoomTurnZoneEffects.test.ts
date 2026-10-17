@@ -18,7 +18,13 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { endConcentrationAtSheet, hitPointsOf, readZones } from './placedZoneRoomReads.js'
+import {
+  endConcentrationAtSheet,
+  hitPointsOf,
+  readMaintainedStates,
+  readSheetStreamVersion,
+  readZones
+} from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -398,7 +404,12 @@ describe('a room START with a turn-boundary zone (SPELLS-20 T4f)', () => {
 describe('a zone ending while its save is pending (SPELLS-20 T4f)', () => {
   /** The ways a placed aura can end in play, each sent while its save is pending. */
   async function endingsWhilePending(room: Room) {
+    const sheetVersion = await readSheetStreamVersion(room, CASTER_ID)
+    const maintained = await readMaintainedStates(room)
     const concentration = await endConcentrationAtSheet(room, CASTER_ID)
+    // The refused Sheet write rolls back whole: the Sheet and the Concentration slot are untouched.
+    expect(await readSheetStreamVersion(room, CASTER_ID)).toBe(sheetVersion)
+    expect(await readMaintainedStates(room)).toEqual(maintained)
     const removal = await room.send({
       type: 'REMOVE_ACTOR',
       encounterId: room.room.encounterId,

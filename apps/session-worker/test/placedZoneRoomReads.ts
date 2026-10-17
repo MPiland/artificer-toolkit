@@ -69,18 +69,23 @@ export async function walkerMoves(
   return { terminalPosition, executions: walked?.executions ?? [] }
 }
 
-/**
- * The player of `characterId` ends the Character's Concentration on the Sheet, as its holder may at
- * any time; the room's answer, not yet checked.
- */
-export async function endConcentrationAtSheet(room: ActionRoom, characterId: string) {
-  const streamVersion = await runInDurableObject(room.room.base.stub, (_instance, context) => {
+/** The Character's Sheet stream version the room holds. */
+export function readSheetStreamVersion(room: ActionRoom, characterId: string) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
     const play = new RoomEncounterStore(context.storage)
       .documents('characterPlayStates')
       .find((row) => row.characterId === characterId)
     if (!play) throw new Error('Missing room Character play state.')
     return play.streamVersion
   })
+}
+
+/**
+ * The player of `characterId` ends the Character's Concentration on the Sheet, as its holder may at
+ * any time; the room's answer, not yet checked.
+ */
+export async function endConcentrationAtSheet(room: ActionRoom, characterId: string) {
+  const streamVersion = await readSheetStreamVersion(room, characterId)
   const player = await connectPlayer(room.room.base)
   const commandId = crypto.randomUUID()
   player.socket.send(

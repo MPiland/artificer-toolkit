@@ -2596,15 +2596,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return
       }
       if (error instanceof EncounterDomainRejection) {
-        send(socket, {
-          code: 'DOMAIN_REJECTED',
-          commandId,
-          currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
-          message: error.data.message,
-          reason: error.data.reason,
-          warnings: error.data.reason === 'RULE_WARNINGS' ? error.data.warnings : null,
-          type: 'COMMAND_REJECTED'
-        })
+        this.#sendDomainRejection(socket, commandId, error)
         return
       }
       const refusal = encounterCommandRefusal(error)
@@ -2948,16 +2940,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         error instanceof EncounterDomainRejection ||
         error instanceof LiveSessionDomainRejectionError
       ) {
-        const rejection = error instanceof EncounterDomainRejection ? error.data : error.rejection
-        send(socket, {
-          code: 'DOMAIN_REJECTED',
-          commandId: command.commandId,
-          currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
-          message: rejection.message,
-          reason: rejection.reason,
-          warnings: rejection.reason === 'RULE_WARNINGS' ? rejection.warnings : null,
-          type: 'COMMAND_REJECTED'
-        })
+        this.#sendDomainRejection(socket, command.commandId, error)
         return
       }
       if (error instanceof RoomRateLimitedError)
@@ -3580,17 +3563,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       error instanceof LiveSessionDomainRejectionError ||
       error instanceof EncounterDomainRejection
     ) {
-      const rejection = error instanceof EncounterDomainRejection ? error.data : error.rejection
-      send(socket, {
-        code: 'DOMAIN_REJECTED',
-        commandId,
-        ...(correction ? { correction } : {}),
-        currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
-        message: rejection.message,
-        reason: rejection.reason,
-        warnings: rejection.reason === 'RULE_WARNINGS' ? rejection.warnings : null,
-        type: 'COMMAND_REJECTED'
-      })
+      this.#sendDomainRejection(socket, commandId, error, correction)
       return
     }
     if (error instanceof RoomRateLimitedError) {
@@ -3969,6 +3942,26 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       type: 'COMMAND_COMMITTED'
     }
   }
+  /** The one mapping of a domain rejection, Encounter or Live Session, to its socket refusal. */
+  #sendDomainRejection(
+    socket: WebSocket,
+    commandId: string,
+    error: EncounterDomainRejection | LiveSessionDomainRejectionError,
+    correction?: LiveSessionCorrectionDto
+  ): void {
+    const rejection = error instanceof EncounterDomainRejection ? error.data : error.rejection
+    send(socket, {
+      code: 'DOMAIN_REJECTED',
+      commandId,
+      ...(correction ? { correction } : {}),
+      currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
+      message: rejection.message,
+      reason: rejection.reason,
+      warnings: rejection.reason === 'RULE_WARNINGS' ? rejection.warnings : null,
+      type: 'COMMAND_REJECTED'
+    })
+  }
+
   #rejectCommand(
     socket: WebSocket,
     commandId: string,

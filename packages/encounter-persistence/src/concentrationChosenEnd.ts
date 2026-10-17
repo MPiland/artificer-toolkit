@@ -19,6 +19,7 @@ import {
 } from './concentrationCleanupPersistence.js'
 import { postConcentrationEndMessage } from './concentrationEnd.js'
 import { readRunState } from './documents.js'
+import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -144,6 +145,17 @@ export async function endChosenConcentration(
   // A manual Encounter records no Concentration (D95 ends none either), so there is nothing to end.
   if (state.automationMode === 'MANUAL')
     throw new Error('Concentration is not tracked in a manual Encounter.')
+  // Ending Concentration ends its placed zones, which a pending prompt may be resolving (D138): it
+  // waits for the prompt like every other zone-ending command, whichever path ends it.
+  if (
+    await ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_encounterId_state', (query) =>
+        query.eq('encounterId', state.id).eq('state', 'PENDING')
+      )
+      .first()
+  )
+    rejectDomain('PENDING_DECISION')
   const store = createActiveRuleEffectStore(ctx)
   const slot = await store.findMaintainedState({
     encounterId: state.id,

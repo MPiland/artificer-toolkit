@@ -5,7 +5,6 @@ import {
   endOutsideCasterConcentration
 } from '@artificer-toolkit/encounter-persistence/concentrationChosenEnd'
 import { endConcentrationAfterEdit } from '@artificer-toolkit/encounter-persistence/concentrationEditEnd'
-import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { engageStoredIdleTurnActor } from '@artificer-toolkit/encounter-persistence/idleTurnMark'
@@ -215,18 +214,6 @@ export async function executeRoomCharacterSheetCommand(input: {
     throw new CharacterSheetCommandError(
       'Character Sheet changed; refresh before applying this command.'
     )
-  // Ending Concentration ends its placed zones, which a pending prompt may be resolving (D138): it
-  // waits for the prompt like every other zone-ending command.
-  if (
-    command.type === 'END_CONCENTRATION' &&
-    (await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (query) =>
-        query.eq('encounterId', state.id).eq('state', 'PENDING')
-      )
-      .first())
-  )
-    rejectDomain('PENDING_DECISION')
 
   const resourceUsageUpdate = getSheetCommandResourceUsageUpdate({
     sheet,
