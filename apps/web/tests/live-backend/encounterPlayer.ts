@@ -215,6 +215,11 @@ export async function verifyEncounterPlayerBrowser(
         await expect(order.locator('[aria-current="true"]')).toContainText(input.wolf.label)
         await page.getByRole('button', { name: 'Close turn order', exact: true }).click()
       },
+      assertDeathSaveSettled: async () => {
+        stage = 'verify the rolled death save leaves no pending decision'
+        await expect(decisionDrawer).toBeHidden()
+        await expect(page.getByRole('button', { name: 'Open pending decision', exact: true })).toBeHidden()
+      },
       assertDeathSaveOffered: async () => {
         stage = 'verify the death save is offered'
         await openDecision()

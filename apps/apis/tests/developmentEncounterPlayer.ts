@@ -52,6 +52,7 @@ export type EncounterPlayerBrowserControls = {
   endTurn: () => Promise<void>
   /** The pending death-save decision is the one titled "Death save". */
   assertDeathSaveOffered: () => Promise<void>
+  assertDeathSaveSettled: () => Promise<void>
 }
 
 export type EncounterPlayerBrowserRunner = (
@@ -472,6 +473,7 @@ export async function verifyEncounterPlayer({
       await controls.assertDeathSaveOffered()
       const saveRolled = await controls.answerEvidence(12)
       assert.equal(saveRolled.result.occurrence?.status, 'COMPLETE')
+      await controls.assertDeathSaveSettled()
       const timeline = await readTimeline()
       assert.ok(timeline, 'The room must push the held Run timeline.')
     }
