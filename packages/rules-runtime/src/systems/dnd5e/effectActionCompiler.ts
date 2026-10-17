@@ -610,36 +610,25 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
 /**
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
  * actor relationship, a grant an attack's hit applies (Shocking Grasp's "can't take reactions"),
- * and a grant a failed save applies beside its timed conditions (Hypnotic Pattern's speed of 0; see
- * `assertSaveFailureGrantOwned`).
+ * and a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
+ * Pattern's speed of 0). Any other failed-save grant stays an ordinary test outcome.
  */
-function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]): boolean {
+function isActiveEffectPlanOutcome(
+  entry: CompiledEffectGroup['entries'][number],
+  action: Dnd5eCompiledEffectActionSource
+): boolean {
   if (!('outcome' in entry)) return false
   return (
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
-      (entry.pathCode === 'ON_HIT' ||
-        entry.pathCode === 'ON_CRIT' ||
-        entry.pathCode === 'ON_SAVE_FAIL')) ||
+      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
+    (entry.outcome.effectKind === 'APPLY_GRANT' &&
+      entry.pathCode === 'ON_SAVE_FAIL' &&
+      timedConditionPlan(action) !== null) ||
     (entry.outcome.effectKind === 'MANIFEST' &&
       entry.outcome.manifestKind === 'CREATURE' &&
       entry.pathCode === 'ON_SAVE_FAIL')
   )
-}
-
-/** A failed save's grant is left to the timed-condition plan, so a save without that plan must not drop it. */
-function assertSaveFailureGrantOwned(action: Dnd5eCompiledEffectActionSource): void {
-  if (
-    testPhaseKindOrNull(action) === 'SAVE' &&
-    action.compiledEffect.entries.some(
-      (entry) =>
-        'outcome' in entry &&
-        entry.outcome.effectKind === 'APPLY_GRANT' &&
-        entry.pathCode === 'ON_SAVE_FAIL'
-    ) &&
-    timedConditionPlan(action) === null
-  )
-    unsupported('D&D grant after a saving throw must be held by one timed condition effect.')
 }
 
 /** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
@@ -1799,7 +1788,7 @@ function modifierGrantPlan(
   const hitGrants = attack
     ? entries.filter(
         (entry) =>
-          isActiveEffectPlanOutcome(entry) &&
+          isActiveEffectPlanOutcome(entry, action) &&
           'outcome' in entry &&
           entry.outcome.effectKind === 'APPLY_GRANT'
       )
@@ -3007,10 +2996,9 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const relationshipEntries = entries.filter(
     (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
   )
-  const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry))
+  const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry, action))
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
-  assertSaveFailureGrantOwned(action)
   // A failed save's creature form is left to its active-effect plan; one the plan cannot carry
   // must not silently vanish.
   if (
@@ -4526,7 +4514,6 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   )
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
-  assertSaveFailureGrantOwned(action)
   if (
     action.compiledEffect.entries.some(
       (entry) => 'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
@@ -4537,7 +4524,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   const paths = new Set<string>()
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
-    if (isActiveEffectPlanOutcome(entry)) continue
+    if (isActiveEffectPlanOutcome(entry, action)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
     if (
@@ -5520,7 +5507,7 @@ function authoredOutcomeGroups(
   pathCode: SpecializedPath
 ): readonly (readonly CompiledEffectGroup['entries'][number][])[] {
   const entries = action.compiledEffect.entries.filter(
-    (entry) => entry.pathCode === pathCode && !isActiveEffectPlanOutcome(entry)
+    (entry) => entry.pathCode === pathCode && !isActiveEffectPlanOutcome(entry, action)
   )
   if (entries.length === 0) return []
   if (entries.some((entry) => !('outcome' in entry)))
