@@ -25656,6 +25656,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -26736,6 +26779,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -27879,6 +27965,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -29062,6 +29191,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -30164,6 +30336,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -31249,6 +31464,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -32390,6 +32648,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -35175,6 +35476,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -36255,6 +36599,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -37398,6 +37785,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -38581,6 +39011,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -39683,6 +40156,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -40768,6 +41284,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -41909,6 +42468,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -44703,6 +45305,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -45783,6 +46428,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -46926,6 +47614,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -48109,6 +48840,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -49211,6 +49985,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -50296,6 +51113,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -51437,6 +52297,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -54222,6 +55125,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -55302,6 +56248,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -56445,6 +57434,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -57628,6 +58660,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -58730,6 +59805,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -59815,6 +60933,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -60956,6 +62117,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -63776,6 +64980,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -64856,6 +66103,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -65999,6 +67289,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -67182,6 +68515,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -68284,6 +69660,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -69369,6 +70788,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -70510,6 +71972,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -73295,6 +74800,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -74375,6 +75923,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -75518,6 +77109,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -76701,6 +78335,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -77803,6 +79480,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -78888,6 +80608,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -80029,6 +81792,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -82783,6 +84589,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode: "SAVING_THROW";
@@ -83851,6 +85700,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode:
@@ -84976,6 +86868,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode: "SAVING_THROW";
@@ -86137,6 +88072,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode: "SAVING_THROW";
@@ -87227,6 +89205,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode: "CHECK";
@@ -88300,6 +90321,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode:
@@ -89425,6 +91489,49 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              hitPointPool?: { diceConfig: string };
+                              hitPointPoolScaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: { diceConfig: string };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
                               selectionKind: "AREA_CONTENTS";
                             };
                         triggerCode:
@@ -92205,6 +94312,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -93285,6 +95435,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -94428,6 +96621,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -95611,6 +97847,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -96713,6 +98992,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -97798,6 +100120,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -98939,6 +101304,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -101724,6 +104132,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -102804,6 +105255,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -103947,6 +106441,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -105130,6 +107667,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "SAVING_THROW";
@@ -106232,6 +108812,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode: "CHECK";
@@ -107317,6 +109940,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:
@@ -108458,6 +111124,49 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                hitPointPool?: { diceConfig: string };
+                                hitPointPoolScaling?:
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CHARACTER_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      classId: string;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "PARENT_CLASS_LEVEL";
+                                    }
+                                  | {
+                                      breakpoints: Array<{
+                                        id: string;
+                                        level: number;
+                                        order: number;
+                                        value: { diceConfig: string };
+                                      }>;
+                                      scalingKind: "BREAKPOINTS";
+                                      scalingSource: "SPELL_CAST_LEVEL";
+                                    };
                                 selectionKind: "AREA_CONTENTS";
                               };
                           triggerCode:

@@ -19,7 +19,10 @@ import {
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
-import { resolveChosenCreaturesTargeting } from './encounterAreaAction.js'
+import {
+  resolveAreaContentsTargeting,
+  resolveChosenCreaturesTargeting
+} from './encounterAreaAction.js'
 import { placedSpaceManifest } from './encounterZonePlacement.js'
 
 class CharacterActionEntryPointIntegrityError extends Error {
@@ -35,11 +38,14 @@ export function buildCompiledActionTargetPolicy(
   const targeting = descriptor.compiledEffect.invocation.targeting
   return {
     range: descriptor.compiledEffect.invocation.range,
-    // A spell's cap scaled by its cast level is the number it is at this cast (Magic Missile's darts).
+    // A spell's cap or pool scaled by its cast level is the number it is at this cast (Magic Missile's
+    // darts, Sleep's hit points).
     targeting:
       targeting?.selectionKind === 'CHOSEN_CREATURES'
         ? resolveChosenCreaturesTargeting(targeting, descriptor)
-        : (targeting ?? null),
+        : targeting?.selectionKind === 'AREA_CONTENTS'
+          ? resolveAreaContentsTargeting(targeting, descriptor)
+          : (targeting ?? null),
     // A zone an action places is the area it takes a point for, when the invocation names none.
     shape:
       descriptor.compiledEffect.invocation.shape ??

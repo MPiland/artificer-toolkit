@@ -312,5 +312,5 @@ lifecycle and Encounter Blueprint model are accepted.
 - “View as player” and deliberate co-GM/assistant-GM roles with a separate permission model rather than treating every helper as the owner.
 - Ambience libraries, playlists, scene audio, and player presentation controls after the VTT/media usage model is known.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
-- **Creature forms, later pieces (SPELLS-28):** T4d (the form's actions replace the Character's, plus the form's defenses, speeds, senses and proficiency merge), T4b (a form outliving the Run), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
+- **Creature forms, later pieces (SPELLS-28):** the form's defenses, speeds, senses and proficiency merge (rest of T4d), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.
