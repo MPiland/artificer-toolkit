@@ -89,63 +89,64 @@ export const grease: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.GREASE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      id: spellChildId(SPELL_IDS.GREASE, 0x217, 1),
-      order: 2,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.SAVING_THROW,
-        savingThrow: {
-          id: spellChildId(SPELL_IDS.GREASE, 0x21a, 1),
-          dcMethod: 'SOURCE_SAVE_DC',
-          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
-        },
-        activation: {
-          code: ACTIVATION_CODE.ACTION,
-          amount: 1
-        },
-        range: {
-          id: spellChildId(SPELL_IDS.GREASE, 0x218, 1),
-          rangeKind: RANGE_KIND.DISTANCE,
-          amount: 60,
-          unit: MEASUREMENT_UNIT_CODE.FEET
-        },
-        shape: {
-          id: spellChildId(SPELL_IDS.GREASE, 0x219, 1),
-          shapeKind: SHAPE_KIND.CUBE,
-          edgeLength: {
-            amount: 10,
-            unit: MEASUREMENT_UNIT_CODE.FEET
-          }
-        },
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [
-        {
-          id: spellChildId(SPELL_IDS.GREASE, 0x216, 1),
-          order: 1,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.GREASE, 0x216, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.GREASE, 0x216, 1),
-                effectKind: EFFECT_KIND.CONDITION,
-                conditionId: conditionTypeId('PRONE')
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Grease',
+                shape: {
+                  id: spellChildId(SPELL_IDS.GREASE, 0x220, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.GREASE, 0x221, 1),
+                    order: 1,
+                    label: 'Enter the grease',
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'END_TURN_IN_SPACE' as const
+                    ],
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.GREASE, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.GREASE, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.GREASE, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.GREASE, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.GREASE, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                {
+                                  id: spellChildId(SPELL_IDS.GREASE, 0x226, 1),
+                                  effectKind: EFFECT_KIND.CONDITION,
+                                  conditionId: conditionTypeId('PRONE')
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

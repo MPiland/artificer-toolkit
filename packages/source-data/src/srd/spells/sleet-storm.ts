@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SHAPE_KIND,
@@ -17,7 +18,15 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The storm: a 40-foot-radius, 20-foot-tall cylinder. */
+const storm = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.SLEET_STORM, kind, 1),
+  shapeKind: SHAPE_KIND.CYLINDER,
+  radius: { amount: 40, unit: MEASUREMENT_UNIT_CODE.FEET },
+  height: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+})
 export const sleetStorm: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SLEET_STORM,
@@ -52,19 +61,9 @@ export const sleetStorm: SpellAuthored = {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
         },
-        shape: {
-          id: spellChildId(SPELL_IDS.SLEET_STORM, 0x212, 1),
-          shapeKind: SHAPE_KIND.CYLINDER,
-          radius: {
-            amount: 40,
-            unit: MEASUREMENT_UNIT_CODE.FEET
-          },
-          height: {
-            amount: 20,
-            unit: MEASUREMENT_UNIT_CODE.FEET
-          }
-        }
+        shape: storm(0x212)
       },
+
       paths: [
         {
           id: spellChildId(SPELL_IDS.SLEET_STORM, 0x213, 1),
@@ -84,8 +83,63 @@ export const sleetStorm: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SLEET_STORM, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SLEET_STORM' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Sleet Storm',
+                shape: storm(0x220),
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.SLEET_STORM, 0x221, 1),
+                    order: 1,
+                    label: 'Enter the sleet storm',
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'START_TURN_IN_SPACE' as const
+                    ],
+                    maxApplicationsPerTurn: 1,
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.SLEET_STORM, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.SLEET_STORM, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.SLEET_STORM, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.SLEET_STORM, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.SLEET_STORM, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                {
+                                  id: spellChildId(SPELL_IDS.SLEET_STORM, 0x226, 1),
+                                  effectKind: EFFECT_KIND.CONDITION,
+                                  conditionId: conditionTypeId('PRONE')
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

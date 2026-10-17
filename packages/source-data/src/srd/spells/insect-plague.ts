@@ -115,7 +115,10 @@ export const insectPlague: SpellAuthored = {
                     id: spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x221, 1),
                     order: 1,
                     label: 'Enter the locust swarm',
-                    interactionKinds: ['ENTER_SPACE' as const, 'END_TURN_IN_SPACE' as const],
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'END_TURN_IN_SPACE' as const
+                    ],
                     maxApplicationsPerTurn: 1,
                     behaviors: [
                       {
