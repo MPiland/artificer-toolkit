@@ -1,0 +1,370 @@
+import { beforeAll, describe, expect, it } from 'vitest'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterSpatialRuleEffectRecordSchema,
+  type EncounterSpatialRuleEffectRecord
+} from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  executedTurnZonePhaseEvidenceDtoSchema,
+  refineTurnZoneEffectsEvidence
+} from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
+import type { z } from 'zod'
+import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { zoneApplicationKey } from '@artificer-toolkit/shared/vtt'
+
+import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
+import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { projectNativeTurnPending, turnPendingActorId } from '../encounterTurnPending.js'
+import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
+import type { RulesRuntimeService } from '../rulesRuntimeService.js'
+import {
+  createSrdRulesRuntime,
+  ENCOUNTER_ID,
+  srdCreatureActor,
+  srdCreatureTarget,
+  srdEncounterState,
+  testUuid,
+  TIMESTAMP
+} from '../testing/dnd5eSrdEncounter.js'
+import { diceDamage, variantEquipment, zonePlacementOf } from './authoredZoneFixture.js'
+import { GOBLIN } from './encounterActiveEffectFixtures.js'
+
+const GOBLIN_ID = testUuid(0x301)
+const SOURCE_ID = testUuid(0x302)
+const GOBLIN_TOKEN_ID = testUuid(0x303)
+const SOURCE_TOKEN_ID = testUuid(0x304)
+const SCENE_ID = testUuid(0x305)
+const OCCURRENCE_ID = testUuid(0x306)
+const GM_USER_ID = testUuid(0x9a)
+const ZONE_POINT = { x: 250, y: 350 }
+const START = { ordinal: 1, stage: 'START_OF_TURN', actorId: GOBLIN_ID } as const
+const END = { ordinal: 0, stage: 'END_OF_TURN', actorId: GOBLIN_ID } as const
+
+const goblin = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN })
+const source = srdCreatureActor({ id: SOURCE_ID, creature: GOBLIN })
+const actors = [goblin, source]
+const tokens = [
+  { id: GOBLIN_TOKEN_ID, position: ZONE_POINT, width: 100, height: 100 },
+  { id: SOURCE_TOKEN_ID, position: { x: 1000, y: 350 }, width: 100, height: 100 }
+]
+const actorIdByTokenId = new Map([
+  [GOBLIN_TOKEN_ID, GOBLIN_ID],
+  [SOURCE_TOKEN_ID, SOURCE_ID]
+])
+
+const root = turnCoordinatorRootDtoSchema.parse({
+  rootCommandId: testUuid(0x307),
+  commandFingerprint: 'f'.repeat(64),
+  commandType: 'ADVANCE_TURN',
+  initiatorUserId: GM_USER_ID,
+  requestedByUserId: GM_USER_ID,
+  correlationId: null,
+  expectedEncounterVersion: 7,
+  proposedTerminalTransition: { status: 'ACTIVE', round: 1, currentActorId: GOBLIN_ID },
+  resolutionCommands: []
+})
+
+/** A 5-foot Caltrops-shaped zone whose failed Dexterity save (DC 15) deals 1d4, acting at the given boundaries. */
+function authoredZone(
+  interactionKinds: ('START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
+  maxApplicationsPerTurn?: number
+): EquipmentAuthored {
+  return variantEquipment((parts) => {
+    diceDamage('1d4')(parts)
+    parts.component.interactionKinds = interactionKinds
+    if (maxApplicationsPerTurn !== undefined)
+      Object.assign(parts.component, { maxApplicationsPerTurn })
+  })
+}
+
+/** The zone the real planner leaves at the goblin's space, stored as the Scene effect store keeps it. */
+function placedZone(
+  seed: number,
+  equipment: EquipmentAuthored,
+  createdOrdinal: number
+): EncounterSpatialRuleEffectRecord {
+  const placed = planEncounterPlacedZone({
+    zone: zonePlacementOf(equipment),
+    id: testUuid(seed),
+    maintainedEffectStateId: null,
+    encounterId: ENCOUNTER_ID,
+    occurrenceId: testUuid(0x308),
+    rootCommandId: testUuid(0x309),
+    sourceActorId: SOURCE_ID,
+    point: ZONE_POINT,
+    area: { kind: 'CUBE', edgeLength: 100 },
+    sourceToken: null,
+    saveDc: null
+  })
+  return encounterSpatialRuleEffectRecordSchema.parse({
+    id: placed.id,
+    encounterId: ENCOUNTER_ID,
+    sceneId: SCENE_ID,
+    createdOrdinal,
+    version: 1,
+    maintainedEffectStateId: null,
+    definition: placed.definition,
+    definitionChecksum: checksumCanonicalJson(placed.definition),
+    lifecycle: placed.lifecycle,
+    lifecycleChecksum: checksumCanonicalJson(placed.lifecycle),
+    placement: placed.placement,
+    placementChecksum: checksumCanonicalJson(placed.placement),
+    spatialState: placed.spatialState,
+    spatialStateChecksum: checksumCanonicalJson(placed.spatialState),
+    createdAt: TIMESTAMP,
+    updatedAt: TIMESTAMP
+  })
+}
+
+let runtime: RulesRuntimeService
+beforeAll(async () => {
+  runtime = await createSrdRulesRuntime()
+})
+
+const AUTO_ROLL = { [GOBLIN_ID]: true, [SOURCE_ID]: true }
+
+function prepare(input: {
+  zones: readonly EncounterSpatialRuleEffectRecord[]
+  boundary: typeof START | typeof END
+  /** Who auto-rolls; both creatures by default. The scripted roll is always the lowest face. */
+  autoRollByActorId?: Record<string, boolean>
+  state?: ReturnType<typeof srdEncounterState>
+  pending?: ServerRuleExecutionPendingSnapshotDto
+  resolution?: EncounterResponseAnswer
+}) {
+  return prepareEncounterTurnZoneEffects({
+    state: input.state ?? srdEncounterState({ actors, currentActorId: GOBLIN_ID, turnSequence: 3 }),
+    userId: GM_USER_ID,
+    root,
+    occurrenceId: OCCURRENCE_ID,
+    actors,
+    boundary: input.boundary,
+    loadScene: async () => ({ effects: input.zones, tokens, actorIdByTokenId }),
+    loadTarget: async (actorId) => srdCreatureTarget(actors.find((actor) => actor.id === actorId)!),
+    createRuntime: async () => runtime,
+    random: () => 0,
+    autoRollByActorId: input.autoRollByActorId ?? AUTO_ROLL,
+    ...(input.pending ? { pending: input.pending } : {}),
+    ...(input.resolution ? { resolution: input.resolution } : {})
+  })
+}
+
+async function complete(run: ReturnType<typeof prepare>) {
+  const result = await run
+  if (result.kind !== 'COMPLETE') throw new Error('Expected a completed zone phase.')
+  return result
+}
+
+async function pending(run: ReturnType<typeof prepare>) {
+  const result = await run
+  if (result.kind !== 'PENDING') throw new Error('Expected a pending zone phase.')
+  return result.snapshot
+}
+
+const hitPoints = (list: readonly EncounterRunActorState[], id: string) => {
+  const actor = list.find((candidate) => candidate.id === id)
+  return actor && actor.kind !== 'CHARACTER' ? actor.currentHitPoints : undefined
+}
+const effectIds = (plan: Awaited<ReturnType<typeof complete>>['plan']) =>
+  plan?.executions.map((execution) => execution.candidate.candidate.effectId)
+
+describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
+  it('deals its failed-save damage at the start of the turn of a creature standing in it', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const phase = await complete(prepare({ zones: [zone], boundary: START }))
+    expect(phase.plan?.executions).toHaveLength(1)
+    const [execution] = phase.plan!.executions
+    expect(execution).toMatchObject({
+      ordinal: 0,
+      candidate: {
+        boundaryOrdinal: 1,
+        candidate: {
+          effectId: zone.id,
+          sourceActorId: SOURCE_ID,
+          targetActorId: GOBLIN_ID,
+          trigger: 'START_OF_TURN'
+        }
+      }
+    })
+    expect(execution!.targetTransition.after.currentHitPoints).toBe(
+      execution!.targetTransition.before.currentHitPoints - 1
+    )
+    expect(hitPoints(phase.actors, GOBLIN_ID)).toBe(
+      execution!.targetTransition.after.currentHitPoints
+    )
+    expect(hitPoints(phase.actors, SOURCE_ID)).toBe(hitPoints(actors, SOURCE_ID))
+  })
+
+  it('acts only at the boundary it names', async () => {
+    const startOnly = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const endOnly = placedZone(0x3a2, authoredZone(['END_TURN_IN_SPACE']), 2)
+    const atEnd = await complete(prepare({ zones: [startOnly, endOnly], boundary: END }))
+    expect(effectIds(atEnd.plan)).toEqual([endOnly.id])
+    expect(atEnd.plan?.executions[0]?.candidate.boundaryOrdinal).toBe(0)
+    const atStart = await complete(prepare({ zones: [startOnly, endOnly], boundary: START }))
+    expect(effectIds(atStart.plan)).toEqual([startOnly.id])
+  })
+
+  it('applies two zones at one boundary in effect-id order, each from the state the last left', async () => {
+    const authored = authoredZone(['START_TURN_IN_SPACE'])
+    const later = placedZone(0x3a9, authored, 1)
+    const earlier = placedZone(0x3a3, authored, 2)
+    const phase = await complete(prepare({ zones: [later, earlier], boundary: START }))
+    expect(effectIds(phase.plan)).toEqual([earlier.id, later.id])
+    const [first, second] = phase.plan!.executions
+    expect(second!.targetTransition.before).toEqual(first!.targetTransition.after)
+    expect(second!.targetTransition.after.currentHitPoints).toBe(
+      second!.targetTransition.before.currentHitPoints - 1
+    )
+    expect(hitPoints(phase.actors, GOBLIN_ID)).toBe(second!.targetTransition.after.currentHitPoints)
+  })
+
+  it('does not catch a creature that stands outside the zone', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const phase = await complete(
+      prepare({ zones: [zone], boundary: { ...START, actorId: SOURCE_ID } })
+    )
+    expect(phase.plan).toBeNull()
+    expect(phase.actors).toBe(actors)
+  })
+
+  it('answers the contacted creature’s save, then the zone source’s damage die, each by its own roller', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const saveRequest = await pending(
+      prepare({ zones: [zone], boundary: START, autoRollByActorId: {} })
+    )
+    expect(turnPendingActorId(saveRequest)).toBe(GOBLIN_ID)
+    expect(
+      projectNativeTurnPending({
+        snapshot: saveRequest,
+        occurrenceId: OCCURRENCE_ID,
+        occurrenceVersion: 1,
+        encounterVersion: 7
+      })
+    ).toMatchObject({ kind: 'D20_EVIDENCE', rollerActorId: GOBLIN_ID })
+    if (saveRequest.snapshotKind !== 'KERNEL_EVIDENCE')
+      throw new Error('Expected a kernel request.')
+
+    const dieRequest = await pending(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        autoRollByActorId: {},
+        pending: saveRequest,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: saveRequest.request.requestId,
+          rawFaces: [1],
+          rollMode: 'NORMAL'
+        }
+      })
+    )
+    expect(turnPendingActorId(dieRequest)).toBe(SOURCE_ID)
+    expect(
+      projectNativeTurnPending({
+        snapshot: dieRequest,
+        occurrenceId: OCCURRENCE_ID,
+        occurrenceVersion: 1,
+        encounterVersion: 7
+      })
+    ).toMatchObject({ kind: 'ACTION_OUTCOME_EVIDENCE', rollerActorId: SOURCE_ID })
+    if (dieRequest.snapshotKind !== 'KERNEL_EVIDENCE') throw new Error('Expected a kernel request.')
+
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        autoRollByActorId: {},
+        pending: dieRequest,
+        resolution: { kind: 'ENTER_INTEGER', requestId: dieRequest.request.requestId, value: 3 }
+      })
+    )
+    const [execution] = phase.plan!.executions
+    expect(execution!.targetTransition.after.currentHitPoints).toBe(
+      execution!.targetTransition.before.currentHitPoints - 3
+    )
+  })
+
+  it('applies a zone with a per-turn limit once per turn and not again until the turn changes', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE'], 1), 1)
+    const spent = (turnSequence: number) => ({
+      ...srdEncounterState({ actors, currentActorId: GOBLIN_ID, turnSequence: 3 }),
+      zoneApplications: { [zoneApplicationKey(zone.id, GOBLIN_ID)]: { turnSequence, count: 1 } }
+    })
+    // The incoming turn is sequence 4; an application counted for it is spent, an earlier turn's is not.
+    expect(
+      (await complete(prepare({ zones: [zone], boundary: START, state: spent(4) }))).plan
+    ).toBeNull()
+    expect(
+      effectIds((await complete(prepare({ zones: [zone], boundary: START, state: spent(3) }))).plan)
+    ).toEqual([zone.id])
+  })
+})
+
+describe('the stored evidence of a zone phase (SPELLS-20 T4b2b)', () => {
+  async function evidenceOf(
+    zones: readonly EncounterSpatialRuleEffectRecord[],
+    boundary: typeof START | typeof END
+  ) {
+    const plan = (await complete(prepare({ zones, boundary }))).plan!
+    return {
+      kind: 'EXECUTED' as const,
+      selectionChecksum: plan.selectionChecksum,
+      executions: plan.executions,
+      characterTransitions: [],
+      encounterActorTransitions: [
+        {
+          targetActorId: GOBLIN_ID,
+          before: plan.executions[0]!.targetTransition.before,
+          after: plan.executions.at(-1)!.targetTransition.after
+        }
+      ]
+    }
+  }
+
+  function issues(
+    commandType: 'START' | 'ADVANCE_TURN',
+    phases: Omit<Parameters<typeof refineTurnZoneEffectsEvidence>[0], 'commandType'>
+  ) {
+    const found: unknown[] = []
+    refineTurnZoneEffectsEvidence({ ...phases, commandType }, {
+      addIssue: (issue: unknown) => found.push(issue)
+    } as unknown as z.core.$RefinementCtx)
+    return found
+  }
+
+  const twoZones = () => {
+    const authored = authoredZone(['START_TURN_IN_SPACE'])
+    return [placedZone(0x3a9, authored, 1), placedZone(0x3a3, authored, 2)]
+  }
+
+  it('accepts what the planner produced and rejects it when it is mis-chained or misplaced', async () => {
+    const phase = await evidenceOf(twoZones(), START)
+    expect(executedTurnZonePhaseEvidenceDtoSchema.parse(phase)).toEqual(phase)
+    expect(issues('START', { incomingZoneEffects: phase })).toEqual([])
+    expect(issues('START', { outgoingZoneEffects: phase })).not.toEqual([])
+    expect(issues('ADVANCE_TURN', { outgoingZoneEffects: phase })).toEqual([])
+    expect(
+      issues('START', {
+        incomingZoneEffects: { ...phase, executions: [...phase.executions].reverse() }
+      })
+    ).not.toEqual([])
+    expect(
+      issues('START', {
+        incomingZoneEffects: {
+          ...phase,
+          encounterActorTransitions: [
+            ...phase.encounterActorTransitions,
+            ...phase.encounterActorTransitions
+          ]
+        }
+      })
+    ).not.toEqual([])
+    expect(
+      executedTurnZonePhaseEvidenceDtoSchema.safeParse({ ...phase, executions: [] }).success
+    ).toBe(false)
+  })
+})

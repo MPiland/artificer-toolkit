@@ -8,10 +8,10 @@ import { projectSpatialMovementCandidates } from './encounterSpatialMovementCurr
 import { spatialMovementEffectBeforeTransition } from './encounterSpatialMovementEffects.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { projectSpatialMovementResult } from './encounterSpatialMovementResult.js'
+import { toSpatialMovementTarget } from './encounterSpatialCandidateExecution.js'
 import {
   checksumSpatialCurrentness,
-  evaluateEncounterSpatialMovementRuleBatch,
-  type SpatialMovementTarget
+  evaluateEncounterSpatialMovementRuleBatch
 } from './encounterSpatialMovementRuleService.js'
 
 type EvaluationInput = Parameters<typeof evaluateEncounterSpatialMovementRuleBatch>[0]
@@ -90,28 +90,6 @@ function retainedSpatialReplayFaces(input: SpatialMovementPreparationInput): num
       )
     ]
   })
-}
-
-function toSpatialMovementTarget<TCharacterFacts extends ProjectableCharacterFacts>(
-  target: MovementTarget<TCharacterFacts>
-): SpatialMovementTarget {
-  return {
-    actor: target.actor,
-    character:
-      target.actor.kind === 'CHARACTER'
-        ? {
-            id: target.actor.sourceId,
-            streamVersion: target.characterFacts!.active.play.streamVersion,
-            ...target.characterCurrentness!
-          }
-        : null,
-    maximumHitPoints: target.effectiveMaximumHitPoints,
-    state: { ...target.state, conditions: [...target.state.conditions] },
-    targetDerivedFacts: target.targetDerivedFacts,
-    defenses: target.defenses,
-    conditionImmunityIds: target.conditionImmunityIds,
-    scalarValues: target.effectiveScalarValues
-  }
 }
 
 export function projectPreparedSpatialMovementReceipt<

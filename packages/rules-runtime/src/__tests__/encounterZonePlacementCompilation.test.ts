@@ -1,19 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import {
-  SRD_ABILITIES,
-  SRD_ABILITY_DEFINITION_IDS,
-  SRD_CONDITION_TYPES,
-  SRD_SYSTEM_ID
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
-import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionTargetKind } from '../encounterAreaAction.js'
 import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
@@ -23,50 +15,15 @@ import {
   DND5E_SAVE_DC_FACT_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
-
-const CALTROPS = 'Caltrops (bag of 20)'
-
-/**
- * A Character carrying an item (real SRD Caltrops unless a further authored record is given),
- * compiled through the real policy and entry compiler.
- */
-function compileItemEntry(equipment?: EquipmentAuthored) {
-  const label = equipment?.label ?? CALTROPS
-  const character = evaluateSrdCharacter({
-    abilities: { DEXTERITY: 14 },
-    classes: [{ label: 'Fighter', level: 1 }],
-    items: [{ label }],
-    ...(equipment ? { extraEquipment: [equipment] } : {})
-  })
-  const itemInstanceId = character.itemInstanceId(label)
-  const candidate = character.facts.actionCandidates.find(
-    (entry) => entry.equipment?.itemInstanceId === itemInstanceId
-  )
-  if (!candidate) throw new Error('The item must offer an action.')
-  const entry = compileCharacterActionEntryPoints({
-    gameSystemId: SRD_SYSTEM_ID,
-    candidates: character.facts.actionCandidates,
-    descriptors: discoverCharacterActionCapabilities({
-      gameSystemId: SRD_SYSTEM_ID,
-      candidates: character.facts.actionCandidates,
-      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
-      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
-      entryPoints: character.entryPoints
-    })
-  }).find((compiled) => compiled.actionId === candidate.actionId)
-  if (entry?.kind !== 'CHARACTER_ACTION') throw new Error('The item must compile an action entry.')
-  return entry
-}
-
-function compileCaltropsEntry(equipment?: EquipmentAuthored) {
-  const entry = compileItemEntry(equipment)
-  if (entry.schemaVersion !== 4)
-    throw new Error('Caltrops must compile to a v4 Character action entry.')
-  if (entry.compilation.kind !== 'COMPILED')
-    throw new Error('Caltrops must compile, not go manual.')
-  return { entry, compilation: entry.compilation }
-}
+import {
+  compileCaltropsEntry,
+  compileItemEntry,
+  diceDamage,
+  extraId,
+  variantEquipment,
+  zonePlacementOf,
+  type ZoneParts
+} from './authoredZoneFixture.js'
 
 describe('placed-space zone compilation from real SRD Caltrops', () => {
   it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
@@ -253,50 +210,6 @@ describe('a creature that fails the zone’s entry save', () => {
   })
 })
 
-const VARIANT_ID = testUuid(0x1790)
-const VARIANT_LABEL = 'Spike field (bag)'
-const extraId = (offset: number) => testUuid(0x1800 + offset)
-
-/** The pieces of the one zone action Caltrops authors, found by narrowing the authored record. */
-function zoneParts(equipment: EquipmentAuthored) {
-  const effect = equipment.effects?.[0]
-  const path = effect?.paths[0]
-  const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
-  if (!effect || outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
-    throw new Error('The record must author a zone action.')
-  const component = outcome.components?.[0]
-  const behavior = component?.behaviors?.[0]
-  const savePath = behavior?.paths[0]
-  const invocation = behavior?.invocation
-  if (
-    !component ||
-    !behavior ||
-    savePath?.selectionKind !== 'FIXED' ||
-    !invocation ||
-    !('savingThrow' in invocation)
-  )
-    throw new Error('The zone must author one saving-throw behavior.')
-  return { effect, zone: outcome, component, behavior, savePath, invocation }
-}
-type ZoneParts = ReturnType<typeof zoneParts>
-
-/** A copy of the real SRD Caltrops record, edited and given an identity of its own. */
-function variantEquipment(change: (parts: ZoneParts) => void): EquipmentAuthored {
-  const equipment: EquipmentAuthored = {
-    ...structuredClone(caltropsBagOf20),
-    id: VARIANT_ID,
-    label: VARIANT_LABEL
-  }
-  change(zoneParts(equipment))
-  return equipment
-}
-
-function zonePlacementOf(equipment?: EquipmentAuthored) {
-  const zone = compileCaltropsEntry(equipment).compilation.zonePlacement
-  if (!zone) throw new Error('The item must place a zone.')
-  return zone
-}
-
 describe('a zone whose caster designates unaffected creatures (SPELLS-20 T4c)', () => {
   const authored = variantEquipment(({ component }) => {
     Object.assign(component, { choosesUnaffected: true })
@@ -472,18 +385,6 @@ describe('a zone authored with another save DC and a circle shape', () => {
     })
   })
 })
-
-/** The authored zone damage, as dice instead of the fixed amount. */
-function diceDamage(diceConfig: string, change?: (damage: Record<string, unknown>) => void) {
-  return ({ savePath }: ZoneParts) => {
-    const damage = savePath.resultBlock.outcomes.find((outcome) => outcome.effectKind === 'DAMAGE')
-    if (!damage) throw new Error('The zone must author damage.')
-    const authored: Record<string, unknown> = damage
-    delete authored.amount
-    Object.assign(authored, { valueKind: 'DICE', diceConfig })
-    change?.(authored)
-  }
-}
 
 describe('a zone whose failed entry save deals dice damage (D133)', () => {
   const authored = variantEquipment(diceDamage('2d6'))

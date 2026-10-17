@@ -2,6 +2,7 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from './encounterRollModeReasons.js'
+import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type PendingEncounterRuleOccurrenceSummaryDto
@@ -38,6 +39,8 @@ export function turnPendingActorId(pending: ServerRuleExecutionPendingSnapshotDt
   switch (context.kind) {
     case 'ENCOUNTER_TURN_ACTIVE_EFFECTS':
       return context.currentCandidate.targetActorId
+    case 'ENCOUNTER_TURN_ZONE_EFFECTS':
+      return spatialPendingRollerActorId(context.currentCandidate)
     case 'ENCOUNTER_TURN_RECHARGE':
       return context.currentCandidate.actorId
     case 'ENCOUNTER_TURN_DEATH_SAVE':
@@ -236,6 +239,46 @@ export function projectNativeTurnPending(
     })
   }
   if (context.kind === 'ENCOUNTER_TURN_DEATH_SAVE') return projectNativeDeathSavePending(input)
+  if (context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS') {
+    const candidate = context.currentCandidate
+    if (
+      input.snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
+      input.snapshot.occurrenceId !== input.occurrenceId ||
+      !candidate.d20Policy
+    )
+      throw new Error('Zone evidence is unavailable.')
+    const identity = {
+      occurrenceId: input.occurrenceId,
+      occurrenceVersion: input.occurrenceVersion,
+      encounterVersion: input.encounterVersion,
+      rollerActorId: spatialPendingRollerActorId(candidate)
+    }
+    const { request } = input.snapshot
+    return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(
+      candidate.diceStage
+        ? {
+            ...identity,
+            kind: 'ACTION_OUTCOME_EVIDENCE',
+            request: { requestId: request.requestId, min: request.min, max: request.max },
+            allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+          }
+        : {
+            ...identity,
+            kind: 'D20_EVIDENCE',
+            request: {
+              requestId: request.requestId,
+              min: 1,
+              max: 20,
+              rollMode: candidate.d20Policy.rollMode,
+              derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
+                rollMode: candidate.d20Policy.rollMode,
+                contributors: candidate.d20Policy.contributors
+              })
+            },
+            allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+          }
+    )
+  }
   return (
     context.kind === 'ENCOUNTER_TURN_RECHARGE'
       ? projectNativeRechargePending

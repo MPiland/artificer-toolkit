@@ -16,6 +16,7 @@ import {
   settleEncounterInitiativeRound
 } from '../encounterInitiativeStateSettlement.js'
 import { planEncounterTurnAdvance, prepareEncounterTurn } from '../encounterTurnPreparation.js'
+import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
 import {
   srdCreatureActor,
   srdEncounterState,
@@ -110,6 +111,14 @@ async function endTurn(input: {
         phase: { kind: 'NONE' }
       }
     },
+    zones: (stage) =>
+      prepareEncounterTurnZoneEffects({
+        ...stage,
+        loadScene: async () => null,
+        loadTarget: async () => undefined,
+        createRuntime: () => Promise.reject(new Error('A turn without zones needs no runtime.')),
+        random: () => 0
+      }),
     async legendary(stage) {
       const incoming = stage.root.proposedTerminalTransition.currentActorId
       if (stage.refreshIncoming !== false && incoming) seen.refreshedActorIds.push(incoming)
@@ -172,8 +181,19 @@ async function endTurn(input: {
     stages
   )
   if (prepared.kind !== 'COMPLETE') throw new Error('Expected a complete turn.')
-  return { root: prepared.root, seen, initiativeAdvance }
+  return { root: prepared.root, prepared, seen, initiativeAdvance }
 }
+
+describe('a turn without zones (SPELLS-20 T4b2b)', () => {
+  it('keeps no zone state, so its stored result is the one it had before zones existed', async () => {
+    const { root, prepared } = await endTurn({ currentActorId: ACTOR_A })
+    if (prepared.kind !== 'COMPLETE') throw new Error('Expected a complete turn.')
+    expect(prepared.outgoingZones).toBeNull()
+    expect(prepared.incomingZones).toBeNull()
+    expect(root).not.toHaveProperty('incomingTurn')
+    expect(root).not.toHaveProperty('outgoingZoneTurn')
+  })
+})
 
 describe('the next turn is chosen after the turn transition settles (D63)', () => {
   it('skips the next actor when the outgoing turn’s effects defeat it', async () => {

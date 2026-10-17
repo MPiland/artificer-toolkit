@@ -45,6 +45,16 @@ export const spatialMovementCandidateDtoSchema = lazySchema(() =>
   })
 )
 
+/** A creature standing in a zone at a turn boundary: no path, no contact point. */
+export const spatialTurnContactDtoSchema = lazySchema(() =>
+  z.strictObject({
+    effectId: postgresUuidSchema,
+    sourceActorId: z.nullable(postgresUuidSchema),
+    targetActorId: postgresUuidSchema,
+    trigger: spatialTurnTriggerDtoSchema
+  })
+)
+
 export type SpatialPointDto = z.infer<typeof spatialPointDtoSchema>
 export type SpatialMovementKindDto = z.infer<typeof spatialMovementKindDtoSchema>
 export type SpatialMovementCandidateDto = z.infer<typeof spatialMovementCandidateDtoSchema>

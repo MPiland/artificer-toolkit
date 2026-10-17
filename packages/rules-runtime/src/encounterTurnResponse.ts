@@ -83,6 +83,7 @@ export function prepareEncounterTurnResponse(input: {
     context.kind !== 'ENCOUNTER_TURN_RECHARGE' &&
     context.kind !== 'ENCOUNTER_TURN_DEATH_SAVE' &&
     context.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
+    context.kind !== 'ENCOUNTER_TURN_ZONE_EFFECTS' &&
     context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
     context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
   )
@@ -231,6 +232,11 @@ export function prepareEncounterTurnResponse(input: {
     ) {
       if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
         throw new Error('Turn d20 evidence is required.')
+      entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
+    } else if (context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS') {
+      // A zone pauses on the contacted creature's d20, then on one of its source's damage dice.
+      if (resolution.kind === (context.currentCandidate.diceStage ? 'ENTER_DICE' : 'ENTER_INTEGER'))
+        throw new Error('Turn zone evidence of this kind is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
     } else {
       // A Legendary Action pauses on its d20 or on one of its damage dice.

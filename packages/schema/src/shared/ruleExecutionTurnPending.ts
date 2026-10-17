@@ -15,7 +15,16 @@ import {
   type InitiativeBeforePinDto
 } from './ruleExecutionInitiative.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
-import { turnEffectExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
+import {
+  spatialTurnExecutionDtoSchema,
+  turnEffectExecutionDtoSchema
+} from './ruleExecutionEffectEvidence.js'
+import { spatialTurnCandidateDtoSchema } from './ruleExecutionSpatial.js'
+import {
+  stagedTurnZonePlanDtoSchema,
+  type StagedTurnZonePlanDto
+} from './ruleExecutionTurnPhaseEvidence.js'
+import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
 import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
 import { directActionTwoPhaseDtoSchema } from './ruleExecutionDirectActionPendingContexts.js'
 import {
@@ -112,6 +121,10 @@ export interface TurnCoordinatorRootDto {
     stagedRoundState: StagedInitiativeRoundStateDto
   }
   outgoingTurn?: PendingCompletedTurnPhaseDto
+  /** The entering creature's active-effect phase, retained while its zone batch pauses. */
+  incomingTurn?: PendingCompletedTurnPhaseDto
+  /** The leaving creature's staged zone batch, retained while a later phase pauses. */
+  outgoingZoneTurn?: StagedTurnZonePlanDto
   /** Sealed ordered owner queue retained only while the turn occurrence is pending. */
   legendaryActionQueue?: TurnLegendaryActionQueueDto
   /** Completed owner decisions retained through later turn pauses and terminal receipt creation. */
@@ -161,6 +174,8 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
       )
     ),
     outgoingTurn: z.optional(z.lazy(() => pendingCompletedTurnPhaseDtoSchema)),
+    incomingTurn: z.optional(z.lazy(() => pendingCompletedTurnPhaseDtoSchema)),
+    outgoingZoneTurn: z.optional(z.lazy(() => stagedTurnZonePlanDtoSchema)),
     /** A pending Legendary Action owner queue remains turn-owned through later pauses. */
     legendaryActionQueue: z.optional(
       z
@@ -348,6 +363,48 @@ export const turnEffectPendingContextDtoSchema = lazySchema(() =>
           }
           effectIds.add(candidate.activeEffectId)
           ordinals.add(candidate.ordinal)
+        }
+      })
+    )
+)
+
+export const turnZoneEffectsPendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_TURN_ZONE_EFFECTS'),
+      schemaVersion: z.literal(1),
+      root: turnCoordinatorRootDtoSchema,
+      selectionChecksum: checksumSchema,
+      completedExecutions: z
+        .array(z.lazy(() => spatialTurnExecutionDtoSchema))
+        .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
+      currentCandidate: z.lazy(() => spatialTurnCandidateDtoSchema),
+      remainingCandidates: z
+        .array(z.lazy(() => spatialTurnCandidateDtoSchema))
+        .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        const candidates = [
+          ...value.completedExecutions.map((execution) => execution.candidate),
+          value.currentCandidate,
+          ...value.remainingCandidates
+        ]
+        const first = candidates[0]!
+        for (const [index, candidate] of candidates.entries()) {
+          const previous = candidates[index - 1]
+          if (
+            candidate.ordinal !== index ||
+            candidate.boundaryOrdinal !== first.boundaryOrdinal ||
+            candidate.candidate.targetActorId !== first.candidate.targetActorId ||
+            (previous && candidate.candidate.effectId <= previous.candidate.effectId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['currentCandidate'],
+              message:
+                'Zone turn candidates must be one boundary and creature in strictly increasing effect order.'
+            })
         }
       })
     )

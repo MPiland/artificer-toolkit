@@ -39,11 +39,13 @@ import {
   turnLegendaryActionRefreshDtoSchema,
   turnRechargeExecutionDtoSchema
 } from './ruleExecutionTurnResources.js'
+import { turnEffectExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import {
-  turnEffectCharacterTransitionDtoSchema,
-  turnEffectEncounterActorTransitionDtoSchema,
-  turnEffectExecutionDtoSchema
-} from './ruleExecutionEffectEvidence.js'
+  executedTurnPhaseEvidenceDtoSchema,
+  refineTurnZoneEffectsEvidence,
+  stagedTurnPlanDtoSchema,
+  turnZoneEffectsEvidenceFields
+} from './ruleExecutionTurnPhaseEvidence.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from './ruleExecutionMechanics.js'
 
@@ -58,22 +60,10 @@ const completedTurnLifecyclePhaseEvidenceDtoSchema = lazySchema(() =>
       kind: z.literal('MANUAL'),
       selectionChecksum: checksumSchema
     }),
-    z.strictObject({
-      kind: z.literal('EXECUTED'),
-      selectionChecksum: checksumSchema,
-      executions: z
-        .array(turnEffectExecutionDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS)),
-      characterTransitions: z
-        .array(turnEffectCharacterTransitionDtoSchema)
-        .check(z.minLength(0))
-        .check(z.maxLength(2)),
-      encounterActorTransitions: z
-        .array(turnEffectEncounterActorTransitionDtoSchema)
-        .check(z.minLength(0))
-        .check(z.maxLength(2))
-    })
+    executedTurnPhaseEvidenceDtoSchema(
+      z.lazy(() => turnEffectExecutionDtoSchema),
+      MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS
+    )
   ])
 )
 
@@ -132,7 +122,8 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
               .check(z.maxLength(MAX_MAINTENANCE_CLEANUP_TERMINATED_STATES))
           ),
           outgoingTurn: completedTurnLifecyclePhaseEvidenceDtoSchema,
-          incomingTurn: completedTurnLifecyclePhaseEvidenceDtoSchema
+          incomingTurn: completedTurnLifecyclePhaseEvidenceDtoSchema,
+          ...turnZoneEffectsEvidenceFields()
         })
         .check(
           z.superRefine((result, context) => {
@@ -175,6 +166,7 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
                 message: 'Turn initiative settlement must match its sealed advancement.'
               })
             }
+            refineTurnZoneEffectsEvidence(result, context)
             for (const [field, phase] of [
               ['outgoingTurn', result.outgoingTurn],
               ['incomingTurn', result.incomingTurn]
@@ -542,13 +534,10 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
  * locks, or mutable aggregate snapshots.
  */
 const stagedTurnEffectPlanDtoSchema = lazySchema(() =>
-  z.strictObject({
-    selectionChecksum: checksumSchema,
-    executions: z
-      .array(z.lazy(() => turnEffectExecutionDtoSchema))
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS))
-  })
+  stagedTurnPlanDtoSchema(
+    z.lazy(() => turnEffectExecutionDtoSchema),
+    MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS
+  )
 )
 
 /**
