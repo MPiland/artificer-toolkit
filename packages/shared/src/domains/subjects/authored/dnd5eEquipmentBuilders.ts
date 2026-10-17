@@ -941,6 +941,11 @@ export function rangedFixedDamageWeaponEffects(
 // 0x260/0x261 = a damage grant's activation context and condition, 0x270 = the off-hand damage
 // grant's cloned nodes.
 
+/** Caps a grant's payload at zero; generic so the compiler never expands the full modifier union. */
+function withZeroMax<T extends ModifierGrantAuthored>(modifier: T): T {
+  return { ...modifier, payload: { ...modifier.payload, max: 0 } } as T
+}
+
 /** Spreads through a type parameter so the compiler never expands the full modifier union. */
 function withOrder<T extends ModifierGrantAuthored>(modifier: T, order: number): T {
   return { ...modifier, order }
@@ -1071,10 +1076,7 @@ export function withOffHandDamage(
       const offHand = withFreshIds(bonusActionOnly(modifier, 2 * index + 2, 'INCLUDE'), () =>
         childId(0x270, ++node)
       )
-      return [
-        bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'),
-        { ...offHand, payload: { ...offHand.payload, max: 0 } } as ModifierGrantAuthored
-      ]
+      return [bonusActionOnly(modifier, 2 * index + 1, 'EXCLUDE'), withZeroMax(offHand)]
     })
     .map((modifier, index) => withOrder(modifier, index + 1))
 }
