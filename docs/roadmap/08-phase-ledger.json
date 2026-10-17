@@ -4069,8 +4069,12 @@
             },
             {
               "text": "A room-side spatial save-effect hazard execution is proved against the real room.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeMovementEvidence.test.ts and nativeRoomPlacedZone.test.ts (room spatial save hazard).",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.2"
             },
@@ -4086,8 +4090,12 @@
             },
             {
               "text": "encounterMovementPending receipts increase by one, asserted room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeMovementEvidence.test.ts: a pause commits one receipt, Run +1 and run commands +1, including the Assisted SPATIAL_EVIDENCE pause.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.4"
             },
@@ -4107,15 +4115,23 @@
             },
             {
               "text": "Character-initiator Disarm is proved room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomDisarm.test.ts \"a Character's room Disarm with a Longsword\". Accepted limit: the GM starts the Disarm and the player answers.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.7"
             },
             {
               "text": "A Longsword EQUIPMENT root is used in the room fixtures (Club is used today).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomDisarm.test.ts uses a Longsword EQUIPMENT root. Accepted limit: the roll is not tied to the Longsword bonus.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.8"
             },
@@ -4133,8 +4149,12 @@
             },
             {
               "text": "equipmentCommands are proved with R2 content seeding in the room fixtures.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomEquipmentReplacement.test.ts with R2 content seeding; refusals pin the logged cause.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.10"
             },
@@ -4152,15 +4172,23 @@
             },
             {
               "text": "Movement coverage includes the concentration advantage case and a shared spatial effect across two targets.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeMovementEvidence.test.ts and nativeRoomPlacedZone.test.ts (concentration advantage; shared spatial effect across two targets).",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.12"
             },
             {
               "text": "Initiative receipt metadata echoes a non-empty resolutionCommands, asserted room-side.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "roomEncounterInitiativeResponse.test.ts. Accepted limit: runs the real room executor on a node-sqlite store, not the socket path.",
+                "Red runs on record: 38939570761, 38942163644, 38945467292, 38948879905.",
+                "Green: ci/room-6-t3 69a6c5d97 (Tests 38987698733, Live 38987698783); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
+              ],
               "origin": [],
               "id": "ROOM-6.13"
             },
@@ -4207,7 +4235,7 @@
             {
               "id": "ROOM-6.T3",
               "text": "Remaining room-side proofs: spatial save hazard, movement receipts, Disarm, Longsword and R2 equipment seeding, movement coverage and initiative receipts.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ROOM-6.2",
                 "ROOM-6.4",
@@ -4223,7 +4251,6 @@
                 "rr": 5,
                 "size": 8
               },
-              "activeWorkbook": "docs/handoffs/slice-room-6.md",
               "note": "Projection-budget gate cleared: stored actors keep identity in row columns only (actorIdentityMigration). Red ci/room-6-budget-red 8cf39bdf5 (Tests 38978140021, 255280 > 230400); green 50e365a3f (Tests 38984324373, Live 38984286163); merged in m59 ea6b4a50f (Tests 38986074614, Live 38986074610). 100-actor read 226707 B OWNER / 227378 B PLAYER."
             },
             {
@@ -8974,7 +9001,7 @@
             {
               "id": "SPELLS-28.T4d",
               "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8982,12 +9009,13 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
             },
             {
               "id": "SPELLS-28.T4b",
               "text": "A Character's creature form outlasts the Run like its other timed grants (D99 carry-over): at COMPLETE the form grant keeps its form HP and gets a Campaign-minute expiry, the next Run's actor resumes it, and ending it on the Sheet reverts without carry-over.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -8996,7 +9024,7 @@
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              "proof": "Red 727b9d232; green ci/spells-28-t4b ca7d2226e (Tests 38988672851, Live success); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
             }
           ]
         },
@@ -9265,9 +9293,14 @@
             {
               "id": "SPELLS-29.2",
               "text": "An effect can make a frightened creature flee its source (SRD Fear; Eyebite Panicked). It is authored from core options, not as a Fear-specific kind. At the start of the creature's turn its controller is told it must take the Dash action and move away from the source by the safest route. An action or move that does otherwise is a soft-enforcement warning with \"Do it anyway\", logged for the GM (ADR 0034). When the creature ends its turn without line of sight to the source, the app offers the authored saving throw (Wisdom for Fear). Success ends the effect for that creature only. Proved for Fear, with GM undo.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "Confirmed by the user 2026-10-16 (prompt plus warning with Do it anyway; automatic out-of-sight save)"
+              ],
+              "proof": [
+                "Fear's frightened creature flees its source; room and runtime tests in the SPELLS-29 workbook.",
+                "Red: ci/spells-29-t2-red 04e6af8c5 (Tests 38960560081, Live 38960560070).",
+                "Green: ci/spells-29-t2 998925e12 (Tests 38988330806, Live 38988330762); merged in m61 a376009c3 (Tests 38989959078, Live 38989959079)."
               ]
             }
           ],
@@ -9301,7 +9334,7 @@
             {
               "id": "SPELLS-29.T2",
               "text": "Flee-from-source rider: a generic turn-start \"must Dash away from the source\" requirement, soft-enforced on actions and moves; authored for SRD Fear and Eyebite Panicked; authoring parity from core options. (The turn-end out-of-sight save moved to T1a.)",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-29.2"],
               "wsjf": {
                 "bv": 5,
@@ -9309,8 +9342,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-29.T1a"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-29.md"
+              }
             }
           ]
         }
