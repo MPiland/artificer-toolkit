@@ -54,21 +54,21 @@ const ACID = srdDamageTypeId('ACID')
 const FIRE = srdDamageTypeId('FIRE')
 
 /**
- * SRD Fireball as the Creature Feature a monster would carry. Two things differ from the authored
- * spell, both because a Creature Feature has no spellcaster behind it: a fixed DC of 13 in place of
- * SOURCE_SAVE_DC, and the damage taken at its base cast level (3rd) from the authored row, since a
- * Creature Feature has no cast level to scale by. The area, range, save, fire damage and half on a
+ * An SRD save spell as the Creature Feature a monster would carry. Two things differ from the
+ * authored spell, both because a Creature Feature has no spellcaster behind it: a fixed DC of 13 in
+ * place of SOURCE_SAVE_DC, and the damage taken at the spell's base cast level from the authored row,
+ * since a Creature Feature has no cast level to scale by. The area, range, save, damage and half on a
  * success are the SRD data.
  */
-function fireball(): CreatureFeature {
-  const effect = srdSpells.find((spell) => spell.label === 'Fireball')?.effects?.[0]
+function srdSaveSpell(label: string, baseLevel: number): CreatureFeature {
+  const effect = srdSpells.find((spell) => spell.label === label)?.effects?.[0]
   if (effect?.invocation.triggerCode !== 'SAVING_THROW')
-    throw new Error('SRD Fireball is not a saving-throw action.')
+    throw new Error(`SRD ${label} is not a saving-throw action.`)
   const { invocation } = effect
   return {
     id: FEATURE_ID,
-    label: 'Fireball',
-    description: 'SRD Fireball as a Creature Feature.',
+    label,
+    description: `SRD ${label} as a Creature Feature.`,
     order: 1,
     effects: [
       {
@@ -79,7 +79,7 @@ function fireball(): CreatureFeature {
         },
         paths: effect.paths.map((path) => {
           if (!('resultBlock' in path) || path.resultBlock.resultKind !== 'SINGLE')
-            throw new Error('SRD Fireball paths are single results.')
+            throw new Error(`SRD ${label} paths are single results.`)
           return {
             ...path,
             resultBlock: {
@@ -88,9 +88,9 @@ function fireball(): CreatureFeature {
                 if (outcome.effectKind !== 'DAMAGE' || !('levels' in outcome)) return outcome
                 const { levels, scalingSource, ...rest } = outcome
                 void scalingSource
-                const row = levels.find((level) => level.level === 3)
+                const row = levels.find((level) => level.level === baseLevel)
                 if (!row || !('diceConfig' in row))
-                  throw new Error('SRD Fireball has no base-level dice row.')
+                  throw new Error(`SRD ${label} has no base-level dice row.`)
                 return {
                   ...rest,
                   valueKind: 'DICE' as const,
@@ -467,7 +467,7 @@ describe('catching the creatures in a radius centered on the caster', () => {
 
 describe('an area action executed as one occurrence', () => {
   it('asks each caught creature for its own save, to its own roller, without rolling damage', async () => {
-    const { caster, ally, foe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [caster, ally, foe])
     const dice = scriptedRandom([])
     const tests = await prepareEncounterAreaTests({ ...source, random: dice.random })
@@ -486,7 +486,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('answers the saves in any order and keeps the others waiting', async () => {
-    const { caster, ally, foe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [caster, ally, foe])
     const pending = await prepareEncounterAreaTests(source)
     const afterFoe = await answerEncounterAreaTest({
@@ -521,7 +521,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('does not settle while any caught creature has not answered its save', async () => {
-    const { caster, ally, foe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [caster, ally, foe])
     const pending = await prepareEncounterAreaTests(source)
     await expect(settleEncounterAreaAction({ ...source, tests: pending })).rejects.toThrow(
@@ -530,7 +530,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('rolls damage once for the whole area; a failure takes it all and a success half, after each creature’s own resistance', async () => {
-    const { caster, ally, foe, wardedFoe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe, wardedFoe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [caster, ally, foe, wardedFoe])
     // Natural 10 + DEX 2 = 12 fails DC 13; natural 11 = 13 succeeds.
     const tests = await answerSaves(
@@ -560,6 +560,27 @@ describe('an area action executed as one occurrence', () => {
     ).toBe(true)
   })
 
+  it('gives a creature that makes its Thunderwave save half the thunder damage (SPELLS-7.2)', async () => {
+    const THUNDER = srdDamageTypeId('THUNDER')
+    const { caster, ally, foe } = areaActors(srdSaveSpell('Thunderwave', 1), THUNDER)
+    const source = await areaSource(caster, [ally, foe])
+    // Natural 11 + CON 1 = 12 fails DC 13; natural 12 = 13 succeeds.
+    const tests = await answerSaves(source, { [ALLY_ID]: 12, [FOE_ID]: 11 }, [ALLY_ID, FOE_ID])
+    // One 2d8 roll of 7 and 3.
+    const dice = scriptedRandom([6, 2])
+    const settled = await settleEncounterAreaAction({ ...source, tests, random: dice.random })
+
+    expect(dice.maximums).toEqual([8, 8])
+    expect(dice.remaining()).toBe(0)
+    expect(applied(settled, FOE_ID)).toEqual([10])
+    expect(applied(settled, ALLY_ID)).toEqual([5])
+    expect(
+      settled.flatMap((entry) =>
+        entry.complete.applications.flatMap((a) => (a.kind === 'DAMAGE' ? [a.damageTypeId] : []))
+      )
+    ).toEqual([THUNDER, THUNDER])
+  })
+
   it('refuses a creature whose outcome would roll different dice than the frozen damage', async () => {
     const { caster, ally, foe } = areaActors(acidCloud({ half: true, successDice: '2d8' }), ACID)
     const source = await areaSource(caster, [caster, ally, foe])
@@ -574,7 +595,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('takes a Legendary Resistance success on one failed save without touching the others or the damage', async () => {
-    const { caster, ally, foe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [ally, foe])
     const tests = await answerSaves(source, { [ALLY_ID]: 10, [FOE_ID]: 10 }, [ALLY_ID, FOE_ID])
     const allyTest = tests.find((test) => test.actorId === ALLY_ID)
@@ -625,7 +646,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('refuses a Legendary Resistance decision sealed against another creature’s save', async () => {
-    const { caster, ally, foe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [ally, foe])
     const tests = await answerSaves(source, { [ALLY_ID]: 10, [FOE_ID]: 10 }, [ALLY_ID, FOE_ID])
     const foeTest = tests.find((test) => test.actorId === FOE_ID)
@@ -670,7 +691,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('yields one Concentration damage entry for each damaged creature', async () => {
-    const { caster, ally, foe, wardedFoe } = areaActors(fireball(), FIRE)
+    const { caster, ally, foe, wardedFoe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const source = await areaSource(caster, [ally, foe, wardedFoe])
     const tests = await answerSaves(source, { [ALLY_ID]: 11, [FOE_ID]: 10, [WARDED_FOE_ID]: 10 }, [
       ALLY_ID,
@@ -752,7 +773,7 @@ function testedOf(tests: readonly EncounterAreaTargetTest[], actorId: string) {
 
 /** A dragon with three Legendary Resistance charges and a plain foe, both caught in Fireball. */
 async function caughtDragonAndFoe(naturals: Readonly<Record<string, number>>) {
-  const { caster, foe } = areaActors(fireball(), FIRE)
+  const { caster, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
   const dragon = dragonActor()
   const actors = [caster, dragon, foe]
   const source = await areaSource(caster, [dragon, foe], discoverFor(actors))
@@ -803,7 +824,7 @@ describe('Legendary Resistance on an area save', () => {
   })
 
   it('finds it when the save is rolled for the creature as the area opens', async () => {
-    const { caster, foe } = areaActors(fireball(), FIRE)
+    const { caster, foe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
     const dragon = dragonActor()
     const source = await areaSource(caster, [dragon, foe], discoverFor([caster, dragon, foe]))
     const dice = scriptedRandom([9])

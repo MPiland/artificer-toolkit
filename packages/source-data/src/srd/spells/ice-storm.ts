@@ -8,6 +8,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
+  SCALING_AMOUNT_KIND,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   SHAPE_KIND,
@@ -107,6 +108,52 @@ export const iceStorm: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.ICE_STORM, 0x214, 1),
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('COLD'),
+                valueKind: 'DICE',
+                scalingKind: SCALING.NONE,
+                diceConfig: '4d6'
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 1),
+          order: 3,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('BLUDGEONING'),
+                amountKind: SCALING_AMOUNT_KIND.HALF,
+                valueKind: 'DICE',
+                scalingKind: SCALING.NONE,
+                diceConfig: '2d8'
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 2),
+          order: 4,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 2) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 2),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('COLD'),
+                amountKind: SCALING_AMOUNT_KIND.HALF,
                 valueKind: 'DICE',
                 scalingKind: SCALING.NONE,
                 diceConfig: '4d6'

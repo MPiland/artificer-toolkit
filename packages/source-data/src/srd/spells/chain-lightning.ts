@@ -9,6 +9,7 @@ import {
   RANGE_KIND,
   SCALABLE_SCALING_KIND,
   SCALING,
+  SCALING_AMOUNT_KIND,
   SCALING_SOURCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -108,9 +109,10 @@ export const chainLightning: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.CHAIN_LIGHTNING, 0x213, 1),
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('LIGHTNING'),
+                amountKind: SCALING_AMOUNT_KIND.HALF,
                 valueKind: 'DICE',
                 scalingKind: SCALING.NONE,
-                diceConfig: '5d8'
+                diceConfig: '10d8'
               }
             ]
           }

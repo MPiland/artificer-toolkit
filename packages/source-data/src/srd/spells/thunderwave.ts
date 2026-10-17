@@ -8,6 +8,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
+  SCALING_AMOUNT_KIND,
   SCALING_SOURCE,
   SHAPE_KIND,
   TARGET_SELECTION_KIND,
@@ -138,6 +139,35 @@ export const thunderwave: SpellAuthored = {
                     diceConfig: '10d8'
                   }
                 ]
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x215, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x215, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x215, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('THUNDER'),
+                amountKind: SCALING_AMOUNT_KIND.HALF,
+                valueKind: 'DICE',
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                levels: Array.from({ length: 9 }, (_, index) => ({
+                  id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x215, index + 2),
+                  level: index + 1,
+                  order: index + 1,
+                  diceConfig: `${index + 2}d8`
+                }))
               }
             ]
           }
