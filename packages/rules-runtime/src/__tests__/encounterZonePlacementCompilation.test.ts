@@ -297,6 +297,41 @@ function zonePlacementOf(equipment?: EquipmentAuthored) {
   return zone
 }
 
+describe('a zone whose caster designates unaffected creatures (SPELLS-20 T4c)', () => {
+  const authored = variantEquipment(({ component }) => {
+    Object.assign(component, { choosesUnaffected: true })
+  })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('compiles the choice onto the zone, which the SRD Caltrops zone does not offer', () => {
+    expect(zonePlacementOf(authored).choosesUnaffected).toBe(true)
+    expect(zonePlacementOf().choosesUnaffected).toBeUndefined()
+  })
+
+  it('stores the designated creatures on the placed zone, and nothing when none are named', () => {
+    const place = (unaffectedActorIds: readonly string[]) =>
+      planEncounterPlacedZone({
+        zone: zonePlacementOf(authored),
+        id: ZONE_ID,
+        maintainedEffectStateId: null,
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: OCCURRENCE_ID,
+        rootCommandId: SPREAD_COMMAND_ID,
+        sourceActorId: SOURCE_ID,
+        point: { x: 250, y: 350 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: null,
+        unaffectedActorIds
+      }).placement
+    expect(place([SOURCE_ID]).unaffectedActorIds).toEqual([SOURCE_ID])
+    expect(place([])).not.toHaveProperty('unaffectedActorIds')
+  })
+})
+
 describe('a zone authored with another save DC and a circle shape', () => {
   const authored = variantEquipment(({ zone, invocation }) => {
     zone.label = 'Spike field'
@@ -431,6 +466,114 @@ describe('a zone whose failed entry save deals dice damage (D133)', () => {
           levels: [{ id: extraId(5), level: 1, order: 1, diceConfig: '1d4' }]
         })
       )
+    ]
+  ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
+    expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({
+      kind: 'MANUAL',
+      reasonCode: 'NOT_NORMALIZED'
+    })
+  })
+})
+
+/** The made save deals the failed save's dice again, halved. */
+function halvedOnMadeSave(diceConfig: string, change?: (outcome: Record<string, unknown>) => void) {
+  return (parts: ZoneParts) => {
+    diceDamage(diceConfig)(parts)
+    const { behavior, savePath } = parts
+    const damage = savePath.resultBlock.outcomes.find((outcome) => outcome.effectKind === 'DAMAGE')
+    if (!damage) throw new Error('The zone must author damage.')
+    const made: Record<string, unknown> = { ...structuredClone(damage), id: extraId(7) }
+    Object.assign(made, { amountKind: 'HALF' })
+    change?.(made)
+    behavior.paths.push({
+      ...savePath,
+      id: extraId(6),
+      order: 2,
+      pathCode: 'ON_SAVE_SUCCESS',
+      resultBlock: {
+        id: `${extraId(6)}__result`,
+        resultKind: 'SINGLE',
+        outcomes: [made as typeof damage]
+      }
+    })
+  }
+}
+
+describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () => {
+  const authored = variantEquipment(halvedOnMadeSave('2d6'))
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('rolls the dice of each save result in a gate of its own and halves the made save’s roll', () => {
+    const { nodes } = zonePlacementOf(authored).entry.frozenGraph.definition
+    expect(nodes.map((node) => node.id)).toEqual([
+      'd20',
+      'test',
+      'damage-enabled',
+      'damage-die-1',
+      'damage-die-2',
+      'damage-sum-1',
+      'proposal-on_save_fail',
+      'damage-success-enabled',
+      'damage-success-die-1',
+      'damage-success-die-2',
+      'damage-success-sum-1',
+      'damage-success-multiplied',
+      'proposal-on_save_success',
+      'movement-interruption'
+    ])
+    expect(nodes.find((node) => node.id === 'damage-success-enabled')?.inputs).toMatchObject({
+      resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
+      authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_SUCCESS' }
+    })
+    expect(nodes.find((node) => node.id === 'damage-success-multiplied')?.inputs).toMatchObject({
+      amount: { kind: 'NODE_OUTPUT', nodeId: 'damage-success-sum-1', port: 'value' },
+      multiplier: { kind: 'LITERAL', value: 0.5 }
+    })
+    expect(nodes.find((node) => node.id === 'proposal-on_save_success')?.inputs.amount).toEqual({
+      kind: 'NODE_OUTPUT',
+      nodeId: 'damage-success-multiplied',
+      port: 'value'
+    })
+    expect(nodes.find((node) => node.id === 'proposal-on_save_fail')?.inputs.amount).toEqual({
+      kind: 'NODE_OUTPUT',
+      nodeId: 'damage-sum-1',
+      port: 'value'
+    })
+  })
+
+  it('still stops the mover only on the failed save', () => {
+    const { outputs, nodes } = zonePlacementOf(authored).entry.frozenGraph.definition
+    expect(outputs).toHaveProperty('movementInterruption')
+    expect(nodes.find((node) => node.id === 'movement-interruption')?.inputs).toMatchObject({
+      authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_FAIL' }
+    })
+  })
+
+  it.each([
+    [
+      'a made save that applies a grant',
+      ({ behavior, savePath }: ZoneParts) => {
+        const grant = savePath.resultBlock.outcomes.find(
+          (outcome) => outcome.effectKind === 'APPLY_GRANT'
+        )
+        if (!grant) throw new Error('The zone must author a grant.')
+        behavior.paths.push({
+          ...savePath,
+          id: extraId(8),
+          order: 2,
+          pathCode: 'ON_SAVE_SUCCESS',
+          resultBlock: { id: `${extraId(8)}__result`, resultKind: 'SINGLE', outcomes: [grant] }
+        })
+      }
+    ],
+    [
+      'a made save that deals more than the failed save',
+      halvedOnMadeSave('2d6', (outcome) => {
+        Object.assign(outcome, { amountKind: 'DOUBLE' })
+      })
     ]
   ] as const)('refuses %s instead of partly honoring it', (_name, change) => {
     expect(compileItemEntry(variantEquipment(change)).compilation).toMatchObject({

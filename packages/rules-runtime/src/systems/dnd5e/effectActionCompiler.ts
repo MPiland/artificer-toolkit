@@ -295,10 +295,20 @@ type EntryDiceDamageOutcome = {
   kind: 'ENTRY_DICE_DAMAGE'
   diceConfig: string
   damageTypeId: string
+  /** The compiled entry this result's proposal node is bound to. */
+  entryId: string
+  /** The share of the roll this result deals: 1 for the failed save, one half for the made save. */
+  multiplier: number
 }
 /** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
 const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'
-const ENTRY_DAMAGE_ENABLED_NODE_ID = `${ENTRY_DAMAGE_NODE_PREFIX}enabled`
+
+/** The failed save keeps the plain prefix; the made save rolls dice of its own, asked for only when it is the result. */
+function entryDamagePrefix(pathCode: string): string {
+  return pathCode === 'ON_SAVE_SUCCESS'
+    ? `${ENTRY_DAMAGE_NODE_PREFIX}success-`
+    : ENTRY_DAMAGE_NODE_PREFIX
+}
 /** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
 const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
@@ -1266,11 +1276,51 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
 }
 
 /**
- * A placed zone's damage on a failed entry save: fixed, or one unscaled, unmodified full-damage dice
- * roll that the entry graph rolls itself (D133). Half damage and bonuses belong to the zone turn trigger.
+ * The one authored row a placed zone deals on a save result: its only row, or, for damage that
+ * scales by the level its action is cast at, the row that level reaches (compiled one row per level).
+ */
+function zoneDamageRow(
+  rows: readonly CompiledEffectGroup['entries'][number][],
+  spellCastLevel: number | undefined
+): CompiledEffectGroup['entries'][number] {
+  const [first] = rows
+  if (!first || !('outcome' in first))
+    unsupported('D&D test actions require direct authored outcomes.')
+  const { outcome } = first
+  if (
+    outcome.effectKind !== 'DAMAGE' ||
+    outcome.valueKind !== 'DICE' ||
+    outcome.scalingKind === 'NONE'
+  ) {
+    if (rows.length !== 1) unsupported('A placed zone deals one damage outcome per save result.')
+    return first
+  }
+  if (spellCastLevel === undefined)
+    unsupported('A placed zone damage that scales needs the level its action is cast at.')
+  const candidates = rows.flatMap((entry) =>
+    'outcome' in entry &&
+    entry.outcome.effectKind === 'DAMAGE' &&
+    entry.outcome.valueKind === 'DICE' &&
+    entry.outcome.scalingKind === 'PER_LEVEL' &&
+    entry.outcome.scalingSource === 'SPELL_CAST_LEVEL'
+      ? [{ level: entry.outcome.level, order: entry.outcome.order, entry }]
+      : []
+  )
+  if (candidates.length !== rows.length)
+    unsupported('A placed zone damage scales only by the level its action is cast at.')
+  const selected = selectScalingRow(candidates, spellCastLevel)
+  if (!selected) unsupported('A placed zone damage scaling does not select an authored value.')
+  return selected.entry
+}
+
+/**
+ * A placed zone's damage on one save result: fixed, or one unmodified dice roll that the entry graph
+ * rolls itself (D133). The failed save deals the roll in full; the made save may deal half of it.
+ * Bonuses and other multipliers belong to the zone turn trigger.
  */
 function zoneDamageOutcome(
-  entry: CompiledEffectGroup['entries'][number]
+  entry: CompiledEffectGroup['entries'][number],
+  pathCode: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
 ): Outcome | EntryDiceDamageOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const { outcome } = entry
@@ -1278,15 +1328,23 @@ function zoneDamageOutcome(
     return boundedTestOutcome(entry)
   const authored = specializedTestOutcome(entry)
   if (authored.kind === 'DAMAGE') return authored
+  const multiplier = damageMultiplier(outcome)
   if (
-    outcome.scalingKind !== 'NONE' ||
     outcome.bonuses?.length ||
-    damageMultiplier(outcome) !== 1 ||
+    multiplier !== (pathCode === 'ON_SAVE_SUCCESS' ? 0.5 : 1) ||
     boundedDiceTerm(outcome.dice).modifier !== 0
   )
-    unsupported('A placed zone dice damage is one unscaled, unmodified full-damage roll.')
+    unsupported(
+      'A placed zone dice damage is one unmodified roll: in full on a failed save, halved on a made one.'
+    )
   uuid(outcome.damageTypeId, 'D&D damage type identity')
-  return { kind: 'ENTRY_DICE_DAMAGE', diceConfig: outcome.dice, damageTypeId: outcome.damageTypeId }
+  return {
+    kind: 'ENTRY_DICE_DAMAGE',
+    diceConfig: outcome.dice,
+    damageTypeId: outcome.damageTypeId,
+    entryId: entry.entryId,
+    multiplier
+  }
 }
 
 /**
@@ -1639,6 +1697,11 @@ function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
 ): ActiveEffectEndTrigger[] {
   const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
+    if (trigger.event === 'ACTION_USED_ON_HOLDER')
+      return {
+        event: trigger.event,
+        actionDefinitionIds: [...new Set(trigger.actionDefinitionIds)].sort()
+      }
     if (trigger.event !== 'DAMAGE_TAKEN') return trigger
     const { event, by, damageTypeIds } = trigger
     return {
@@ -2045,31 +2108,38 @@ function zonePlacementPlan(
       (entry) =>
         entry.resolutionKind !== 'DIRECT' ||
         !('outcome' in entry) ||
-        entry.pathCode !== 'ON_SAVE_FAIL' ||
+        (entry.pathCode !== 'ON_SAVE_FAIL' && entry.pathCode !== 'ON_SAVE_SUCCESS') ||
         entry.rangeOverride ||
         entry.targetingOverride
     )
   )
-    unsupported('A placed zone behavior is a saving throw with direct failure outcomes.')
+    unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  const failEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_FAIL')
+  const madeEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
   const outcomeEntries = (effectKind: string) =>
-    entries.filter((entry) => 'outcome' in entry && entry.outcome.effectKind === effectKind)
+    failEntries.filter((entry) => 'outcome' in entry && entry.outcome.effectKind === effectKind)
   const stops = outcomeEntries('MOVEMENT_RULE').filter(
     (entry) =>
       'outcome' in entry &&
       entry.outcome.effectKind === 'MOVEMENT_RULE' &&
       entry.outcome.ruleKind === 'STOP_CURRENT_MOVEMENT'
   )
-  const [damage] = outcomeEntries('DAMAGE')
+  const damageRows = outcomeEntries('DAMAGE')
   const [grant] = outcomeEntries('APPLY_GRANT')
   if (
-    !damage ||
-    !UUID.test(damage.entryId) ||
-    outcomeEntries('DAMAGE').length !== 1 ||
+    damageRows.length === 0 ||
     outcomeEntries('APPLY_GRANT').length > 1 ||
     stops.length > 1 ||
-    stops.length + 1 + (grant ? 1 : 0) !== entries.length
+    damageRows.length + stops.length + (grant ? 1 : 0) !== failEntries.length ||
+    madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE')
   )
-    unsupported('A placed zone failure stops movement, deals one damage and may apply one grant.')
+    unsupported(
+      'A placed zone failure stops movement, deals damage and may apply one grant; a made save only deals damage.'
+    )
+  const damage = zoneDamageRow(damageRows, action.spellCastLevel)
+  const madeDamageRows =
+    madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
+  if (!UUID.test(damage.entryId)) unsupported('A placed zone damage needs a compiled identity.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: damage.entryId,
@@ -2088,7 +2158,15 @@ function zonePlacementPlan(
   }
   const saveGraph = compileTestDefinition(
     action,
-    { kind: 'SAVE', branches: new Map([['ON_SAVE_FAIL', zoneDamageOutcome(damage)]]) },
+    {
+      kind: 'SAVE',
+      branches: new Map([
+        ['ON_SAVE_FAIL', zoneDamageOutcome(damage, 'ON_SAVE_FAIL')],
+        ...madeDamageRows.map(
+          (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
+        )
+      ])
+    },
     entryPlan
   )
   const lingeringPlan = grant
@@ -2113,6 +2191,7 @@ function zonePlacementPlan(
     shape: zone.shape,
     triggerModes,
     bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
+    ...(zone.component.choosesUnaffected ? { choosesUnaffected: true } : {}),
     entry: {
       ...entryPlan,
       frozenGraph: stops.length ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
@@ -2231,7 +2310,9 @@ function repeatingDirectFollowUpSavePlan(
         ? { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: lead.conditionId }
         : { 'dnd5e.grant-authored-path': leadEntry.pathCode }),
       ...(escalation
-        ? { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: escalation.conditionId }
+        ? {
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: escalation.conditionId
+          }
         : {}),
       ...(save.repeatRollInfluence
         ? {
@@ -4194,7 +4275,7 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
           : {
               amount:
                 outcome.kind === 'ENTRY_DICE_DAMAGE'
-                  ? entryDiceDamageDice(outcome).subtotal
+                  ? entryDiceDamageGraph(pathCode, outcome).amount
                   : { kind: 'LITERAL' as const, value: outcome.amount },
               ...(outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
                 ? {
@@ -4209,19 +4290,22 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
   }
 }
 
-/** The dice nodes of an entry dice damage outcome: asked for only when the test resolves to its path. */
-function entryDiceDamageDice(outcome: EntryDiceDamageOutcome) {
-  return rolledDiceNodes(boundedDiceTerm(outcome.diceConfig).term, ENTRY_DAMAGE_NODE_PREFIX, {
+/**
+ * The nodes of an entry dice damage outcome and the amount it proposes: the dice are asked for only
+ * when the test resolves to its path, and a share of the roll is dealt through the damage multiplier.
+ */
+function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome) {
+  const prefix = entryDamagePrefix(pathCode)
+  const enabledNodeId = `${prefix}enabled`
+  const dice = rolledDiceNodes(boundedDiceTerm(outcome.diceConfig).term, prefix, {
     kind: 'NODE_OUTPUT',
-    nodeId: ENTRY_DAMAGE_ENABLED_NODE_ID,
+    nodeId: enabledNodeId,
     port: 'authorized'
   })
-}
-
-function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
-  return [
+  const multipliedNodeId = `${prefix}multiplied`
+  const nodes: RuleGraphDefinition['nodes'] = [
     {
-      id: ENTRY_DAMAGE_ENABLED_NODE_ID,
+      id: enabledNodeId,
       operation: {
         key: DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
         contractVersion: 1
@@ -4231,9 +4315,31 @@ function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome)
         authoredPath: { kind: 'LITERAL' as const, value: pathCode }
       }
     },
-    ...entryDiceDamageDice(outcome).nodes,
-    proposalNode(pathCode, outcome)
+    ...dice.nodes,
+    ...(outcome.multiplier === 1
+      ? []
+      : [
+          {
+            id: multipliedNodeId,
+            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
+            inputs: {
+              amount: dice.subtotal,
+              multiplier: { kind: 'LITERAL' as const, value: outcome.multiplier }
+            }
+          }
+        ])
   ]
+  return {
+    nodes,
+    amount:
+      outcome.multiplier === 1
+        ? dice.subtotal
+        : { kind: 'NODE_OUTPUT' as const, nodeId: multipliedNodeId, port: 'value' }
+  }
+}
+
+function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
+  return [...entryDiceDamageGraph(pathCode, outcome).nodes, proposalNode(pathCode, outcome)]
 }
 
 function compileTestDefinition(
@@ -4247,10 +4353,11 @@ function compileTestDefinition(
     plan.kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
   const testOperation =
     plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const proposalNodes = [...plan.branches].flatMap(([pathCode, outcome]) =>
-    outcome.kind === 'ENTRY_DICE_DAMAGE'
-      ? entryDiceDamageNodes(pathCode, outcome)
-      : [proposalNode(pathCode, outcome)]
+  const proposalNodes: RuleGraphDefinition['nodes'] = [...plan.branches].flatMap(
+    ([pathCode, outcome]) =>
+      outcome.kind === 'ENTRY_DICE_DAMAGE'
+        ? entryDiceDamageNodes(pathCode, outcome)
+        : [proposalNode(pathCode, outcome)]
   )
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -4304,7 +4411,19 @@ function compileTestDefinition(
             {
               sourceEntryId: recurringPlan.compiledEntryId,
               nodeId: recurringPlan.frozenGraphNodeId
-            }
+            },
+            // A zone's made save deals its own damage from its own proposal node.
+            ...[...plan.branches].flatMap(([pathCode, outcome]) =>
+              outcome.kind === 'ENTRY_DICE_DAMAGE' &&
+              `proposal-${pathCode.toLowerCase()}` !== recurringPlan.frozenGraphNodeId
+                ? [
+                    {
+                      sourceEntryId: outcome.entryId,
+                      nodeId: `proposal-${pathCode.toLowerCase()}`
+                    }
+                  ]
+                : []
+            )
           ]
         }
       : {})
@@ -5949,35 +6068,45 @@ function requireEntryDamageTraces(input: {
   const invalid = () =>
     new Dnd5eEffectActionCompilerError('The committed D&D zone damage dice topology is invalid.')
   const nodeIds = published.definition.nodes.map((node) => node.id)
-  const enabledTrace = traces.find((trace) => trace.nodeId === ENTRY_DAMAGE_ENABLED_NODE_ID)
-  const enabledNode = published.definition.nodes.find(
-    (node) => node.id === ENTRY_DAMAGE_ENABLED_NODE_ID
+  // Each save result that rolls dice has a gate of its own; the dice read the gate they are bound to.
+  const gateNodes = published.definition.nodes.filter(
+    (node) =>
+      node.id.startsWith(ENTRY_DAMAGE_NODE_PREFIX) &&
+      node.operation.key === DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY
   )
-  const authoredPath = enabledNode?.inputs.authoredPath
-  if (
-    !enabledTrace ||
-    enabledNode?.operation.key !== DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY ||
-    enabledTrace.operation.key !== enabledNode.operation.key ||
-    authoredPath?.kind !== 'LITERAL' ||
-    typeof authoredPath.value !== 'string' ||
-    !isSpecializedPath(authoredPath.value) ||
-    !isSpecializedPath(resultPath) ||
-    enabledTrace.inputs.resultPath !== resultPath ||
-    enabledTrace.inputs.authoredPath !== authoredPath.value ||
-    enabledTrace.outputs.authorized !==
-      dnd5eMovementInterruptionAuthorizationOperation.execute({
-        resultPath,
-        authoredPath: authoredPath.value
-      }).authorized
-  )
-    throw invalid()
+  if (gateNodes.length === 0) throw invalid()
+  const gateAuthorized = new Map<string, unknown>()
+  for (const enabledNode of gateNodes) {
+    const enabledTrace = traces.find((trace) => trace.nodeId === enabledNode.id)
+    const authoredPath = enabledNode.inputs.authoredPath
+    if (
+      !enabledTrace ||
+      enabledTrace.operation.key !== enabledNode.operation.key ||
+      authoredPath?.kind !== 'LITERAL' ||
+      typeof authoredPath.value !== 'string' ||
+      !isSpecializedPath(authoredPath.value) ||
+      enabledNode.id !== `${entryDamagePrefix(authoredPath.value)}enabled` ||
+      !isSpecializedPath(resultPath) ||
+      enabledTrace.inputs.resultPath !== resultPath ||
+      enabledTrace.inputs.authoredPath !== authoredPath.value ||
+      enabledTrace.outputs.authorized !==
+        dnd5eMovementInterruptionAuthorizationOperation.execute({
+          resultPath,
+          authoredPath: authoredPath.value
+        }).authorized
+    )
+      throw invalid()
+    gateAuthorized.set(enabledNode.id, enabledTrace.outputs.authorized)
+  }
   for (const trace of traces) {
     if (trace.operation.key !== 'evidence.optional-integer-range') continue
     const { min, max, enabled } = trace.inputs
     const value = trace.outputs.value
     const answered = trace.evidence
+    const gate = published.definition.nodes.find((node) => node.id === trace.nodeId)?.inputs.enabled
     if (
-      enabled !== enabledTrace.outputs.authorized ||
+      gate?.kind !== 'NODE_OUTPUT' ||
+      enabled !== gateAuthorized.get(gate.nodeId) ||
       typeof min !== 'number' ||
       typeof max !== 'number' ||
       typeof value !== 'number' ||

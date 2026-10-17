@@ -63,6 +63,14 @@ export const damageTypeFilterDtoSchema = lazySchema(() =>
     .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
 )
 
+/** The basic-action definitions an end trigger names. */
+export const basicActionFilterDtoSchema = lazySchema(() =>
+  z
+    .array(postgresUuidSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+)
+
 /**
  * The authored content (a Spell, Feature, Option, Feat or equipment id) an action must come from for a
  * source-filtered trigger or defense to apply. Empty or absent means any source.

@@ -7,13 +7,9 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
-const reader = createNodeRuntimeSourceReader({
-  system: srdSystemRecord,
-  readAuthoredRows: () => [],
-  readReusableDefinitions: async () => []
-})
+const reader = createSrdNodeRuntimeReader()
 
 /** Every escape check module the value nests, wherever it sits. */
 function escapeChecks(value: unknown): { dc: unknown }[] {

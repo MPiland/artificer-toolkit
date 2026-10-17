@@ -1,7 +1,12 @@
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
 import {
   SRD_CREATURE_TYPES,
@@ -152,6 +157,26 @@ async function biteHits(room: SleepRoom, targetId: string) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
+const rouseDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+  ({ id }) => id === SRD_BASIC_ACTION_IDS.ROUSE
+)
+if (rouseDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Rouse fixture.')
+const rouseEffectId = rouseDefinition.document.effects[0]!.id
+
+/** The attacker, on its own turn, uses its action to rouse `targetId`. */
+async function rouses(room: SleepRoom, targetId: string) {
+  await room.advanceTurn()
+  const { answer } = await room.startAction(
+    targetId,
+    ['TARGET_RANGE_UNCHECKED'],
+    null,
+    null,
+    encounterBasicActionId(ATTACKER_ID, SRD_BASIC_ACTION_IDS.ROUSE, rouseEffectId),
+    ATTACKER_ID
+  )
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+}
+
 describe('room cast of Sleep (SPELLS-27.T8)', () => {
   it('puts creatures to sleep from the lowest current hit points up while the rolled pool lasts, in one commit and with no save', async () => {
     const room = await sleepRoom()
@@ -180,7 +205,7 @@ describe('room cast of Sleep (SPELLS-27.T8)', () => {
     expect(after.effectHolders).toEqual([LOW_ID, MID_ID].sort())
   }, 120000)
 
-  it('gives the sleeper’s condition and effect back when the damage is undone', async () => {
+  it('gives the sleeperâ€™s condition and effect back when the damage is undone', async () => {
     const room = await sleepRoom()
     await castSleep(room)
     await biteHits(room, DAMAGED_ID)
@@ -201,5 +226,28 @@ describe('room cast of Sleep (SPELLS-27.T8)', () => {
     const undone = await history(room)
     expect(undone.asleep).toEqual([])
     expect(undone.effectHolders).toEqual([])
+  }, 120000)
+
+  it('wakes the sleeper another creature uses an action to rouse, leaving the others asleep (SPELLS-27.T12)', async () => {
+    const room = await sleepRoom()
+    await castSleep(room)
+
+    await rouses(room, MID_ID)
+
+    const after = await history(room)
+    expect(after.asleep).toEqual([DAMAGED_ID, LOW_ID].sort())
+    expect(after.effectHolders).toEqual([DAMAGED_ID, LOW_ID].sort())
+  }, 120000)
+
+  it('puts the roused sleeper back to sleep when the rousing is undone (SPELLS-27.T12)', async () => {
+    const room = await sleepRoom()
+    await castSleep(room)
+    await rouses(room, MID_ID)
+
+    await undoLastAction(room)
+
+    const restored = await history(room)
+    expect(restored.asleep).toEqual(SLEEPERS)
+    expect(restored.effectHolders).toEqual(SLEEPERS)
   }, 120000)
 })

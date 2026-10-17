@@ -335,6 +335,20 @@ export async function prepareAreaScene(
     source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
       ? source.entry.compilation.zonePlacement
       : null
+  const unaffectedActorIds =
+    target.kind === 'POINT' || target.kind === 'CASTER_CENTERED'
+      ? (target.unaffectedActorIds ?? [])
+      : []
+  if (
+    unaffectedActorIds.length &&
+    (!zone?.choosesUnaffected ||
+      unaffectedActorIds.some((id) => !input.actors.some((actor) => actor.id === id)))
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'This action cannot spare those creatures.'
+    })
   return {
     caster,
     casterFacts,
@@ -343,7 +357,13 @@ export async function prepareAreaScene(
     scene: { ...scene, grid },
     area: { ...area, origin },
     placement: zone
-      ? { zone, origin, shape: area.shape, sourceToken: scene.sourceToken ?? null }
+      ? {
+          zone,
+          origin,
+          shape: area.shape,
+          sourceToken: scene.sourceToken ?? null,
+          unaffectedActorIds
+        }
       : null
   }
 }
@@ -1669,7 +1689,10 @@ export async function completeAreaCommit(args: {
   /** What each counter that failed against the cast spends with this commit (D127). */
   failedCounters: Awaited<ReturnType<ReachCastWindow['pause']['planFailedCounters']>>
   /** The effect each creature's used reaction to being chosen leaves on it, by actor id. */
-  reactionEffects?: ReadonlyMap<string, { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }>
+  reactionEffects?: ReadonlyMap<
+    string,
+    { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }
+  >
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -2029,7 +2052,8 @@ export async function completeAreaCommit(args: {
         point: placement.origin,
         area: placement.shape,
         sourceToken: placement.sourceToken,
-        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null
+        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
+        unaffectedActorIds: placement.unaffectedActorIds
       })
     : null
   const execution = buildEncounterAreaStoredExecution({

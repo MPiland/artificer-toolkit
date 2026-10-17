@@ -117,6 +117,11 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
  * area's origin must lie on the caster's token footprint. A caster-centered area (a Self sphere,
  * cylinder or circle) takes no aim: it names only the Scene version it is fenced to.
  */
+/** Creatures the caster designates at cast that a zone the action places never affects. */
+const unaffectedActorIdsSchema = z.optional(
+  z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
@@ -140,7 +145,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       kind: z.literal('POINT'),
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema,
-      point: spatialPointDtoSchema
+      point: spatialPointDtoSchema,
+      unaffectedActorIds: unaffectedActorIdsSchema
     }),
     z.strictObject({
       kind: z.literal('DIRECTED'),
@@ -152,7 +158,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CASTER_CENTERED'),
       sceneId: uuidSchema,
-      expectedSceneVersion: versionSchema
+      expectedSceneVersion: versionSchema,
+      unaffectedActorIds: unaffectedActorIdsSchema
     })
   ])
 )

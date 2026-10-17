@@ -333,6 +333,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
     const event = cond.local().field(['event'])
     const isDamageTaken = event.eq('DAMAGE_TAKEN')
     const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
+    const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
 
     map
       .set(
@@ -345,7 +346,11 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
             options: [
               { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
               { code: 'ATTACK_ROLL', label: 'The holder attacks an enemy' },
-              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' }
+              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' },
+              {
+                code: 'ACTION_USED_ON_HOLDER',
+                label: 'Another creature uses an action on the holder'
+              }
             ]
           },
           { requiredIf: true }
@@ -385,6 +390,18 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
           'Against',
           { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
           { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+        )
+      )
+      .set(
+        'actionDefinitionIds',
+        selectMulti(
+          ['actionDefinitionIds'],
+          'Actions',
+          {
+            kind: 'DATA',
+            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
+          },
+          { requiredIf: isActionUsed, showIf: isActionUsed }
         )
       )
   }
@@ -883,6 +900,10 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
         })
       )
       .set('bypassAtHalfSpeed', toggle(['bypassAtHalfSpeed'], 'Bypass at Half Speed'))
+      .set(
+        'choosesUnaffected',
+        toggle(['choosesUnaffected'], 'Caster Chooses Unaffected Creatures')
+      )
       .set(
         'movementCostMultiplier',
         number(['movementCostMultiplier'], 'Movement Cost Multiplier', {
@@ -1794,7 +1815,8 @@ function registerOutcomeFields(
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
           local.field(['recordsSource']).eq(true)
-        ])
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(
