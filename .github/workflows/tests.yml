@@ -83,7 +83,7 @@ jobs:
       - name: Package tests
         id: tests
         run: |
-          for package in schema shared source-data emails rules-runtime encounter-persistence; do
+          for package in schema shared source-data authoring emails design-system rules-runtime encounter-persistence; do
             yarn workspace @artificer-toolkit/$package test --reporter=default --reporter=json --outputFile.json=local-validation/vitest-$package.json
           done
       - uses: ./.github/actions/regenerate-snapshots

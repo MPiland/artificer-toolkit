@@ -1794,7 +1794,8 @@ function registerOutcomeFields(
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
           local.field(['recordsSource']).eq(true)
-        ])
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(

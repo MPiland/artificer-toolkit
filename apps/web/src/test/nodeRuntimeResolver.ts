@@ -1,4 +1,7 @@
-import { normalizeNodeRuntimeValues, resolveNodeRuntime } from '@artificer-toolkit/authoring/nodeRuntime'
+import {
+  normalizeNodeRuntimeValues,
+  resolveNodeRuntime
+} from '@artificer-toolkit/authoring/nodeRuntime'
 import { createSrdNodeRuntimeReader } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
 import type {
   NodeRuntimeNormalizeValuesRequestDto,
