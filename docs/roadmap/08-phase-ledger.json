@@ -9221,7 +9221,7 @@
             },
             {
               "id": "SPELLS-4.T1c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.2",
                 "SPELLS-4.1"
@@ -9236,7 +9236,7 @@
                 ]
               },
               "text": "Re-author Moonbeam and Incendiary Cloud from CLOSED_RULE as zones from core options with their turn triggers, including Moonbeam's shapechanger rider (disadvantage on the save and reverting on a failure) as a generic creature-trait condition on a zone save.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "CI ci/spells-4-t1c 0c7c5d9ab (Tests 39055883241, Live 39055883172); merged via ci/merge-m81 5b7651dbc. Workbook docs/handoffs/slice-spells-4.md. Moonbeam (5-ft-radius 40-ft cylinder, ENTER + START_TURN, Con save 2d10 radiant scaling) and Incendiary Cloud (20-ft sphere, ENTER + END_TURN, Dex save 10d8 fire, Concentration) are zones from core options; MOONBEAM and INCENDIARY_CLOUD closed rules deleted; proofs nativeRoomHazardZoneSpells.test.ts, zoneInteractionKinds.test.ts, sourceZoneAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-4.T1d",
@@ -10608,7 +10608,6 @@
               "SPELLS-25"
             ]
           },
-          "activeWorkbook": "docs/handoffs/slice-spells-20.md",
           "tasks": [
             {
               "id": "SPELLS-20.T1",
@@ -10805,7 +10804,7 @@
             },
             {
               "id": "SPELLS-20.T4e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-20.1"
               ],
@@ -10819,7 +10818,7 @@
                 ]
               },
               "text": "Spirit Guardians damage type chosen at cast (radiant, or necrotic for an evil caster) as a cast-time choice from core options stored on the zone; proved on Spirit Guardians.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "CI ci/spells-20-t4e 4e71cfc99 (Tests 39059068132, Live 39059068088); merged via ci/merge-m81 5b7651dbc (Tests 39060431350, Live 39060431475). Workbook docs/handoffs/slice-spells-20.md. Spirit Guardians radiant/necrotic is an ON_USE CHOICE authored once; the cast command carries choiceOptionId and the choice DTO lists choiceOptions (D140); a missing or unknown pick is refused TARGET_UNAVAILABLE with no zone; proofs encounterZoneChoiceCompilation.test.ts, nativeRoomSourceAura.test.ts, sourceZoneAuthoringParity.test.ts. Deferred edge: options with differing SOURCE_SAVE_DC saves compile MANUAL (no SRD spell)."
             },
             {
               "id": "SPELLS-20.T4f",
