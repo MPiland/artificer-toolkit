@@ -19,6 +19,7 @@ Two lanes share the machine:
 
 A light batch given -BuildFor <test files> first builds, in the typecheck lane, the dependencies of
 the workspaces that own those files (Turbo-cached), so its tests import current package dist output.
+Every lane uses the main checkout's Turbo cache (.turbo/cache), so worktrees share build and typecheck hits.
 
 Each waiter queues a ticket in its lane's queue (.validation.queue or .validation.light-queue).
 Only the oldest live tickets, one per slot, may take a lock, so each lane runs in arrival order. A
@@ -50,6 +51,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $validation = Join-Path (Split-Path -Parent $PSScriptRoot) 'local-validation'
+# One Turbo cache for the main checkout and every worktree. Entries are keyed by file contents, so a
+# workspace one session built or typechecked is a cache hit for every other session at the same code.
+$env:TURBO_CACHE_DIR = Join-Path (Split-Path -Parent $PSScriptRoot) '.turbo/cache'
 $light = $Lane -eq 'light'
 $typecheck = $Lane -eq 'typecheck'
 $typecheckMB = 4096
