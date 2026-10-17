@@ -976,6 +976,7 @@ describe('rules runtime contracts', () => {
       cleanup: {
         maintainedStateId: '00000000-0000-4000-8000-000000000024',
         removedDependentEffectIds: [],
+        removedZoneIds: [],
         characterOwnerTransitions: []
       }
     }

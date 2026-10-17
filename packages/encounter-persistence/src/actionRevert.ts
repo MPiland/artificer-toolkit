@@ -580,6 +580,12 @@ export async function revertLastEncounterAction(
   for (const action of targetBatches.toReversed()) await invertTarget(action)
   const rootCreated = areaRoot?.maintenanceTransition?.createdState
   if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
+  // The zone an area action placed leaves the Scene with it, before the state it depends on goes.
+  if (areaRoot?.placedSpatialEffectId)
+    await deletePlacedSpatialEffect(ctx, {
+      encounterId: state.id,
+      id: areaRoot.placedSpatialEffectId
+    })
   // Every creature of an area shares the one state, so it goes once, after the last dependent.
   for (const created of createdStates.values())
     await store.deleteMaintainedStateCas({
@@ -713,13 +719,6 @@ export async function revertLastEncounterAction(
   // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
   await restoreEndedMaintainedStates(ctx, root.endedMaintainedStates)
   await restoreConsumedGrants(ctx, root.consumedGrants)
-  // The zone an area action placed leaves the Scene with it.
-  if (areaRoot?.placedSpatialEffectId)
-    await deletePlacedSpatialEffect(ctx, {
-      encounterId: state.id,
-      id: areaRoot.placedSpatialEffectId
-    })
-
   const updatedAt = new Date().toISOString()
   for (const [characterId, inverse] of characterInverses)
     await restoreCharacter(ctx, {

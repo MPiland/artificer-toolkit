@@ -43,6 +43,10 @@ import {
   overridesActionEconomy,
   RULE_WARNINGS_MESSAGE
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  encounterConditionFleeSources,
+  encounterFleeActionWarnings
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   decideEncounterAreaLegendaryResistance,
@@ -1306,10 +1310,18 @@ export function reachRuleOverrides(input: {
   movementTargets: ReadonlyMap<string, MovementTargets>
 }): EncounterRuleWarningDto[] {
   const { activationCode, economy, suppressed } = input.evaluation
+  const caster = input.movementTargets.get(input.lead.actor.id)
+  if (!caster) throw new Error('Encounter rules input binding mismatch.')
   const shared = {
-    preparedWarnings: suppressed
-      ? [...input.lead.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
-      : input.lead.ruleWarnings,
+    preparedWarnings: [
+      ...input.lead.ruleWarnings,
+      ...encounterFleeActionWarnings({
+        sourceActorIds: encounterConditionFleeSources(caster),
+        activationCode,
+        dash: false
+      }),
+      ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
+    ],
     areaWarnings: input.areaWarnings,
     actionEconomy: economy,
     activationCode,

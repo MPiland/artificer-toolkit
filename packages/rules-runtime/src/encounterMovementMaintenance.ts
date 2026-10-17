@@ -33,7 +33,11 @@ export type MovementMaintenanceOwner<TRow extends MovementCharacterRow> = {
 export type MovementMaintenanceProjection<TRow extends MovementCharacterRow> = {
   slots: ReadonlyMap<
     string,
-    { state: EncounterMaintainedEffectStateRecord | null; dependents: ActiveRuleEffectRecord[] }
+    {
+      state: EncounterMaintainedEffectStateRecord | null
+      dependents: ActiveRuleEffectRecord[]
+      zoneIds: readonly string[]
+    }
   >
   owners: ReadonlyMap<string, MovementMaintenanceOwner<TRow>>
 }
@@ -224,7 +228,8 @@ export function projectEncounterMovementMaintenance<
   )
   slots.set(`${input.state.ownerActorId}:${input.state.maintenanceDefinitionId}`, {
     state: input.state,
-    dependents
+    dependents,
+    zoneIds: []
   })
   return {
     targets,
@@ -246,6 +251,7 @@ export function projectEncounterMovementConcentrationEnd<
   input: Omit<MovementMaintenanceProjectionInput<TRow, TCharacterFacts>, 'createdEffects'> & {
     maintenance: Pick<Maintenance<TRow>, 'removed' | 'owners' | 'characterVersions'> & {
       state: EncounterMaintainedEffectStateRecord
+      zoneIds: readonly string[]
     }
   },
   readCharacter: (row: TRow) => CharacterAuthored
@@ -257,11 +263,12 @@ export function projectEncounterMovementConcentrationEnd<
     },
     readCharacter
   )
-  const { state, removed, characterVersions } = input.maintenance
+  const { state, removed, zoneIds, characterVersions } = input.maintenance
   const slots = new Map(input.projection?.slots)
   slots.set(`${state.ownerActorId}:${state.maintenanceDefinitionId}`, {
     state: null,
-    dependents: []
+    dependents: [],
+    zoneIds: []
   })
   return {
     targets,
@@ -270,6 +277,7 @@ export function projectEncounterMovementConcentrationEnd<
     cleanup: {
       maintainedStateId: state.id,
       removedDependentEffectIds: removed.map((effect) => effect.id),
+      removedZoneIds: [...zoneIds],
       characterOwnerTransitions: characterVersions.map((entry) => ({
         ...entry,
         afterStreamVersion: entry.beforeStreamVersion + 1

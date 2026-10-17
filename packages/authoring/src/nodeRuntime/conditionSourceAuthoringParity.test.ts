@@ -95,3 +95,42 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
     expect(result.values.effects).toEqual(authored.effects)
   })
 })
+
+describe('a condition whose holder flees its source through the effect node map (SPELLS-29.T2)', () => {
+  it('keeps SRD Fear, whose Frightened flees its caster, exactly as authored', async () => {
+    expect(outcomesOf(fear.effects, 'CONDITION').map((outcome) => outcome.fleesSource)).toEqual([
+      true
+    ])
+    const authored = equipmentWith(fear.effects)
+    const result = await normalize('equipment', authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(result.values.effects).toEqual(authored.effects)
+  })
+
+  it("leaves a dragon's Frightful Presence from fleeing", () => {
+    expect(
+      outcomesOf(adultRedDragon, 'CONDITION').map((outcome) => outcome.fleesSource)
+    ).toEqual([undefined])
+  })
+
+  it('lets an author make any sourced condition flee, so a homebrew Panicked builds what Fear does', async () => {
+    const poisoned = SRD_CONDITION_TYPES.find((entry) => entry.code === 'POISONED')
+    if (!poisoned) throw new Error('Missing Poisoned.')
+    const effects = structuredClone(fear.effects)
+    for (const outcome of outcomesOf(effects, 'CONDITION'))
+      Object.assign(outcome, { conditionId: poisoned.id, recordsSource: true, fleesSource: true })
+    const authored = equipmentWith(effects)
+    const result = await normalize('equipment', authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(result.values.effects).toEqual(authored.effects)
+  })
+
+  it('clears fleesSource when the source is not recorded', async () => {
+    const effects = structuredClone(fear.effects)
+    for (const outcome of outcomesOf(effects, 'CONDITION')) outcome.recordsSource = false
+    const result = await normalize('equipment', equipmentWith(effects))
+    expect(
+      outcomesOf(result.values.effects, 'CONDITION').map((outcome) => outcome.fleesSource)
+    ).toEqual([undefined])
+  })
+})

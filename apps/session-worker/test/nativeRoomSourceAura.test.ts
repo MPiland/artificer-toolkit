@@ -1,3 +1,4 @@
+import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
@@ -5,12 +6,14 @@ import {
 import { DND5E_SAVE_DC_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import {
   hitPointsOf,
   readMaintainedStates,
@@ -38,6 +41,8 @@ const ROLLED_DAMAGE = 3 * (DIE + 1)
 /** A token is 100 px and a cell 5 ft: the caster stands at (150, 150), the aura reaches 300 px past its edge. */
 const OUTSIDE_THE_AURA = { x: 150, y: 650 }
 const INSIDE_THE_AURA = { x: 150, y: 450 }
+/** The authored 15 ft (300 px) plus half the 100 px token. */
+const AURA_RADIUS = 350
 const FAR_EAST = { x: 750, y: 150 }
 
 afterEach(() => {
@@ -64,9 +69,59 @@ function auraRoom(wolfAt: { x: number; y: number }) {
 
 type Room = Awaited<ReturnType<typeof auraRoom>>
 
+/** The auras a member's Encounter session frame lists, read from a fresh subscription. */
+async function aurasListedTo(client: {
+  messages: LiveSessionWebSocketServerMessageDto[]
+  socket: { send(data: string): void }
+}) {
+  const first = client.messages.length
+  client.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
+  return vi.waitFor(() => {
+    const message = client.messages
+      .slice(first)
+      .find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
+    if (message?.type !== 'ENCOUNTER_SESSION' || !message.session.held)
+      throw new Error('The room has not sent the held Encounter session.')
+    return message.session.state.auras
+  })
+}
+
 async function castAura(room: Room) {
   const { answer } = await room.startCasterCenteredAreaAction()
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+}
+
+/** The caster's player ends their Character's Concentration on the Sheet, as its holder may at any time. */
+async function endCasterConcentration(room: Room) {
+  const streamVersion = await runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const play = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((row) => row.characterId === CASTER_ID)
+    if (!play) throw new Error('Missing room Character play state.')
+    return play.streamVersion
+  })
+  const player = await connectPlayer(room.room.base)
+  const commandId = crypto.randomUUID()
+  player.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'CHARACTER_SHEET',
+        characterId: CASTER_ID,
+        encounterId: room.room.encounterId,
+        command: { type: 'END_CONCENTRATION', commandId, expectedVersion: streamVersion }
+      }
+    })
+  )
+  await vi.waitFor(() => {
+    const answer = player.messages.find(
+      (message) =>
+        (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+        message.commandId === commandId
+    )
+    expect(answer?.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  })
 }
 
 describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
@@ -146,7 +201,7 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
     expect(walk.executions).toEqual([])
   })
 
-  it('opens the caster�s Concentration for the aura, which the aura depends on (D135)', async () => {
+  it('opens the caster’s Concentration for the aura, which the aura depends on (D135)', async () => {
     const room = await auraRoom(OUTSIDE_THE_AURA)
 
     await castAura(room)
@@ -171,5 +226,45 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
 
     expect(await readMaintainedStates(room)).toEqual([])
     expect(await readZones(room)).toEqual([])
+  })
+
+  it('lists the aura with its label, radius and source token to the GM and to the caster’s player', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    expect(await aurasListedTo(room.room.base)).toEqual([])
+    await castAura(room)
+
+    const expected = [
+      {
+        id: (await readZones(room))[0]!.id,
+        label: 'Spirit Guardians',
+        radius: AURA_RADIUS,
+        sourceTokenId: room.room.scene.tokens[0]!.id
+      }
+    ]
+    expect(await aurasListedTo(room.room.base)).toEqual(expected)
+    expect(await aurasListedTo(await connectPlayer(room.room.base))).toEqual(expected)
+  })
+
+  it('stops listing the aura when the GM takes the cast back', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(room)
+    await revertLastAction(room)
+
+    expect(await aurasListedTo(room.room.base)).toEqual([])
+  })
+
+  it('removes the aura in the same commit that ends the caster’s Concentration (D135)', async () => {
+    const room = await auraRoom(OUTSIDE_THE_AURA)
+    await castAura(room)
+    expect(await readZones(room)).toHaveLength(1)
+
+    await endCasterConcentration(room)
+
+    expect(await readMaintainedStates(room)).toEqual([])
+    expect(await readZones(room)).toEqual([])
+    expect(await aurasListedTo(room.room.base)).toEqual([])
+    await room.advanceTurn()
+    const walk = await walkerMoves(room, [OUTSIDE_THE_AURA, INSIDE_THE_AURA])
+    expect(walk.executions).toEqual([])
   })
 })

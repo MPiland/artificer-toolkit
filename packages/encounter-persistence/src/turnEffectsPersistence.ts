@@ -333,7 +333,7 @@ export async function persistEncounterTurnEffects(
     if (!maintained) throw new Error('Maintained turn effect source binding is stale.')
     if (
       !maintainedStateTerminatesWhenEmpty(maintained) ||
-      (await store.listDependentEffects({ encounterId: state.id, stateId })).length !== 0
+      (await store.hasDependents({ encounterId: state.id, stateId }))
     )
       continue
     await store.deleteMaintainedStateCas({

@@ -5,6 +5,7 @@ import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnE
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
+import { deleteStateZones, listStateZones } from './maintainedStateZones.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterCharacterPlay, type EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -137,11 +138,14 @@ export async function cleanupRemovedActorEffects(
       stateId: state.id
     })
     const ownedByRemovedActor = state.ownerActorId === input.actorId
+    const zones = await listStateZones(ctx, { encounterId: input.state.id, stateId: state.id })
     if (
       remaining.length !== 0 ||
-      (!ownedByRemovedActor && !maintainedStateTerminatesWhenEmpty(state))
+      (!ownedByRemovedActor && (!maintainedStateTerminatesWhenEmpty(state) || zones.length !== 0))
     )
       continue
+    // The zones of a removed caster's Concentration end with it (D135); another state's keep it alive.
+    await deleteStateZones(ctx, zones)
     await effects.deleteMaintainedStateCas({
       id: state.id,
       encounterId: input.state.id,

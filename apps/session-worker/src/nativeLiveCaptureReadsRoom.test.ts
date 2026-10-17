@@ -89,7 +89,7 @@ describe('readNativeLiveMaintenanceSlot over the real room', () => {
     await withRoomCapture({ state, actors }, async (room) => {
       await expect(
         readNativeLiveMaintenanceSlot({ ...slot, capture: room.capture })
-      ).resolves.toEqual({ state: null, dependents: [] })
+      ).resolves.toEqual({ state: null, dependents: [], zoneIds: [] })
       expect(room.requests).toEqual([
         { kind: 'MAINTENANCE_SLOT', actorId: CASTER_ID, definitionId: DEFINITION_ID }
       ])
@@ -341,7 +341,7 @@ describe('readNativeLiveMovementConcentrationState over the real room', () => {
     await withRoomCapture({ state: casterState, actors: casterActors }, async (room) => {
       await expect(
         read(room, {
-          slots: new Map([[slotKey, { state: null, dependents: [] }]]),
+          slots: new Map([[slotKey, { state: null, dependents: [], zoneIds: [] }]]),
           owners: new Map()
         })
       ).resolves.toBeNull()
@@ -350,7 +350,7 @@ describe('readNativeLiveMovementConcentrationState over the real room', () => {
       // The room holds no published Concentration definition, so its real DEFINITION read answers none.
       await expect(
         read(room, {
-          slots: new Map([[slotKey, { state: concentrationState, dependents: [] }]]),
+          slots: new Map([[slotKey, { state: concentrationState, dependents: [], zoneIds: [] }]]),
           owners: new Map()
         })
       ).rejects.toThrow('The concentration maintenance definition is stale.')

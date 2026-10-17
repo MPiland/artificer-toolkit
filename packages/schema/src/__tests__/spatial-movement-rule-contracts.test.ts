@@ -1971,6 +1971,7 @@ describe('Concentration ends in the spatial movement receipt timeline (D95)', ()
             cleanup: {
               maintainedStateId,
               removedDependentEffectIds: [],
+              removedZoneIds: [],
               characterOwnerTransitions: [
                 { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 }
               ]

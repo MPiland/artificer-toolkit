@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { SpatialRuleEffectPlacementDto } from '@artificer-toolkit/schema/shared/spatial'
-import { readHalfSpeedFields } from '@artificer-toolkit/encounter-persistence/halfSpeedFields'
+import { halfSpeedFieldsOf } from '@artificer-toolkit/encounter-persistence/halfSpeedFields'
+import { readSceneSpatialRows } from '@artificer-toolkit/encounter-persistence/sceneSpatialRows'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 
 import { convexTest } from '../../tests/convexTest'
@@ -124,7 +125,11 @@ async function seed(
 }
 
 const read = (t: Awaited<ReturnType<typeof seed>>, encounterId = ids.encounter) =>
-  t.run((ctx) => readHalfSpeedFields({ db: createConvexEncounterStore(ctx) }, encounterId))
+  t.run(async (ctx) =>
+    halfSpeedFieldsOf(
+      await readSceneSpatialRows({ db: createConvexEncounterStore(ctx) }, encounterId)
+    )
+  )
 
 describe('readHalfSpeedFields', () => {
   it('lists the visible half-speed fields with their label and shape, in creation order', async () => {

@@ -8,6 +8,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import { readRunActor } from './documents.js'
+import { listStateZones } from './maintainedStateZones.js'
 import { readCharacterEffect, readEncounterEffect, readMaintainedState } from './effectStore.js'
 
 /**
@@ -73,7 +74,12 @@ export async function readEncounterMaintenanceCapture(
     )
     .unique()
   const maintained = row ? readMaintainedState(row) : null
-  if (request.kind === 'MAINTENANCE_SLOT') return { kind: request.kind, state: maintained }
+  if (request.kind === 'MAINTENANCE_SLOT') {
+    const zones = maintained
+      ? await listStateZones(ctx, { encounterId: state.id, stateId: maintained.id })
+      : []
+    return { kind: request.kind, state: maintained, zoneIds: zones.map((zone) => zone.id) }
+  }
   if (!maintained || maintained.id !== request.stateId)
     throw new Error('Maintained effect slot changed during preparation.')
 

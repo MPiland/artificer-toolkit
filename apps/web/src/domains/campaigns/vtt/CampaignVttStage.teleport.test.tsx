@@ -85,9 +85,17 @@ const room = (): HeldEncounterSession => ({
     pending: null,
     waitingOn: null,
     turnMovement: [
-      { actorId: emberActor.id, used: 0, speedId: null, allowances: [], teleport }
+      {
+        actorId: emberActor.id,
+        used: 0,
+        speedId: null,
+        allowances: [],
+        fleeSourceActorIds: [],
+        teleport
+      }
     ],
-    halfSpeedFields: []
+    halfSpeedFields: [],
+    auras: []
   },
   preparedPending: [],
   actorSides: null,

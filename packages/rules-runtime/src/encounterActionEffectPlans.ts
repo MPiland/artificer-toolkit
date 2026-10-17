@@ -498,7 +498,8 @@ function prepareRecurringActiveEffect(
                     conditionId: conditionContribution.conditionId,
                     baselinePresent,
                     ...(conditionContribution.recordsSource && {
-                      sourceActorId: input.sourceActorId
+                      sourceActorId: input.sourceActorId,
+                      ...(conditionContribution.fleesSource && { fleesSource: true })
                     })
                   }
                 ]
