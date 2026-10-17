@@ -49,7 +49,6 @@
     "turbo:typecheck:web:app": "turbo run typecheck:app --filter=@artificer-toolkit/web",
     "turbo:typecheck:web": "turbo run typecheck:app typecheck:tests --filter=@artificer-toolkit/web",
     "turbo:affected:test": "turbo run test --filter=\"[HEAD]\"",
-    "turbo:affected:typecheck": "turbo run typecheck --filter=\"[HEAD]\"",
     "lint": "yarn lint:ox && yarn lint:schemas",
     "lint:ox": "oxlint --deny-warnings",
     "lint:schemas": "node scripts/lazySchemas.mjs --check",

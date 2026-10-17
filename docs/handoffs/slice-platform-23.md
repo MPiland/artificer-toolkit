@@ -32,6 +32,21 @@ Also found by the suite guard and the root config now running whole: `apps/apis/
 
 Full-run baseline (T1, run 38999517415): 15m19s wall; Convex shards 9:03-13:39, packages and Worker 8:30, web 9:18.
 
+## T3: local typecheck lane
+
+`-Lane typecheck` in `scripts/withValidationLock.ps1` runs one fixed command (no `-Script`): Turbo `typecheck` and `typecheck:convex` with `--filter=...[<merge-base with origin/codex/phase-08-2-convex-cutover>]` (web excluded, since its `typecheck` is its `typecheck:app`), then web's `typecheck:app`/`tests`/`stories` with the same filter; `GOMAXPROCS=2`, `--concurrency=1`, `--env-mode=loose`, `--continue`. `turbo.json` gives web's typecheck tasks `^build`, as `typecheck` already had, so the lane builds what they read. `yarn turbo:affected:typecheck` (`--filter=[HEAD]`, empty after a commit) is removed.
+
+Measured in the heavy lane (`local-validation/platform-23/measure-*.ps1`), the lane's two Turbo commands for one changed package. Peak is the batch's process tree, sampled every 0.5 s.
+
+| Change                             | Cold (`--force`, tsbuildinfo deleted) | Warm (one source edit) | Cached                      | Peak private |
+| ---------------------------------- | ------------------------------------- | ---------------------- | --------------------------- | ------------ |
+| `apps/session-worker` (4 tasks)    | 196 s                                 | 74 s                   | 3 s                         | 2.0 GB       |
+| `packages/shared` (all dependents) | 431 s                                 | 225 s                  | 5 s (lane, every workspace) | 2.0 GB       |
+
+The CI fail-fast gate reports a type error in about 6 minutes, plus the push and queue. A one-package change is reported locally in about a minute warm; a `shared` change takes as long as CI cold and less warm. Free physical memory fell to 0 to 8 MB in every run while commit headroom stayed above 13.8 GB, so the gate is commit headroom: 4 GB, twice the peak. `--concurrency=1` keeps one compiler alive at a time, which is why the peak does not grow with the number of dependents.
+
+Proof (`local-validation/platform-23/lane-proof.txt`): the slice changes root config, so every workspace is in scope. Clean pass 108 s (exit 0, 17 of 19 tasks cached); then a `string` assigned to a `number` in `apps/session-worker/src/index.ts`: exit 1 in 45 s, printing `src/index.ts(143,14): error TS2322`, with no push or CI run; reverted, clean pass 5 s, all cached.
+
 ## Status log
 
 - 2026-10-16: local red (12 failed / 16 passed in the six files) reproduced after building packages. Green: `packages/authoring/src` 15 files, 104 tests passed (light lane).
