@@ -85,6 +85,9 @@ export const charmPerson: SpellAuthored = {
               durationKind: DURATION_KIND.HOUR,
               amount: 1
             },
+            lifecycle: {
+              endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'SOURCE_SIDE' as const }]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CHARM_PERSON, 0x212, 1),

@@ -261,6 +261,8 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
 export type LiveSessionPlacedSpatialEffect = {
   id: string
+  /** The Concentration the placing cast opens (or joins); null when the zone does not depend on one. */
+  maintainedEffectStateId: string | null
   definition: ActiveRuleEffectDefinitionDto
   lifecycle: ActiveRuleEffectLifecycleDto
   placement: SpatialRuleEffectPlacementDto
@@ -271,6 +273,7 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
   lazySchema(() =>
     z.strictObject({
       id: postgresUuidSchema,
+      maintainedEffectStateId: z.nullable(postgresUuidSchema),
       definition: activeRuleEffectDefinitionDtoSchema,
       lifecycle: activeRuleEffectLifecycleDtoSchema,
       placement: spatialRuleEffectPlacementDtoSchema,

@@ -2,6 +2,12 @@
 
 Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
+## Resume here
+
+- T1, T1b and T2a are done and accepted (T2a at `16e4493c7`).
+- Next: T3 (aura label, radius and source token only to viewers allowed to see the source, Convex and room parity), then T2b (cleanup removes dependent zones, GM undo restores them, replacement removes the old zone).
+- The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
+
 ## Scope
 
 - AC 1: an aura (Spirit Guardians, a paladin's Aura of Protection, a creature's damaging aura) is an authored spatial effect centered on its source that moves with it and applies its authored outcome to the creatures inside it; the encounter projection carries each aura's radius and label to the viewers allowed to see its source, so the map can draw it.
@@ -61,3 +67,12 @@ Registered by Phase 8 (commits 287f7d0c2 and a97894a8d, ruling D133 in 81d760bdf
 - CI fixes on 4ee8b1c65: `zoneAttachment.test.ts` now expects Spirit Guardians among the SOURCE zones (the intended T1b change, assertion widened by the one new owner, none removed); the zone-save helper moved into `characterActionRuleFacts.ts` because the web boundary test (ADR 0036 S6) forbids the web bundle reaching `encounter*` rules modules.
 
 Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `persistence.md` / `transport.md` (aura projection), ADR 0038 note (SOURCE zones).
+
+### T2a (zone-only cast opens Concentration, zone is its dependent, D135)
+
+- Red: `ci/spells-20-t2a-red` at bac84acaa. Tests: `nativeRoomSourceAura.test.ts` (state opened, zone points at it, GM undo removes both), `spatialEffectStore.test.ts` (`maintainedEffectStateId` round trip), `encounterZonePlacementCompilation.test.ts` (non-concentration zone compiles `maintenance: null`).
+- Seams: `compiledActionMaintenanceSchema` shared by the effect plan and `zonePlacement.maintenance`; `maintainedEffectStateId` on the stored/record spatial-effect schemas and `LiveSessionPlacedSpatialEffect`; area root `maintenanceTransition` for a cast no creature outcome carries; `prepareMaintenanceReplacement` and `applyMaintenanceReplacement` split out of the effect persistence so the root and a creature outcome share them; identical policies on a cast's effect and zone are one Concentration.
+- Dev data: local Encounters with placed zones need a reset (new required column, no compatibility default).
+- Left to T2b: cleanup removes dependent zones (`removedZoneIds`, `by_state_encounter` index), GM undo restores them, a replacement removes the old zone (until then a replaced state leaves its old zone pointing at a deleted state).
+
+- Done: green `16e4493c7` on `ci/spells-20-t2a`, Tests 38972849265 (re-run of the failed jobs after a room-authority Escape flake and a budget-cap run, neither T2a) and Live 38974795282. Fixes on the way: fixtures name `maintainedEffectStateId`; a zone-only state has no created dependent effects (schema minimum removed, D135); the aura test reads `descriptorJson`.

@@ -72,6 +72,7 @@ describe('placed-space zone compilation from real SRD Caltrops', () => {
   it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
     const { entry, compilation } = compileCaltropsEntry()
     expect(compilation.activeEffectPlan).toBeNull()
+    expect(compilation.zonePlacement?.maintenance).toBeNull()
     expect(compilation.zonePlacement).toMatchObject({
       label: 'Caltrop field',
       shape: { shapeKind: 'CUBE', edgeLength: { amount: 5, unit: 'FEET' } },
@@ -120,6 +121,7 @@ function placedCaltropsZone() {
   return planEncounterPlacedZone({
     zone,
     id: ZONE_ID,
+    maintainedEffectStateId: null,
     encounterId: ENCOUNTER_ID,
     occurrenceId: OCCURRENCE_ID,
     rootCommandId: SPREAD_COMMAND_ID,
@@ -333,6 +335,7 @@ describe('a zone authored with another save DC and a circle shape', () => {
     const placed = planEncounterPlacedZone({
       zone: zonePlacementOf(authored),
       id: ZONE_ID,
+      maintainedEffectStateId: null,
       encounterId: ENCOUNTER_ID,
       occurrenceId: OCCURRENCE_ID,
       rootCommandId: SPREAD_COMMAND_ID,

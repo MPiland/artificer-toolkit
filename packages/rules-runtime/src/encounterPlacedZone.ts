@@ -27,6 +27,8 @@ import { compileEffectGraph } from './encounterActionEffectPlans.js'
 export function planEncounterPlacedZone(input: {
   zone: CompiledActionZonePlacement
   id: string
+  /** The Concentration the placing cast opens or joins; null when the zone depends on none. */
+  maintainedEffectStateId: string | null
   encounterId: string
   occurrenceId: string
   rootCommandId: string
@@ -87,6 +89,7 @@ export function planEncounterPlacedZone(input: {
   })
   return {
     id: input.id,
+    maintainedEffectStateId: input.maintainedEffectStateId,
     definition,
     lifecycle: { schemaVersion: 1, remainingTicks: null },
     placement: spatialRuleEffectPlacementDtoSchema.parse({

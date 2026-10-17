@@ -346,6 +346,7 @@ it.each([
     snapshot: {},
     frozenState: departed.frozenState,
     absence: null,
+    form: null,
     createdAt: now,
     updatedAt: now
   })

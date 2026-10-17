@@ -15,6 +15,13 @@ export function readZones(room: ActionRoom) {
   )
 }
 
+/** The Concentration states the room's Encounter holds. */
+export function readMaintainedStates(room: ActionRoom) {
+  return runInDurableObject(room.room.base.stub, async (_instance, context) =>
+    new RoomEncounterStore(context.storage).documents('encounterMaintainedEffectStates')
+  )
+}
+
 export async function hitPointsOf(room: ActionRoom, actorId: string) {
   return vitalsOf(await readRoomHistory(room.room.base.stub)).find(({ id }) => id === actorId)
     ?.currentHitPoints

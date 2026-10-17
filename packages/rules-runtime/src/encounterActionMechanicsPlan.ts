@@ -143,6 +143,7 @@ function prepareNativeActionMechanicsBatches(
           expectedCharacterStreamVersion:
             source.kind === 'CHARACTER_ACTION' ? source.characterStreamVersion : null,
           effectiveMaximumHitPoints: sourceFacts.effectiveMaximumHitPoints,
+          sheetMaximumHitPoints: sourceFacts.sheetMaximumHitPoints,
           effectiveScalarValues: sourceFacts.effectiveScalarValues,
           forceVersionAdvance: false,
           ...sourceMutation
@@ -173,6 +174,7 @@ function prepareNativeActionMechanicsBatches(
     ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
+    sheetMaximumHitPoints: targetFacts.sheetMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
     ...(input.enterForm ? { enterForm: input.enterForm } : {}),

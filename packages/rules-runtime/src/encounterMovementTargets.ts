@@ -43,7 +43,7 @@ import {
   requireEncounterActorRuleResult
 } from './encounterActorRuleOutput.js'
 import { snapshotCreatureTypeId } from './encounterActorState.js'
-import { snapshotStatBlock } from './encounterProjection.js'
+import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
@@ -90,7 +90,10 @@ export type MovementTarget<
     deathSaves: CharacterDeathSaves | null
   }
   initialConditionRows: readonly unknown[] | null
+  /** The maximum of the hit points `state` holds: a Character in a form has the form's. */
   effectiveMaximumHitPoints: number
+  /** A Character's own effective maximum, which differs from `effectiveMaximumHitPoints` in a form. */
+  sheetMaximumHitPoints?: number | undefined
   baseScalarValues: Readonly<Record<string, number>>
   effectiveScalarValues: Readonly<Record<string, number>>
   baseRulePolicyOutput: CharacterRulePolicyOutput | null
@@ -124,6 +127,44 @@ export type MovementTarget<
   conditionDefinitions: readonly PinnedConditionRuleStateDefinitionDto[]
   /** The mechanics the actor's current conditions apply, derived from `conditionDefinitions`. */
   conditionMechanics: readonly EncounterConditionMechanic[]
+}
+
+/** The sum of a Character's class levels. */
+export function characterTotalLevel(characterFacts: CharacterMovementFacts): number {
+  return characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.reduce(
+    (sum, { level }) => sum + level,
+    0
+  )
+}
+
+/** A Creature snapshot's ability scores, by ability definition id. */
+function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record<string, number> {
+  if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot))
+    throw new Error('Encounter actor scalar facts are stale.')
+  const facts = encounterCreatureRuleFactsSnapshotSchema.parse(
+    (snapshot as { ruleFacts?: unknown }).ruleFacts
+  )
+  if (facts.gameSystemId !== gameSystemId) throw new Error('Encounter actor scalar facts are stale.')
+  return { ...facts.abilityScores }
+}
+
+/** The Character's policy output with its armor class replaced by the form's. */
+function withFormArmorClass(
+  output: CharacterRulePolicyOutput,
+  armorClass: number
+): CharacterRulePolicyOutput {
+  return {
+    ...output,
+    derivedStats: {
+      ...output.derivedStats,
+      armorClass: {
+        ...output.derivedStats.armorClass,
+        base: armorClass,
+        effective: armorClass,
+        contributions: []
+      }
+    }
+  }
 }
 
 function nativeCharacterMaximumHitPoints(
@@ -206,8 +247,13 @@ export function buildMovementTarget<
         throw new Error('Character ability scalar fact is stale.')
       baseScalarValues[matches[0].id] = ability.score.effective
     }
+    const { form } = actor
+    // In a form the physical scores are the form's and the mental ones the Character's, baked into
+    // the snapshot when the form was entered (D130 amendment).
+    const targetScalarValues =
+      form === null ? baseScalarValues : creatureAbilityScalars(form.snapshot, gameSystemId)
     const effectiveScalarValues = foldActiveScalarReductions({
-      baseScalarValues,
+      baseScalarValues: targetScalarValues,
       effects: activeEffects
     })
     const scalarsReduced = scalarValuesDiffer(baseScalarValues, effectiveScalarValues)
@@ -215,7 +261,7 @@ export function buildMovementTarget<
       characterFacts.ruleEvaluation.facts,
       activeEffects
     )
-    const effectiveRulePolicyOutput =
+    const policyOutput =
       scalarsReduced || factsWithGrants !== characterFacts.ruleEvaluation.facts
         ? resolveCharacterRulePolicyRollModes(
             evaluateInstalledCharacterPolicy({
@@ -232,9 +278,20 @@ export function buildMovementTarget<
             characterFacts.prepared.context.vocabularySnapshot
           )
         : baseRulePolicyOutput
-    const effectiveMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
+    const formArmorClass = characterFormStatBlock(actor)?.armorClass
+    const effectiveRulePolicyOutput =
+      formArmorClass == null
+        ? policyOutput
+        : withFormArmorClass(
+            policyOutput,
+            withCreatureActiveGrantArmorClass(formArmorClass, activeEffects) ?? formArmorClass
+          )
+    const sheetMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
+    const effectiveMaximumHitPoints =
+      form === null ? sheetMaximumHitPoints : effectiveHitPointMaximum(form.maxHitPoints, activeEffects)
     const conditionDefinitionIds = [...systemConditions].sort()
-    const spellCast = input.includeReactionSources
+    // A form that cannot cast offers no spells; Concentration on one already held stays (D130).
+    const spellCast = input.includeReactionSources && form === null
       ? buildCharacterSpellCastActions({
           spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
           castableCandidateIds: listCastableSpellCandidateIds({
@@ -246,10 +303,7 @@ export function buildMovementTarget<
           }),
           policyOutput: effectiveRulePolicyOutput,
           spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
-          characterLevel: characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.reduce(
-            (sum, { level }) => sum + level,
-            0
-          ),
+          characterLevel: characterTotalLevel(characterFacts),
           firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
         })
       : null
@@ -272,26 +326,39 @@ export function buildMovementTarget<
         .filter((entry) => entry.compilation.kind === 'COMPILED')
         .map((entry) => entry.actionId)
     )
-    const characterSpellCast = spellCast && {
-      candidates: spellCast.candidates.filter((c) => executableActionIds.has(c.actionId)),
-      decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
-      compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
-        executableActionIds.has(entry.actionId)
-      )
-    }
+    const characterSpellCast: CharacterSpellCastActions | null = spellCast
+      ? {
+          candidates: spellCast.candidates.filter((c) => executableActionIds.has(c.actionId)),
+          decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
+          compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
+            executableActionIds.has(entry.actionId)
+          )
+        }
+      : input.includeReactionSources
+        ? { candidates: [], decisions: [], compiledActionEntryPoints: [] }
+        : null
     return {
       actor,
       activeEffects,
       characterFacts,
-      state: {
-        current: characterFacts.character.state.hitpoints.current,
-        temporary: characterFacts.character.state.hitpoints.temp ?? 0,
-        conditions: conditionIds,
-        deathSaves: characterFacts.character.state.hitpoints.deathSaves
-      },
+      state:
+        form === null
+          ? {
+              current: characterFacts.character.state.hitpoints.current,
+              temporary: characterFacts.character.state.hitpoints.temp ?? 0,
+              conditions: conditionIds,
+              deathSaves: characterFacts.character.state.hitpoints.deathSaves
+            }
+          : {
+              current: form.currentHitPoints,
+              temporary: form.tempHitPoints,
+              conditions: conditionIds,
+              deathSaves: null
+            },
       initialConditionRows: null,
       effectiveMaximumHitPoints,
-      baseScalarValues,
+      sheetMaximumHitPoints,
+      baseScalarValues: targetScalarValues,
       effectiveScalarValues,
       baseRulePolicyOutput,
       effectiveRulePolicyOutput,
@@ -364,20 +431,7 @@ export function buildMovementTarget<
     }
   }
   const baseScalarValues: Record<string, number> =
-    actor.kind === 'CREATURE'
-      ? (() => {
-          if (
-            typeof actor.snapshot !== 'object' ||
-            actor.snapshot === null ||
-            Array.isArray(actor.snapshot)
-          )
-            throw new Error('Encounter actor scalar facts are stale.')
-          const facts = encounterCreatureRuleFactsSnapshotSchema.parse(actor.snapshot.ruleFacts)
-          if (facts.gameSystemId !== gameSystemId)
-            throw new Error('Encounter actor scalar facts are stale.')
-          return { ...facts.abilityScores }
-        })()
-      : {}
+    actor.kind === 'CREATURE' ? creatureAbilityScalars(actor.snapshot, gameSystemId) : {}
   const effectiveScalarValues = foldActiveScalarReductions({
     baseScalarValues,
     effects: activeEffects

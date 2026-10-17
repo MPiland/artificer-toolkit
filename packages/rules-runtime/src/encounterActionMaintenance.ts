@@ -16,6 +16,7 @@ import { readEncounterActorConditionState } from './encounterCharacterMechanicsB
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
 import { EncounterValidationError, SpellcastingLockedError } from './encounterErrors.js'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
@@ -50,7 +51,19 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
           action: prepared.source.capability,
           published
         }) ?? [])
-  const policies = plans.flatMap((plan) => (plan?.maintenance ? [plan.maintenance] : []))
+  // A zone-only cast keeps its Concentration on the zone placement, not on any creature effect.
+  const zone =
+    prepared.source.kind === 'CHARACTER_ACTION' && prepared.source.entry.schemaVersion === 4
+      ? prepared.source.entry.compilation.zonePlacement
+      : null
+  // The creature effects and the zone of one cast name one Concentration, not two.
+  const policies = [
+    ...new Map(
+      [...plans.map((plan) => plan?.maintenance), zone?.maintenance].flatMap((policy) =>
+        policy ? [[checksumCanonicalJson(policy), policy] as const] : []
+      )
+    ).values()
+  ]
   if (policies.length > 1)
     throw new Error('Encounter action selected multiple maintenance policies.')
   const policy = policies[0]

@@ -1539,7 +1539,8 @@ function timedImmediateConditionPlan(
  * A condition applied with a duration, with no save (Invisibility, "1 hour") or as a save's one
  * failure outcome (Sleep Breath, see `ownsTimedSaveCondition`): the target holds it
  * through an Encounter active effect that counts the target's turns, carries the authored events
- * that use it up or end it, and removes the condition when it ends. Any other lifecycle stays manual.
+ * that use it up or end it, and removes the condition when it ends. With no duration it lasts as long
+ * as the Concentration that maintains it. Any other lifecycle stays manual.
  */
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1550,8 +1551,7 @@ function timedConditionPlan(
     entries.length !== 1 ||
     !entry ||
     !('outcome' in entry) ||
-    entry.outcome.effectKind !== 'CONDITION' ||
-    !entry.duration
+    entry.outcome.effectKind !== 'CONDITION'
   )
     return null
   const {
@@ -1560,10 +1560,14 @@ function timedConditionPlan(
     endOnTriggers = [],
     ...otherLifecycle
   } = entry.lifecycle ?? {}
-  const initialRemaining = conditionDurationTurns(entry.duration)
+  const maintenance = maintenancePlan(action, entry)
+  // With no duration the condition lasts until its Concentration ends or an authored event ends
+  // it (Imp Invisibility), so Concentration must maintain it: nothing else bounds it.
+  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
+  const indefinite = !entry.duration
   const { conditionId, recordsSource } = entry.outcome
   if (
-    initialRemaining === null ||
+    (indefinite ? !maintenance : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     !(action.conditionDefinitionIds ?? []).includes(conditionId) ||
     !UUID.test(entry.entryId)
@@ -1574,7 +1578,7 @@ function timedConditionPlan(
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'condition-duration',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'END_OF_TURN',
+    recurrenceStage: indefinite ? 'NONE' : 'END_OF_TURN',
     initialRemaining,
     conditionContribution: {
       conditionId,
@@ -1585,7 +1589,7 @@ function timedConditionPlan(
     },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, entry)
+    maintenance
   }
 }
 
@@ -2099,7 +2103,8 @@ function zonePlacementPlan(
           senses: [...lingering.senses],
           endOnEvents: [...lingering.endOnEvents]
         }
-      : null
+      : null,
+    maintenance: maintenancePlan(action, damage)
   }
 }
 
@@ -2228,7 +2233,10 @@ function repeatFollowUpSavePublishedGraph(input: {
           max: { kind: 'LITERAL', value: 20 },
           ...(gated
             ? {
-                enabled: { kind: 'FACT' as const, factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY }
+                enabled: {
+                  kind: 'FACT' as const,
+                  factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY
+                }
               }
             : {})
         }
@@ -6284,7 +6292,8 @@ function repeatedFollowUpSaveResultPath(input: {
   }
   const [d20Trace, saveTrace] = input.execution.evidence.trace
   const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
-  const gated = DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts
+  const gated =
+    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts
   const d20OperationKey = gated ? 'evidence.optional-integer-range' : 'evidence.integer-range'
   const attemptAllowed = gated
     ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
