@@ -1058,7 +1058,7 @@
         {
           "id": "PLATFORM-20",
           "title": "One flat compile stage: no dead or copy-only compilers",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1092,16 +1092,25 @@
             },
             {
               "id": "PLATFORM-20.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold and every fold consumer read those typed fields with no Record<string, unknown> casts, and the persisted fold contract carries typed scope and payload instead of a JSON dump of the grant, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859.",
-              "note": "Orchestrator ruling 2026-10-17 on the session question: option A (typed persisted contract plus a dev-data migration), per the user's best-practice direction and the pre-launch no-compat rule."
+              "note": "Run rules/modifierOperationMigration:run once on the local backend after the next local deploy.",
+              "proof": [
+                "packages/schema/src/api/characterGrantFoldRules.ts: modifierOperationSchema carries typed scope, domain (modifierDomainParamsDtoSchema), optional payload (modifierPayloadDtoSchema) and scopeResourceIds; the grant boundedJson dump is gone and fold contributions drop grant. Rules-runtime modifier readers narrow typed fields with no record() casts or jsonFact passthrough; CompiledModifierGrant.payload is narrowed to the reachable payloads; DAMAGE_IMMUNITY sourceEffectIds (REACTION-4.T4) has a strict damageImmunityPayloadDtoSchema.",
+                "Migration: apps/apis/convex/rules/modifierOperationMigration.ts rebuilds frozen operations in characterActiveRuleEffects, encounterActiveRuleEffects and encounterSpatialRuleEffects, validated, re-checksummed and idempotent; modifierOperationMigration.test.ts runs it twice. Rule receipts, pending snapshot parts and room storage are not migrated (the local reset clears them).",
+                "Red 784bb8c4a (Tests 38996674304 failed). Direct single-slice merge fc5388e9d of ci/platform-20-t2 7fa9f620a (Tests 39000902431, Live 39002206361); the merge differs from the slice tip only in the ledger."
+              ]
             },
             {
               "id": "PLATFORM-20.4",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed."
+              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed.",
+              "proof": [
+                "ADR 0003 gained the typed fold modifier operation and its migration; docs/architecture engine.md Compile stage names typed scope, domain and payload plus spell and resource ids, not a JSON copy; neither describes compile-once hydration (PLATFORM-21) as current.",
+                "Direct single-slice merge fc5388e9d of ci/platform-20-t2 7fa9f620a (Tests 39000902431, Live 39002206361); the merge differs from the slice tip only in the ledger."
+              ]
             }
           ],
           "tasks": [
@@ -1120,7 +1129,7 @@
             },
             {
               "id": "PLATFORM-20.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-20.3", "PLATFORM-20.4"],
               "text": "The persisted fold contract is typed: modifierOperationSchema replaces the grant JSON dump with typed scope and payload, the rules-runtime consumers read typed fields (no record() casts), stored development rows are migrated in the same change, and the docs describe the compile stage as built.",
               "wsjf": {
@@ -1131,7 +1140,12 @@
                 "after": ["PLATFORM-20.T1"]
               }
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/apis/convex/rules/modifierOperationMigration.test.ts",
+            "packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-21",
@@ -1178,7 +1192,7 @@
         {
           "id": "PLATFORM-22",
           "title": "Fewer and faster CI cycles per slice",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -1212,9 +1226,13 @@
             },
             {
               "id": "PLATFORM-22.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md."
+              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md.",
+              "proof": [
+                "AGENTS.md Validation states the rule (commit 1d6b923fc; ledger-only tolerance 0de20a47d).",
+                "First application: PLATFORM-20.T2 7fa9f620a contained the phase tip 8068ab970; merge fc5388e9d on 532ecfd05 differs from the slice tip only in docs/roadmap/08-phase-ledger.json (orchestrator ledger commit); no batch CI run."
+              ]
             },
             {
               "text": "One CI run proves red and green: a parallel job runs the slice's new and changed test files against the phase-branch production code and reports them failing (assertion or import failure, labelled), or \"already passing\" for a test-only slice, while the normal jobs prove green on the tip. Slices no longer push separate red branches.",
@@ -1244,7 +1262,7 @@
             },
             {
               "id": "PLATFORM-22.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-22.3"],
               "text": "Single-slice merge rule in AGENTS.md, applied at the next single-slice merge.",
               "wsjf": {
@@ -1268,7 +1286,9 @@
                 "after": []
               }
             }
-          ]
+          ],
+          "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-23",
