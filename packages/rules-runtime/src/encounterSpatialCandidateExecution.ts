@@ -87,7 +87,8 @@ export function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     movementKinds: effect.placement.movementKinds,
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
     unaffectedActorIds: effect.placement.unaffectedActorIds,
-    maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn
+    maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
+    requiresFullyWithin: effect.placement.requiresFullyWithin
   } as const
 }
 

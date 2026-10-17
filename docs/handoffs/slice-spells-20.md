@@ -149,6 +149,17 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - The Tabletop action drawer shows a Select of the options (first preselected).
   - Proofs: `nativeRoomSourceAura.test.ts` (cast, pick Necrotic, a later walk-in deals necrotic damage; the pick is stored on the aura; no pick or an unknown pick is refused), `encounterZoneChoiceCompilation.test.ts` (a non-spell Caltrops variant picking between two zones; options with different areas go manual), and the authoring-parity test (the CHOICE passes the equipment node map unchanged).
 
+### T4b3a (fully-within containment, automatic save success)
+
+- T4b3 is split (D141): T4b3a covers containment, automatic success and Stinking Cloud's unmodeled options, proved on a core-options zone; T4b3b covers LOSE_ACTION and the Stinking Cloud room journey.
+- `requiresFullyWithin` travels from the component to the compiled placement, the stored placement and the spatial instance. `collectSpatialTurnCandidates` then requires the footprint to lie wholly inside the area: every corner inside a circle, or the shared area equal to the footprint for a polygon. The compiler refuses it on a zone with a movement trigger instead of half-honoring it.
+- `automaticSaveSuccessImmunityDamageTypeId` (D141: one optional authored damage type id, any type; the authoring form picks one damage type) pins that damage type on the zone entry. The binder sets `SAVE_AUTO_SUCCESS` when the target holds an IMMUNITY defense to it, and the made-save path runs. Like D94's auto-fail, the roll is still asked for and not counted. A list widens the field with its first consumer. "Does not breathe" is a deferred edge case (D141, future-enhancements): no creature fact says it.
+- Stinking Cloud now authors poison immunity through that field. Its heavy obscurement, spreading around corners and wind dispersal are unauthored and listed in the `zoneInteractionKinds.test.ts` gaps (T1a precedent). It still goes manual until T4b3b compiles LOSE_ACTION.
+- Proofs:
+  - `vtt-spatial.test.ts`: circle and polygon, fully within versus half out.
+  - `encounterZonePlacementCompilation.test.ts`: the flag on the zone and its placement; the refusal for a movement trigger.
+  - `encounterTurnZoneEffects.test.ts`: a real turn stage. A goblin half out of the zone is not caught, but the same footprint is caught by an overlap zone. A real SRD Skeleton (poison-immune) takes no damage on the lowest roll from a zone naming poison, but is hit by one naming fire; the goblin is hit by both.
+
 ### T4f (START journey, pending-prompt interleaves, spatial resume checks)
 
 - START journey: the room harness (`movementRoom`/`actionRoom`) takes `status: 'PREPARED'` (round 0, no current actor, an ACTOR_ROLL initiative policy at Encounter start) and a `seed` that receives the Scene spatial scope. `nativeRoomTurnZoneEffects.test.ts` places a core-options START_TURN zone under the Wolf with the real planner, sends START, and proves the incoming zone save, the damage, `zoneApplications` and an exact replay.

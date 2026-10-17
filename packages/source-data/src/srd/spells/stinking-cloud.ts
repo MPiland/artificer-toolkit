@@ -21,7 +21,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 const stinkingCloudSave: ManifestBehaviorAuthored = {
   id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x410, 1),
@@ -127,8 +127,6 @@ export const stinkingCloud: SpellAuthored = {
                   shapeKind: SHAPE_KIND.SPHERE,
                   radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
                 },
-                spreadsAroundCorners: true,
-                obscurementKind: 'HEAVY',
                 components: [
                   {
                     id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x402, 1),
@@ -136,24 +134,8 @@ export const stinkingCloud: SpellAuthored = {
                     label: 'Nauseating Gas',
                     interactionKinds: ['START_TURN_IN_SPACE'],
                     requiresFullyWithin: true,
-                    automaticSaveSuccessConditions: ['DOES_NOT_BREATHE', 'POISON_IMMUNE'],
+                    automaticSaveSuccessImmunityDamageTypeId: damageTypeId('POISON'),
                     behaviors: [stinkingCloudSave]
-                  }
-                ],
-                destructionCriteria: [
-                  {
-                    id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x403, 1),
-                    order: 1,
-                    kind: 'WIND_SPEED',
-                    minimumMilesPerHour: 10,
-                    afterRounds: 4
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x403, 2),
-                    order: 2,
-                    kind: 'WIND_SPEED',
-                    minimumMilesPerHour: 20,
-                    afterRounds: 1
                   }
                 ]
               }

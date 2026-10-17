@@ -108,6 +108,7 @@ export function planEncounterPlacedZone(input: {
       ...(zone.maxApplicationsPerTurn !== undefined
         ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
         : {}),
+      ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
         : {})

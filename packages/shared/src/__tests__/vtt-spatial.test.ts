@@ -1114,6 +1114,44 @@ describe('spatial turn candidates', () => {
     expect(collectTurn(input)).toEqual([])
   })
 
+  describe('an effect that catches only a creature fully within it (SPELLS-20 T4b3a)', () => {
+    const square = (offset: number) => ({
+      frame: 'SCENE_ABSOLUTE' as const,
+      shape: {
+        kind: 'POLYGON' as const,
+        points: [
+          { x: -1 + offset, y: -1 },
+          { x: 1 + offset, y: -1 },
+          { x: 1 + offset, y: 1 },
+          { x: -1 + offset, y: 1 }
+        ]
+      }
+    })
+    const circle = (radius: number) => ({
+      frame: 'SCENE_ABSOLUTE' as const,
+      shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius }
+    })
+    const fullyWithin = (geometry: SpatialEffectInstance['geometry']) =>
+      collectTurn({
+        effects: [effect({ geometry, turnTriggers: ['START_OF_TURN'], requiresFullyWithin: true })]
+      })
+
+    it.each([
+      ['a circle that holds every corner of its space', circle(1.5), 1],
+      ['a circle it pokes out of at the corners', circle(1.4), 0],
+      ['a polygon whose edges are its space’s edges', square(0), 1],
+      ['a polygon it is half out of', square(1), 0]
+    ])('%s', (_name, geometry, caught) => {
+      expect(fullyWithin(geometry)).toHaveLength(caught)
+    })
+
+    it('still catches a creature half out of an effect that needs only overlap', () => {
+      expect(
+        collectTurn({ effects: [effect({ geometry: square(1), turnTriggers: ['START_OF_TURN'] })] })
+      ).toHaveLength(1)
+    })
+  })
+
   it('counts a limit spent on an earlier turn as unspent', () => {
     expect(
       collectTurn({
