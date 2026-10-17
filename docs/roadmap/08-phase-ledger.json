@@ -8865,7 +8865,7 @@
             },
             {
               "id": "SPELLS-20.T4b2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Turn-trigger authoring and seams: zones author interactionKinds (the single interactionKind is deleted and data migrated, no fallback); START_TURN_IN_SPACE and END_TURN_IN_SPACE compile to placement turnTriggers (immutable with the placement checksum); one shared containment function in shared/vtt beside collectSpatialMovementCandidates selects the zones containing an actor at a turn boundary through spatialEffectAffects and the T4b1 counter; the save-then-dice resume moves out of encounterSpatialMovementRuleService into one helper in targetBoundActiveRuleEffectExecutor.ts that the spatial path calls. Proved on Spirit Guardians compiling ENTER plus START.",
               "wsjf": {
@@ -8875,7 +8875,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4b1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Merged in ci/merge-m70 (bf28ba704; Tests 39016326656, Live 39016326595 green), on the phase branch at f23112bd8."
             },
             {
               "id": "SPELLS-20.T4b2b1",
@@ -9548,7 +9548,7 @@
             {
               "id": "SPELLS-27.T9",
               "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9557,7 +9557,7 @@
                 "size": 3,
                 "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              "note": "Merged in ci/merge-m70 (bf28ba704; Tests 39016326656, Live 39016326595 green), on the phase branch at f23112bd8. Narrowed: an ON_SAVE_FAIL APPLY_GRANT is plan-owned only when timedConditionPlan accepts the action; a whole-SRD compile comparison against the base moved no spell to MANUAL (upgrades: Charm Person, Fear, Hold Person, Hypnotic Pattern, Invisibility, Greater Invisibility, Sleep)."
             },
             {
               "id": "SPELLS-27.T10",
