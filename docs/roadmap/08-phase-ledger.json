@@ -6122,8 +6122,21 @@
               "closes": ["ATTACK-7.4"]
             },
             {
+              "id": "ATTACK-7.T5a",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.7"],
+              "activeWorkbook": "docs/handoffs/slice-spells-19.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5
+              },
+              "text": "Split 2026-10-17 from T5 to unblock SPELLS-19.T4 (built in that session, branch ci/spells-19-t4). Generic FORCED_MOVEMENT directive AWAY/TOWARD + EXACT for single-target and area, settled live through the existing FORCED token-move pipeline (straight line from source, stop at first blocked square, no opportunity attacks, GM undo restores positions); refuseSpatialInterpretation refusal removed; Balor Whip migrated onto it and its hard-wired compile paths deleted. ASIDE, ANY, UP_TO and the Crusher proof stay in T5."
+            },
+            {
               "id": "ATTACK-7.T5",
-              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof.",
+              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a.",
               "status": "TODO",
               "closes": ["ATTACK-7.7"]
             },
@@ -8805,7 +8818,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-19.T1"]
+                "after": ["SPELLS-19.T1", "ATTACK-7.T5a"]
               },
               "activeWorkbook": "docs/handoffs/slice-spells-19.md"
             }
