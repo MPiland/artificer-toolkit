@@ -8,7 +8,12 @@ import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/char
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 
 import { abilityModifier } from './abilityModifier.js'
-import { combineDnd5eArmorClass, selectDnd5eHeldShield } from './armorClass.js'
+import {
+  combineDnd5eArmorClass,
+  requireDnd5eArmorClass,
+  resolveDnd5eEquipmentArmorClass,
+  selectDnd5eHeldShield
+} from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { hitPointGain } from './hitPointRules.js'
@@ -22,6 +27,13 @@ import {
 type ArmorClassEquipment = NonNullable<CharacterRulePolicyInput['armorClassFacts']>['equipment']
 
 type ActiveShield = { itemInstanceId: string; armorClass: number }
+
+/** The authored armor class of one armor or shield item; one without it is refused (D143). */
+function equipmentArmorClass(item: ArmorClassEquipment[number]): number {
+  return requireDnd5eArmorClass(
+    resolveDnd5eEquipmentArmorClass(item.source.equipmentId, item.armorClass)
+  )
+}
 
 /**
  * The one active shield D&D armor class counts, with its base armor class (D107). A shield counts
@@ -42,7 +54,7 @@ export function resolveDnd5eActiveShield(
     )
     .map((item) => ({
       inMainHand: item.equippedSlot === 'MAIN_HAND',
-      shield: { itemInstanceId: item.itemInstanceId, armorClass: item.armorClass ?? 2 }
+      shield: { itemInstanceId: item.itemInstanceId, armorClass: equipmentArmorClass(item) }
     }))
   return selectDnd5eHeldShield(held, armorClassOf)
 }
@@ -135,7 +147,7 @@ export function evaluateDnd5eCharacterVitals(
       armor === undefined
         ? null
         : {
-            armorClass: armor.armorClass ?? 10,
+            armorClass: equipmentArmorClass(armor),
             abilityBonuses: applicable
               .filter(
                 (entry) => isArmorFormulaPart(entry) && entry.contribution.state === 'APPLIED'

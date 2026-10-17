@@ -130,6 +130,22 @@ const weaponGripsMatchHandedness = lazySchema(() =>
   })
 )
 
+/** Armor and shields author their Armor Class (D143); a variant inherits its parent's. */
+const armorAuthorsArmorClass = lazySchema(() =>
+  z.superRefine((equipment: EquipmentAuthoredDto | EquipmentAuthoringInputDto, context) => {
+    if (
+      (equipment.category === EQUIPMENT_CATEGORY_CODE.ARMOR ||
+        equipment.category === EQUIPMENT_CATEGORY_CODE.SHIELD) &&
+      equipment.armorClass === undefined
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['armorClass'],
+        message: 'Armor and shields need an Armor Class.'
+      })
+  })
+)
+
 export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = lazySchema(() =>
   z
     .discriminatedUnion('category', [
@@ -137,6 +153,7 @@ export const equipmentAuthoredDtoSchema: z.ZodMiniType<EquipmentAuthoredDto> = l
       equipmentVariantAuthoredDtoSchemaBase
     ])
     .check(weaponGripsMatchHandedness)
+    .check(armorAuthorsArmorClass)
 )
 export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringInputDto> =
   lazySchema(() =>
@@ -146,4 +163,5 @@ export const equipmentAuthoringInputDtoSchema: z.ZodMiniType<EquipmentAuthoringI
         equipmentVariantAuthoringInputDtoSchemaBase
       ])
       .check(weaponGripsMatchHandedness)
+      .check(armorAuthorsArmorClass)
   )

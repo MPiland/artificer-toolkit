@@ -51,20 +51,29 @@ export type CreatureArmorClassEquipment = {
   compiled: CompiledEquipment
 }
 
-export type CreatureArmorClassResult =
+export type Dnd5eArmorClassResult =
   | { ok: true; armorClass: number }
   | { ok: false; equipmentId: string; reason: string }
 
 type ItemModifiers =
   | { ok: true; abilityBonuses: number[]; flatBonuses: number[] }
-  | Extract<CreatureArmorClassResult, { ok: false }>
+  | Extract<Dnd5eArmorClassResult, { ok: false }>
 
-function missingArmorClass(equipmentId: string): Extract<CreatureArmorClassResult, { ok: false }> {
-  return {
-    ok: false,
-    equipmentId,
-    reason: `Equipment "${equipmentId}" is armor or a shield without an armor class.`
-  }
+/**
+ * An armor or shield's authored armor class, for Characters and Creatures alike (D143): one
+ * without it is refused, never given a default.
+ */
+export function resolveDnd5eEquipmentArmorClass(
+  equipmentId: string,
+  armorClass: number | null | undefined
+): Dnd5eArmorClassResult {
+  return armorClass == null
+    ? {
+        ok: false,
+        equipmentId,
+        reason: `Equipment "${equipmentId}" is armor or a shield without an armor class.`
+      }
+    : { ok: true, armorClass }
 }
 
 function failure(equipmentId: string, reason: string): ItemModifiers {
@@ -140,7 +149,7 @@ export function resolveDnd5eCreatureArmorClass(input: {
   dexterityScore: number
   naturalArmorBonus: number
   equipment: readonly CreatureArmorClassEquipment[]
-}): CreatureArmorClassResult {
+}): Dnd5eArmorClassResult {
   const dexterityModifier = abilityModifier(input.dexterityScore)
   const wornArmor = input.equipment.find(
     (entry) => entry.useState === 'WORN' && entry.compiled.category === 'ARMOR'
@@ -158,8 +167,12 @@ export function resolveDnd5eCreatureArmorClass(input: {
   if (wornArmor) {
     const modifiers = itemArmorClassModifiers(wornArmor.compiled, dexterityModifier)
     if (!modifiers.ok) return modifiers
-    if (wornArmor.compiled.armorClass === undefined) return missingArmorClass(wornArmor.compiled.id)
-    armor = { armorClass: wornArmor.compiled.armorClass, abilityBonuses: modifiers.abilityBonuses }
+    const base = resolveDnd5eEquipmentArmorClass(
+      wornArmor.compiled.id,
+      wornArmor.compiled.armorClass
+    )
+    if (!base.ok) return base
+    armor = { armorClass: base.armorClass, abilityBonuses: modifiers.abilityBonuses }
     flatBonuses = modifiers.flatBonuses
   }
   const heldShields: { inMainHand: boolean; shield: number }[] = []
@@ -171,12 +184,13 @@ export function resolveDnd5eCreatureArmorClass(input: {
     if (shield?.compiled.category !== 'SHIELD') continue
     const modifiers = itemArmorClassModifiers(shield.compiled, dexterityModifier)
     if (!modifiers.ok) return modifiers
-    if (shield.compiled.armorClass === undefined) return missingArmorClass(shield.compiled.id)
+    const base = resolveDnd5eEquipmentArmorClass(shield.compiled.id, shield.compiled.armorClass)
+    if (!base.ok) return base
     heldShields.push({
       inMainHand,
       shield: [...modifiers.abilityBonuses, ...modifiers.flatBonuses].reduce(
         (sum, value) => sum + value,
-        shield.compiled.armorClass
+        base.armorClass
       )
     })
   }
@@ -193,8 +207,8 @@ export function resolveDnd5eCreatureArmorClass(input: {
   }
 }
 
-/** For consumers that must not continue with Equipment a Creature cannot evaluate. */
-export function requireCreatureArmorClass(result: CreatureArmorClassResult): number {
+/** For consumers that must not continue with Equipment the armor class cannot evaluate. */
+export function requireDnd5eArmorClass(result: Dnd5eArmorClassResult): number {
   if (!result.ok) throw new Error(result.reason)
   return result.armorClass
 }

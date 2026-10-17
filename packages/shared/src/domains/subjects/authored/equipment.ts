@@ -51,7 +51,23 @@ export interface ContainsAuthored {
   quantity: number
 }
 
-export type BaseEquipmentAuthored = {
+/** Armor and shields author their Armor Class (D143); other categories may. */
+type BaseEquipmentCategoryAuthored =
+  | {
+      category: typeof EQUIPMENT_CATEGORY_CODE.ARMOR | typeof EQUIPMENT_CATEGORY_CODE.SHIELD
+      armorClass: number
+    }
+  | {
+      category: Exclude<
+        EquipmentCategoryCode,
+        | typeof EQUIPMENT_CATEGORY_CODE.VARIANT
+        | typeof EQUIPMENT_CATEGORY_CODE.ARMOR
+        | typeof EQUIPMENT_CATEGORY_CODE.SHIELD
+      >
+      armorClass?: number
+    }
+
+export type BaseEquipmentAuthored = BaseEquipmentCategoryAuthored & {
   kind: typeof SUBJECT.EQUIPMENT
   id: string
   label: string
@@ -67,7 +83,6 @@ export type BaseEquipmentAuthored = {
   modifiers?: ModifierGrantAuthored[]
   maxStack?: number
   rarityId: string
-  armorClass?: number
   contains?: ContainsAuthored[]
   features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
   restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'CHARACTER'>>
@@ -75,7 +90,6 @@ export type BaseEquipmentAuthored = {
   userId: string
   systemId: string
   properties: EquipmentPropertyCode[]
-  category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
 }
 
 export type VariantEquipmentAuthored = {

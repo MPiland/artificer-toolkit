@@ -2,11 +2,14 @@ import {
   compileResolvedEquipment,
   resolveEquipmentAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { EquipmentSlotCode } from '@artificer-toolkit/shared/core'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { describe, expect, it } from 'vitest'
 
 import { resolveDnd5eCreatureArmorClass } from '../systems/dnd5e/armorClass.js'
+import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
+import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const equipmentById = new Map(srdEquipment.map((document) => [document.id, document]))
 
@@ -161,5 +164,71 @@ describe('resolveDnd5eCreatureArmorClass', () => {
         })
       ).toMatchObject({ ok: false, equipmentId: item.compiled.id })
     }
+  })
+})
+
+/**
+ * D143: one Armor Class path for Characters and Creatures. Equipment stored before Armor Class was
+ * required may lack it; both refuse it alike instead of a Character guessing 10 or 2.
+ */
+describe('a Character and a Creature holding the same equipment (D143)', () => {
+  /** An SRD record as stored before D143, without its Armor Class, under its own id. */
+  function unrated(label: string, id: string): EquipmentAuthored {
+    const authored = srd(label)
+    if (authored.category !== 'ARMOR' && authored.category !== 'SHIELD')
+      throw new Error(`SRD Equipment "${label}" is not armor or a shield.`)
+    const { armorClass: _omitted, ...document } = authored
+    return { ...document, id, label: `Unrated ${label}` } as EquipmentAuthored
+  }
+
+  const cases = [
+    { label: 'Leather Armor', useState: 'WORN' },
+    { label: 'Shield', useState: 'OFF_HAND' }
+  ] as const
+
+  function creature(equipment: readonly EquipmentAuthored[], useStates: EquipmentSlotCode[]) {
+    return resolveDnd5eCreatureArmorClass({
+      ...goblin,
+      equipment: equipment.map((document, index) => ({
+        id: `${document.id}:${index}`,
+        useState: useStates[index]!,
+        compiled: compileResolvedEquipment(
+          resolveEquipmentAuthored(document, (parentId) => equipmentById.get(parentId))
+        )
+      }))
+    })
+  }
+
+  function character(equipment: readonly EquipmentAuthored[]) {
+    return evaluateSrdCharacter({
+      abilities: { DEXTERITY: goblin.dexterityScore },
+      classes: [{ label: 'Fighter', level: 1 }],
+      items: equipment.map(({ label }) => ({ label, equipped: true })),
+      extraEquipment: equipment.filter(({ label }) => label.startsWith('Unrated'))
+    }).output.derivedStats.armorClass.effective
+  }
+
+  it('gives both the same Armor Class for authored armor and a shield', () => {
+    const equipment = cases.map(({ label }) => srd(label))
+    expect(
+      creature(
+        equipment,
+        cases.map(({ useState }) => useState)
+      )
+    ).toEqual({
+      ok: true,
+      armorClass: character(equipment)
+    })
+  })
+
+  it.each(cases)('refuses both for $label without an Armor Class', ({ label, useState }) => {
+    const document = unrated(label, testUuid(label === 'Shield' ? 0x5d1 : 0x5d2))
+    const refusal = creature([document], [useState])
+    expect(refusal).toEqual({
+      ok: false,
+      equipmentId: document.id,
+      reason: `Equipment "${document.id}" is armor or a shield without an armor class.`
+    })
+    expect(() => character([document])).toThrow(refusal.ok ? 'expected a refusal' : refusal.reason)
   })
 })

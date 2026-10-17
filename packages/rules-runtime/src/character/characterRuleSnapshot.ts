@@ -21,7 +21,7 @@ import {
 } from '@artificer-toolkit/shared/subjects/compilers'
 import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import {
-  requireCreatureArmorClass,
+  requireDnd5eArmorClass,
   resolveDnd5eCreatureArmorClass
 } from '../systems/dnd5e/armorClass.js'
 import {
@@ -252,7 +252,7 @@ function assembleCompanions(
         companionInstanceId: instance.id,
         creatureId: creature.id,
         abilityScores: { ...creature.abilityScores },
-        armorClass: requireCreatureArmorClass(
+        armorClass: requireDnd5eArmorClass(
           resolveDnd5eCreatureArmorClass({
             dexterityScore: creature.abilityScores.DEXTERITY,
             naturalArmorBonus: creature.naturalArmorBonus,

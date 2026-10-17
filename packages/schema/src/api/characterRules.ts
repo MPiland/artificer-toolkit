@@ -4,7 +4,8 @@ import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import {
   characterGrantFoldInputSchema,
   characterGrantFoldOutputSchema,
-  characterMechanicSourceSchema
+  characterMechanicSourceSchema,
+  equipmentInstanceMechanicSourceSchema
 } from './characterGrantFoldRules.js'
 import {
   characterChargeSourceLevelSchema,
@@ -122,7 +123,9 @@ const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
         (left, right) =>
           left.damageTypeId.localeCompare(right.damageTypeId) ||
           left.kind.localeCompare(right.kind) ||
-          (left.sourceEffectIds ?? []).join(',').localeCompare((right.sourceEffectIds ?? []).join(','))
+          (left.sourceEffectIds ?? [])
+            .join(',')
+            .localeCompare((right.sourceEffectIds ?? []).join(','))
       )
     )
   )
@@ -201,7 +204,7 @@ const characterArmorClassFactsSchema = lazySchema(() =>
       .array(
         z.strictObject({
           itemInstanceId: boundedIdentitySchema,
-          source: characterMechanicSourceSchema,
+          source: equipmentInstanceMechanicSourceSchema,
           category: z.enum(['ARMOR', 'SHIELD']),
           equippedSlot: z.enum(EQUIPPED_SLOT_CODES),
           armorClass: z.nullable(finiteNumberSchema)
