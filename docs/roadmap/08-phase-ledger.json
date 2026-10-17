@@ -5864,7 +5864,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 9; depends on conditions, grapple and area actions.",
+              "note": "rul-9-rules-audit.md slice 9; depends on conditions, grapple and area actions. Creature and item auras with turn-start text (Ghast and Hezrou Stench, Dretch fetid cloud, Kraken ink, Mouther, Helm of Brilliance) were not covered by the 2026-10-17 zone audit; audit them here.",
               "id": "ATTACK-5.15"
             }
           ],
@@ -7541,7 +7541,7 @@
             {
               "id": "SPELLS-4.T1",
               "text": "Audit and convert the SRD hazard zone spells to core options; size T2 from the audit.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 8,
@@ -7549,7 +7549,60 @@
                 "rr": 5,
                 "size": 8,
                 "after": ["SPELLS-25", "SPELLS-17"]
-              }
+              },
+              "note": "Audit done 2026-10-17 by SPELLS-20.T4b2b2 (zone table in docs/handoffs/slice-spells-20.md): a placeable zone today is one ZONE manifest with label, shape, one component and one behavior, a point- or caster-centred sphere, cylinder, circle or cube, and a passive save with damage on a failure (optional stop-movement, one grant) and half on a success. Only Spirit Guardians compiles with a turn trigger; the rest are split into T1a-T1d by blocker. Spike Growth, Entangle, Sunbeam and Wall of Ice have no turn-start or turn-end text."
+            },
+            {
+              "id": "SPELLS-4.T1a",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Author Cloudkill and Insect Plague as full zones (label, shape, component, behavior; their saves, damage, half on a success and slot scaling already compile) with their ENTER and START or END turn triggers, and cover them in the zone turn-trigger corpus test. Drift, obscurement and difficult terrain stay as named gaps for T1b or SPELLS-20.T4d."
+            },
+            {
+              "id": "SPELLS-4.T1b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE)."
+            },
+            {
+              "id": "SPELLS-4.T1c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2", "SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Re-author Moonbeam and Incendiary Cloud from CLOSED_RULE as zones from core options with their turn triggers, including Moonbeam's shapechanger rider (disadvantage on the save and reverting on a failure) as a generic creature-trait condition on a zone save."
+            },
+            {
+              "id": "SPELLS-4.T1d",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Condition-outcome hazard zones: a failed zone save applies a condition (restrained for Web and Black Tentacles, prone for Grease and Sleet Storm, restrained for Entangle) with the zone's escape or repeat-save rule, authored from core options and proved on each listed spell."
             },
             {
               "id": "SPELLS-4.T2",
@@ -8918,6 +8971,19 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4b2b2"]
               }
+            },
+            {
+              "id": "SPELLS-20.T4e",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 2,
+                "after": ["SPELLS-20.T4b2b2"]
+              },
+              "text": "Spirit Guardians damage type chosen at cast (radiant, or necrotic for an evil caster) as a cast-time choice from core options stored on the zone; proved on Spirit Guardians."
             },
             {
               "id": "SPELLS-20.T4c",
