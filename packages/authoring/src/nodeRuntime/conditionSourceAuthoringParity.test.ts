@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { adultRedDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-red-dragon.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { fear } from '@artificer-toolkit/source-data/srd/spells/fear.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
-import { SRD_CONDITION_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CONDITION_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
@@ -17,7 +21,10 @@ const reader = createNodeRuntimeSourceReader({
 })
 
 /** Every outcome of `effectKind` the value nests, wherever it sits. */
-function outcomesOf(value: unknown, effectKind: 'CONDITION' | 'FOLLOW_UP_SAVE'): Record<string, unknown>[] {
+function outcomesOf(
+  value: unknown,
+  effectKind: 'CONDITION' | 'FOLLOW_UP_SAVE'
+): Record<string, unknown>[] {
   if (typeof value !== 'object' || value === null) return []
   const own =
     'effectKind' in value && value.effectKind === effectKind
@@ -47,7 +54,7 @@ describe('a condition that records its source through the effect node map (SPELL
     const authored = equipmentWith(fear.effects)
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
   it("keeps a dragon's Frightful Presence recording the dragon", async () => {
@@ -56,9 +63,9 @@ describe('a condition that records its source through the effect node map (SPELL
     )
     const result = await normalize('creature', adultRedDragon)
     expect(result.clearedPaths).toEqual([])
-    expect(
-      outcomesOf(result.values, 'CONDITION').map((outcome) => outcome.recordsSource)
-    ).toEqual([true])
+    expect(outcomesOf(result.values, 'CONDITION').map((outcome) => outcome.recordsSource)).toEqual([
+      true
+    ])
   })
 
   it('lets an author record the source of any condition, so a homebrew fear builds what the SRD does', async () => {
@@ -70,7 +77,7 @@ describe('a condition that records its source through the effect node map (SPELL
     const authored = equipmentWith(effects)
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 })
 
@@ -92,6 +99,6 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
     const authored = equipmentWith(effects)
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.effects).toEqual(authored.effects)
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 })

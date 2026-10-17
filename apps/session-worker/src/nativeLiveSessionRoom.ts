@@ -935,12 +935,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             const refusal = encounterCommandRefusal(error)
             this.#rejectCommand(socket, commandId, refusal.code, refusal.message)
           } else
-            this.#rejectCommand(
-              socket,
-              commandId,
-              'UNAVAILABLE',
-              'Live Session command unavailable.'
-            )
+            this.#rejectRoomFailure(socket, commandId, error, 'Live Session command unavailable.')
         })
         .finally(() => {
           this.#pendingCommands.release(socket)
@@ -959,9 +954,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         message.type === 'SCENE_FOG_BEGIN' ? message.input.commandId : message.commandId
       const next = this.#commandChain
         .then(() => this.#stageSceneFog(socket, admission, message))
-        .catch(() =>
-          this.#rejectCommand(socket, commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
-        )
+        .catch((error: unknown) => this.#rejectRoomFailure(socket, commandId, error))
       this.#commandChain = next
       await next
       return
@@ -1753,8 +1746,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     let authorization: LiveSessionRoomAuthorization
     try {
       authorization = await this.#authorizationBoundary(value)
-    } catch {
-      this.#rejectCommand(socket, commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
+    } catch (error) {
+      this.#rejectRoomFailure(socket, commandId, error)
       return
     }
     if (this.#liveAdmission(socket)?.generation !== admission.generation) return
@@ -1820,8 +1813,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (this.#aggregateNeedsReload) {
       try {
         await this.#reloadRoomAggregate(value)
-      } catch {
-        this.#rejectCommand(socket, commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
+      } catch (error) {
+        this.#rejectRoomFailure(socket, commandId, error)
         return
       }
     }
@@ -2169,13 +2162,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           (await readRoomEncounterResponseRoute(this.#roomStore, command)) === 'MOVEMENT' &&
           (command.type === 'RESOLVE_RULE_OCCURRENCE' ||
             !(await roomOwnsEncounterVoid(this.#roomStore, command)))
-      } catch {
-        this.#rejectCommand(
-          socket,
-          command.commandId,
-          'UNAVAILABLE',
-          LIVE_SESSION_TRY_AGAIN_MESSAGE
-        )
+      } catch (error) {
+        this.#rejectRoomFailure(socket, command.commandId, error)
         return
       }
     }
@@ -2237,13 +2225,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                 : (this.#journal.readCurrent()?.sequence ?? replay.sequence),
             delta: { scope: 'ENCOUNTER', result }
           })
-        } catch {
-          this.#rejectCommand(
-            socket,
-            command.commandId,
-            'UNAVAILABLE',
-            LIVE_SESSION_TRY_AGAIN_MESSAGE
-          )
+        } catch (error) {
+          this.#rejectRoomFailure(socket, command.commandId, error)
         }
       } else
         this.#rejectCommand(
@@ -2297,8 +2280,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         })
         return
       }
-    } catch {
-      this.#rejectCommand(socket, command.commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
+    } catch (error) {
+      this.#rejectRoomFailure(socket, command.commandId, error)
       return
     }
     if (
@@ -3991,6 +3974,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       warnings: null,
       type: 'COMMAND_REJECTED'
     })
+  }
+
+  /** A failure inside the room tells the member only to retry, so the room logs its cause. */
+  #rejectRoomFailure(
+    socket: WebSocket,
+    commandId: string,
+    error: unknown,
+    message = LIVE_SESSION_TRY_AGAIN_MESSAGE
+  ): void {
+    console.error('Live Session command failed in the room.', error)
+    this.#rejectCommand(socket, commandId, 'UNAVAILABLE', message)
   }
 
   /** Admissions and drains retry a retained checkpoint; commands save at save points and at the backlog bound. */

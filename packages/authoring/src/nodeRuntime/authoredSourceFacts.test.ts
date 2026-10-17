@@ -31,7 +31,7 @@ function version(subjectKind: AuthoredDocumentVersion['subjectKind'], document: 
 describe('authoredSourceFacts', () => {
   it('projects nested feature, grant, and effect source rows with manifest-exact columns', () => {
     const documents = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
-      subjects.map((document) =>
+      subjects.map((document: unknown) =>
         authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
       )
     )
@@ -57,7 +57,7 @@ describe('authoredSourceFacts', () => {
 
   it('projects every SRD authored subject into compact schema-valid facts', () => {
     const facts = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
-      subjects.map((document) =>
+      subjects.map((document: unknown) =>
         authoredSourceFacts(version(subjectKinds[kind as keyof typeof subjectKinds], document))
       )
     )
