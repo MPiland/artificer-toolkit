@@ -83,6 +83,7 @@ import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-ru
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZonePlacement'
 import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -332,14 +333,20 @@ export async function prepareAreaScene(
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
   // An action that places a zone leaves it at the picked point instead of putting anyone through it.
-  const zone =
+  const zonePlacement =
     source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
       ? source.entry.compilation.zonePlacement
       : null
-  const unaffectedActorIds =
-    target.kind === 'POINT' || target.kind === 'CASTER_CENTERED'
-      ? (target.unaffectedActorIds ?? [])
-      : []
+  const zoneTarget = target.kind === 'POINT' || target.kind === 'CASTER_CENTERED' ? target : null
+  // A cast-time pick places the zone the caster chose (D140).
+  const zone = zonePlacement ? chosenZonePlacement(zonePlacement, zoneTarget?.choiceOptionId) : null
+  if ((zonePlacement || zoneTarget?.choiceOptionId !== undefined) && !zone)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Pick one of the zones this action offers.'
+    })
+  const unaffectedActorIds = zoneTarget?.unaffectedActorIds ?? []
   if (
     unaffectedActorIds.length &&
     (!zone?.choosesUnaffected ||

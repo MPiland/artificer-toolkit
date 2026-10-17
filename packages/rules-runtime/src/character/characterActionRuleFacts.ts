@@ -1,6 +1,7 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterGrantFoldInput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CompiledEquipmentEffectGroup } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
@@ -70,16 +71,28 @@ function nullableLabel(value: unknown): string | null {
  * Encounter zone modules.
  */
 function zoneEntrySavingThrow(effect: CompiledEffectGroup) {
-  const [entry] = effect.entries
-  const outcome = effect.entries.length === 1 && entry && 'outcome' in entry ? entry.outcome : null
-  if (
-    outcome?.effectKind !== 'MANIFEST' ||
-    outcome.manifestKind !== 'ZONE' ||
-    (outcome.attachmentKind !== 'PLACED_SPACE' && outcome.attachmentKind !== 'SOURCE')
-  )
-    return undefined
-  const invocation = outcome.components?.[0]?.behaviors?.[0]?.invocation
-  return invocation && 'savingThrow' in invocation ? invocation.savingThrow : undefined
+  // A cast-time pick between zones (D140) has one entry per option; the action resolves one save,
+  // so every option must author the same one.
+  const picks =
+    effect.entries.length > 1 && effect.entries.every((entry) => entry.groupKind === 'CHOICE')
+  if (effect.entries.length !== 1 && !picks) return undefined
+  const saves = effect.entries.map((entry) => {
+    const outcome = 'outcome' in entry ? entry.outcome : null
+    if (
+      outcome?.effectKind !== 'MANIFEST' ||
+      outcome.manifestKind !== 'ZONE' ||
+      (outcome.attachmentKind !== 'PLACED_SPACE' && outcome.attachmentKind !== 'SOURCE')
+    )
+      return undefined
+    const invocation = outcome.components?.[0]?.behaviors?.[0]?.invocation
+    return invocation && 'savingThrow' in invocation ? invocation.savingThrow : undefined
+  })
+  // Each option authors its own save identity; the save itself is what must agree.
+  const [first] = saves
+  return first &&
+    saves.every((save) => save && equalCanonicalJson({ ...save, id: null }, { ...first, id: null }))
+    ? first
+    : undefined
 }
 
 function normalizeInvocation(

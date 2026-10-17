@@ -156,6 +156,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
+  const [pickedChoiceOptionId, setPickedChoiceOptionId] = useState<string | null>(null)
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
@@ -226,11 +227,19 @@ export function CampaignTabletopActionDrawer({
         : null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
+  const zoneTarget =
+    choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
   // A zone the action places can spare creatures the caster designates at cast.
-  const sparesCreatures =
-    (choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'CASTER_CENTERED') &&
-    choiceTarget.choosesUnaffected === true
-  const unaffected = sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}
+  const sparesCreatures = zoneTarget?.choosesUnaffected === true
+  // A zone the cast picks between places the chosen one (D140); the first is preselected.
+  const chosenOption =
+    zoneTarget?.choiceOptions?.find((option) => option.id === pickedChoiceOptionId) ??
+    zoneTarget?.choiceOptions?.[0] ??
+    null
+  const zoneChoices = {
+    ...(sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}),
+    ...(chosenOption ? { choiceOptionId: chosenOption.id } : {})
+  }
   const namesNoCreature = areaTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none.
   const optionalRuleId = namesNoCreature ? null : pickedOptionalRuleId
@@ -268,7 +277,7 @@ export function CampaignTabletopActionDrawer({
             sceneId: scene.id,
             expectedSceneVersion: scene.version,
             point: areaAim.origin,
-            ...unaffected
+            ...zoneChoices
           }
         : areaAim.toward
           ? {
@@ -304,7 +313,7 @@ export function CampaignTabletopActionDrawer({
               kind: 'CASTER_CENTERED',
               sceneId: scene.id,
               expectedSceneVersion: scene.version,
-              ...unaffected
+              ...zoneChoices
             }
           : null
         : targetActorId
@@ -466,6 +475,7 @@ export function CampaignTabletopActionDrawer({
   useEffect(() => {
     setPickedActorIds([])
     setUnaffectedActorIds([])
+    setPickedChoiceOptionId(null)
     setPickedFormId(null)
   }, [selectedActionId])
 
@@ -721,6 +731,20 @@ export function CampaignTabletopActionDrawer({
                   searchable
                   value={pickedActorIds}
                   onChange={setPickedActorIds}
+                />
+              ) : null}
+              {zoneTarget?.choiceOptions ? (
+                <Select
+                  allowDeselect={false}
+                  comboboxProps={{ withinPortal: false }}
+                  data={zoneTarget.choiceOptions.map((option) => ({
+                    label: option.label,
+                    value: option.id
+                  }))}
+                  disabled={selectionControlsDisabled}
+                  label='Option'
+                  value={chosenOption?.id ?? null}
+                  onChange={setPickedChoiceOptionId}
                 />
               ) : null}
               {sparesCreatures ? (

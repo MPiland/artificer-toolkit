@@ -24,11 +24,11 @@ import {
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
-/** The aura's radiant damage: 3d8 cast at the 3rd level, and 1d8 more for each slot level above it. */
-const auraDamage = (kind: number) => ({
+/** The aura's damage: 3d8 cast at the 3rd level, and 1d8 more for each slot level above it. */
+const auraDamage = (damageType: 'RADIANT' | 'NECROTIC', kind: number) => ({
   id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, kind, 1),
   effectKind: EFFECT_KIND.DAMAGE,
-  damageTypeId: damageTypeId('RADIANT'),
+  damageTypeId: damageTypeId(damageType),
   valueKind: DAMAGE_VALUE_KIND.DICE,
   scalingKind: SCALING.PER_LEVEL,
   scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
@@ -38,6 +38,96 @@ const auraDamage = (kind: number) => ({
     order: index + 1,
     diceConfig: `${index + 3}d8`
   }))
+})
+
+/**
+ * The aura that deals one damage type. The spell authors it once and its cast-time options differ
+ * only in the type (D140); each option keeps its ids in its own bucket.
+ */
+const auraResult = (damageType: 'RADIANT' | 'NECROTIC', bucket: number) => ({
+  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x13, 1) + '__result',
+  resultKind: 'SINGLE' as const,
+  duration: {
+    id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x14, 1),
+    durationKind: DURATION_KIND.MINUTE,
+    amount: 10
+  },
+  outcomes: [
+    {
+      id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x13, 1),
+      effectKind: EFFECT_KIND.MANIFEST,
+      manifestKind: MANIFEST_KIND.ZONE,
+      attachmentKind: 'SOURCE' as const,
+      label: 'Spirit Guardians',
+      shape: {
+        id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x20, 1),
+        shapeKind: SHAPE_KIND.SPHERE,
+        radius: { amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }
+      },
+      components: [
+        {
+          id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x21, 1),
+          order: 1,
+          label: 'Enter the spirits',
+          interactionKinds: ['ENTER_SPACE' as const, 'START_TURN_IN_SPACE' as const],
+          choosesUnaffected: true,
+          maxApplicationsPerTurn: 1,
+          behaviors: [
+            {
+              id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x22, 1),
+              order: 1,
+              invocation: {
+                kind: 'PASSIVE' as const,
+                triggerCode: TRIGGER.SAVING_THROW,
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x23, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
+                },
+                range: {
+                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x24, 1),
+                  rangeKind: RANGE_KIND.SELF
+                }
+              },
+              paths: [
+                {
+                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x25, 1),
+                  order: 1,
+                  pathCode: PATH_CODE.ON_SAVE_FAIL,
+                  groupType: PATH_GROUP_TYPE.SINGLE,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x25, 1)}__result`,
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [auraDamage(damageType, bucket + 0x26)]
+                  }
+                },
+                {
+                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x27, 1),
+                  order: 2,
+                  pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                  groupType: PATH_GROUP_TYPE.SINGLE,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x27, 1)}__result`,
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [
+                      {
+                        ...auraDamage(damageType, bucket + 0x28),
+                        amountKind: SCALING_AMOUNT_KIND.HALF
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
 })
 
 export const spiritGuardians: SpellAuthored = {
@@ -86,91 +176,20 @@ export const spiritGuardians: SpellAuthored = {
           id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x213, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.CHOICE,
           originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x214, 1),
-              durationKind: DURATION_KIND.MINUTE,
-              amount: 10
-            },
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x213, 1),
-                effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'SOURCE' as const,
-                label: 'Spirit Guardians',
-                shape: {
-                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x220, 1),
-                  shapeKind: SHAPE_KIND.SPHERE,
-                  radius: { amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }
-                },
-                components: [
-                  {
-                    id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x221, 1),
-                    order: 1,
-                    label: 'Enter the spirits',
-                    interactionKinds: ['ENTER_SPACE' as const, 'START_TURN_IN_SPACE' as const],
-                    choosesUnaffected: true,
-                    maxApplicationsPerTurn: 1,
-                    behaviors: [
-                      {
-                        id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x222, 1),
-                        order: 1,
-                        invocation: {
-                          kind: 'PASSIVE' as const,
-                          triggerCode: TRIGGER.SAVING_THROW,
-                          savingThrow: {
-                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x223, 1),
-                            dcMethod: 'SOURCE_SAVE_DC' as const,
-                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
-                          },
-                          range: {
-                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x224, 1),
-                            rangeKind: RANGE_KIND.SELF
-                          }
-                        },
-                        paths: [
-                          {
-                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x225, 1),
-                            order: 1,
-                            pathCode: PATH_CODE.ON_SAVE_FAIL,
-                            groupType: PATH_GROUP_TYPE.SINGLE,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: 'FIXED' as const,
-                            resultBlock: {
-                              id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x225, 1)}__result`,
-                              resultKind: 'SINGLE' as const,
-                              outcomes: [auraDamage(0x226)]
-                            }
-                          },
-                          {
-                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x227, 1),
-                            order: 2,
-                            pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-                            groupType: PATH_GROUP_TYPE.SINGLE,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: 'FIXED' as const,
-                            resultBlock: {
-                              id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x227, 1)}__result`,
-                              resultKind: 'SINGLE' as const,
-                              outcomes: [
-                                { ...auraDamage(0x228), amountKind: SCALING_AMOUNT_KIND.HALF }
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
+          selectionKind: 'CHOICE' as const,
+          options: [
+            { label: 'Radiant', damageType: 'RADIANT' as const, bucket: 0x200 },
+            { label: 'Necrotic (evil caster)', damageType: 'NECROTIC' as const, bucket: 0x300 }
+          ].map(({ label, damageType, bucket }, index) => ({
+            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x215, index + 1),
+            order: index + 1,
+            label,
+            description:
+              '<p>The spirits deal radiant damage if you are good or neutral, or necrotic damage if you are evil.</p>',
+            resultBlock: auraResult(damageType, bucket)
+          }))
         }
       ]
     }

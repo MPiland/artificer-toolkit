@@ -23,7 +23,8 @@ import {
   hitPointsOf,
   readMaintainedStates,
   readSheetStreamVersion,
-  readZones
+  readZones,
+  choiceOptionIdOf
 } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -54,6 +55,12 @@ afterEach(() => {
 })
 
 type Room = Awaited<ReturnType<typeof actionRoom>>
+
+/** The aura's cast picks radiant damage, the SRD's choice for a caster who is not evil (D140). */
+const castRadiantAura = (room: Room) =>
+  room.startCasterCenteredAreaAction([], 'GM', {
+    choiceOptionId: choiceOptionIdOf(spiritGuardians, 'Radiant')
+  })
 
 const casterActor = {
   ...characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
@@ -148,7 +155,7 @@ async function castOnFirstTurn(room: Room, cast: () => ReturnType<Room['startAre
 describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)', () => {
   it('rolls the incoming creature’s Spirit Guardians save at its turn start, applies the damage in the same commit and replays exactly', async () => {
     const room = await auraRoom(INSIDE_THE_AURA, 'EVERYONE')
-    const zone = await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
+    const zone = await castOnFirstTurn(room, () => castRadiantAura(room))
     // Real compile evidence: the SRD Spirit Guardians places a source zone that acts at a turn start.
     expect(zone.placement).toMatchObject({
       anchorKind: 'TOKEN',
@@ -240,7 +247,7 @@ describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)
 
   it('keeps the stored result free of zone phases for a turn no zone catches anyone in', async () => {
     const room = await auraRoom(OUTSIDE_THE_AURA, 'EVERYONE')
-    await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
+    await castOnFirstTurn(room, () => castRadiantAura(room))
     const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
 
     const advance = await advanceCommand(room)
@@ -434,7 +441,7 @@ describe('a zone ending while its save is pending (SPELLS-20 T4f)', () => {
 
   it('refuses every end of the aura while a turn-start save it asked for is pending, then commits the staged plan', async () => {
     const room = await auraRoom(INSIDE_THE_AURA)
-    const zone = await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
+    const zone = await castOnFirstTurn(room, () => castRadiantAura(room))
     const advance = await advanceCommand(room)
     const asked = await advance.send()
     if (
@@ -499,7 +506,7 @@ describe('a zone ending while its save is pending (SPELLS-20 T4f)', () => {
 
   it('refuses every end of the aura while a walk into it awaits its save, then resumes the paused walk', async () => {
     const room = await auraRoom(OUTSIDE_THE_AURA)
-    const zone = await castOnFirstTurn(room, () => room.startCasterCenteredAreaAction())
+    const zone = await castOnFirstTurn(room, () => castRadiantAura(room))
     await room.advanceTurn()
     const walk = await room.room.move(
       [OUTSIDE_THE_AURA, INSIDE_THE_AURA],

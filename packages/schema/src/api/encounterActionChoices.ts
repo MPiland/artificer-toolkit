@@ -22,6 +22,19 @@ export const getEncounterActionChoicesInputDtoSchema = lazySchema(() =>
   })
 )
 
+const choiceOptionsSchema = lazySchema(() =>
+  z.optional(
+    z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          label: z.string().check(z.minLength(1)).check(z.maxLength(160))
+        })
+      )
+      .check(z.minLength(2))
+  )
+)
+
 export const encounterActionChoiceDtoSchema = lazySchema(() =>
   z.strictObject({
     id: characterSheetActionDtoSchema.shape.id,
@@ -122,7 +135,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
           z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
         ]),
         /** The caster designates creatures at cast that the zone it places never affects. */
-        choosesUnaffected: z.optional(z.literal(true))
+        choosesUnaffected: z.optional(z.literal(true)),
+        /** The zones the caster picks one of at cast (D140); absent for an action with one zone. */
+        choiceOptions: choiceOptionsSchema
       }),
       /**
        * A radius centered on the caster, measured from the edge of their space (a Self sphere,
@@ -132,7 +147,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         kind: z.literal('CASTER_CENTERED'),
         area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
         /** The caster designates creatures at cast that the zone it places never affects. */
-        choosesUnaffected: z.optional(z.literal(true))
+        choosesUnaffected: z.optional(z.literal(true)),
+        /** The zones the caster picks one of at cast (D140); absent for an action with one zone. */
+        choiceOptions: choiceOptionsSchema
       }),
       /**
        * An area that starts on the caster's own token and extends toward a direction: a cone, a

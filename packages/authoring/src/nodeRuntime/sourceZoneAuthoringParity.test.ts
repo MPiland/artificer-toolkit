@@ -35,21 +35,38 @@ function normalize(equipment: EquipmentAuthored) {
   })
 }
 
+/** Every zone the record's cast places: the one a FIXED path names, or each a cast-time pick offers (D140). */
+function auraZones(equipment: EquipmentAuthored) {
+  const path = equipment.effects?.[0]?.paths[0]
+  const blocks =
+    path?.selectionKind === 'FIXED'
+      ? [path.resultBlock]
+      : path?.selectionKind === 'CHOICE'
+        ? path.options.map((option) => option.resultBlock)
+        : []
+  const zones = blocks.flatMap(({ outcomes }) =>
+    outcomes[0]?.effectKind === 'MANIFEST' && outcomes[0].manifestKind === 'ZONE'
+      ? [outcomes[0]]
+      : []
+  )
+  if (!zones.length || zones.length !== blocks.length)
+    throw new Error('Spirit Guardians must author a zone for every pick.')
+  return zones
+}
+
 /** The aura the way the Builder authors it with another radius, ability, save DC method and dice. */
 function variant(): EquipmentAuthored {
   const equipment = carrying(spiritGuardians.effects as EquipmentAuthored['effects'])
-  const path = equipment.effects?.[0]?.paths[0]
-  const aura = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
-  if (aura?.effectKind !== 'MANIFEST' || aura.manifestKind !== 'ZONE')
-    throw new Error('Spirit Guardians must author a zone.')
-  const behavior = aura.components?.[0]?.behaviors?.[0]
-  if (!behavior || !('savingThrow' in behavior.invocation))
-    throw new Error('The aura must author a saving throw.')
-  aura.shape = { id: aura.shape!.id, shapeKind: 'SPHERE', radius: { amount: 20, unit: 'FEET' } }
-  behavior.invocation.savingThrow = {
-    ...behavior.invocation.savingThrow,
-    dcMethod: 'FIXED_DC',
-    baseDc: 14
+  for (const aura of auraZones(equipment)) {
+    const behavior = aura.components?.[0]?.behaviors?.[0]
+    if (!behavior || !('savingThrow' in behavior.invocation))
+      throw new Error('The aura must author a saving throw.')
+    aura.shape = { id: aura.shape!.id, shapeKind: 'SPHERE', radius: { amount: 20, unit: 'FEET' } }
+    behavior.invocation.savingThrow = {
+      ...behavior.invocation.savingThrow,
+      dcMethod: 'FIXED_DC',
+      baseDc: 14
+    }
   }
   return equipment
 }
@@ -64,24 +81,19 @@ describe('the source aura through the equipment node map', () => {
 
   it('keeps the choice of unaffected creatures a Builder authors on a zone, which the SRD aura sets the same way', async () => {
     const authored = carrying(spiritGuardians.effects as EquipmentAuthored['effects'])
-    const path = authored.effects?.[0]?.paths[0]
-    const aura = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
-    if (aura?.effectKind !== 'MANIFEST' || aura.manifestKind !== 'ZONE')
-      throw new Error('Spirit Guardians must author a zone.')
-    expect(aura.components?.[0]?.choosesUnaffected).toBe(true)
-    delete aura.components?.[0]?.choosesUnaffected
+    for (const aura of auraZones(authored)) {
+      expect(aura.components?.[0]?.choosesUnaffected).toBe(true)
+      delete aura.components?.[0]?.choosesUnaffected
+    }
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
     const withChoice = variant()
-    const zone = withChoice.effects?.[0]?.paths[0]
-    const outcome = zone?.selectionKind === 'FIXED' ? zone.resultBlock.outcomes[0] : undefined
-    const component =
-      outcome?.effectKind === 'MANIFEST' && outcome.manifestKind === 'ZONE'
-        ? outcome.components?.[0]
-        : undefined
-    if (!component) throw new Error('The aura must author a component.')
-    component.choosesUnaffected = true
+    for (const aura of auraZones(withChoice)) {
+      const component = aura.components?.[0]
+      if (!component) throw new Error('The aura must author a component.')
+      component.choosesUnaffected = true
+    }
     const kept = await normalize(withChoice)
     expect(kept.clearedPaths).toEqual([])
     expect(getValueAtPath(kept.values, ['effects'])).toEqual(withChoice.effects)

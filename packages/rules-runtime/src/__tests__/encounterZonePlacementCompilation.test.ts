@@ -9,6 +9,7 @@ import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { encounterActionTargetKind } from '../encounterAreaAction.js'
 import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -29,8 +30,10 @@ describe('placed-space zone compilation from real SRD Caltrops', () => {
   it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
     const { entry, compilation } = compileCaltropsEntry()
     expect(compilation.activeEffectPlan).toBeNull()
-    expect(compilation.zonePlacement?.maintenance).toBeNull()
-    expect(compilation.zonePlacement).toMatchObject({
+    const zone =
+      compilation.zonePlacement && chosenZonePlacement(compilation.zonePlacement, undefined)
+    expect(zone?.maintenance).toBeNull()
+    expect(zone).toMatchObject({
       label: 'Caltrop field',
       shape: { shapeKind: 'CUBE', edgeLength: { amount: 5, unit: 'FEET' } },
       triggerModes: ['ENTER', 'CROSS'],
@@ -41,8 +44,7 @@ describe('placed-space zone compilation from real SRD Caltrops', () => {
   })
 
   it('freezes the authored Dexterity save, stop, damage and speed penalty as the zone entry', () => {
-    const zone = compileCaltropsEntry().compilation.zonePlacement
-    if (!zone) throw new Error('Caltrops must place a zone.')
+    const zone = zonePlacementOf()
     expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual([
       'd20',
       'test',
@@ -73,8 +75,7 @@ const MOVE_COMMAND_ID = testUuid(0x1706)
 
 /** The zone the real planner leaves at a point for real Caltrops, with 5 feet as 100 Scene units. */
 function placedCaltropsZone() {
-  const zone = compileCaltropsEntry().compilation.zonePlacement
-  if (!zone) throw new Error('Caltrops must place a zone.')
+  const zone = zonePlacementOf()
   return planEncounterPlacedZone({
     zone,
     id: ZONE_ID,

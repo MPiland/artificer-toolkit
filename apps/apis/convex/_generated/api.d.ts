@@ -113040,6 +113040,7 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "POINT";
                 }
@@ -113105,6 +113106,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
                 }
@@ -113773,6 +113775,7 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "POINT";
                 }
@@ -113838,6 +113841,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
                 }

@@ -1,6 +1,8 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { expect, vi } from 'vitest'
 
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import type { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
@@ -8,6 +10,15 @@ import { connectPlayer } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 type ActionRoom = Awaited<ReturnType<typeof actionRoom>>
+
+/** The id of the zone option `label` a spell's cast-time pick offers (D140). */
+export function choiceOptionIdOf(spell: SpellAuthored, label: string) {
+  const path = spell.effects?.[0]?.paths[0]
+  const option =
+    path?.selectionKind === 'CHOICE' ? path.options.find((each) => each.label === label) : undefined
+  if (!option) throw new Error(`${spell.label} must offer the zone option ${label}.`)
+  return option.id
+}
 
 /** The zones the room's Encounter holds. */
 export function readZones(room: ActionRoom) {

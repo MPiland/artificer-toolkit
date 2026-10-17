@@ -9,6 +9,7 @@ import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/ca
 
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { testUuid } from './dnd5eSrdEncounter.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
 
@@ -94,8 +95,9 @@ export function variantEquipment(change: (parts: ZoneParts) => void): EquipmentA
 }
 
 export function zonePlacementOf(equipment?: EquipmentAuthored) {
-  const zone = compileCaltropsEntry(equipment).compilation.zonePlacement
-  if (!zone) throw new Error('The item must place a zone.')
+  const placement = compileCaltropsEntry(equipment).compilation.zonePlacement
+  const zone = placement && chosenZonePlacement(placement, undefined)
+  if (!zone) throw new Error('The item must place one zone.')
   return zone
 }
 

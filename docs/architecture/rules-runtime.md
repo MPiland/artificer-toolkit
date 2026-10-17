@@ -422,7 +422,14 @@ application heals at least 1 hit point (`effectsEndedBy`). A zone whose componen
 DTO advertises `choosesUnaffected` on its `POINT` / `CASTER_CENTERED` target, the cast command carries optional
 `unaffectedActorIds` on those targets (the Worker refuses it for an action whose zone does not offer it, or for an id
 that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
-never catches a listed creature. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
+never catches a listed creature. An ON_USE `CHOICE` path whose every option places one zone (Spirit Guardians'
+radiant or necrotic damage, SPELLS-20 T4e, D140) compiles to a cast-time pick, `compilation.zonePlacement =
+{ options: [{ optionId, label, zone }] }`, each option freezing its own zone graph; the options must share
+attachment, shape, spared-creature choice, Concentration and any save at the caster's DC, or the action goes manual
+(`zoneChoicePlan`); the action's facts read that shared save from every option (`zoneEntrySavingThrow`). The
+choice DTO lists them as `choiceOptions` on the `POINT` / `CASTER_CENTERED` target, the cast command names one as
+`choiceOptionId`, and the Worker places that option's zone (`chosenZonePlacement`), refusing a missing or unknown
+pick; later triggers run the stored definition. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
