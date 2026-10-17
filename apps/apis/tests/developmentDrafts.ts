@@ -117,7 +117,8 @@ if (
   process.argv.includes('--encounter-disarm') ||
   process.argv.includes('--encounter-disarm-browser') ||
   process.argv.includes('--encounter-area-browser') ||
-  process.argv.includes('--encounter-hide-browser')
+  process.argv.includes('--encounter-hide-browser') ||
+  process.argv.includes('--encounter-player-browser')
 ) {
   assert.equal(mode, 'local', 'Receipt proof requires the verified isolated local backend.')
   assert.equal(process.env.CONVEX_SELF_HOSTED_URL, deploymentUrl.origin)
@@ -2705,6 +2706,7 @@ try {
     process.argv.includes('--encounter-disarm-browser') ||
     process.argv.includes('--encounter-area-browser') ||
     process.argv.includes('--encounter-hide-browser') ||
+    process.argv.includes('--encounter-player-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
     process.argv.includes('--encounter-reaction-contention')
@@ -2735,6 +2737,7 @@ try {
     const effectJourney = process.argv.includes('--encounter-effects') || effectsBrowser
     const areaBrowser = process.argv.includes('--encounter-area-browser')
     const hideBrowser = process.argv.includes('--encounter-hide-browser')
+    const playerBrowser = process.argv.includes('--encounter-player-browser')
     const lifecycle =
       lifecycleSuite ||
       movementBrowser ||
@@ -2743,6 +2746,7 @@ try {
       disarm ||
       areaBrowser ||
       hideBrowser ||
+      playerBrowser ||
       workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
@@ -2758,7 +2762,13 @@ try {
       userId: owner.identity.userId,
       gameSystemId: srdSystemRecord.id
     })
-    for (const subjectKind of ['EQUIPMENT', 'BACKGROUND', 'CLASS', 'RACE'] as const) {
+    for (const subjectKind of [
+      'EQUIPMENT',
+      'BACKGROUND',
+      'CLASS',
+      'RACE',
+      ...(playerBrowser ? (['SPELL'] as const) : [])
+    ] as const) {
       publicationAuthors.push({
         client: player.client,
         userId: player.identity.userId,
@@ -2768,7 +2778,14 @@ try {
       browserDraftAuthors.push({ client: player.client, subjectKind })
     }
     const { createDevelopmentCharacter } = await import('./developmentCharacterFixture')
-    const characterFixture = await createDevelopmentCharacter(player.client, characterId)
+    const { createDevelopmentSpellCharacter } = await import('./developmentSpellCharacterFixture')
+    const { shield } = await import('@artificer-toolkit/source-data/srd/spells/shield.js')
+    const { thunderwave } = await import('@artificer-toolkit/source-data/srd/spells/thunderwave.js')
+    const spellCharacter = playerBrowser
+      ? await createDevelopmentSpellCharacter(player.client, characterId, [shield, thunderwave])
+      : null
+    const characterFixture =
+      spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
     const campaignInput = {
       name: 'Encounter execution fixture',
@@ -2940,6 +2957,72 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/area-vtt-browser-20261010/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (playerBrowser) {
+        if (!spellCharacter) throw new Error('The player journey needs its spell Character.')
+        publicationAuthors.push({
+          client: owner.client,
+          userId: owner.identity.userId,
+          systemId: srdSystemRecord.id,
+          subjectKind: 'CREATURE'
+        })
+        browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+        const { createPlayerJourneyWolf } = await import('./fixtures/encounterPlayer')
+        const wolf = createPlayerJourneyWolf(crypto.randomUUID(), 'Journey wolf')
+        const draft = await owner.client.mutation(api.content.drafts.save, {
+          subjectKind: 'CREATURE',
+          subjectId: wolf.id,
+          systemId: srdSystemRecord.id,
+          label: wolf.label,
+          payload: wolf
+        })
+        assert.ok(draft.updatedAt)
+        await owner.client.mutation(api.content.publication.publishDraft, {
+          subjectKind: 'CREATURE',
+          subjectId: draft.subjectId,
+          expectedDraftUpdatedAt: draft.updatedAt
+        })
+        const { verifyEncounterPlayer } = await import('./developmentEncounterPlayer')
+        await verifyEncounterPlayer({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          wolfSourceId: wolf.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          readTimeline: () => owner.client.encounterTimeline(campaign.id),
+          browser: async (fixture, verify) => {
+            const { verifyEncounterPlayerBrowser } =
+              await import('../../web/tests/live-backend/encounterPlayer')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterPlayerBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/player-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url
