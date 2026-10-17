@@ -350,7 +350,7 @@ ACTIVE Encounter that holds the Character, a costed end is refused with "End thi
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
 carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones
-(`PUBLIC`, or revealed) that allow passage at half speed; one `readHalfSpeedFields` read feeds both. The server
+(`PUBLIC`, or revealed) that allow passage at half speed; one `readSceneSpatialRows` read feeds it and `auras`. The server
 re-derives which zones `carefully` applies to with the same visibility predicate, so a client cannot bypass a
 hidden zone.
 

@@ -12,7 +12,8 @@ import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runti
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readCampaignRunState } from './documents.js'
-import { readHalfSpeedFields } from './halfSpeedFields.js'
+import { halfSpeedFieldsOf } from './halfSpeedFields.js'
+import { readSceneSpatialRows } from './sceneSpatialRows.js'
 import { readSessionAuras } from './sessionAuras.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
@@ -123,14 +124,16 @@ export async function readEncounterSessionState(
     }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
   const encounter = await presentEncounterRun(ctx, row, campaign, membership)
+  const spatialRows = await readSceneSpatialRows(ctx, row.id)
   return {
     encounter,
     pending,
     waitingOn: pending ? null : await readEncounterWaitingOn(ctx, row, campaign),
     turnMovement: await readTurnMovementView(ctx, { row, campaign, membership }),
-    halfSpeedFields: await readHalfSpeedFields(ctx, row.id),
+    halfSpeedFields: halfSpeedFieldsOf(spatialRows),
     auras: await readSessionAuras(ctx, {
       encounterId: row.id,
+      rows: spatialRows,
       seenActorIds: new Set(encounter.actors.map((actor) => actor.id))
     })
   }

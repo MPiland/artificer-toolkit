@@ -1,5 +1,5 @@
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
-import { readSceneSpatialRows } from './sceneSpatialRows.js'
+import type { readSceneSpatialRows } from './sceneSpatialRows.js'
 import type { EncounterReadContext } from './store.js'
 
 /**
@@ -10,10 +10,13 @@ import type { EncounterReadContext } from './store.js'
  */
 export async function readSessionAuras(
   ctx: EncounterReadContext,
-  input: { encounterId: string; seenActorIds: ReadonlySet<string> }
+  input: {
+    encounterId: string
+    rows: Awaited<ReturnType<typeof readSceneSpatialRows>>
+    seenActorIds: ReadonlySet<string>
+  }
 ): Promise<EncounterSessionStateDto['auras']> {
-  const { encounterId, seenActorIds } = input
-  const rows = await readSceneSpatialRows(ctx, encounterId)
+  const { encounterId, rows, seenActorIds } = input
   const auras = rows.flatMap(({ id, placement, spatialState }) =>
     placement.anchorKind === 'TOKEN' &&
     placement.sourceTokenId !== null &&

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { SpatialRuleEffectPlacementDto } from '@artificer-toolkit/schema/shared/spatial'
+import { readSceneSpatialRows } from '@artificer-toolkit/encounter-persistence/sceneSpatialRows'
 import { readSessionAuras } from '@artificer-toolkit/encounter-persistence/sessionAuras'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 
@@ -141,12 +142,14 @@ async function seed(
 }
 
 const read = (t: Awaited<ReturnType<typeof seed>>, seenActorIds: readonly string[]) =>
-  t.run((ctx) =>
-    readSessionAuras(
-      { db: createConvexEncounterStore(ctx) },
-      { encounterId: ids.encounter, seenActorIds: new Set(seenActorIds) }
-    )
-  )
+  t.run(async (ctx) => {
+    const store = { db: createConvexEncounterStore(ctx) }
+    return readSessionAuras(store, {
+      encounterId: ids.encounter,
+      rows: await readSceneSpatialRows(store, ids.encounter),
+      seenActorIds: new Set(seenActorIds)
+    })
+  })
 
 describe('readSessionAuras', () => {
   it('lists an aura with its label, radius and source token for a viewer who sees the source', async () => {
