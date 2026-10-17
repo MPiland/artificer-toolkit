@@ -199,16 +199,8 @@ function bindTriggerDamageTypes(
   modifier: CharacterGrantFoldModifier,
   damageTypeIds: readonly string[]
 ): CharacterGrantFoldModifier[] {
-  const { grant } = modifier
-  if (typeof grant !== 'object' || grant === null || Array.isArray(grant)) return [modifier]
-  const { payload } = grant
-  if (
-    typeof payload !== 'object' ||
-    payload === null ||
-    Array.isArray(payload) ||
-    payload.damageTypeSource !== 'TRIGGER'
-  )
-    return [modifier]
+  const { payload } = modifier
+  if (payload === undefined || !('damageTypeSource' in payload)) return [modifier]
   if (damageTypeIds.length === 0)
     throw new EncounterActionEffectPlanError(
       'A resistance to the triggering damage type needs the damage that triggered the reaction.'
@@ -216,7 +208,7 @@ function bindTriggerDamageTypes(
   return damageTypeIds.map((damageTypeId) => ({
     ...modifier,
     grantId: `${modifier.grantId}:${damageTypeId}`,
-    grant: { ...grant, payload: { damageTypeId } }
+    payload: { damageTypeId }
   }))
 }
 

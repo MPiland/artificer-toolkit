@@ -33,6 +33,30 @@ const TARGET_COUNT_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
   TARGET_COUNT_NODE_MAP
 )
 
+type HitPointPoolAuthored = {
+  diceConfig: string
+}
+
+const hitPointPool = buildNodeMap<HitPointPoolAuthored>()
+
+const HIT_POINT_POOL_NODE_MAP = hitPointPool.define('hitPointPool', ({ map, nodes }) => {
+  const { text } = nodes
+
+  map.set(
+    'diceConfig',
+    text(['diceConfig'], 'Pool Dice', {
+      order: 1,
+      requiredIf: true
+    })
+  )
+})
+
+const HIT_POINT_POOL_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
+  'hitPointPoolScaling',
+  'Hit Point Pool',
+  HIT_POINT_POOL_NODE_MAP
+)
+
 export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
   'targeting',
   ({ map, nodes, cond, logic, data }) => {
@@ -104,6 +128,27 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
             presentation: 'inline',
             order: 4,
             showIf: local.field(['selectionKind']).eq('CHOSEN_CREATURES')
+          }
+        )
+      )
+      .set(
+        'hitPointPool',
+        groupObject(['hitPointPool'], 'Hit Point Pool', () => HIT_POINT_POOL_NODE_MAP, {
+          presentation: 'inline',
+          order: 5,
+          showIf: local.field(['selectionKind']).eq('AREA_CONTENTS')
+        })
+      )
+      .set(
+        'hitPointPoolScaling',
+        groupObject(
+          ['hitPointPoolScaling'],
+          'Hit Point Pool Scaling',
+          () => HIT_POINT_POOL_SCALING_NODE_MAP,
+          {
+            presentation: 'inline',
+            order: 6,
+            showIf: local.field(['selectionKind']).eq('AREA_CONTENTS')
           }
         )
       )

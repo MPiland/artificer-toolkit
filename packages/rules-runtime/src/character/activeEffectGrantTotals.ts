@@ -5,7 +5,10 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 import { modifierLengthFeet } from '../modifierLength.js'
-import { listHitPointMaximumReductions, reduceHitPointMaximum } from './hitPointMaximumReductions.js'
+import {
+  listHitPointMaximumReductions,
+  reduceHitPointMaximum
+} from './hitPointMaximumReductions.js'
 
 // Grant reads the Sheet and the Encounter share. This module must stay free of `encounter*` imports:
 // the browser bundles it through the Sheet projection (ADR 0036 S6, rulesRuntimeBoundary.test.ts).
@@ -37,22 +40,23 @@ export function record(value: unknown): Record<string, unknown> | null {
     : null
 }
 
+type DomainFilter = (domain: CharacterGrantFoldModifier['domain']) => boolean
+
 /** The global active bonuses and penalties to one value domain whose domain `applies` accepts. */
 function* activeBonusGrants(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: string,
-  applies: (domain: Record<string, unknown> | null) => boolean
+  applies: DomainFilter
 ) {
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
-      const grant = record(modifier.grant)
       if (
         modifier.valueDomainCode === valueDomainCode &&
         (modifier.modifierKind === 'BONUS' || modifier.modifierKind === 'PENALTY') &&
-        grant?.scope === 'GLOBAL' &&
-        applies(record(modifier.domain))
+        modifier.scope === 'GLOBAL' &&
+        applies(modifier.domain)
       )
-        yield { sign: modifier.modifierKind === 'PENALTY' ? -1 : 1, payload: record(grant.payload) }
+        yield { sign: modifier.modifierKind === 'PENALTY' ? -1 : 1, payload: modifier.payload }
     }
   }
 }
@@ -64,11 +68,11 @@ function* activeBonusGrants(
 export function activeFixedGrantTotal(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: string,
-  applies: (domain: Record<string, unknown> | null) => boolean = () => true
+  applies: DomainFilter = () => true
 ): number {
   let total = 0
   for (const { sign, payload } of activeBonusGrants(effects, valueDomainCode, applies)) {
-    if (payload?.valueKind !== 'FIXED' || typeof payload.amount !== 'number')
+    if (payload === undefined || !('valueKind' in payload) || payload.valueKind !== 'FIXED')
       throw new Error(`An active ${valueDomainCode} grant must be a fixed amount.`)
     // A penalty is authored as a positive amount and subtracted once, here.
     total += sign * payload.amount
@@ -83,7 +87,7 @@ export function activeFixedGrantTotal(
  */
 export function activeSpeedGrantFeet(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  applies: (domain: Record<string, unknown> | null) => boolean
+  applies: DomainFilter
 ): number {
   let feet = 0
   for (const { sign, payload } of activeBonusGrants(effects, 'SPEED', applies))
@@ -103,15 +107,15 @@ export function activeSetValueGrantMaximum(
   let best: number | null = null
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
-      const grant = record(modifier.grant)
-      const amount = record(grant?.payload)?.amount
+      const { payload } = modifier
       if (
         modifier.valueDomainCode === valueDomainCode &&
         modifier.modifierKind === 'SET_VALUE' &&
-        grant?.scope === 'GLOBAL' &&
-        typeof amount === 'number'
+        modifier.scope === 'GLOBAL' &&
+        payload !== undefined &&
+        'amount' in payload
       )
-        best = best === null ? amount : Math.max(best, amount)
+        best = best === null ? payload.amount : Math.max(best, payload.amount)
     }
   }
   return best

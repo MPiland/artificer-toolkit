@@ -1058,7 +1058,7 @@
         {
           "id": "PLATFORM-20",
           "title": "One flat compile stage: no dead or copy-only compilers",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1092,16 +1092,25 @@
             },
             {
               "id": "PLATFORM-20.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "text": "Modifier grants compile to one flat shape: CompiledModifierGrant has independent valueDomainCode, modifierKind, validated domain and payload fields (no authored union inside it), the grant fold and every fold consumer read those typed fields with no Record<string, unknown> casts, and the persisted fold contract carries typed scope and payload instead of a JSON dump of the grant, and the SRD builders type their helpers per value domain; every Object.assign, .concat and cast workaround added for union complexity is removed, and the packages build without TS2589, TS2590 or TS2859.",
-              "note": "Orchestrator ruling 2026-10-17 on the session question: option A (typed persisted contract plus a dev-data migration), per the user's best-practice direction and the pre-launch no-compat rule."
+              "note": "Run rules/modifierOperationMigration:run once on the local backend after the next local deploy.",
+              "proof": [
+                "packages/schema/src/api/characterGrantFoldRules.ts: modifierOperationSchema carries typed scope, domain (modifierDomainParamsDtoSchema), optional payload (modifierPayloadDtoSchema) and scopeResourceIds; the grant boundedJson dump is gone and fold contributions drop grant. Rules-runtime modifier readers narrow typed fields with no record() casts or jsonFact passthrough; CompiledModifierGrant.payload is narrowed to the reachable payloads; DAMAGE_IMMUNITY sourceEffectIds (REACTION-4.T4) has a strict damageImmunityPayloadDtoSchema.",
+                "Migration: apps/apis/convex/rules/modifierOperationMigration.ts rebuilds frozen operations in characterActiveRuleEffects, encounterActiveRuleEffects and encounterSpatialRuleEffects, validated, re-checksummed and idempotent; modifierOperationMigration.test.ts runs it twice. Rule receipts, pending snapshot parts and room storage are not migrated (the local reset clears them).",
+                "Red 784bb8c4a (Tests 38996674304 failed). Direct single-slice merge fc5388e9d of ci/platform-20-t2 7fa9f620a (Tests 39000902431, Live 39002206361); the merge differs from the slice tip only in the ledger."
+              ]
             },
             {
               "id": "PLATFORM-20.4",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed."
+              "text": "ADR 0003 and docs/architecture/engine.md describe the compile stage as built: what each remaining compiler does and where its output is consumed.",
+              "proof": [
+                "ADR 0003 gained the typed fold modifier operation and its migration; docs/architecture engine.md Compile stage names typed scope, domain and payload plus spell and resource ids, not a JSON copy; neither describes compile-once hydration (PLATFORM-21) as current.",
+                "Direct single-slice merge fc5388e9d of ci/platform-20-t2 7fa9f620a (Tests 39000902431, Live 39002206361); the merge differs from the slice tip only in the ledger."
+              ]
             }
           ],
           "tasks": [
@@ -1120,7 +1129,7 @@
             },
             {
               "id": "PLATFORM-20.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-20.3", "PLATFORM-20.4"],
               "text": "The persisted fold contract is typed: modifierOperationSchema replaces the grant JSON dump with typed scope and payload, the rules-runtime consumers read typed fields (no record() casts), stored development rows are migrated in the same change, and the docs describe the compile stage as built.",
               "wsjf": {
@@ -1131,7 +1140,12 @@
                 "after": ["PLATFORM-20.T1"]
               }
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/apis/convex/rules/modifierOperationMigration.test.ts",
+            "packages/rules-runtime/src/__tests__/encounterZonePlacementCompilation.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-21",
@@ -1178,7 +1192,7 @@
         {
           "id": "PLATFORM-22",
           "title": "Fewer and faster CI cycles per slice",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -1212,9 +1226,13 @@
             },
             {
               "id": "PLATFORM-22.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md."
+              "text": "A single green slice whose tip contains the phase branch tip merges without a batch CI run, proved by tree identity between the merge commit and the slice tip; the rule is in AGENTS.md.",
+              "proof": [
+                "AGENTS.md Validation states the rule (commit 1d6b923fc; ledger-only tolerance 0de20a47d).",
+                "First application: PLATFORM-20.T2 7fa9f620a contained the phase tip 8068ab970; merge fc5388e9d on 532ecfd05 differs from the slice tip only in docs/roadmap/08-phase-ledger.json (orchestrator ledger commit); no batch CI run."
+              ]
             },
             {
               "text": "One CI run proves red and green: a parallel job runs the slice's new and changed test files against the phase-branch production code and reports them failing (assertion or import failure, labelled), or \"already passing\" for a test-only slice, while the normal jobs prove green on the tip. Slices no longer push separate red branches.",
@@ -1244,7 +1262,7 @@
             },
             {
               "id": "PLATFORM-22.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-22.3"],
               "text": "Single-slice merge rule in AGENTS.md, applied at the next single-slice merge.",
               "wsjf": {
@@ -1268,7 +1286,9 @@
                 "after": []
               }
             }
-          ]
+          ],
+          "journeyTests": [".github/workflows/tests.yml", "scripts/watchCi.ps1"],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-23",
@@ -1367,6 +1387,49 @@
                 "after": ["PLATFORM-23.T3"]
               },
               "activeWorkbook": "docs/handoffs/slice-platform-23.md"
+            }
+          ]
+        },
+        {
+          "id": "PLATFORM-24",
+          "title": "Paused rule continuations need no signing key",
+          "status": "IN_PROGRESS",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 3,
+            "rr": 5,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-24.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16: the user chose removal (Q23) after an audit found no client ever holds a continuation, Convex never verifies it, and the cross-service reason ended with ADR 0035.",
+              "text": "Resuming a paused rule occurrence validates the frozen graph exactly as executeFrozen does (capability lookup, contractVersion match, validateCompiledRuleGraph) and rejects a graph that fails it, with no HMAC seal; a test resumes a tampered graph and sees it rejected."
+            },
+            {
+              "id": "PLATFORM-24.2",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-16: the user chose removal (Q23) after an audit found no client ever holds a continuation, Convex never verifies it, and the cross-service reason ended with ADR 0035.",
+              "text": "RULES_CONTINUATION_SECRET, the continuation seal field, deriveRulesContinuationKey and every fixture key are gone from code, env examples, scripts and docs (READMEs, live-sessions.md, rules-runtime.md, an ADR 0029 amendment); paused decisions stored before the change are cancelled per the ADR 0033 precedent, and the local Convex and Worker env names are removed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-24.T1",
+              "text": "Move graph validation into resume/resumeWithGraph, delete the seal and key end to end, cancel pre-change paused decisions, update docs and the ADR 0029 amendment.",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-24.1", "PLATFORM-24.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-platform-24.md"
             }
           ]
         }
@@ -8739,36 +8802,49 @@
             },
             {
               "id": "SPELLS-20.T4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
-              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path.",
+              "text": "Zone save outcomes: half damage on a made save (ON_SAVE_SUCCESS in the zone save graph, reusing the entry roll per D133) and higher-slot scaling with the cast level pinned at placement like saveDc; proved on Spirit Guardians through the existing ENTER path. (Red: Tests 38998091848 on 8b55d392a. Green: ci/spells-20-t4a 5c9c90a54, Tests 39001554879, Live 39001554886; docs-only tip 151372f39 Tests 39002845848. Merged in m66 6a73cedf3 (Tests 39004397749, Live 39004397753).)",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-20.T1b"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              }
             },
             {
-              "id": "SPELLS-20.T4b",
-              "status": "TODO",
+              "id": "SPELLS-20.T4b1",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
-              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones, with one once-per-turn counter per (effect, creature, turn) shared by first entry and start of turn (maxApplicationsPerTurn gets its runtime consumer). Turn-boundary save and damage rolls run as a turn stage through the existing turn pending path (encounterTurnPending), after Recharge and the death save and with the start-of-turn effects, prompted per ADR 0034 like the death save and not undoable like other turn-stage rolls. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "text": "Once-per-turn zone counter per (effect, creature, turn), stored on the Encounter run state keyed by effect and actor with the turn identity in each entry (an entry from another turn counts as unspent and is pruned on write; the placement stays immutable). First ENTER consumes it and maxApplicationsPerTurn gets its runtime consumer; proved on Caltrops and Spirit Guardians.",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 3,
                 "after": ["SPELLS-20.T4a"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T4b2",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "text": "START/END_TURN_IN_SPACE zone triggers shared by all zones as a new turn stage (pending context ENCOUNTER_TURN_ZONE_EFFECTS) through encounterTurnPending, after Recharge, the death save and the start-of-turn effects, carrying the save then the damage roll through one save-then-dice resume shared with the spatial movement path; membership through spatialEffectAffects; consumes the T4b1 counter; prompted per ADR 0034 and not undoable like other turn-stage rolls. Proved on Spirit Guardians and a Stinking Cloud journey. Unblocks Stinking Cloud, Blade Barrier and Oil Flask.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-20.T4b1"]
               }
             },
             {
               "id": "SPELLS-20.T4c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
-              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface.",
+              "text": "Creatures designated unaffected at cast: a cast-time selection stored on the zone and filtered at resolution, with the web selection surface. (Red proof in Tests 39005327342 on 8abd5d451. Green: ci/spells-20-t4c 961579e7a, Tests 39006742783, Live 39006742832. Membership seam: spatialEffectAffects in packages/shared/src/domains/vtt/spatial.ts; generic flag choosesUnaffected with authoring parity. Merged directly as d90f99153.)",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -8787,7 +8863,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-20.T4b"]
+                "after": ["SPELLS-20.T4b2"]
               }
             },
             {
@@ -8813,7 +8889,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-20.T4b"]
+                "after": ["SPELLS-20.T4b2"]
               }
             }
           ]
@@ -9079,7 +9155,13 @@
           "id": "SPELLS-28",
           "title": "Movement, summon and link outcomes cast in an Encounter",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomDepartAction.test.ts",
+            "apps/session-worker/test/nativeRoomActorLink.test.ts",
+            "apps/session-worker/test/nativeRoomGiantInsect.test.ts",
+            "apps/session-worker/test/nativeRoomPolymorph.test.ts",
+            "apps/session-worker/test/nativeRoomTeleportAction.test.ts"
+          ],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
@@ -9090,10 +9172,12 @@
               "proof": [
                 "T1 TELEPORT departure (D128): apps/session-worker/test/nativeRoomDepartAction.test.ts, packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, apps/apis/convex/encounters/actorAbsenceMigration.test.ts",
                 "T3 TELEPATHIC_LINK (D129): apps/session-worker/test/nativeRoomActorLink.test.ts (cast bonds every chosen creature, undo removes all, a low-Intelligence creature warns overridably), encounterAreaActionCompilation.test.ts, encounterActionEffectBaseline.test.ts, encounterActionRuleWarnings.test.ts",
-                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b"
+                "Green: CI Tests 38884319135 and Live backend 38884319001 on 9e63fde0b",
+                "T2 MANIFEST Giant Insect (D130): packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts compiles the real SRD spell as a one-hour swap without carry-over; journey apps/session-worker/test/nativeRoomGiantInsect.test.ts (transform and byte-exact undo, revert at duration end, 0 HP ends the form and excess is lost, over-count and missing form refused); encounterMechanicsBatchPlan.test.ts, encounter-action-actors-target.test.ts.",
+                "T4-T4d creature form for Characters: apps/session-worker/test/nativeRoomPolymorph.test.ts (Polymorph, form outlasting the Run, acting in the form: the form Bite resolves and hurts its target); characterFormActions.test.ts. Merged in m65 22e21b5c5."
               ],
               "origin": [],
-              "note": "Registered 2026-10-16 from the SPELLS-26 survey: no PBI owned these outcome families, so these chosen-creature spells fail as single-target casts too."
+              "note": "Held open: its core-options parity proof packages/authoring/src/nodeRuntime/creatureFormAuthoringParity.test.ts is one of the 12 failing authoring tests CI never ran; closes when PLATFORM-23.2 makes it green. Giant Centipede Bite (GIANT_CENTIPEDE_VENOM outcome) is not plannable, so a Giant Insect centipede cannot bite yet."
             },
             {
               "id": "SPELLS-28.2",
@@ -9193,8 +9277,8 @@
             },
             {
               "id": "SPELLS-28.T4d",
-              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form).",
-              "status": "IN_PROGRESS",
+              "text": "While a Character is in a creature form, its action list is the form stat block's actions (attacks and features) instead of the Sheet's, through a Character action-source change; reverting restores the Sheet actions. Authored from core options; one journey (Wild Shape attack in form). (Red: ci/spells-28-t4d-red 5e2595c62, Tests 38990844159. Green: ci/spells-28-t4d 7c1f31f38, Tests 39000811200, Live 39000811192. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
+              "status": "DONE",
               "closes": ["SPELLS-28.1"],
               "wsjf": {
                 "bv": 5,
@@ -9202,8 +9286,7 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["SPELLS-28.T4c"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-28.md"
+              }
             },
             {
               "id": "SPELLS-28.T4b",
@@ -9374,8 +9457,8 @@
             },
             {
               "id": "SPELLS-27.T8",
-              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12.",
-              "status": "TODO",
+              "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12. (Red: ci/spells-27-t8-red 63224cccc, Tests 38979581415. Green: ci/spells-27-t8 9d763e662, Tests 38996918030, Live 38997995671. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9383,13 +9466,12 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["SPELLS-27.T5"]
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              }
             },
             {
               "id": "SPELLS-27.T12",
-              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern.",
-              "status": "TODO",
+              "text": "Wake by action from core options: a generic ACTION_USED_ON_HOLDER effect end, where a basic Encounter action by a creature adjacent to the holder ends the effects that list that trigger, with a receipt and undo; used by Sleep and Hypnotic Pattern. (Sleep wired with the SRD basic action Rouse; Hypnotic Pattern uses the same trigger in T9. Red proof job in Tests 39008675014; green: ci/spells-27-t12 8fef4ceb2, Tests 39008675014, Live 39007537775 on 9b4074f8e. Journey apps/session-worker/test/nativeRoomHitPointPoolSpell.test.ts. Merged in m67 59ac30a23 (Tests 39008737658, Live 39008737577).)",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9402,7 +9484,7 @@
             {
               "id": "SPELLS-27.T9",
               "text": "Hypnotic Pattern from core options: one timed condition plan can own several conditions (charmed and incapacitated, speed 0), ending on damage taken or a creature using an action to shake it, with GM undo. Generic for any effect that owns several conditions.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9410,7 +9492,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T5", "SPELLS-27.T12"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T10",

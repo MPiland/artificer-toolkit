@@ -47,7 +47,7 @@ Two rules widen the selection for tests the graph cannot see into:
 
 Known blind spots, each covered elsewhere: a file URL built from a template literal (only quoted literals are read), and a deleted module that was imported through a `#` alias or package subpath (only relative specifiers are tracked). The always-full typecheck catches a deleted import. A non-test helper that reads files at run time is not followed: name it `*.testUtils.*` or put it under a test directory.
 
-The selection decides what a slice's green run proves. The phase branch itself only runs in full through a `ci/merge-*` batch, a push of its tip to a `ci/` branch, or a `full: true` dispatch.
+The selection decides what a slice's green run proves. The phase branch itself only runs in full through a `ci/merge-*` batch, a push of its tip to a `ci/` branch, or a `full: true` dispatch. A single slice that already contains the phase tip merges on its own green runs (the fast path in AGENTS.md), which ran only its affected tests, so every fast-path merge gets a non-blocking full-run backstop: after pushing the merge to the phase branch, the orchestrator pushes the same merge commit to `ci/merge-m<N>`, which runs every test, watches that run, and fixes a failure there first, ahead of other work.
 
 A changed `__snapshots__/<test>.snap` selects its test. A change outside the source roots (docs, the ledger) selects nothing.
 

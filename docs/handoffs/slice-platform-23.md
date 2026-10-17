@@ -1,6 +1,6 @@
 # Slice workbook: PLATFORM-23 (CI runs exactly the tests a change can affect)
 
-**Status:** T1-T4 green on `ci/platform-23` at `49d227a06` (2026-10-17); ready to merge.
+**Status:** T1-T4 done; synced with the phase tip `7ee2382fc` (2026-10-17) and pending CI.
 **Base:** `codex/phase-08-2-convex-cutover` (merged at `cb19518ea`).
 **Rules:** [slice-workbook-rules.md](slice-workbook-rules.md). Decisions: [ADR 0038](../adr/0038-rules-authored-from-core-options.md) (authoring parity).
 
@@ -71,6 +71,11 @@ Proof (`local-validation/platform-23/build-proof.txt`): a comment added to `pack
 | Again, nothing new | 0.9 s (all cached)        | 3.4 s | 12 s  |
 
 `tsc` builds incrementally from `tsconfig.build.tsbuildinfo`, so a source change rebuilds in seconds. A build with no tsbuildinfo and no cache (fresh checkout) is part of the cold typecheck times in T3.
+
+## Review fixes (2026-10-17)
+
+- Phase-branch gap ruling: the single-slice fast path stays, with a non-blocking full-run backstop (the orchestrator pushes the merge commit to `ci/merge-m<N>`, watches it and fixes a failure first), in AGENTS.md and ci-validation.md.
+- `yarn turbo:affected:test` (`--filter=[HEAD]`, empty after a commit) is removed rather than refiltered: against the merge-base it would run whole workspace suites (all of Convex for an `apis` change), which the local rules forbid; the light lane runs the touched files and CI's selector runs the affected ones. Historical roadmap and audit mentions are left as records.
 
 ## Status log
 

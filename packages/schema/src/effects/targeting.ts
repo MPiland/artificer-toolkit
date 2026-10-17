@@ -46,6 +46,10 @@ export const targetingDtoSchema = lazySchema(() =>
     z.object({
       selectionKind: z.literal('AREA_CONTENTS'),
       dispositionKind: z.optional(z.enum(['ANY', 'WILLING', 'HOSTILE'])),
+      hitPointPool: z.optional(z.object({ diceConfig: authoredIdentifierSchema })),
+      hitPointPoolScaling: z.optional(
+        createBreakpointScalingDtoSchema(z.object({ diceConfig: authoredIdentifierSchema }))
+      ),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),

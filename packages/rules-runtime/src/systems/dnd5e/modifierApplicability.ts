@@ -1,10 +1,9 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type {
+  CharacterGrantFoldModifier,
   CharacterGrantFoldOutput,
   CharacterGrantFoldRestriction
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-
-import { characterPolicyRecord } from './characterPolicyValues.js'
 
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 type AttackFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation'>
@@ -59,11 +58,6 @@ type Dnd5eModifierApplicability = {
   readonly scope: 'GLOBAL' | 'SOURCE'
   readonly deferredRequirements: CharacterGrantFoldRestriction
   readonly scopeSpellIds: string[]
-}
-
-/** An unknown scope narrows to the modifier's own source. */
-function dnd5eModifierScope(grant: unknown): 'GLOBAL' | 'SOURCE' {
-  return characterPolicyRecord(grant).scope === 'GLOBAL' ? 'GLOBAL' : 'SOURCE'
 }
 
 /** An attack-ability or activation condition needs no item, so an unarmed strike can meet it. */
@@ -132,14 +126,12 @@ export function dnd5eItemRequirementsMet(
  * source. The roll's sight, not the Character's rules, decides it, so no Character-wide save
  * evidence carries it (ATTACK-10.5, D100).
  */
-export function dnd5eSaveRequiresSourceSight(grant: unknown): boolean {
-  if (typeof grant !== 'object' || grant === null) return false
-  const { valueDomainCode, domain } = grant as { valueDomainCode?: unknown; domain?: unknown }
+export function dnd5eSaveRequiresSourceSight(
+  modifier: Pick<CharacterGrantFoldModifier, 'valueDomainCode' | 'domain'>
+): boolean {
   return (
-    valueDomainCode === 'SAVING_THROW_MODIFIER' &&
-    typeof domain === 'object' &&
-    domain !== null &&
-    (domain as { requiresHolderSeesSource?: unknown }).requiresHolderSeesSource === true
+    modifier.valueDomainCode === 'SAVING_THROW_MODIFIER' &&
+    modifier.domain.requiresHolderSeesSource === true
   )
 }
 
@@ -165,7 +157,7 @@ export function dnd5eAcceptedModifierApplicability(
 ): Dnd5eModifierApplicability {
   return {
     sourceId: modifier.sourceId,
-    scope: dnd5eModifierScope(modifier.grant),
+    scope: modifier.scope,
     deferredRequirements: modifier.deferredRequirements,
     scopeSpellIds: modifier.scopeSpellIds ?? []
   }

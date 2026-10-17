@@ -241,11 +241,27 @@ The test walks every SRD subject record and splits its description into sentence
 
 - SPELLS-27.T5 DONE once green; T7 to T11 are already registered; AC 27.2 closes when `REGISTERED_FOLLOW_UP` is empty.
 
-## Resume here (after SPELLS-27.T10, on ci/spells-27-t10)
+## Resume here (after SPELLS-27.T12, on ci/spells-27-t12)
 
-**Next task: SPELLS-27.T6 (D122: unify `consumeOnFirstEvents` and `endOnEvents`) once REACTION-4.T3 has merged, otherwise the next REGISTERED_FOLLOW_UP in `packages/source-data/src/srd/endEvents.test.ts` (T7 Sanctuary, T8 Sleep, T9 Hypnotic Pattern, T11 margin-of-failure riders).** One task per session.
+**Next task: SPELLS-27.T9 Hypnotic Pattern, then T7 and T11; T6 after REACTION-4.T3 merges.** One task per session.
+
+### T12 result (wake by action)
+
+- New generic end trigger `ACTION_USED_ON_HOLDER { actionDefinitionIds }` in all four layers (schema, authored type, node map, compiler `canonicalEndTriggers`). `actionUsedOnHolderEndedEffects` (`encounterEndedEffectRelease.ts`) ends the holder's matching effects and releases the conditions they owned, in the target's mechanics batch of the same transaction; GM undo restores them.
+- New SRD basic action Rouse (TOUCH, single target, manual adjudication). Sleep ends on `DAMAGE_TAKEN` by ANYONE or Rouse. Nothing Sleep-specific in the engine.
+- Proofs: `encounterEndedEffectRelease.test.ts` (four unit cases), `nativeRoomHitPointPoolSpell.test.ts` (rouse wakes only the target; undo restores sleep), `characterSpellCastActions.test.ts` (compiled plan has both triggers), catalogue tests list Rouse.
+- Deferred edges: only the single-target action path consumes the trigger (area, legendary, movement-reaction and turn-resource actions do not); two effects sharing one condition ended in a single action.
+- Run ids: Tests 39007537795 and Live 39007537775 green on 9b4074f8e (earlier reds: 39004910347 catalogue tests, 39006207872 Sleep plan expectation).
+
+### T8 result (Sleep)
+
+- Targeting gains `hitPointPool: { diceConfig }` and `hitPointPoolScaling` (breakpoints over `SPELL_CAST_LEVEL`) on `AREA_CONTENTS`, in all four layers (schema, authored type, node map, compiled projection via `resolveAreaContentsTargeting`). `sleep.ts` is authored from them (sphere 20 ft, undead excluded, unconscious with a `DAMAGE_TAKEN` by ANYONE end); the `SLEEP` closed rule is deleted.
+- `effectActionCompiler.ts` accepts a no-save ACTIVATED area with a pool as `SINGLE_GRAPH`. The Worker (`planNativeLiveEncounterAreaAction`) rolls the pool, picks creatures lowest current HP first (`selectHitPointPoolTargets`) and commits once through the actors commit path.
+- Wake by action is **not** in T8 (ruling): it arrives as SPELLS-27.T12, a generic `ACTION_USED_ON_HOLDER` end, before T9. `endEvents.test.ts` now registers Sleep under `T12 wake by action`.
+- Deferred edges: charm-immune and condition-immune creatures are still affected; a Character caught in the pool; no pool roll card for players; Sheet targeting-count display for pool scaling; an area with nobody covered commits with no targets.
 
 ### T10 result
+
 - `timedConditionPlan` (`effectActionCompiler.ts`) accepts a condition entry with no duration when Concentration maintains it: `initialRemaining: null`, `recurrenceStage: 'NONE'`, planned as `{ kind: 'INDEFINITE' }`. `endOnEvents` ride on the condition contribution as before.
 - `packages/source-data/src/srd/creatures/indefiniteInvisibility.ts` builds the five traits (Imp, Quasit, Will-o'-Wisp: `ON_ATTACK_ROLL`; Sprite, Green Hag: plus `ON_CAST_SPELL`) from core options. Sprite and Green Hag were closed rules; their `CLOSED_RULE_KIND` entries are deleted.
 - Proofs: `creatureIndefiniteInvisibility.test.ts` (plan, journey with release, authoring parity). The five T10 entries are gone from `endEvents.test.ts`.

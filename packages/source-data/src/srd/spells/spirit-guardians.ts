@@ -9,6 +9,8 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   SCALING,
+  SCALING_AMOUNT_KIND,
+  SCALING_SOURCE,
   SPELL_ATTRIBUTE,
   RANGE_KIND,
   SUBJECT,
@@ -22,6 +24,22 @@ import {
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The aura's radiant damage: 3d8 cast at the 3rd level, and 1d8 more for each slot level above it. */
+const auraDamage = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, kind, 1),
+  effectKind: EFFECT_KIND.DAMAGE,
+  damageTypeId: damageTypeId('RADIANT'),
+  valueKind: DAMAGE_VALUE_KIND.DICE,
+  scalingKind: SCALING.PER_LEVEL,
+  scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+  levels: Array.from({ length: 7 }, (_, index) => ({
+    id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, kind, index + 2),
+    level: index + 3,
+    order: index + 1,
+    diceConfig: `${index + 3}d8`
+  }))
+})
+
 export const spiritGuardians: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SPIRIT_GUARDIANS,
@@ -97,6 +115,7 @@ export const spiritGuardians: SpellAuthored = {
                     order: 1,
                     label: 'Enter the spirits',
                     interactionKind: 'ENTER_SPACE' as const,
+                    choosesUnaffected: true,
                     behaviors: [
                       {
                         id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x222, 1),
@@ -125,15 +144,21 @@ export const spiritGuardians: SpellAuthored = {
                             resultBlock: {
                               id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x225, 1)}__result`,
                               resultKind: 'SINGLE' as const,
+                              outcomes: [auraDamage(0x226)]
+                            }
+                          },
+                          {
+                            id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x227, 1),
+                            order: 2,
+                            pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x227, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
                               outcomes: [
-                                {
-                                  id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x226, 1),
-                                  effectKind: EFFECT_KIND.DAMAGE,
-                                  damageTypeId: damageTypeId('RADIANT'),
-                                  valueKind: DAMAGE_VALUE_KIND.DICE,
-                                  scalingKind: SCALING.NONE,
-                                  diceConfig: '3d8'
-                                }
+                                { ...auraDamage(0x228), amountKind: SCALING_AMOUNT_KIND.HALF }
                               ]
                             }
                           }

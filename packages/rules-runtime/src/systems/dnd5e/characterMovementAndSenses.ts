@@ -11,7 +11,6 @@ import type {
 
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from '../../modifierLength.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
-import { characterPolicyRecord } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -25,12 +24,13 @@ export function evaluateDnd5eCharacterMovementAndSenses(
 ): Pick<CharacterRulePolicyOutput, 'movement' | 'senses'> {
   const groupDomain = (group: CharacterResolvedModifierGroup) => {
     const index = group.contributions[0]?.acceptedModifierIndex
-    return characterPolicyRecord(
-      characterPolicyRecord(index === undefined ? undefined : grantFold.modifiers[index]?.grant)
-        .domain
-    )
+    return (index === undefined ? undefined : grantFold.modifiers[index]?.domain) ?? {}
   }
-  const matchingGroups = (valueDomainCode: string, key: string, id: string) =>
+  const matchingGroups = (
+    valueDomainCode: string,
+    key: 'speedId' | 'senseDefinitionId',
+    id: string
+  ) =>
     modifierGroups.filter(
       (group) =>
         group.valueDomainCode === valueDomainCode &&
@@ -52,14 +52,12 @@ export function evaluateDnd5eCharacterMovementAndSenses(
       .filter((group) => group.valueDomainCode === 'SPEED' && group.modifierKind === 'SET_VALUE')
       .flatMap((group) => {
         const speedId = groupDomain(group).speedId
-        return typeof speedId === 'string'
-          ? characterWide([group]).map((contribution) => ({
+        return speedId === undefined
+          ? []
+          : characterWide([group]).map((contribution) => ({
               key: speedId,
-              payload: characterPolicyRecord(
-                grantFold.modifiers[contribution.acceptedModifierIndex]?.grant
-              ).payload
+              payload: grantFold.modifiers[contribution.acceptedModifierIndex]?.payload
             }))
-          : []
       })
   )
   /**
@@ -109,11 +107,9 @@ export function evaluateDnd5eCharacterMovementAndSenses(
     .flatMap((group) => {
       const speedId = groupDomain(group).speedId
       return characterWide([group]).map((contribution) => ({
-        speedId: typeof speedId === 'string' ? speedId : null,
+        speedId: speedId ?? null,
         contribution,
-        payload: characterPolicyRecord(
-          grantFold.modifiers[contribution.acceptedModifierIndex]?.grant
-        ).payload
+        payload: grantFold.modifiers[contribution.acceptedModifierIndex]?.payload
       }))
     })
   const factSpeeds = input.movementFacts?.speeds ?? []

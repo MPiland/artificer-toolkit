@@ -156,10 +156,12 @@ function piecesEffect(pieces: readonly PolarityPiece[], senseCount: number): Lis
                   grantId: `piece-${index}`,
                   valueDomainCode: piece.domain,
                   modifierKind: piece.kind,
+                  scope: 'GLOBAL',
                   domain: {},
-                  grant: { scope: 'GLOBAL', ...(piece.payload ? { payload: piece.payload } : {}) },
+                  ...(piece.payload ? { payload: piece.payload } : {}),
                   restrictions: [],
-                  scopeSpellIds: []
+                  scopeSpellIds: [],
+                  scopeResourceIds: []
                 })
               ),
               senses: Array.from({ length: senseCount }, (_, index) =>
@@ -317,7 +319,7 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     const abilityBonus = (multiplier: number) => ({
       domain: 'ARMOR_CLASS',
       kind: 'ABILITY_MODIFIER_BONUS',
-      payload: { ability: 'DEX', multiplier }
+      payload: { ability: 'DEXTERITY', multiplier }
     })
     expect(polarityOf([abilityBonus(1)])).toBe('BENEFICIAL')
     expect(polarityOf([abilityBonus(-1)])).toBe('HARMFUL')

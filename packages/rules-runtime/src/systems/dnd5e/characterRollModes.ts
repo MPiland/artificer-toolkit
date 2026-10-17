@@ -9,7 +9,7 @@ import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
-import { canonicalCharacterAbility, characterPolicyRecord } from './characterPolicyValues.js'
+import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability,
@@ -48,20 +48,19 @@ function dnd5eRollContributors(
           ? undefined
           : policy.grantFold.modifiers[contribution.acceptedModifierIndex]
       if (modifier === undefined) throw new Error('Character roll modifier provenance is missing.')
-      const grant = characterPolicyRecord(modifier.grant)
-      const influence = grant.modifierKind
+      const influence = modifier.modifierKind
       if (
         (influence !== 'ADVANTAGE' && influence !== 'DISADVANTAGE') ||
-        dnd5eSaveRequiresSourceSight(grant) ||
+        dnd5eSaveRequiresSourceSight(modifier) ||
         !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
       )
         return []
       if (!contribution.source || !contribution.grantId || !contribution.domainKey)
         throw new Error('Character roll contributors require provenance.')
-      const domain = characterPolicyRecord(grant.domain)
+      const { domain } = modifier
       return [
         {
-          valueDomainCode: grant.valueDomainCode,
+          valueDomainCode: modifier.valueDomainCode,
           ability: canonicalCharacterAbility(domain.ability),
           conditionTypeId: domain.conditionTypeId,
           ruleDefinitionId: domain.ruleDefinitionId,

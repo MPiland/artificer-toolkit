@@ -709,15 +709,13 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
       expect.arrayContaining([
         expect.objectContaining({
           valueDomainCode: 'DAMAGE_RESISTANCE',
-          grant: expect.objectContaining({ payload: { damageTypeId: srdDamageTypeId('FIRE') } })
+          payload: { damageTypeId: srdDamageTypeId('FIRE') }
         }),
         expect.objectContaining({
           valueDomainCode: 'DAMAGE',
           modifierKind: 'BONUS',
           domain: { attackDomain: 'MELEE' },
-          grant: expect.objectContaining({
-            payload: expect.objectContaining({ valueKind: 'FIXED', amount: 2 })
-          })
+          payload: expect.objectContaining({ valueKind: 'FIXED', amount: 2 })
         })
       ])
     )
@@ -746,7 +744,7 @@ describe('room reaction to damage taken (REACTION-4.2)', () => {
       )
     ).toEqual([
       expect.objectContaining({
-        grant: expect.objectContaining({ payload: { damageTypeId: srdDamageTypeId('COLD') } })
+        payload: { damageTypeId: srdDamageTypeId('COLD') }
       })
     ])
   })

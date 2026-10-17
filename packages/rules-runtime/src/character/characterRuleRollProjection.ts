@@ -24,12 +24,6 @@ type ScopedSavingThrow = {
   groups: Map<string, 'BONUS' | 'PENALTY' | 'ADVANTAGE' | 'DISADVANTAGE'>
 }
 
-function record(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null
-}
-
 function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThrow[] {
   const scoped = new Map<string, ScopedSavingThrow>()
   for (const modifier of output.grantFold.modifiers) {
@@ -44,14 +38,12 @@ function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThro
       )
     )
       continue
-    const grant = record(modifier.grant)
-    const domain = record(grant?.domain)
-    const abilityId = domain?.ability
-    if (dnd5eSaveRequiresSourceSight(grant)) continue
-    if (grant?.valueDomainCode !== 'SAVING_THROW_MODIFIER' || typeof abilityId !== 'string')
-      continue
-    const ruleDefinitionId = postgresUuidSchema.safeParse(domain?.ruleDefinitionId)
-    const conditionTypeId = postgresUuidSchema.safeParse(domain?.conditionTypeId)
+    const { domain } = modifier
+    const abilityId = domain.ability
+    if (dnd5eSaveRequiresSourceSight(modifier)) continue
+    if (modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' || abilityId === undefined) continue
+    const ruleDefinitionId = postgresUuidSchema.safeParse(domain.ruleDefinitionId)
+    const conditionTypeId = postgresUuidSchema.safeParse(domain.conditionTypeId)
     const scope = ruleDefinitionId.success
       ? { ruleDefinitionId: ruleDefinitionId.data }
       : conditionTypeId.success

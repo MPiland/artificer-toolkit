@@ -1255,6 +1255,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **Q23, rules continuation seal (PLATFORM-24, 2026-10-16).** The product owner chose removal. No client holds a continuation and Convex never verifies one; resume gains the graph validation executeFrozen already runs; the key, seal field, fixtures and env names go, with an ADR 0029 amendment. The earlier "user ruling 2026-09-24" for a dedicated key was never confirmed by the user.
+
 - **Q22, username moderation (ACCOUNTS-7.T1, 2026-10-15).** The substring profanity check refused ordinary names (Cassandra, Classic, Dickens, Essex, Glasshouse, Assassin) and random test names. The product owner approved the tiered policy:
   - Normalize: lowercase, digit and look-alike swaps, collapse repeats.
   - Split into parts at `_`, lower-to-upper case changes and letter-digit changes; refuse a blocked part (`ass_muncher`, `AssMuncher`, `Ass1Muncher`).

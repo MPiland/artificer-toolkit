@@ -4,6 +4,7 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
+import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import {
@@ -50,6 +51,7 @@ const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
 const CHARM_PERSON = spell('Charm Person')
+const SLEEP = spell('Sleep')
 const FEAR = spell('Fear')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
@@ -210,6 +212,7 @@ const WATCHFUL_MIASMA: SpellAuthored = (() => {
 })()
 const authoredById = new Map(
   [
+    SLEEP,
     SCORCHED_INVISIBILITY,
     FIREBALL,
     MEND,
@@ -916,5 +919,20 @@ describe('the scaling heal a cast carries', () => {
 
   it('is not offered for a cast no row applies to', () => {
     expect(compiledCast(LATE_HEAL, 1)).toBeNull()
+  })
+})
+
+describe('the timed condition a hit-point pool cast owns (SPELLS-27.T8)', () => {
+  it('owns Sleep’s one-minute unconscious condition and ends it on anyone’s damage or a creature rousing it', () => {
+    expect(compiledCast(SLEEP)?.activeEffectPlan).toMatchObject({
+      initialRemaining: 10,
+      conditionContribution: {
+        conditionId: conditionId('UNCONSCIOUS'),
+        endOnTriggers: [
+          { event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE] },
+          { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
+        ]
+      }
+    })
   })
 })

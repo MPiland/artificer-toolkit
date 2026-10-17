@@ -18,7 +18,7 @@ import {
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
-import { damageTypeFilterDtoSchema } from './reaction.js'
+import { basicActionFilterDtoSchema, damageTypeFilterDtoSchema } from './reaction.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
 export {
@@ -121,6 +121,8 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * effect may carry it. `DAMAGE_TAKEN` ends the effect when its holder takes damage: `by` limits whose
  * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
  * `ATTACK_ROLL` and `SPELL_CAST` end it when its holder attacks or casts at an enemy (Sanctuary).
+ * `ACTION_USED_ON_HOLDER` ends it when another creature uses one of the named actions on the holder
+ * (rousing a sleeper); the ids are basic-action definitions, sorted and unique.
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
@@ -132,6 +134,10 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
     z.strictObject({
       event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
       against: pathLifecycleEndTriggerAgainstSchema
+    }),
+    z.strictObject({
+      event: z.literal('ACTION_USED_ON_HOLDER'),
+      actionDefinitionIds: basicActionFilterDtoSchema
     })
   ])
 )

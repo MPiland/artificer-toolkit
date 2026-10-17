@@ -73,6 +73,7 @@ import {
   encounterAreaTargetCommandId,
   encounterAreaSettled,
   encounterChosenActorEntries,
+  encounterChosenActorsChecksum,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
@@ -107,6 +108,10 @@ import {
   buildEncounterActionStoredExecution,
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
+import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/encounterHitPointPool'
+import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
+import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
@@ -330,14 +335,35 @@ export async function prepareAreaScene(
     source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
       ? source.entry.compilation.zonePlacement
       : null
+  const unaffectedActorIds =
+    target.kind === 'POINT' || target.kind === 'CASTER_CENTERED'
+      ? (target.unaffectedActorIds ?? [])
+      : []
+  if (
+    unaffectedActorIds.length &&
+    (!zone?.choosesUnaffected ||
+      unaffectedActorIds.some((id) => !input.actors.some((actor) => actor.id === id)))
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'This action cannot spare those creatures.'
+    })
   return {
     caster,
     casterFacts,
     movementTargets,
+    targetPolicy,
     scene: { ...scene, grid },
     area: { ...area, origin },
     placement: zone
-      ? { zone, origin, shape: area.shape, sourceToken: scene.sourceToken ?? null }
+      ? {
+          zone,
+          origin,
+          shape: area.shape,
+          sourceToken: scene.sourceToken ?? null,
+          unaffectedActorIds
+        }
       : null
   }
 }
@@ -662,6 +688,29 @@ export async function openReachCastWindow(
   }
 }
 
+/** The creatures a rolled hit-point pool covers, lowest current hit points first (Sleep). */
+function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
+  caught: readonly Caught[],
+  pool: number,
+  excludedCreatureTypeIds: readonly string[],
+  movementTargets: ReadonlyMap<string, { state: { current: number } }>
+) {
+  const eligible = caught.filter(({ actor }) => {
+    const creatureTypeId = snapshotCreatureTypeId(actor)
+    return creatureTypeId === null || !excludedCreatureTypeIds.includes(creatureTypeId)
+  })
+  const covered = new Set(
+    selectHitPointPoolTargets(
+      pool,
+      eligible.map(({ actor }) => ({
+        actorId: actor.id,
+        currentHitPoints: movementTargets.get(actor.id)!.state.current
+      }))
+    )
+  )
+  return eligible.filter(({ actor }) => covered.has(actor.id))
+}
+
 /**
  * Plans a point-area action up to its pending saves. Whom the area catches is decided here, from the
  * Scene the caster saw (fenced by its version); every caught creature, allies and the caster
@@ -670,7 +719,7 @@ export async function openReachCastWindow(
 export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { command, state, actors, capture } = input
   const base = await prepareAreaScene(input)
-  const { caster, casterFacts, movementTargets, scene, area } = base
+  const { caster, casterFacts, movementTargets, scene, area, targetPolicy } = base
 
   // A zone is entered later, by movement; placing it puts nobody through its save.
   const caughtActorIds = base.placement
@@ -682,14 +731,27 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
         tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
         fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
       })
-  const caught = caughtActorIds.map((actorId) => {
+  const caughtInArea = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
     return { actor, token }
   })
-  for (const { actor } of caught)
+  for (const { actor } of caughtInArea)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
+  // An area with a hit-point pool affects the creatures the pool covers, lowest hit points first.
+  const contents =
+    targetPolicy.targeting?.selectionKind === 'AREA_CONTENTS' ? targetPolicy.targeting : null
+  const caught = contents?.hitPointPool
+    ? hitPointPoolCovered(
+        caughtInArea,
+        evaluateRollExpression(parseRollExpression(contents.hitPointPool.diceConfig), {
+          nextInt: input.random ?? nextRollInt
+        }).evidence.total,
+        contents.excludedCreatureTypeIds ?? [],
+        movementTargets
+      )
+    : caughtInArea
 
   // Whom the caster perceives is decided once, as the area opens, and sealed with each creature's
   // save: a later change of sight or lighting does not change what the caster is told (D100).
@@ -755,6 +817,48 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     ruleOverrides
   })
   if (opened.kind === 'PLAN') return opened.plan
+  // An area that asks no save commits at once, as one cast on the creatures it reached.
+  if (contents?.hitPointPool && lead.prepared.plan.kind === 'SINGLE_GRAPH') {
+    const { window } = opened
+    const settled = await executeEncounterActorsAction({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: lead.prepared.adapter,
+      plan: lead.prepared.plan,
+      occurrenceId: window.occurrenceId,
+      rollsPerTarget: false,
+      targets: reached.map(({ actor, prepared }) => ({
+        actorId: actor.id,
+        binding: prepared.binding
+      }))
+    })
+    return completeAreaCommit({
+      input,
+      command,
+      caster,
+      occurredAt: window.occurredAt,
+      failedCounters: await window.pause.planFailedCounters(window.failedCounters),
+      movementTargets,
+      kept: reached.map(({ actor, prepared }) => ({ actor, target: { prepared } })),
+      lead: lead.prepared,
+      formCreature: null,
+      ruleOverrides,
+      actionEconomy: evaluation.economy?.consumption ?? null,
+      attackAction: evaluation.attackAction,
+      settled,
+      rollsPerTarget: false,
+      tests: [],
+      audits: new Map(),
+      areaOccurrenceId: window.occurrenceId,
+      areaSnapshot: null,
+      caughtChecksum: encounterChosenActorsChecksum(caught.map(({ actor }) => actor.id)),
+      removedActorIds: [],
+      placement: null,
+      occurrenceVersion: window.occurrenceVersion,
+      response: window.response,
+      removal: null
+    })
+  }
   return sealReachSaves(input, {
     reach: base,
     lead: lead.prepared,
@@ -1585,7 +1689,10 @@ export async function completeAreaCommit(args: {
   /** What each counter that failed against the cast spends with this commit (D127). */
   failedCounters: Awaited<ReturnType<ReachCastWindow['pause']['planFailedCounters']>>
   /** The effect each creature's used reaction to being chosen leaves on it, by actor id. */
-  reactionEffects?: ReadonlyMap<string, { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }>
+  reactionEffects?: ReadonlyMap<
+    string,
+    { id: string; plan: Parameters<typeof createNativeActiveEffect>[0] }
+  >
   movementTargets: ReadonlyMap<string, MovementTargets>
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
   lead: AreaPrepared
@@ -1945,7 +2052,8 @@ export async function completeAreaCommit(args: {
         point: placement.origin,
         area: placement.shape,
         sourceToken: placement.sourceToken,
-        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null
+        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
+        unaffectedActorIds: placement.unaffectedActorIds
       })
     : null
   const execution = buildEncounterAreaStoredExecution({
