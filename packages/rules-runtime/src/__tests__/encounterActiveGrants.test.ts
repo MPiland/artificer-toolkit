@@ -311,15 +311,12 @@ describe('Creature holder of an active grant', () => {
               ? {
                   ...contribution,
                   modifiers: contribution.modifiers.map((modifier) => {
-                    const { grant } = modifier
-                    if (typeof grant !== 'object' || grant === null || Array.isArray(grant))
-                      throw new Error('A defense grant stores an object.')
-                    const { payload } = grant
-                    if (typeof payload !== 'object' || payload === null || Array.isArray(payload))
-                      throw new Error('A defense grant stores an object payload.')
+                    const { payload } = modifier
+                    if (payload === undefined || !('damageTypeId' in payload))
+                      throw new Error('A defense grant names its damage type.')
                     return {
                       ...modifier,
-                      grant: { ...grant, payload: { ...payload, sourceEffectIds: ids } }
+                      payload: { damageTypeId: payload.damageTypeId, sourceEffectIds: ids }
                     }
                   })
                 }
@@ -397,7 +394,7 @@ describe('Creature holder of an active grant', () => {
                 ...contribution,
                 modifiers: contribution.modifiers.map((modifier) =>
                   modifier.valueDomainCode === 'ABILITY_CHECK'
-                    ? { ...modifier, domain: { ability: 'STRENGTH' } }
+                    ? { ...modifier, domain: { ability: 'STRENGTH' as const } }
                     : modifier
                 )
               }

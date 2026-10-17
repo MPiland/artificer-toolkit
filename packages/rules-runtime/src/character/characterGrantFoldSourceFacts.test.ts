@@ -54,16 +54,62 @@ describe('character grant fold modifier facts', () => {
         grantId: 'strength-damage',
         valueDomainCode: 'DAMAGE',
         modifierKind: 'ABILITY_MODIFIER_BONUS',
+        scope: 'SOURCE',
         domain: { attackDomain: 'MELEE' },
-        scopeSpellIds: ['shillelagh']
+        payload: { ability: 'STRENGTH' },
+        scopeSpellIds: ['shillelagh'],
+        scopeResourceIds: []
       },
       {
         grantId: 'strength-damage-ATTACK_ROLL',
         valueDomainCode: 'ATTACK_ROLL',
         modifierKind: 'ABILITY_MODIFIER_BONUS',
+        scope: 'SOURCE',
         domain: { attackDomain: 'MELEE' },
-        scopeSpellIds: ['shillelagh']
+        payload: { ability: 'STRENGTH' },
+        scopeSpellIds: ['shillelagh'],
+        scopeResourceIds: []
       }
+    ])
+  })
+
+  it('scopes a resource-scoped modifier to the resources its restriction selects', () => {
+    const resourceContext = (resourceIds: string[]) => ({
+      id: 'font-resources',
+      order: 0,
+      subject: 'RESOURCE' as const,
+      authoringModeKind: 'SELECTED' as const,
+      resourceIds
+    })
+    const fontOfInspiration = (resourceIds: string[]): CompiledModifierGrant => ({
+      id: 'font-of-inspiration',
+      order: 1,
+      grantKind: 'MODIFIER_GRANT',
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'CHARGE_RESET',
+      modifierKind: 'REPLACE_CHARGE_RESET_KIND',
+      scope: 'GLOBAL',
+      domain: {},
+      payload: { resetKind: 'SHORT_REST' },
+      restrictions: {
+        id: 'font-restriction',
+        groups: [{ id: 'font-group', order: 0, contexts: [resourceContext(resourceIds)] }]
+      }
+    })
+
+    expect(
+      buildCharacterGrantFoldModifierFacts([
+        fontOfInspiration(['bardic-inspiration']),
+        { ...fontOfInspiration([]), id: 'any-resource' }
+      ])
+    ).toMatchObject([
+      {
+        grantId: 'font-of-inspiration',
+        scope: 'GLOBAL',
+        payload: { resetKind: 'SHORT_REST' },
+        scopeResourceIds: ['bardic-inspiration']
+      },
+      { grantId: 'any-resource', scopeResourceIds: [] }
     ])
   })
 })

@@ -11,7 +11,6 @@ import type {
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   ModifierKind,
-  ModifierPayloadFor,
   ModifierScopeKind,
   ValueDomainCode,
   ValueDomainParam
@@ -33,7 +32,8 @@ export type CompiledModifierGrant = CompiledGrantBase & {
   modifierKind: ModifierKind
   scope: ModifierScopeKind
   domain: ValueDomainParam<ValueDomainCode>
-  payload?: NonNullable<ModifierPayloadFor<ValueDomainCode, ModifierKind>>
+  /** A payload some supported domain and kind takes, not every kind's payload for every domain. */
+  payload?: NonNullable<ModifierGrantAuthored['payload']>
   /**
    * Restriction facet carried from the authored grant.
    * The engine evaluates this at two points:

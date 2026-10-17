@@ -41,7 +41,7 @@ The normalized facts include the data needed for grant/source ordering and eligi
 
 ## Compile stage (current)
 
-Registry records are compiled authored content. Publication stores each subject's compiled projection through `compilePublicationDocument`; `characterRuleSnapshot` still compiles background, class, feat, feature and race records when it builds the registry (compile-once hydration is PLATFORM-21, not current). The grant fold builder (`characterGrantFoldSourceFacts`) reads compiled proficiency, sense, feat, spell and modifier grants through typed fields; modifier grants are one flat shape with independent `valueDomainCode` and `modifierKind`. [ADR 0003](../adr/0003-vocabulary-authored-compiled-engine-data.md#compile-stage-as-built-current-platform-20) lists every compiler, what it does and where its output is consumed.
+Registry records are compiled authored content. Publication stores each subject's compiled projection through `compilePublicationDocument`; `characterRuleSnapshot` still compiles background, class, feat, feature and race records when it builds the registry (compile-once hydration is PLATFORM-21, not current). The grant fold builder (`characterGrantFoldSourceFacts`) reads compiled proficiency, sense, feat, spell and modifier grants through typed fields; modifier grants are one flat shape with independent `valueDomainCode` and `modifierKind`, and the fold carries them as typed `scope`, `domain` and `payload` fields plus the spell and class-resource ids their restrictions select, never as a JSON copy of the grant. [ADR 0003](../adr/0003-vocabulary-authored-compiled-engine-data.md#compile-stage-as-built-current-platform-20) lists every compiler, what it does and where its output is consumed.
 
 ## Resolution responsibilities
 
