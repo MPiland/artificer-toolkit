@@ -169,18 +169,25 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       null
     ),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
-    conditionContribution: z._default(
-      z.nullable(
-        z.strictObject({
-          conditionId: serverUuidIdentityDtoSchema,
-          recordsSource: z._default(z.boolean(), false),
-          fleesSource: z._default(z.boolean(), false),
-          consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
-          endOnEvents: z._default(activeEffectEndEventsSchema, []),
-          endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
-        })
-      ),
-      null
+    conditionContributions: z._default(
+      z
+        .array(
+          z.strictObject({
+            conditionId: serverUuidIdentityDtoSchema,
+            recordsSource: z._default(z.boolean(), false),
+            fleesSource: z._default(z.boolean(), false)
+          })
+        )
+        .check(z.maxLength(8)),
+      []
+    ),
+    lifecycle: z._default(
+      z.strictObject({
+        consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
+        endOnEvents: z._default(activeEffectEndEventsSchema, []),
+        endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
+      }),
+      { consumeOnFirstEvents: [], endOnEvents: [], endOnTriggers: [] }
     ),
     modifierGrantContribution: z._default(
       z.nullable(

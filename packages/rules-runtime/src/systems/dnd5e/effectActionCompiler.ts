@@ -222,7 +222,7 @@ const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY =
 /** The condition a failed repeat save leaves in place of the held one ("restrained, then petrified"). */
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY =
   'dnd5e.active-effect-repeat-save-escalation-condition-id'
-const DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY = 'dnd5e.active-effect-timed-condition-id'
+const DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY = 'dnd5e.active-effect-timed-condition'
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-roll-influence'
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
@@ -609,18 +609,37 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
 
 /**
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
- * actor relationship, and a grant an attack's hit applies (Shocking Grasp's "can't take reactions").
+ * actor relationship, a grant an attack's hit applies (Shocking Grasp's "can't take reactions"),
+ * and a grant a failed save applies beside its timed conditions (Hypnotic Pattern's speed of 0; see
+ * `assertSaveFailureGrantOwned`).
  */
 function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]): boolean {
   if (!('outcome' in entry)) return false
   return (
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
-      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
+      (entry.pathCode === 'ON_HIT' ||
+        entry.pathCode === 'ON_CRIT' ||
+        entry.pathCode === 'ON_SAVE_FAIL')) ||
     (entry.outcome.effectKind === 'MANIFEST' &&
       entry.outcome.manifestKind === 'CREATURE' &&
       entry.pathCode === 'ON_SAVE_FAIL')
   )
+}
+
+/** A failed save's grant is left to the timed-condition plan, so a save without that plan must not drop it. */
+function assertSaveFailureGrantOwned(action: Dnd5eCompiledEffectActionSource): void {
+  if (
+    testPhaseKindOrNull(action) === 'SAVE' &&
+    action.compiledEffect.entries.some(
+      (entry) =>
+        'outcome' in entry &&
+        entry.outcome.effectKind === 'APPLY_GRANT' &&
+        entry.pathCode === 'ON_SAVE_FAIL'
+    ) &&
+    timedConditionPlan(action) === null
+  )
+    unsupported('D&D grant after a saving throw must be held by one timed condition effect.')
 }
 
 /** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
@@ -1519,11 +1538,13 @@ function repeatingImmediateFollowUpSavePlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: {
-      conditionId: condition.conditionId,
-      recordsSource: condition.recordsSource,
-      fleesSource: condition.fleesSource
-    },
+    conditionContributions: [
+      {
+        conditionId: condition.conditionId,
+        recordsSource: condition.recordsSource,
+        fleesSource: condition.fleesSource
+      }
+    ],
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
@@ -1602,34 +1623,52 @@ function timedImmediateConditionPlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: {
-      conditionId: condition.conditionId,
-      recordsSource: condition.recordsSource,
-      fleesSource: condition.fleesSource
-    },
-    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: condition.conditionId },
+    conditionContributions: [
+      {
+        conditionId: condition.conditionId,
+        recordsSource: condition.recordsSource,
+        fleesSource: condition.fleesSource
+      }
+    ],
+    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry)
   }
 }
 
 /**
- * A condition applied with a duration, with no save (Invisibility, "1 hour") or as a save's one
- * failure outcome (Sleep Breath, see `ownsTimedSaveCondition`): the target holds it
- * through an Encounter active effect that counts the target's turns, carries the authored events
- * that use it up or end it, and removes the condition when it ends. With no duration it lasts as long
- * as the Concentration that maintains it. Any other lifecycle stays manual.
+ * Conditions applied with a duration, with no save (Invisibility, "1 hour") or as a save's failure
+ * outcomes (Sleep Breath, Hypnotic Pattern; see `ownsTimedSaveCondition`): the target holds them
+ * together through one Encounter active effect that counts the target's turns, carries the authored
+ * events that use it up or end it, and removes every condition when it ends. A speed grant authored
+ * beside the conditions (Hypnotic Pattern's speed of 0) is held by the same effect and ends with it.
+ * With no duration it lasts as long as the Concentration that maintains it. Any other lifecycle
+ * stays manual.
  */
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { entries } = action.compiledEffect
-  const entry = entries[0]
+  const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
+  const conditionEntries = outcomeEntries.flatMap((entry) =>
+    entry.outcome.effectKind === 'CONDITION' ? [{ entry, outcome: entry.outcome }] : []
+  )
+  const grantEntries = outcomeEntries.filter((entry) => entry.outcome.effectKind === 'APPLY_GRANT')
+  const lead = conditionEntries[0]
   if (
-    entries.length !== 1 ||
-    !entry ||
-    !('outcome' in entry) ||
-    entry.outcome.effectKind !== 'CONDITION'
+    !lead ||
+    grantEntries.length > 1 ||
+    conditionEntries.length + grantEntries.length !== entries.length ||
+    // The entries are one authored result: same path, block, duration and lifecycle.
+    outcomeEntries.some(
+      (entry) =>
+        entry.pathCode !== lead.entry.pathCode ||
+        entry.resultBlockId !== lead.entry.resultBlockId ||
+        JSON.stringify(entry.duration) !== JSON.stringify(lead.entry.duration) ||
+        JSON.stringify(entry.lifecycle) !== JSON.stringify(lead.entry.lifecycle)
+    ) ||
+    new Set(conditionEntries.map(({ outcome }) => outcome.conditionId)).size !==
+      conditionEntries.length
   )
     return null
   const {
@@ -1637,47 +1676,68 @@ function timedConditionPlan(
     endOnEvents = [],
     endOnTriggers = [],
     ...otherLifecycle
-  } = entry.lifecycle ?? {}
-  const maintenance = maintenancePlan(action, entry)
-  // With no duration the condition lasts until its Concentration ends or an authored event ends
-  // it (Imp Invisibility), so Concentration must maintain it: nothing else bounds it.
-  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
-  const indefinite = !entry.duration
-  const { conditionId, recordsSource, fleesSource } = entry.outcome
+  } = lead.entry.lifecycle ?? {}
+  const maintenance = maintenancePlan(action, lead.entry)
+  // With no duration the conditions last until their Concentration ends or an authored event ends
+  // them (Imp Invisibility), so Concentration must maintain them: nothing else bounds them.
+  const { duration } = lead.entry
+  const initialRemaining = duration ? conditionDurationTurns(duration) : null
+  const indefinite = !duration
+  const grantEntry = grantEntries[0]
+  // The grant joins the conditions' lifecycle, so it is planned without one of its own and counted
+  // by the turn-effect kernel with them.
+  const grantContribution = grantEntry
+    ? modifierGrantEntryPlan({
+        action,
+        entry: { ...grantEntry, lifecycle: undefined },
+        attack: false,
+        untilEndEvent: false
+      })?.modifierGrantContribution
+    : null
   if (
     (indefinite ? !maintenance : initialRemaining === null) ||
+    (grantEntry && (indefinite || !grantContribution)) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
-    !(action.conditionDefinitionIds ?? []).includes(conditionId) ||
-    !UUID.test(entry.entryId)
+    conditionEntries.some(
+      ({ entry, outcome }) =>
+        !(action.conditionDefinitionIds ?? []).includes(outcome.conditionId) ||
+        !UUID.test(entry.entryId)
+    )
   )
     return null
   return {
     authoredEffectId: action.effectId,
-    compiledEntryId: entry.entryId,
+    compiledEntryId: lead.entry.entryId,
     frozenGraphNodeId: 'condition-duration',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: indefinite ? 'NONE' : 'END_OF_TURN',
     initialRemaining,
-    conditionContribution: {
-      conditionId,
-      recordsSource,
-      fleesSource,
+    conditionContributions: conditionEntries.map(({ outcome }) => ({
+      conditionId: outcome.conditionId,
+      recordsSource: outcome.recordsSource,
+      fleesSource: outcome.fleesSource
+    })),
+    ...(grantContribution && {
+      modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
+    }),
+    lifecycle: {
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
       endOnEvents: [...new Set(endOnEvents)].sort(),
       endOnTriggers: canonicalEndTriggers(endOnTriggers)
     },
-    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: conditionId },
+    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance
   }
 }
 
 /**
- * Whether a save's one failure condition is the timed condition its active effect owns (Sleep
+ * Whether a save's failure conditions are the timed conditions its active effect owns (Sleep
  * Breath, "unconscious for 1 minute, ending if the creature takes damage"): the effect, not the
  * save's outcome, carries the duration and the triggers that end it early. A timed condition that
  * authors no early end stays refused, for the spells that print a repeat save or an end event this
- * form does not yet carry (Hold Monster, Dominate, Charm Person).
+ * form does not yet carry (Hold Monster, Dominate, Charm Person). The plan owns every entry of the
+ * action, so any entry on the failure path is owned when the plan exists.
  */
 function ownsTimedSaveCondition(
   action: Dnd5eCompiledEffectActionSource,
@@ -1688,7 +1748,7 @@ function ownsTimedSaveCondition(
     entry.pathCode === 'ON_SAVE_FAIL' &&
     'outcome' in entry &&
     (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 &&
-    timedConditionPlan(action)?.compiledEntryId === entry.entryId
+    timedConditionPlan(action) !== null
   )
 }
 
@@ -2023,7 +2083,7 @@ function durationPublishedGraph(input: {
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
 }): ServerPublishedRuleDefinitionDto {
   const {
-    conditionContribution,
+    conditionContributions,
     modifierGrantContribution,
     actorLinkContribution,
     creatureFormContribution
@@ -2040,8 +2100,13 @@ function durationPublishedGraph(input: {
         inputs: {}
       }
     ],
-    outputs: conditionContribution
-      ? { conditionId: { kind: 'LITERAL', value: conditionContribution.conditionId } }
+    outputs: conditionContributions?.length
+      ? Object.fromEntries(
+          conditionContributions.map(({ conditionId }, index) => [
+            index === 0 ? 'conditionId' : `conditionId${index + 1}`,
+            { kind: 'LITERAL', value: conditionId }
+          ])
+        )
       : modifierGrantContribution
         ? {
             applyGrantOutcomeId: {
@@ -2269,11 +2334,13 @@ function repeatingDirectFollowUpSavePlan(
     UUID.test(lead.conditionId) &&
     (action.conditionDefinitionIds ?? []).includes(lead.conditionId)
       ? {
-          conditionContribution: {
-            conditionId: lead.conditionId,
-            recordsSource: lead.recordsSource,
-            fleesSource: lead.fleesSource
-          }
+          conditionContributions: [
+            {
+              conditionId: lead.conditionId,
+              recordsSource: lead.recordsSource,
+              fleesSource: lead.fleesSource
+            }
+          ]
         }
       : grantContribution
         ? { modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true } }
@@ -2943,6 +3010,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry))
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
+  assertSaveFailureGrantOwned(action)
   // A failed save's creature form is left to its active-effect plan; one the plan cannot carry
   // must not silently vanish.
   if (
@@ -4458,6 +4526,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   )
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
+  assertSaveFailureGrantOwned(action)
   if (
     action.compiledEffect.entries.some(
       (entry) => 'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
@@ -8494,24 +8563,27 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     )
       throw new Dnd5eEffectActionCompilerError('D&D active-effect execution source is invalid.')
     // A timed condition (D62.2) ends after the target's last counted turn.
-    const timedConditionId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]
-    if (timedConditionId !== undefined) {
-      if (typeof timedConditionId !== 'string' || !UUID.test(timedConditionId))
+    if (definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY] === true) {
+      const timedConditionIds =
+        definition.schemaVersion === 2
+          ? definition.stateContributions.flatMap((contribution) =>
+              contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
+            )
+          : []
+      if (timedConditionIds.length === 0 || !timedConditionIds.every((id) => UUID.test(id)))
         throw new Dnd5eEffectActionCompilerError('D&D timed condition identity is unavailable.')
       return lifecycle.remainingTicks === 1
         ? {
-            applications: [
-              {
-                kind: 'CONDITION_REMOVE' as const,
-                conditionId: timedConditionId,
-                sourceActiveEffectId: activeEffectId,
-                targetActorId: target.targetActorId,
-                sourceNodeId: definition.frozenGraphNodeId,
-                sourceOperationKey: DND5E_CONDITION_DURATION_OPERATION_KEY,
-                authoredPath: null,
-                resolvedPath: null
-              }
-            ],
+            applications: timedConditionIds.map((conditionId) => ({
+              kind: 'CONDITION_REMOVE' as const,
+              conditionId,
+              sourceActiveEffectId: activeEffectId,
+              targetActorId: target.targetActorId,
+              sourceNodeId: definition.frozenGraphNodeId,
+              sourceOperationKey: DND5E_CONDITION_DURATION_OPERATION_KEY,
+              authoredPath: null,
+              resolvedPath: null
+            })),
             terminal: true
           }
         : { applications: [], terminal: false, emptyApplicationAllowed: true }

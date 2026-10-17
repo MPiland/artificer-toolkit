@@ -1180,7 +1180,8 @@ a creature-style Bite Feature, gets no rider.
 
 The immediate follow-up save shapes the
 adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeContributor`), reach 0 swarm
-attacks, timed conditions and multi-condition hits are defined by the compiler
+attacks, timed conditions (one effect owning several conditions and, beside them, a speed grant:
+`conditionContributions` and the plan-level `lifecycle`, SPELLS-27.T9) and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one
 measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one

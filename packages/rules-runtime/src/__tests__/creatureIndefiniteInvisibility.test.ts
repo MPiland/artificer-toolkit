@@ -87,8 +87,8 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
       expect(activeEffectPlan).toMatchObject({
         recurrenceStage: 'NONE',
         initialRemaining: null,
-        conditionContribution: {
-          conditionId: INVISIBLE,
+        conditionContributions: [{ conditionId: INVISIBLE }],
+        lifecycle: {
           consumeOnFirstEvents: [],
           endOnEvents: [...events].sort()
         }
@@ -212,7 +212,8 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
     expect(authored.activeEffectPlan).toMatchObject({
       recurrenceStage: srd.activeEffectPlan?.recurrenceStage,
       initialRemaining: srd.activeEffectPlan?.initialRemaining,
-      conditionContribution: srd.activeEffectPlan?.conditionContribution,
+      conditionContributions: srd.activeEffectPlan?.conditionContributions,
+      lifecycle: srd.activeEffectPlan?.lifecycle,
       maintenance: srd.activeEffectPlan?.maintenance
     })
     expect(authored.activeEffectPlan).not.toBeNull()

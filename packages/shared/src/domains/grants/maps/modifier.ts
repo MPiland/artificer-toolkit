@@ -587,7 +587,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       .set(
         'numerator',
         number(['numerator'], 'Numerator', {
-          constraints: { minimum: 1 },
+          constraints: { minimum: 0 },
           showIf: isMultiply,
           requiredIf: true
         })

@@ -61,21 +61,24 @@ export interface CharacterRuleActionActiveEffectPlan {
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /**
-   * The source-bound condition this effect owns. The aggregate records the
-   * pre-existing baseline when it creates the active-effect row; adapters do
-   * not infer condition ownership from labels or later mutable state.
+   * The source-bound conditions this effect owns together (Hypnotic Pattern: charmed and
+   * incapacitated). The aggregate records each pre-existing baseline when it creates the
+   * active-effect row; adapters do not infer condition ownership from labels or later mutable state.
    */
-  conditionContribution?: null | {
+  conditionContributions?: readonly {
     conditionId: string
     /** The acting creature is the condition's source; its active effect records it. */
     recordsSource: boolean
     /** The holder must Dash away from the source; needs `recordsSource`. */
     fleesSource: boolean
-    /** The events whose first occurrence uses the condition up, sorted and unique. */
+  }[]
+  /** The events that use up or end the effect owning conditions, once for all of them. */
+  lifecycle?: {
+    /** The events whose first occurrence uses the effect up, sorted and unique. */
     consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
-    /** The events whose first occurrence ends the condition, sorted and unique. */
+    /** The events whose first occurrence ends the effect, sorted and unique. */
     endOnEvents?: readonly ActiveEffectEndEvent[]
-    /** The structured events that end the condition's effect, unique and in canonical order. */
+    /** The structured events that end the effect, unique and in canonical order. */
     endOnTriggers?: readonly ActiveEffectEndTrigger[]
   }
   /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
