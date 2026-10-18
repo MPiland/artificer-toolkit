@@ -65,6 +65,7 @@ import {
   prepareEncounterAreaTests,
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import {
   encounterActionTargetKind,
   encounterZoneChoiceTarget,
@@ -349,7 +350,7 @@ export async function prepareAreaScene(
   prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
 ) {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, targetPolicy, zone, appearSave } =
+  const { caster, casterFacts, movementTargets, source, targetPolicy, zone, appearSave } =
     prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
@@ -436,6 +437,7 @@ export async function prepareAreaScene(
     caster,
     casterFacts,
     movementTargets,
+    source,
     targetPolicy,
     scene: { ...scene, grid },
     area: { ...area, origin },
@@ -797,7 +799,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { caster, casterFacts, movementTargets, scene, area, targetPolicy } = base
 
   // A zone is entered later, by movement; placing it puts nobody through its entry save, only
-  // through the save its cast authors for when it appears.
+  // through the save its cast authors for when it appears. A creature immune to this source's use
+  // of the action (D156) is left out, with no save.
   const caughtActorIds =
     base.placement && !base.placement.appearSave
       ? []
@@ -807,7 +810,13 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           casterActorId: caster.id,
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
           fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
-        })
+        }).filter(
+          (actorId) =>
+            encounterSourceImmunityLabel({
+              source: base.source,
+              holderEffects: input.activeEffectsByActorId.get(actorId) ?? []
+            }) === null
+        )
   const caughtInArea = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
@@ -2025,7 +2034,7 @@ export async function completeAreaCommit(args: {
       effects.riderEffect &&
       createNativeActiveEffect(effects.riderEffect, {
         ...effectInput,
-        maintainedEffectStateId: joined?.id
+        maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
       })
     const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // The effect of a reaction the creature used on being chosen lands with its first outcome.

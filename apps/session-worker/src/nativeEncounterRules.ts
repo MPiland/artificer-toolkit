@@ -36,6 +36,7 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
@@ -634,6 +635,17 @@ export async function planNativeLiveEncounterAction(
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
   refuseActionOutsideItsWindow(prepared)
+  // A target immune to this source's use of the action (D156) is refused outright.
+  const immunityLabel = encounterSourceImmunityLabel({
+    source: prepared.source,
+    holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? []
+  })
+  if (immunityLabel !== null)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: `Immune to ${immunityLabel}`
+    })
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
   await refuseUnmetBasicActionRestrictions(

@@ -921,6 +921,23 @@ rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) en
 parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
 the parent: ending the parent early leaves the rider for the GM to end. Only a follow-up save takes a rider. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author it.
 
+**Source immunity (SPELLS-31.T5l, D156).** A creature can be immune to one source's use of one action.
+Two authored forms compile to the plan's `sourceImmunity` (`sourceImmunityPlan`). A `SOURCE_IMMUNITY` outcome
+on `ON_SAVE_SUCCESS` gives `appliesTo: SAVE_SUCCESS`, keyed by the action's effect id, lasting its result
+block's `conditionDurationTurns`. `perTargetLockout` on an at-will `SPELL_GRANT` gives `appliesTo: EVERY_TARGET`,
+keyed by the grant id, and is `INDEFINITE` (the source's long rest; a Run holds no rest, so it lasts the Run).
+The encounter planner creates the immunity as a second effect on the holder in the plan's `riderEffect` slot
+(`riderMaintained: false`, so it outlives the source's Concentration). It holds one `SOURCE_IMMUNITY` state
+contribution `{ immuneToId, sourceCharacterId, sourceLabel }`. The compiler refuses a save immunity under
+Concentration and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
+single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out. It matches
+by source actor, or for a Character by source Character, since a carried effect outlives the Encounter actor.
+A spell grant's `allowedCreatureTypeIds` narrows the targets of its casts (`targetingExcludesCreatureType`).
+A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end
+event can fall inside that round. SRD Intimidating Presence (save immunity) and Chains of Carceri (lockout
+and creature types) author it. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
+spell access (SPELLS-31.T5t).
+
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
 `PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter
@@ -1668,8 +1685,9 @@ the attribute alone.
 helper, `pinnedSaveDc`: a fixed DC is stored in the plan's `dnd5e.save-dc` fact, and `SOURCE_SAVE_DC` sets
 `castSaveDcFactKey`, so `prepareRecurringActiveEffect` stores the cast's own save DC (`d20.defenseOrDc`, from the
 same `resolveSave` path every save-trigger plan uses) under that fact when the active effect is created. The repeat
-graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
-after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
+graph's threshold reads the fact either way. Hold Person and Hold Monster author the SRD repeat save as a
+`FOLLOW_UP_SAVE` after their Paralyzed condition, and the condition lasts the `conditionDurationTurns` of its
+duration.
 
 `repeatingDirectFollowUpSavePlan` takes a `CONDITION` or an `APPLY_GRANT` as its lead entry. A grant lead plans
 its contribution through `modifierGrantEntryPlan` and marks it `countedByTurnEffects`: the repeat-save kernel

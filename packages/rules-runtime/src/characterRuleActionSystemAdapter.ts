@@ -194,6 +194,20 @@ export interface CharacterRuleActionActiveEffectPlan {
       endOnTriggers: readonly ActiveEffectEndTrigger[]
     }
   }
+  /**
+   * The immunity the action leaves on its target against this source (D156, SPELLS-31.T5l): a
+   * successful save's, for the result block's duration, or an at-will grant's lockout on every
+   * creature the cast meets, until the source Character's long rest. The immunity is a second
+   * active effect under a frozen graph of its own, so it rides whichever plan the action makes.
+   */
+  sourceImmunity?: null | {
+    compiledEntryId: string
+    frozenGraphNodeId: string
+    appliesTo: 'SAVE_SUCCESS' | 'EVERY_TARGET'
+    immuneToId: string
+    initialRemaining: number | null
+    frozenGraph: ServerPublishedRuleDefinitionDto
+  }
 }
 
 /** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */

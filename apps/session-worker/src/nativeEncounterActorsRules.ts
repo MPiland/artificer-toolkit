@@ -10,6 +10,7 @@ import {
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
@@ -90,6 +91,12 @@ export async function planNativeLiveEncounterActorsAction(
   const chosen = actorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     if (!actor) throw new Error('Encounter rules input binding mismatch.')
+    // A named creature immune to this source's use of the action (D156) is refused, as one target is.
+    const immunityLabel = encounterSourceImmunityLabel({
+      source: sourced.source,
+      holderEffects: input.activeEffectsByActorId.get(actorId) ?? []
+    })
+    if (immunityLabel !== null) throw refusal(`Immune to ${immunityLabel}`)
     return actor
   })
   for (const actor of chosen)

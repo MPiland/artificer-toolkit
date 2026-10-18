@@ -33,7 +33,11 @@ export const spellGrantDtoSchema = lazySchema(() =>
       castingAbility: z.optional(abilityCodeSchema),
       attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
       filters: z.optional(spellFacetDtoSchema),
-      charges: z.optional(chargeUseDtoSchema)
+      charges: z.optional(chargeUseDtoSchema),
+      allowedCreatureTypeIds: z.optional(
+        authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      ),
+      perTargetLockout: z.optional(z.object({ until: z.literal('SOURCE_LONG_REST') }))
     }),
     createScalingGrantDtoSchema(spellGrantTargetDtoSchema)
   )

@@ -34,6 +34,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
+import { creatureTypeId } from '../spells/shared.js'
 import {
   SRD_CURRENCIES,
   SRD_DARKVISION_SENSE_ID,
@@ -1024,11 +1025,16 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.HOLD_MONSTER],
                 attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+                allowedCreatureTypeIds: [
+                  creatureTypeId('CELESTIAL'),
+                  creatureTypeId('FIEND'),
+                  creatureTypeId('ELEMENTAL')
+                ],
+                perTargetLockout: { until: 'SOURCE_LONG_REST' },
                 order: 0
               }
             ]
           },
-          effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_WARLOCK_CHAINS_OF_CARCERI)],
           // Requires warlock level 15 + Pact of the Chain (classRowId(W, 3, 22))
           restrictions: {
             id: classRowId(W, 6, 5),
