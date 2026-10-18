@@ -36,6 +36,7 @@ import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
+  SRD_DAMAGE_TYPES,
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
@@ -927,8 +928,61 @@ export const monk: ClassAuthored = {
         "Beginning at 18th level, you can use your action to spend 4 ki points to become invisible for 1 minute. During that time, you also have resistance to all damage but force damage. Additionally, you can spend 8 ki points to cast the astral projection spell, without needing material components. When you do so, you can't take any other creatures with you.",
       availableAtLevel: 18,
       order: 24,
+      // Astral Projection for 8 ki stays description: a spell grant cannot spend a class pool yet.
       effects: [
-        selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_MONK_EMPTY_BODY, ACTIVATION_CODE.ACTION)
+        {
+          id: classRowId(M, 0x60, 25),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: kiCharge.id, cost: 4 },
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(M, 0x69, 25), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x80, 25),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x81, 25),
+                resultKind: 'SINGLE',
+                duration: { id: classRowId(M, 0x83, 25), durationKind: 'MINUTE', amount: 1 },
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x82, 25),
+                    effectKind: EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('INVISIBLE')
+                  },
+                  {
+                    id: classRowId(M, 0x84, 25),
+                    effectKind: EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: SRD_DAMAGE_TYPES.filter(({ code }) => code !== 'FORCE').map(
+                        (damageType, index) => ({
+                          id: classRowId(M, 0x85, index + 1),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+                          domain: {},
+                          modifierKind: MODIFIER_KIND.ADD_OPTION,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { damageTypeId: damageType.id },
+                          order: index
+                        })
+                      )
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {

@@ -805,7 +805,7 @@
             },
             {
               "id": "PLATFORM-13.T13",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 3,
@@ -814,7 +814,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test."
+              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test. Also the Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" flake: its console.error spy catches a stray room alarm log (seen on ci/spells-4-t2t twice); fix the leak at its source, not the spy.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             }
           ]
         },
@@ -8021,17 +8022,44 @@
               "note": "Green: ci/spells-4-t2b 0a13ed651 Tests 39140950973, Live 39140950907; batch ci/merge-m120 ff8c82210 green; phase merge 4aa391dea."
             },
             {
-              "status": "TODO",
+              "id": "SPELLS-4.T2c1",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2c",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: A rolled die added to or subtracted from d20 tests, optionally consumed on use. Converts BLESS, BANE, GUIDANCE, RESISTANCE, GLIBNESS, with parity proofs; each kind deleted."
+              "text": "Rolled-die modifier (one kind, sign ADD or SUBTRACT) on attack rolls and saves for Characters and Creatures through one evaluation, addedDice transport, server rolls, receipt faces and the roll row; converts BLESS and BANE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2c2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2c1"]
+              },
+              "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
+            },
+            {
+              "id": "SPELLS-4.T2c3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2c1"]
+              },
+              "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
             },
             {
               "status": "TODO",
@@ -10792,7 +10820,7 @@
             },
             {
               "id": "SPELLS-31.T3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10802,11 +10830,11 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "Class A: Signature Spells, Divine Sense (with its charges), Devil's Sight, Empty Body, Gaze of Two Minds, with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m136 (2228b08b2)."
             },
             {
               "id": "SPELLS-31.T3c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10816,7 +10844,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "Class A: Divine Intervention (MANUAL_ADJUDICATION with the d100 roll and lockout), with a parity proof. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Volley and Whirlwind Attack moved to T5s (D156 SPELLS-31.T3c ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m136 (2228b08b2)."
             },
             {
               "id": "SPELLS-31.T3d",
@@ -10841,7 +10869,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2c"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
               "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -11347,7 +11375,7 @@
             },
             {
               "id": "SPELLS-32.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -11357,7 +11385,7 @@
                 "after": ["SPELLS-32.T1"]
               },
               "text": "A: Halfling Brave as a saving throw advantage (Steel Will pattern) (1 kind). Dwarven Resilience moved to T4j.. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
+              "note": "Merged m137 (2edf56e4c)."
             },
             {
               "id": "SPELLS-32.T4j",
@@ -11472,9 +11500,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2a5"]
               },
-              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, damage-or-grapple choices, self teleports, attach riders (8 kinds; Draining Kiss moved to T3a4, Dark Devotion x2, Two-Headed and Brave moved to T3a2, Mimic Grappler to T4s3, Cloaker Moan to T3a3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "A: self teleports (Balor, Marilith), Giant Frog Bite, Darkmantle Attach (4 kinds; the Teleport spell stays with SPELLS-4.T2a5; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
@@ -11517,6 +11545,32 @@
               "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
             },
             {
+              "id": "SPELLS-33.T3a5",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "Fold creature passive ON_HIT riders from other features into creature attacks through the Character collect, merge and reduce path; convert Assassin and Spy Sneak Attack (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T3a6",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "Creature feature discovery compiles per cast-choice option like the character entry point (pick at use, D148); convert Vampire Spawn Claws and Vampire Unarmed Strike damage-or-grapple (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
               "id": "SPELLS-33.T3b",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
@@ -11539,7 +11593,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2c"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2c2"]
               },
               "text": "Knight Leadership, Lamia Intoxicating Touch (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
