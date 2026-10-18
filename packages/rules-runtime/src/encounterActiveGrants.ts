@@ -201,10 +201,18 @@ const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
 }
 
 /**
- * What a holder can do now, read by the holder-state restrictions `CAN_ACT`, `SPEED_ABOVE_ZERO` and
- * `FREE_HAND` (either hand slot empty, D107).
+ * What a holder is and can do now, read by the holder-state restrictions `CAN_ACT`,
+ * `SPEED_ABOVE_ZERO`, `FREE_HAND` (a hand slot empty and not holding a creature, D107) and the
+ * holder restrictions `HOLDER_KIND` and `CREATURE_TYPE` (D152).
  */
-export type EncounterHolderState = { canAct: boolean; speedAboveZero: boolean; freeHand: boolean }
+export type EncounterHolderState = {
+  kind: 'CHARACTER' | 'CREATURE' | 'CUSTOM'
+  /** A Creature holder's type; empty for any other holder. */
+  creatureTypeIds: readonly string[]
+  canAct: boolean
+  speedAboveZero: boolean
+  freeHand: boolean
+}
 
 type ModifierRestrictions = CharacterGrantFoldModifier['restrictions']
 
@@ -218,10 +226,30 @@ function isHolderStateKind(kind: string): kind is keyof typeof HOLDER_STATE_FLAG
   return Object.hasOwn(HOLDER_STATE_FLAG, kind)
 }
 
+/** Whether the holder meets a condition, or `undefined` when it cannot be decided here. */
+function holderConditionMatches(
+  condition: ModifierRestrictions[number]['conditions'][number],
+  holderState: EncounterHolderState
+): boolean | undefined {
+  switch (condition.kind) {
+    case 'HOLDER_KIND':
+      return condition.requiredIds.includes(holderState.kind)
+    case 'CREATURE_TYPE':
+      return (
+        condition.mode === 'ALL' ||
+        condition.requiredIds.some((id) => holderState.creatureTypeIds.includes(id))
+      )
+    default:
+      return isHolderStateKind(condition.kind)
+        ? holderState[HOLDER_STATE_FLAG[condition.kind]]
+        : undefined
+  }
+}
+
 /**
- * Whether a modifier's holder-state restrictions hold: some group has only holder-state conditions
- * and every one is met. Any other condition cannot be decided here and fails closed, so the group
- * does not hold.
+ * Whether a modifier's holder restrictions hold: some group has only holder conditions and every
+ * one is met. Any other condition cannot be decided here and fails closed, so the group does not
+ * hold.
  */
 export function holderStateRestrictionsHold(
   restrictions: ModifierRestrictions,
@@ -230,11 +258,10 @@ export function holderStateRestrictionsHold(
   return (
     restrictions.length === 0 ||
     restrictions.some((group) =>
-      group.conditions.every(
-        (condition) =>
-          isHolderStateKind(condition.kind) &&
-          holderState[HOLDER_STATE_FLAG[condition.kind]] === (condition.constraint === 'INCLUDE')
-      )
+      group.conditions.every((condition) => {
+        const matches = holderConditionMatches(condition, holderState)
+        return matches !== undefined && matches === (condition.constraint === 'INCLUDE')
+      })
     )
   )
 }

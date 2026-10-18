@@ -3,6 +3,7 @@ import {
   resolveHandOccupancy,
   type HandOccupancyItem
 } from '@artificer-toolkit/shared/core'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterAttackAgainstContributors,
   encounterSourceSightSaveGrants,
@@ -12,18 +13,20 @@ import {
   withHolderStateGrantSaves,
   type EncounterHolderState
 } from './encounterActiveGrants.js'
+import { snapshotCreatureTypeId } from './encounterActorState.js'
 import { encounterActorCannotAct } from './encounterBasicActions.js'
 import { encounterConditionSpeed } from './encounterConditionMechanics.js'
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { encounterSourceHandHolds } from './encounterRelationshipActionFacts.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import { resolveSpeedsFeet } from './walkingSpeed.js'
 
 /**
- * What the target can do now: whether its System's actor-action capability is available, and
+ * What the target is (its kind and creature type) and can do now: whether its System's actor-action capability is available, and
  * whether any speed it has is above 0 after its condition mechanics (a holder with no speeds is not
- * stopped by speed).
+ * stopped by speed), and whether a hand is free once each creature it holds by hand fills one.
  */
 export async function encounterHolderState(input: {
   target: MovementTarget
@@ -31,6 +34,8 @@ export async function encounterHolderState(input: {
   definitions: CurrentReusableDefinitionSource
   /** The System speed vocabulary every holder speed, granted or stored, must belong to. */
   speedDefinitions: readonly { id: string }[]
+  /** Every Run actor's active effects: the creatures the holder holds keep their hold effects. */
+  runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }): Promise<EncounterHolderState> {
   const { target } = input
   const speeds =
@@ -42,7 +47,10 @@ export async function encounterHolderState(input: {
   const feet = resolveSpeedsFeet(speeds, input.speedDefinitions).map(({ feet: speedFeet }) =>
     encounterConditionSpeed({ mechanics: target.conditionMechanics, speed: speedFeet })
   )
+  const creatureTypeId = snapshotCreatureTypeId(target.actor)
   return {
+    kind: target.actor.kind,
+    creatureTypeIds: creatureTypeId === null ? [] : [creatureTypeId],
     canAct: !(await encounterActorCannotAct({
       conditionIds: target.state.conditions,
       activeEffects: target.activeEffects,
@@ -50,7 +58,9 @@ export async function encounterHolderState(input: {
       definitions: input.definitions
     })),
     speedAboveZero: !feet.length || feet.some((value) => value > 0),
-    freeHand: resolveHandOccupancy(heldItems(target)).freeHand
+    freeHand:
+      resolveHandOccupancy(heldItems(target)).emptyHands >
+      encounterSourceHandHolds(input.runEffectsByActorId, target.actor.id)
   }
 }
 
@@ -86,6 +96,7 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   gameSystemId: string
   definitions: CurrentReusableDefinitionSource
   speedDefinitions: readonly { id: string }[]
+  runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }): Promise<T> {
   const { target } = input
   const sourceSightSaves = encounterSourceSightSaveGrants({

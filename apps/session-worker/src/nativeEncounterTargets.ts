@@ -149,7 +149,8 @@ export async function prepareNativeLiveMovementTarget(input: {
       target,
       gameSystemId: state.gameSystemId,
       definitions,
-      speedDefinitions: inputs.system.speeds
+      speedDefinitions: inputs.system.speeds,
+      runEffectsByActorId: input.activeEffectsByActorId
     }),
     revisions
   }

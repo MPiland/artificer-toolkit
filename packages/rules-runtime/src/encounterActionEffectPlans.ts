@@ -9,6 +9,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
+import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
@@ -287,17 +288,9 @@ function prepareRecurringActiveEffect(
     const maximumRank = maximum ? sizeRank(maximum.sizeCode) : null
     if (maximum && (targetRank === null || maximumRank === null || targetRank > maximumRank))
       return null
-    const sameSourceRelationships = [...input.activeEffectsByActorId.entries()].flatMap(
-      ([actorId, effects]) =>
-        effects.flatMap((effect) =>
-          effect.definition.schemaVersion === 2 &&
-          effect.definition.origin.kind === 'ENCOUNTER' &&
-          effect.definition.origin.sourceActorId === input.sourceActorId
-            ? effect.definition.stateContributions.flatMap((contribution) =>
-                contribution.kind === 'ACTOR_RELATIONSHIP' ? [{ actorId, contribution }] : []
-              )
-            : []
-        )
+    const sameSourceRelationships = encounterSourceRelationships(
+      input.activeEffectsByActorId,
+      input.sourceActorId
     )
     const heldByOutcome = new Set(
       sameSourceRelationships.flatMap(({ actorId, contribution }) =>

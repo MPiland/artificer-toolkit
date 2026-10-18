@@ -127,29 +127,35 @@ function manualActionEffect(actionId: string, label: string, instructions: strin
   })
 }
 
-/** Dodge's benefits apply only while the holder can act and move. */
+/**
+ * Dodge's benefits apply only while the holder can act and move: one group for a Character holder
+ * and one for a Creature holder, since each facet context gates on the holder's kind (D152).
+ */
 function holderCanActAndMove(actionId: string) {
   return {
     id: basicActionChildId(actionId, 0x220, 1),
-    groups: [
-      {
-        id: basicActionChildId(actionId, 0x220, 2),
-        order: 1,
+    groups: (['CHARACTER', 'CREATURE'] as const).map((subject, index) => {
+      const part = (offset: number) => basicActionChildId(actionId, 0x220, index * 5 + offset)
+      return {
+        id: part(2),
+        order: index + 1,
         contexts: [
           {
-            id: basicActionChildId(actionId, 0x220, 3),
+            id: part(3),
             order: 1,
-            subject: 'CHARACTER' as const,
+            subject,
+            // A Creature context states its authoring mode; any Creature holder qualifies.
+            ...(subject === 'CREATURE' ? { authoringModeKind: 'ALL' as const } : {}),
             conditions: [
               {
-                id: basicActionChildId(actionId, 0x220, 4),
+                id: part(4),
                 order: 1,
                 kind: 'PREDICATE' as const,
                 constraint: 'INCLUDE' as const,
                 predicateCode: 'CAN_ACT' as const
               },
               {
-                id: basicActionChildId(actionId, 0x220, 5),
+                id: part(5),
                 order: 2,
                 kind: 'PREDICATE' as const,
                 constraint: 'INCLUDE' as const,
@@ -159,7 +165,7 @@ function holderCanActAndMove(actionId: string) {
           }
         ]
       }
-    ]
+    })
   }
 }
 

@@ -128,15 +128,20 @@ describe('canonical Convex import preparation', () => {
       ['ADVANTAGE', { ability: ABILITY_CODE.DEXTERITY }]
     ])
     for (const modifier of dodgeModifiers)
+      // One group per holder kind, since each facet context gates on its subject (D152).
       expect(
-        modifier.restrictions?.groups.flatMap((group) =>
-          group.contexts.flatMap((context) =>
+        modifier.restrictions?.groups.map((group) =>
+          group.contexts.map((context) => [
+            context.subject,
             (context.conditions ?? []).map((condition) =>
               condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
             )
-          )
+          ])
         )
-      ).toEqual(['CAN_ACT', 'SPEED_ABOVE_ZERO'])
+      ).toEqual([
+        [['CHARACTER', ['CAN_ACT', 'SPEED_ABOVE_ZERO']]],
+        [['CREATURE', ['CAN_ACT', 'SPEED_ABOVE_ZERO']]]
+      ])
     // Help is authored: an attack-roll advantage per attack kind plus one ability-check advantage,
     // all used up by the first attack roll or ability check, on one other willing creature.
     const helpAction = basicActionOf(

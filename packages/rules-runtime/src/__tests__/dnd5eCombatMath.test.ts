@@ -605,7 +605,13 @@ describe('D&D 5e saving throws and defenses', () => {
       contributor: { influence: 'ADVANTAGE' }
     })
     // The authored "can act" is decided from the holder's state; sight is left to the Scene.
-    const holderState = (canAct: boolean) => ({ canAct, speedAboveZero: true, freeHand: true })
+    const holderState = (canAct: boolean) => ({
+      kind: 'CHARACTER' as const,
+      creatureTypeIds: [],
+      canAct,
+      speedAboveZero: true,
+      freeHand: true
+    })
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(true))).toBe(true)
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(false))).toBe(false)
   })
@@ -944,8 +950,129 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       ...character.facts,
       grantFoldFacts: { ...character.facts.grantFoldFacts, background: source }
     })
-    expect(group!.conditions[0]!.kind).toBe('UNAVAILABLE')
+    expect(group!.conditions.find(({ conditionId }) => conditionId === 'skill-score')!.kind).toBe(
+      'UNAVAILABLE'
+    )
     expect(output.derivedStats.armorClass.effective).toBe(10)
+  })
+
+  it('decides the holder kind and creature type as constants, so the fold output is unchanged', () => {
+    const predicate = (id: string, predicateCode: 'CHARACTER_LEVEL' | 'CAN_ACT') => ({
+      id,
+      order: 0,
+      kind: 'PREDICATE' as const,
+      constraint: 'INCLUDE' as const,
+      predicateCode,
+      ...(predicateCode === 'CHARACTER_LEVEL' ? { min: 1 } : {})
+    })
+    const restricted = (id: string, characterPredicate: 'CHARACTER_LEVEL' | 'CAN_ACT') =>
+      normalizeCharacterGrantRestrictions({
+        id,
+        groups: [
+          {
+            id: `${id}-character`,
+            order: 0,
+            contexts: [
+              {
+                id: `${id}-character-context`,
+                order: 0,
+                subject: 'CHARACTER',
+                conditions: [predicate(`${id}-predicate`, characterPredicate)]
+              }
+            ]
+          },
+          {
+            id: `${id}-creature`,
+            order: 1,
+            contexts: [
+              {
+                id: `${id}-creature-context`,
+                order: 0,
+                subject: 'CREATURE',
+                authoringModeKind: 'ALL',
+                conditions: [
+                  {
+                    id: `${id}-creature-type`,
+                    order: 0,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'CREATURE_TYPE',
+                    authoringModeKind: 'ALL',
+                    creatureTypeIds: []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    const character = evaluateSrdCharacter({ abilities: { DEXTERITY: 10 }, classes: [fighter()] })
+    const armorClassBonus = (
+      grantId: string,
+      restrictions: CharacterGrantFoldSource['modifiers'][number]['restrictions']
+    ): CharacterGrantFoldSource['modifiers'][number] => ({
+      grantId,
+      valueDomainCode: 'ARMOR_CLASS',
+      modifierKind: 'BONUS',
+      scope: 'GLOBAL',
+      domain: {},
+      payload: { valueKind: 'FIXED', amount: 5 },
+      restrictions,
+      scopeSpellIds: [],
+      scopeResourceIds: []
+    })
+    type Restrictions = ReturnType<typeof normalizeCharacterGrantRestrictions>
+    const evaluateWith = (
+      only: (restrictions: Restrictions) => Restrictions
+    ): ReturnType<typeof evaluateDnd5e2014CharacterPolicy> => {
+      return evaluateDnd5e2014CharacterPolicy({
+        ...character.facts,
+        grantFoldFacts: {
+          ...character.facts.grantFoldFacts,
+          background: {
+            sourceId: 'holder-kind-source',
+            mechanicSource: {
+              kind: 'SYSTEM',
+              systemId: character.facts.grantFoldFacts.base.systemId
+            },
+            sourceState: null,
+            restrictions: [],
+            proficiencies: [],
+            senses: [],
+            modifiers: [
+              armorClassBonus('levelled', only(restricted('levelled', 'CHARACTER_LEVEL'))),
+              armorClassBonus('can-act', only(restricted('can-act', 'CAN_ACT')))
+            ],
+            feats: [],
+            spells: []
+          }
+        }
+      })
+    }
+    // Before D152 the normalizer emitted no holder-kind condition and left CREATURE_TYPE unsupported.
+    const beforeHolderConditions = (restrictions: Restrictions): Restrictions =>
+      restrictions.map(({ conditions }) => ({
+        conditions: conditions.flatMap((condition) =>
+          condition.kind === 'HOLDER_KIND'
+            ? []
+            : [
+                condition.kind === 'CREATURE_TYPE'
+                  ? { ...condition, kind: 'UNSUPPORTED' as const }
+                  : condition
+              ]
+        )
+      }))
+    const withHolderConditions = evaluateWith((restrictions) => restrictions)
+
+    expect(withHolderConditions).toEqual(evaluateWith(beforeHolderConditions))
+    expect(withHolderConditions.derivedStats.armorClass.effective).toBe(15)
+    expect(
+      withHolderConditions.grantFold.modifiers.find(({ grantId }) => grantId === 'can-act')
+    ).toMatchObject({
+      deferredRequirements: [
+        { conditions: [{ conditionId: 'can-act-predicate', kind: 'CAN_ACT' }] }
+      ]
+    })
   })
 
   it('an Equipment context becomes an attacking-item condition', () => {

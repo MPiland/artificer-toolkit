@@ -58,7 +58,8 @@ const defend = (target: MovementTarget) =>
     target,
     gameSystemId: SRD_SYSTEM_ID,
     definitions: srdDefinitions,
-    speedDefinitions: SRD_SPEEDS
+    speedDefinitions: SRD_SPEEDS,
+    runEffectsByActorId: new Map()
   })
 
 const dexteritySave = (target: MovementTarget) =>
@@ -201,7 +202,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       target: creatureHolder(conditionIds),
       gameSystemId: SRD_SYSTEM_ID,
       definitions: srdDefinitions,
-      speedDefinitions: SRD_SPEEDS
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map()
     })
 
   it('CAN_ACT fails once a condition suppresses the actor-action capability', async () => {
@@ -274,7 +276,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         target: malformed(speeds),
         gameSystemId: SRD_SYSTEM_ID,
         definitions: srdDefinitions,
-        speedDefinitions: SRD_SPEEDS
+        speedDefinitions: SRD_SPEEDS,
+        runEffectsByActorId: new Map()
       })
     await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FEET' }])).resolves.toMatchObject({
       speedAboveZero: true
@@ -313,6 +316,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
     ]
     expect(
       encounterAttackAgainstContributors(HOLDER_ID, effects, {
+        kind: 'CHARACTER',
+        creatureTypeIds: [],
         canAct: true,
         speedAboveZero: true,
         freeHand: true
@@ -320,6 +325,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
     ).toEqual([])
     expect(
       encounterAttackAgainstContributors(HOLDER_ID, [activeEffect], {
+        kind: 'CHARACTER',
+        creatureTypeIds: [],
         canAct: true,
         speedAboveZero: true,
         freeHand: true
@@ -331,6 +338,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
     const [activeEffect] = [dodge()]
     const holds = (canAct: boolean, speedAboveZero: boolean) =>
       encounterAttackAgainstContributors(HOLDER_ID, [activeEffect!], {
+        kind: 'CHARACTER',
+        creatureTypeIds: [],
         canAct,
         speedAboveZero,
         freeHand: true

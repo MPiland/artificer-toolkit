@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { FacetDto } from '@artificer-toolkit/schema/shared/facet'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
@@ -21,6 +22,7 @@ import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMo
 import { prepareFixtureSheet, readyFighterFixture } from '../testing/characterContextFixtures.js'
 import {
   CAMPAIGN_ID,
+  ENCOUNTER_ID,
   SRD_SYSTEM_ID,
   characterActor,
   srdCondition,
@@ -30,37 +32,54 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { activeEffect } from './encounterActiveEffectFixtures.js'
 
 const HOLDER_ID = testUuid(0xe501)
 const wolf = srdByLabel(SRD.creatures, 'Wolf')
 
-type Predicate = 'FREE_HAND' | 'CAN_ACT' | 'SPEED_ABOVE_ZERO' | 'CHARACTER_LEVEL'
+type Predicate = 'FREE_HAND' | 'CAN_ACT' | 'SPEED_ABOVE_ZERO' | 'CHARACTER_LEVEL' | 'CREATURE_TYPE'
 
-/** One OR-group of AND-ed holder predicates, the way a basic action's restrictions are authored. */
-function restrictedTo(...conditions: { predicateCode: Predicate; constraint?: 'EXCLUDE' }[]) {
+type Condition = {
+  predicateCode: Predicate
+  constraint?: 'EXCLUDE'
+  creatureTypeIds?: readonly string[]
+}
+
+/** One group per holder kind, each AND-ing the same predicates, as a basic action is authored. */
+function restrictedTo(...conditions: Condition[]) {
+  return restrictedFor(['CHARACTER', 'CREATURE'], ...conditions)
+}
+
+/** One OR-group per subject in `subjects`, each AND-ing `conditions` on that subject. */
+function restrictedFor(
+  subjects: readonly ('CHARACTER' | 'CREATURE')[],
+  ...conditions: Condition[]
+) {
   return {
     id: testUuid(0xe510),
-    groups: [
-      {
-        id: testUuid(0xe511),
-        order: 1,
-        contexts: [
-          {
-            id: testUuid(0xe512),
-            order: 1,
-            subject: 'CHARACTER' as const,
-            conditions: conditions.map(({ predicateCode, constraint }, index) => ({
-              id: testUuid(0xe520 + index),
-              order: index + 1,
-              kind: 'PREDICATE' as const,
-              constraint: constraint ?? ('INCLUDE' as const),
-              predicateCode,
-              ...(predicateCode === 'CHARACTER_LEVEL' ? { min: 20 } : {})
-            }))
-          }
-        ]
-      }
-    ]
+    groups: subjects.map((subject, groupIndex) => ({
+      id: testUuid(0xe511 + groupIndex * 0x100),
+      order: groupIndex + 1,
+      contexts: [
+        {
+          id: testUuid(0xe512 + groupIndex * 0x100),
+          order: 1,
+          subject,
+          ...(subject === 'CREATURE' ? { authoringModeKind: 'ALL' as const } : {}),
+          conditions: conditions.map(({ predicateCode, constraint, creatureTypeIds }, index) => ({
+            id: testUuid(0xe520 + groupIndex * 0x100 + index),
+            order: index + 1,
+            kind: 'PREDICATE' as const,
+            constraint: constraint ?? ('INCLUDE' as const),
+            predicateCode,
+            ...(predicateCode === 'CHARACTER_LEVEL' ? { min: 20 } : {}),
+            ...(creatureTypeIds
+              ? { authoringModeKind: 'SELECTED' as const, creatureTypeIds: [...creatureTypeIds] }
+              : {})
+          }))
+        }
+      ]
+    }))
   } as FacetDto
 }
 
@@ -89,13 +108,53 @@ function creatureHolder(
   )
 }
 
-const stateOf = (target: Parameters<typeof encounterHolderState>[0]['target']) =>
+const stateOf = (
+  target: Parameters<typeof encounterHolderState>[0]['target'],
+  runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]> = new Map()
+) =>
   encounterHolderState({
     target,
     gameSystemId: SRD_SYSTEM_ID,
     definitions: srdDefinitions,
-    speedDefinitions: SRD_SPEEDS
+    speedDefinitions: SRD_SPEEDS,
+    runEffectsByActorId
   })
+
+type RelationshipModule = Extract<
+  Extract<ActiveRuleEffectRecord['definition'], { schemaVersion: 2 }>['stateContributions'][number],
+  { kind: 'ACTOR_RELATIONSHIP' }
+>['modules'][number]
+
+/** A creature `sourceActorId` holds through a relationship carrying `modules`. */
+function heldBy(index: number, sourceActorId: string, modules: RelationshipModule[]) {
+  const heldActorId = testUuid(0xe540 + index)
+  return [
+    heldActorId,
+    [
+      activeEffect({
+        id: testUuid(0xe550 + index),
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: heldActorId },
+        createdOrdinal: index,
+        sourceActorId,
+        stateContributions: [
+          {
+            kind: 'ACTOR_RELATIONSHIP',
+            relationshipOutcomeId: testUuid(0xe560),
+            modules,
+            conditionIds: [],
+            capabilitySuppressions: []
+          }
+        ]
+      })
+    ]
+  ] as const
+}
+
+const occupiesHand: RelationshipModule = {
+  id: testUuid(0xe570),
+  order: 0,
+  kind: 'SOURCE_OCCUPIES_HAND'
+}
 
 /** A Fighter whose sheet the real fact builders produced, holding what `equipped` puts in hand. */
 async function fighterHolder(equipped: { equipmentId: string; slot: 'MAIN_HAND' | 'OFF_HAND' }[]) {
@@ -158,6 +217,40 @@ describe('FREE_HAND reads the hand occupancy of a Creature loadout', () => {
     expect(
       await stateOf(creatureHolder([loadoutEntry(1, greatclub.id, 'MAIN_HAND')]))
     ).toMatchObject({ freeHand: false })
+  })
+})
+
+describe('FREE_HAND counts each creature the holder holds by hand', () => {
+  const oneHanded = [loadoutEntry(1, club.id, 'MAIN_HAND')]
+
+  it('fails when a hand-held creature fills the hand a weapon left free', async () => {
+    expect(
+      await stateOf(creatureHolder(oneHanded), new Map([heldBy(1, HOLDER_ID, [occupiesHand])]))
+    ).toMatchObject({ freeHand: false })
+  })
+
+  it('fails when two hand-held creatures fill both empty hands, and holds with one', async () => {
+    expect(
+      await stateOf(creatureHolder([]), new Map([heldBy(1, HOLDER_ID, [occupiesHand])]))
+    ).toMatchObject({ freeHand: true })
+    expect(
+      await stateOf(
+        creatureHolder([]),
+        new Map([heldBy(1, HOLDER_ID, [occupiesHand]), heldBy(2, HOLDER_ID, [occupiesHand])])
+      )
+    ).toMatchObject({ freeHand: false })
+  })
+
+  it('ignores a relationship without the hand module and one another creature holds', async () => {
+    expect(
+      await stateOf(
+        creatureHolder(oneHanded),
+        new Map([
+          heldBy(1, HOLDER_ID, [{ id: testUuid(0xe571), order: 0, kind: 'SOURCE_FOLLOWS_TARGET' }]),
+          heldBy(2, testUuid(0xe5ff), [occupiesHand])
+        ])
+      )
+    ).toMatchObject({ freeHand: true })
   })
 })
 
@@ -261,6 +354,40 @@ describe('basic action restrictions', () => {
     expect(
       encounterBasicActionRestrictionsHold(asCreature, await stateOf(creatureHolder([])))
     ).toBe(true)
+  })
+})
+
+describe('each facet context gates on the holder kind', () => {
+  const canAct = { predicateCode: 'CAN_ACT' } as const
+
+  it('holds a CHARACTER-only group for a Character and never for a Creature', async () => {
+    const characterOnly = restrictedFor(['CHARACTER'], canAct)
+    expect(
+      encounterBasicActionRestrictionsHold(characterOnly, await stateOf(await fighterHolder([])))
+    ).toBe(true)
+    expect(
+      encounterBasicActionRestrictionsHold(characterOnly, await stateOf(creatureHolder([])))
+    ).toBe(false)
+  })
+
+  it('holds a CREATURE-only group for a Creature and never for a Character', async () => {
+    const creatureOnly = restrictedFor(['CREATURE'], canAct)
+    expect(
+      encounterBasicActionRestrictionsHold(creatureOnly, await stateOf(creatureHolder([])))
+    ).toBe(true)
+    expect(
+      encounterBasicActionRestrictionsHold(creatureOnly, await stateOf(await fighterHolder([])))
+    ).toBe(false)
+  })
+
+  it('reads CREATURE_TYPE against the Creature holder type', async () => {
+    const ofType = (creatureTypeIds: readonly string[]) =>
+      restrictedFor(['CREATURE'], { predicateCode: 'CREATURE_TYPE', creatureTypeIds })
+    const wolfState = await stateOf(creatureHolder([]))
+    expect(encounterBasicActionRestrictionsHold(ofType([wolf.creatureTypeId]), wolfState)).toBe(
+      true
+    )
+    expect(encounterBasicActionRestrictionsHold(ofType([testUuid(0xe5fe)]), wolfState)).toBe(false)
   })
 })
 

@@ -221,6 +221,8 @@ export function evaluateDnd5e2014CharacterGrantFold(
           : condition.sourceState === 'EQUIPPED'
             ? sourceState?.equipped === true
             : sourceState?.attuned === true
+      case 'HOLDER_KIND':
+        return condition.requiredIds.includes('CHARACTER')
       case 'SIZE':
         return (
           condition.mode === 'ALL' ||
@@ -236,6 +238,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':
       case 'ATTACK_ACTION_OTHER_WEAPON':
+      case 'CREATURE_TYPE':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false

@@ -579,7 +579,8 @@ export async function planNativeLiveEncounterAction(
     target: actorTarget,
     gameSystemId: state.gameSystemId,
     definitions,
-    speedDefinitions: system.speeds
+    speedDefinitions: system.speeds,
+    runEffectsByActorId: activeEffectsByActorId
   })
   refuseUnmetItemActionRequirements(prepared, state)
   // An optional-combat intent routes to the Disarm planner.

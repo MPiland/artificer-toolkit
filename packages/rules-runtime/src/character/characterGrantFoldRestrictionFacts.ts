@@ -184,8 +184,26 @@ function normalizeCreatureCondition(
     case 'SPEED_ABOVE_ZERO':
     case 'FREE_HAND':
       return baseCondition(condition, condition.predicateCode)
+    case 'CREATURE_TYPE':
+      return {
+        ...baseCondition(condition, 'CREATURE_TYPE'),
+        requiredIds:
+          condition.authoringModeKind === 'SELECTED' ? [...condition.creatureTypeIds] : []
+      }
     default:
       return baseCondition(condition, 'UNSUPPORTED')
+  }
+}
+
+/** The condition that a context's subject is the holder's kind (D152). */
+function holderKindCondition(
+  context: { readonly id: string },
+  kind: 'CHARACTER' | 'CREATURE'
+): RestrictionCondition {
+  return {
+    ...baseCondition({ id: context.id, constraint: 'INCLUDE' }, 'HOLDER_KIND'),
+    mode: 'SELECTED',
+    requiredIds: [kind]
   }
 }
 
@@ -231,7 +249,7 @@ function normalizeItemContext(
 
 /**
  * Character contexts become fold conditions and Equipment contexts become attacking-item
- * conditions. Spell and Resource contexts are read by their own consumers (spell-scoped modifiers
+ * conditions; a Character or Creature context also requires the holder to be of that kind. Spell and Resource contexts are read by their own consumers (spell-scoped modifiers
  * and charge resets); any other subject cannot be evaluated here and fails closed.
  */
 export function normalizeCharacterGrantRestrictions(
@@ -242,16 +260,22 @@ export function normalizeCharacterGrantRestrictions(
     conditions: group.contexts.flatMap((context): RestrictionCondition[] => {
       switch (context.subject) {
         case 'CHARACTER':
-          return (context.conditions ?? []).map((condition) =>
-            normalizeCondition(
-              condition as FacetConditionAuthored<'CHARACTER'>,
-              normalizeProficiencyTarget
+          return [
+            holderKindCondition(context, 'CHARACTER'),
+            ...(context.conditions ?? []).map((condition) =>
+              normalizeCondition(
+                condition as FacetConditionAuthored<'CHARACTER'>,
+                normalizeProficiencyTarget
+              )
             )
-          )
+          ]
         case 'EQUIPMENT':
           return normalizeItemContext(context)
         case 'CREATURE':
-          return (context.conditions ?? []).map(normalizeCreatureCondition)
+          return [
+            holderKindCondition(context, 'CREATURE'),
+            ...(context.conditions ?? []).map(normalizeCreatureCondition)
+          ]
         case 'SPELL':
         case 'RESOURCE':
           return []
