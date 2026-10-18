@@ -1,4 +1,9 @@
-import type { OutcomeAuthored, SavingThrowAuthored } from '#authored'
+import type {
+  ConditionAuthored,
+  OutcomeAuthored,
+  PathLifecycleAuthored,
+  SavingThrowAuthored
+} from '#authored'
 import {
   EFFECT_KIND,
   type FollowUpSaveAttemptKind,
@@ -61,4 +66,17 @@ export type FollowUpSaveAuthored = {
   onSuccess: FollowUpSaveBranchAuthored
   onFailure: FollowUpSaveBranchAuthored
   onDurationComplete?: FollowUpSaveBranchAuthored
+  /**
+   * Conditions a save failed by at least `failedBy` also applies, for the save's duration ("if the
+   * saving throw fails by 5 or more, the target falls unconscious"). They end on their own triggers,
+   * independently of the failure's outcomes.
+   */
+  failureMarginRider?: {
+    id: string
+    failedBy: number
+    outcomes: ConditionAuthored[]
+    lifecycle: {
+      endOnTriggers?: PathLifecycleAuthored['endOnTriggers']
+    }
+  }
 }

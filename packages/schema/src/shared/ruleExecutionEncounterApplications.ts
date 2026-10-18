@@ -457,8 +457,9 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       ),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
       nestedD20: z._default(z.nullable(serverRuleExecutionNestedD20EvidenceDtoSchema), null),
+      /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
       activeEffectTransitions: z._default(
-        z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
+        z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(2)),
         []
       ),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),

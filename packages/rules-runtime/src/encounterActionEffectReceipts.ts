@@ -4,6 +4,8 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 export function projectNativeActionEffectTransitions(input: {
   state: ActiveRuleEffectRecord | null
   recurring: ActiveRuleEffectRecord | null
+  /** A failure-margin rider's effect, created beside the recurring effect it rides on. */
+  rider?: ActiveRuleEffectRecord | null
   targetActorId: string
 }) {
   const { state, recurring } = input
@@ -36,28 +38,30 @@ export function projectNativeActionEffectTransitions(input: {
         })()
       ]
     : []
-  const activeEffectTransitions = recurring
-    ? [
-        {
-          kind: 'CREATE' as const,
-          activeEffectId: recurring.id,
-          targetActorId: input.targetActorId,
-          ...(recurring.maintainedEffectStateId
-            ? { maintainedEffectStateId: recurring.maintainedEffectStateId }
-            : {}),
-          createdOrdinal: recurring.createdOrdinal,
-          afterVersion: recurring.version,
-          authoredEffectId: recurring.definition.authoredEffectId,
-          compiledEntryId: recurring.definition.compiledEntryId,
-          frozenGraphNodeId: recurring.definition.frozenGraphNodeId,
-          definitionChecksum: recurring.definitionChecksum,
-          lifecycleChecksum: recurring.lifecycleChecksum,
-          frozenSourceChecksum: recurring.definition.frozenGraph.source.checksum,
-          capabilityContractVersion: recurring.definition.frozenGraph.capabilityContractVersion,
-          recurrenceStage: recurring.definition.recurrence.recurrenceStage,
-          remainingTicks: recurring.lifecycle.remainingTicks
-        }
-      ]
-    : []
+  const activeEffectTransitions = [recurring, input.rider ?? null].flatMap((recurring) =>
+    recurring
+      ? [
+          {
+            kind: 'CREATE' as const,
+            activeEffectId: recurring.id,
+            targetActorId: input.targetActorId,
+            ...(recurring.maintainedEffectStateId
+              ? { maintainedEffectStateId: recurring.maintainedEffectStateId }
+              : {}),
+            createdOrdinal: recurring.createdOrdinal,
+            afterVersion: recurring.version,
+            authoredEffectId: recurring.definition.authoredEffectId,
+            compiledEntryId: recurring.definition.compiledEntryId,
+            frozenGraphNodeId: recurring.definition.frozenGraphNodeId,
+            definitionChecksum: recurring.definitionChecksum,
+            lifecycleChecksum: recurring.lifecycleChecksum,
+            frozenSourceChecksum: recurring.definition.frozenGraph.source.checksum,
+            capabilityContractVersion: recurring.definition.frozenGraph.capabilityContractVersion,
+            recurrenceStage: recurring.definition.recurrence.recurrenceStage,
+            remainingTicks: recurring.lifecycle.remainingTicks
+          }
+        ]
+      : []
+  )
   return { stateEffectTransitions, activeEffectTransitions }
 }
