@@ -9739,7 +9739,7 @@
             },
             {
               "id": "SPELLS-20.T5d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -9748,7 +9748,7 @@
                 "size": 2
               },
               "text": "Bug (found in SPELLS-20.T5c, 2026-10-18; first registered as ATTACK-18.T9z): rebuildEncounterTurnTarget rebuilds a turn stage's target from raw facts and drops the holder's defense (withEncounterHolderDefense, e.g. Dodge), so a Dodging creature's turn-boundary saves (zone start or end of turn, recurring effects) lose Dodge's advantage on Dexterity saves. Carry the holder defense on MovementTarget as T5c did for occupantSaveBonus, with a regression room test that fails before the fix.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5d da3ee7b2d Tests 39143763721, Live 39143722167; fast-path phase merge 1c01a30f4 (m119 backstop)."
             },
             {
               "id": "SPELLS-20.T6a",
