@@ -36,8 +36,14 @@ export function forcedMovementDestinationPick({
   const token = scene.tokens.find(({ id }) => id === targetTokenId)
   if (!token) return null
   const { grid } = scene
-  const along = (offset: number) =>
-    formatSceneDistance(grid, (Math.abs(offset) / grid.cellSize) * grid.distancePerCell)
+  const along = (offset: ScenePoint) =>
+    formatSceneDistance(
+      grid,
+      measureSceneDistance(grid, token.position, {
+        x: token.position.x + offset.x,
+        y: token.position.y + offset.y
+      })
+    )
   return {
     creature: token.label,
     destinations: pending.positions.map((position) => {
@@ -50,7 +56,7 @@ export function forcedMovementDestinationPick({
       const label =
         dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)
           ? `Move ${token.label} ${moved} ${[dy ? northSouth : null, dx ? eastWest : null].filter(Boolean).join('-')}`
-          : `Move ${token.label} ${moved}: ${along(dx)} ${eastWest}, ${along(dy)} ${northSouth}`
+          : `Move ${token.label} ${moved}: ${along({ x: dx, y: 0 })} ${eastWest}, ${along({ x: 0, y: dy })} ${northSouth}`
       return { position, label }
     }),
     squares: {
