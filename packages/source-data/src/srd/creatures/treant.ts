@@ -42,18 +42,6 @@ export const treant: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the treant remains motionless, it is indistinguishable from a normal tree.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(271, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(271, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_TREANT_FALSE_APPEARANCE
-        })
-      ],
       order: 1
     },
     {

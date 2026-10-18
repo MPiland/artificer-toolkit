@@ -42,18 +42,6 @@ export const hydra: CreatureAuthored = {
       id: S.featureId(169, 1),
       label: 'Hold Breath',
       description: 'Hold Breath. The hydra can hold its breath for 1 hour.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(169, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(169, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HOLD_BREATH
-        })
-      ],
       order: 1
     },
     {
@@ -98,18 +86,6 @@ export const hydra: CreatureAuthored = {
       id: S.featureId(169, 4),
       label: 'Wakeful',
       description: 'Wakeful. While the hydra sleeps, at least one of its heads is awake.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(169, 204),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(169, 1204), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_WAKEFUL
-        })
-      ],
       order: 4
     },
     {

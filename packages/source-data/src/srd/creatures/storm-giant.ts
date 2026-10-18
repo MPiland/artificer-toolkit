@@ -46,18 +46,6 @@ export const stormGiant: CreatureAuthored = {
       id: S.featureId(266, 1),
       label: 'Amphibious',
       description: 'Amphibious. The giant can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(266, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(266, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
@@ -103,18 +91,6 @@ export const stormGiant: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(266, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(266, 203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_STORM_GIANT_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {

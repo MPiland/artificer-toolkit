@@ -46,18 +46,6 @@ export const greenHag: CreatureAuthored = {
       id: S.featureId(151, 1),
       label: 'Amphibious',
       description: 'Amphibious. The hag can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(151, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(151, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
@@ -84,18 +72,6 @@ export const greenHag: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(151, 302),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(151, 1302), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GREEN_HAG_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {
@@ -103,18 +79,6 @@ export const greenHag: CreatureAuthored = {
       label: 'Mimicry',
       description:
         'Mimicry. The hag can mimic animal sounds and humanoid voices. A creature that hears the sounds can tell they are imitations with a successful DC 14 Wisdom (Insight) check.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(151, 203),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(151, 1203), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GREEN_HAG_MIMICRY
-        })
-      ],
       order: 3
     },
     {
@@ -174,19 +138,6 @@ export const greenHag: CreatureAuthored = {
       label: 'Illusory Appearance',
       description:
         'Illusory Appearance. The hag covers herself and anything she is wearing or carrying with a magical illusion that makes her look like another creature of her general size and humanoid shape. The illusion ends if the hag takes a bonus action to end it or if she dies. The changes wrought by this effect fail to hold up to physical inspection. For example, the hag could appear to have smooth skin, but someone touching her would feel her rough flesh. Otherwise, a creature must take an action to visually inspect the illusion and succeed on a DC 20 Intelligence (Investigation) check to discern that the hag is disguised.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(151, 208),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(151, 1205), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GREEN_HAG_ILLUSORY_APPEARANCE
-        })
-      ],
       order: 5
     },
     {

@@ -48,17 +48,6 @@ export const adultGoldDragon: CreatureAuthored = {
       id: S.featureId(8, 1),
       label: 'Amphibious',
       description: 'Amphibious. The dragon can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(8, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(8, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
@@ -75,17 +64,6 @@ export const adultGoldDragon: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(8, 103),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(8, 104), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 2
     },
     {
@@ -668,41 +646,7 @@ export const adultGoldDragon: CreatureAuthored = {
           id: '00000000-0005-00c9-0070-000800000000',
           label: 'Detect',
           description: 'The dragon makes a Wisdom (Perception) check.',
-          order: 1,
-          effects: [
-            {
-              id: '00000000-0005-0016-0070-000800000000',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'FREE' },
-                range: { id: '00000000-0005-0017-0070-000800000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-000800000000', cost: 1 }
-              },
-              paths: [
-                {
-                  id: '00000000-0005-0018-0070-000800000000',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-0018-0070-000800000000__result',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-0018-0070-000800000000',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'DRAGON_LEGENDARY_DETECT'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          order: 1
         },
         {
           id: '00000000-0005-00ca-0070-000800000000',

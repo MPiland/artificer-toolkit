@@ -10,8 +10,8 @@ const MULTIATTACK =
   'Multiattack names the attacks the Creature makes in one action; each attack is its own Effect, and the Multiattack itself is description-only (mechanics follow-up, D60).'
 const UNMODELED =
   'The printed mechanics have no model yet, so the GM resolves the printed text (mechanics follow-up, D60).'
-const CHROMATIC_DETECT =
-  'The chromatic dragons’ Detect authors no Effect, unlike the metallic dragons’ DRAGON_LEGENDARY_DETECT; it waits on the legendary option rework (D51 B).'
+const DESCRIPTION_ONLY =
+  'The printed text changes no state the product resolves, so the action is description-only (D156, class C).'
 
 const entries = (reason: string, keys: readonly string[]) =>
   keys.map((key) => [key, reason] as const)
@@ -99,21 +99,35 @@ export const SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS: ReadonlyMap<string, string> 
     'Androsphinx|legendaryActions Cast a Spell (Costs 3 Actions)',
     'Lich|legendaryActions Frightening Gaze (Costs 2 Actions)',
     'Lich|legendaryActions Disrupt Life (Costs 3 Actions)',
+    // A choice between two actions, which one actionReference can't name.
+    'Mummy Lord|legendaryActions Attack',
     'Mummy Lord|legendaryActions Blinding Dust',
     'Mummy Lord|legendaryActions Blasphemous Word (Costs 2 Actions)',
     'Mummy Lord|legendaryActions Channel Negative Energy (Costs 2 Actions)',
     'Mummy Lord|legendaryActions Whirlwind of Sand (Costs 2 Actions)'
   ]),
-  ...entries(CHROMATIC_DETECT, [
+  ...entries(DESCRIPTION_ONLY, [
     'Adult Black Dragon|legendaryActions Detect',
     'Adult Blue Dragon|legendaryActions Detect',
+    'Adult Brass Dragon|legendaryActions Detect',
+    'Adult Bronze Dragon|legendaryActions Detect',
+    'Adult Copper Dragon|legendaryActions Detect',
+    'Adult Gold Dragon|legendaryActions Detect',
     'Adult Green Dragon|legendaryActions Detect',
     'Adult Red Dragon|legendaryActions Detect',
+    'Adult Silver Dragon|legendaryActions Detect',
     'Adult White Dragon|legendaryActions Detect',
     'Ancient Black Dragon|legendaryActions Detect',
     'Ancient Blue Dragon|legendaryActions Detect',
+    'Ancient Brass Dragon|legendaryActions Detect',
+    'Ancient Bronze Dragon|legendaryActions Detect',
+    'Ancient Copper Dragon|legendaryActions Detect',
+    'Ancient Gold Dragon|legendaryActions Detect',
     'Ancient Green Dragon|legendaryActions Detect',
     'Ancient Red Dragon|legendaryActions Detect',
-    'Ancient White Dragon|legendaryActions Detect'
+    'Ancient Silver Dragon|legendaryActions Detect',
+    'Ancient White Dragon|legendaryActions Detect',
+    'Green Hag|actions Illusory Appearance',
+    'Sea Hag|actions Illusory Appearance'
   ])
 ])

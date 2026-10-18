@@ -66,17 +66,6 @@ export const cloaker: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the cloaker remains motionless without its underside exposed, it is indistinguishable from a dark leather cloak.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(65, 103),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(65, 104), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FALSE_APPEARANCE
-        })
-      ],
       order: 2
     },
     {

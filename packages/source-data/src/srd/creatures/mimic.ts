@@ -82,18 +82,6 @@ export const mimic: CreatureAuthored = {
       label: 'False Appearance (Object Form Only)',
       description:
         'False Appearance (Object Form Only). While the mimic remains motionless, it is indistinguishable from an ordinary object.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(197, 503),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(197, 603), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_FALSE_APPEARANCE_OBJECT_FORM_ONLY
-        })
-      ],
       order: 3
     },
     {

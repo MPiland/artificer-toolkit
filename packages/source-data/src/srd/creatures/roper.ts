@@ -45,18 +45,6 @@ export const roper: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the roper remains motionless, it is indistinguishable from a normal cave formation, such as a stalagmite.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(239, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(239, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_FALSE_APPEARANCE
-        })
-      ],
       order: 1
     },
     {

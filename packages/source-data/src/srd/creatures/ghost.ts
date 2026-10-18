@@ -60,23 +60,6 @@ export const ghost: CreatureAuthored = {
       label: 'Ethereal Sight',
       description:
         'Ethereal Sight. The ghost can see 60 feet into the Ethereal Plane when it is on the Material Plane, and vice versa.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(111, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(111, 1201),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GHOST_ETHEREAL_SIGHT
-        })
-      ],
       order: 1
     },
     {

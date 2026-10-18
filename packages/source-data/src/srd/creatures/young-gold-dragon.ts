@@ -48,18 +48,6 @@ export const youngGoldDragon: CreatureAuthored = {
       id: S.featureId(306, 1),
       label: 'Amphibious',
       description: 'Amphibious. The dragon can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(306, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(306, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
