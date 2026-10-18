@@ -9236,7 +9236,7 @@
             {
               "id": "SPELLS-20.T5",
               "text": "Paladin Aura of Protection as an authored source aura: allies in range add the paladin's Charisma modifier to saves while the paladin is conscious (30 ft at level 18).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -9244,7 +9244,8 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["SPELLS-20.T1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6a",
@@ -9318,7 +9319,7 @@
             },
             {
               "id": "SPELLS-20.T6d2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9328,7 +9329,7 @@
                 "after": ["SPELLS-20.T6c"]
               },
               "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Proofs: apps/session-worker/test/nativeRoomMeleeRetaliation.test.ts (Fire Shield answers an opportunity Bite), apps/session-worker/test/nativeRoomLegendary.test.ts (Legendary Tail burn replayed), packages/rules-runtime/src/__tests__/encounterMeleeRetaliation.test.ts (replay, stale evidence, missing die). Green: ci/spells-20-t6d2b f12d2207a Tests 39118481981, Live 39118481975; phase merge 4b8a92175 (fast path; backstop ci/merge-m105)."
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"
