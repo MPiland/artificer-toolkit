@@ -6229,19 +6229,19 @@
             {
               "id": "ATTACK-7.T5",
               "text": "Slice E, split 2026-10-18 (D157): the authored forced-movement contract (AWAY_FROM_SOURCE, TOWARD_SOURCE, ASIDE, ANY; EXACT, UP_TO, UP_TO_SPEED), legal-square derivation, on-hit riders carrying any ON_HIT outcome, DAMAGE_TYPE restriction checks and the homebrew Crusher fixture. AWAY/TOWARD + EXACT are delivered by T5a.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.7"],
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "Green: ci/attack-7 2b1d4dd26 Tests 39138280423, Live 39138280508; batch ci/merge-m115 d416a7ebf green; phase merge 817469d85."
             },
             {
               "id": "ATTACK-7.T5b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6250,7 +6250,8 @@
                 "size": 8,
                 "after": ["ATTACK-7.T5"]
               },
-              "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server."
+              "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server.",
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T5c",
