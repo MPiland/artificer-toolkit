@@ -1,7 +1,10 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
-import { planEncounterPassiveZones } from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
+import {
+  planEncounterPassiveZones,
+  type EncounterPassiveZoneCharacterRules
+} from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
 import { plannedSpatialEffectRecord } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
@@ -69,6 +72,15 @@ export function createNativeLiveTurnStages(
     }
   }
   const createRuntime = async () => runtime
+  const loadCharacterRules = async () => {
+    const rules = new Map<string, EncounterPassiveZoneCharacterRules>()
+    for (const actor of turn.actors) {
+      if (actor.kind !== 'CHARACTER') continue
+      const ruleEvaluation = (await loadTarget(actor.id))?.characterFacts?.ruleEvaluation
+      if (ruleEvaluation) rules.set(actor.sourceId, ruleEvaluation)
+    }
+    return rules
+  }
   const rollD20 = () => random(20) + 1
   const stages: Parameters<typeof prepareEncounterTurn<CharacterFacts>>[1] = {
     effects: (stage) =>
@@ -143,7 +155,7 @@ export function createNativeLiveTurnStages(
           const actorIdByTokenId = new Map(
             bindings.bindings.map((binding) => [binding.tokenId, binding.actorId])
           )
-          // The Encounter's start places the Creatures' passive zones before its first turn (D144).
+          // The Encounter's start places passive zones before its first turn (D144, D155).
           const placing =
             stage.root.commandType === 'START'
               ? planEncounterPassiveZones({
@@ -154,7 +166,8 @@ export function createNativeLiveTurnStages(
                   system,
                   sceneGrid: loaded.scene.grid,
                   tokens: loaded.scene.tokens,
-                  actorIdByTokenId
+                  actorIdByTokenId,
+                  characterRules: await loadCharacterRules()
                 }).filter((zone) => !effects.some((effect) => effect.id === zone.id))
               : []
           const lastOrdinal = Math.max(0, ...effects.map((effect) => effect.createdOrdinal))

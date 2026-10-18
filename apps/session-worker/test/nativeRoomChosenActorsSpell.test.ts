@@ -91,7 +91,7 @@ function healerRoom(config: {
     characterSpellcasting: { spells: [config.spell], prepared: [config.spell.id] },
     characterPlay: {
       currentHitPoints: config.characterHitPoints ?? 1,
-      ...(config.characterLevel && { fighterLevel: config.characterLevel }),
+      ...(config.characterLevel && { classLevel: config.characterLevel }),
       ...(config.characterConditions && { conditions: config.characterConditions })
     },
     characterAction: (action) => action.label === config.label,

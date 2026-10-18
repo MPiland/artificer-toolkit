@@ -733,6 +733,81 @@ describe('a Creature’s passive zone in the room (SPELLS-20 T6b, D144)', () => 
   })
 })
 
+describe('a paladin’s Aura of Protection in the room (SPELLS-20 T5b, D155)', () => {
+  const paladin = srdByLabel(SRD.classes, 'Paladin')
+  const auraOfProtection = (() => {
+    const feature = paladin.features?.find(({ label }) => label === 'Aura of Protection')
+    if (!feature) throw new Error('The SRD Paladin has no Aura of Protection Feature.')
+    return feature
+  })()
+
+  /** A Run not started yet: a 6th-level Paladin, who carries the aura, stands beside a Wolf. */
+  function paladinRoom() {
+    return actionRoom({
+      actors: [srdCreatureActor({ id: WOLF_ID, creature: plainWolf }), casterActor],
+      ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+      characterClassFeatures: [auraOfProtection],
+      characterPlay: { characterClass: paladin, classLevel: 6 },
+      status: 'PREPARED',
+      autoRoll: 'EVERYONE',
+      // The Paladin's initiative roll wins, so the order needs no tie-break.
+      rolls: [20, 1],
+      fallbackRoll: DIE
+    })
+  }
+
+  it('places the aura on the Character’s token at START, resolved against its Charisma and class level, and again when its token is bound (D147)', async () => {
+    const room = await paladinRoom()
+    expect(await readZones(room)).toEqual([])
+    const started = await room.send({
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(started.type, JSON.stringify(started)).toBe('COMMAND_COMMITTED')
+
+    const characterTokenId = room.room.scene.tokens[1]!.id
+    const [placed, ...others] = (await readZones(room)).map(readSpatialEffect)
+    expect(others).toEqual([])
+    expect(placed).toMatchObject({
+      maintainedEffectStateId: null,
+      definition: { origin: { kind: 'ENCOUNTER', sourceActorId: CASTER_ACTOR_ID } },
+      placement: {
+        anchorKind: 'TOKEN',
+        sourceTokenId: characterTokenId,
+        triggerModes: [],
+        // Charisma 8 is a -1 modifier, so the aura lends its minimum of +1.
+        occupantSaveBonus: {
+          domain: 'EVERY_SAVING_THROW',
+          dispositionFilter: 'ALLIES_AND_SOURCE',
+          amount: 1
+        },
+        // Below 18th level: the 10-foot reach, two squares past the token's half width.
+        geometry: { frame: 'TOKEN_LOCAL', shape: { kind: 'CIRCLE', radius: 250 } }
+      }
+    })
+
+    const binding = async (command: Record<string, unknown>) => {
+      const answer = await room.send({
+        ...command,
+        actorId: CASTER_ACTOR_ID,
+        commandId: crypto.randomUUID(),
+        encounterId: room.room.encounterId,
+        expectedEncounterVersion: await room.version(),
+        sceneId: room.room.scene.id
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    }
+    await binding({ type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' })
+    expect(await readZones(room)).toEqual([])
+    await binding({ type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', tokenId: characterTokenId })
+    expect((await readZones(room)).map(readSpatialEffect)).toEqual([
+      expect.objectContaining({ id: placed!.id, placement: placed!.placement })
+    ])
+  })
+})
+
 describe('the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)', () => {
   const BALOR_ID = testUuid(0x2248)
   const balor = srdByLabel(SRD.creatures, 'Balor')

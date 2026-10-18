@@ -9,7 +9,7 @@ import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/chara
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { EQUIPMENT_PROPERTY_CODE, nextEquipSlot } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { ClassAuthored, EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 /** A level 1 Character capture; the private transport row below uses the canonical storage codec. */
@@ -174,8 +174,10 @@ export interface CharacterPlayOverrides {
   currentHitPoints?: number
   /** The Character's death saves (default none); three failures leave it dead (D96). */
   deathSaves?: CharacterDeathSaves
-  /** The Fighter's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
-  fighterLevel?: number
+  /** The SRD Class the Character's levels are in (default the captured Fighter); its source must publish it. */
+  characterClass?: ClassAuthored
+  /** The Character's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
+  classLevel?: number
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
   /** The spells the Character's Class has learned and prepared. */
@@ -194,13 +196,16 @@ export function characterOwnerRowFor({
     equipped = false,
     carried = [],
     carriedQuantity = 1,
-    fighterLevel = 1,
+    characterClass,
+    classLevel = 1,
     conditions,
     spells,
     spellSlots
   } = playOverrides
+  const [capturedClass] = capturedPage.inputs.character.intent.classes
+  const classId = characterClass?.id ?? capturedClass!.classId
   const [capturedLevel] = capturedPage.inputs.character.intent.hitpoints.levels
-  const maximumHitPoints = capturedLevel!.value + 7 * (fighterLevel - 1)
+  const maximumHitPoints = capturedLevel!.value + 7 * (classLevel - 1)
   const capturedInventory = capturedPage.inputs.character.state.equipment.inventory
   const carriedInventory = carried.map((item) => ({
     id: crypto.randomUUID(),
@@ -214,11 +219,12 @@ export function characterOwnerRowFor({
     userId,
     intent: {
       ...capturedPage.inputs.character.intent,
-      classes: [{ ...capturedPage.inputs.character.intent.classes[0]!, classLevel: fighterLevel }],
+      classes: [{ ...capturedClass!, classId, classLevel }],
       hitpoints: {
         ...capturedPage.inputs.character.intent.hitpoints,
-        levels: Array.from({ length: fighterLevel }, (_, index) => ({
+        levels: Array.from({ length: classLevel }, (_, index) => ({
           ...capturedLevel!,
+          classId,
           classLevel: index + 1,
           level: index + 1,
           value: index === 0 ? capturedLevel!.value : 7
@@ -259,7 +265,7 @@ export function characterOwnerRowFor({
       hitpoints: {
         current: currentHitPoints,
         temp: 0,
-        hitDice: [{ die: 10, total: fighterLevel, used: 0 }],
+        hitDice: [{ die: 10, total: classLevel, used: 0 }],
         deathSaves
       },
       ...(conditions && { conditions }),
@@ -267,7 +273,7 @@ export function characterOwnerRowFor({
       ...(spells && {
         classes: [
           {
-            classId: capturedPage.inputs.character.intent.classes[0]!.classId,
+            classId,
             spells: { learned: [...spells.learned], prepared: [...spells.prepared] }
           }
         ]

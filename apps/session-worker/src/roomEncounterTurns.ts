@@ -24,7 +24,7 @@ import { planNativeLiveEncounterTurn } from './nativeEncounterTurn.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { readRoomSceneHeader, readRoomSceneEntities, readRoomSceneState } from './roomSceneRead.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { prepareRoomLiveCharacterSheet, readRoomOwnerCharacterRules } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -135,6 +135,14 @@ export async function executeRoomEncounterTurn(input: {
           batch
         }),
       readScene: async (sceneId) => (await readRoomSceneState(transaction, sceneId)).scene,
+      readCharacterRules: (campaign, characterId) =>
+        readRoomOwnerCharacterRules(
+          store,
+          inputs,
+          { campaign, authorityEpoch: scope.authorityEpoch, characterId },
+          observed,
+          transaction
+        ),
       readDefinition: async (id, userId) => {
         await ctx.ports.requireCampaignAuthority(scope.campaignId, userId)
         return (await inputs.definition(id, observed, transaction)).definition

@@ -452,8 +452,16 @@ candidate seam (turn contacts, movement and forced movement), so a revived sourc
 placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
-zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. Current:
-`planEncounterPlacedZone` refuses such a zone until placement resolves the amount and radius against the source (T5b).
+zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source
+ability-modifier amount or a class-level radius compiles only on a PASSIVE zone, since only placement on a known source
+resolves them; a FIXED bonus may also ride a cast zone. Placement pins both (T5b): `planEncounterPlacedZone` takes a
+`PlacedZoneSource` (ability modifiers and class levels) and records the resolved integer amount, and the caller sizes the
+area from `zoneShapeAtSource`. A Character's PASSIVE feature zones (D155) are discovered from `passiveZoneSources`, the
+server-only candidates and entry points `buildCharacterActionRuleFacts` sets aside instead of offering them as actions,
+and placed by the same `planEncounterPassiveZones`, which takes each Character's current rule evaluation
+(`characterRules`) and resolves the zone against its ability modifiers and class levels; a Creature resolves against its
+snapshot ability scores. `placeEncounterPassiveZones` reads those rules through the host's `readCharacterRules`, as the
+Campaign owner reads them; a Character whose rules are unavailable keeps no zones.
 `MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
 other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
 authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the

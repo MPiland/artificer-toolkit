@@ -14,6 +14,7 @@ import {
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
+import { placedSpaceEntries } from '../placedSpaceEntries.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 
@@ -27,9 +28,20 @@ type ActionMechanicOutcome = ActionMechanicFacts['outcomes'][number]
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
 type HealOutcome = Extract<ActionMechanicOutcome, { kind: 'HEAL' }>
 
+/** Action candidates with their server-only entries, index-aligned. */
+interface CharacterActionSources {
+  candidates: ActionCandidate[]
+  entryPoints: CharacterActionRuleEntryPoint[]
+}
+
 interface CharacterActionRuleFacts {
   actionCandidates: ActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
+  /**
+   * The zones the Character's passive features, options and feats keep around its token (D155),
+   * as candidates no one takes: an Encounter places them, and they are never policy facts.
+   */
+  passiveZones: CharacterActionSources
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -362,9 +374,15 @@ function appendActions(params: {
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
   /** Passive Feature damage that rides on the attacks of this source. */
   onHitRiders?: readonly OnHitRider[]
+  /** Where this source's passive zones go; absent for a source that keeps none. */
+  passiveZones?: CharacterActionSources
 }): void {
   for (const authoredEffect of params.effects ?? []) {
-    if (authoredEffect.invocation.kind === 'PASSIVE') continue
+    const passive = authoredEffect.invocation.kind === 'PASSIVE'
+    const sink = passive
+      ? params.passiveZones
+      : { candidates: params.candidates, entryPoints: params.entryPoints }
+    if (!sink || (passive && !placedSpaceEntries(authoredEffect))) continue
     // Only an item's own effects carry a grip; features granted by an item have none.
     const equipment = params.equipment && {
       ...params.equipment,
@@ -385,7 +403,10 @@ function appendActions(params: {
       mergeOnHitRiders(authoredEffect, params.onHitRiders ?? []),
       dnd5eAttackingItem(equipment)
     )
-    const resourceUse = authoredEffect.invocation.resourceUse
+    const resourceUse =
+      authoredEffect.invocation.kind === 'PASSIVE'
+        ? undefined
+        : authoredEffect.invocation.resourceUse
     const mechanicSource = params.source.mechanicSource
     const matchingPools = resourceUse
       ? mechanicSource.kind === 'EQUIPMENT_INSTANCE'
@@ -412,7 +433,7 @@ function appendActions(params: {
           })()
       : []
     const candidate = {
-      sequence: params.candidates.length,
+      sequence: sink.candidates.length,
       actionId: actionId(params.source.sourceId, effect.id),
       label: params.label,
       effectId: effect.id,
@@ -430,8 +451,8 @@ function appendActions(params: {
         : null,
       mechanicFacts: normalizeCharacterActionMechanicFacts(effect)
     }
-    params.candidates.push(candidate)
-    params.entryPoints.push({
+    sink.candidates.push(candidate)
+    sink.entryPoints.push({
       actionId: candidate.actionId,
       effectId: candidate.effectId,
       sourceId: candidate.sourceId,
@@ -453,6 +474,7 @@ export function buildCharacterActionRuleFacts(params: {
   const actionCandidates: ActionCandidate[] = []
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const onHitRiders: OnHitRider[] = []
+  const passiveZones: CharacterActionSources = { candidates: [], entryPoints: [] }
   for (const [index, feature] of snapshot.features.entries()) {
     const definition = registry.features[feature.featureId]
     const folded = grantFoldFacts.features[index]
@@ -468,7 +490,8 @@ export function buildCharacterActionRuleFacts(params: {
         mechanicsOwner: { kind: 'FEATURE', id: feature.featureId },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
-        resourcePoolCandidates: params.resourcePoolCandidates
+        resourcePoolCandidates: params.resourcePoolCandidates,
+        passiveZones
       })
     }
     const selected = getCharacterGrantFoldSelectedOptionIds(feature)
@@ -490,7 +513,8 @@ export function buildCharacterActionRuleFacts(params: {
         mechanicsOwner: { kind: 'FEATURE_OPTION', id: option.id },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
-        resourcePoolCandidates: params.resourcePoolCandidates
+        resourcePoolCandidates: params.resourcePoolCandidates,
+        passiveZones
       })
     }
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
@@ -506,7 +530,8 @@ export function buildCharacterActionRuleFacts(params: {
         mechanicsOwner: { kind: 'FEAT', id: feature.source.featId },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
-        resourcePoolCandidates: params.resourcePoolCandidates
+        resourcePoolCandidates: params.resourcePoolCandidates,
+        passiveZones
       })
     }
   }
@@ -575,7 +600,7 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  return { actionCandidates, entryPoints }
+  return { actionCandidates, entryPoints, passiveZones }
 }
 
 type CompiledOutcome = CompiledEffectEntry['outcome']

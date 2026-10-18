@@ -136,3 +136,34 @@ export async function prepareRoomLiveCharacterSheet(
   }
   return { ...facts, revisions }
 }
+
+/**
+ * A Character's rule evaluation as its Campaign owner reads it, the identity Convex's Encounter
+ * ports read under. The caller admits the command first.
+ */
+export async function readRoomOwnerCharacterRules(
+  store: RoomEncounterStore,
+  room: RoomInputs,
+  scope: {
+    campaign: { id: string; ownerUserId: string }
+    authorityEpoch: string
+    characterId: string
+  },
+  observed: LiveSessionRulesRevisions | null,
+  transaction?: RoomTransaction
+) {
+  const facts = await prepareRoomLiveCharacterSheet(
+    store,
+    room,
+    {
+      campaignId: scope.campaign.id,
+      authorityEpoch: scope.authorityEpoch,
+      expectedUserId: scope.campaign.ownerUserId,
+      expectedRole: 'OWNER',
+      characterId: scope.characterId
+    },
+    observed,
+    transaction
+  )
+  return facts.ruleEvaluation
+}
