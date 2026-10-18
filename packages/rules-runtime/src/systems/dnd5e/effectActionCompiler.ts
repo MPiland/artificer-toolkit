@@ -1870,11 +1870,11 @@ function ownsTimedSaveCondition(
   action: Dnd5eCompiledEffectActionSource,
   entry: CompiledEffectGroup['entries'][number]
 ): boolean {
+  if (!('outcome' in entry)) return false
   const turns = entry.duration ? conditionDurationTurns(entry.duration) : null
   return (
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
-    'outcome' in entry &&
     ((entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
       (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
       (turns !== null && turns <= 1)) &&
@@ -1892,8 +1892,8 @@ function ownsTimedSaveCondition(
 function sourceImmunityPlan(
   action: Dnd5eCompiledEffectActionSource
 ): CharacterRuleActionActiveEffectPlan['sourceImmunity'] {
-  const entries = action.compiledEffect.entries.filter(
-    (entry) => 'outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY'
+  const entries = action.compiledEffect.entries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY' ? [entry] : []
   )
   const entry = entries[0]
   const lockout = action.perTargetLockout

@@ -1,4 +1,5 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -116,12 +117,13 @@ async function nextRound(room: Room) {
 /** The source immunities the room holds, by holder. */
 async function immunities(room: Room) {
   const { activeEffects } = await readRoomHistory(room.room.base.stub)
-  return activeEffects.flatMap((effect) =>
-    effect.definition.schemaVersion === 2 &&
-    effect.definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
+  return activeEffects.flatMap((effect) => {
+    const definition = activeRuleEffectDefinitionDtoSchema.parse(JSON.parse(effect.definitionJson))
+    return definition.schemaVersion === 2 &&
+      definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
       ? [effect.targetActorId]
       : []
-  )
+  })
 }
 
 describe('a creature immune to this source’s use of an action (SPELLS-31.T5l, D156)', () => {
