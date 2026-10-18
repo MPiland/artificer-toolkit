@@ -10,8 +10,11 @@ import {
   LENGTH_UNIT_OPTIONS,
   MODIFIER_KIND_OPTIONS,
   MODIFIER_SCOPE_OPTIONS,
+  MAX_ROLLED_DIE_COUNT,
   MODIFIER_VALUE_SOURCE_OPTIONS,
   RANGE_OPTIONS,
+  ROLLED_DIE_FACES,
+  ROLLED_DIE_SIGN_OPTIONS,
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
@@ -221,6 +224,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isBonus = parent.field(['modifierKind']).eq('BONUS')
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
     const isMultiply = parent.field(['modifierKind']).eq('MULTIPLY')
+    const isRolledDie = parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -325,10 +329,27 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
-        'dice',
-        text(['dice'], 'Dice', {
-          showIf: parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
+        'count',
+        number(['count'], 'Dice', {
+          constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT },
+          showIf: isRolledDie
         })
+      )
+      .set(
+        'faces',
+        number(['faces'], 'Die Faces', {
+          constraints: { minimum: ROLLED_DIE_FACES[0], maximum: ROLLED_DIE_FACES[ROLLED_DIE_FACES.length - 1] },
+          showIf: isRolledDie
+        })
+      )
+      .set(
+        'sign',
+        selectSingle(
+          ['sign'],
+          'Add or Subtract',
+          { kind: 'INLINE_OPTIONS', options: ROLLED_DIE_SIGN_OPTIONS },
+          { showIf: isRolledDie }
+        )
       )
       .set(
         'damageTypeId',

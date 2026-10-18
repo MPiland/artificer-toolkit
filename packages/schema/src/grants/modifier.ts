@@ -1,3 +1,5 @@
+import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
+
 import { z, lazySchema } from '../zod.js'
 
 import { staticGrantBaseDtoSchema } from './grant.js'
@@ -213,7 +215,14 @@ const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
   })
 )
 
-const dicePayloadDtoSchema = lazySchema(() => z.strictObject({ dice: authoredIdentifierSchema }))
+/** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
+export const rolledDiePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ROLLED_DIE_COUNT)),
+    faces: z.union(ROLLED_DIE_FACES.map((faces) => z.literal(faces))),
+    sign: z.enum(['ADD', 'SUBTRACT'])
+  })
+)
 
 const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })
@@ -311,7 +320,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     armorClassFormulaPayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
-    dicePayloadDtoSchema,
+    rolledDiePayloadDtoSchema,
     damageResistancePayloadDtoSchema,
     damageImmunityPayloadDtoSchema,
     conditionTypePayloadDtoSchema,
@@ -478,6 +487,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'ADVANTAGE', savingThrowParamDtoSchema),
     buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'DISADVANTAGE', savingThrowParamDtoSchema),
     buildModifierGrantVariant(
+      'SAVING_THROW_MODIFIER',
+      'ADD_BONUS_DIE',
+      savingThrowParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
       'ATTACK_ROLL',
       'BONUS',
       attackDomainParamDtoSchema,
@@ -503,6 +518,12 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackRollRollModeParamDtoSchema),
     buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackRollRollModeParamDtoSchema),
+    buildModifierGrantVariant(
+      'ATTACK_ROLL',
+      'ADD_BONUS_DIE',
+      attackDomainParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
@@ -575,12 +596,6 @@ const buildModifierGrantVariants = () =>
       'OPTIONAL_ABILITY_MODIFIER_BONUS',
       attackDomainParamDtoSchema,
       optionalAbilityModifierBonusPayloadDtoSchema
-    ),
-    buildModifierGrantVariant(
-      'DAMAGE',
-      'ADD_BONUS_DIE',
-      attackDomainParamDtoSchema,
-      dicePayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE',
@@ -895,7 +910,6 @@ function unsupportedModifierMessage(value: {
     return `${label} modifiers are not supported yet; use a bonus or penalty.`
   if (
     UNSUPPORTED_MODIFIERS.has(label) ||
-    value.modifierKind === 'ADD_BONUS_DIE' ||
     value.modifierKind === 'REPLACE_DAMAGE_TYPE' ||
     value.valueDomainCode === 'MOVEMENT_MODE' ||
     value.valueDomainCode === 'ATTRIBUTE' ||
