@@ -271,8 +271,8 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
       - Darkvision does not see in magical darkness.
       - Devil's Sight does not see beyond its range, or while the observer is blinded.
     - `classMechanics.test.ts` covers the Signature Spells data.
-  - **Gaze of Two Minds:** authored SELF, not TOUCH WILLING. Effects have no per-path targeting override, so the touched humanoid stays description and the conditions land on the warlock.
-  - **Empty Body Astral Projection (8 ki):** stays description, pending the orchestrator's ruling. A class spell grant cannot spend a class pool, because SOURCE_CHARGES is wired only for equipment (`characterGrantFold.ts`).
+  - **Gaze of Two Minds (accepted, 8ecea4c51):** authored SELF, not TOUCH WILLING. Effects have no per-path targeting override, so the touched humanoid stays description and the conditions land on the warlock.
+  - **Empty Body Astral Projection (8 ki):** stays description: ruled (a) under D156 (8ecea4c51), and a class-pool spell-grant cost is a deferred edge case in future-enhancements, not a task. A class spell grant cannot spend a class pool, because SOURCE_CHARGES is wired only for equipment (`characterGrantFold.ts`).
   - **Encounter compile:**
     - Empty Body and Gaze compile to MANUAL in play, as the closed rule did. `supported()` in `effectActionCompiler.ts` accepts one outcome entry per self action.
     - Follow-up to register: encounter support for multi-outcome timed self actions.
@@ -282,7 +282,7 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - The feature gets a LIMITED_USE FIXED 1 LONG_REST charge.
     - Its ACTION spends that use and gives a MANUAL_ADJUDICATION GM_CHOICE outcome. The instructions carry the percentile roll against cleric level, the automatic 20th-level success and the 7-day lockout on success.
     - Proofs: `classFeatureCoreOptions.test.ts` (candidate and instructions) and the parity file (SRD and a homebrew variant).
-  - **Volley and Whirlwind Attack:** stopped, per the brief. Per-creature weapon attacks do not compile from a class option. Feature and option action candidates carry `equipment: null` (`characterActionRuleFacts.ts`), and the attack mechanic takes weapon damage, proficiency and ammunition only from `candidate.equipment` (`characterActionMechanics.ts`). Reported to the orchestrator with a proposal to move both to a B task, "feature weapon attack against each target with the wielded weapon". `CLASS_HUNTER_VOLLEY` and `CLASS_HUNTER_WHIRLWIND_ATTACK` stay until then.
+  - **Volley and Whirlwind Attack:** stopped, per the brief. Per-creature weapon attacks do not compile from a class option. Feature and option action candidates carry `equipment: null` (`characterActionRuleFacts.ts`), and the attack mechanic takes weapon damage, proficiency and ammunition only from `candidate.equipment` (`characterActionMechanics.ts`). Ruled (22e835f41): both move to SPELLS-31.T5s, "feature weapon attack against each target with the wielded weapon, ammo per target". `CLASS_HUNTER_VOLLEY` and `CLASS_HUNTER_WHIRLWIND_ATTACK` stay until then.
   - **Defect found:** normalizing the full Cleric record through the class node map throws "Untrusted node runtime table: proficiency_grant_equipment".
     - Cause: the starting-equipment EQUIPMENT_PROFICIENCY eligibility (the warhammer option) reaches the facet map branch at `facet.ts:1968`, and `nodeRuntimeSources.ts` does not list that table.
     - The parity file proves the Cleric without its starting equipment.
