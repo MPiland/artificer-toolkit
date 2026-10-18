@@ -44,7 +44,7 @@ export function planEncounterPlacedZone(input: {
 }): LiveSessionPlacedSpatialEffect {
   const { zone, point, area } = input
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
-  const { entry, grant } = zone
+  const { entry, grant, heldCondition } = zone
   const pinnedDc = entry.castSaveDcFactKey
     ? { [entry.castSaveDcFactKey]: castSaveDc(input.saveDc) }
     : {}
@@ -110,6 +110,25 @@ export function planEncounterPlacedZone(input: {
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
       ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
+      // A held condition's escape against its source's save DC pins the caster's DC (D146).
+      ...(heldCondition
+        ? {
+            heldCondition: {
+              ...heldCondition,
+              ...(heldCondition.escape
+                ? {
+                    escape: {
+                      ...heldCondition.escape,
+                      dc:
+                        heldCondition.escape.dc.kind === 'FIXED'
+                          ? heldCondition.escape.dc.value
+                          : castSaveDc(input.saveDc)
+                    }
+                  }
+                : {})
+            }
+          }
+        : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
         : {})

@@ -11,6 +11,14 @@ import {
   type LiveSessionMovementSettlement
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import { spatialEffectTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
+import {
+  heldUntilLeavingZoneId,
+  leavingAreaHolds
+} from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
+import {
+  encounterActorsAfterEscape,
+  encounterEscapeEndedConditionIds
+} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import {
   bindEncounterActorRuleOutputToFacts,
@@ -352,7 +360,7 @@ export async function prepareNativeLiveMovement(
       },
       evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
         prepareEncounterSpatialMovement({
-          input: { ...spatial, carefully },
+          input: { ...spatial, carefully, leavingAreaHolds: leavingAreaHolds(targets.values()) },
           state,
           userId,
           runtime: state.automationMode === 'MANUAL' ? undefined : runtime,
@@ -772,8 +780,35 @@ export async function prepareNativeLiveMovement(
         })
     })
   })
+  // A creature that left a zone holding it until it leaves is released after every other contact.
+  const departures =
+    planned.outcome.kind === 'TERMINAL' ? (planned.outcome.areaDepartures ?? []) : []
+  for (const departure of departures) {
+    const holderEffects = captured.targets.get(departure.holderActorId)?.activeEffects
+    const endedEffect = holderEffects?.find(
+      (effect) => heldUntilLeavingZoneId(effect) === departure.zoneEffectId
+    )
+    if (!holderEffects || !endedEffect)
+      throw new Error('Movement area departure holder is missing.')
+    settlementInputs.push(
+      liveSessionMovementSettlementSchema.parse({
+        kind: 'AREA_DEPARTURE',
+        departure,
+        endedEffect,
+        removedConditionIds: encounterEscapeEndedConditionIds(holderEffects, endedEffect.id)
+      })
+    )
+    for (const actor of encounterActorsAfterEscape({
+      encounterId: state.id,
+      actors: captured.actors.map((entry) => finalActors.get(entry.id)!),
+      holderId: departure.holderActorId,
+      holderEffects,
+      activeEffectId: endedEffect.id
+    }))
+      finalActors.set(actor.id, actor)
+  }
   const ruleFacts =
-    planned.outcome.kind === 'TERMINAL' || planned.settlements.length
+    planned.outcome.kind === 'TERMINAL' || settlementInputs.length
       ? buildEncounterActorRuleFacts({
           actors: captured.actors.map((actor) => finalActors.get(actor.id)!)
         })

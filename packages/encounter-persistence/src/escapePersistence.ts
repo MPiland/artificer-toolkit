@@ -142,7 +142,7 @@ export async function persistEncounterEscape(
       campaignId: campaign.id,
       state,
       nextVersion: nextState.version,
-      commandType: 'ESCAPE_RELATIONSHIP',
+      commandType: 'ESCAPE',
       commandId: command.commandId,
       commandFingerprint: fingerprint,
       execution: check.settlement.execution,
@@ -162,7 +162,7 @@ export async function persistEncounterEscape(
       campaignId: campaign.id,
       encounterId: run.id,
       commandId: command.commandId,
-      commandType: 'ESCAPE_RELATIONSHIP',
+      commandType: 'ESCAPE',
       label: ESCAPE_ACTION_LABEL,
       ruleOverrides: input.ruleOverrides,
       receipt: {

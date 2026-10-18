@@ -1,4 +1,9 @@
-import type { CheckAuthored, CheckChoiceAuthored, CheckDcAuthored } from '#authored'
+import type {
+  CheckAuthored,
+  CheckChoiceAuthored,
+  CheckDcAuthored,
+  HeldEscapeDcAuthored
+} from '#authored'
 import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
@@ -6,6 +11,7 @@ type CheckDcNode = AllUnionFields<CheckDcAuthored>
 
 const checkChoice = buildNodeMap<CheckChoiceAuthored>()
 const checkDc = buildNodeMap<CheckDcNode>()
+const heldEscapeDc = buildNodeMap<AllUnionFields<HeldEscapeDcAuthored>>()
 const check = buildNodeMap<CheckAuthored>()
 
 export const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, nodes, data }) => {
@@ -91,6 +97,33 @@ export const CHECK_DC_NODE_MAP = defineCheckDcNodeMap('checkDc', [
 
 /** An escape check is held against a fixed DC or a contest only. */
 export const ESCAPE_DC_NODE_MAP = defineCheckDcNodeMap('escapeDc', ['FIXED', 'CONTEST'])
+
+/** An escape from a zone-held condition is held against a fixed DC or its source's save DC. */
+export const HELD_ESCAPE_DC_NODE_MAP = heldEscapeDc.define(
+  'heldEscapeDc',
+  ({ map, nodes, cond }) => {
+    const { number, selectSingle } = nodes
+    const local = cond.local()
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'DC', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'FIXED', label: 'Fixed DC' },
+            { code: 'SOURCE_SAVE_DC', label: 'Source Save DC' }
+          ]
+        })
+      )
+      .set(
+        'value',
+        number(['value'], 'Fixed DC', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['kind']).eq('FIXED')
+        })
+      )
+  }
+)
 
 export const CHECK_NODE_MAP = check.define('check', ({ map, nodes }) => {
   const { groupObject } = nodes

@@ -20,6 +20,34 @@ import type {
 
 export class EncounterActionEffectPlanError extends Error {}
 
+/**
+ * Whether a condition an effect comes to own was present without it: the baseline the holder's
+ * other owners of the condition already record, else whether the holder has the condition now.
+ */
+export function conditionBaselinePresent(
+  holder: {
+    activeEffects: readonly Pick<ActiveRuleEffectRecord, 'definition'>[]
+    conditionIds: readonly string[]
+  },
+  conditionId: string
+): boolean {
+  const existingBaselines = holder.activeEffects.flatMap((effect) =>
+    effect.definition.schemaVersion === 2
+      ? effect.definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
+            ? [contribution.baselinePresent]
+            : []
+        )
+      : []
+  )
+  const baselinePresent = existingBaselines[0] ?? holder.conditionIds.includes(conditionId)
+  if (existingBaselines.some((existing) => existing !== baselinePresent))
+    throw new EncounterActionEffectPlanError(
+      'The target condition contribution baseline is inconsistent.'
+    )
+  return baselinePresent
+}
+
 export function compileEffectGraph(
   published: ServerPublishedRuleDefinitionDto,
   contractVersion: number
@@ -342,23 +370,6 @@ function prepareRecurringActiveEffect(
     )
       return null
   }
-  const conditionBaselinePresent = (conditionId: string): boolean => {
-    const existingBaselines = input.target.activeEffects.flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
-              ? [contribution.baselinePresent]
-              : []
-          )
-        : []
-    )
-    const baselinePresent = existingBaselines[0] ?? input.target.conditionIds.includes(conditionId)
-    if (existingBaselines.some((existing) => existing !== baselinePresent))
-      throw new EncounterActionEffectPlanError(
-        'The target condition contribution baseline is inconsistent.'
-      )
-    return baselinePresent
-  }
   const relationshipConditionIds = relationshipContribution
     ? [
         ...relationshipContribution.conditionIds,
@@ -502,7 +513,7 @@ function prepareRecurringActiveEffect(
             ...conditionContributions.map((contribution) => ({
               kind: 'CONDITION_OWNERSHIP' as const,
               conditionId: contribution.conditionId,
-              baselinePresent: conditionBaselinePresent(contribution.conditionId),
+              baselinePresent: conditionBaselinePresent(input.target, contribution.conditionId),
               ...(contribution.recordsSource && {
                 sourceActorId: input.sourceActorId,
                 ...(contribution.fleesSource && { fleesSource: true })
@@ -511,7 +522,7 @@ function prepareRecurringActiveEffect(
             ...relationshipConditionIds.map((conditionId) => ({
               kind: 'CONDITION_OWNERSHIP' as const,
               conditionId,
-              baselinePresent: conditionBaselinePresent(conditionId)
+              baselinePresent: conditionBaselinePresent(input.target, conditionId)
             })),
             ...(relationshipContribution
               ? [

@@ -29,7 +29,7 @@ describe('classifyNativeEncounterOccurrence', () => {
       [facts({ kind: 'ENCOUNTER_BASIC_ACTION_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_ESCAPE_CHECK' }), 'ESCAPE'],
-      [facts(null, { rootCommandType: 'ESCAPE_RELATIONSHIP' }), 'ESCAPE'],
+      [facts(null, { rootCommandType: 'ESCAPE' }), 'ESCAPE'],
       [facts({ kind: 'ENCOUNTER_TURN_RECHARGE' }), 'TURN'],
       [facts({ kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' }), 'TURN'],
       [facts({ kind: 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' }), 'TURN'],

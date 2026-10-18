@@ -11,7 +11,7 @@ import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { spatialTriggerDtoSchema, spatialTurnTriggerDtoSchema } from '../shared/spatialFacts.js'
-import { spatialZoneLabelSchema } from '../shared/spatial.js'
+import { compiledSpatialHeldConditionDtoSchema, spatialZoneLabelSchema } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -309,6 +309,8 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
     requiresFullyWithin: z.optional(z.boolean()),
     /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
     failedSaveLosesAction: z.optional(z.boolean()),
+    /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
+    heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */

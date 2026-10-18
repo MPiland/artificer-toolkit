@@ -69,6 +69,7 @@ export async function walkerMoves(
     .filter(({ commandType }) => commandType === 'MOVE_SCENE_TOKEN')
   const walked = move?.result as
     | {
+        status: string
         terminalPosition: { x: number; y: number }
         executions: { execution: { movementInterruption: unknown }; applications: unknown[] }[]
       }
@@ -77,7 +78,7 @@ export async function walkerMoves(
   const terminalPosition =
     walked?.terminalPosition ?? (delta?.kind === 'TOKEN_MOVED' ? delta.position : null)
   if (!terminalPosition) throw new Error('The walk moved no token.')
-  return { terminalPosition, executions: walked?.executions ?? [] }
+  return { terminalPosition, status: walked?.status ?? null, executions: walked?.executions ?? [] }
 }
 
 /** The Character's Sheet stream version the room holds. */

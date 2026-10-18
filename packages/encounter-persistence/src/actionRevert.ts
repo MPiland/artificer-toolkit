@@ -195,7 +195,7 @@ export async function revertLastEncounterAction(
     )
       throw new Error('Stored Encounter command scan is invalid.')
   }
-  if (root?.commandType === 'ESCAPE_RELATIONSHIP') {
+  if (root?.commandType === 'ESCAPE') {
     requireCheckAnswerScan(root.receipt.checkOccurrenceId)
     return revertEscape(ctx, { ...scope, root })
   }
@@ -764,7 +764,7 @@ type RevertScope = {
   userId: string
   root: Extract<
     StoredCommand,
-    { commandType: 'RESOLVE_ACTION' | 'ESCAPE_RELATIONSHIP' | 'SET_CONCEALMENT_OBSERVERS' }
+    { commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' }
   >
 }
 
@@ -915,7 +915,7 @@ function returnSpentActionEconomy(
  */
 async function revertEscape(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'ESCAPE_RELATIONSHIP' }> }
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'ESCAPE' }> }
 ): Promise<EncounterCommandResultDto> {
   const { state, root } = input
   const { receipt } = root

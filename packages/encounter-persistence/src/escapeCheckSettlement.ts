@@ -4,7 +4,7 @@ import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolki
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { findStoredEscape } from './escapeEffectVerification.js'
-import { endEncounterRelationshipEffect } from './relationshipEndPersistence.js'
+import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -69,7 +69,7 @@ export async function settleEncounterEscapeCheck(
     throw new Error('Live Session escape check scope mismatch.')
   let nextActors = [...actors]
   if (output.outcome === 'ESCAPED') {
-    const ended = await endEncounterRelationshipEffect(ctx, {
+    const ended = await endEncounterEscapedEffect(ctx, {
       encounterId: state.id,
       actors: nextActors,
       holderActorId: holder.id,

@@ -2,6 +2,8 @@ import { z, lazySchema } from '../zod.js'
 
 import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 
+import { activationDtoSchema } from '../effects/activation.js'
+import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import {
@@ -119,6 +121,31 @@ export const spatialZoneLabelSchema = lazySchema(() =>
 )
 
 /**
+ * The condition a zone holds on a creature that fails its save (D146), with the escape it offers:
+ * a placed zone pins the escape DC (`dcSchema` is a number there), a compiled one may name its
+ * source's save DC.
+ */
+export function spatialHeldConditionDtoSchema<TDc extends z.ZodMiniType>(dcSchema: TDc) {
+  return z.strictObject({
+    conditionId: uuidSchema,
+    /** The condition ends when the creature leaves the zone's area. */
+    endsOnLeavingArea: z.optional(z.literal(true)),
+    escape: z.optional(
+      z.strictObject({
+        activation: activationDtoSchema,
+        checks: checkChoiceDtoSchema,
+        dc: dcSchema
+      })
+    )
+  })
+}
+
+/** A compiled zone's held condition; its escape DC may be its source's save DC. */
+export const compiledSpatialHeldConditionDtoSchema = lazySchema(() =>
+  spatialHeldConditionDtoSchema(heldEscapeDcDtoSchema)
+)
+
+/**
  * Immutable Encounter/Scene placement. Trigger and movement arrays are already
  * canonical when persisted; parsing never silently changes execution order.
  */
@@ -153,7 +180,11 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       /** At a turn boundary the zone catches only a creature wholly inside it; absent for overlap. */
       requiresFullyWithin: z.optional(z.boolean()),
       /** A creature failing the zone's save at the start of its turn loses its Action for that turn. */
-      failedSaveLosesAction: z.optional(z.boolean())
+      failedSaveLosesAction: z.optional(z.boolean()),
+      /** The condition the zone holds on a creature failing its save, its escape DC pinned. */
+      heldCondition: z.optional(
+        spatialHeldConditionDtoSchema(z.number().check(z.int()).check(z.positive()))
+      )
     })
     .check(
       z.superRefine((placement, context) => {

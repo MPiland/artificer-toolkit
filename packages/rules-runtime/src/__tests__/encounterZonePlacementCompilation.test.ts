@@ -704,10 +704,60 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
     expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
   })
 
+  it('proposes a condition beside the damage from a proposal node of its own (SPELLS-4.T1e)', () => {
+    const authored = startOfTurnZone((parts) =>
+      parts.savePath.resultBlock.outcomes.push(conditionOutcome())
+    )
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+    const zone = zonePlacementOf(authored)
+    const { nodes, sourceEntryBindings } = zone.entry.frozenGraph.definition
+    const withoutCondition = zonePlacementOf(startOfTurnZone())
+    // The condition's proposal follows the test graph's own; the stop's interruption comes last.
+    expect(nodes.map((node) => node.id)).toEqual(
+      withoutCondition.entry.frozenGraph.definition.nodes.flatMap((node) =>
+        node.id === 'proposal-on_save_fail'
+          ? [node.id, 'proposal-on_save_fail-condition']
+          : [node.id]
+      )
+    )
+    expect(nodes.find((node) => node.id === 'proposal-on_save_fail-condition')).toMatchObject({
+      inputs: { conditionId: { kind: 'LITERAL', value: conditionId('POISONED') } }
+    })
+    expect(sourceEntryBindings).toContainEqual({
+      sourceEntryId: extraId(21),
+      nodeId: 'proposal-on_save_fail-condition'
+    })
+    expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
+    expect(zone).not.toHaveProperty('heldCondition')
+  })
+
   it.each<readonly [string, EquipmentAuthored]>([
     [
-      'damage and a condition, until the graph holds a zone-held condition (SPELLS-4.T1e)',
-      startOfTurnZone((parts) => parts.savePath.resultBlock.outcomes.push(conditionOutcome()))
+      'a zone-held condition on a zone that Concentration does not maintain',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { heldBySource: true }
+      })
+    ],
+    [
+      'a lifecycle on a condition the zone does not hold',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_LEAVING_AREA'] }
+      })
+    ],
+    [
+      'a zone-held condition that ends on another event',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { heldBySource: true, endOnEvents: ['ON_ATTACK_ROLL'] }
+      })
+    ],
+    [
+      'a zone-held condition with a further lifecycle',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = {
+          heldBySource: true,
+          holderEnd: { activation: 'ACTION' }
+        }
+      })
     ],
     [
       'two conditions',

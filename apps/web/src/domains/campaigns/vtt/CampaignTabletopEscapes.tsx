@@ -56,7 +56,7 @@ function EscapeList({
       choice.activeEffectId,
       () =>
         onEscape({
-          type: 'ESCAPE_RELATIONSHIP',
+          type: 'ESCAPE',
           encounterId,
           commandId: crypto.randomUUID(),
           expectedVersion: encounterVersion,

@@ -1,6 +1,10 @@
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { planSpatialHeldCondition } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import type { TurnEffectBoundary } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import {
+  turnEffectOwner,
+  type TurnEffectBoundary
+} from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { selectTurnZoneContacts } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type {
@@ -18,6 +22,7 @@ import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { readRunActor } from './documents.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 
@@ -173,6 +178,31 @@ export async function persistEncounterTurnZoneEffects(
     (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
   )
     throw new Error('Turn zone settlement differs from its plan.')
+  // A zone holds the condition its failed save applied (D146).
+  const effectStore = createActiveRuleEffectStore(ctx)
+  const owner = turnEffectOwner(actor, state.id)
+  for (const [ordinal, execution] of executions.entries()) {
+    const zone = effects[ordinal]!
+    const held = planSpatialHeldCondition({
+      zone,
+      holder: {
+        activeEffects: await effectStore.list(owner),
+        conditionIds: execution.targetTransition.before.conditionIds
+      },
+      applications: execution.applications,
+      encounterId: state.id,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.rootCommandId,
+      targetActorId: actor.id
+    })
+    if (held)
+      await effectStore.create({
+        ...held,
+        owner,
+        maintainedEffectStateId: zone.maintainedEffectStateId,
+        occurredAt: input.occurredAt
+      })
+  }
   let settledActor = applied.updatedActor
   for (const { actionEconomy } of executions)
     if (actionEconomy)

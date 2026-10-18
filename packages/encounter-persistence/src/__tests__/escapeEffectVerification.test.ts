@@ -1,7 +1,6 @@
 import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/actionEconomyCapabilityRegistry.default'
 import {
   ESCAPE_GRAPPLE_MODULE_ID,
-  ESCAPE_GRAPPLE_RELATIONSHIP_OUTCOME_ID,
   escapeGrappleEffectDefinition
 } from '@artificer-toolkit/rules-runtime/testing/escapeGrappleEffectFixture'
 import { encounterEscapeCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
@@ -59,8 +58,7 @@ function escapeContext(check: { checkDefinitionId?: string; dc?: number } = {}) 
     actionLabel: 'Escape',
     actorId: HOLDER_ID,
     activeEffectId: EFFECT_ID,
-    relationshipOutcomeId: ESCAPE_GRAPPLE_RELATIONSHIP_OUTCOME_ID,
-    escapeModuleId: ESCAPE_GRAPPLE_MODULE_ID,
+    escapeSourceId: ESCAPE_GRAPPLE_MODULE_ID,
     check: { checkDefinitionId: ATHLETICS, dc: DC, label: 'Strength (Athletics)', ...check },
     d20: {
       rollMode: 'NORMAL',
@@ -85,8 +83,7 @@ describe('findStoredEscape', () => {
   it('reads the holder’s own effect and returns the escape a matching plan came from', async () => {
     await expect(find()).resolves.toMatchObject({
       dc: DC,
-      relationshipOutcomeId: ESCAPE_GRAPPLE_RELATIONSHIP_OUTCOME_ID,
-      module: { id: ESCAPE_GRAPPLE_MODULE_ID }
+      escapeSourceId: ESCAPE_GRAPPLE_MODULE_ID
     })
     expect(findById).toHaveBeenCalledWith(
       { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: HOLDER_ID },
@@ -113,13 +110,9 @@ describe('findStoredEscape', () => {
     ).resolves.toMatchObject({ dc: DC })
   })
 
-  it('refuses a plan naming another module or relationship outcome', async () => {
-    const context = escapeContext()
+  it('refuses a plan naming another escape source', async () => {
     await expect(
-      find({ ...context, escapeModuleId: '00000000-0000-4000-8000-0000000000a6' })
-    ).rejects.toThrow(ESCAPE_EFFECT_MISMATCH)
-    await expect(
-      find({ ...context, relationshipOutcomeId: '00000000-0000-4000-8000-0000000000a7' })
+      find({ ...escapeContext(), escapeSourceId: '00000000-0000-4000-8000-0000000000a6' })
     ).rejects.toThrow(ESCAPE_EFFECT_MISMATCH)
   })
 

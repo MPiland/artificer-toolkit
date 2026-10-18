@@ -1376,7 +1376,7 @@ effect: `encounterEscapeEndedConditionIds` names the conditions only that effect
 `CONDITION_OWNERSHIP` contributions through `endedMaintenanceConditions`, so a condition another remaining
 effect retains stays), and `encounterActorsAfterEscape` strips them from a Creature holder. A Character's
 conditions live on its Sheet, so the room's plan does not carry them; persistence removes them with the
-effect (`endEncounterRelationshipEffect` reconciles the maintenance owners on the Character's stream). The
+effect (`endEncounterEscapedEffect` reconciles the maintenance owners on the Character's stream). The
 commit re-derives the escape from the holder's stored effect (`escapeEffectVerification.ts`) and refuses a
 plan whose DC, check, module or spent allowance the effect does not carry. A failure only spends the
 activation.

@@ -49,6 +49,14 @@ export const escapeDcDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', fixedAndContestDcDtoSchemas())
 )
 
+/** The DC kinds an escape from a zone-held condition rolls against; see `HeldEscapeDcAuthored`. */
+export const heldEscapeDcDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    fixedAndContestDcDtoSchemas()[0],
+    z.object({ kind: z.literal('SOURCE_SAVE_DC') })
+  ])
+)
+
 /** What the CHECK trigger rolls: the actor picks one listed check and rolls it against the DC. */
 export const checkDtoSchema: z.ZodMiniType<CheckAuthored> = lazySchema(() =>
   z.object({ checks: checkChoiceDtoSchema, dc: checkDcDtoSchema })

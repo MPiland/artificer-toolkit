@@ -544,7 +544,7 @@ export const encounterBasicActionCheckPendingContextDtoSchema = lazySchema(() =>
 
 /**
  * A held creature's pending Escape check (D105). The activation is already spent; the d20 settles
- * the check against the fixed `check.dc`, and success ends the relationship effect.
+ * the check against the fixed `check.dc`, and success ends the holding effect.
  */
 export const encounterEscapeCheckPendingContextDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -555,8 +555,8 @@ export const encounterEscapeCheckPendingContextDtoSchema = lazySchema(() =>
     actionLabel: identifierSchema,
     actorId: uuidSchema,
     activeEffectId: uuidSchema,
-    relationshipOutcomeId: uuidSchema,
-    escapeModuleId: uuidSchema,
+    /** The relationship escape module or the zone holding a condition the escape derives from. */
+    escapeSourceId: uuidSchema,
     check: z.strictObject({
       checkDefinitionId: uuidSchema,
       dc: positiveIntegerSchema,

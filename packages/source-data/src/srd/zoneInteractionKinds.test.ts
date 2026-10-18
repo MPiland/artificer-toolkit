@@ -5,6 +5,7 @@ import { caltropsBagOf20 } from './equipment/caltrops-bag-of-20.js'
 import { huntingTrap } from './equipment/hunting-trap.js'
 import { oilFlask } from './equipment/oil-flask.js'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
+import { blackTentacles } from './spells/black-tentacles.js'
 import { bladeBarrier } from './spells/blade-barrier.js'
 import { cloudkill } from './spells/cloudkill.js'
 import { grease } from './spells/grease.js'
@@ -14,6 +15,7 @@ import { moonbeam } from './spells/moonbeam.js'
 import { sleetStorm } from './spells/sleet-storm.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
 import { stinkingCloud } from './spells/stinking-cloud.js'
+import { web } from './spells/web.js'
 import { damageTypeId } from './spells/shared.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
@@ -40,7 +42,9 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     ['Hunting Trap', huntingTrap, 'Pressure plate'],
     ['Blade Barrier', bladeBarrier, 'Whirling Blades'],
     ['Grease', grease, 'Enter the grease'],
-    ['Sleet Storm', sleetStorm, 'Enter the sleet storm']
+    ['Sleet Storm', sleetStorm, 'Enter the sleet storm'],
+    ['Web', web, 'Enter the webs'],
+    ['Black Tentacles', blackTentacles, 'Enter the tentacles']
   ])('%s authors its enter component as ENTER_OR_PASS_THROUGH', (_name, subject, component) => {
     const kinds = interactionKindsByComponent(subject)[component]
     expect(kinds).toContain('ENTER_OR_PASS_THROUGH')
@@ -118,7 +122,9 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
     { spell: sleetStorm, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: stinkingCloud, rule: 'heavily obscured area', option: 'obscurementKind' },
     { spell: stinkingCloud, rule: 'cloud spreads around corners', option: 'spreadsAroundCorners' },
-    { spell: stinkingCloud, rule: 'wind dispersal', option: 'destructionCriteria' }
+    { spell: stinkingCloud, rule: 'wind dispersal', option: 'destructionCriteria' },
+    { spell: web, rule: 'lightly obscured area', option: 'obscurementKind' },
+    { spell: web, rule: 'webs burning away in fire', option: 'destructionCriteria' }
   ] as const
   it.each(zoneGaps)(
     '$spell.label: the $rule is unauthored ($option, no task yet)',
@@ -130,7 +136,9 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
   it.each([
     ['Insect Plague', insectPlague],
     ['Grease', grease],
-    ['Sleet Storm', sleetStorm]
+    ['Sleet Storm', sleetStorm],
+    ['Web', web],
+    ['Black Tentacles', blackTentacles]
   ])(
     'leaves %s’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)',
     (_name, spell) => {
