@@ -2,7 +2,7 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-18 (Q25 added).
+> Updated: 2026-10-18 (Q25 answered).
 
 ## Open
 
@@ -16,7 +16,7 @@
 - B: convert only those a classification marks as having a combat effect; leave the rest as markers until after beta.
 - C: leave all of them until after beta, recorded in future-enhancements.
 
-**Answer:**
+**Answer:** A (user, 2026-10-18): convert all of them before alpha. AC confirmed by the user and registered as SPELLS-31 (Classes), SPELLS-32 (Races) and SPELLS-33 (Creatures).
 
 ### Q24 (2026-10-17) Automate cast-time choice spells before alpha?
 
