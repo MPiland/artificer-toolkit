@@ -63,6 +63,7 @@ import type {
 import {
   SRD_CONDITION_TYPES,
   SRD_CREATURE_TYPES,
+  SRD_CURRENCIES,
   SRD_DAMAGE_TYPES,
   SRD_SKILLS,
   SRD_SPEEDS,
@@ -130,9 +131,14 @@ export const MUSICAL_INSTRUMENT_DESCRIPTION =
   'Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency.'
 export const ROPE_DESCRIPTION =
   'Rope, whether made of hemp or silk, has 2 hit points and can be burst with a DC 17 Strength check.'
-const CURRENCY_GP = '00000000-0000-0000-0003-000400000000'
-const CURRENCY_SP = '00000000-0000-0000-0003-000300000000'
-const CURRENCY_CP = '00000000-0000-0000-0003-000200000000'
+function currencyId(code: string): string {
+  const entry = SRD_CURRENCIES.find((currency) => currency.code === code)
+  if (!entry) throw new Error(`SRD currency "${code}" is missing.`)
+  return entry.id
+}
+const CURRENCY_GP = currencyId('GP')
+const CURRENCY_SP = currencyId('SP')
+const CURRENCY_CP = currencyId('CP')
 export function gp(amount: number) {
   return { amount, currencyId: CURRENCY_GP }
 }

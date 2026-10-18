@@ -1279,7 +1279,14 @@ export function projectCharacterSheetBundle(
           equipment?.cost && mechanics?.cost !== undefined
             ? { ...equipment.cost, amount: mechanics.cost }
             : undefined,
-        costLabel: equipment?.cost ? currencyLabels.get(equipment.cost.currencyId) : undefined,
+        costLabel: equipment?.cost
+          ? currencyLabels.get(
+              createCharacterCurrencyIdentityKey({
+                kind: 'RULESET',
+                currencyId: equipment.cost.currencyId
+              })
+            )
+          : undefined,
         weight: mechanics?.weight,
         armorClass: equipment?.armorClass,
         customName: item.customName,
