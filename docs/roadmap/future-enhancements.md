@@ -269,6 +269,10 @@ Disarm seals the defender's check from the initiator's selection. The optional r
 
 Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectiles, its block on gases and fog, and its ranged-attack interaction are not modeled yet.
 
+### Web obscures and burns (D156)
+
+Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d. Its light obscurement and its burning (a 10-ft cube burns away in a round, dealing 2d4 fire to a creature that starts its turn in the fire) are not modeled yet.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.
