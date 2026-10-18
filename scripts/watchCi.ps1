@@ -5,8 +5,9 @@
 # Exit 0: all green. Exit 1: a run failed (its failed steps are printed, with the download command for
 # updated snapshots, or for generated-file drift the auto-fix could not commit; a type error cancels the
 # Tests run early and counts as a failure). Exit 2: the latest run was cancelled with no failed job.
-# When Live fails on generated-file drift, the workflow's auto-fix job commits the regenerated files to
-# the branch; the script prints AUTO-FIX <sha> and follows that commit (exit codes then refer to it).
+# When Live fails on generated-file drift, or Lint is the only failing Tests job, that workflow's auto-fix
+# job commits the fixes to the branch; the script prints AUTO-FIX <sha> and follows that commit (exit
+# codes then refer to it).
 param([string]$Ref = 'HEAD')
 
 $sha = git rev-parse $Ref
@@ -36,16 +37,24 @@ while ($true) {
     if ($steps -match '^Typecheck') {
       gh run view $run.databaseId --log-failed | Select-String 'error TS\d+' | Select-Object -First 40 | ForEach-Object Line
     }
-    if ($steps -match 'Generated files match the commit') {
-      # The live-backend auto-fix job commits the regenerated files to the branch (trailer below) and
-      # dispatches Tests and Live on it; the run only finishes after that job, so the commit exists by now.
+    $drift = [bool]($steps -match 'Generated files match the commit')
+    $lintOnly = $run.workflowName -eq 'Tests' -and @($steps).Count -gt 0 -and -not (@($steps) | Where-Object { $_ -notmatch '^Lint: ' })
+    if ($drift -or $lintOnly) {
+      # An auto-fix job (live-backend: regenerated files; Tests: format and lint fixes) commits on top of
+      # $sha (trailer below) and dispatches Tests and Live; the run only finishes after that job, so the
+      # commit exists by now.
       $branch = (gh run view $run.databaseId --json headBranch --jq .headBranch)
       $tip = gh api "repos/{owner}/{repo}/commits/$branch" | ConvertFrom-Json
-      if ($tip.sha -ne $sha -and $tip.parents.sha -contains $sha -and $tip.commit.message -match '(?m)^Generated-By: live-backend auto-fix$') {
-        "AUTO-FIX $($tip.sha) (regenerated files committed on top of $sha); following it"
+      if ($tip.sha -ne $sha -and $tip.parents.sha -contains $sha -and $tip.commit.message -match '(?m)^Generated-By: (live-backend|tests) auto-fix$') {
+        "AUTO-FIX $($tip.sha) (fixes committed on top of $sha); following it"
         $autoFix = $tip.sha
         continue
       }
+    }
+    if ($lintOnly) {
+      "Fix: node scripts/formatChanged.mjs --base origin/codex/phase-08-2-convex-cutover; yarn oxlint --fix; yarn lint; commit; push"
+    }
+    if ($drift) {
       "Fix: gh run download $($run.databaseId) -n generated-files -D local-validation/generated-$($run.databaseId)"
       "     Copy-Item -Recurse -Force local-validation/generated-$($run.databaseId)/* apps/apis/convex; git diff --stat; commit; push"
     }
