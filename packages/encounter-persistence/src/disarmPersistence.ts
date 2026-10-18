@@ -70,7 +70,7 @@ type DisarmCallbacks = {
 
 type ReadyDisarm = Extract<Awaited<ReturnType<typeof readDisarmAdmission>>, { kind: 'READY' }>
 
-/** The fences every Disarm write shares: current Character revisions and the action's Scene. */
+/** The fences every contest write shares: current Character revisions and the action's Scene. */
 async function requireCurrentDisarmInputs(
   ctx: EncounterCharacterWriteTransaction,
   admission: ReadyDisarm,
@@ -79,15 +79,17 @@ async function requireCurrentDisarmInputs(
 ) {
   const { state, root, membership } = admission
   const actors = await readRunActors(ctx, state)
-  await callbacks.readActionSceneInputs(
-    state,
-    {
-      actorId: root.actorId,
-      targetActorId: actionTargetActorId(root.target),
-      sceneContext: root.sceneContext
-    },
-    membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
-  )
+  // An escape has no Scene target; an action's Scene must still hold.
+  if (root.type === 'RESOLVE_ACTION')
+    await callbacks.readActionSceneInputs(
+      state,
+      {
+        actorId: root.actorId,
+        targetActorId: actionTargetActorId(root.target),
+        sceneContext: root.sceneContext
+      },
+      membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
+    )
   await callbacks.validateReadFence(
     state,
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
@@ -186,7 +188,9 @@ export async function persistEncounterDisarmCommit(
   const { run, state, campaign, membership, root, response, fingerprint, occurrence, prior } =
     admission
   const { execution, contest, occurredAt } = input
-  const targetActorId = actionTargetActorId(root.target)
+  // An escape's target is its holder, which the settlement checks against the held effect.
+  const targetActorId =
+    root.type === 'ESCAPE' ? contest.targetActorId : actionTargetActorId(root.target)
   const outputs =
     execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'CONTESTED_ACTION'
       ? execution.applicationOutputs
@@ -197,17 +201,23 @@ export async function persistEncounterDisarmCommit(
     !outputs ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (occurrence && execution.occurrenceId !== occurrence.id) ||
-    // A Disarm seals its optional combat pin; a basic action contest is the action itself (D152).
-    // Only a won basic action contest creates its hold effect.
-    (contest.origin.kind === 'OPTIONAL_COMBAT'
-      ? contest.origin.actionKind !== 'DISARM' ||
-        contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||
-        contest.origin.pin.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+    // A Disarm seals its optional combat pin; a basic action contest is the action itself, and a
+    // contested escape names the held effect and the escaper's check (D152). Only a won basic
+    // action contest creates its hold effect.
+    (root.type === 'ESCAPE'
+      ? contest.origin.kind !== 'ESCAPE' ||
+        contest.origin.activeEffectId !== root.activeEffectId ||
+        contest.origin.initiatorCheckDefinitionId !== root.checkDefinitionId ||
         input.createdEffect !== null
-      : contest.origin.kind !== 'BASIC_ACTION' ||
-        root.optionalCombatIntent != null ||
-        (input.createdEffect !== null) !== (outputs.outcome === 'SOURCE_WIN')) ||
-    contest.actionId !== root.actionId ||
+      : (contest.origin.kind === 'OPTIONAL_COMBAT'
+          ? contest.origin.actionKind !== 'DISARM' ||
+            contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||
+            contest.origin.pin.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+            input.createdEffect !== null
+          : contest.origin.kind !== 'BASIC_ACTION' ||
+            root.optionalCombatIntent != null ||
+            (input.createdEffect !== null) !== (outputs.outcome === 'SOURCE_WIN')) ||
+        contest.actionId !== root.actionId) ||
     contest.sourceActorId !== root.actorId ||
     contest.targetActorId !== targetActorId ||
     outputs.sealedContextChecksum !== checksumRuleDocument(contest) ||
@@ -276,6 +286,7 @@ export async function persistEncounterDisarmCommit(
     : null
   const settled = await settleDisarm(ctx, {
     state,
+    actors,
     actor: sourceMechanics?.updatedActor ?? source,
     target,
     sourceApplications: sourceMechanics?.receiptApplications ?? [],
@@ -293,13 +304,7 @@ export async function persistEncounterDisarmCommit(
   })
   if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
     throw new Error('Live Session Disarm settlement mismatch.')
-  const nextActors = actors.map((actor) =>
-    actor.id === settled.actor.id
-      ? settled.actor
-      : actor.id === settled.target.id
-        ? settled.target
-        : actor
-  )
+  const nextActors = settled.actors
   await deleteGrants(ctx, input.consumedGrants)
   const nextState = encounterRunStateSchema.parse({
     ...state,
@@ -352,7 +357,7 @@ export async function persistEncounterDisarmCommit(
       encounterId: run.id,
       occurrenceId: execution.occurrenceId,
       commandId: root.commandId,
-      commandType: 'RESOLVE_ACTION',
+      commandType: root.type,
       commandFingerprint: fingerprint,
       encounterVersion: nextState.version,
       commandMetadataJson: JSON.stringify(
@@ -372,6 +377,7 @@ export async function persistEncounterDisarmCommit(
       createdAt: occurredAt
     })
   )
+  const label = contest.origin.kind === 'OPTIONAL_COMBAT' ? 'Disarm' : contest.origin.actionLabel
   await insertRunCommand(
     ctx,
     encounterStoredRunCommandSchema.parse({
@@ -379,22 +385,37 @@ export async function persistEncounterDisarmCommit(
       campaignId: campaign.id,
       encounterId: run.id,
       commandId: root.commandId,
-      commandType: 'RESOLVE_ACTION',
-      root: {
-        kind: 'RULE_OCCURRENCE',
-        ruleOccurrenceId: execution.occurrenceId,
-        ruleResultChecksum,
-        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
-      },
-      label: contest.origin.kind === 'BASIC_ACTION' ? contest.origin.actionLabel : 'Disarm',
-      // A contest has no "Do it anyway"; its checks stay hard.
-      ruleOverrides: [],
-      consumedGrants: input.consumedGrants,
-      endedMaintainedStates: [],
-      addedConcentrationCasterId: null,
-      speedBonusTurn: null,
-      teleportAllowanceTurn: null,
-      turnUses: null,
+      // An escape keeps its own record, whose check is the contest; an action is rooted in it.
+      ...(root.type === 'ESCAPE'
+        ? {
+            commandType: 'ESCAPE',
+            label,
+            // A contest has no "Do it anyway"; its checks stay hard.
+            ruleOverrides: [],
+            receipt: {
+              actorId: root.actorId,
+              actionEconomy: outputs.actionEconomyTransition,
+              consumedGrants: input.consumedGrants,
+              checkOccurrenceId: execution.occurrenceId
+            }
+          }
+        : {
+            commandType: 'RESOLVE_ACTION',
+            root: {
+              kind: 'RULE_OCCURRENCE',
+              ruleOccurrenceId: execution.occurrenceId,
+              ruleResultChecksum,
+              optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+            },
+            label,
+            ruleOverrides: [],
+            consumedGrants: input.consumedGrants,
+            endedMaintainedStates: [],
+            addedConcentrationCasterId: null,
+            speedBonusTurn: null,
+            teleportAllowanceTurn: null,
+            turnUses: null
+          }),
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,
       version: nextState.version,

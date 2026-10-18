@@ -1,7 +1,6 @@
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 import type {
   EncounterCommandResultDto,
-  ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRuleReceiptSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
@@ -16,7 +15,8 @@ export async function insertActionEvidenceReceipt(
   input: {
     occurrence: EncounterDocument<'encounterRuleOccurrences'>
     response: ResolveRuleOccurrenceInputDto
-    rootCommand: ResolveEncounterActionInputDto
+    /** The action or contested escape whose occurrence this evidence answers. */
+    rootCommand: { commandId: string }
     rootFingerprint: string
     userId: string
     rootInitiatorUserId?: string

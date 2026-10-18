@@ -242,6 +242,13 @@ const contestCheckOriginDtoSchema = lazySchema(() =>
       initiatorCheckDefinitionId: uuidSchema,
       /** The action's name, which the defender's check prompt and the timeline read. */
       actionLabel: identifierSchema
+    }),
+    z.strictObject({
+      /** A held creature's escape its holder contests; `actionId` is the escape module (D152). */
+      kind: z.literal('ESCAPE'),
+      activeEffectId: uuidSchema,
+      initiatorCheckDefinitionId: uuidSchema,
+      actionLabel: identifierSchema
     })
   ])
 )
@@ -315,6 +322,11 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
           effectId: uuidSchema,
           authoredEffectChecksum: checksumSchema,
           compiledEffectChecksum: checksumSchema
+        }),
+        z.strictObject({
+          kind: z.literal('HELD_EFFECT'),
+          activeEffectId: uuidSchema,
+          definitionChecksum: checksumSchema
         })
       ]),
       target: z.discriminatedUnion('kind', [
@@ -367,11 +379,17 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
             message: 'Contest defender checks must be unique.'
           })
         }
-        if ((origin.kind === 'BASIC_ACTION') !== (value.source.kind === 'BASIC_ACTION')) {
+        if (
+          (origin.kind === 'BASIC_ACTION') !== (value.source.kind === 'BASIC_ACTION') ||
+          (origin.kind === 'ESCAPE') !== (value.source.kind === 'HELD_EFFECT') ||
+          (origin.kind === 'ESCAPE' &&
+            value.source.kind === 'HELD_EFFECT' &&
+            value.source.activeEffectId !== origin.activeEffectId)
+        ) {
           context.addIssue({
             code: 'custom',
             path: ['source', 'kind'],
-            message: 'Only a basic-action contest seals a basic-action source.'
+            message: 'A basic-action contest seals its action and an escape its held effect.'
           })
         }
         if (origin.kind === 'OPTIONAL_COMBAT') {

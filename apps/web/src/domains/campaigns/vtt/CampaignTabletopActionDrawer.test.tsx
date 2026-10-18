@@ -672,6 +672,14 @@ describe('CampaignTabletopActionDrawer escapes', () => {
     expect(within(section).getByText(/Action/)).toBeVisible()
   })
 
+  it('names a contested escape, which its holder resists with no DC (D152)', async () => {
+    renderDrawer(vi.fn(), { escapes: [{ ...escapeChoices[0], dc: null }] })
+
+    const section = await screen.findByRole('region', { name: 'Escape' })
+    expect(within(section).getByText(/Contested/)).toBeVisible()
+    expect(within(section).queryByText(/DC/)).not.toBeInTheDocument()
+  })
+
   it('sends the first allowed check unless another is chosen', async () => {
     const user = userEvent.setup()
     const onEscape = vi.fn().mockResolvedValue(resolved)

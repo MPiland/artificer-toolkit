@@ -86,9 +86,9 @@ function grapple(room: GrappleRoom) {
 /** The settled contest outputs and what the target now holds. */
 async function settled(room: GrappleRoom) {
   const history = await readRoomHistory(room.room.base.stub)
-  // The root action's receipt owns the output; a prompted roll's evidence receipts echo it.
+  // The root command's receipt owns the output; a prompted roll's evidence receipts echo it.
   const outputs = history.receipts.flatMap((receipt) => {
-    if (receipt.commandType !== 'RESOLVE_ACTION') return []
+    if (receipt.commandType !== 'RESOLVE_ACTION' && receipt.commandType !== 'ESCAPE') return []
     const execution = parseReceiptExecution(receipt)
     return execution.status === 'COMPLETE' &&
       execution.applicationOutputs?.kind === 'CONTESTED_ACTION'
@@ -205,5 +205,198 @@ describe('Grapple, a basic action contested by the target, in the room (ATTACK-7
     ])
     expect(occurrences).toEqual(['COMPLETED'])
     expect(targetConditions).not.toContain(GRAPPLED)
+  })
+
+  it('lets the defender roll its picked check in the app and answer with that roll', async () => {
+    // The app roll shows 15.
+    const room = await grappleRoom({ autoRoll: false, faces: [15] })
+    const { answer } = await grapple(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const initiator = await room.pendingDecision()
+    if (initiator.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the grappler’s roll.')
+    await room.resolve(initiator, {
+      kind: 'ENTER_DICE',
+      requestId: initiator.pending.request.requestId,
+      rawFaces: [8],
+      rollMode: 'NORMAL'
+    })
+    const defender = await room.pendingDecision()
+    if (defender.pending.kind !== 'CONTEST_CHECK') throw new Error('Expected the defender’s check.')
+    const { requestId } = defender.pending
+
+    const rolled = await room.rollDice(defender, 'NORMAL')
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    const [appRoll] = (await readRoomHistory(room.room.base.stub)).evidenceRolls
+    expect(appRoll).toMatchObject({ requestId, faces: [15] })
+
+    // Acrobatics: 15 + 2 = 17 against the grappler's 8 + 5 = 13.
+    const settledAnswer = await room.resolve(defender, {
+      kind: 'CONTEST_CHECK',
+      requestId,
+      checkDefinitionId: SRD_ACROBATICS_SKILL_ID,
+      roll: { kind: 'SYSTEM_ROLL', requestId, rollId: appRoll!.id }
+    })
+    expect(settledAnswer.type, JSON.stringify(settledAnswer)).toBe('COMMAND_COMMITTED')
+    expect((await settled(room)).outputs).toMatchObject([
+      { targetRoll: { selectedNatural: 15, modifier: 2, total: 17 }, outcome: 'TARGET_WIN_OR_TIE' }
+    ])
+  })
+})
+
+/** The target, on its own turn, tries to break the grappler's hold with `checkDefinitionId`. */
+async function escapeHold(room: GrappleRoom, activeEffectId: string, checkDefinitionId: string) {
+  return room.send({
+    type: 'ESCAPE',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId: TARGET_ID,
+    activeEffectId,
+    checkDefinitionId,
+    acknowledgedWarnings: []
+  })
+}
+
+/** Grapples the target with auto-rolled d20s that win, then passes the turn to the target. */
+async function heldTarget(room: GrappleRoom) {
+  const { answer } = await grapple(room)
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  const [hold] = (await settled(room)).targetEffects
+  if (!hold) throw new Error('Expected the hold effect.')
+  await room.advanceTurn()
+  return hold.id
+}
+
+describe('Escaping a Grapple, contested by the grappler, in the room (ATTACK-7 AC 7.3)', () => {
+  it('offers the held target an escape the grappler contests, with the checks it may pick', async () => {
+    const room = await grappleRoom({ autoRoll: true, faces: [12, 10] })
+    const holdId = await heldTarget(room)
+    const choices = await room.actionChoices(TARGET_ID)
+    expect(choices.escapes).toMatchObject([
+      {
+        activeEffectId: holdId,
+        dc: null,
+        actionCost: 'ACTION',
+        checks: [
+          { checkDefinitionId: SRD_ACROBATICS_SKILL_ID },
+          { checkDefinitionId: SRD_ATHLETICS_SKILL_ID }
+        ]
+      }
+    ])
+  })
+
+  it('ends the hold and Grappled when the target beats the grappler’s Athletics', async () => {
+    // The escaper's Acrobatics 15 + 2 = 17 beats the grappler's Athletics 10 + 5 = 15.
+    const room = await grappleRoom({ autoRoll: true, faces: [12, 10, 15, 10] })
+    const holdId = await heldTarget(room)
+    const answer = await escapeHold(room, holdId, SRD_ACROBATICS_SKILL_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const { outputs, occurrences, targetConditions, targetEffects } = await settled(room)
+    expect(outputs).toMatchObject([
+      { stateTransition: { kind: 'ACTOR_RELATIONSHIP' } },
+      {
+        sourceActorId: TARGET_ID,
+        targetActorId: GRAPPLER_ID,
+        policy: null,
+        sourceRoll: { actorId: TARGET_ID, selectedNatural: 15, modifier: 2, total: 17 },
+        targetRoll: { actorId: GRAPPLER_ID, selectedNatural: 10, modifier: 5, total: 15 },
+        outcome: 'SOURCE_WIN',
+        stateTransition: {
+          kind: 'RELATIONSHIP_ENDED',
+          endedEffectId: holdId,
+          removedConditionIds: [GRAPPLED]
+        }
+      }
+    ])
+    // The grapple, the turn advance to the target and the escape each completed theirs.
+    expect(occurrences).toEqual(['COMPLETED', 'COMPLETED', 'COMPLETED'])
+    expect(targetConditions).not.toContain(GRAPPLED)
+    expect(targetEffects).toEqual([])
+  })
+
+  it('keeps the hold on a tie, yet the escape spends the target’s Action', async () => {
+    // 13 + 2 = 15 against the grappler's 10 + 5 = 15: a tie goes to the grappler.
+    const room = await grappleRoom({ autoRoll: true, faces: [12, 10, 13, 10, 20, 1] })
+    const holdId = await heldTarget(room)
+    const answer = await escapeHold(room, holdId, SRD_ACROBATICS_SKILL_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const { outputs, targetConditions, targetEffects } = await settled(room)
+    expect(outputs.at(-1)).toMatchObject({
+      sourceActorId: TARGET_ID,
+      outcome: 'TARGET_WIN_OR_TIE',
+      stateTransition: { kind: 'NONE' }
+    })
+    expect(targetConditions).toContain(GRAPPLED)
+    expect(targetEffects.map(({ id }) => id)).toEqual([holdId])
+
+    const again = await escapeHold(room, holdId, SRD_ACROBATICS_SKILL_ID)
+    expect(again.type, JSON.stringify(again)).toBe('COMMAND_REJECTED')
+  })
+
+  it('asks the escaper for its d20, then the grappler picks its sealed check and rolls it', async () => {
+    const room = await grappleRoom({ autoRoll: false })
+    const enter = (requestId: string, face: number) => ({
+      kind: 'ENTER_DICE',
+      requestId,
+      rawFaces: [face],
+      rollMode: 'NORMAL'
+    })
+    const { answer } = await grapple(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // The grappler's 12 + 5 = 17 beats the defender's Athletics 10 + 0 = 10.
+    const grappler = await room.pendingDecision()
+    if (grappler.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the grappler’s roll.')
+    await room.resolve(grappler, enter(grappler.pending.request.requestId, 12))
+    const held = await room.pendingDecision()
+    if (held.pending.kind !== 'CONTEST_CHECK') throw new Error('Expected the defender’s check.')
+    const holding = await room.resolve(held, {
+      kind: 'CONTEST_CHECK',
+      requestId: held.pending.requestId,
+      checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+      roll: enter(held.pending.requestId, 10)
+    })
+    expect(holding.type, JSON.stringify(holding)).toBe('COMMAND_COMMITTED')
+    const [hold] = (await settled(room)).targetEffects
+    if (!hold) throw new Error('Expected the hold effect.')
+    await room.advanceTurn()
+
+    const started = await escapeHold(room, hold.id, SRD_ACROBATICS_SKILL_ID)
+    expect(started.type, JSON.stringify(started)).toBe('COMMAND_COMMITTED')
+    const escaper = await room.pendingDecision()
+    if (escaper.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the escaper’s roll.')
+    expect(escaper.pending.rollerActorId).toBe(TARGET_ID)
+    const first = await room.resolve(escaper, enter(escaper.pending.request.requestId, 9))
+    expect(first.type, JSON.stringify(first)).toBe('COMMAND_COMMITTED')
+
+    const defender = await room.pendingDecision()
+    if (defender.pending.kind !== 'CONTEST_CHECK') throw new Error('Expected the grappler’s check.')
+    expect(defender.occurrence.id).toBe(escaper.occurrence.id)
+    expect(defender.pending).toMatchObject({
+      rollerActorId: GRAPPLER_ID,
+      actionLabel: 'Escape',
+      checks: [{ checkDefinitionId: SRD_ATHLETICS_SKILL_ID, rollMode: 'NORMAL' }]
+    })
+    const { requestId } = defender.pending
+    // Acrobatics 9 + 2 = 11 beats the grappler's Athletics 5 + 5 = 10.
+    const second = await room.resolve(defender, {
+      kind: 'CONTEST_CHECK',
+      requestId,
+      checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+      roll: enter(requestId, 5)
+    })
+    expect(second.type, JSON.stringify(second)).toBe('COMMAND_COMMITTED')
+    const { outputs, occurrences, targetConditions, targetEffects } = await settled(room)
+    expect(outputs.at(-1)).toMatchObject({
+      sourceRoll: { selectedNatural: 9, modifier: 2, total: 11 },
+      targetRoll: { selectedNatural: 5, modifier: 5, total: 10 },
+      outcome: 'SOURCE_WIN',
+      stateTransition: { kind: 'RELATIONSHIP_ENDED', endedEffectId: hold.id }
+    })
+    // The grapple, the turn advance to the target and the escape each completed theirs.
+    expect(occurrences).toEqual(['COMPLETED', 'COMPLETED', 'COMPLETED'])
+    expect(targetConditions).not.toContain(GRAPPLED)
+    expect(targetEffects).toEqual([])
   })
 })

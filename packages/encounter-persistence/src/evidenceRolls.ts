@@ -83,6 +83,25 @@ export async function readLatestAttempt(
 function pendingEvidenceRequests(pending: PendingEncounterRuleOccurrenceSummaryDto) {
   if (pending.kind === 'AREA_SAVES')
     return pending.saves.map((save) => ({ request: save.request, rollerActorId: save.actorId }))
+  // A contest check is one d20 whichever check the roller picks; the app rolls in that check's
+  // mode, so the first check's mode is only the default.
+  if (pending.kind === 'CONTEST_CHECK') {
+    const [check] = pending.checks
+    return check
+      ? [
+          {
+            request: {
+              requestId: pending.requestId,
+              min: 1 as const,
+              max: 20 as const,
+              rollMode: check.rollMode,
+              derivedRollModeReasons: check.derivedRollModeReasons
+            },
+            rollerActorId: pending.rollerActorId
+          }
+        ]
+      : []
+  }
   return 'request' in pending
     ? [
         {

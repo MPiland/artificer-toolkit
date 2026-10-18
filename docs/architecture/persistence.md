@@ -308,6 +308,11 @@ store.
   Scene vision. `encounterRuns` carries the creation key (`createCommandId`,
   `createCommandFingerprint`, index `by_campaignId_createCommandId`) so a `runs.create` retry returns
   the same Run after COMPLETE. Run deletion and Campaign deletion delete the remaining rows too.
+- **Contest commands (D152):** every contest commits through the one contest path
+  (`disarmPersistence.ts`). A Disarm or basic action contest is a `RESOLVE_ACTION` row rooted in its
+  `RULE_OCCURRENCE`; a contested escape keeps the existing `ESCAPE` row, whose `receipt.checkOccurrenceId`
+  is the contest occurrence and whose rule receipt's `commandType` is `ESCAPE`. Replay and resume
+  (`actionDisarmReplay.ts`, `disarmAdmission.ts`) read either root through `ContestRootCommand`.
 - **Ended grants and undo (D113):** state-bound grants the engine ends (incapacitation or defeat for `ON_INCAPACITATED` grants, a named Condition for `endOnConditionIds`) are deleted in
   the same commit. A `RESOLVE_ACTION`, area or cleaving root keeps them in `consumedGrants` (`receiptConsumedGrants`,
   `addResponseChangesToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every

@@ -41,6 +41,13 @@ describe('classifyNativeEncounterOccurrence', () => {
         facts({ kind: 'ENCOUNTER_ACTION', contest: { origin: { kind: 'BASIC_ACTION' } } }),
         'CONTEST'
       ],
+      [
+        facts(
+          { kind: 'ENCOUNTER_ACTION', contest: { origin: { kind: 'ESCAPE' } } },
+          { rootCommandType: 'ESCAPE' }
+        ),
+        'CONTEST'
+      ],
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
       [facts({ kind: 'ENCOUNTER_BASIC_ACTION_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],

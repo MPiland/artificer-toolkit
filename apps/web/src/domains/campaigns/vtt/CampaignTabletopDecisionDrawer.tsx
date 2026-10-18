@@ -31,6 +31,7 @@ import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   adjudicationSelectionValues,
+  contestCheckEvidence,
   decisionTitle,
   rollPromptText,
   type InitiativeDeclarationAdjudicationValues
@@ -250,6 +251,23 @@ export function CampaignTabletopDecisionDrawer({
                 onSubmit={(resolution) => void resolve(resolution)}
               />
             </>
+          ) : pending.kind === 'CONTEST_CHECK' ? (
+            <>
+              <Text size='sm'>
+                {pending.actionLabel}: roll for{' '}
+                {encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                  'a hidden combatant'}
+              </Text>
+              {canVoid ? <GmRollVisibilityToggle /> : null}
+              <ContestCheckControls
+                disabled={disabled}
+                key={`${pending.occurrenceId}:${pending.occurrenceVersion}`}
+                latestRoll={latestRoll}
+                pending={pending}
+                onRoll={(rollMode) => rollEvidence(pending.requestId, rollMode)}
+                onSubmit={(resolution) => void resolve(resolution)}
+              />
+            </>
           ) : pending.kind === 'AREA_SAVES' ? (
             <AreaSavesControls
               actors={encounter.actors}
@@ -449,6 +467,64 @@ export function CampaignTabletopDecisionDrawer({
         </Stack>
       </Drawer>
     </>
+  )
+}
+
+/** A contest participant picks one of its checks, when offered several, and rolls its d20. */
+function ContestCheckControls({
+  disabled,
+  latestRoll,
+  pending,
+  onRoll,
+  onSubmit
+}: {
+  disabled: boolean
+  latestRoll: EncounterEvidenceRollDto | null
+  pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'CONTEST_CHECK' }>
+  onRoll: (rollMode: EncounterD20RollModeDto | null) => Promise<EncounterCommandResultDto | null>
+  onSubmit: (resolution: ResolveRuleOccurrenceInputDto['resolution']) => void
+}) {
+  const [checkDefinitionId, setCheckDefinitionId] = useState(
+    pending.checks.length === 1 ? (pending.checks[0]?.checkDefinitionId ?? null) : null
+  )
+  const check = pending.checks.find((entry) => entry.checkDefinitionId === checkDefinitionId)
+
+  return (
+    <Stack gap='sm'>
+      {pending.checks.length > 1 ? (
+        <Select
+          comboboxProps={{ withinPortal: false }}
+          data={pending.checks.map((entry) => ({
+            value: entry.checkDefinitionId,
+            label: entry.label
+          }))}
+          disabled={disabled}
+          label='Check'
+          value={checkDefinitionId}
+          onChange={setCheckDefinitionId}
+        />
+      ) : check ? (
+        <Text size='sm'>{check.label}</Text>
+      ) : null}
+      {check ? (
+        <CampaignTabletopEvidenceRollRow
+          disabled={disabled}
+          key={check.checkDefinitionId}
+          latestRoll={latestRoll}
+          pending={contestCheckEvidence(pending, check)}
+          onRoll={onRoll}
+          onSubmit={(roll) => {
+            if (roll.kind === 'ENTER_DICE' || roll.kind === 'SYSTEM_ROLL')
+              onSubmit({
+                kind: 'CONTEST_CHECK',
+                requestId: pending.requestId,
+                checkDefinitionId: check.checkDefinitionId,
+                roll
+              })
+          }}
+        />
+      ) : null}
+    </Stack>
   )
 }
 

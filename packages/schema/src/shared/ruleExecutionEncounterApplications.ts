@@ -934,7 +934,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
       sourceActorId: uuidSchema,
       targetActorId: uuidSchema,
       sealedContextChecksum: checksumSchema,
-      /** The sealed optional-combat policy; null for a basic-action contest (D152 amendment). */
+      /** The sealed optional-combat policy; null for a basic-action or escape contest (D152 amendment). */
       policy: z.nullable(
         z.strictObject({
           definitionId: uuidSchema,
@@ -975,6 +975,14 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           kind: z.literal('ACTOR_RELATIONSHIP'),
           createdEffect: encounterActorActiveEffectCreateReceiptDtoSchema,
           appliedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        }),
+        /** The held source's won escape: the holding effect ended and the conditions only it held. */
+        z.strictObject({
+          kind: z.literal('RELATIONSHIP_ENDED'),
+          endedEffectId: uuidSchema,
+          removedConditionIds: z
             .array(uuidSchema)
             .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
         })

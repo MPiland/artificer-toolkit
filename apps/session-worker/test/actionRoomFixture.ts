@@ -771,7 +771,15 @@ export async function actionRoom(config: ActionRoomConfig) {
       decision: NonNullable<Awaited<ReturnType<typeof readPendingActionDecision>>>,
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' | null = null
     ) {
-      if (!('request' in decision.pending)) throw new Error('The decision holds no roll request.')
+      const { pending } = decision
+      // A contest check is one d20 request whichever check the roller picks.
+      const requestId =
+        pending.kind === 'CONTEST_CHECK'
+          ? pending.requestId
+          : 'request' in pending
+            ? pending.request.requestId
+            : null
+      if (requestId === null) throw new Error('The decision holds no roll request.')
       return send({
         type: 'ROLL_RULE_EVIDENCE',
         encounterId: room.encounterId,
@@ -779,7 +787,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         expectedVersion: decision.encounterVersion,
         occurrenceId: decision.occurrence.id,
         expectedOccurrenceVersion: decision.occurrence.version,
-        requestId: decision.pending.request.requestId,
+        requestId,
         rollMode
       })
     },

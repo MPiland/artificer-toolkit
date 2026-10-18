@@ -25,6 +25,7 @@ import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { readActorConditionIds } from './concentrationEnd.js'
 import { replaceRunActor, writeRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
 import { armIdleTurnActor, engageIdleTurnActor } from './idleTurnMark.js'
 import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -35,6 +36,8 @@ type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
 type ContestSettlementInput = Omit<DisarmSettlementInput, 'stateTransition'> & {
   state: EncounterRunState
   campaign: EncounterDocument<'campaigns'>
+  /** Every current Run actor, which an escape's ended effect may reconcile. */
+  actors: readonly EncounterRunActorState[]
   actor: EncounterRunActorState
   target: EncounterRunActorState
   /** The hold effect a won basic action contest creates on its target; null otherwise. */
@@ -146,8 +149,51 @@ async function settleContestHold(
 }
 
 /**
+ * A contested escape spends the escaper's action; a win ends the target's holding effect on the
+ * escaper and the conditions only it held. It checks the effect is still the target's hold.
+ */
+async function settleContestEscape(
+  ctx: EncounterCharacterWriteTransaction,
+  input: ContestSettlementInput,
+  activeEffectId: string
+) {
+  const { state, target, occurredAt } = input
+  const actor = input.actionEconomy
+    ? await consumeNativeActionEconomy(ctx, {
+        actor: input.actor,
+        consumption: input.actionEconomy,
+        overridden: false
+      })
+    : input.actor
+  let actors = input.actors.map((entry) => (entry.id === actor.id ? actor : entry))
+  let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
+  if (disarmSourceWins(input.rolls)) {
+    const held = await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))
+    const origin = held.find((effect) => effect.id === activeEffectId)?.definition.origin
+    if (origin?.kind !== 'ENCOUNTER' || origin.sourceActorId !== target.id)
+      throw new Error('Contested escape effect does not match its holder.')
+    const ended = await endEncounterEscapedEffect(ctx, {
+      encounterId: state.id,
+      actors,
+      holderActorId: actor.id,
+      activeEffectId,
+      occurredAt
+    })
+    if (!ended) throw new Error('Contested escape effect changed before settlement.')
+    actors = ended.actors
+    stateTransition = {
+      kind: 'RELATIONSHIP_ENDED',
+      endedEffectId: activeEffectId,
+      removedConditionIds: ended.endedConditionIds
+    }
+  }
+  return { actors, applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition }) }
+}
+
+/**
  * Persists a settled contest inside the caller's transaction: a won Disarm moves the held item to
- * carried, a won basic action contest creates its hold, and the source spends its action economy.
+ * carried, a won basic action contest creates its hold, a won escape ends the hold, and the source
+ * spends its action economy.
  * It re-derives every change from current state.
  */
 export async function settleDisarm(
@@ -155,6 +201,8 @@ export async function settleDisarm(
   input: ContestSettlementInput
 ) {
   const { contest, rolls } = input
+  if (contest.origin.kind === 'ESCAPE')
+    return settleContestEscape(ctx, input, contest.origin.activeEffectId)
   let target = input.target
   let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
   if (disarmSourceWins(rolls) && contest.origin.kind === 'BASIC_ACTION') {
@@ -212,8 +260,9 @@ export async function settleDisarm(
       : spent
   if (engaged !== spent) await replaceRunActor(ctx, spent, engaged)
   return {
-    actor: engaged,
-    target,
+    actors: input.actors.map((actor) =>
+      actor.id === engaged.id ? engaged : actor.id === target.id ? target : actor
+    ),
     applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition })
   }
 }

@@ -3,7 +3,10 @@ import {
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  actionTargetActorId,
+  type EscapeRelationshipInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -25,9 +28,19 @@ import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
-type DisarmCommand = ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
+/** A contest's root: the contested action, or an escape its holder contests (D152). */
+export type ContestRootCommand = ResolveEncounterActionInputDto | EscapeRelationshipInputDto
+type DisarmCommand = ContestRootCommand | ResolveRuleOccurrenceInputDto
 
-function normalizeRoot(command: ResolveEncounterActionInputDto) {
+function normalizeRoot(command: ContestRootCommand): ContestRootCommand {
+  // An escape normalizes exactly as its own admission does, so both seal one fingerprint.
+  if (command.type === 'ESCAPE')
+    return {
+      ...command,
+      encounterId: command.encounterId.toLowerCase(),
+      commandId: command.commandId.toLowerCase(),
+      actorId: command.actorId.toLowerCase()
+    }
   const { target } = command
   // Disarm takes one creature; a point-origin area has no Disarm.
   if (target.kind !== 'ACTOR')
@@ -103,7 +116,7 @@ export async function readDisarmAdmission(
     result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
   })
   let response: ResolveRuleOccurrenceInputDto | null = null
-  let root: ResolveEncounterActionInputDto
+  let root: ContestRootCommand
   let answered: EncounterDocument<'encounterRuleOccurrences'> | null = null
   if (input.command.type === 'RESOLVE_RULE_OCCURRENCE') {
     response = normalizeResponse(input.command)
@@ -125,12 +138,16 @@ export async function readDisarmAdmission(
       occurrence.state === 'PENDING' ? await readNativeDisarmPending(ctx, occurrence) : null
     if (pending) root = pending.command
     else {
-      if (rootReceipt?.commandType !== 'RESOLVE_ACTION')
+      if (rootReceipt?.commandType !== 'RESOLVE_ACTION' && rootReceipt?.commandType !== 'ESCAPE')
         throw new Error('Stored Disarm action root is missing.')
       const parsed = encounterExecuteInputSchema.parse({
         command: JSON.parse(rootReceipt.commandJson)
       }).command
-      if (parsed.type !== 'RESOLVE_ACTION') throw new Error('Stored Disarm action root is invalid.')
+      if (
+        (parsed.type !== 'RESOLVE_ACTION' && parsed.type !== 'ESCAPE') ||
+        parsed.type !== rootReceipt.commandType
+      )
+        throw new Error('Stored Disarm action root is invalid.')
       root = parsed
     }
     const initiatorUserId = pending?.context.initiatorUserId ?? rootReceipt!.actorUserId
@@ -206,16 +223,17 @@ export async function readDisarmAdmission(
     return replay(await replayEncounterCommandResult(ctx, state, receipt))
   }
   if (!response) {
-    const [actor, target] = await Promise.all([
-      readRunActor(ctx, state, root.actorId),
-      readRunActor(ctx, state, actionTargetActorId(root.target))
-    ])
+    const actor = await readRunActor(ctx, state, root.actorId)
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
-    await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
-    // A defeated creature can't contest a Disarm (D63).
-    if (await readEncounterActorDefeated(ctx, target))
-      rejectDomain('TARGET_UNAVAILABLE', 'The target is defeated.')
+    // An escape names no target; its planner finds the holder from the held effect.
+    if (root.type === 'RESOLVE_ACTION') {
+      const target = await readRunActor(ctx, state, actionTargetActorId(root.target))
+      await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
+      // A defeated creature can't contest a Disarm (D63).
+      if (await readEncounterActorDefeated(ctx, target))
+        rejectDomain('TARGET_UNAVAILABLE', 'The target is defeated.')
+    }
   }
   if (state.version !== root.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')

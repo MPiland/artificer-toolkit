@@ -697,6 +697,8 @@ export async function planNativeLiveEncounterAction(
           },
           priorContext: null,
           actors,
+          settlement: { kind: 'ACTION', prepared },
+          actorRules: prepared.actorRules,
           activeEffectsByActorId,
           preparation: prepareEncounterBasicActionContest({
             ...contestInput,

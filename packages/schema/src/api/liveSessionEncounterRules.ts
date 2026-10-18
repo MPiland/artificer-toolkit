@@ -30,6 +30,7 @@ import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
   actionAreaSceneRequestDtoSchema,
   actionSceneRequestDtoSchema,
+  escapeRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
@@ -446,8 +447,11 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       /** An admitted Disarm to plan; null when `result` replays a stored one. */
       ready: z.nullable(
         z.strictObject({
-          /** The normalized Disarm root and its fingerprint; a d20 answer continues it. */
-          command: resolveEncounterActionInputDtoSchema,
+          /** The normalized contest root (an action or a contested escape) and its fingerprint. */
+          command: z.discriminatedUnion('type', [
+            resolveEncounterActionInputDtoSchema,
+            escapeRelationshipInputDtoSchema
+          ]),
           fingerprint: projectionChecksumSchema,
           initiatorUserId: postgresUuidSchema,
           /** Each participant's d20 goes to that actor's controllers (ADR 0034 decision 3). */

@@ -92,11 +92,13 @@ export function classifyNativeEncounterOccurrence({
   rootCommandType,
   completedContest
 }: NativeEncounterOccurrenceFacts): NativeEncounterOccurrenceOwner {
-  // The action contests one planner settles: Disarm and a basic action contested by its target.
+  // The contests one planner settles: Disarm, a basic action its target contests, and an escape
+  // its holder contests.
   const contestOrigin = context?.kind === 'ENCOUNTER_ACTION' ? context.contest?.origin : null
   if (
     contestOrigin?.actionKind === 'DISARM' ||
     contestOrigin?.kind === 'BASIC_ACTION' ||
+    contestOrigin?.kind === 'ESCAPE' ||
     completedContest
   )
     return 'CONTEST'
@@ -152,7 +154,7 @@ export async function readNativeEncounterOccurrenceOwner(
     rootCommandType,
     completedContest:
       occurrence.state === 'COMPLETED' &&
-      rootCommandType === 'RESOLVE_ACTION' &&
+      (rootCommandType === 'RESOLVE_ACTION' || rootCommandType === 'ESCAPE') &&
       (await isCompletedNativeContest(ctx, run, occurrence))
   })
 }

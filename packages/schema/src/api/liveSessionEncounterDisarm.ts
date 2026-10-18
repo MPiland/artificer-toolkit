@@ -6,6 +6,7 @@ import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/rul
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
+  escapeRelationshipInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -22,9 +23,10 @@ const disarmScope = lazySchema(() =>
       movement: true
     }),
     {
-      /** The Disarm itself, or a participant's d20 answer to it. */
+      /** The contest itself (an action or a contested escape), or a participant's d20 answer. */
       command: z.discriminatedUnion('type', [
         resolveEncounterActionInputDtoSchema,
+        escapeRelationshipInputDtoSchema,
         resolveRuleOccurrenceInputDtoSchema
       ]),
       revisions: liveSessionRulesRevisionsSchema

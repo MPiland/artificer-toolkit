@@ -271,7 +271,7 @@ Actions, Disarm and movement call preparation with `overridable: false` and keep
 inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), charges,
 the action allowance, created effects and maintained states). It refuses, naming the kind, removed
 conditions, replaced maintained effects, lost Concentration, Cleaving damage to a Character, Disarm and
-other contested actions; a second undo is refused. Its implementation is
+other contested actions (a contested `ESCAPE` too); a second undo is refused. Its implementation is
 `packages/encounter-persistence/src/actionRevert.ts`.
 
 ### Point-area actions (current, D103)
@@ -1478,8 +1478,17 @@ effect (`endEncounterEscapedEffect` reconciles the maintenance owners on the Cha
 commit re-derives the escape from the holder's stored effect (`escapeEffectVerification.ts`) and refuses a
 plan whose DC, check, module or spent allowance the effect does not carry. A failure only spends the
 activation.
-`CONTEST` DCs, rescuers and release sweeps belong to later ATTACK-7 slices. A Help on the escaper applies to the
-escape check and is used up with it.
+A Help on the escaper applies to the escape check and is used up with it.
+
+**Contested escape (D152, ATTACK-7.3).** A holder effect whose `ESCAPE_CHECK` has `dc.kind === 'CONTEST'`
+(`findEncounterHolderContestEscape`) is offered as an escape with `dc: null`. The `ESCAPE` command then runs
+the one contest path (`prepareEncounterEscapeContest`, `planNativeLiveEscapeContest`): the escaper is the
+initiator with its picked check, the effect's source is the defender with the contest's authored checks, the
+origin is `ESCAPE` (`activeEffectId`, `initiatorCheckDefinitionId`, `actionLabel`) and the source is
+`HELD_EFFECT`. It commits the one `CONTESTED_ACTION` output with `policy: null`. `settleContestEscape` spends
+the activation; an escaper win ends the held effect through `endEncounterEscapedEffect` and records
+`RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
+applies. Undo refuses a contested escape like other contests.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

@@ -14,7 +14,10 @@ import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
-import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import {
+  findEncounterHolderContestEscape,
+  findEncounterHolderEscape
+} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -367,11 +370,15 @@ export async function readEncounterActionChoices(
       })
     )
   }
-  // The relationships and zones holding the actor that it may break free of against a fixed DC (D105, D146).
+  // The relationships and zones holding the actor that it may break free of, against a fixed DC
+  // (D105, D146) or contested by its holder, which has no DC (D152).
   const heldEscapes = (
     actor.kind === 'CUSTOM' ? [] : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
   ).flatMap((effect) => {
-    const escape = findEncounterHolderEscape(effect)
+    const contested = findEncounterHolderContestEscape(effect)
+    const escape = contested
+      ? { activation: contested.activation, checks: contested.checks, dc: null, zoneLabel: null }
+      : findEncounterHolderEscape(effect)
     return escape ? [{ effect, ...escape }] : []
   })
   const escapes: EncounterActionChoicesDto['escapes'] = []

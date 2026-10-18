@@ -18,16 +18,21 @@ export async function readNativeDisarmPending(
   const origin = contest?.origin
   if (
     !contest ||
-    // A Disarm seals its optional combat pin; a basic action contest is the action itself (D152).
-    (origin?.kind === 'OPTIONAL_COMBAT'
-      ? origin.actionKind !== 'DISARM' ||
-        origin.selection.kind !== 'DISARM' ||
-        origin.pin.definitionId !== command.optionalCombatIntent?.definitionId ||
-        origin.pin.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum
-      : origin?.kind !== 'BASIC_ACTION' || command.optionalCombatIntent != null) ||
-    contest.actionId !== command.actionId ||
+    // A Disarm seals its optional combat pin; a basic action contest is the action itself, and a
+    // contested escape names the held effect and the escaper's check (D152).
+    (command.type === 'ESCAPE'
+      ? origin?.kind !== 'ESCAPE' ||
+        origin.activeEffectId !== command.activeEffectId ||
+        origin.initiatorCheckDefinitionId !== command.checkDefinitionId
+      : (origin?.kind === 'OPTIONAL_COMBAT'
+          ? origin.actionKind !== 'DISARM' ||
+            origin.selection.kind !== 'DISARM' ||
+            origin.pin.definitionId !== command.optionalCombatIntent?.definitionId ||
+            origin.pin.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum
+          : origin?.kind !== 'BASIC_ACTION' || command.optionalCombatIntent != null) ||
+        contest.actionId !== command.actionId ||
+        contest.targetActorId !== actionTargetActorId(command.target)) ||
     contest.sourceActorId !== command.actorId ||
-    contest.targetActorId !== actionTargetActorId(command.target) ||
     snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
     snapshot.graph.source.checksum !== contest.contestGraph.checksum ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||

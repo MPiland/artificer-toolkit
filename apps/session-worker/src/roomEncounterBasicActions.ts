@@ -28,6 +28,7 @@ import {
   assertRoomEncounterReadFence,
   assertRoomEncounterRulesRevisions
 } from './roomEncounterTurns.js'
+import { persistRoomEncounterContest } from './roomEncounterDisarm.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
@@ -129,6 +130,7 @@ export async function executeRoomEncounterEscape(
   const { ctx, transaction, scope, observed } = input
   const plan = await planNativeLiveEscape(scope, input.command, basicActionExecution(input))
   if (plan.kind === 'REPLAY') return plan.result
+  if (plan.kind === 'CONTEST') return persistRoomEncounterContest({ ...input, plan: plan.contest })
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
   return persistEncounterEscape(

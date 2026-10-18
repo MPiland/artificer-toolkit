@@ -102,6 +102,7 @@ async function settle(
     const settled = await settleDisarm(ctx, {
       state,
       campaign,
+      actors: [actor, target],
       actor,
       target,
       contest,

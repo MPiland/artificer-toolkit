@@ -91,6 +91,37 @@ export function findEncounterHolderEscape(
 }
 
 /**
+ * The escape a held creature may attempt from an effect whose holder contests it (D152), or null:
+ * the escaper rolls one of `checks`, and the holder (`holderActorId`, the effect's source) answers
+ * with one of `contestChecks`.
+ */
+export function findEncounterHolderContestEscape(
+  effect: Pick<ActiveRuleEffectRecord, 'definition'>
+) {
+  if (effect.definition.schemaVersion !== 2) return null
+  const { origin } = effect.definition
+  if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null) return null
+  const holderActorId = origin.sourceActorId
+  for (const contribution of effect.definition.stateContributions) {
+    if (contribution.kind !== 'ACTOR_RELATIONSHIP') continue
+    for (const module of contribution.modules)
+      if (
+        module.kind === 'ESCAPE_CHECK' &&
+        module.dc.kind === 'CONTEST' &&
+        module.actorKinds.includes('TARGET')
+      )
+        return {
+          escapeSourceId: module.id,
+          activation: module.activation,
+          checks: module.checks,
+          contestChecks: module.dc.checks,
+          holderActorId
+        }
+  }
+  return null
+}
+
+/**
  * The conditions an escape from `activeEffectId` removes from its holder: those only that effect
  * held, in a stable order. The room plans them and the commit re-derives them.
  */

@@ -91,7 +91,8 @@ function EscapeList({
                 <Text fw={600} size='sm'>
                   {choice.label}{' '}
                   <Text c='dimmed' component='span' fw={400} size='xs'>
-                    · DC {choice.dc} · {ACTIVATION_REGISTRY[choice.actionCost].label}
+                    · {choice.dc === null ? 'Contested' : `DC ${choice.dc}`} ·{' '}
+                    {ACTIVATION_REGISTRY[choice.actionCost].label}
                   </Text>
                 </Text>
                 {choice.warnings.length ? (
