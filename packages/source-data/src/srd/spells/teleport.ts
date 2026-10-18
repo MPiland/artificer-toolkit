@@ -45,8 +45,7 @@ export const teleport: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
-          maxTargets: 9
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
       paths: [
@@ -59,13 +58,20 @@ export const teleport: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.TELEPORT, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.TELEPORT, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'TELEPORT' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.TELEPORT, 0x212, 1),
-                effectKind: EFFECT_KIND.TELEPORT,
-                targetKind: 'CHOSEN_CREATURES',
-                destinationKind: 'SPECIAL'
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve the Destination',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'Your familiarity with the destination determines whether you arrive there successfully.'
               }
             ]
           }
