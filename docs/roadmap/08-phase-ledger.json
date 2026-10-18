@@ -788,6 +788,18 @@
               },
               "text": "Raised 2026-10-17 by SPELLS-20.T4b2b2. Root-cause and fix the nativeRoomAdmission lease-renewal test flake, and check the two suspected lazy-schema violations (encounterRuleCommands.ts:121, followUpSave.ts:16); fix them if they break the lazySchema rule, with a regression test that fails first.",
               "note": "CI ci/platform-13-t11 6e67a265e (Tests 39043876311, Live 39043876272); merged 993732fa3 via ci/merge-m76. Root cause: room() in nativeRoomAdmission.test.ts never called trackRoom, so a running room answered a later test's fetch mock. Both module-level schemas wrapped in lazySchema; lazy-schema-lint.test.ts runs the D59 check in CI. Workbook docs/handoffs/slice-platform-13-t11.md."
+            },
+            {
+              "id": "PLATFORM-13.T12",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries."
             }
           ]
         },
@@ -7239,7 +7251,7 @@
         {
           "id": "ATTACK-18",
           "title": "Basic actions are authored actions",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": ["apps/apis/convex/encounters/basicActionRestrictions.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -7327,6 +7339,18 @@
               "status": "DONE",
               "note": "Done 2026-10-13 (merge 3ebbd4a4c). FREE_HAND facet predicate read from resolveHandOccupancy; the server's choice list filters by restrictions, so the drawer needed no change; the worker refuses unmet restrictions on the only path that reads basic-action entries. The USE_BASIC_ACTION drawer fixtures are gone (no hits in apps or packages). Logs: local-validation/attack18e.",
               "closes": ["ATTACK-18.1", "ATTACK-18.3"]
+            },
+            {
+              "id": "ATTACK-18.T9z",
+              "status": "TODO",
+              "closes": ["ATTACK-18.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bug (found in SPELLS-20.T5c, 2026-10-18): rebuildEncounterTurnTarget rebuilds a turn stage's target from raw facts and drops the holder's defense (withEncounterHolderDefense, e.g. Dodge), so a Dodging creature's turn-boundary saves (zone start or end of turn, recurring effects) lose Dodge's advantage on Dexterity saves. Carry the holder defense on MovementTarget as T5c did for occupantSaveBonus, with a regression room test that fails before the fix."
             }
           ],
           "wsjf": {
