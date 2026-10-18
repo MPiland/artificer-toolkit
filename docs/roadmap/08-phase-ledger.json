@@ -6940,17 +6940,21 @@
         {
           "id": "ATTACK-17",
           "title": "Target creatures from the map or the Encounter list",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/tests/live-backend/encounterDisarm.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Choosing an attack or spell enters targeting mode on the map: a range ring around the actor's token, targetable tokens highlighted, a hover readout of distance and roll modifiers, a click on a token targets it, and Esc cancels.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (targetable flag, distance, bands)",
-                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745"
+                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745",
+                "apps/web/tests/live-backend/encounterDisarm.ts (local browser journey run 8 a171-d8: hover readout, token click, Escape cancels).",
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (range bands and targetable flag; canvas ring and highlight shown in the journey screenshot).",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (Escape ends targeting without closing the action drawer; red before the fix).",
+                "Green: ci/attack-17-1 e7da3cae4 Tests 39081653544, Live 39081653583; phase merge 0d72c9f89 (batch ci/merge-m90, Tests 39082446498, Live 39082446456; landed as 7fb45a305)."
               ],
               "origin": [],
               "note": "Open: the browser journey apps/web/tests/live-backend/encounterDisarm.ts (Pick on map, Escape, hover readout, token click, resolve against the picked creature) and the Storybook \"Domains/Campaigns/VTT/Tabletop Turn Order\" Targeting story have not run; neither runs in CI. The main session runs both locally after deploying batch n, then closes this AC.",
