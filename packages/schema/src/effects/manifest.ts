@@ -3,7 +3,11 @@ import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
-import { lengthUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import {
+  lengthUnitCodeSchema,
+  manifestBlockingRuleSchema,
+  sizeCodeSchema
+} from '../shared/enums.js'
 import {
   authoredIdentifierSchema,
   authoredLengthAmountSchema,
@@ -206,14 +210,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             hitPoints: z.optional(authoredNonnegativeNumberSchema),
             behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema)),
             blockingRules: z.optional(
-              authoredReferenceCollectionSchema(
-                z.enum([
-                  'NONMAGICAL_RANGED_ATTACKS',
-                  'MAGICAL_RANGED_ATTACKS',
-                  'SPELLS',
-                  'THREE_QUARTERS_COVER'
-                ])
-              )
+              authoredReferenceCollectionSchema(manifestBlockingRuleSchema)
             ),
             destructionCriteria: z.optional(
               authoredNestedCollectionSchema(manifestDestructionCriterionDtoSchema)

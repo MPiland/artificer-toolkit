@@ -552,6 +552,16 @@ const encounterAreaShapeDtoSchema = lazySchema(() =>
       cellSize: z.number().check(z.positive()),
       gridOrigin: spatialPointDtoSchema,
       toward: spatialPointDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('WALL'),
+      to: spatialPointDtoSchema,
+      thickness: z.number().check(z.positive())
+    }),
+    z.strictObject({
+      kind: z.literal('RING'),
+      outerRadius: z.number().check(z.positive()),
+      innerRadius: z.number().check(z.positive())
     })
   ])
 )

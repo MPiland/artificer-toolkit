@@ -15,6 +15,8 @@ import { moonbeam } from './spells/moonbeam.js'
 import { sleetStorm } from './spells/sleet-storm.js'
 import { spiritGuardians } from './spells/spirit-guardians.js'
 import { stinkingCloud } from './spells/stinking-cloud.js'
+import { wallOfFire } from './spells/wall-of-fire.js'
+import { wallOfThorns } from './spells/wall-of-thorns.js'
 import { web } from './spells/web.js'
 import { damageTypeId } from './spells/shared.js'
 
@@ -167,12 +169,16 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
    * Plague or Incendiary Cloud creature that enters and ends the same turn in the area saves once
    * (the SRD text gives two saves). Sleet Storm's Constitution save to keep Concentration for a
    * creature concentrating in the area, and its dousing of exposed flames, need a zone save that
-   * targets a maintained effect and a light-source state, which no core option has.
+   * targets a maintained effect and a light-source state, which no core option has. Wall of Fire's and
+   * Wall of Thorns' save when the wall appears waits on SPELLS-4.T1g, and Wall of Fire's damage to a
+   * creature ending its turn within 10 feet of the side its caster picks on SPELLS-4.T1b2.
    */
   it.each([
     ['Insect Plague', insectPlague],
     ['Incendiary Cloud', incendiaryCloud],
-    ['Grease', grease]
+    ['Grease', grease],
+    ['Wall of Fire', wallOfFire],
+    ['Wall of Thorns', wallOfThorns]
   ])('%s places only the zone: no cast-time area save beside it', (_name, spell) => {
     expect(spell.effects?.[0]?.paths).toHaveLength(1)
     expect(spell.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')

@@ -306,11 +306,21 @@ effect is refused whole until SPELLS-19.
 Each action choice carries `target`: `{ kind: 'ACTOR' }`, `{ kind: 'POINT', area }` (the authored radius or
 cube edge), `{ kind: 'DIRECTED', area }` (the authored cone length, line length and width, or the edge of a
 cube that extends from the caster) or `{ kind: 'CASTER_CENTERED', area: { kind: 'RADIUS', radius } }` (a Self
-sphere, cylinder or circle: no aim), built by `encounterActionChoiceTarget`. A policy this path cannot resolve
-(a wall, dome, or a cone or line whose range is not Self) stays an actor choice and is refused when resolved. The web converts the area to Scene coordinates with
-`pointAreaInSceneCoordinates` or `directedAreaInSceneCoordinates` (`shared/vtt`), the same functions
-`compileEncounterPointArea` and `evaluateEncounterDirectedAreaTarget` use, to preview it and list the tokens
-the viewer sees inside; the room still decides who is caught.
+sphere, cylinder or circle: no aim), built by `encounterActionChoiceTarget`. An action that places a zone (current,
+D154, SPELLS-4.T1b) takes the target of its zone, from `encounterZoneChoiceTarget`: `POINT` or `CASTER_CENTERED`,
+`{ kind: 'WALL', area: { maxLength, thickness } }` for an authored WALL shape (the client picks two ends; the
+thickness is centered on the segment, stored as a polygon) or `{ kind: 'RING', area: { maxOuterRadius, thickness } }`
+for a hollow round zone (the client picks the center and the outer radius; inner = outer − thickness). A cast-time
+pick between zones is `{ kind: 'ZONE_OPTIONS', options: [{ id, label, target }] }`: the client picks an option, then
+aims it as that option's target asks. `evaluateEncounterZoneTarget` refuses a target of another kind
+(`UNSUPPORTED_AREA`), a wall or ring over its authored maximum (`AREA_TOO_LARGE`) and a wall of no length or a
+ring no wider than its thickness (`AREA_TOO_SMALL`). A policy this path cannot resolve
+(a dome, a wall that places no zone, or a cone or line whose range is not Self) stays an actor choice and is refused when resolved. The web converts the area to Scene coordinates with
+`pointAreaInSceneCoordinates`, `directedAreaInSceneCoordinates` or `wallAreaBoundsInSceneCoordinates`
+(`shared/vtt`), the same functions `compileEncounterPointArea`, `evaluateEncounterDirectedAreaTarget` and
+`evaluateEncounterZoneTarget` use, to preview it and list the tokens the viewer sees inside; a wall or ring is
+drawn by dragging from one end (or the center) to the other end (or the edge), clamped to its maximum
+(`drawnAreaAim`). The room still decides who is caught.
 
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
@@ -416,10 +426,11 @@ a kind the System does not model keeps the whole zone manual. A zone outcome may
 T6a): a behavior whose invocation is not `SAVING_THROW` and whose entries are `ON_USE` damage compiles, through
 `unsavedZonePlacementPlan`, to one unmodified damage dice row dealt in full: a frozen graph of plain
 `evidence.integer-range` dice and a `proposal-on_use` node, no d20 or `test` node, no adapter facts and no pinned
-DC. It acts only at turn boundaries (a movement trigger, a halved or modified roll, a stop or any other outcome is
-refused), since only the turn path answers dice with no d20 policy: `isDamageDieRequest` accepts a plain integer
-range, the executor resumes a damage die with `d20: null` when the effect has no policy, and
-`awaitsSpatialDamageDice` routes those dice to the zone's source as roller.
+DC. It may act at turn boundaries and, since D154 (SPELLS-4.T1b), on a movement trigger; a halved or modified
+roll, a stop or any other outcome is refused. Both the turn and the movement paths answer dice with no d20 policy:
+`isDamageDieRequest` accepts a plain integer range, the executor resumes a damage die with `d20: null` when the
+effect has no policy, `awaitsSpatialDamageDice` routes those dice to the zone's source as roller, and a paused
+movement contact with no policy is summarized as `ACTION_OUTCOME_EVIDENCE`.
 The turn stage (`selectTurnZoneContacts`) gathers contacts over every bound token: the boundary creature's own
 zones at its boundary, and, at the start of its turn, each other creature standing in a zone it is the source of
 that acts at `START_OF_SOURCE_TURN`. Contacts run in canonical zone turn order (`followsInZoneTurnOrder`: target
@@ -489,17 +500,20 @@ authored zone entry). The grant's frozen graph is provenance only (`actionEffect
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
 application heals at least 1 hit point (`effectsEndedBy`). A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
-DTO advertises `choosesUnaffected` on its `POINT` / `CASTER_CENTERED` target, the cast command carries optional
-`unaffectedActorIds` on those targets (the Worker refuses it for an action whose zone does not offer it, or for an id
+DTO advertises `choosesUnaffected` on its zone target (`POINT`, `CASTER_CENTERED`, `WALL`, `RING` or `ZONE_OPTIONS`), the cast command carries optional
+`unaffectedActorIds` on the zone's target (the Worker refuses it for an action whose zone does not offer it, or for an id
 that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
 never catches a listed creature. An ON_USE `CHOICE` path whose every option places one zone (Spirit Guardians'
 radiant or necrotic damage, SPELLS-20 T4e, D140) compiles to a cast-time pick, `compilation.zonePlacement =
 { options: [{ optionId, label, zone }] }`, each option freezing its own zone graph; the options must share
-attachment, shape, spared-creature choice, Concentration and any save at the caster's DC, or the action goes manual
-(`zoneChoicePlan`); the action's facts read that shared save from every option (`zoneEntrySavingThrow`). The
-choice DTO lists them as `choiceOptions` on the `POINT` / `CASTER_CENTERED` target, the cast command names one as
-`choiceOptionId`, and the Worker places that option's zone (`chosenZonePlacement`), refusing a missing or unknown
-pick; later triggers run the stored definition. A `CHOICE` path whose options place no zone (Protection from
+attachment, spared-creature choice, Concentration and any save at the caster's DC, or the action goes manual
+(`zoneChoicePlan`); each may have its own area (D154: Wall of Fire's straight wall or ring). The action's facts
+read that shared save from every option (`zoneEntrySavingThrow`). The choice DTO lists them as a `ZONE_OPTIONS`
+target, each option with its own target; the cast command names one as `choiceOptionId` on the target it aims, and
+the Worker places that option's zone (`chosenZonePlacement`), refusing a missing or unknown pick and a target kind
+the picked option does not take (`prepareCasterSource`); later triggers run the stored definition. A zone with no
+save (Wall of Fire) authors a PASSIVE `ACTIVATED` behavior whose ON_USE path deals the damage, so its trigger rolls
+the dice with no d20; the caster's controller rolls them. A `CHOICE` path whose options place no zone (Protection from
 Energy's damage type, Blindness/Deafness's condition, SPELLS-30, D148) compiles to `compilation.choice =
 { options: [{ optionId, label, activeEffectPlan, executionPlan }] }`, exclusive with `zonePlacement`. Both pickers
 narrow the action to one option with `castChoiceOptions`, which restores each option's own result kind from the
@@ -512,13 +526,19 @@ modifiers) passes `readsSharedTest` and reads the top-level option.
 a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
-zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
+zone, and the flag reaches candidate evaluation so that
 zone's save is skipped (`collectSpatialMovementCandidates`; forced and teleport movement ignore it). Both the
 bypass and the doubled cost apply only to zones the mover can see (`isVisibleHalfSpeedField`: `PUBLIC`, or
 `spatialState.revealed`), so a hidden zone triggers whatever `carefully` says. The tabletop
 learns which fields offer the choice from `halfSpeedFields` on the Encounter session state (visible, scene-absolute
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
-preview offers "Move carefully" and "Move normally" before sending. Every path that raises a holder's hit points ends its
+preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
+(D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
+gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
+a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and
+careful doubling, with no stacking. Blocking rules are only projected: cover from them belongs to SPELLS-14, and
+zones blocking vision is a future enhancement. Every path that raises a holder's hit points ends its
 `ON_HIT_POINTS_REGAINED` grants through one helper, `endGrantsOnHitPointsRegained` (`consumedGrantPersistence.ts`): the
 Encounter mechanics batch (a heal, or a death save's natural 20, keyed on the target's hit points rising),
 a Character's Sheet command that raises hit points (Convex `executeCharacterSheetCommand` and the room's Sheet command path), and

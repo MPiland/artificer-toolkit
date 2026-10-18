@@ -3,7 +3,7 @@ import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema
 import {
   effectiveSpatialGeometry,
   measureScenePathMovementCost,
-  spatialSegmentShareInside,
+  spatialSegmentMovementMultiplier,
   type SceneBarrier,
   type SceneGrid,
   type SpatialSceneToken
@@ -112,27 +112,37 @@ export function preparedMovementCost(input: {
   path: readonly Point[]
   startDistance: number
   outcome: MovementOutcome | null
-  careful?: {
+  /** A bound mover and the zones on its Scene; absent for an unbound move. */
+  mover?: {
     tokenId: string
     tokens: readonly SpatialSceneToken[]
     effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement' | 'spatialState'>[]
+    /** A careful mover pays double inside a visible field that allows passage at half speed. */
+    carefully: boolean
   }
 }): number {
-  const careful = input.careful
-  const token = careful?.tokens.find(({ id }) => id === careful.tokenId)
-  const fields =
-    careful && token
-      ? careful.effects
-          .filter(isVisibleHalfSpeedField)
-          .flatMap(({ placement }) => effectiveSpatialGeometry(placement, careful.tokens) ?? [])
+  const mover = input.mover
+  const token = mover?.tokens.find(({ id }) => id === mover.tokenId)
+  // Every mover pays a zone's movement cost (D154); the highest multiplier applies.
+  const zones =
+    mover && token
+      ? mover.effects.flatMap((effect) => {
+          const multiplier = Math.max(
+            effect.placement.movementCostMultiplier ?? 1,
+            mover.carefully && isVisibleHalfSpeedField(effect) ? 2 : 1
+          )
+          const geometry =
+            multiplier > 1 ? effectiveSpatialGeometry(effect.placement, mover.tokens) : null
+          return geometry ? [{ geometry, multiplier }] : []
+        })
       : []
-  const doubledShare =
-    token && fields.length
-      ? (from: Point, to: Point) =>
-          spatialSegmentShareInside({ geometries: fields, token, from, to })
+  const segmentMultiplier =
+    token && zones.length
+      ? (from: Point, to: Point, floor: number) =>
+          spatialSegmentMovementMultiplier({ zones, token, from, to, floor })
       : undefined
   const walked = (path: readonly Point[]) =>
-    measureScenePathMovementCost(input.grid, input.scene, path, doubledShare)
+    measureScenePathMovementCost(input.grid, input.scene, path, segmentMultiplier)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path
   const toStart =
     input.startDistance > 0 ? walked(sliceMovementPath(input.path, 0, input.startDistance)) : 0

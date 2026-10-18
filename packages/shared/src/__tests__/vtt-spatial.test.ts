@@ -15,7 +15,10 @@ import {
   spatialTokensInsideArea,
   spatialTokensWithinSpaceRadius,
   type SpatialSceneToken,
-  VTT_SPATIAL_LIMITS
+  undirectedAreaGeometry,
+  VTT_SPATIAL_LIMITS,
+  wallAreaBoundsInSceneCoordinates,
+  wallOutline
 } from '../domains/vtt/spatial.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
@@ -1185,6 +1188,150 @@ describe('spatial turn candidates', () => {
         tokens: [token(ids.targetToken, 0), token(ids.sourceToken, 20)]
       })
     ).toEqual([])
+  })
+})
+
+describe('ring geometry (SPELLS-4.T1b, D154)', () => {
+  const ring = (innerRadius = 9) =>
+    ({ kind: 'RING', center: { x: 0, y: 0 }, outerRadius: 10, innerRadius }) as const
+  const inRing = (x: number) =>
+    spatialGeometryOverlapsTokenFootprint({ geometry: ring(), token: token(ids.targetToken, x) })
+
+  it('catches a footprint that overlaps the band, even one reaching into the hollow', () => {
+    expect(inRing(9.5)).toBe(true)
+    expect(inRing(8)).toBe(true)
+  })
+
+  it('does not catch a footprint wholly inside the hollow, or one only touching the outer edge', () => {
+    expect(inRing(0)).toBe(false)
+    expect(inRing(7.9)).toBe(false)
+    expect(inRing(11)).toBe(false)
+  })
+
+  it('raises a crossing where the mover leaves the hollow and the share of a walk in the band', () => {
+    const geometry = { frame: 'SCENE_ABSOLUTE' as const, shape: ring() }
+    const [cross] = collect({
+      effects: [effect({ geometry })],
+      movementKind: 'VOLUNTARY',
+      path: [
+        { x: 0, y: 0 },
+        { x: 20, y: 0 }
+      ]
+    })
+    expect(cross).toMatchObject({ trigger: 'CROSS' })
+    expect(cross?.contact.x).toBeCloseTo(Math.sqrt(80) - 1)
+    expect(
+      spatialSegmentShareInside({
+        geometries: [ring()],
+        token: token(ids.targetToken, -20),
+        from: { x: -20, y: 0 },
+        to: { x: 20, y: 0 }
+      })
+    ).toBeCloseTo((2 * (11 - (Math.sqrt(80) - 1))) / 40)
+  })
+
+  it('holds a creature fully within the band only when it shares no area with the hollow', () => {
+    const fullyWithin = (x: number) =>
+      collectSpatialTurnCandidates({
+        actorIdByTokenId: new Map([[ids.targetToken, ids.targetActor]]),
+        effects: [
+          effect({
+            geometry: { frame: 'SCENE_ABSOLUTE', shape: ring(7) },
+            turnTriggers: ['START_OF_TURN'],
+            requiresFullyWithin: true
+          })
+        ],
+        targetTokenId: ids.targetToken,
+        tokens: [token(ids.targetToken, x)],
+        trigger: 'START_OF_TURN',
+        turnSequence: 1
+      })
+    expect(fullyWithin(8.5)).toHaveLength(1)
+    expect(fullyWithin(8)).toHaveLength(1)
+    expect(fullyWithin(7.5)).toHaveLength(0)
+  })
+
+  it('refuses a ring whose hollow is not inside its outer circle', () => {
+    expect(
+      spatialGeometryOverlapsTokenFootprint({
+        geometry: ring(10),
+        token: token(ids.targetToken, 9.5)
+      })
+    ).toBe(false)
+  })
+})
+
+describe('wall geometry (SPELLS-4.T1b, D154)', () => {
+  const feetGrid: SceneGrid = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  }
+  const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
+
+  it('outlines a straight wall as a rectangle its thickness wide, centered on the segment', () => {
+    expect(wallOutline({ x: 0, y: 0 }, { x: 0, y: 100 }, 20)).toEqual([
+      { x: -10, y: 0 },
+      { x: -10, y: 100 },
+      { x: 10, y: 100 },
+      { x: 10, y: 0 }
+    ])
+    expect(wallOutline({ x: 5, y: 5 }, { x: 5, y: 5 }, 20)).toBeNull()
+  })
+
+  it('places a wall or a ring from the area origin', () => {
+    expect(
+      undirectedAreaGeometry({ x: 0, y: 0 }, { kind: 'WALL', to: { x: 100, y: 0 }, thickness: 10 })
+    ).toEqual({
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 5 },
+        { x: 100, y: 5 },
+        { x: 100, y: -5 },
+        { x: 0, y: -5 }
+      ]
+    })
+    expect(
+      undirectedAreaGeometry({ x: 50, y: 50 }, { kind: 'RING', outerRadius: 200, innerRadius: 180 })
+    ).toEqual({ kind: 'RING', center: { x: 50, y: 50 }, outerRadius: 200, innerRadius: 180 })
+  })
+
+  it('catches a token the wall crosses, not one beside it', () => {
+    const geometry = undirectedAreaGeometry(
+      { x: 0, y: 0 },
+      { kind: 'WALL', to: { x: 100, y: 0 }, thickness: 1 }
+    )
+    if (!geometry) throw new Error('The wall must have an outline.')
+    expect(
+      spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, 50) })
+    ).toBe(true)
+    expect(
+      spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, 200) })
+    ).toBe(false)
+  })
+
+  it('turns an authored wall or ring into its Scene bounds', () => {
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'WALL', maxLength: feet(60), thickness: feet(1) },
+        feetGrid
+      )
+    ).toEqual({ maximum: 1200, thickness: 20 })
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(5) },
+        feetGrid
+      )
+    ).toEqual({ maximum: 200, thickness: 100 })
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(0) },
+        feetGrid
+      )
+    ).toBeNull()
   })
 })
 

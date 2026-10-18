@@ -10,6 +10,7 @@ import {
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from '@artificer-toolkit/schema/shared/enums'
+import { zoneMovementCostMultiplierSchema } from '@artificer-toolkit/schema/shared/spatial'
 import {
   hitPointMaximumReductionRecoveryTagsSchema,
   type HitPointMaximumReductionRecoveryTag
@@ -80,7 +81,8 @@ import {
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored,
   resolveChosenCreaturesTargeting,
-  encounterAreaTargetKind
+  encounterAreaTargetKind,
+  encounterZoneChoiceTarget
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import { placedSpaceZone, zoneTriggers } from '../../encounterZonePlacement.js'
@@ -2207,8 +2209,9 @@ function durationPublishedGraph(input: {
 
 /**
  * The zones an action lets its caster pick one of at cast (D140), one plan per option, or null when
- * it offers no zone pick. The options must agree on what is settled before the pick: the area the
- * caster aims, whether the caster spares creatures, and the Concentration the cast opens.
+ * it offers no zone pick. The options must agree on what is settled before the pick: where the zone
+ * is anchored, whether the caster spares creatures, and the Concentration the cast opens; each may
+ * have its own area, aimed after the pick (D154).
  */
 function zoneChoicePlan(
   action: Dnd5eCompiledEffectActionSource
@@ -2220,19 +2223,17 @@ function zoneChoicePlan(
     return zone ? [{ optionId, label, zone }] : []
   })
   if (options.length !== choices.length) return null
-  // Each option authors its own shape identity; the geometry is what must agree. Zones that use the
-  // caster's save DC share its save too, since the cast resolves one.
+  // Zones that use the caster's save DC share its save too, since the cast resolves one.
   const settled = ({ zone }: (typeof options)[number]) =>
     checksumCanonicalJson([
       zone.attachment,
-      { ...zone.shape, id: null },
       zone.choosesUnaffected ?? false,
       zone.maintenance,
       zone.entry.castSaveDcFactKey ? zone.entry.adapterFacts : null
     ])
   if (new Set(options.map(settled)).size !== 1)
     unsupported(
-      'The zones a cast picks between share their area, the creatures they spare, their Concentration and any save at the caster’s DC.'
+      'The zones a cast picks between share their anchor, the creatures they spare, their Concentration and any save at the caster’s DC.'
     )
   return { options }
 }
@@ -2252,28 +2253,33 @@ function zonePlacementPlan(
   const triggers = zoneTriggers(zone.component)
   const { invocation, entries } = zone.behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
-  const placementKind = encounterAreaTargetKind(
-    action.compiledEffect.invocation.range.rangeKind,
-    zone.shape.shapeKind
-  )
-  // A directed area is aimed, not placed at a point; a zone is left where its action is centered,
-  // and a source zone is centered on the caster.
-  if (
-    zone.attachment === 'SOURCE'
-      ? placementKind !== 'CASTER_CENTERED'
-      : placementKind !== 'POINT' && placementKind !== 'CASTER_CENTERED'
-  )
+  const placementKind = encounterZoneChoiceTarget(
+    zone,
+    action.compiledEffect.invocation.range.rangeKind
+  )?.kind
+  // A directed area is aimed, not placed; a zone is left where its action is centered or its wall
+  // is drawn (D154), and a source zone is centered on the caster.
+  if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
     unsupported(
       zone.attachment === 'SOURCE'
         ? 'A source zone is centered on the caster.'
-        : 'A placed zone takes a point or the caster as its center.'
+        : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
   const pinnedDc = pinnedSaveDc(savingThrow)
-  const { requiresFullyWithin, automaticSaveSuccessImmunityDamageTypeId: successImmunity } =
-    zone.component
+  const {
+    requiresFullyWithin,
+    movementCostMultiplier,
+    blockingRules,
+    automaticSaveSuccessImmunityDamageTypeId: successImmunity
+  } = zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
   if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  if (
+    movementCostMultiplier !== undefined &&
+    !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
+  )
+    unsupported('A zone movement cost multiplies the cost of moving by more than 1, up to 100.')
   if (triggers.retaliatesMeleeHits && zone.attachment !== 'SOURCE')
     unsupported('Only a zone centered on its source answers a melee hit on that source.')
   const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
@@ -2281,6 +2287,7 @@ function zonePlacementPlan(
     attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
+    ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
     ...triggers,
     bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
     ...(zone.component.choosesUnaffected ? { choosesUnaffected: true } : {}),
@@ -2288,6 +2295,8 @@ function zonePlacementPlan(
       ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
+    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {}),
     ...(sourceGrant ? { sourceGrant } : {})
   }
   if (invocation.triggerCode !== 'SAVING_THROW')
@@ -2507,8 +2516,9 @@ function sourceGrantPlan(
 }
 
 /**
- * A zone whose outcome needs no save (D144): it rolls one unmodified damage dice row and deals it in
- * full, with no test node, so it acts only at turn boundaries, where its source rolls the dice.
+ * A zone whose outcome needs no save (D144, D154): it rolls one unmodified damage dice row and deals
+ * it in full, with no test node, at a turn boundary or when a mover enters it; its source rolls the
+ * dice.
  */
 function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
@@ -2516,8 +2526,6 @@ function unsavedZonePlacementPlan(
   entries: readonly CompiledEffectGroup['entries'][number][],
   successImmunity: CompiledManifestComponent['automaticSaveSuccessImmunityDamageTypeId']
 ): CharacterRuleActionZonePlacementPlan {
-  if (placement.triggerModes.length > 0)
-    unsupported('A zone outcome with no save acts only at turn boundaries.')
   if (
     successImmunity ||
     entries.length === 0 ||
