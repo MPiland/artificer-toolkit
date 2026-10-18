@@ -2299,23 +2299,34 @@ function zonePlacementPlan(
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
   // A zone no creature interacts with is placed with no triggers; its appear save is its provenance
-  // and names the condition it holds (Entangle's restraint). A zone with components holds only theirs.
+  // and names the condition it holds (Entangle's restraint), and its one component, if any, only
+  // prices movement there (Entangle's difficult terrain). A zone with components holds only theirs.
+  const terrain =
+    first && !first.behavior && !first.component.occupantSaveBonus ? first.component : null
+  if (terrain && (later.length || !appearSave))
+    unsupported('A zone whose component only prices movement is placed by its appear save.')
   if (
     first &&
+    !terrain &&
     appearSave?.entries.some((entry) => 'lifecycle' in entry && entry.lifecycle?.heldBySource)
   )
     unsupported(
       'Only a zone no creature interacts with holds the condition its appear save applies.'
     )
-  if (first && !first.behavior) return occupantBonusZonePlacementPlan(action, zone, first.component)
-  const primary = first
-    ? zoneComponentPlan(action, zone, first)
-    : zoneComponentPlan(
-        action,
-        zone,
-        { component: { id: appearSave!.id, order: 1, label: zone.label }, behavior: appearSave! },
-        { triggerModes: [] }
-      )
+  if (first && !first.behavior && !terrain)
+    return occupantBonusZonePlacementPlan(action, zone, first.component)
+  const primary =
+    first && !terrain
+      ? zoneComponentPlan(action, zone, first)
+      : zoneComponentPlan(
+          action,
+          zone,
+          {
+            component: { id: appearSave!.id, order: 1, label: zone.label, ...terrain },
+            behavior: appearSave!
+          },
+          { triggerModes: [] }
+        )
   // Each band is a record of its own, sparing whom the zone spares.
   const regionComponents = later.map((planned) => {
     const { region, choosesUnaffected, label } = planned.component

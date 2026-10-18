@@ -94,7 +94,16 @@ export const entangle: SpellAuthored = {
                   id: spellChildId(SPELL_IDS.ENTANGLE, 0x220, 1),
                   shapeKind: SHAPE_KIND.CUBE,
                   edgeLength: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
-                }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.ENTANGLE, 0x221, 1),
+                    order: 1,
+                    label: 'Grasping plants',
+                    // The area is difficult terrain.
+                    movementCostMultiplier: 2
+                  }
+                ]
               }
             ]
           }
