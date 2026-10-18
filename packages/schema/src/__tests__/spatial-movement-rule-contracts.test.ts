@@ -682,8 +682,6 @@ function maintainedReactionExecution() {
       version: 1,
       maintenanceDefinitionId: ownerId(502),
       descriptorChecksum: checksum('d'),
-      sourceActionId: 'reaction-action',
-      sourceOccurrenceId: ids.command,
       sourceActorId: ids.actorTwo
     },
     removedDependentEffects: owners.map((characterId, index) => ({

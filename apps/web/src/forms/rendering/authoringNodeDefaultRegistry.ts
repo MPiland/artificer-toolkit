@@ -9,6 +9,7 @@ type AuthoringDefaultKind =
   | 'check'
   | 'checkChoice'
   | 'checkDc'
+  | 'heldEscapeDc'
   | 'chargeLevelScaling'
   | 'charges'
   | 'classDetail'
@@ -62,6 +63,8 @@ type AuthoringDefaultKind =
   | 'featGrantProgression'
   | 'followUpSaveAttempts'
   | 'followUpSaveBranch'
+  | 'followUpSaveFailureMarginRider'
+  | 'followUpSaveFailureMarginRiderLifecycle'
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
@@ -90,6 +93,7 @@ type AuthoringDefaultKind =
   | 'pathChoiceOption'
   | 'pathLifecycle'
   | 'pathLifecycleEndTrigger'
+  | 'pathLifecycleEscape'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
@@ -141,6 +145,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   check: ['check'],
   checkChoice: ['checkChoice'],
   checkDc: ['checkDc', 'escapeDc'],
+  heldEscapeDc: ['heldEscapeDc'],
   chargeLevelScaling: ['levels'],
   charges: ['charges'],
   classDetail: [
@@ -203,6 +208,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   featGrantProgression: ['featGrantProgression'],
   followUpSaveAttempts: ['followUpSaveAttempts'],
   followUpSaveBranch: ['followUpSaveBranch'],
+  followUpSaveFailureMarginRider: ['followUpSaveFailureMarginRider'],
+  followUpSaveFailureMarginRiderLifecycle: ['followUpSaveFailureMarginRiderLifecycle'],
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
@@ -231,6 +238,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
+  pathLifecycleEscape: ['pathLifecycleEscape'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],

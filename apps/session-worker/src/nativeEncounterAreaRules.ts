@@ -1857,17 +1857,24 @@ export async function completeAreaCommit(args: {
         ...effectInput,
         maintainedEffectStateId: joined?.id
       })
+    const riderEffect =
+      effects.riderEffect &&
+      createNativeActiveEffect(effects.riderEffect, {
+        ...effectInput,
+        maintainedEffectStateId: joined?.id
+      })
     const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // The effect of a reaction the creature used on being chosen lands with its first outcome.
     const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
     const reactionRecord =
       reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
-    const created = [stateEffect, recurringEffect, reactionRecord].flatMap((effect) =>
+    const created = [stateEffect, recurringEffect, riderEffect, reactionRecord].flatMap((effect) =>
       effect ? [effect] : []
     )
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
+      rider: riderEffect,
       targetActorId: actor.id
     })
     const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(

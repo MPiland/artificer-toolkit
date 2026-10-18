@@ -2826,7 +2826,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               command.type === 'RESOLVE_RULE_OCCURRENCE' ||
               command.type === 'VOID_RULE_OCCURRENCE' ||
               command.type === 'REMOVE_AREA_TARGET' ||
-              command.type === 'ESCAPE_RELATIONSHIP' ||
+              command.type === 'ESCAPE' ||
               command.type === 'END_HELD_GRANT'
                 ? {
                     turnExecution: { runtime: this.#liveRulesRuntime() }

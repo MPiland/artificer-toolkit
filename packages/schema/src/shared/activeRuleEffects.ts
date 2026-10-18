@@ -4,7 +4,9 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
+import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
+import { checkChoiceDtoSchema } from '../effects/check.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import { activeRuleEffectLifecycleDtoSchema } from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
@@ -265,7 +267,24 @@ const activeRuleEffectConditionContributionDtoSchema = lazySchema(() =>
     /** The creature whose action applied the condition, when it authored `recordsSource`. */
     sourceActorId: z.optional(uuidSchema),
     /** The holder must Dash away from `sourceActorId` (the condition authored `fleesSource`). */
-    fleesSource: z.optional(z.literal(true))
+    fleesSource: z.optional(z.literal(true)),
+    /** The zone that holds the condition (D146): its spatial effect, which an escape names. */
+    heldBySpatialEffectId: z.optional(uuidSchema)
+  })
+)
+
+/**
+ * The escape a zone-held condition offers its holder (D146): `label` names the zone, and `dc` is
+ * resolved when the zone is placed (a source save DC is pinned). It escapes the zone named by the
+ * effect's held condition (`heldBySpatialEffectId`).
+ */
+const activeRuleEffectConditionEscapeContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CONDITION_ESCAPE'),
+    label: identifierSchema,
+    activation: activationDtoSchema,
+    checks: checkChoiceDtoSchema,
+    dc: positiveIntegerSchema
   })
 )
 
@@ -376,6 +395,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectStateContributionDtoSchema,
               activeRuleEffectScalarReductionContributionDtoSchema,
               activeRuleEffectConditionContributionDtoSchema,
+              activeRuleEffectConditionEscapeContributionDtoSchema,
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
               activeRuleEffectLocationConcealmentContributionDtoSchema,
@@ -458,6 +478,19 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               message: `Condition-owning effects cannot end on ${unreleasing.join(', ')}: its consumer does not release the condition.`
             })
         }
+        if (
+          definition.schemaVersion === 2 &&
+          definition.stateContributions.some(({ kind }) => kind === 'CONDITION_ESCAPE') &&
+          !definition.stateContributions.some(
+            (contribution) =>
+              contribution.kind === 'CONDITION_OWNERSHIP' && contribution.heldBySpatialEffectId
+          )
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['stateContributions'],
+            message: 'A condition escape needs the zone-held condition it escapes.'
+          })
         for (const [index, contribution] of definition.perceptionContributions.entries()) {
           if (
             contribution.kind === 'SENSE_GRANT' &&
@@ -474,6 +507,21 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * Where a maintained state came from: the action occurrence that started it, or (D151) a Character's
+ * Concentration carried out of an earlier Run and reinstated at this Run's START.
+ */
+export const encounterMaintainedEffectProvenanceDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('ACTION'),
+      sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
+      sourceOccurrenceId: uuidSchema
+    }),
+    z.strictObject({ kind: z.literal('CARRIED'), casterCharacterId: uuidSchema })
+  ])
+)
+
+/**
  * Immutable System-owned maintenance identity. The application layer only
  * persists and replaces this descriptor; it never interprets its meaning.
  */
@@ -481,8 +529,7 @@ const encounterMaintainedEffectDescriptorBaseDtoSchema = lazySchema(() =>
   z.strictObject({
     maintenanceDefinitionId: uuidSchema,
     definitionChecksum: checksumSchema,
-    sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
-    sourceOccurrenceId: uuidSchema,
+    provenance: encounterMaintainedEffectProvenanceDtoSchema,
     sourceActorId: uuidSchema,
     replacementPolicy: z.literal('REPLACE_SAME_DEFINITION')
   })

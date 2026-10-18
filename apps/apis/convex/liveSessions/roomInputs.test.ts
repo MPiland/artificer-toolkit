@@ -25,6 +25,7 @@ import {
   readRoomInputsBatch
 } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { absoluteMinute } from '@artificer-toolkit/rules-runtime/campaignClock'
 import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
 import { readLiveSceneForUser } from '../scenes/liveDocuments'
 import { advanceLiveState } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
@@ -1544,6 +1545,26 @@ describe('live room inputs (ADR 0035 S2)', () => {
     if (vocabulary.kind !== 'SYSTEM') throw new Error('Expected the System scope.')
     expect(vocabulary.system).toBeNull()
     expect(vocabulary.vocabulary).not.toBeNull()
+  })
+
+  it('serves the Campaign clock’s absolute minute fresh, and none before the clock exists (D151)', async () => {
+    const base = await setup()
+    const clock = () => base.t.query(read, base.request({ kind: 'CAMPAIGN_CLOCK' }))
+    expect(await clock()).toEqual({ kind: 'CAMPAIGN_CLOCK', absoluteMinute: null })
+
+    await base.owner.caller.mutation(api.campaigns.clock.initialize, {
+      campaignId: base.campaign.id,
+      expectedVersion: 0,
+      commandId: crypto.randomUUID(),
+      day: 2,
+      minuteOfDay: 100,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    expect(await clock()).toEqual({
+      kind: 'CAMPAIGN_CLOCK',
+      absoluteMinute: absoluteMinute(2, 100)
+    })
   })
 
   it('pages all platform and Campaign-owned definitions, including unpublished private roots', async () => {

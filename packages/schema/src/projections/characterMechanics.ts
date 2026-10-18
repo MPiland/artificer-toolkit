@@ -15,7 +15,7 @@ import {
   spatialTriggerDtoSchema,
   spatialTurnTriggerDtoSchema
 } from '../shared/spatialFacts.js'
-import { spatialZoneLabelSchema } from '../shared/spatial.js'
+import { compiledSpatialHeldConditionDtoSchema, spatialZoneLabelSchema } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -284,7 +284,32 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       ),
       null
     ),
-    maintenance: z._default(compiledActionMaintenanceSchema, null)
+    maintenance: z._default(compiledActionMaintenanceSchema, null),
+    /**
+     * Conditions a save failed by at least `failedBy` also applies, held by a second active effect
+     * with its own duration node; null for none. Required: plans are recompiled, not read
+     * with a default.
+     */
+    marginRider: z.nullable(
+      z.strictObject({
+        compiledEntryId: serverUuidIdentityDtoSchema,
+        frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+        failedBy: z.number().check(z.int()).check(z.gte(1)).check(z.lte(30)),
+        conditionContributions: z
+          .array(
+            z.strictObject({
+              conditionId: serverUuidIdentityDtoSchema,
+              recordsSource: z.boolean(),
+              fleesSource: z.boolean()
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(8)),
+        lifecycle: z.strictObject({
+          endOnTriggers: activeEffectEndTriggersSchema
+        })
+      })
+    )
   })
 )
 
@@ -316,6 +341,8 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     requiresFullyWithin: z.optional(z.boolean()),
     /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
     failedSaveLosesAction: z.optional(z.boolean()),
+    /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
+    heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */

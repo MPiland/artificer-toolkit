@@ -197,7 +197,7 @@ describe('Spirit Guardians as a source aura (SPELLS-20 T1b)', () => {
     expect(state).toMatchObject({ ownerActorId: CASTER_ACTOR_ID })
     expect(JSON.parse(String(state?.descriptorJson))).toMatchObject({
       sourceActorId: CASTER_ACTOR_ID,
-      sourceActionId: expect.any(String)
+      provenance: { kind: 'ACTION', sourceActionId: expect.any(String) }
     })
     const [zone] = await readZones(room)
     expect(zone?.maintainedEffectStateId).toBe(state!.id)

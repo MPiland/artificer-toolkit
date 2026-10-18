@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
 import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
@@ -10,6 +11,7 @@ import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-p
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
+import { web } from '@artificer-toolkit/source-data/srd/spells/web.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -109,9 +111,11 @@ describe('the source aura through the equipment node map', () => {
     ['Moonbeam', moonbeam],
     ['Incendiary Cloud', incendiaryCloud],
     ['Grease', grease],
-    ['Sleet Storm', sleetStorm]
+    ['Sleet Storm', sleetStorm],
+    ['Web', web],
+    ['Black Tentacles', blackTentacles]
   ])(
-    'keeps the SRD %s placed zone exactly as authored (SPELLS-4.T1a, T1c, T1d)',
+    'keeps the SRD %s placed zone exactly as authored (SPELLS-4.T1a, T1c, T1d, T1e)',
     async (_name, spell) => {
       const authored = carrying(spell.effects as EquipmentAuthored['effects'])
       const result = await normalize(authored)

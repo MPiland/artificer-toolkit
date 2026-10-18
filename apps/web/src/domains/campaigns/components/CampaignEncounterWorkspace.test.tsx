@@ -1,9 +1,10 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { getFunctionName } from 'convex/server'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import { campaignClockDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { HeldEncounterSession } from '../vtt/useCampaignLiveSession'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
@@ -12,6 +13,7 @@ import {
 } from '../vtt/CampaignTabletop.stories.fixtures'
 
 const mocks = vi.hoisted(() => ({
+  advanceClock: vi.fn(),
   commandReady: true,
   convexQuery: vi.fn(),
   encounterSession: null as HeldEncounterSession | null,
@@ -27,7 +29,8 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 }))
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
-  useConvex: () => ({})
+  useConvex: () => ({}),
+  useMutation: () => mocks.advanceClock
 }))
 vi.mock('../vtt/useCampaignLiveSession', () => ({
   useCampaignLiveSession: () => ({
@@ -69,6 +72,20 @@ const thirdActor = {
   id: '99999999-9999-4999-8999-999999999904',
   label: 'Third enemy'
 }
+
+const clock = campaignClockDtoSchema.parse({
+  campaignId: createTabletopCampaign('OWNER').id,
+  day: 2,
+  minuteOfDay: 480,
+  running: true,
+  runningSince: '2026-08-15T22:25:00.000Z',
+  dawnMinute: 360,
+  duskMinute: 1080,
+  processedBoundaryAbsoluteMinute: 0,
+  pausedForCombat: false,
+  version: 4,
+  updatedAt: '2026-08-15T22:25:00.000Z'
+})
 
 function encounterWithThirdActor(): EncounterGmProjectionDto {
   return { ...tabletopGmEncounter, actors: [...tabletopGmEncounter.actors, thirdActor] }
@@ -122,6 +139,9 @@ describe('CampaignEncounterWorkspace controls', () => {
           error: null,
           isPending: false
         }
+      }
+      if (options.queryKey[0] === getFunctionName(convexApi.campaigns.clock.get)) {
+        return { data: clock, error: null, isPending: false }
       }
       if (options.queryKey.some((item) => item === 'creatures')) {
         return { data: [], error: null, isPending: false }
@@ -193,6 +213,48 @@ describe('CampaignEncounterWorkspace controls', () => {
         type: 'REORDER'
       })
     )
+  })
+
+  describe('completing the Encounter (SPELLS-5.13)', () => {
+    async function complete(rounds: number) {
+      mocks.sendEncounterCommand.mockResolvedValue({
+        projection: { ...tabletopGmEncounter, status: 'COMPLETED', round: rounds },
+        roll: null
+      })
+      mocks.advanceClock.mockResolvedValue(clock)
+      const user = userEvent.setup()
+      renderWorkspace(tabletopGmEncounter)
+      await user.click(screen.getByRole('button', { name: 'Encounter actions' }))
+      await user.click(await screen.findByRole('menuitem', { name: 'Complete encounter' }))
+      const dialog = await screen.findByRole('dialog', { name: 'Complete encounter?' })
+      await user.click(within(dialog).getByRole('button', { name: 'Complete encounter' }))
+      await screen.findByText('Advance world time?')
+      return user
+    }
+
+    it("offers the GM to advance the Campaign clock by the Encounter's elapsed rounds", async () => {
+      const user = await complete(12)
+
+      expect(mocks.sendEncounterCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'COMPLETE', encounterId: tabletopGmEncounter.id })
+      )
+      expect(screen.getByText(/lasted 12 rounds/)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Advance 2 minutes' }))
+
+      expect(mocks.advanceClock).toHaveBeenCalledWith(
+        expect.objectContaining({ campaignId: clock.campaignId, expectedVersion: 4, minutes: 2 })
+      )
+      await waitFor(() => expect(screen.queryByText('Advance world time?')).not.toBeInTheDocument())
+    })
+
+    it('leaves the clock alone when the GM declines', async () => {
+      const user = await complete(1)
+
+      await user.click(screen.getByRole('button', { name: 'Not now' }))
+
+      expect(screen.queryByText('Advance world time?')).not.toBeInTheDocument()
+      expect(mocks.advanceClock).not.toHaveBeenCalled()
+    })
   })
 
   it('disables command controls until the live table is command-ready', () => {

@@ -7,6 +7,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { recordConcentrationCaster } from './actionEffectPersistence.js'
 import { deleteStateZones, listStateZones } from './maintainedStateZones.js'
 
 type MaintainedSlot = NonNullable<
@@ -102,6 +103,10 @@ export async function applyLiveConcentrationCleanup(
     ownerActorId: slot.ownerActorId,
     expectedVersion: slot.version
   })
+  // D151: a reinstated carried Concentration's end reaches the caster's grants outside the Run too.
+  const { provenance } = slot.descriptor
+  if (provenance.kind === 'CARRIED')
+    await recordConcentrationCaster(ctx, state.id, provenance.casterCharacterId)
   return reconcileNativeMaintenanceOwners(ctx, {
     encounterId: state.id,
     maintenance: { removed, characterVersions },

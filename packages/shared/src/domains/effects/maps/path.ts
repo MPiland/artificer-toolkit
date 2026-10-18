@@ -93,7 +93,7 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
+import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
@@ -206,6 +206,7 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
+const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
 const pathLifecycleEndTrigger =
   buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
@@ -243,6 +244,14 @@ const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode
 const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
 const followUpSaveRepeatAttemptGate = buildNodeMap<FollowUpSaveRepeatAttemptGateAuthored>()
 const followUpSaveRepeatPerception = buildNodeMap<FollowUpSaveRepeatPerceptionAuthored>()
+/** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
+type FollowUpSaveFailureMarginRiderNode = Omit<
+  NonNullable<FollowUpSaveAuthored['failureMarginRider']>,
+  'outcomes'
+> & { outcomes: OutcomeNode[] }
+const followUpSaveFailureMarginRider = buildNodeMap<FollowUpSaveFailureMarginRiderNode>()
+const followUpSaveFailureMarginRiderLifecycle =
+  buildNodeMap<FollowUpSaveFailureMarginRiderNode['lifecycle']>()
 
 const OUTCOME_BREAKPOINT_VALUE_NODE_MAP: NodeMap<OutcomeBreakpointValueNode> =
   outcomeBreakpointValue.define('outcomeBreakpointValue', ({ map, nodes, cond }) => {
@@ -321,6 +330,34 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
         { requiredIf: true }
       )
     )
+  })
+
+const PATH_LIFECYCLE_ESCAPE_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['escape']>> =
+  pathLifecycleEscape.define('pathLifecycleEscape', ({ map, nodes }) => {
+    const { groupObject } = nodes
+
+    map
+      .set(
+        'activation',
+        groupObject(['activation'], 'Costs', () => ACTIVATION_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'checks',
+        groupObject(['checks'], 'Escape Checks', () => CHECK_CHOICE_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'dc',
+        groupObject(['dc'], 'Escape DC', () => HELD_ESCAPE_DC_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
   })
 
 const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
@@ -410,7 +447,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject, groupArray } = nodes
+    const { selectSingle, selectMulti, groupObject, groupArray, toggle } = nodes
     const { table } = data
 
     map
@@ -459,6 +496,13 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'holderEnd',
         groupObject(['holderEnd'], 'Holder Can End', () => PATH_LIFECYCLE_HOLDER_END_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set('heldBySource', toggle(['heldBySource'], 'Held By Zone'))
+      .set(
+        'escape',
+        groupObject(['escape'], 'Escape', () => PATH_LIFECYCLE_ESCAPE_NODE_MAP, {
           presentation: 'inline'
         })
       )
@@ -1117,6 +1161,51 @@ const FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP = followUpSaveRepeatAttemptGat
   }
 )
 
+const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP =
+  followUpSaveFailureMarginRiderLifecycle.define(
+    'followUpSaveFailureMarginRiderLifecycle',
+    ({ map, nodes }) => {
+      const { groupArray } = nodes
+      map.set(
+        'endOnTriggers',
+        groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+    }
+  )
+
+const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRider.define(
+  'followUpSaveFailureMarginRider',
+  ({ map, nodes }) => {
+    const { number, groupArray, groupObject } = nodes
+    map
+      .set(
+        'failedBy',
+        number(['failedBy'], 'Fails By at Least', {
+          constraints: { minimum: 1, maximum: 30 },
+          requiredIf: true
+        })
+      )
+      .set(
+        'outcomes',
+        groupArray(['outcomes'], 'Conditions', () => OUTCOME_NODE_MAP, {
+          presentation: 'summary',
+          requiredIf: true
+        })
+      )
+      .set(
+        'lifecycle',
+        groupObject(
+          ['lifecycle'],
+          'Lifecycle',
+          () => FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP,
+          { presentation: 'inline', requiredIf: true }
+        )
+      )
+  }
+)
+
 const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
   'actorRelationshipModule',
   ({ map, nodes, cond, logic, data }) => {
@@ -1429,6 +1518,18 @@ function registerOutcomeFields(
         ['repeatAttemptGate'],
         'Repeat Attempt Gate',
         () => FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'followUpSaveFailureMarginRider',
+      groupObject(
+        ['failureMarginRider'],
+        'Failure Margin Rider',
+        () => FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP,
         {
           presentation: 'inline',
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)

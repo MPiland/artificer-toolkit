@@ -274,7 +274,7 @@ export type ActionSceneRequestDto = z.infer<typeof actionSceneRequestDtoSchema>
  */
 export const escapeRelationshipInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
-    type: z.literal('ESCAPE_RELATIONSHIP'),
+    type: z.literal('ESCAPE'),
     actorId: uuidSchema,
     activeEffectId: postgresUuidSchema,
     checkDefinitionId: postgresUuidSchema,

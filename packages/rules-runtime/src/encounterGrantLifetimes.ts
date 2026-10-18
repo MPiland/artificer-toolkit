@@ -5,9 +5,13 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   ActiveEffectConsumeEvent,
-  ActiveEffectEndEvent
+  ActiveEffectEndEvent,
+  EncounterMaintainedEffectDescriptorDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
@@ -96,7 +100,11 @@ export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   })
 }
 
-/** The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied it. */
+/**
+ * The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied
+ * it. A source-anchored grant carried in from an earlier Run has no source here, so its holder
+ * counts it (D151).
+ */
 function grantAnchorActorId(
   effect: ActiveRuleEffectRecord,
   holderActorId: string,
@@ -104,29 +112,32 @@ function grantAnchorActorId(
 ) {
   const { expiration } = effect.definition.recurrence
   if (expiration.kind !== 'TICKS') return null
-  if (expiration.anchor !== 'SOURCE') return holderActorId
   const { origin } = effect.definition
-  return origin.kind === 'ENCOUNTER' && origin.sourceAggregateId === encounterId
+  return expiration.anchor === 'SOURCE' &&
+    origin.kind === 'ENCOUNTER' &&
+    origin.sourceAggregateId === encounterId
     ? origin.sourceActorId
-    : null
+    : holderActorId
 }
 
 /**
  * Timed grants anchored to an actor that left the Run can no longer count down, so they end with
- * it. Holder-anchored grants keep their own lifetime.
+ * it. Holder-anchored grants, and those carried in from an earlier Run, keep their own lifetime.
  */
 export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
   departedActorId: string
   holders: readonly { actor: GrantHolder['actor']; effects: readonly Effect[] }[]
 }): Effect[] {
-  return input.holders.flatMap(({ actor, effects }) =>
+  return input.holders.flatMap(({ effects }) =>
     effects.filter(
       (effect) =>
         isModifierGrant(effect) &&
         effect.definition.recurrence.expiration.kind === 'TICKS' &&
         effect.definition.recurrence.expiration.anchor === 'SOURCE' &&
-        grantAnchorActorId(effect, actor.id, input.encounterId) === input.departedActorId
+        effect.definition.origin.kind === 'ENCOUNTER' &&
+        effect.definition.origin.sourceAggregateId === input.encounterId &&
+        effect.definition.origin.sourceActorId === input.departedActorId
     )
   )
 }
@@ -247,10 +258,95 @@ export function planCarriedOverEffects(input: {
       ...(concentrationCasterCharacterId === undefined ? {} : { concentrationCasterCharacterId }),
       ...(wornForm ? { carriedCreatureForm: carriedCreatureForm(wornForm) } : {}),
       expiresAtCampaignMinute:
-        input.clockMinute === null ? null : input.clockMinute + Math.ceil(remaining / 10)
+        input.clockMinute === null ? null : input.clockMinute + campaignMinutesForRounds(remaining)
     }
     return [{ effect, lifecycle }]
   })
+}
+
+export type CarriedEffectResume<Effect extends ActiveRuleEffectRecord> =
+  | { kind: 'UPDATE'; effect: Effect; lifecycle: ActiveRuleEffectRecord['lifecycle'] }
+  | { kind: 'EXPIRE'; effect: Effect }
+
+/**
+ * D99, D151, SPELLS-5.13: a later Run's START hands the carried-over effects back from the Campaign
+ * clock to rounds, 10 per minute left before their expiry and never more than they first had. One
+ * whose expiry the clock has reached ends. Without a clock, or with no expiry (carried without a
+ * clock), nothing resumes and the effect lasts until the GM ends it.
+ */
+export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>(input: {
+  effects: readonly Effect[]
+  clockMinute: number | null
+}): CarriedEffectResume<Effect>[] {
+  const { clockMinute } = input
+  if (clockMinute === null) return []
+  return input.effects.flatMap((effect): CarriedEffectResume<Effect>[] => {
+    const { expiration } = effect.definition.recurrence
+    const { expiresAtCampaignMinute, ...lifecycle } = effect.lifecycle
+    if (
+      typeof expiresAtCampaignMinute !== 'number' ||
+      expiration.kind !== 'TICKS' ||
+      !(isModifierGrant(effect) || ownsCondition(effect))
+    )
+      return []
+    const remainingTicks = Math.min(
+      expiration.initialRemaining,
+      (expiresAtCampaignMinute - clockMinute) * ROUNDS_PER_CAMPAIGN_MINUTE
+    )
+    return remainingTicks <= 0
+      ? [{ kind: 'EXPIRE', effect }]
+      : [{ kind: 'UPDATE', effect, lifecycle: { ...lifecycle, remainingTicks } }]
+  })
+}
+
+/**
+ * D151, SPELLS-5.12: a later Run's START gives each Character caster in the Run back the Concentration
+ * that the carried grants of the Run's Characters still stamp them with, as the System's maintenance
+ * definition, so a failed check or a new Concentration ends those grants through the usual paths.
+ * A caster outside the Run, or a grant already relinked, reinstates nothing.
+ */
+export async function planReinstatedConcentrations<Effect extends ActiveRuleEffectRecord>(input: {
+  gameSystemId: string
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'>[]
+  effects: readonly Effect[]
+  /** Read only when some caster reinstates. */
+  readDefinition(): Promise<ReusableDefinitionCurrentDto | null>
+}) {
+  const byCaster = new Map<string, Effect[]>()
+  for (const effect of input.effects) {
+    const casterCharacterId = effect.lifecycle.concentrationCasterCharacterId
+    if (effect.owner.kind !== 'CHARACTER' || effect.maintainedEffectStateId !== null) continue
+    if (typeof casterCharacterId === 'string')
+      byCaster.set(casterCharacterId, [...(byCaster.get(casterCharacterId) ?? []), effect])
+  }
+  const reinstated = [...byCaster].flatMap(([casterCharacterId, effects]) => {
+    const caster = input.actors.find(
+      (actor) => actor.kind === 'CHARACTER' && actor.sourceId === casterCharacterId
+    )
+    return caster ? [{ caster, casterCharacterId, effects }] : []
+  })
+  if (reinstated.length === 0) return []
+  const definition = await input.readDefinition()
+  if (
+    !definition ||
+    definition.gameSystemId !== input.gameSystemId ||
+    definition.definitionFamilyKey !== 'rule-maintenance'
+  )
+    throw new Error('The System Concentration definition is unavailable.')
+  const policy = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse(definition.document)
+  return reinstated.map(({ caster, casterCharacterId, effects }) => ({
+    casterActorId: caster.id,
+    effects,
+    descriptor: {
+      schemaVersion: 2,
+      maintenanceDefinitionId: definition.id,
+      definitionChecksum: definition.checksum,
+      provenance: { kind: 'CARRIED', casterCharacterId },
+      sourceActorId: caster.id,
+      replacementPolicy: policy.replacementPolicy,
+      emptyDependentPolicy: policy.emptyDependentPolicy
+    } satisfies EncounterMaintainedEffectDescriptorDto
+  }))
 }
 
 /**

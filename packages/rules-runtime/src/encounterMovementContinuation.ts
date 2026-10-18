@@ -301,7 +301,10 @@ export async function prepareEncounterMovementContinuation<
                 : 1)
           },
           selectionChecksum: evaluated.selectionChecksum,
-          currentnessChecksum: evaluated.currentnessChecksum
+          currentnessChecksum: evaluated.currentnessChecksum,
+          ...(evaluated.areaDepartures.length
+            ? { areaDepartures: [...evaluated.areaDepartures] }
+            : {})
         },
         settlements
       }

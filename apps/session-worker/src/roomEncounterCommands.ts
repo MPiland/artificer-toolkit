@@ -268,7 +268,7 @@ export async function executeRoomEncounterCommand(input: {
             ? await executeVoid()
             : command.type === 'REMOVE_AREA_TARGET'
               ? await executeAreaRemoval(command)
-              : command.type === 'ESCAPE_RELATIONSHIP'
+              : command.type === 'ESCAPE'
                 ? await executeEscape(command)
                 : command.type === 'END_HELD_GRANT'
                   ? await executeEndHeldGrant(command)

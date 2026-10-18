@@ -73,15 +73,13 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   // The effect of a reaction the target used lands on the target beside the action's own effects.
   const reactionTransition =
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-      ? [
-          ...(outputs.reaction?.activeEffectTransitions ?? []),
-          ...outputs.reactionEffectTransitions
-        ]
+      ? [...(outputs.reaction?.activeEffectTransitions ?? []), ...outputs.reactionEffectTransitions]
       : []
+  // The action's recurring effect may carry a failure-margin rider's effect after it.
   if (
-    input.createdEffects.length > 3 ||
+    input.createdEffects.length > 4 ||
     stateTransition.length > 1 ||
-    activeTransition.length > 1 ||
+    activeTransition.length > 2 ||
     reactionTransition.length > 1 ||
     input.createdEffects.length !==
       stateTransition.length + activeTransition.length + reactionTransition.length
@@ -98,6 +96,11 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     ? (input.createdEffects.find((effect) => effect.id === activeTransition[0]!.activeEffectId) ??
       null)
     : null
+  const rider =
+    activeTransition.length > 1
+      ? (input.createdEffects.find((effect) => effect.id === activeTransition[1]!.activeEffectId) ??
+        null)
+      : null
   const reaction = reactionTransition.length
     ? (input.createdEffects.find((effect) => effect.id === reactionTransition[0]!.activeEffectId) ??
       null)
@@ -105,12 +108,13 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   if (
     (stateTransition.length > 0 && !state) ||
     (activeTransition.length > 0 && !recurring) ||
+    (activeTransition.length > 1 && !rider) ||
     (reactionTransition.length > 0 && !reaction) ||
     (state && recurring && state.id === recurring.id) ||
     (reaction && (reaction.id === state?.id || reaction.id === recurring?.id))
   )
     throw new Error('Completed action effects do not match the stored receipt.')
-  return { state, recurring, reaction, outputs }
+  return { state, recurring, rider, reaction, outputs }
 }
 
 /**
@@ -139,7 +143,7 @@ export async function prepareEncounterActionMaintenance(
   ctx: EncounterCharacterWriteTransaction,
   input: EffectCommitInput
 ): Promise<PreparedMaintenance | null> {
-  const { recurring, outputs } = classifyCreatedEffects(input)
+  const { recurring, rider, outputs } = classifyCreatedEffects(input)
   if (!input.maintainedState) {
     if (outputs.maintenanceTransition)
       throw new Error('Completed action maintenance receipt has no created state.')
@@ -153,7 +157,7 @@ export async function prepareEncounterActionMaintenance(
     maintainedState: input.maintainedState,
     sourceOccurrenceId: outputs.parentOccurrenceId ?? input.execution.occurrenceId,
     transition: outputs.maintenanceTransition,
-    createdDependentEffectIds: recurring ? [recurring.id] : [],
+    createdDependentEffectIds: [recurring, rider].flatMap((effect) => (effect ? [effect.id] : [])),
     authorizedCharacterIds: input.authorizedCharacterIds
   })
 }
@@ -181,8 +185,9 @@ export async function prepareMaintenanceReplacement(
     created.ownerActorId !== input.command.actorId ||
     created.maintenanceDefinitionId !== created.descriptor.maintenanceDefinitionId ||
     created.descriptor.sourceActorId !== input.command.actorId ||
-    created.descriptor.sourceActionId !== input.command.actionId ||
-    created.descriptor.sourceOccurrenceId !== input.sourceOccurrenceId
+    created.descriptor.provenance.kind !== 'ACTION' ||
+    created.descriptor.provenance.sourceActionId !== input.command.actionId ||
+    created.descriptor.provenance.sourceOccurrenceId !== input.sourceOccurrenceId
   )
     throw new Error('Created maintained effect state does not match the completed action.')
 
@@ -313,7 +318,7 @@ export async function persistEncounterActionEffects(
     occurredAt: string
   }
 ): Promise<EncounterRunActorState[]> {
-  const { state, recurring, reaction, outputs } = classifyCreatedEffects(input)
+  const { state, recurring, rider, reaction, outputs } = classifyCreatedEffects(input)
   const target = input.actors.find(
     (actor) => actor.id === actionTargetActorId(input.command.target)
   )
@@ -351,13 +356,16 @@ export async function persistEncounterActionEffects(
           ? sourceEncounterIdForDefinition(effect.definition, effect.maintainedEffectStateId)
           : null) ||
       effect.maintainedEffectStateId !==
-        (effect.id === recurring?.id ? (input.maintainedState?.id ?? null) : null)
+        (effect.id === recurring?.id || effect.id === rider?.id
+          ? (input.maintainedState?.id ?? null)
+          : null)
     )
       throw new Error('Created action effect does not match its current owner and source.')
   }
   const projected = projectNativeActionEffectTransitions({
     state,
     recurring,
+    rider,
     targetActorId: target.id
   })
   const characterReceipts = (
@@ -417,7 +425,9 @@ export async function persistEncounterActionEffects(
         checksumCanonicalJson(
           buildEncounterJoinedMaintenanceTransition({
             createdState: supplied,
-            createdDependentEffectIds: recurring ? [recurring.id] : []
+            createdDependentEffectIds: [recurring, rider].flatMap((effect) =>
+              effect ? [effect.id] : []
+            )
           })
         )
     )

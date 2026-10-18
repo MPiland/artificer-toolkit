@@ -95,9 +95,10 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       reaction: z._default(z.nullable(encounterActionReactionReceiptDtoSchema), null),
       /** The target also failed a counter against this cast (D127): its slot spend rides in this batch's Character write. */
       targetFailedCounterSpend: z._default(z.boolean(), false),
+      /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
-        .check(z.maxLength(1)),
+        .check(z.maxLength(2)),
       /** The effect of a reaction the target used on being chosen as this cast's target; it lands on the target. */
       reactionEffectTransitions: z._default(
         z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(1)),

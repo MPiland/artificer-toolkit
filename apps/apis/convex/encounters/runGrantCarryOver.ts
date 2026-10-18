@@ -1,10 +1,9 @@
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { endCarriedGrantsOfConcentratingCasters } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { absoluteMinute, deriveClock } from '@artificer-toolkit/rules-runtime/campaignClock'
 import { planCarriedOverEffects } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { campaignClockDtoSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { MutationCtx } from '../_generated/server'
+import { readCampaignClockMinute } from '../campaigns/clockReads'
 import { readFightingCharacters } from '../liveSessions/characterHolds'
 import { encounterWriteTransaction } from './encounterPorts'
 
@@ -68,16 +67,7 @@ export async function carryOverRunGrants(
   campaignId: string,
   encounterId: string
 ): Promise<string[]> {
-  const clockRow = await ctx.db
-    .query('campaignClocks')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
-    .unique()
-  let clockMinute: number | null = null
-  if (clockRow) {
-    const { _id, _creationTime, ...stored } = clockRow
-    const { clock } = deriveClock(campaignClockDtoSchema.parse(stored), new Date().toISOString())
-    clockMinute = absoluteMinute(clock.day, clock.minuteOfDay)
-  }
+  const clockMinute = await readCampaignClockMinute(ctx.db, campaignId)
   const store = createActiveRuleEffectStore(encounterWriteTransaction(ctx))
   const changed: string[] = []
   for (const row of await ctx.db

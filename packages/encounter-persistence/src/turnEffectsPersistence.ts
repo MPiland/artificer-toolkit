@@ -174,7 +174,10 @@ export async function persistEncounterTurnEffects(
           lifecycle.afterVersion !== effect.version + 1 ||
           lifecycle.afterRemainingTicks !== afterRemainingTicks ||
           lifecycle.afterLifecycleChecksum !==
-            checksumRuleDocument({ schemaVersion: 1, remainingTicks: afterRemainingTicks }))) ||
+            checksumRuleDocument({
+              ...effect.lifecycle,
+              remainingTicks: afterRemainingTicks
+            }))) ||
       (lifecycle.kind === 'EXPIRE' &&
         lifecycle.afterRemainingTicks !== (remaining === null ? null : 0))
     )
@@ -307,10 +310,7 @@ export async function persistEncounterTurnEffects(
         id: effect.id,
         owner,
         expectedVersion: effect.version,
-        lifecycle: {
-          schemaVersion: 1,
-          remainingTicks: execution.lifecycle.afterRemainingTicks
-        }
+        lifecycle: { ...effect.lifecycle, remainingTicks: execution.lifecycle.afterRemainingTicks }
       })
   }
   // A candidate the damage ended has already expired with its own execution.

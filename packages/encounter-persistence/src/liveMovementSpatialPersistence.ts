@@ -9,6 +9,7 @@ import {
   targetTransitionChecksum
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { planSpatialEntryGrant } from '@artificer-toolkit/rules-runtime/encounterSpatialEntryGrant'
+import { planSpatialHeldCondition } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import {
   spatialEffectTransition,
   spatialMovementEffectBeforeTransition
@@ -217,7 +218,8 @@ export async function persistLiveMovementSpatial(
       })
   }
 
-  // A zone that leaves a lingering grant on the creature that failed its entry save.
+  // A zone that leaves a lingering grant on, or holds a condition on, the creature that failed its
+  // entry save.
   const grantStore = createActiveRuleEffectStore(ctx)
   for (const execution of step.executions) {
     const targetActorId = execution.candidate.candidate.targetActorId
@@ -225,9 +227,10 @@ export async function persistLiveMovementSpatial(
     const zone = input.effectOriginals.get(execution.candidate.effect.effectId)
     if (!target || !zone) throw new Error('Spatial entry grant lost its target or zone.')
     const owner = turnEffectOwner(target, state.id)
+    const holderEffects = await grantStore.list(owner)
     const grant = planSpatialEntryGrant({
       zoneDefinition: zone.definition,
-      holderEffects: await grantStore.list(owner),
+      holderEffects,
       execution: execution.execution,
       encounterId: state.id,
       occurrenceId: input.occurrenceId,
@@ -240,6 +243,25 @@ export async function persistLiveMovementSpatial(
         ...grant,
         owner,
         maintainedEffectStateId: null,
+        occurredAt: input.occurredAt
+      })
+    const held = planSpatialHeldCondition({
+      zone,
+      holder: {
+        activeEffects: holderEffects,
+        conditionIds: execution.targetTransition.before.conditionIds
+      },
+      applications: execution.applications,
+      encounterId: state.id,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.sourceCommandId,
+      targetActorId
+    })
+    if (held)
+      await grantStore.create({
+        ...held,
+        owner,
+        maintainedEffectStateId: zone.maintainedEffectStateId,
         occurredAt: input.occurredAt
       })
   }

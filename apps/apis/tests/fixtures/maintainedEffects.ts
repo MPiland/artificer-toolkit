@@ -77,8 +77,11 @@ export function descriptor(
   return {
     maintenanceDefinitionId: crypto.randomUUID(),
     definitionChecksum: 'b'.repeat(64),
-    sourceActionId: crypto.randomUUID(),
-    sourceOccurrenceId: crypto.randomUUID(),
+    provenance: {
+      kind: 'ACTION' as const,
+      sourceActionId: crypto.randomUUID(),
+      sourceOccurrenceId: crypto.randomUUID()
+    },
     sourceActorId,
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     schemaVersion: 2,

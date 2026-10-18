@@ -1057,7 +1057,7 @@ export class RoomInputs {
   }
 
   async #point<Kind extends 'CAMPAIGN_PLAY' | 'SYSTEM'>(
-    scope: Exclude<LiveRoomInputsScope, { kind: PagedKind | 'SCENE' }>,
+    scope: Exclude<LiveRoomInputsScope, { kind: PagedKind | 'SCENE' | 'CAMPAIGN_CLOCK' }>,
     observed: LiveSessionRulesRevisions | null,
     kind: Kind,
     transaction?: RoomTransaction
@@ -1105,6 +1105,12 @@ export class RoomInputs {
     const held = key ? this.#content.get(key) : null
     if (held?.manifest === json) return held
     return { manifest: json, objects: await this.#loadContent(manifest) }
+  }
+
+  /** The Campaign clock's absolute minute, read fresh because the clock is not room-owned (D151). */
+  async campaignClockMinute() {
+    const response = await this.#read(this.#requireEpoch(), { kind: 'CAMPAIGN_CLOCK' })
+    return expectKind(response, 'CAMPAIGN_CLOCK').absoluteMinute
   }
 
   #requireEpoch() {

@@ -114,7 +114,7 @@ type EscapeRoom = Awaited<ReturnType<typeof escapeRoom>>
 
 async function escapeCommand(room: EscapeRoom, checkDefinitionId: string = ATHLETICS) {
   return {
-    type: 'ESCAPE_RELATIONSHIP',
+    type: 'ESCAPE',
     encounterId: room.room.encounterId,
     commandId: crypto.randomUUID(),
     expectedVersion: await room.version(),
