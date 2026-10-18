@@ -7,7 +7,11 @@ import type { ShapeMeasurementAuthored } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import {
+  planEncounterPlacedZone,
+  zoneShapeAtSource,
+  type PlacedZoneSource
+} from '../encounterPlacedZone.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -102,6 +106,23 @@ function discover(feature: CreatureFeature) {
     }),
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
     abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+  })
+}
+
+function placeAura(zone: CompiledActionZonePlacement, source?: PlacedZoneSource) {
+  return planEncounterPlacedZone({
+    zone,
+    id: testUuid(0x1a51),
+    maintainedEffectStateId: null,
+    encounterId: testUuid(0x1a52),
+    occurrenceId: testUuid(0x1a53),
+    rootCommandId: testUuid(0x1a54),
+    sourceActorId: testUuid(0x1a50),
+    point: { x: 0, y: 0 },
+    area: { kind: 'RADIUS', radius: 10 },
+    sourceToken: { tokenId: testUuid(0x1a55), width: 1 },
+    saveDc: null,
+    ...(source ? { source } : {})
   })
 }
 
@@ -231,22 +252,25 @@ describe('an occupant save-bonus aura (SPELLS-20 T5a, D155)', () => {
     ).toMatchObject({ kind: 'MANUAL', reasonCode: 'NOT_NORMALIZED' })
   })
 
-  it('refuses to place the zone until placement resolves its bonus and radius against the source', () => {
+  it('pins the bonus and reach against its source at placement (T5b)', () => {
     const zone = passiveZoneOf(auraOfProtectionFeature())
-    expect(() =>
-      planEncounterPlacedZone({
-        zone,
-        id: testUuid(0x1a51),
-        maintainedEffectStateId: null,
-        encounterId: testUuid(0x1a52),
-        occurrenceId: testUuid(0x1a53),
-        rootCommandId: testUuid(0x1a54),
-        sourceActorId: testUuid(0x1a50),
-        point: { x: 0, y: 0 },
-        area: { kind: 'RADIUS', radius: 10 },
-        sourceToken: { tokenId: testUuid(0x1a55), width: 1 },
-        saveDc: null
-      })
-    ).toThrow('A zone resolved against its source at placement is not placeable yet.')
+    const paladin18 = {
+      abilityModifier: (ability: string) => (ability === 'CHARISMA' ? -1 : 0),
+      classLevel: (classId: string) => (classId === CLASS_IDS.PALADIN ? 18 : 0)
+    }
+    expect(zoneShapeAtSource(zone.shape, paladin18)).toMatchObject({
+      radius: { amount: 30, unit: 'FEET' }
+    })
+    expect(placeAura(zone, paladin18).placement.occupantSaveBonus).toEqual({
+      domain: 'EVERY_SAVING_THROW',
+      dispositionFilter: 'ALLIES_AND_SOURCE',
+      amount: 1
+    })
+  })
+
+  it('refuses to place a bonus of its source’s modifier with no source to resolve it against', () => {
+    expect(() => placeAura(passiveZoneOf(auraOfProtectionFeature()))).toThrow(
+      'A save bonus from its source’s modifier is resolved against it.'
+    )
   })
 })

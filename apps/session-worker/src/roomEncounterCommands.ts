@@ -21,7 +21,7 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 import { roomEncounterReadTransaction, type RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { prepareRoomLiveCharacterSheet, readRoomOwnerCharacterRules } from './roomCharacterRules.js'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
@@ -357,6 +357,14 @@ export async function executeRoomEncounterCommand(input: {
   async function executeTokenBinding(command: EncounterActorTokenBindingCommandInputDto) {
     const readers = roomSceneTokenReaders(transaction)
     return executeEncounterActorTokenBinding(context, command, {
+      readCharacterRules: (campaign, characterId) =>
+        readRoomOwnerCharacterRules(
+          store,
+          inputs,
+          { campaign, authorityEpoch: epoch, characterId },
+          observed,
+          transaction
+        ),
       readScene: async (sceneId) => {
         if (sceneId !== input.presentedSceneId?.toLowerCase()) rejectDomain('SCENE_NOT_PRESENTED')
         return readRoomScene(transaction, sceneId).header

@@ -43,6 +43,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   facts: CharacterRulePolicyInput
   /** Server-only exact authored action entries. Never included in policy facts. */
   actionEntryPoints: ReturnType<typeof buildCharacterActionRuleFacts>['entryPoints']
+  /** Server-only passive zone sources an Encounter places on the Character's token (D155). */
+  passiveZoneSources: ReturnType<typeof buildCharacterActionRuleFacts>['passiveZones']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -138,5 +140,10 @@ export function composeCharacterRulePolicyFacts(
     }
   })
 
-  return { ...assembled, facts, actionEntryPoints: actionFacts.entryPoints }
+  return {
+    ...assembled,
+    facts,
+    actionEntryPoints: actionFacts.entryPoints,
+    passiveZoneSources: actionFacts.passiveZones
+  }
 }

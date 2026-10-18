@@ -226,19 +226,38 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
         spatialHeldConditionDtoSchema(z.number().check(z.int()).check(z.positive()))
       ),
       /** The zone catches a creature inside it that hits its source token with a melee attack (D153). */
-      retaliatesMeleeHits: z.optional(z.literal(true))
+      retaliatesMeleeHits: z.optional(z.literal(true)),
+      /**
+       * The bonus to every saving throw the zone lends its source and the source's allies inside it
+       * (D155), its amount resolved against the source and pinned at placement. Such a zone has no
+       * trigger.
+       */
+      occupantSaveBonus: z.optional(
+        z.strictObject({
+          domain: z.literal('EVERY_SAVING_THROW'),
+          dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
+          amount: z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30))
+        })
+      )
     })
     .check(
       z.superRefine((placement, context) => {
-        if (
-          placement.triggerModes.length === 0 &&
-          !placement.turnTriggers &&
-          !placement.retaliatesMeleeHits
-        )
+        const triggered =
+          placement.triggerModes.length > 0 ||
+          placement.turnTriggers !== undefined ||
+          placement.retaliatesMeleeHits === true
+        if (!triggered && !placement.occupantSaveBonus)
           context.addIssue({
             code: 'custom',
             path: ['triggerModes'],
-            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
+            message:
+              'A spatial effect needs a movement, turn or melee-hit trigger, or a save bonus.'
+          })
+        if (placement.occupantSaveBonus && (triggered || placement.anchorKind !== 'TOKEN'))
+          context.addIssue({
+            code: 'custom',
+            path: ['occupantSaveBonus'],
+            message: 'A zone lending a save bonus is untriggered and anchored to its source token.'
           })
         if (placement.retaliatesMeleeHits && placement.anchorKind !== 'TOKEN')
           context.addIssue({
