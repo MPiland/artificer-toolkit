@@ -14,7 +14,7 @@ import {
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
-import { placedSpaceManifest } from '../encounterZonePlacement.js'
+import { placedSpaceEntries } from '../placedSpaceEntries.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 
@@ -382,7 +382,7 @@ function appendActions(params: {
     const sink = passive
       ? params.passiveZones
       : { candidates: params.candidates, entryPoints: params.entryPoints }
-    if (!sink || (passive && !placedSpaceManifest(authoredEffect))) continue
+    if (!sink || (passive && !placedSpaceEntries(authoredEffect))) continue
     // Only an item's own effects carry a grip; features granted by an item have none.
     const equipment = params.equipment && {
       ...params.equipment,

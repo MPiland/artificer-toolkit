@@ -745,7 +745,8 @@ describe('a paladin’s Aura of Protection in the room (SPELLS-20 T5b, D155)', (
   /** A Run not started yet: the Character, who carries the aura, stands beside a Wolf. */
   function paladinRoom() {
     return actionRoom({
-      actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+      actors: [srdCreatureActor({ id: WOLF_ID, creature: plainWolf }), casterActor],
+      ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
       characterClassFeatures: [auraOfProtection],
       status: 'PREPARED',
       autoRoll: 'EVERYONE',
@@ -764,7 +765,7 @@ describe('a paladin’s Aura of Protection in the room (SPELLS-20 T5b, D155)', (
     })
     expect(started.type, JSON.stringify(started)).toBe('COMMAND_COMMITTED')
 
-    const characterTokenId = room.room.scene.tokens[0]!.id
+    const characterTokenId = room.room.scene.tokens[1]!.id
     const [placed, ...others] = (await readZones(room)).map(readSpatialEffect)
     expect(others).toEqual([])
     expect(placed).toMatchObject({
