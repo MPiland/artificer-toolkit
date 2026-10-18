@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **A margin rider outlives an early-ended parent (D149).** The Drow's sleep lasts "while poisoned", but curing or GM-ending the poison mid-sleep leaves the unconscious rider for the GM to end. A persisted effect-to-effect end link would close it.
+
 - **Auras and spells that ignite flammable objects (SPELLS-20.T6, D144).** The Balor's Fire Aura and similar effects ignite unattended flammable objects; no object state is modelled, so the GM narrates it.
 - **A GM private roll resent across a room epoch (QUALITY-1.T1).** The room refuses a private-roll nonce sent before the current epoch ("This roll was already made.") instead of replaying the stored roll, as chat now does. Rare (needs a reconnect across an epoch change between send and retry); fix by replaying from the room's retained-roll record.
 - **Creatures that do not need to breathe (SPELLS-20.T4b3, D141).** Stinking Cloud's automatic success covers poison immunity only. No SRD 5.1 stat block states that a creature does not breathe, and the SRD undead and constructs are almost all poison-immune, so no breathing fact is modelled. Add an authored creature fact and a Character grant domain when homebrew content needs it.
