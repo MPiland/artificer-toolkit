@@ -15,6 +15,7 @@ import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import { encounterSourceRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -425,6 +426,29 @@ export async function readEncounterActionChoices(
       warnings: economy.warnings
     })
   }
+  // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
+  const runActors = await readRunActors(tx, state)
+  const releases: EncounterActionChoicesDto['releases'] = encounterSourceRelationships(
+    new Map(
+      await Promise.all(
+        runActors.map(
+          async (held) =>
+            [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
+        )
+      )
+    ),
+    actor.id
+  ).map(({ actorId: heldActorId, effect }) => {
+    const held = runActors.find((candidate) => candidate.id === heldActorId)
+    return {
+      heldActorId,
+      activeEffectId: effect.id,
+      label:
+        held && (membership.role === 'OWNER' || held.public)
+          ? `Release ${held.label}`
+          : 'Release a creature'
+    }
+  })
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
@@ -443,6 +467,7 @@ export async function readEncounterActionChoices(
     basicActionChoices,
     escapes,
     heldGrantEnds,
+    releases,
     optionalRules: activeOptionalCombatDefinitions({
       automationMode: state.automationMode,
       snapshot: state.optionalCombatSnapshot

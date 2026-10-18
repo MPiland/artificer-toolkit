@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import {
@@ -233,6 +234,19 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A creature the actor holds through a relationship it applied (D152): the release offer, which
+ * spends nothing. The client submits `heldActorId` and `activeEffectId`.
+ */
+export const encounterReleaseChoiceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    heldActorId: postgresUuidSchema,
+    activeEffectId: postgresUuidSchema,
+    /** "Release <creature>", or "Release a creature" when the creature is hidden from the requester. */
+    label: labelSchema
+  })
+)
+
 export const encounterActionChoicesDtoSchema = lazySchema(() =>
   z.strictObject({
     encounterId: postgresUuidSchema,
@@ -268,6 +282,8 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     heldGrantEnds: z
       .array(encounterHeldGrantEndChoiceDtoSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** One entry per creature the actor holds through a relationship it applied. */
+    releases: z.array(encounterReleaseChoiceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
   })
 )
@@ -324,6 +340,7 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
+export type EncounterReleaseChoiceDto = z.infer<typeof encounterReleaseChoiceDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema

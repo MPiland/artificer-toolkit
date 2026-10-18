@@ -457,11 +457,11 @@ export async function actionRoom(config: ActionRoomConfig) {
     if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
     return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
   }
-  /** The actions the room offers the acting actor. */
-  async function actionChoices() {
+  /** The actions the room offers the acting actor, or `actorId` on its own turn, as the GM reads them. */
+  async function actionChoices(actorId = source.id) {
     const choices = await readRoom({
       kind: 'ACTION_CHOICES',
-      input: { encounterId: room.encounterId, actorId: source.id }
+      input: { encounterId: room.encounterId, actorId }
     })
     if (!choices) throw new Error('The room offers no action choices.')
     return choices

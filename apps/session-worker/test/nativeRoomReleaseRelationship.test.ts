@@ -24,12 +24,17 @@ afterEach(() => {
 })
 
 /** The held Wolf takes the first turn, so the grappler acts out of turn. */
-function releaseRoom(options: Pick<ActionRoomConfig, 'playerControlledActorIds'> = {}) {
+function releaseRoom(
+  options: Pick<ActionRoomConfig, 'playerControlledActorIds'> & { heldHidden?: boolean } = {}
+) {
   return actionRoom({
     playerControlledActorIds: options.playerControlledActorIds,
     ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
     actors: [
-      srdCreatureActor({ id: HELD_ID, creature: plainWolf, conditionIds: [GRAPPLED] }),
+      {
+        ...srdCreatureActor({ id: HELD_ID, creature: plainWolf, conditionIds: [GRAPPLED] }),
+        public: !options.heldHidden
+      },
       srdCreatureActor({ id: GRAPPLER_ID, creature: plainWolf })
     ],
     seed: async ({ effects, encounterId, occurredAt }) => {
@@ -94,6 +99,19 @@ describe('a source releases the creature it holds (D152), in the room', () => {
           ]
         }
       }
+    ])
+  })
+
+  it('offers the source a release of each creature it holds, and the held creature none', async () => {
+    const room = await releaseRoom({ playerControlledActorIds: [GRAPPLER_ID], heldHidden: true })
+    expect((await room.actionChoices()).releases).toEqual([])
+    await room.advanceTurn()
+    const release = { heldActorId: HELD_ID, activeEffectId: EFFECT_ID }
+    expect((await room.actionChoices(GRAPPLER_ID)).releases).toEqual([
+      { ...release, label: 'Release Wolf' }
+    ])
+    expect((await room.actionChoicesAsPlayer(GRAPPLER_ID)).releases).toEqual([
+      { ...release, label: 'Release a creature' }
     ])
   })
 

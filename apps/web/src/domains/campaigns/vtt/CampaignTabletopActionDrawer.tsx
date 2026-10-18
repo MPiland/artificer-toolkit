@@ -20,6 +20,7 @@ import type {
   EncounterEscapeChoiceDto,
   EncounterHeldGrantEndChoiceDto,
   EncounterOptionalActionChoicesDto,
+  EncounterReleaseChoiceDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
@@ -28,6 +29,7 @@ import type {
   EncounterPlayerProjectionDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
@@ -50,6 +52,7 @@ import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreaturePicker'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
+import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
@@ -71,6 +74,7 @@ export function CampaignTabletopActionDrawer({
   basicActionChoices,
   escapes,
   heldGrantEnds,
+  releases,
   openAttackAction,
   actionsLoading,
   actionChoicesError,
@@ -97,6 +101,7 @@ export function CampaignTabletopActionDrawer({
   onResolve,
   onEscape,
   onEndHeldGrant,
+  onRelease,
   onLoadOptionalChoices
 }: {
   actions: EncounterActionChoiceDto[]
@@ -104,6 +109,7 @@ export function CampaignTabletopActionDrawer({
   basicActionChoices: EncounterActionChoiceDto[]
   escapes: EncounterEscapeChoiceDto[]
   heldGrantEnds: EncounterHeldGrantEndChoiceDto[]
+  releases: EncounterReleaseChoiceDto[]
   /** The Attack action opened this turn; its last weapon and target are preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
   actionsLoading: boolean
@@ -148,6 +154,7 @@ export function CampaignTabletopActionDrawer({
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onEndHeldGrant: (command: EndHeldGrantInputDto) => Promise<EncounterCommandResultDto>
+  onRelease: (command: ReleaseRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
@@ -1027,6 +1034,16 @@ export function CampaignTabletopActionDrawer({
               encounterVersion={encounter.version}
               heldGrantEnds={heldGrantEnds}
               onEnd={onEndHeldGrant}
+            />
+          ) : null}
+          {currentActor && !actionsLoading && !actionChoicesError && releases.length ? (
+            <CampaignTabletopReleases
+              actorId={currentActor.id}
+              disabled={selectionControlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              releases={releases}
+              onRelease={onRelease}
             />
           ) : null}
           {feedback ? (
