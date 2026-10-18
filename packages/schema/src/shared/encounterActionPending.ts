@@ -23,7 +23,7 @@ import {
   ruleExecutionReceiptD20FaceSchema,
   ruleExecutionUuidSchema
 } from './ruleExecutionPrimitives.js'
-import { serverOptionalCombatContestPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
+import { serverContestCheckPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 // Explicitly typed so the pending-context declaration stays within the compiler's size limit (TS7056).
@@ -64,7 +64,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       d20Policy: z.nullable(serverRuleExecutionD20PolicyDtoSchema),
       twoPhase: z.nullable(directActionTwoPhaseDtoSchema),
       /** Disarm keeps the original action owner while each contest participant responds. */
-      contest: z.optional(z.lazy(() => serverOptionalCombatContestPendingContextDtoSchema)),
+      contest: z.optional(z.lazy(() => serverContestCheckPendingContextDtoSchema)),
       /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.1). */
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
@@ -211,7 +211,8 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
           })
         if (
           value.contest &&
-          (value.contest.actionKind !== 'DISARM' ||
+          (value.contest.origin.kind !== 'OPTIONAL_COMBAT' ||
+            value.contest.origin.actionKind !== 'DISARM' ||
             value.d20Policy !== null ||
             value.twoPhase !== null)
         )

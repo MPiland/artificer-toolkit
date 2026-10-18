@@ -18,7 +18,7 @@ import {
   spatialPendingContextDtoSchema
 } from './ruleExecutionSpatialPendingContexts.js'
 import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionInitiativePending.js'
-import { serverOptionalCombatContestPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
+import { serverContestCheckPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
 import {
   legendaryActionEvidencePendingContextDtoSchema,
   turnDeathSavePendingContextDtoSchema,
@@ -44,7 +44,7 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof movementReactionPendingContextDtoSchema>
   | z.infer<typeof legendaryActionEvidencePendingContextDtoSchema>
   | z.infer<typeof encounterInitiativePendingContextDtoSchema>
-  | z.infer<typeof serverOptionalCombatContestPendingContextDtoSchema>
+  | z.infer<typeof serverContestCheckPendingContextDtoSchema>
   | z.infer<typeof encounterCharacterRuleActionPendingContextDtoSchema>
   | z.infer<typeof encounterActorRuleActionPendingContextDtoSchema>
   | z.infer<typeof encounterActorSpellCastPendingContextDtoSchema>
@@ -68,7 +68,7 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         movementReactionPendingContextDtoSchema,
         legendaryActionEvidencePendingContextDtoSchema,
         encounterInitiativePendingContextDtoSchema,
-        serverOptionalCombatContestPendingContextDtoSchema,
+        serverContestCheckPendingContextDtoSchema,
         encounterCharacterRuleActionPendingContextDtoSchema,
         encounterActorRuleActionPendingContextDtoSchema,
         encounterActorSpellCastPendingContextDtoSchema,
@@ -144,7 +144,7 @@ export const serverRuleExecutionPendingApplicationContextDtoSchema: z.ZodMiniTyp
   z.infer<typeof serverRuleExecutionPendingApplicationContextDtoSchemaImpl>
 > = serverRuleExecutionPendingApplicationContextDtoSchemaImpl
 
-export type ServerOptionalCombatContestPendingApplicationContextDto = Extract<
+export type ServerContestCheckPendingApplicationContextDto = Extract<
   ServerRuleExecutionPendingApplicationContextDto,
-  { kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' }
+  { kind: 'ENCOUNTER_CONTEST_CHECK' }
 >

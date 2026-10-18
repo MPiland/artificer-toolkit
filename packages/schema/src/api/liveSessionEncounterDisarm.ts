@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
-import { serverOptionalCombatContestPendingContextDtoSchema } from '../shared/ruleExecutionOptionalCombatPending.js'
+import { serverContestCheckPendingContextDtoSchema } from '../shared/ruleExecutionOptionalCombatPending.js'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
@@ -52,7 +52,7 @@ export type LiveSessionEncounterDisarmCommitInput = Omit<
   'snapshot'
 > & {
   occurredAt: string
-  contest: z.infer<typeof serverOptionalCombatContestPendingContextDtoSchema>
+  contest: z.infer<typeof serverContestCheckPendingContextDtoSchema>
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   rules: z.infer<typeof encounterActorRuleOutputSchema>
   /** The one-roll grants the initiator's attack roll and the defender's check used up; the commit deletes them. */
@@ -63,7 +63,7 @@ export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSess
   lazySchema(() =>
     z.extend(disarmScope, {
       occurredAt: z.iso.datetime(),
-      contest: serverOptionalCombatContestPendingContextDtoSchema,
+      contest: serverContestCheckPendingContextDtoSchema,
       execution: storedRuleExecutionResultDtoSchema,
       rules: encounterActorRuleOutputSchema,
       consumedGrants: z

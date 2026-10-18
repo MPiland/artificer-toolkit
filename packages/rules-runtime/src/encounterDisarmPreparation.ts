@@ -12,7 +12,7 @@ import {
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
-import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -321,7 +321,7 @@ export function prepareEncounterDisarmContest(input: {
   selection: ReturnType<typeof readEncounterDisarmSelection>
   system: SystemAuthoredDto
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
-  priorContest?: ServerOptionalCombatContestPendingApplicationContextDto
+  priorContest?: ServerContestCheckPendingApplicationContextDto
 }) {
   const { state, actor, target, command, prepared, sceneContext, actionEconomy } = input
   const intent = command.optionalCombatIntent
@@ -439,26 +439,42 @@ export function prepareEncounterDisarmContest(input: {
     )
   })
   const current: Parameters<typeof prepareDnd5eOptionalCombatContestPendingContext>[0] = {
-    actionKind: 'DISARM',
+    origin: {
+      kind: 'OPTIONAL_COMBAT',
+      actionKind: 'DISARM',
+      pin: {
+        snapshotChecksum: state.optionalCombatSnapshotChecksum,
+        ...preparation.proposal.pin,
+        moduleContractVersion: 1
+      },
+      optionId: descriptor.optionId,
+      selectionContractChecksum: descriptor.selectionContract,
+      resolvedSelectionChecksum: checksumRuleDocument(selection),
+      selection: {
+        kind: 'DISARM',
+        heldItemId,
+        defenderCheckDefinitionId: checkDefinitionId,
+        heldItemStateChecksum:
+          defenderFacts.ownerState === 'CHARACTER_SHEET'
+            ? checksumRuleDocument({
+                itemId: heldItemId,
+                properties: targetItem.properties,
+                state: 'EQUIPPED'
+              })
+            : targetContext!.stateChecksum
+      }
+    },
     actionId: command.actionId,
     sourceActorId: actor.id,
     targetActorId: target.id,
     initiatorControllerCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : null,
     sceneContext: sceneDependency,
     positionalDependencyChecksum: checksumRuleDocument(sceneDependency),
-    optionalCombat: {
-      snapshotChecksum: state.optionalCombatSnapshotChecksum,
-      ...preparation.proposal.pin,
-      moduleContractVersion: 1
-    },
     contestGraph: {
       definitionId: graph.published.id,
       checksum: graph.published.checksum,
       identityChecksum: graph.identityChecksum
     },
-    optionId: descriptor.optionId,
-    selectionContractChecksum: descriptor.selectionContract,
-    resolvedSelectionChecksum: checksumRuleDocument(selection),
     source: sourceContext,
     target:
       defenderFacts.ownerState === 'CHARACTER_SHEET'
@@ -490,19 +506,6 @@ export function prepareEncounterDisarmContest(input: {
       contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
       modifier: targetCheckTotal,
       checkDefinitionId
-    },
-    selection: {
-      kind: 'DISARM',
-      heldItemId,
-      defenderCheckDefinitionId: checkDefinitionId,
-      heldItemStateChecksum:
-        defenderFacts.ownerState === 'CHARACTER_SHEET'
-          ? checksumRuleDocument({
-              itemId: heldItemId,
-              properties: targetItem.properties,
-              state: 'EQUIPPED'
-            })
-          : targetContext!.stateChecksum
     },
     actionEconomy: actionEconomy
       ? {
@@ -544,9 +547,15 @@ export function planEncounterDisarmSuccess(input: {
   | { kind: 'CHARACTER'; character: CharacterAuthored; stateTransition: DisarmStateTransition }
   | { kind: 'CREATURE'; actor: EncounterRunActorState; stateTransition: DisarmStateTransition } {
   const { target, contest, character } = input
-  if (contest.actionKind !== 'DISARM' || contest.selection.kind !== 'DISARM')
+  const { origin } = contest
+  if (
+    origin.kind !== 'OPTIONAL_COMBAT' ||
+    origin.actionKind !== 'DISARM' ||
+    origin.selection.kind !== 'DISARM'
+  )
     throw new Error('Disarm settlement requires a Disarm contest.')
-  const itemId = contest.selection.heldItemId
+  const { selection } = origin
+  const itemId = selection.heldItemId
   if (target.kind === 'CHARACTER') {
     if (
       !character ||
@@ -585,7 +594,7 @@ export function planEncounterDisarmSuccess(input: {
     actor: target,
     loadoutEntryId: itemId
   })
-  if (!context || context.stateChecksum !== contest.selection.heldItemStateChecksum)
+  if (!context || context.stateChecksum !== selection.heldItemStateChecksum)
     throw new Error('Disarm Creature item changed before settlement.')
   const applied = applyEncounterActorOptionalContestSuccess({ context, actor: target })
   return {
@@ -618,8 +627,10 @@ export function disarmApplicationOutputs(input: {
   sourceApplications: ReceiptApplications
 }) {
   const { contest, rolls } = input
+  if (contest.origin.kind !== 'OPTIONAL_COMBAT')
+    throw new Error('Disarm settlement requires a Disarm contest.')
   const { definitionId, definitionVersion, definitionChecksum, moduleKey, moduleContractVersion } =
-    contest.optionalCombat
+    contest.origin.pin
   return contestedActionApplicationOutputDtoSchema.parse({
     kind: 'CONTESTED_ACTION',
     schemaVersion: 1,

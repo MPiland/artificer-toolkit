@@ -1,20 +1,20 @@
 import {
-  serverOptionalCombatContestPendingContextDtoSchema,
-  type ServerOptionalCombatContestPendingApplicationContextDto
+  serverContestCheckPendingContextDtoSchema,
+  type ServerContestCheckPendingApplicationContextDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 type PreparedOptionalCombatContestContext = Omit<
-  ServerOptionalCombatContestPendingApplicationContextDto,
+  ServerContestCheckPendingApplicationContextDto,
   'kind' | 'schemaVersion'
 >
 
 /** Creates the sealed, non-executable evidence context from facts locked by its caller. */
 export function prepareDnd5eOptionalCombatContestPendingContext(
   input: PreparedOptionalCombatContestContext
-): ServerOptionalCombatContestPendingApplicationContextDto {
-  return serverOptionalCombatContestPendingContextDtoSchema.parse({
-    kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST',
+): ServerContestCheckPendingApplicationContextDto {
+  return serverContestCheckPendingContextDtoSchema.parse({
+    kind: 'ENCOUNTER_CONTEST_CHECK',
     schemaVersion: 1,
     ...input
   })
@@ -22,10 +22,10 @@ export function prepareDnd5eOptionalCombatContestPendingContext(
 
 /** Returns whether a paused contest still has exactly the caller's locked currentness facts. */
 export function isDnd5eOptionalCombatContestPendingContextCurrent(input: {
-  pending: ServerOptionalCombatContestPendingApplicationContextDto
+  pending: ServerContestCheckPendingApplicationContextDto
   current: PreparedOptionalCombatContestContext
 }): boolean {
-  const sealed = serverOptionalCombatContestPendingContextDtoSchema.parse(input.pending)
+  const sealed = serverContestCheckPendingContextDtoSchema.parse(input.pending)
   const current = prepareDnd5eOptionalCombatContestPendingContext(input.current)
   return checksumRuleDocument(sealed) === checksumRuleDocument(current)
 }

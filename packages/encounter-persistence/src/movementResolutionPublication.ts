@@ -42,7 +42,10 @@ import type {
 } from './movementResolutionDocuments.js'
 import type { SpatialPendingPublicationCallbacks } from './spatialPendingPublication.js'
 import type { SpatialTerminalPublicationCallbacks } from './spatialTerminalPublication.js'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import {
+  contestCheckMovementContinuation,
+  readEncounterMovementPendingContext
+} from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { rejectDomain } from './domainRejections.js'
 
 type MovementSettlement = Awaited<ReturnType<SpatialPendingPublicationCallbacks<unknown>['settle']>>
@@ -112,10 +115,12 @@ function pendingChecksums(
       selectionChecksum: context.movement.spatialSelectionChecksum,
       currentnessChecksum: context.movement.spatialCurrentnessChecksum
     }
-  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation)
+  const continuation =
+    context.kind === 'ENCOUNTER_CONTEST_CHECK' ? contestCheckMovementContinuation(context) : null
+  if (continuation)
     return {
-      selectionChecksum: context.movementContinuation.spatialSelectionChecksum,
-      currentnessChecksum: context.movementContinuation.spatialCurrentnessChecksum
+      selectionChecksum: continuation.spatialSelectionChecksum,
+      currentnessChecksum: continuation.spatialCurrentnessChecksum
     }
   throw new Error('Movement response pending context is unavailable.')
 }
@@ -129,15 +134,18 @@ function withCurrentSceneVersion(
   const applicationContext =
     context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
       ? { ...context, movement: { ...context.movement, root: nextRoot } }
-      : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+      : context.kind === 'ENCOUNTER_CONTEST_CHECK'
         ? {
             ...context,
             sceneContext: context.sceneContext
               ? { ...context.sceneContext, sceneVersion: currentSceneVersion }
               : context.sceneContext,
-            movementContinuation: { ...context.movementContinuation, root: nextRoot },
+            origin: {
+              ...context.origin,
+              movementContinuation: { ...context.origin.movementContinuation, root: nextRoot }
+            },
             positionalDependencyChecksum: checksumCanonicalJson({
-              ...context.movementContinuation,
+              ...context.origin.movementContinuation,
               root: nextRoot
             })
           }
@@ -157,12 +165,15 @@ function withSpatialCurrentness(
           ...context,
           movement: { ...context.movement, spatialCurrentnessChecksum }
         }
-      : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+      : context.kind === 'ENCOUNTER_CONTEST_CHECK'
         ? {
             ...context,
-            movementContinuation: {
-              ...context.movementContinuation,
-              spatialCurrentnessChecksum
+            origin: {
+              ...context.origin,
+              movementContinuation: {
+                ...context.origin.movementContinuation,
+                spatialCurrentnessChecksum
+              }
             }
           }
         : { ...context, spatialCurrentnessChecksum }
@@ -415,8 +426,8 @@ export async function publishMovementResponse(
         ? preparedContext
         : preparedContext.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
           ? preparedContext.movement
-          : preparedContext.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
-            ? preparedContext.movementContinuation
+          : preparedContext.kind === 'ENCOUNTER_CONTEST_CHECK'
+            ? preparedContext.origin.movementContinuation
             : null
     if (committed.mechanicsChanged && movementContext) {
       const candidates = [

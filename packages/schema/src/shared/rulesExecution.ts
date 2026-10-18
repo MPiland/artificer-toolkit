@@ -102,11 +102,11 @@ export {
 } from './ruleExecutionSpatial.js'
 export type { TurnResolutionCommandDto } from './ruleExecutionTurnCommands.js'
 
-export { serverOptionalCombatContestPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
+export { serverContestCheckPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
 export { serverRuleExecutionPendingApplicationContextDtoSchema } from './ruleExecutionPendingApplication.js'
 export type {
   ServerRuleExecutionPendingApplicationContextDto,
-  ServerOptionalCombatContestPendingApplicationContextDto
+  ServerContestCheckPendingApplicationContextDto
 } from './ruleExecutionPendingApplication.js'
 
 export {

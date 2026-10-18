@@ -22,20 +22,22 @@ type PassageChoice = Extract<
   ServerRuleExecutionPendingSnapshotDto['applicationContext'],
   { kind: 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' }
 >
-type PassagePending = Extract<
+type ContestCheck = Extract<
   ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
-  { kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' }
+  { kind: 'ENCOUNTER_CONTEST_CHECK' }
 >
+type PassageOrigin = Extract<ContestCheck['origin'], { kind: 'OPTIONAL_COMBAT' }>
+type PassagePending = ContestCheck & { origin: PassageOrigin }
 type PassageContestReceipt = NonNullable<
   Extract<
-    NonNullable<PassagePending['movementContinuation']>['root']['resolutionCommands'][number],
+    NonNullable<PassageOrigin['movementContinuation']>['root']['resolutionCommands'][number],
     { kind: 'PASSAGE_OPTION' }
   >['passageContest']
 >
 type ResolutionCommand = ReturnType<typeof movementRuleResolutionCommandDtoSchema.parse>
 type PassageMovement =
   | PassageChoice['movement']
-  | NonNullable<PassagePending['movementContinuation']>
+  | NonNullable<PassageOrigin['movementContinuation']>
 type CompletedContestExecution = Extract<
   Awaited<ReturnType<typeof executeEncounterMovementPassageContest>>,
   { kind: 'COMPLETE' }
@@ -65,7 +67,7 @@ function withoutEvidence(pending: PassagePending) {
 }
 
 function appendedMovement<
-  T extends PassageChoice['movement'] | NonNullable<PassagePending['movementContinuation']>
+  T extends PassageChoice['movement'] | NonNullable<PassageOrigin['movementContinuation']>
 >(movement: T, command: ResolutionCommand) {
   return {
     ...movement,
@@ -78,7 +80,7 @@ function receipt(input: {
   pending: PassagePending
 }): PassageContestReceipt {
   const economy = input.pending.actionEconomy
-  const movement = input.pending.movementContinuation
+  const movement = input.pending.origin.movementContinuation
   if (!economy || !movement) throw new Error('Movement passage allowance is unavailable.')
   const participant = (
     policy: PassagePending['initiator'],
@@ -99,8 +101,8 @@ function receipt(input: {
   const terminalPassageStop =
     input.execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null
   return {
-    actionKind: input.pending.actionKind as 'OVERRUN' | 'TUMBLE',
-    optionId: input.pending.optionId,
+    actionKind: input.pending.origin.actionKind as 'OVERRUN' | 'TUMBLE',
+    optionId: input.pending.origin.optionId,
     outcome: input.execution.outcome,
     initiator: participant(
       input.pending.initiator,
@@ -115,11 +117,11 @@ function receipt(input: {
     actionEconomy: { ...economy, afterUsed: economy.beforeUsed + 1 },
     audit: {
       optionalCombat: {
-        definitionId: input.pending.optionalCombat.definitionId,
-        definitionVersion: input.pending.optionalCombat.definitionVersion,
-        definitionChecksum: input.pending.optionalCombat.definitionChecksum,
-        moduleKey: input.pending.optionalCombat.moduleKey,
-        moduleContractVersion: input.pending.optionalCombat.moduleContractVersion
+        definitionId: input.pending.origin.pin.definitionId,
+        definitionVersion: input.pending.origin.pin.definitionVersion,
+        definitionChecksum: input.pending.origin.pin.definitionChecksum,
+        moduleKey: input.pending.origin.pin.moduleKey,
+        moduleContractVersion: input.pending.origin.pin.moduleContractVersion
       },
       sourceActorId: input.pending.sourceActorId,
       sourceTokenId: movement.root.tokenId,
@@ -128,8 +130,8 @@ function receipt(input: {
       contact: movement.contact,
       contactPathDistance: movement.contactPathDistance,
       blockerCurrentnessChecksum: movement.blockerCurrentnessChecksum,
-      selectionContractChecksum: input.pending.selectionContractChecksum,
-      resolvedSelectionChecksum: input.pending.resolvedSelectionChecksum,
+      selectionContractChecksum: input.pending.origin.selectionContractChecksum,
+      resolvedSelectionChecksum: input.pending.origin.resolvedSelectionChecksum,
       spatialSelectionChecksum: movement.spatialSelectionChecksum,
       spatialCurrentnessChecksum: movement.spatialCurrentnessChecksum,
       originalPath: [...movement.root.originalPath],
@@ -250,7 +252,7 @@ export async function evaluateEncounterMovementPassageContest<
       const nextSnapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...execution.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',
-        optionalCombatSnapshotChecksum: pending.optionalCombat.snapshotChecksum,
+        optionalCombatSnapshotChecksum: pending.origin.pin.snapshotChecksum,
         applicationContext: nextPending
       })
       if (input.retained?.snapshot && !same(nextSnapshot, input.retained.snapshot))
@@ -294,33 +296,34 @@ export async function evaluateEncounterMovementPassageContest<
     throw new Error('Movement passage evidence is unavailable.')
   const sealed = input.snapshot.applicationContext
   if (
-    sealed.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' ||
-    (sealed.actionKind !== 'OVERRUN' && sealed.actionKind !== 'TUMBLE') ||
-    (sealed.selection.kind !== 'OVERRUN' && sealed.selection.kind !== 'TUMBLE') ||
-    !sealed.movementContinuation ||
+    sealed.kind !== 'ENCOUNTER_CONTEST_CHECK' ||
+    sealed.origin.kind !== 'OPTIONAL_COMBAT' ||
+    (sealed.origin.actionKind !== 'OVERRUN' && sealed.origin.actionKind !== 'TUMBLE') ||
+    (sealed.origin.selection.kind !== 'OVERRUN' && sealed.origin.selection.kind !== 'TUMBLE') ||
+    !sealed.origin.movementContinuation ||
     (input.resolution.kind !== 'ENTER_DICE' && input.resolution.kind !== 'SYSTEM_ROLL') ||
     (responseCommand.kind !== 'ENTER_DICE' && responseCommand.kind !== 'SYSTEM_ROLL') ||
     responseCommand.requestId !== input.resolution.requestId
   )
     throw new Error('Movement passage evidence is unavailable.')
-  const movement = appendedMovement(sealed.movementContinuation, responseCommand)
+  const movement = appendedMovement(sealed.origin.movementContinuation, responseCommand)
   const choice: PassageChoice = {
     kind: 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE',
     schemaVersion: 1,
-    movement: sealed.movementContinuation,
+    movement: sealed.origin.movementContinuation,
     sourceActorId: sealed.sourceActorId,
-    sourceTokenId: sealed.movementContinuation.root.tokenId,
+    sourceTokenId: sealed.origin.movementContinuation.root.tokenId,
     sourceControllerCharacterId: sealed.initiatorControllerCharacterId,
     options: [
       {
-        optionId: sealed.optionId,
-        ruleKind: sealed.actionKind,
-        economy: sealed.selection.economy,
-        definitionId: sealed.optionalCombat.definitionId,
-        definitionVersion: sealed.optionalCombat.definitionVersion,
-        definitionChecksum: sealed.optionalCombat.definitionChecksum,
-        moduleKey: sealed.optionalCombat.moduleKey,
-        moduleContractVersion: sealed.optionalCombat.moduleContractVersion
+        optionId: sealed.origin.optionId,
+        ruleKind: sealed.origin.actionKind,
+        economy: sealed.origin.selection.economy,
+        definitionId: sealed.origin.pin.definitionId,
+        definitionVersion: sealed.origin.pin.definitionVersion,
+        definitionChecksum: sealed.origin.pin.definitionChecksum,
+        moduleKey: sealed.origin.pin.moduleKey,
+        moduleContractVersion: sealed.origin.pin.moduleContractVersion
       }
     ],
     optionsChecksum: ''
@@ -329,19 +332,19 @@ export async function evaluateEncounterMovementPassageContest<
   const current = await callbacks.prepareContest({
     state: input.state,
     choice,
-    optionId: sealed.optionId,
+    optionId: sealed.origin.optionId,
     targets: input.targets
   })
   const sealedPending: PassagePending = {
     ...sealed,
-    movementContinuation: sealed.movementContinuation,
+    origin: { ...sealed.origin, movementContinuation: sealed.origin.movementContinuation },
     rollEvidence: { ...sealed.rollEvidence }
   }
   if (!same(withoutEvidence(current), withoutEvidence(sealedPending)))
     throw new Error('Movement passage contest facts changed.')
   const pending: PassagePending = {
     ...sealedPending,
-    movementContinuation: movement,
+    origin: { ...sealedPending.origin, movementContinuation: movement },
     positionalDependencyChecksum: checksumRuleDocument(movement)
   }
   const {
@@ -388,7 +391,7 @@ export async function evaluateEncounterMovementPassageContest<
     const nextSnapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
       ...execution.continuation,
       snapshotKind: 'KERNEL_EVIDENCE',
-      optionalCombatSnapshotChecksum: nextPending.optionalCombat.snapshotChecksum,
+      optionalCombatSnapshotChecksum: nextPending.origin.pin.snapshotChecksum,
       applicationContext: nextPending
     })
     if (input.retained?.snapshot && !same(nextSnapshot, input.retained.snapshot))
@@ -407,7 +410,7 @@ export async function evaluateEncounterMovementPassageContest<
       terminalPassageStop:
         execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null,
       resolutionCommands: [
-        ...sealed.movementContinuation.root.resolutionCommands,
+        ...sealed.origin.movementContinuation.root.resolutionCommands,
         movementRuleResolutionCommandDtoSchema.parse({
           ...responseCommand,
           passageContest: completedReceipt

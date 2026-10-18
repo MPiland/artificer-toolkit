@@ -1,5 +1,5 @@
 import type {
-  ServerOptionalCombatContestPendingApplicationContextDto,
+  ServerContestCheckPendingApplicationContextDto,
   ServerRuleExecutionContinuationDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 
@@ -20,7 +20,7 @@ import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 export async function executeEncounterMovementPassageContest(input: {
   readonly autoRoll: EncounterAutoRollByActorId
   readonly continuation?: ServerRuleExecutionContinuationDto
-  readonly pending: ServerOptionalCombatContestPendingApplicationContextDto
+  readonly pending: ServerContestCheckPendingApplicationContextDto
   readonly occurrenceId: string
   readonly resolution?: OptionalContestResolution
   readonly rollD20: () => number
@@ -47,18 +47,19 @@ export async function executeEncounterMovementPassageContest(input: {
     }
 > {
   if (
-    (input.pending.actionKind !== 'OVERRUN' && input.pending.actionKind !== 'TUMBLE') ||
-    input.pending.movementContinuation === null ||
-    input.pending.movementContinuation === undefined
+    input.pending.origin.kind !== 'OPTIONAL_COMBAT' ||
+    (input.pending.origin.actionKind !== 'OVERRUN' && input.pending.origin.actionKind !== 'TUMBLE') ||
+    input.pending.origin.movementContinuation === null ||
+    input.pending.origin.movementContinuation === undefined
   ) {
     throw new EncounterConflictError('Movement passage contest is unavailable.')
   }
   const graph = createDnd5eOptionalCombatContestGraph({
-    definitionId: input.pending.optionalCombat.definitionId,
-    definitionVersion: input.pending.optionalCombat.definitionVersion,
-    definitionChecksum: input.pending.optionalCombat.definitionChecksum,
-    moduleKey: input.pending.optionalCombat.moduleKey,
-    moduleContractVersion: input.pending.optionalCombat.moduleContractVersion
+    definitionId: input.pending.origin.pin.definitionId,
+    definitionVersion: input.pending.origin.pin.definitionVersion,
+    definitionChecksum: input.pending.origin.pin.definitionChecksum,
+    moduleKey: input.pending.origin.pin.moduleKey,
+    moduleContractVersion: input.pending.origin.pin.moduleContractVersion
   })
   if (
     graph.published.id !== input.pending.contestGraph.definitionId ||

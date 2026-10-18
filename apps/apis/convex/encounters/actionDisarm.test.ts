@@ -289,7 +289,7 @@ describe('room Disarm commands', () => {
         applicationContext: {
           kind: 'ENCOUNTER_ACTION',
           initiatorUserId: base.owner.userId,
-          contest: { actionKind: 'DISARM' }
+          contest: { origin: { actionKind: 'DISARM' } }
         }
       })
       await expect(disarmInRoom(base.owner, base.command)).resolves.toEqual(started)

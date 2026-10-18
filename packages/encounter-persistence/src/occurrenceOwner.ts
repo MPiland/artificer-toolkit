@@ -48,7 +48,7 @@ export function isEncounterMovementContext(
     context?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
     context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
     context?.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-    (context?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && !!context.movementContinuation)
+    (context?.kind === 'ENCOUNTER_CONTEST_CHECK' && !!context.origin?.movementContinuation)
   )
 }
 
@@ -79,8 +79,8 @@ export type NativeEncounterOccurrenceFacts = {
   occurrence: Pick<EncounterDocument<'encounterRuleOccurrences'>, 'id' | 'rootCommandId'>
   context:
     | (Pick<PendingContext, 'kind'> & {
-        contest?: { actionKind: string } | null
-        movementContinuation?: unknown
+        contest?: { origin: { actionKind?: string } } | null
+        origin?: { movementContinuation?: unknown }
       })
     | null
   rootCommandType: string | null
@@ -94,7 +94,7 @@ export function classifyNativeEncounterOccurrence({
   completedDisarm
 }: NativeEncounterOccurrenceFacts): NativeEncounterOccurrenceOwner {
   if (
-    (context?.kind === 'ENCOUNTER_ACTION' && context.contest?.actionKind === 'DISARM') ||
+    (context?.kind === 'ENCOUNTER_ACTION' && context.contest?.origin.actionKind === 'DISARM') ||
     completedDisarm
   )
     return 'DISARM'

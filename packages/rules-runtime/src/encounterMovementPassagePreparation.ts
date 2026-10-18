@@ -5,7 +5,7 @@ import {
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
-  ServerOptionalCombatContestPendingApplicationContextDto
+  ServerContestCheckPendingApplicationContextDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
   activeOptionalCombatDefinitions,
@@ -50,7 +50,7 @@ type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
 
 export type ContestFacts = {
   controllerCharacterId: string | null
-  contributors: ServerOptionalCombatContestPendingApplicationContextDto['initiator']['contributors']
+  contributors: ServerContestCheckPendingApplicationContextDto['initiator']['contributors']
   modifier: number | null
   rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
   size: string | null
@@ -237,7 +237,7 @@ export async function prepareEncounterMovementPassageContest<
 >(
   reads: PassageReads<TCharacterFacts>,
   input: PassageContestInput<TCharacterFacts>
-): Promise<ServerOptionalCombatContestPendingApplicationContextDto> {
+): Promise<ServerContestCheckPendingApplicationContextDto> {
   const option = input.choice.options.find((candidate) => candidate.optionId === input.optionId)
   if (!option) throw new Error('Movement passage option is unavailable.')
   const { source } = passageActors(input)
@@ -258,7 +258,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
   input: PassageContestInput<TCharacterFacts>,
   economy: EncounterActionEconomyConsumption,
   system: SystemAuthoredDto
-): ServerOptionalCombatContestPendingApplicationContextDto {
+): ServerContestCheckPendingApplicationContextDto {
   const option = input.choice.options.find((candidate) => candidate.optionId === input.optionId)
   if (!option) throw new Error('Movement passage option is unavailable.')
   const { blocker, source } = passageActors(input)
@@ -374,7 +374,34 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
   }
   const graph = createDnd5eOptionalCombatContestGraph(proposal.pin)
   return prepareDnd5eOptionalCombatContestPendingContext({
-    actionKind: option.ruleKind,
+    origin: {
+      kind: 'OPTIONAL_COMBAT',
+      actionKind: option.ruleKind,
+      pin: {
+        snapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+        definitionId: proposal.pin.definitionId,
+        definitionVersion: proposal.pin.definitionVersion,
+        definitionChecksum: proposal.pin.definitionChecksum,
+        moduleKey: proposal.pin.moduleKey,
+        moduleContractVersion: proposal.pin.moduleContractVersion
+      },
+      optionId: option.optionId,
+      selectionContractChecksum: checksumRuleDocument(option),
+      resolvedSelectionChecksum: checksumRuleDocument({ optionId: option.optionId }),
+      selection:
+        option.ruleKind === 'OVERRUN'
+          ? {
+              kind: 'OVERRUN',
+              economy: option.economy,
+              defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
+            }
+          : {
+              kind: 'TUMBLE',
+              economy: option.economy,
+              defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
+            },
+      movementContinuation: input.choice.movement
+    },
     actionId: option.optionId,
     sourceActorId: source.actor.id,
     targetActorId: blocker.actor.id,
@@ -386,22 +413,11 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
       targetTokenId: input.choice.movement.blockerTokenId
     },
     positionalDependencyChecksum: checksumRuleDocument(input.choice.movement),
-    optionalCombat: {
-      snapshotChecksum: input.state.optionalCombatSnapshotChecksum,
-      definitionId: proposal.pin.definitionId,
-      definitionVersion: proposal.pin.definitionVersion,
-      definitionChecksum: proposal.pin.definitionChecksum,
-      moduleKey: proposal.pin.moduleKey,
-      moduleContractVersion: proposal.pin.moduleContractVersion
-    },
     contestGraph: {
       definitionId: graph.published.id,
       checksum: graph.published.checksum,
       identityChecksum: graph.identityChecksum
     },
-    optionId: option.optionId,
-    selectionContractChecksum: checksumRuleDocument(option),
-    resolvedSelectionChecksum: checksumRuleDocument({ optionId: option.optionId }),
     source: {
       kind: 'OPTIONAL_COMBAT_DEFINITION',
       definitionId: proposal.pin.definitionId,
@@ -432,26 +448,13 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
       checkDefinitionId: proposal.contest.targetCheckDefinitionId
     },
     rollEvidence: { initiator: null, defender: null },
-    selection:
-      option.ruleKind === 'OVERRUN'
-        ? {
-            kind: 'OVERRUN',
-            economy: option.economy,
-            defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
-          }
-        : {
-            kind: 'TUMBLE',
-            economy: option.economy,
-            defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
-          },
     actionEconomy: {
       definitionId: economy.definitionId,
       definitionVersion: economy.definitionVersion,
       definitionChecksum: economy.definitionChecksum,
       maximum: economy.maximum,
       beforeUsed: economy.beforeUsed
-    },
-    movementContinuation: input.choice.movement
+    }
   })
 }
 

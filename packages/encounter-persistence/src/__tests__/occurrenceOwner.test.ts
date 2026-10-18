@@ -23,8 +23,8 @@ describe('classifyNativeEncounterOccurrence', () => {
   it('assigns every pending context kind to its native coordinator', () => {
     const cases: Array<[NativeEncounterOccurrenceFacts, string]> = [
       [facts({ kind: 'ENCOUNTER_ACTION' }), 'ACTION'],
-      [facts({ kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'DISARM' } }), 'DISARM'],
-      [facts({ kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'SHOVE' } }), 'ACTION'],
+      [facts({ kind: 'ENCOUNTER_ACTION', contest: { origin: { actionKind: 'DISARM' } } }), 'DISARM'],
+      [facts({ kind: 'ENCOUNTER_ACTION', contest: { origin: { actionKind: 'SHOVE' } } }), 'ACTION'],
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
       [facts({ kind: 'ENCOUNTER_BASIC_ACTION_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],
@@ -39,8 +39,8 @@ describe('classifyNativeEncounterOccurrence', () => {
       [facts({ kind: 'ENCOUNTER_SPATIAL_MOVEMENT' }), 'MOVEMENT'],
       [facts({ kind: 'ENCOUNTER_MOVEMENT_REACTION' }), 'MOVEMENT'],
       [facts({ kind: 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' }), 'MOVEMENT'],
-      [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST', movementContinuation: {} }), 'MOVEMENT'],
-      [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' }), 'OTHER'],
+      [facts({ kind: 'ENCOUNTER_CONTEST_CHECK', origin: { movementContinuation: {} } }), 'MOVEMENT'],
+      [facts({ kind: 'ENCOUNTER_CONTEST_CHECK' }), 'OTHER'],
       [facts({ kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' }), 'OTHER'],
       [facts(null), 'OTHER']
     ]
@@ -70,7 +70,7 @@ describe('classifyNativeEncounterOccurrence', () => {
     expect(
       classifyNativeEncounterOccurrence(
         facts(
-          { kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'DISARM' } },
+          { kind: 'ENCOUNTER_ACTION', contest: { origin: { actionKind: 'DISARM' } } },
           {
             occurrence: concentrationRoot
           }

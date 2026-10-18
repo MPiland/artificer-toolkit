@@ -24,31 +24,40 @@ const checksum = (character: string) => character.repeat(64)
 function context() {
   const contributors: [] = []
   return {
-    kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' as const,
+    kind: 'ENCOUNTER_CONTEST_CHECK' as const,
     schemaVersion: 1 as const,
-    actionKind: 'DISARM' as const,
+    origin: {
+      kind: 'OPTIONAL_COMBAT' as const,
+      actionKind: 'DISARM' as const,
+      pin: {
+        snapshotChecksum: checksum('a'),
+        definitionId: ids.optionalDefinition,
+        definitionVersion: 1,
+        definitionChecksum: checksum('b'),
+        moduleKey: 'd20.action.disarm',
+        moduleContractVersion: 1
+      },
+      optionId: checksum('e'),
+      selectionContractChecksum: checksum('f'),
+      resolvedSelectionChecksum: checksum('0'),
+      selection: {
+        kind: 'DISARM' as const,
+        heldItemId: ids.heldItem,
+        defenderCheckDefinitionId: ids.check,
+        heldItemStateChecksum: checksum('7')
+      }
+    },
     actionId: 'disarm',
     sourceActorId: ids.sourceActor,
     targetActorId: ids.targetActor,
     initiatorControllerCharacterId: ids.sourceCharacter,
     sceneContext: null,
     positionalDependencyChecksum: null,
-    optionalCombat: {
-      snapshotChecksum: checksum('a'),
-      definitionId: ids.optionalDefinition,
-      definitionVersion: 1,
-      definitionChecksum: checksum('b'),
-      moduleKey: 'd20.action.disarm',
-      moduleContractVersion: 1
-    },
     contestGraph: {
       definitionId: ids.graphDefinition,
       checksum: checksum('c'),
       identityChecksum: checksum('d')
     },
-    optionId: checksum('e'),
-    selectionContractChecksum: checksum('f'),
-    resolvedSelectionChecksum: checksum('0'),
     source: {
       kind: 'CHARACTER_ACTION' as const,
       characterId: ids.sourceCharacter,
@@ -84,12 +93,6 @@ function context() {
       checkDefinitionId: ids.check
     },
     rollEvidence: { initiator: null, defender: null },
-    selection: {
-      kind: 'DISARM' as const,
-      heldItemId: ids.heldItem,
-      defenderCheckDefinitionId: ids.check,
-      heldItemStateChecksum: checksum('7')
-    },
     actionEconomy: null
   }
 }
@@ -118,7 +121,6 @@ describe('optional-combat contest pending context contract', () => {
     const disarm = context()
     const shoveAside = {
       ...disarm,
-      actionKind: 'SHOVE_ASIDE' as const,
       actionId: ids.optionalDefinition,
       source: {
         kind: 'OPTIONAL_COMBAT_DEFINITION' as const,
@@ -128,15 +130,19 @@ describe('optional-combat contest pending context contract', () => {
         moduleKey: 'd20.action.shove-aside',
         moduleContractVersion: 1
       },
-      selection: {
-        kind: 'SHOVE_ASIDE' as const,
-        defenderCheckDefinitionId: ids.check,
-        destination: { x: 15, y: 20 },
-        displacement: { amount: 5 as const, unit: 'FEET' as const, sceneUnits: 5 },
-        sceneId: ids.scene,
-        sceneVersion: 4,
-        targetTokenId: ids.targetToken,
-        stateChecksum: checksum('9')
+      origin: {
+        ...disarm.origin,
+        actionKind: 'SHOVE_ASIDE' as const,
+        selection: {
+          kind: 'SHOVE_ASIDE' as const,
+          defenderCheckDefinitionId: ids.check,
+          destination: { x: 15, y: 20 },
+          displacement: { amount: 5 as const, unit: 'FEET' as const, sceneUnits: 5 },
+          sceneId: ids.scene,
+          sceneVersion: 4,
+          targetTokenId: ids.targetToken,
+          stateChecksum: checksum('9')
+        }
       }
     }
 
@@ -146,7 +152,7 @@ describe('optional-combat contest pending context contract', () => {
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
         ...shoveAside,
-        selection: disarm.selection
+        origin: { ...shoveAside.origin, selection: disarm.origin.selection }
       }).success
     ).toBe(false)
   })

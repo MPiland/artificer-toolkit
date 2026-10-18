@@ -15,7 +15,7 @@ Base: `origin/codex/phase-08-2-convex-cutover` (`74486c6cf`). CI branch `ci/atta
 
 | Task | Title | Closes | Depends on |
 | ---- | ----- | ------ | ---------- |
-| T3m | Migrate Disarm and the movement-passage contests (Overrun, Tumble, Shove Aside) onto the one `ENCOUNTER_CONTEST_CHECK` context, with a discriminated `source` (BASIC_ACTION, ESCAPE, OPTIONAL_COMBAT), and delete `ENCOUNTER_OPTIONAL_COMBAT_CONTEST`. Its own commit, pushed to `ci/attack-7` for a green run before the grapple contest uses it. Only renames in the passage tests; any other assertion change is reported first. | none | none |
+| T3m | Migrate Disarm and the movement-passage contests (Overrun, Tumble, Shove Aside) onto the one `ENCOUNTER_CONTEST_CHECK` context, with a discriminated `origin` (BASIC_ACTION, ESCAPE, OPTIONAL_COMBAT; named `origin` because the context's `source` field already holds the action's provenance), and delete `ENCOUNTER_OPTIONAL_COMBAT_CONTEST`. The OPTIONAL_COMBAT origin carries the pin, option, selection and movement continuation; BASIC_ACTION and ESCAPE land with the grapple in T3. Its own commit, pushed to `ci/attack-7` for a green run before the grapple contest uses it. Only renames in the passage tests; any other assertion change is reported first. | none | none |
 | T3 | The basic Grapple (contest, Grappled on a win, held at once 2, Character or hand-bearing Creature with a free hand, one Attack-action slot, within reach and at most one size larger, free weapon stow, a hold occupies a hand) and the contested escape | AC 7.1, 7.3 | T3m |
 | T4 | Free release by the source, and the after-commit sweep that ends a grapple when the grappler can't act or the held creature leaves the sealed reach | AC 7.4 | T3 |
 

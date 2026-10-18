@@ -198,12 +198,39 @@ const optionalCombatPassageSelectionDtoSchema = lazySchema(() =>
   ])
 )
 
-export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() =>
+/** What started an Encounter contest check, with the facts only that origin seals (D152). */
+const contestCheckOriginDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('OPTIONAL_COMBAT'),
+      actionKind: z.enum(['DISARM', 'SHOVE_ASIDE', 'OVERRUN', 'TUMBLE']),
+      pin: z.strictObject({
+        snapshotChecksum: checksumSchema,
+        definitionId: uuidSchema,
+        definitionVersion: positiveIntegerSchema,
+        definitionChecksum: checksumSchema,
+        moduleKey: capabilityKeySchema,
+        moduleContractVersion: contractVersionSchema
+      }),
+      optionId: checksumSchema,
+      selectionContractChecksum: checksumSchema,
+      resolvedSelectionChecksum: checksumSchema,
+      selection: optionalCombatPassageSelectionDtoSchema,
+      movementContinuation: z.optional(z.nullable(optionalCombatPassageContinuationDtoSchema))
+    })
+  ])
+)
+
+/**
+ * The one two-roller contest pending context (D152): the initiator and the defender each roll their
+ * own check, and the defender picks its check when it responds.
+ */
+export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      kind: z.literal('ENCOUNTER_OPTIONAL_COMBAT_CONTEST'),
+      kind: z.literal('ENCOUNTER_CONTEST_CHECK'),
       schemaVersion: z.literal(1),
-      actionKind: z.enum(['DISARM', 'SHOVE_ASIDE', 'OVERRUN', 'TUMBLE']),
+      origin: contestCheckOriginDtoSchema,
       actionId: identifierSchema,
       sourceActorId: uuidSchema,
       targetActorId: uuidSchema,
@@ -218,22 +245,11 @@ export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() 
         })
       ),
       positionalDependencyChecksum: z.nullable(checksumSchema),
-      optionalCombat: z.strictObject({
-        snapshotChecksum: checksumSchema,
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        moduleKey: capabilityKeySchema,
-        moduleContractVersion: contractVersionSchema
-      }),
       contestGraph: z.strictObject({
         definitionId: uuidSchema,
         checksum: checksumSchema,
         identityChecksum: checksumSchema
       }),
-      optionId: checksumSchema,
-      selectionContractChecksum: checksumSchema,
-      resolvedSelectionChecksum: checksumSchema,
       source: z.discriminatedUnion('kind', [
         z.strictObject({
           kind: z.literal('CHARACTER_ACTION'),
@@ -289,9 +305,7 @@ export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() 
         }),
         { initiator: null, defender: null }
       ),
-      selection: optionalCombatPassageSelectionDtoSchema,
-      actionEconomy: optionalCombatContestActionEconomyReceiptDtoSchema,
-      movementContinuation: z.optional(z.nullable(optionalCombatPassageContinuationDtoSchema))
+      actionEconomy: optionalCombatContestActionEconomyReceiptDtoSchema
     })
     .check(
       z.superRefine((value, context) => {
@@ -299,7 +313,7 @@ export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() 
           context.addIssue({
             code: 'custom',
             path: ['targetActorId'],
-            message: 'Optional-combat contest participants must be distinct.'
+            message: 'Contest participants must be distinct.'
           })
         }
         if (
@@ -309,36 +323,32 @@ export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() 
           context.addIssue({
             code: 'custom',
             path: ['initiator', 'actorId'],
-            message: 'Optional-combat contest policy participants must match the selected actors.'
+            message: 'Contest policy participants must match the selected actors.'
           })
         }
-        if (value.defender.checkDefinitionId !== value.selection.defenderCheckDefinitionId) {
+        const { origin } = value
+        if (value.defender.checkDefinitionId !== origin.selection.defenderCheckDefinitionId) {
           context.addIssue({
             code: 'custom',
-            path: ['selection'],
+            path: ['origin', 'selection'],
             message: 'Optional-combat contest selection does not match its sealed defender check.'
           })
         }
-        if (
-          (value.actionKind === 'DISARM' && value.selection.kind !== 'DISARM') ||
-          (value.actionKind === 'SHOVE_ASIDE' && value.selection.kind !== 'SHOVE_ASIDE') ||
-          (value.actionKind === 'OVERRUN' && value.selection.kind !== 'OVERRUN') ||
-          (value.actionKind === 'TUMBLE' && value.selection.kind !== 'TUMBLE')
-        ) {
+        if (origin.actionKind !== origin.selection.kind) {
           context.addIssue({
             code: 'custom',
-            path: ['selection'],
+            path: ['origin', 'selection'],
             message: 'Optional-combat contest action and selection kinds must match.'
           })
         }
-        const passageAction = value.actionKind === 'OVERRUN' || value.actionKind === 'TUMBLE'
+        const passageAction = origin.actionKind === 'OVERRUN' || origin.actionKind === 'TUMBLE'
         if (
           passageAction !==
-          (value.movementContinuation !== null && value.movementContinuation !== undefined)
+          (origin.movementContinuation !== null && origin.movementContinuation !== undefined)
         ) {
           context.addIssue({
             code: 'custom',
-            path: ['movementContinuation'],
+            path: ['origin', 'movementContinuation'],
             message: 'Only passage contests retain a frozen movement continuation.'
           })
         }
@@ -353,14 +363,14 @@ export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() 
             context.addIssue({
               code: 'custom',
               path: ['rollEvidence', path, 'rawFaces'],
-              message: 'Optional-combat contest evidence does not match its sealed roll mode.'
+              message: 'Contest evidence does not match its sealed roll mode.'
             })
           }
           if (evidence.requestId.length === 0) {
             context.addIssue({
               code: 'custom',
               path: ['rollEvidence', path, 'requestId'],
-              message: 'Optional-combat contest evidence request is invalid.'
+              message: 'Contest evidence request is invalid.'
             })
           }
         }
@@ -370,7 +380,7 @@ export const serverOptionalCombatContestPendingContextDtoSchema = lazySchema(() 
           context.addIssue({
             code: 'custom',
             path: ['rollEvidence', 'defender'],
-            message: 'Optional-combat contest defender evidence requires initiator evidence.'
+            message: 'Contest defender evidence requires initiator evidence.'
           })
         }
       })

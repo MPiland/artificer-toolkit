@@ -36,7 +36,7 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
   prepareEncounterDisarmContest,
   readEncounterDisarmSelection,
@@ -395,7 +395,7 @@ export async function prepareStoredDisarm(
     target: EncounterRunActorState
     command: ResolveEncounterActionInputDto
     campaignOwnerUserId: string
-    priorContest?: ServerOptionalCombatContestPendingApplicationContextDto
+    priorContest?: ServerContestCheckPendingApplicationContextDto
   }
 ) {
   const { state, actor, target, command } = input

@@ -16,13 +16,14 @@ export async function readNativeDisarmPending(
   const contest = context.contest
   if (
     !contest ||
-    contest.actionKind !== 'DISARM' ||
-    contest.selection.kind !== 'DISARM' ||
+    contest.origin.kind !== 'OPTIONAL_COMBAT' ||
+    contest.origin.actionKind !== 'DISARM' ||
+    contest.origin.selection.kind !== 'DISARM' ||
     contest.actionId !== command.actionId ||
     contest.sourceActorId !== command.actorId ||
     contest.targetActorId !== actionTargetActorId(command.target) ||
-    contest.optionalCombat.definitionId !== command.optionalCombatIntent?.definitionId ||
-    contest.optionalCombat.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum ||
+    contest.origin.pin.definitionId !== command.optionalCombatIntent?.definitionId ||
+    contest.origin.pin.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum ||
     snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
     snapshot.graph.source.checksum !== contest.contestGraph.checksum ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||

@@ -90,8 +90,8 @@ function appliedSpatialPrefix(outcome: MovementOutcome) {
       ? context.appliedSpatialPrefix
       : context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
         ? context.movement.appliedSpatialPrefix
-        : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
-          ? context.movementContinuation.appliedSpatialPrefix
+        : context.kind === 'ENCOUNTER_CONTEST_CHECK'
+          ? context.origin.movementContinuation.appliedSpatialPrefix
           : null
   if (
     prefix &&

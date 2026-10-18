@@ -192,12 +192,13 @@ export async function persistEncounterDisarmCommit(
     !outputs ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (occurrence && execution.occurrenceId !== occurrence.id) ||
-    contest.actionKind !== 'DISARM' ||
+    contest.origin.kind !== 'OPTIONAL_COMBAT' ||
+    contest.origin.actionKind !== 'DISARM' ||
     contest.actionId !== root.actionId ||
     contest.sourceActorId !== root.actorId ||
     contest.targetActorId !== targetActorId ||
-    contest.optionalCombat.definitionId !== root.optionalCombatIntent?.definitionId ||
-    contest.optionalCombat.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+    contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||
+    contest.origin.pin.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     outputs.sealedContextChecksum !== checksumRuleDocument(contest) ||
     execution.evidence.source.definitionId !== contest.contestGraph.definitionId ||
     execution.evidence.source.checksum !== contest.contestGraph.checksum ||
