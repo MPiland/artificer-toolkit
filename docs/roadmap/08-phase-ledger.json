@@ -791,7 +791,7 @@
             },
             {
               "id": "PLATFORM-13.T12",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 2,
@@ -799,7 +799,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139."
+              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139.",
+              "note": "Green: d961c8b72 Tests 39147902939; batch ci/merge-m124 14e183243 green (Tests 39149206211, Live 39149206233); phase merge 41f7647ac."
             }
           ]
         },
