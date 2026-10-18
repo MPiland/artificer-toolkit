@@ -152,6 +152,7 @@ export async function planNativeLiveEncounterActorsAction(
       reach,
       lead,
       targets: prepared,
+      immuneActorIds: [],
       evaluation,
       ruleOverrides,
       window

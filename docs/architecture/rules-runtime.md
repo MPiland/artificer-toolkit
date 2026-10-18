@@ -930,7 +930,8 @@ The encounter planner creates the immunity as a second effect on the holder in t
 (`riderMaintained: false`, so it outlives the source's Concentration). It holds one `SOURCE_IMMUNITY` state
 contribution `{ immuneToId, sourceCharacterId, sourceLabel }`. The compiler refuses a save immunity under
 Concentration and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
-single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out. It matches
+single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out: the pending
+area seals it as `immuneActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
 by source actor, or for a Character by source Character, since a carried effect outlives the Encounter actor.
 A spell grant's `allowedCreatureTypeIds` narrows the targets of its casts (`targetingExcludesCreatureType`).
 A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end

@@ -99,6 +99,7 @@ type AuthoringDefaultKind =
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
+  | 'perTargetLockout'
   | 'proficiencyGrant'
   | 'raceAncestry'
   | 'raceAncestryOption'
@@ -247,6 +248,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
+  perTargetLockout: ['perTargetLockout'],
   proficiencyGrant: ['proficiencyGrant'],
   raceAncestry: ['raceAncestry'],
   raceAncestryOption: ['raceAncestryOption'],
