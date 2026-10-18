@@ -4,7 +4,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Resume here
 
-- T1 (closes AC SPELLS-30.1): D148 approved 2026-10-17 with three conditions (below). The code, the compile tests and the room journey are written. The CI branch is `ci/spells-30-t1`.
+- T1 (closes AC SPELLS-30.1): D148 approved 2026-10-17 with three conditions (below). Done and green on `ci/spells-30-t1` at `0f9c2d011`; ready to merge.
 - Branch `claude/nifty-golick-513885`, based on `origin/codex/phase-08-2-convex-cutover`.
 
 ## T1: per-option execution plan (D148)
@@ -78,7 +78,12 @@ Consumers:
 - 2026-10-17: checkpoint `ci/spells-30-t1` pushed. The Tests and Live backend runs were dispatched; a second Live backend run was dispatched by mistake (`gh workflow run` on top of the push trigger, run 39084267380) and left to finish.
 - 2026-10-17: Tests 39084264201 failed at the package build (TS2339 in `encounterCastChoice.ts`). Fixed by narrowing to DIRECT entries; uncommitted.
 - 2026-10-17: the light room batch had 2 fixture failures: the PfE cast lacked the `TARGET_RANGE_UNCHECKED` acknowledgment, and the Character actor lacked the frozen snapshot that a turn change checks. Both are fixed in the test; the batch has not been rerun yet.
-- Next: rerun the light room batch (`-BuildFor apps/session-worker/test/nativeRoomCastChoice.test.ts`) and the rules-runtime compile tests, then the typecheck lane. Triage the independent review, commit, merge the base, push `HEAD:ci/spells-30-t1`, and watch with `scripts/watchCi.ps1`.
+- 2026-10-17: the review fixes are committed (`ecf03bf1d`), and the phase branch was merged into the slice.
+  - Local checks: the light room batch passed 36 of 36 (cast choice plus both zone-pick room files). The rules-runtime compile batch passed. Both typecheck lanes passed.
+  - The `f3b3799f1` push failed Live backend 39092274971 on generated-file drift only. The auto-fix committed `0f9c2d011`.
+- 2026-10-17: **green on `0f9c2d011`**: Tests 39092705384 and Live backend 39092706566.
+  - The red-proof job 117573010673 labels both files RED: `nativeRoomCastChoice.test.ts` 7 of 7, and `characterSpellCastActions.test.ts` 4 of 56.
+  - The B3 compile test ("stays manual when its pick has no chosen creature") passes on the phase branch too, which is expected, since the base never compiled a pick. Its proof is that it stays green alongside the four RED compile tests.
 
 ### Independent review (opus) and triage
 
