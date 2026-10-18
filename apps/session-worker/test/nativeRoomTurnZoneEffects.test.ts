@@ -734,22 +734,24 @@ describe('a Creature’s passive zone in the room (SPELLS-20 T6b, D144)', () => 
 })
 
 describe('a paladin’s Aura of Protection in the room (SPELLS-20 T5b, D155)', () => {
+  const paladin = srdByLabel(SRD.classes, 'Paladin')
   const auraOfProtection = (() => {
-    const feature = srdByLabel(SRD.classes, 'Paladin').features?.find(
-      ({ label }) => label === 'Aura of Protection'
-    )
+    const feature = paladin.features?.find(({ label }) => label === 'Aura of Protection')
     if (!feature) throw new Error('The SRD Paladin has no Aura of Protection Feature.')
     return feature
   })()
 
-  /** A Run not started yet: the Character, who carries the aura, stands beside a Wolf. */
+  /** A Run not started yet: a 6th-level Paladin, who carries the aura, stands beside a Wolf. */
   function paladinRoom() {
     return actionRoom({
       actors: [srdCreatureActor({ id: WOLF_ID, creature: plainWolf }), casterActor],
       ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
       characterClassFeatures: [auraOfProtection],
+      characterPlay: { characterClass: paladin, classLevel: 6 },
       status: 'PREPARED',
       autoRoll: 'EVERYONE',
+      // The Paladin's initiative roll wins, so the order needs no tie-break.
+      rolls: [20, 1],
       fallbackRoll: DIE
     })
   }
@@ -781,7 +783,7 @@ describe('a paladin’s Aura of Protection in the room (SPELLS-20 T5b, D155)', (
           dispositionFilter: 'ALLIES_AND_SOURCE',
           amount: 1
         },
-        // No paladin levels: the 10-foot reach, two squares past the token's half width.
+        // Below 18th level: the 10-foot reach, two squares past the token's half width.
         geometry: { frame: 'TOKEN_LOCAL', shape: { kind: 'CIRCLE', radius: 250 } }
       }
     })

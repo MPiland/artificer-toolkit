@@ -18,6 +18,7 @@ import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 import type {
+  ClassAuthored,
   CreatureAuthored,
   EquipmentAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
@@ -41,7 +42,8 @@ async function publishSrdSource(
   classFeatures: readonly ClassFeature[],
   equipment: readonly EquipmentAuthored[],
   spells: ClassSpells | undefined,
-  creatures: readonly CreatureAuthored[] | undefined
+  creatures: readonly CreatureAuthored[] | undefined,
+  characterClass: ClassAuthored | undefined
 ): Promise<ContentSnapshotHead> {
   const kinds: ContentSnapshotHead['kinds'] = {}
   for (const { kind, header, built } of buildSrdSourceKinds(
@@ -50,7 +52,8 @@ async function publishSrdSource(
     classFeatures,
     equipment,
     spells,
-    creatures
+    creatures,
+    characterClass
   )) {
     const store = async (part: ContentSnapshotPart) => {
       const { json, sha256, byteLength, rootCount } = built[part]
@@ -121,7 +124,8 @@ export async function characterRoomInputs({
           classFeatures,
           equipment,
           spellcasting?.spells,
-          creatures
+          creatures,
+          play?.characterClass
         )
       }
     ],
