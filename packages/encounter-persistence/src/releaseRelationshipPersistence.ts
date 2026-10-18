@@ -16,7 +16,7 @@ import { readReleaseRelationshipAdmission } from './basicActionAdmission.js'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { endEncounterRelationshipEffect } from './relationshipEndPersistence.js'
+import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
@@ -64,7 +64,7 @@ export async function persistEncounterReleaseRelationship(
     encounterSourceRelationships(new Map([[held.id, [effect]]]), command.actorId).length === 0
   )
     throw new Error(RELEASE_MISMATCH)
-  const ended = await endEncounterRelationshipEffect(ctx, {
+  const ended = await endEncounterEscapedEffect(ctx, {
     encounterId: state.id,
     actors,
     holderActorId: held.id,

@@ -14,7 +14,7 @@ import type {
   EncounterCharacterWriteTransaction,
   EncounterPersistenceTransaction
 } from './ports.js'
-import { endEncounterRelationshipEffect } from './relationshipEndPersistence.js'
+import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { insertRunCommand } from './timelineEntries.js'
 
@@ -74,7 +74,7 @@ export async function endBrokenEncounterRelationships(
   let { actors } = found
   const relationshipEnds: EncounterRelationshipEnds = []
   for (const end of found.ends) {
-    const ended = await endEncounterRelationshipEffect(ctx, {
+    const ended = await endEncounterEscapedEffect(ctx, {
       encounterId: state.id,
       actors,
       holderActorId: end.heldActorId,
