@@ -7614,7 +7614,7 @@
             },
             {
               "id": "SPELLS-4.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7623,7 +7623,8 @@
                 "size": 5,
                 "after": ["SPELLS-20.T4b2b2"]
               },
-              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE)."
+              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1c",
