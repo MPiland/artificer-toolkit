@@ -968,6 +968,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rule (save time):** one save-row decorator, beside withEncounterHolderDefense, adds the bonus to every save of an actor inside an unsuppressed matching aura. It serves every save path (action, zone or spatial, recurring active effect, Concentration) and both Character and Creature occupants. The bound save fact records the bonus, so replay is exact.
   - **Data:** the Paladin Aura of Protection is re-authored from core options with an ADR 0038 parity proof, and CLOSED_RULE CLASS_PALADIN_AURA_OF_PROTECTION is deleted.
   - **Rejected:** a MODIFIER_GRANT applied on entry and ended on exit (a second containment lifecycle for every move, teleport and suppression flip), and keeping the closed rule.
+  - **Amended 2026-10-18 (T5a, multi-component zones):** `occupantSaveBonus` is a field of the zone placement, not of a component, because only a single-component SOURCE zone lends it. A zone with the bonus authors no behavior, and a SIDE_BAND or other region component carrying it is refused at compile time.
   - **Deferred:** a source ability score that changes mid-Run does not update the pinned bonus until the token is rebound.
 
 ## Approved implementation decisions
