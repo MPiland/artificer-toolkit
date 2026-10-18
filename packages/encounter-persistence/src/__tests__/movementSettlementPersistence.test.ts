@@ -24,6 +24,7 @@ const end = {
 }
 const reaction = {
   option: { candidate: { pathDistance: 1, movingActorId: 'mover' } },
+  application: { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' },
   characterTransitions: [],
   concentrationEnd: end
 }
