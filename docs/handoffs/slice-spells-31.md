@@ -257,3 +257,23 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
 - **T3a (class A, options), 2026-10-18:** four kinds deleted, each now resolved from existing options. Fast Movement is a WALK SPEED BONUS of 10 ft. with the no-heavy-armor restriction that Rage uses (renamed `noHeavyArmorRestriction`). Divine Strike is two PASSIVE ON_HIT radiant riders, melee and ranged, with ONCE_PER_TURN and CLASS_LEVEL dice (1d8 at 8th, 2d8 at 14th). Purity of Body is DAMAGE_IMMUNITY poison plus CONDITION_IMMUNITY poisoned; disease stays description because the engine has no disease model. Magical Secrets (10th, 14th, 18th) is a CHOSEN KNOWN spell grant of 2 from every SRD spell up to level 5, 7 and 9. Proofs: `packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts` checks the SRD data and a homebrew variant of each against the class node map. `dnd5eCombatMath.test.ts` checks Fast Movement speed (40 unarmored or in Hide, 30 in Chain Mail) and the Purity of Body immunities. `characterOnHitRiders.test.ts` checks the Divine Strike dice on melee and ranged hits. `classMechanics.test.ts` checks the Magical Secrets lists.
   - **Fighter Extra Attack:** no gap. `fighter.ts` already authors "Extra Attack (2)" at 11th (3 attacks) and "Extra Attack (3)" at 20th (4), and `characterAttacksPerAttackAction.test.ts` already proves 2, 3 and 4. The T1 note misread this, so there is no data fix and no test that fails first.
   - **Stunning Strike:** not done in T3a. No existing option spends ki on a hit: PASSIVE invocations have no `resourceUse`, and `optionalOnHit` only offers SPELL_SLOT (D123's resource-pool use was dropped in ATTACK-9.T4). Ruled (a), "SPELLS-31.T3a ruling": Stunning Strike moves to SPELLS-31.T5r, which adds a RESOURCE_POOL cost to `optionalOnHit`. `CLASS_MONK_STUNNING_STRIKE` stays until then.
+- **T3b (class A, options), 2026-10-18:** five kinds deleted, each now resolved from existing options.
+  - **Signature Spells** is the PREPARED CAST_AT_LEVEL 3 grant plus LIMITED_USE, with a FIXED 1 SHORT_REST charge per spell.
+  - **Divine Sense** gets a feature charge of FIXED 1 plus a CHARISMA ABILITY_MODIFIER bonus, reset on a LONG_REST. Its ACTION spends 1 use and gives a MANUAL_ADJUDICATION outcome (EXTERNAL_WORLD_STATE); the detection itself stays in the instructions.
+  - **Devil's Sight** is a new SRD sense, `DEVILS_SIGHT` (VISUAL, PRECISE, illuminationAccess MAGICAL_DARKNESS). It is granted at 120 ft in place of darkvision.
+  - **Empty Body** is an ACTION spending 4 ki for 1 minute: CONDITION invisible plus APPLY_GRANT DAMAGE_RESISTANCE to every SRD damage type except force.
+  - **Gaze of Two Minds** is an ACTION giving the self CONDITION BLINDED + DEAFENED until the end of your next turn.
+  - Proofs:
+    - `classFeatureOptionsAuthoringParity.test.ts` covers the SRD data and a homebrew variant of all five against the class node map; the two invocations are checked as Eldritch Invocations options.
+    - `classFeatureCoreOptions.test.ts` covers the action candidates and the Divine Sense maximum: 4 at CHA 16, 1 at CHA 10.
+    - `encounterAttackPerception.test.ts` covers Devil's Sight and darkvision:
+      - Devil's Sight sees in magical darkness and in ordinary darkness.
+      - Darkvision does not see in magical darkness.
+      - Devil's Sight does not see beyond its range, or while the observer is blinded.
+    - `classMechanics.test.ts` covers the Signature Spells data.
+  - **Gaze of Two Minds:** authored SELF, not TOUCH WILLING. Effects have no per-path targeting override, so the touched humanoid stays description and the conditions land on the warlock.
+  - **Empty Body Astral Projection (8 ki):** stays description, pending the orchestrator's ruling. A class spell grant cannot spend a class pool, because SOURCE_CHARGES is wired only for equipment (`characterGrantFold.ts`).
+  - **Encounter compile:**
+    - Empty Body and Gaze compile to MANUAL in play, as the closed rule did. `supported()` in `effectActionCompiler.ts` accepts one outcome entry per self action.
+    - Follow-up to register: encounter support for multi-outcome timed self actions.
+  - **VTT_UI-3.5:** T3b delivers the Devil's Sight sense model. The VTT view proof stays with VTT_UI-3.5.

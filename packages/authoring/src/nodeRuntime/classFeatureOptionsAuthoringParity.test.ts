@@ -7,14 +7,18 @@ import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
+import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
+import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
 /**
- * SPELLS-31.T3a (D156): Fast Movement, Divine Strike, Purity of Body and Magical Secrets resolve
- * from the same core options a Builder author has on a class feature, so each must pass the class
+ * SPELLS-31.T3a and T3b (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
+ * Divine Sense, Signature Spells, Empty Body, Devil's Sight and Gaze of Two Minds resolve from the
+ * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options.
  */
 
@@ -34,12 +38,27 @@ function feature(record: ClassAuthored, label: string): FeatureAuthored {
   return found
 }
 
+/** The authored nodes a case names: the features with its label, or one option of `parent`. */
+function caseNodes(record: ClassAuthored, label: string, parent?: string) {
+  return parent === undefined
+    ? (record.features?.filter((entry) => entry.label === label) ?? [])
+    : (feature(record, parent).options?.filter((entry) => entry.label === label) ?? [])
+}
+
+function option(record: ClassAuthored, parent: string, label: string) {
+  const [found] = caseNodes(record, label, parent)
+  if (!found) throw new Error(`${parent} has no ${label}.`)
+  return found
+}
+
 const fire = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 
 /** Each SRD feature, and a homebrew variant authored from the same options. */
 const CASES: ReadonlyArray<{
   record: ClassAuthored
   label: string
+  /** The feature whose option this case is. */
+  parent?: string
   variant: () => ClassAuthored
 }> = [
   {
@@ -93,14 +112,76 @@ const CASES: ReadonlyArray<{
       secrets.count = 3
       return record
     }
+  },
+  {
+    record: paladin,
+    label: 'Divine Sense',
+    variant: () => {
+      const record = structuredClone(paladin)
+      const { charges } = feature(record, 'Divine Sense')
+      if (charges?.limitKind !== 'FIXED_AMOUNT')
+        throw new Error('Divine Sense must author a fixed charge with a bonus.')
+      charges.amount = 2
+      return record
+    }
+  },
+  {
+    record: wizard,
+    label: 'Signature Spells',
+    variant: () => {
+      const record = structuredClone(wizard)
+      const [signature] = feature(record, 'Signature Spells').grants?.spells ?? []
+      if (!signature?.charges) throw new Error('Signature Spells must author limited-use charges.')
+      signature.charges.resetKind = 'LONG_REST'
+      return record
+    }
+  },
+  {
+    record: monk,
+    label: 'Empty Body',
+    variant: () => {
+      const record = structuredClone(monk)
+      const [effect] = feature(record, 'Empty Body').effects ?? []
+      if (effect?.invocation.kind !== 'ACTION' || !effect.invocation.resourceUse)
+        throw new Error('Empty Body must spend ki as an action.')
+      effect.invocation.resourceUse.cost = 6
+      return record
+    }
+  },
+  {
+    record: warlock,
+    label: "Devil's Sight",
+    parent: 'Eldritch Invocations',
+    variant: () => {
+      const record = structuredClone(warlock)
+      const [sight] = option(record, 'Eldritch Invocations', "Devil's Sight").grants?.senses ?? []
+      if (sight?.range?.rangeKind !== 'DISTANCE')
+        throw new Error("Devil's Sight must author a ranged sense grant.")
+      sight.range.amount = 60
+      return record
+    }
+  },
+  {
+    record: warlock,
+    label: 'Gaze of Two Minds',
+    parent: 'Eldritch Invocations',
+    variant: () => {
+      const record = structuredClone(warlock)
+      const [effect] = option(record, 'Eldritch Invocations', 'Gaze of Two Minds').effects ?? []
+      const path = effect?.paths[0]
+      if (path?.selectionKind !== 'FIXED')
+        throw new Error('Gaze of Two Minds must author a fixed self path.')
+      path.resultBlock.outcomes = path.resultBlock.outcomes.slice(0, 1)
+      return record
+    }
   }
 ]
 
-describe('class features resolved from core options through the class node map (SPELLS-31.T3a)', () => {
+describe('class features resolved from core options through the class node map (SPELLS-31.T3a, T3b)', () => {
   it.each(CASES)('keeps the SRD $label exactly as authored, with no closed rule', async (entry) => {
-    const features = entry.record.features?.filter(({ label }) => label === entry.label) ?? []
-    expect(features.length).toBeGreaterThan(0)
-    expect(JSON.stringify(features)).not.toContain('CLOSED_RULE')
+    const nodes = caseNodes(entry.record, entry.label, entry.parent)
+    expect(nodes.length).toBeGreaterThan(0)
+    expect(JSON.stringify(nodes)).not.toContain('CLOSED_RULE')
     const result = await normalize(entry.record)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(entry.record.features)
