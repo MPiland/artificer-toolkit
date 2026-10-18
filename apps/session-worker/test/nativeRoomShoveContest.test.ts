@@ -191,6 +191,7 @@ describe('Shove, a basic action contested by the target, in the room (ATTACK-7 A
         expectedVersion: await room.version()
       })
       expect(undo).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'REVERT_UNAVAILABLE' })
+      expect(JSON.stringify(undo)).toContain("Undo can't restore a contest")
       expect(await settled(room)).toEqual(before)
     }
   )
