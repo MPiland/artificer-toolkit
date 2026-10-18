@@ -60,7 +60,10 @@ export function planNativeSpatialMovementPrefix<
   userId: string
   projectTargets?: boolean
   /** The command-id phase and first ordinal; a movement keys them by its first execution. */
-  commandId?: { phase: 'SPATIAL_EFFECT' | 'TURN_ZONE_EFFECT'; ordinal: number }
+  commandId?: {
+    phase: 'SPATIAL_EFFECT' | 'TURN_ZONE_EFFECT' | 'MELEE_RETALIATION'
+    ordinal: number
+  }
   /** A turn boundary settles its creature even when the contacts left it unchanged. */
   settleUnchanged?: boolean
 }): {

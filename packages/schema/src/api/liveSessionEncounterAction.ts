@@ -337,6 +337,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   removal: RemoveAreaTargetInputDto | null
   /** The zone this action places at the picked point, which its undo deletes; null for none. */
   placedZone: LiveSessionPlacedSpatialEffect | null
+  /** The timed grant the placed zone gives its placer (D153); null for none. */
+  zoneSourceGrant: z.infer<typeof activeRuleEffectRecordSchema> | null
 }
 
 export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
@@ -363,6 +365,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
       removal: z.nullable(removeAreaTargetInputDtoSchema),
       placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
+      zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),
       rules: encounterActorRuleOutputSchema,
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),

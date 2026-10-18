@@ -22,6 +22,8 @@ import {
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -76,6 +78,7 @@ import type {
 import { readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -697,6 +700,44 @@ export async function persistEncounterAreaCommit(
       sceneId: scope.zoneSceneId,
       zone: input.placedZone
     })
+  // The placed zone's timed grant lands on its placer (D153), exactly as the root receipted it.
+  const grant = input.zoneSourceGrant
+  const origin = grant?.definition.origin
+  if (
+    checksumCanonicalJson(
+      (grant &&
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: source.id
+        }).activeEffectTransitions[0]) ??
+        null
+    ) !== checksumCanonicalJson(root.sourceGrantTransition ?? null) ||
+    (grant &&
+      (!input.placedZone ||
+        checksumCanonicalJson(grant.owner) !==
+          checksumCanonicalJson(turnEffectOwner(source, state.id)) ||
+        grant.maintainedEffectStateId !== null ||
+        origin?.kind !== 'ENCOUNTER' ||
+        origin.sourceAggregateId !== state.id ||
+        origin.sourceActorId !== source.id ||
+        origin.sourceOccurrenceId !== areaOccurrenceId ||
+        origin.rootCommandId !== command.commandId ||
+        grant.definition.frozenGraph.source.gameSystemId !== state.gameSystemId))
+  )
+    throw new Error('Live Session zone source grant mismatch.')
+  if (grant) {
+    const created = await createActiveRuleEffectStore(ctx).create({
+      id: grant.id,
+      owner: grant.owner,
+      definition: grant.definition,
+      lifecycle: grant.lifecycle,
+      maintainedEffectStateId: null,
+      occurredAt: input.occurredAt
+    })
+    if (checksumCanonicalJson(created) !== checksumCanonicalJson(grant))
+      throw new Error('Live Session zone source grant changed before settlement.')
+  }
   for (const child of children) {
     const { execution, actor, occurrenceId, createdEffects } = child
     await persistCompletedChild(ctx, {

@@ -442,8 +442,13 @@ placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
 `MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
 other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
 authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the
-active-effect clock, independent of the zone's lifetime. Target: T6d2 applies the grant at placement and answers a
-melee hit on the source from inside the zone; until then neither field is persisted or acted on.
+active-effect clock, independent of the zone's lifetime. Both are persisted (T6d2a): the area commit creates the
+grant on the placer as `zoneSourceGrant`, recorded as the area root's `sourceGrantTransition`, and undo deletes it
+before the zone. A melee hit (`isInstalledMeleeAttackTrigger` with a range) on a creature whose own retaliating zone
+contains the attacker runs `selectMeleeRetaliationContacts` and `planEncounterMeleeRetaliation`: each zone executes
+against the attacker with system-rolled dice, as one attacker mechanics batch carried on the action receipt's
+`meleeRetaliation`, which persistence re-derives from the locked Scene and refuses when stale. Opportunity and
+Legendary Action attacks do not retaliate yet (T6d2b).
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's

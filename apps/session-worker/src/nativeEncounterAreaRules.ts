@@ -92,7 +92,8 @@ import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtim
 import { creatureFormFilterRefusal } from '@artificer-toolkit/rules-runtime/encounterFormChoice'
 import {
   encounterActiveEffectPlan,
-  prepareNativeActionEffectsPlan
+  prepareNativeActionEffectsPlan,
+  prepareNativeZoneSourceGrantEffect
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import {
@@ -2078,6 +2079,33 @@ export async function completeAreaCommit(args: {
         unaffectedActorIds: placement.unaffectedActorIds
       })
     : null
+  // The placed zone's timed grant lands on the creature that placed it (D153).
+  const zoneSourceGrant =
+    placedZone && placement?.zone.sourceGrant
+      ? createNativeActiveEffect(
+          prepareNativeZoneSourceGrantEffect({
+            prepared: lead,
+            plan: placement.zone.sourceGrant,
+            published:
+              lead.plan.kind === 'SINGLE_GRAPH' ? lead.plan.published : lead.plan.test.published,
+            occurrenceId: areaOccurrenceId,
+            commandId: command.commandId,
+            activeEffectsByActorId: input.activeEffectsByActorId
+          }),
+          {
+            owner: nativeEffectOwner(caster, state.id),
+            currentEffects: [
+              ...(input.activeEffectsByActorId.get(caster.id) ?? []).filter(
+                (effect) => !maintainedState || !removedIds.has(effect.id)
+              ),
+              ...(createdEffects.get(caster.id) ?? [])
+            ],
+            occurredAt
+          }
+        )
+      : null
+  if (zoneSourceGrant)
+    createdEffects.set(caster.id, [...(createdEffects.get(caster.id) ?? []), zoneSourceGrant])
   const execution = buildEncounterAreaStoredExecution({
     occurrenceId: areaOccurrenceId,
     occurrenceVersion,
@@ -2088,6 +2116,13 @@ export async function completeAreaCommit(args: {
     targetOccurrenceIds: children.map((child) => child.occurrenceId),
     placedSpatialEffectId: placedZone?.id ?? null,
     maintenanceTransition: zoneMaintenanceTransition,
+    sourceGrantTransition: zoneSourceGrant
+      ? projectNativeActionEffectTransitions({
+          state: null,
+          recurring: zoneSourceGrant,
+          targetActorId: caster.id
+        }).activeEffectTransitions[0]!
+      : null,
     damage,
     spend,
     actionEconomy,
@@ -2255,6 +2290,7 @@ export async function completeAreaCommit(args: {
     ruleOverrides,
     concentration,
     placedZone,
+    zoneSourceGrant,
     forcedMovements
   }
 }
@@ -2289,6 +2325,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
     placedZone: plan.placedZone,
+    zoneSourceGrant: plan.zoneSourceGrant,
     forcedMovements: plan.forcedMovements,
     rules: plan.rules,
     resourceConsumption: plan.resourceConsumption,
