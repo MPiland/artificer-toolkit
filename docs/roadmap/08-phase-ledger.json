@@ -6114,6 +6114,18 @@
               "closes": ["ATTACK-7.3"]
             },
             {
+              "id": "ATTACK-7.T3m",
+              "text": "D152: move Disarm and the movement-passage contests (Overrun, Tumble, Shove Aside) onto the one ENCOUNTER_CONTEST_CHECK context with a discriminated source; own commit and green run before the grapple contest uses it.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 8,
+                "size": 3
+              }
+            },
+            {
               "id": "ATTACK-7.T3",
               "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
               "status": "IN_PROGRESS",
@@ -9205,7 +9217,7 @@
             },
             {
               "id": "SPELLS-20.T6b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9215,11 +9227,11 @@
                 "after": ["SPELLS-20.T6a"]
               },
               "text": "A creature's passive zones (D144, D147): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, and when the GM binds a token to an actor in a PREPARED or ACTIVE Run, with no maintained state. It is deleted when its token is unbound, its actor is removed or the Encounter finishes, and suppressed while its source is defeated (candidates skip it; a revived source has it again). Proved on a core-options creature zone; the Balor (T6c) is the SRD consumer.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Fast-path merge 1a4de8a8a (m94 backstop), slice tip 426dc55fa Tests 39090990190, Live 39090990126. Proofs: encounterPassiveZones.test.ts, nativeRoomTurnZoneEffects.test.ts. REINFORCE gets its zone at token bind (no separate call)."
             },
             {
               "id": "SPELLS-20.T6c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9228,7 +9240,8 @@
                 "size": 2,
                 "after": ["SPELLS-20.T6b"]
               },
-              "text": "Balor Fire Aura data: author it as a T6b passive zone (5 ft, 3d6 fire, START_OF_SOURCE_TURN, no save), delete CLOSED_RULE CREATURE_BALOR_FIRE_AURA, add the ADR 0038 authoring-parity proof and a room journey (the Balor's turn starts and a Wolf beside it takes 3d6 fire)."
+              "text": "Balor Fire Aura data: author it as a T6b passive zone (5 ft, 3d6 fire, START_OF_SOURCE_TURN, no save), delete CLOSED_RULE CREATURE_BALOR_FIRE_AURA, add the ADR 0038 authoring-parity proof and a room journey (the Balor's turn starts and a Wolf beside it takes 3d6 fire).",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6d",
