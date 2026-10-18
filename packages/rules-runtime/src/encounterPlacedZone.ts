@@ -43,11 +43,14 @@ export function planEncounterPlacedZone(
   // by class level against the source, so such a zone is refused rather than placed unresolved.
   if (zone.occupantSaveBonus || ('radius' in zone.shape && zone.shape.radius.scaling))
     throw new Error('A zone resolved against its source at placement is not placeable yet.')
+  if (Boolean(zone.perDistanceMoved) !== (input.distanceStep !== undefined))
+    throw new Error('A zone acting per distance moved has its step resolved, and only such a zone.')
   return placedZoneRecord(
     input,
     input.id,
     zone,
-    zoneAnchor(zone.attachment, area, point, input.sourceToken)
+    zoneAnchor(zone.attachment, area, point, input.sourceToken),
+    input.distanceStep
   )
 }
 
@@ -96,6 +99,8 @@ type PlacedZoneInput = {
   sourceToken: { tokenId: string; width: number } | null
   /** The user's spell save DC as the cast resolved it. */
   saveDc: number | null
+  /** The zone's per-distance-moved step in Scene distance units; absent when it acts on entry. */
+  distanceStep?: number
   /** Creatures the caster designated at cast; the zone never catches them. */
   unaffectedActorIds?: readonly string[]
 }
@@ -106,7 +111,8 @@ function placedZoneRecord(
   id: string,
   zone: Omit<ZoneRegionComponent, 'region'> &
     Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits'>,
-  anchor: ReturnType<typeof zoneAnchor>
+  anchor: ReturnType<typeof zoneAnchor>,
+  distanceStep?: number
 ): LiveSessionPlacedSpatialEffect {
   const { entry, grant, heldCondition } = zone
   const pinnedDc = entry.castSaveDcFactKey
@@ -163,7 +169,9 @@ function placedZoneRecord(
       ...anchor,
       triggerModes: zone.triggerModes,
       ...(zone.turnTriggers ? { turnTriggers: zone.turnTriggers } : {}),
-      movementKinds: ['VOLUNTARY', 'FORCED', 'TELEPORT'],
+      // A creature teleporting travels no distance through a zone acting per distance moved.
+      movementKinds: distanceStep ? ['VOLUNTARY', 'FORCED'] : ['VOLUNTARY', 'FORCED', 'TELEPORT'],
+      ...(distanceStep ? { distanceStep } : {}),
       activation: 'REPEATABLE',
       visibility: 'PUBLIC',
       revealOnTrigger: false,

@@ -542,6 +542,11 @@ learns which fields offer the choice from `halfSpeedFields` on the Encounter ses
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
 preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
 (D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): placement resolves it to the
+placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
+per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
+the frozen entry once per step. A finished spatial execution that drops a voluntary mover to 0 Hit Points stops the move
+at its contact (`spatialExecutionStopsMovement`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
 today), each with its own label, triggers and frozen entry, sharing the zone's Concentration and never sparing

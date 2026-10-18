@@ -236,6 +236,9 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             bypassAtHalfSpeed: z.optional(z.boolean()),
             choosesUnaffected: z.optional(z.boolean()),
             movementCostMultiplier: z.optional(z.number().check(z.positive())),
+            perDistanceMoved: z.optional(
+              z.object({ amount: authoredPositiveLengthAmountSchema, unit: lengthUnitCodeSchema })
+            ),
             requiresFullyWithin: z.optional(z.boolean()),
             automaticSaveSuccessImmunityDamageTypeId: z.optional(authoredIdentifierSchema),
             occupantSaveBonus: z.optional(manifestOccupantSaveBonusDtoSchema),

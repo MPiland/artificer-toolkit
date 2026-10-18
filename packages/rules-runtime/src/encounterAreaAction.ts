@@ -463,7 +463,10 @@ const AREA_SIZE_TOLERANCE = 1e-6
  * than authored, or a wall has no length or a ring no room inside its wall.
  */
 export function evaluateEncounterZoneTarget(input: {
-  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness' | 'regionComponents'>
+  zone: Pick<
+    CompiledActionZonePlacement,
+    'shape' | 'ringThickness' | 'regionComponents' | 'perDistanceMoved'
+  >
   range: CompiledActionTargetPolicy['range']
   target: ZoneCommandTarget
   grid: SceneGrid
@@ -476,6 +479,8 @@ export function evaluateEncounterZoneTarget(input: {
       shape: SpatialPointAreaShape | SpatialWallAreaShape
       /** Each region component's band, in order: the side the caster picked and its reach. */
       regions: Array<{ side: SpatialWallSide; distance: number }>
+      /** The zone's per-distance-moved step in Scene distance units; absent when it acts on entry. */
+      distanceStep?: number
       warnings: EncounterRuleWarningDto[]
     }
   | {
@@ -500,10 +505,13 @@ export function evaluateEncounterZoneTarget(input: {
     if (distance === null || !side) return unsupported
     regions.push({ side, distance })
   }
+  const { perDistanceMoved } = input.zone
+  const distanceStep = perDistanceMoved && lengthMeasurementInSceneUnits(perDistanceMoved, grid)
+  if (distanceStep === 0) return unsupported
   const placed = (
     shape: SpatialPointAreaShape | SpatialWallAreaShape,
     warnings: EncounterRuleWarningDto[]
-  ) => ({ shape, regions, warnings })
+  ) => ({ shape, regions, ...(distanceStep ? { distanceStep } : {}), warnings })
   if (aim?.kind === 'CASTER_CENTERED' && target.kind === 'CASTER_CENTERED') {
     const shape = pointAreaInSceneCoordinates(aim.area, grid)
     return shape ? placed(shape, []) : unsupported

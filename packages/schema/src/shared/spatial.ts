@@ -221,6 +221,8 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       /** At a turn boundary the zone catches only a creature wholly inside it; absent for overlap. */
       requiresFullyWithin: z.optional(z.boolean()),
       movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
+      /** The zone catches a mover once per whole step (Scene distance units) it moves inside (D156). */
+      distanceStep: z.optional(positiveDistanceSchema),
       blockingRules: z.optional(zoneBlockingRulesSchema),
       /** A creature failing the zone's save at the start of its turn loses its Action for that turn. */
       failedSaveLosesAction: z.optional(z.boolean()),
@@ -339,7 +341,8 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
       ),
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
       requiresFullyWithin: z.optional(z.boolean()),
-      retaliatesMeleeHits: z.optional(z.literal(true))
+      retaliatesMeleeHits: z.optional(z.literal(true)),
+      distanceStep: z.optional(positiveDistanceSchema)
     })
     .check(
       z.superRefine((effect, context) => {

@@ -112,6 +112,7 @@ function toSpatialInstance(
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
     requiresFullyWithin: effect.placement.requiresFullyWithin,
     retaliatesMeleeHits: effect.placement.retaliatesMeleeHits,
+    distanceStep: effect.placement.distanceStep,
     suppressed:
       isEncounterPassiveZone(effect) &&
       sourceActorId !== null &&
@@ -224,6 +225,29 @@ export function spatialExecutionOutcome(input: {
     },
     applications: folded.applications
   }
+}
+
+/**
+ * Whether a finished spatial execution ends the move at its contact: its graph interrupts the
+ * movement, or it drops a creature moving of its own accord to 0 Hit Points, which can move no
+ * further (D156). A forced move carries a creature on regardless.
+ */
+export function spatialExecutionStopsMovement(
+  recorded: {
+    execution: { movementInterruption?: { kind: 'STOP' } | null }
+    candidate: { candidate: { sourceMoved: boolean } }
+    targetTransition: { before: { currentHitPoints: number }; after: { currentHitPoints: number } }
+  },
+  movementKind: string
+): boolean {
+  if (recorded.execution.movementInterruption?.kind === 'STOP') return true
+  const { before, after } = recorded.targetTransition
+  return (
+    movementKind === 'VOLUNTARY' &&
+    !recorded.candidate.candidate.sourceMoved &&
+    before.currentHitPoints > 0 &&
+    after.currentHitPoints === 0
+  )
 }
 
 /** The dice a recorded spatial execution rolled, in roll order, so a replay can roll them again. */

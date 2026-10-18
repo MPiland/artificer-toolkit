@@ -3,10 +3,13 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
   SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -17,7 +20,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const spikeGrowth: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SPIKE_GROWTH,
@@ -80,8 +83,63 @@ export const spikeGrowth: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SPIKE_GROWTH' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Spike Growth',
+                shape: {
+                  id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x220, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x221, 1),
+                    order: 1,
+                    label: 'Spikes and thorns',
+                    interactionKinds: ['ENTER_OR_PASS_THROUGH' as const],
+                    movementCostMultiplier: 2,
+                    perDistanceMoved: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET },
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.ACTIVATED,
+                          range: {
+                            id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x223, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x224, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_USE,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x224, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                {
+                                  id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x225, 1),
+                                  effectKind: EFFECT_KIND.DAMAGE,
+                                  damageTypeId: damageTypeId('PIERCING'),
+                                  valueKind: DAMAGE_VALUE_KIND.DICE,
+                                  diceConfig: '2d4',
+                                  scalingKind: SCALING.NONE
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

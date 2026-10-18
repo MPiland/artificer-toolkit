@@ -392,6 +392,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     ringThickness: z.optional(z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })),
     ...zoneComponentShape(),
     /**
+     * The zone catches a mover once for each whole such distance it travels inside, where that
+     * step completes (D156); absent for once on entry. Resolved to Scene distance units at placement.
+     */
+    perDistanceMoved: z.optional(z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })),
+    /**
      * Whether an attacker standing in a SOURCE zone who hits its source with a melee attack is
      * caught (D153); absent when not.
      */

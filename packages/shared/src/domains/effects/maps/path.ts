@@ -1039,6 +1039,17 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
           constraints: { minimum: 0.01 }
         })
       )
+      .set(
+        'perDistanceMoved',
+        groupObject(
+          ['perDistanceMoved'],
+          'Applies per Distance Moved',
+          () => MEASUREMENT_NODE_MAP,
+          {
+            presentation: 'inline'
+          }
+        )
+      )
       .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
       .set(
         'automaticSaveSuccessImmunityDamageTypeId',

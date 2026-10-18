@@ -1,5 +1,5 @@
 import type { LengthUnitCode } from '../core/measurement.js'
-import { sceneDistanceAsCoordinateLength } from './geometry.js'
+import { measureScenePathDistance, sceneDistanceAsCoordinateLength } from './geometry.js'
 import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import { segmentsIntersect } from './segments.js'
 import {
@@ -119,6 +119,12 @@ export interface SpatialEffectInstance {
   readonly suppressed?: boolean
   /** Catches a creature inside it that hits the effect's source with a melee attack (D153). */
   readonly retaliatesMeleeHits?: boolean
+  /**
+   * Catches a mover once for each whole step (Scene distance units, measured as movement is) it
+   * travels while overlapping the area, where that step completes, instead of once on entry
+   * (D156). Absent for entry only.
+   */
+  readonly distanceStep?: number
 }
 
 /** The space a token occupies. */
@@ -138,6 +144,8 @@ export interface SpatialMovementCandidate {
   readonly sourceMoved: boolean
   readonly targetActorId: string
   readonly trigger: SpatialTriggerMode
+  /** The 1-based whole step it completes, for an effect that catches per distance moved. */
+  readonly step?: number
 }
 
 /** One complete outside-to-outside crossing of a stationary token's occupied footprint. */
@@ -247,7 +255,9 @@ function validSpatialEffect(effect: SpatialEffectInstance, tokenIds: ReadonlySet
     (effect.triggerModes.length > 0 ||
       (effect.turnTriggers?.length ?? 0) > 0 ||
       effect.retaliatesMeleeHits === true) &&
-    effect.movementKinds.length > 0
+    effect.movementKinds.length > 0 &&
+    (effect.distanceStep === undefined ||
+      (Number.isFinite(effect.distanceStep) && effect.distanceStep > 0))
   )
 }
 
@@ -1265,6 +1275,60 @@ function movementTrigger(input: {
   return null
 }
 
+/**
+ * Where along the path each whole `step` the token travels overlapping the geometry completes,
+ * counted from the path's start whether it begins inside or outside. Distance inside is measured
+ * as movement is on the Scene's grid (D154), each segment's measure shared by the stretch the
+ * footprint overlaps. A last step short by no more than a tenth of a step completes where the
+ * overlap ends.
+ */
+function distanceStepContacts(input: {
+  readonly geometry: SpatialGeometry
+  readonly path: readonly ScenePoint[]
+  /** The mover's own path, whose grid measure the steps count. */
+  readonly measuredPath: readonly ScenePoint[]
+  readonly grid: SceneGrid
+  readonly token: SpatialSceneToken
+  readonly step: number
+}): { pathDistance: number; step: number }[] {
+  const contacts: { pathDistance: number; step: number }[] = []
+  let travelled = 0
+  let measuredBefore = 0
+  let inside = 0
+  let lastInsideEnd = 0
+  for (let index = 1; index < input.path.length; index += 1) {
+    const from = input.path[index - 1]!
+    const to = input.path[index]!
+    const length = Math.hypot(to.x - from.x, to.y - from.y)
+    const measuredTo = measureScenePathDistance(input.grid, input.measuredPath.slice(0, index + 1))
+    const measured = measuredTo - measuredBefore
+    measuredBefore = measuredTo
+    let progress = 0
+    for (const span of segmentSpans({
+      zones: [{ geometry: input.geometry }],
+      token: input.token,
+      from,
+      to
+    })) {
+      const spanStart = travelled + length * progress
+      progress += span.share
+      const spanMeasure = measured * span.share
+      if (!span.inside.length || spanMeasure <= EPSILON) continue
+      while (inside + spanMeasure + EPSILON >= (contacts.length + 1) * input.step) {
+        const step = contacts.length + 1
+        const share = (step * input.step - inside) / spanMeasure
+        contacts.push({ pathDistance: spanStart + length * span.share * share, step })
+      }
+      inside += spanMeasure
+      lastInsideEnd = spanStart + length * span.share
+    }
+    travelled += length
+  }
+  if (inside + input.step / 10 + EPSILON >= (contacts.length + 1) * input.step)
+    contacts.push({ pathDistance: lastInsideEnd, step: contacts.length + 1 })
+  return contacts
+}
+
 function relativeSourcePath(
   target: SpatialSceneToken,
   sourcePath: readonly ScenePoint[]
@@ -1399,6 +1463,8 @@ export function collectSpatialMovementCandidates(input: {
   readonly effects: readonly SpatialEffectInstance[]
   readonly movementKind: SpatialMovementKind
   readonly path: readonly ScenePoint[]
+  /** The Scene's grid, which measures distance moved inside a zone acting per distance moved. */
+  readonly grid: SceneGrid
   readonly tokens: readonly SpatialSceneToken[]
   readonly movingTokenId: string
   /** The voluntary mover chose to move carefully: fields that allow it raise no candidate. */
@@ -1441,6 +1507,31 @@ export function collectSpatialMovementCandidates(input: {
       if (!geometry) continue
       const path = sourceMoved ? relativeSourcePath(target, input.path) : input.path
       if (!path) continue
+      if (effect.distanceStep !== undefined) {
+        if (input.movementKind === 'TELEPORT' || !effect.triggerModes.includes('ENTER')) continue
+        for (const { pathDistance, step } of distanceStepContacts({
+          geometry,
+          path,
+          measuredPath: input.path,
+          grid: input.grid,
+          token: target,
+          step: effect.distanceStep
+        })) {
+          const contact = pathPointAtDistance(input.path, pathDistance)
+          if (!contact || !isAbsolutePoint(contact)) continue
+          candidates.push({
+            contact,
+            effectId: effect.effectId,
+            pathDistance,
+            sourceActorId: effect.sourceActorId,
+            sourceMoved,
+            targetActorId,
+            trigger: 'ENTER',
+            step
+          })
+        }
+        continue
+      }
       const trigger = movementTrigger({
         geometry,
         kind: input.movementKind,
@@ -1465,7 +1556,7 @@ export function collectSpatialMovementCandidates(input: {
   }
   const unique = new Map<string, SpatialMovementCandidate>()
   for (const candidate of candidates) {
-    const key = `${candidate.effectId}:${candidate.targetActorId}:${candidate.trigger}`
+    const key = `${candidate.effectId}:${candidate.targetActorId}:${candidate.trigger}:${candidate.step ?? 0}`
     const existing = unique.get(key)
     if (!existing || candidate.pathDistance < existing.pathDistance) unique.set(key, candidate)
   }
@@ -1478,7 +1569,8 @@ export function collectSpatialMovementCandidates(input: {
         left.pathDistance - right.pathDistance ||
         compareText(left.effectId, right.effectId) ||
         compareText(left.targetActorId, right.targetActorId) ||
-        compareText(left.trigger, right.trigger)
+        compareText(left.trigger, right.trigger) ||
+        (left.step ?? 0) - (right.step ?? 0)
     )
     .filter((candidate) => {
       const limit = limits.get(candidate.effectId)

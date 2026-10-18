@@ -27,6 +27,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
+import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -1448,5 +1449,156 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
     failure.resultBlock.lifecycle = { heldBySource: true }
 
     expect(compiledCast(grease)).toBeNull()
+  })
+})
+
+describe('a zone that acts per distance moved inside it (SPELLS-4.T1h, D156)', () => {
+  const SPIKE_GROWTH = spell('Spike Growth')
+  /** The first zone component the spell authors, which a changed copy may edit in place. */
+  const firstComponent = (authored: SpellAuthored): ManifestComponentAuthored => {
+    const outcome = authored.effects?.[0]?.paths?.flatMap((path) =>
+      'resultBlock' in path && path.resultBlock ? path.resultBlock.outcomes : []
+    )[0]
+    const component = outcome && 'components' in outcome ? outcome.components?.[0] : undefined
+    if (!component) throw new Error(`${authored.label} must author a zone component.`)
+    return component
+  }
+  const changed = (edit: (component: ManifestComponentAuthored) => void) => {
+    const copy = structuredClone(SPIKE_GROWTH)
+    edit(firstComponent(copy))
+    return copy
+  }
+
+  it('places Spike Growth as a doubled-cost zone dealing its 2d4 per 5 feet, with no closed rule', () => {
+    const cast = compiledCast(SPIKE_GROWTH)
+    const zone = cast?.zonePlacement
+
+    expect(cast?.activeEffectPlan).toBeNull()
+    expect(zone).toMatchObject({
+      label: 'Spike Growth',
+      triggerModes: ['ENTER', 'CROSS'],
+      movementCostMultiplier: 2,
+      perDistanceMoved: { amount: 5, unit: 'FEET' }
+    })
+    if (!zone || 'options' in zone) throw new Error('Spike Growth places one zone.')
+    expect(zone).not.toHaveProperty('turnTriggers')
+    expect(zone).not.toHaveProperty('maxApplicationsPerTurn')
+    expect(
+      zone.entry.frozenGraph.definition.nodes
+        .filter((node) => node.operation.key === 'evidence.integer-range')
+        .map((node) => node.inputs.max)
+    ).toEqual([
+      { kind: 'LITERAL', value: 4 },
+      { kind: 'LITERAL', value: 4 }
+    ])
+  })
+
+  it('resolves the step in Scene distance and places a zone no teleport passes through', () => {
+    const entry = compiledCastEntry(SPIKE_GROWTH)
+    const zone = entry?.compilation.zonePlacement
+    if (!entry?.targetPolicy || !zone || 'options' in zone)
+      throw new Error('Spike Growth places one zone at a point in range.')
+    const feetGrid = {
+      kind: 'SQUARE' as const,
+      cellSize: 100,
+      diagonalPolicy: 'EQUAL' as const,
+      distancePerCell: 5,
+      origin: { x: 0, y: 0 },
+      unit: 'FEET' as const
+    }
+    const aimed = (grid: Parameters<typeof evaluateEncounterZoneTarget>[0]['grid']) =>
+      evaluateEncounterZoneTarget({
+        zone,
+        range: entry.targetPolicy!.range,
+        target: {
+          kind: 'POINT',
+          sceneId: testUuid(0xb3c0),
+          expectedSceneVersion: 1,
+          point: { x: 1000, y: 0 }
+        },
+        grid,
+        sourceToken: { position: { x: 0, y: 0 }, height: 1, width: 1, rotationDegrees: 0 },
+        aimSeen: true
+      })
+    const target = aimed(feetGrid)
+    if (!('shape' in target)) throw new Error('Spike Growth must aim at a point in range.')
+    const place = (distanceStep: number | undefined) =>
+      planEncounterPlacedZone({
+        zone,
+        id: testUuid(0xb3c1),
+        maintainedEffectStateId: null,
+        encounterId: testUuid(0xb3c2),
+        occurrenceId: testUuid(0xb3c3),
+        rootCommandId: testUuid(0xb3c4),
+        sourceActorId: testUuid(0xb3c5),
+        point: { x: 1000, y: 0 },
+        area: target.shape,
+        sourceToken: null,
+        saveDc: null,
+        distanceStep
+      })
+
+    expect(target.distanceStep).toBe(5)
+    expect(aimed({ ...feetGrid, distancePerCell: 1.5, unit: 'METERS' })).toMatchObject({
+      distanceStep: expect.closeTo(1.524)
+    })
+    expect(place(5).placement).toMatchObject({
+      distanceStep: 5,
+      movementKinds: ['VOLUNTARY', 'FORCED'],
+      movementCostMultiplier: 2
+    })
+    expect(() => place(undefined)).toThrow('per distance moved')
+  })
+
+  it.each([
+    [
+      'a turn trigger',
+      (component: ManifestComponentAuthored) => {
+        component.interactionKinds = ['ENTER_OR_PASS_THROUGH', 'END_TURN_IN_SPACE']
+      }
+    ],
+    [
+      'a per-turn limit',
+      (component: ManifestComponentAuthored) => {
+        component.maxApplicationsPerTurn = 1
+      }
+    ],
+    [
+      'no entering trigger',
+      (component: ManifestComponentAuthored) => {
+        component.interactionKinds = ['MOVE_ACROSS']
+      }
+    ]
+  ])('refuses the option beside %s, which compiles without it', (_, edit) => {
+    expect(compiledCast(changed(edit))).toBeNull()
+    expect(
+      compiledCast(
+        changed((component) => {
+          edit(component)
+          delete component.perDistanceMoved
+        })
+      )
+    ).not.toBeNull()
+  })
+
+  it('refuses the option on a component whose behavior is a save, which compiles without it', () => {
+    // Wall of Thorns' thorns save for half on entry; without their turn end and per-turn limit,
+    // only the save stands beside the option.
+    const thorns = (perDistanceMoved: boolean) => {
+      const copy = structuredClone(WALL_OF_THORNS)
+      const choice = copy.effects?.[0]?.paths?.find((path) => 'options' in path)
+      for (const option of choice && 'options' in choice ? (choice.options ?? []) : []) {
+        const [outcome] = option.resultBlock?.outcomes ?? []
+        const component = outcome && 'components' in outcome ? outcome.components?.[0] : undefined
+        if (!component) throw new Error('Wall of Thorns must author its thorns.')
+        component.interactionKinds = ['ENTER_OR_PASS_THROUGH']
+        delete component.maxApplicationsPerTurn
+        if (perDistanceMoved) component.perDistanceMoved = { amount: 5, unit: 'FEET' }
+      }
+      return copy
+    }
+
+    expect(compiledCast(thorns(false))).not.toBeNull()
+    expect(compiledCast(thorns(true))).toBeNull()
   })
 })

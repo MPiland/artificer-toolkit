@@ -61,7 +61,7 @@ export const spatialPendingContextDtoSchema = lazySchema(() =>
           ...value.remainingCandidates
         ]
         for (const [index, candidate] of all.entries()) {
-          const key = `${candidate.candidate.effectId}:${candidate.candidate.targetActorId}:${candidate.candidate.trigger}`
+          const key = `${candidate.candidate.effectId}:${candidate.candidate.targetActorId}:${candidate.candidate.trigger}:${candidate.candidate.step ?? 0}`
           if (candidateKeys.has(key))
             context.addIssue({
               code: 'custom',

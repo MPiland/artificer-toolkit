@@ -8,7 +8,7 @@ import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-tool
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
+import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { withEncounterRuleUsageUsed } from './encounterActorState.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
@@ -51,6 +51,7 @@ export async function evaluateEncounterMovementPassageResponse<
     occurredAt: string
     retained?: Outcome
     sceneTokens: readonly SceneToken[]
+    sceneGrid: SceneGrid
     actorIdByTokenId: ReadonlyMap<string, string>
     actors: readonly EncounterRunActorState[]
   },
@@ -68,6 +69,7 @@ export async function evaluateEncounterMovementPassageResponse<
       root: FrozenMovementReactionRemainder['root']
       sceneVersion: number
       sceneTokens: readonly SceneToken[]
+      sceneGrid: SceneGrid
       actorIdByTokenId: ReadonlyMap<string, string>
       currentPosition: SceneToken['position']
       occurrenceId: string
@@ -253,6 +255,7 @@ export async function evaluateEncounterMovementPassageResponse<
     root,
     sceneVersion: root.currentSceneVersion,
     sceneTokens: input.sceneTokens,
+    sceneGrid: input.sceneGrid,
     actorIdByTokenId: input.actorIdByTokenId,
     currentPosition: root.currentPosition,
     occurrenceId: input.occurrenceId,

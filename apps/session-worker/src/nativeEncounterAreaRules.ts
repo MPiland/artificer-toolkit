@@ -416,6 +416,7 @@ export async function prepareAreaScene(
           origin,
           shape: area.shape,
           regions: 'regions' in area ? area.regions : [],
+          distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
           sourceToken: scene.sourceToken ?? null,
           unaffectedActorIds
         }
@@ -1870,6 +1871,7 @@ export async function completeAreaCommit(args: {
       point: placement.origin,
       area: placement.shape,
       sourceToken: placement.sourceToken,
+      distanceStep: placement.distanceStep,
       saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
       unaffectedActorIds: placement.unaffectedActorIds
     }

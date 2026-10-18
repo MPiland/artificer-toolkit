@@ -6,7 +6,7 @@ import type {
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
+import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type {
   MovementCharacterRow,
@@ -128,6 +128,7 @@ export async function evaluateEncounterMovementActionResponse<
     occurredAt: string
     runtime: RulesRuntimeService
     sceneTokens: readonly SceneToken[]
+    sceneGrid: SceneGrid
     actorIdByTokenId: ReadonlyMap<string, string>
     resolvePerception: (
       contact: EncounterMovementReactionContact<EncounterMovementReactionSource>
@@ -627,6 +628,7 @@ export async function evaluateEncounterMovementActionResponse<
     root: context.phase.kind === 'SPATIAL_EVIDENCE' ? root : remainder.root,
     sceneVersion: root.currentSceneVersion,
     sceneTokens: input.sceneTokens,
+    sceneGrid: input.sceneGrid,
     actorIdByTokenId: input.actorIdByTokenId,
     currentPosition: token.position,
     occurrenceId: input.occurrenceId,

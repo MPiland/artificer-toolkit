@@ -166,6 +166,11 @@ export type ManifestComponentAuthored = {
   bypassAtHalfSpeed?: boolean
   choosesUnaffected?: boolean
   movementCostMultiplier?: number
+  /**
+   * The behavior runs once for each whole `amount` a creature moves within the area, at the
+   * distance where that step completes, instead of once on entry (D156).
+   */
+  perDistanceMoved?: { amount: number; unit: LengthUnitCode }
   requiresFullyWithin?: boolean
   /** A target immune to this damage type succeeds on the component's save unrolled. */
   automaticSaveSuccessImmunityDamageTypeId?: string
