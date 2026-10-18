@@ -1912,6 +1912,10 @@ function createFacetPredicateNodeMap(
                         .end()
                     )
                   )
+                  .elseIf(p.field(['subject']).eq('CHARACTER'))
+                  .then((o) =>
+                    o.chain((s) => s.seed('equipment', { valueColumn: 'category' }).end())
+                  )
                   .else((o) =>
                     o.chain((s) =>
                       s
@@ -2071,6 +2075,20 @@ function createFacetPredicateNodeMap(
                           )
                         )
                         .end()
+                    )
+                  )
+                  .elseIf(
+                    and([
+                      or([
+                        local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
+                        local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY')
+                      ]),
+                      p.field(['subject']).eq('CHARACTER')
+                    ])
+                  )
+                  .then((o) =>
+                    o.chain((s) =>
+                      s.seed('equipment_properties', { valueColumn: 'property_code' }).end()
                     )
                   )
                   .elseIf(
