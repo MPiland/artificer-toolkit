@@ -219,6 +219,7 @@ export function appendManualHitpointValidationIssues(
       validations.push({
         code: 'MISSING_MANUAL_HITPOINT_ROLL',
         severity: 'blocking',
+        sectionId: 'ABILITIES',
         message: `Character level ${level.level} requires a hit-die roll.`
       })
       continue
@@ -236,6 +237,7 @@ export function appendManualHitpointValidationIssues(
       validations.push({
         code: 'INVALID_MANUAL_HITPOINT_ROLL',
         severity: 'blocking',
+        sectionId: 'ABILITIES',
         message: `Character level ${level.level} has an invalid hit-die roll.`
       })
     }

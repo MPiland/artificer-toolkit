@@ -719,6 +719,79 @@ describe('import parsers', () => {
     })
   })
 
+  describe('an imported entry missing its name, level or quantity', () => {
+    const incomplete = (path: Array<string | number>) =>
+      expect.objectContaining({ severity: 'WARNING', code: 'IMPORTED_ENTRY_INCOMPLETE', path })
+
+    it('warns in the preview and leaves a D&D Beyond entry out instead of inventing a value', () => {
+      const parsed = parseDndBeyondCharacterPayload(
+        {
+          data: {
+            id: 1,
+            name: 'Aria',
+            race: { baseRaceId: 3 },
+            background: { definition: { id: 4 } },
+            classes: [
+              { definition: { id: 5, name: 'Wizard' } },
+              { level: 1, definition: { id: 6 } },
+              { level: 2, definition: { id: 7, name: 'Cleric' } }
+            ],
+            inventory: [
+              { definition: { id: 8, name: 'Dagger' } },
+              { quantity: 1, definition: { id: 9 } }
+            ],
+            customItems: [{ id: 10 }],
+            feats: [{ definition: { id: 11 } }],
+            spells: [{ definition: { id: 12 } }]
+          }
+        },
+        '1'
+      )
+      expect(parsed?.references.map((reference) => reference.label)).toEqual(['Cleric'])
+      expect(parsed?.references[0]?.level).toBe(2)
+      expect(parsed?.customContent).toEqual([])
+      expect(parsed?.issues).toEqual(
+        expect.arrayContaining([
+          incomplete(['race']),
+          incomplete(['background']),
+          incomplete(['classes', 0]),
+          incomplete(['classes', 1]),
+          incomplete(['inventory', 0]),
+          incomplete(['inventory', 1]),
+          incomplete(['customItems', 0]),
+          incomplete(['feats', 0]),
+          incomplete(['spells', 0])
+        ])
+      )
+    })
+
+    it('warns in the preview and leaves a Foundry item out instead of inventing a value', () => {
+      const parsed = parseFoundryActorPayload({
+        _id: 'actor-1',
+        name: 'Aria',
+        type: 'character',
+        _stats: { systemId: 'dnd5e' },
+        system: {},
+        items: [
+          { _id: 'nameless', type: 'loot', system: { quantity: 1 } },
+          { _id: 'wizard', name: 'Wizard', type: 'class', system: {} },
+          { _id: 'rope', name: 'Rope', type: 'loot', system: {} },
+          { _id: 'torch', name: 'Torch', type: 'loot', system: { quantity: 3 } }
+        ]
+      })
+      expect(parsed?.references.map((reference) => [reference.label, reference.quantity])).toEqual([
+        ['Torch', 3]
+      ])
+      expect(parsed?.issues).toEqual(
+        expect.arrayContaining([
+          incomplete(['items', 0]),
+          incomplete(['items', 1]),
+          incomplete(['items', 2])
+        ])
+      )
+    })
+  })
+
   it('removes executable markup and attributes from imported rich text', () => {
     const result = sanitizeImportedRichText(
       '<p onclick="steal()" style="color:red">Safe</p><script>alert(1)</script><a href=jav&#x61;script:steal()>link</a><img src=x onerror=steal()>'

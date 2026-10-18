@@ -73,6 +73,7 @@ export function appendAbilityIntentValidationIssues(
     validations.push({
       code: 'MALFORMED_ABILITY_ASSIGNMENTS',
       severity: 'blocking',
+      sectionId: 'ABILITIES',
       message: 'Each ability can be assigned only once.'
     })
   }
@@ -83,6 +84,7 @@ export function appendAbilityIntentValidationIssues(
       validations.push({
         code: 'STANDARD_ARRAY_SCORE_REUSE',
         severity: 'blocking',
+        sectionId: 'ABILITIES',
         message: 'Each Standard Array score can be used only once.'
       })
     }
@@ -97,6 +99,7 @@ export function appendAbilityIntentValidationIssues(
       validations.push({
         code: 'POINT_BUY_OVERSPEND',
         severity: 'blocking',
+        sectionId: 'ABILITIES',
         message: `Point Buy assignments exceed the ${POINT_BUY_TOTAL_POINTS}-point maximum.`
       })
     }
@@ -144,6 +147,7 @@ export function validateMulticlass(
       validations.push({
         code: 'MULTICLASS_PREREQUISITE_UNMET',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `Multiclass prerequisites are not met for ${baseClass.label}.`
       })
     }

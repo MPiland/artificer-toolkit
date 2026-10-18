@@ -375,6 +375,19 @@ export type SceneTransientEnvelope =
       sequence: number
     }
 
+/** A fog layer's owner identity: the owning player's user id, or the shared party layer (null). */
+export function sceneFogOwnerKey(ownerUserId: string | null): string {
+  return ownerUserId ?? 'SHARED_PARTY'
+}
+
+/** A live preview stream as the room and its clients key it: per kind, dragged token and fog owner. */
+export function sceneTransientStreamKey(envelope: SceneTransientEnvelope): string {
+  if (envelope.kind === 'TOKEN_DRAG_PREVIEW') return `${envelope.kind}:${envelope.tokenId}`
+  if (envelope.kind === 'FOG_AREA_PREVIEW')
+    return `${envelope.kind}:${sceneFogOwnerKey(envelope.ownerUserId)}`
+  return envelope.kind
+}
+
 export interface SceneViewer {
   role: 'GM' | 'PLAYER'
   userId: string

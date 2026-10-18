@@ -32,7 +32,11 @@ import {
 } from '@artificer-toolkit/schema/api/sceneFog'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { ConvexError } from 'convex/values'
-import { applySceneDelta, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
+import {
+  applySceneDelta,
+  sceneTransientStreamKey,
+  VTT_SCENE_LIMITS
+} from '@artificer-toolkit/shared/vtt'
 
 export type LiveSessionConnectionStatus =
   | 'CONNECTING'
@@ -187,14 +191,6 @@ const previewIntervalMs = 100
 /** Fog chunk characters per append, inside the room's 64 KiB frame; one chunk always fits. */
 const fogBatchChars = 48_000
 const fogBatchChunks = 8
-
-/** A preview stream as the room keys it: per kind, per dragged token and per fog owner. */
-function previewStreamKey(envelope: SceneTransientEnvelopeDto): string {
-  if (envelope.kind === 'TOKEN_DRAG_PREVIEW') return `${envelope.kind}:${envelope.tokenId}`
-  if (envelope.kind === 'FOG_AREA_PREVIEW')
-    return `${envelope.kind}:${envelope.ownerUserId ?? 'SHARED_PARTY'}`
-  return envelope.kind
-}
 
 function applyRecipientDelta(
   state: LiveSessionRecipientStateDto,
@@ -689,7 +685,7 @@ export function createLiveSessionConnection(
       })
     },
     sendTransient(envelope) {
-      const key = previewStreamKey(envelope)
+      const key = sceneTransientStreamKey(envelope)
       const now = performance.now()
       if (
         !ready ||

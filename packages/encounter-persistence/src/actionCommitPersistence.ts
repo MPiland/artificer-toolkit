@@ -47,6 +47,7 @@ import type {
 } from './actionEffectPersistence.js'
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import { requireEncounterContentLabel } from './contentLabels.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { castPendingContinues } from './actionPending.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
@@ -434,7 +435,7 @@ export async function persistEncounterActionCommit(
     gameSystemId: state.gameSystemId,
     rollScope: execution.occurrenceId,
     batch,
-    actionLabel: (await ctx.ports.readContentLabel(input.initialDefinitionId)) ?? 'Action',
+    actionLabel: await requireEncounterContentLabel(ctx.ports, input.initialDefinitionId),
     source,
     target,
     initiatorUserId,

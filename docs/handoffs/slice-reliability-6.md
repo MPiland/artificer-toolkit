@@ -48,14 +48,16 @@ CI branch `ci/reliability-6-t1b`. Rebased from local `r6-t1b` (571c6a5f3) onto t
 
 | AC   | Proof                                                                                                                                                  | Status |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| 6.16 | `packages/rules-runtime/src/__tests__/installedSystemClassification.test.ts` (seam lookups, melee and non-melee triggers, uninstalled System rejected) | coded  |
+| 6.16 | `packages/rules-runtime/src/__tests__/installedSystemClassification.test.ts` (seam lookups, melee and non-melee triggers, uninstalled System rejected) | green  |
 
 - The installed System registration (`dnd5eRulesRuntimeRegistration`) carries `concentrationMaintenanceDefinitionId` and `isMeleeAttackTrigger`; `platformRulesRuntime` exposes `requireInstalledConcentrationMaintenanceDefinitionId(gameSystemId)` and `isInstalledMeleeAttackTrigger(gameSystemId, triggerCode)`.
 - Readers: Worker `nativeEncounterRules`, `nativeEncounterConcentration`, `nativeEncounterMovementConcentration`; encounter-persistence concentration children, response, chosen end, edit end, live movement and listing (`readActorConcentration` takes the Run state); rules-runtime `encounterConcentration`.
 - Red: the AC has no fail-before clause; the test targets a new seam (expected RED-IMPORT).
+- Green: tip b488925fd, Tests 39079460729. Live backend 39075528851 is green on 7dea3fc; the later push touched no Live paths. Red proof: `installedSystemClassification.test.ts` RED (4 of 4).
 
 ## Findings for the orchestrator
 
+- 6.17: `resolveRecommendedCharacterBuilderSection` (rules-runtime `builderPresentation.ts`) still keeps its own issue-code lists per section, and it sends a background's chosen-grant choice to REVIEW. It could read `issue.sectionId` instead. That resolver is outside 6.17, which covers only the web's duplicate routing.
 - Other D&D imports in generic code are outside 6.16 (Concentration and melee only): rules-runtime `encounterConcentration.ts` still imports the D&D Constitution id and concentration DC policy; spell-attack classification (`isDnd5eSpellAttackKind`, `dnd5eAttackKind`) in `encounterActionMechanicsPreparation`, `encounterCastReactionDiscovery`, `encounterFeatureActionCapabilityDiscovery`, `encounterDisarmPreparation`; encounter-persistence `actionCommitPersistence` (add-speed, teleport), `actionDisarmReplay` (contest graph), `initiativeRollCards` (initiative fact keys); Worker `nativeEncounterCastReaction` (cancel triggering event), `nativeAttackEnemyProximity` (type); Convex `creatureLoadoutHands`, `developmentPolicies`.
 
 ## T1c: typed roll-mode contributor source (6.9)
@@ -70,6 +72,22 @@ CI branch `ci/reliability-6-t1c` (stacked on T1b). Rebased from local `r6-t1c` (
 - `labelEncounterRollModeReasons` and encounter-persistence `rollModeReasons` look labels up by `rollModeSourceKey(source)`; the `sourceId`/`domainKey` parsing is gone. The three active-effect spellings collapse to `createCharacterMechanicSourceKey`.
 - Behaviour: Disarm and Overrun size-relation contributors are labelled from the rule definition (AUTHORED, definition id); Flanking is sourced to AUTHORED with the flanking definition id.
 - Development data: contributor evidence lives only in encounter receipts and pending state, which are disposable dev data; per the standing Phase 8.2 local-reset approval the local backend is reset and reseeded (no compatibility shim). The `encounterStoreConformance` snapshot is regenerated from the CI artifact.
+
+## T2: shared stream keys, dangling references fail loudly, server-owned builder sections, import warnings (6.12, 6.14, 6.17, 6.18)
+
+CI branch `ci/reliability-6-t2`.
+
+| AC   | Proof                                                                                                                                                                                                                                                                                                          | Status |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.12 | `packages/shared/src/__tests__/vtt-scene-stream-key.test.ts` (one stream key for the Worker and web; fog owner key shared by the reducer and the schema)                                                                                                                                                       | coded  |
+| 6.14 | `packages/rules-runtime/src/__tests__/characterConditionLabels.test.ts`, `packages/encounter-persistence/src/__tests__/danglingReferences.test.ts` (unknown condition type and unreadable content label throw), `encounterCleaving.test.ts` (a Cleaving choice without a pinned optional-combat policy throws) | coded  |
+| 6.17 | `packages/rules-runtime/src/__tests__/characterBuilderResolution.test.ts` (each issue names its section; mapping from the source kind), `apps/web/src/domains/characters/builder/core/CharacterBuilderRenderer.test.tsx` (step status follows `sectionId`)                                                     | coded  |
+| 6.18 | `packages/authoring/src/imports/importParsers.test.ts` (D&D Beyond and Foundry entries with no name, level or quantity are left out and raise `IMPORTED_ENTRY_INCOMPLETE`)                                                                                                                                     | coded  |
+
+- 6.12: `sceneTransientStreamKey` and `sceneFogOwnerKey` live in shared `vtt/scene.ts`. The Worker `streamKey`, web `previewStreamKey` and reducer `fogLayerKey` copies are gone.
+- 6.14: conditions are labelled by `labelCharacterConditions`, used by both the Sheet projection and the Encounter projection. Commit labels go through `requireEncounterContentLabel`, and the 'Action' and 'Legendary Action' fallbacks are gone. `createNativeCleavingChoice` takes `optionalCombatSnapshotChecksum: string | null` and throws on null; the Worker's `?? ''` is gone.
+- 6.17: `sectionId` is a required field of `CharacterBuilderIssue` and `CharacterBuilderValidation` and of their DTO schemas. It is set where each issue is produced, and source-raised issues use `characterBuilderSectionOfSource`. The web code maps and the source mapping in `stepNavigation.ts` are deleted. Two behaviour changes: `EQUIPMENT_SOURCE_UNAVAILABLE` now routes to EQUIPMENT instead of REVIEW, and a feature-selection validation now routes by its source instead of REVIEW.
+- 6.18: `requireImportedValue` warns and leaves the entry out. This covers the D&D Beyond race, background, class, subclass, inventory, custom item, feat and spell entries, and the Foundry item name, class level and equipment quantity; the Foundry entries apply the same rule beyond the cited lines. The unreachable collision label fallbacks in `importPreparation.ts`, for the character and for authored content, now read the found record's label.
 
 ## Proposed ledger edits
 

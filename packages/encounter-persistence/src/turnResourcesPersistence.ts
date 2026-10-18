@@ -49,6 +49,7 @@ import type {
   EncounterCharacterWriteTransaction,
   EncounterWritePorts
 } from './ports.js'
+import { requireEncounterContentLabel } from './contentLabels.js'
 import { persistEncounterActionEffects } from './actionEffectPersistence.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -395,7 +396,7 @@ export async function persistEncounterTurnResources(
       gameSystemId: state.gameSystemId,
       rollScope: `${occurrenceId}:legendary:${ordinal}`,
       batch: application,
-      actionLabel: (await ctx.ports.readContentLabel(option.actionId)) ?? 'Legendary Action',
+      actionLabel: await requireEncounterContentLabel(ctx.ports, option.actionId),
       source: ownerMechanics?.updatedActor ?? owner,
       target,
       initiatorUserId: root.initiatorUserId,
