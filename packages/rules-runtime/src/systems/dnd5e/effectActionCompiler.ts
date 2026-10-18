@@ -314,6 +314,8 @@ type EntryDiceDamageOutcome = {
 }
 /** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
 const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'
+/** The node id suffix of a condition a zone's result path applies beside its damage (D142). */
+const CONDITION_PROPOSAL_SUFFIX = '-condition'
 
 /** The failed save keeps the plain prefix; the made save rolls dice of its own, asked for only when it is the result. */
 function entryDamagePrefix(pathCode: string): string {
@@ -611,6 +613,8 @@ export type Dnd5eCompiledEffectActionSource = Pick<
 interface TestPlan {
   kind: TestKind
   branches: ReadonlyMap<string, Outcome | EntryDiceDamageOutcome>
+  /** A condition a result path applies beside its branch, from a proposal of its own (D142). */
+  conditions?: ReadonlyMap<string, { outcome: Outcome; entryId: string }>
 }
 
 function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
@@ -2331,9 +2335,6 @@ function zonePlacementPlan(
     unsupported(
       'A placed zone failure composes damage with at most one stop, grant, condition and lost action; a made save only deals damage.'
     )
-  // The frozen test graph holds one proposal per result path (D142, until SPELLS-4.T1e).
-  if (damageRows.length > 0 && condition)
-    unsupported('A placed zone failure deals damage or applies a condition, not both.')
   if (
     condition &&
     'outcome' in condition &&
@@ -2349,9 +2350,12 @@ function zonePlacementPlan(
       triggers.turnTriggers[0] !== 'START_OF_TURN')
   )
     unsupported('A placed zone failure that costs the Action acts only at the start of a turn.')
-  // The graph proposes the damage or the condition; a failure without either binds the save itself.
+  // The graph proposes the damage, else the condition; a condition beside damage has a proposal of
+  // its own, and a failure without either binds the save itself.
   const proposed =
     damageRows.length > 0 ? zoneDamageRow(damageRows, action.spellCastLevel) : condition
+  const besideDamage = damageRows.length > 0 ? condition : undefined
+  const heldCondition = condition ? zoneHeldCondition(condition) : null
   const primary = proposed ?? lostAction ?? grant ?? stop
   const madeDamageRows =
     madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
@@ -2391,7 +2395,17 @@ function zonePlacementPlan(
         ...madeDamageRows.map(
           (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
         )
-      ])
+      ]),
+      ...(besideDamage
+        ? {
+            conditions: new Map([
+              [
+                'ON_SAVE_FAIL',
+                { outcome: boundedTestOutcome(besideDamage), entryId: besideDamage.entryId }
+              ]
+            ])
+          }
+        : {})
     },
     entryPlan
   )
@@ -2411,9 +2425,24 @@ function zonePlacementPlan(
     (!lingering || lingering.consumeOnFirstEvents.length > 0 || lingeringPlan?.maintenance)
   )
     unsupported('A placed zone grant must last until its end event.')
+  const maintenance = maintenancePlan(action, primary)
+  // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
+  if (heldCondition && !maintenance)
+    unsupported('A zone-held condition needs a zone that Concentration maintains.')
+  if (heldCondition?.escape && !zone.label)
+    unsupported('A zone-held condition escape names its zone.')
   return {
     ...placement,
+    // A creature leaving the area is released there: the exit ends its holder effect, never a save.
+    ...(heldCondition?.endsOnLeavingArea
+      ? {
+          triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter(
+            (trigger) => trigger === 'EXIT' || placement.triggerModes.includes(trigger)
+          )
+        }
+      : {}),
     ...(lostAction ? { failedSaveLosesAction: true } : {}),
+    ...(heldCondition ? { heldCondition } : {}),
     entry: {
       ...entryPlan,
       frozenGraph: stop ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
@@ -2426,7 +2455,37 @@ function zonePlacementPlan(
           endOnEvents: [...lingering.endOnEvents]
         }
       : null,
-    maintenance: maintenancePlan(action, primary)
+    maintenance
+  }
+}
+
+/**
+ * The condition a zone holds on a creature failing its save (D146), or null when it is unheld. An
+ * unheld condition carries none of the held terms (the result's other lifecycle is its grant's); a
+ * held one ends with its zone, and when authored on leaving the area or through its escape.
+ */
+function zoneHeldCondition(
+  entry: CompiledEffectGroup['entries'][number]
+): NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']> | null {
+  if (!('outcome' in entry) || entry.outcome.effectKind !== 'CONDITION')
+    unsupported('A placed zone condition is a direct condition outcome.')
+  const { heldBySource, endOnEvents = [], escape, ...otherLifecycle } = entry.lifecycle ?? {}
+  const unread = Object.values(otherLifecycle).some((value) => value !== undefined)
+  if (!heldBySource) {
+    if (endOnEvents.includes('ON_LEAVING_AREA') || escape)
+      unsupported('A placed zone condition that its zone does not hold has no leave or escape.')
+    return null
+  }
+  if (unread || endOnEvents.some((event) => event !== 'ON_LEAVING_AREA'))
+    unsupported(
+      'A zone-held condition ends only with its zone, on leaving the area, or through its escape.'
+    )
+  return {
+    conditionId: entry.outcome.conditionId,
+    ...(endOnEvents.length > 0 ? { endsOnLeavingArea: true as const } : {}),
+    ...(escape
+      ? { escape: { activation: escape.activation, checks: escape.checks, dc: escape.dc } }
+      : {})
   }
 }
 
@@ -4557,7 +4616,7 @@ function testProposalOperationKey(outcome: Outcome | EntryDiceDamageOutcome): st
           : DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
 }
 
-function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome) {
+function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome, suffix = '') {
   if (outcome.kind === 'STABILIZE')
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'DEPART')
@@ -4580,7 +4639,7 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
     unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'FORCED_MOVEMENT')
     unsupported('D&D forced movement resolves only in its selected outcome phase.')
-  const id = `proposal-${pathCode.toLowerCase()}`
+  const id = `proposal-${pathCode.toLowerCase()}${suffix}`
   return {
     id,
     operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
@@ -4707,12 +4766,17 @@ function compileTestDefinition(
     plan.kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
   const testOperation =
     plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  const proposalNodes: RuleGraphDefinition['nodes'] = [...plan.branches].flatMap(
-    ([pathCode, outcome]) =>
+  const conditions = [...(plan.conditions ?? [])]
+  const proposalNodes: RuleGraphDefinition['nodes'] = [
+    ...[...plan.branches].flatMap(([pathCode, outcome]) =>
       outcome.kind === 'ENTRY_DICE_DAMAGE'
         ? entryDiceDamageNodes(pathCode, outcome)
         : [proposalNode(pathCode, outcome)]
-  )
+    ),
+    ...conditions.map(([pathCode, { outcome }]) =>
+      proposalNode(pathCode, outcome, CONDITION_PROPOSAL_SUFFIX)
+    )
+  ]
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: action.effectId,
@@ -4777,7 +4841,11 @@ function compileTestDefinition(
                     }
                   ]
                 : []
-            )
+            ),
+            ...conditions.map(([pathCode, { entryId }]) => ({
+              sourceEntryId: entryId,
+              nodeId: `proposal-${pathCode.toLowerCase()}${CONDITION_PROPOSAL_SUFFIX}`
+            }))
           ]
         }
       : {})
@@ -5848,9 +5916,9 @@ function fixedOutcomeGraphDefinition(input: {
   }
 }
 
-/** The authored result path in a direct proposal node id: `[prefix]proposal-<path>`. */
+/** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */
 function proposalNodePathCode(nodeId: string): string | null {
-  return /(?:^|-)proposal-([a-z_]+)$/.exec(nodeId)?.[1]?.toUpperCase() ?? null
+  return /(?:^|-)proposal-([a-z_]+)(?:-condition)?$/.exec(nodeId)?.[1]?.toUpperCase() ?? null
 }
 
 function authoredOutcomeGroups(
@@ -6723,13 +6791,13 @@ function testApplications(
     [DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY, DND5E_DAMAGE_PROPOSAL_OPERATION_KEY],
     [DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY, DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY]
   ])
-  const paths = new Set<string>()
   for (const proposal of proposalTraces) {
     const authoredPath = proposal.inputs.authoredPath
     const publishedNode = published.definition.nodes.find((node) => node.id === proposal.nodeId)
     const expectedTarget = publishedNode?.inputs.targetActorId
     const expectedResolvedPath = publishedNode?.inputs.resolvedPath
     const expectedAuthoredPath = publishedNode?.inputs.authoredPath
+    const expectedImmunity = publishedNode?.inputs.conditionImmune
     const expectedLiteral = (port: string) => {
       const binding = publishedNode?.inputs[port]
       return binding?.kind === 'LITERAL' ? binding.value : undefined
@@ -6740,7 +6808,10 @@ function testApplications(
       publishedNode.operation.key !== proposal.operation.key ||
       publishedNode.operation.contractVersion !== proposal.operation.contractVersion ||
       typeof authoredPath !== 'string' ||
-      proposal.nodeId !== `proposal-${authoredPath.toLowerCase()}` ||
+      (proposal.nodeId !== `proposal-${authoredPath.toLowerCase()}` &&
+        (proposal.operation.key !== DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY ||
+          proposal.nodeId !==
+            `proposal-${authoredPath.toLowerCase()}${CONDITION_PROPOSAL_SUFFIX}`)) ||
       expectedTarget?.kind !== 'FACT' ||
       expectedTarget.factKey !== DND5E_TARGET_ACTOR_FACT_KEY ||
       proposal.inputs.targetActorId !== input.targetActorId ||
@@ -6755,13 +6826,14 @@ function testApplications(
       proposal.outputs.authoredPath !== authoredPath ||
       proposal.outputs.applicationCandidate !== true ||
       proposal.outputs.authorized !==
-        (resultPath === authoredPath || (resultPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) ||
-      paths.has(authoredPath)
+        ((resultPath === authoredPath || (resultPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) &&
+          proposal.inputs.conditionImmune !== true) ||
+      (expectedImmunity?.kind === 'FACT' &&
+        proposal.inputs.conditionImmune !== execution.evidence.facts[expectedImmunity.factKey])
     )
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D test proposal topology is invalid.'
       )
-    paths.add(authoredPath)
     for (const port of ['amount', 'damageTypeId', 'conditionId']) {
       const expected = expectedLiteral(port)
       if (
@@ -6787,16 +6859,20 @@ function testApplications(
     }
   }
   const applications: CharacterRuleActionApplication[] = []
-  for (const path of authorizedPaths) {
-    const matching = proposalTraces.filter(
-      (trace) => trace.nodeId === `proposal-${path.toLowerCase()}`
-    )
-    if (matching.length > 1)
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D test has duplicate outcome traces.'
-      )
-    const proposal = matching[0]
+  // Each path applies its proposal, then the condition proposed beside it; trace node ids are unique.
+  const authorizedNodeIds = authorizedPaths.flatMap((path) => [
+    `proposal-${path.toLowerCase()}`,
+    `proposal-${path.toLowerCase()}${CONDITION_PROPOSAL_SUFFIX}`
+  ])
+  for (const nodeId of authorizedNodeIds) {
+    const proposal = proposalTraces.find((trace) => trace.nodeId === nodeId)
     if (!proposal) continue
+    // A creature immune to the condition takes only the rest of its path.
+    if (
+      proposal.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY &&
+      proposal.inputs.conditionImmune === true
+    )
+      continue
     if (
       proposal.outputs.applicationCandidate !== true ||
       (replacementPath === undefined && proposal.outputs.authorized !== true)

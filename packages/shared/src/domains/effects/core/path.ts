@@ -410,7 +410,8 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_CAST_SPELL: 'ON_CAST_SPELL',
   ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
   ON_INCAPACITATED: 'ON_INCAPACITATED',
-  ON_IDLE_TURN: 'ON_IDLE_TURN'
+  ON_IDLE_TURN: 'ON_IDLE_TURN',
+  ON_LEAVING_AREA: 'ON_LEAVING_AREA'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -446,6 +447,11 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     label: 'On Idle Turn',
     description:
       'Ends when the holder’s turn ends having neither attacked a hostile creature nor taken damage since their previous turn.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_LEAVING_AREA]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_LEAVING_AREA,
+    label: 'On Leaving Area',
+    description: 'Ends when the holder leaves the area of the zone that holds it.'
   }
 } as const
 

@@ -71,6 +71,22 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       kind: z.literal('CONCENTRATION_END'),
       execution: movementConcentrationEndDtoSchema
     }),
+    /**
+     * The mover left a zone holding a condition on it until it did (D146): the commit ends the
+     * zone's holder effect, which it re-derives from current rows, and the conditions only it held.
+     */
+    z.strictObject({
+      kind: z.literal('AREA_DEPARTURE'),
+      departure: z.strictObject({
+        zoneEffectId: postgresUuidSchema,
+        holderActorId: postgresUuidSchema,
+        pathDistance: z.number().check(z.nonnegative())
+      }),
+      endedEffect: activeRuleEffectRecordSchema,
+      removedConditionIds: z
+        .array(postgresUuidSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+    }),
     z.strictObject({
       kind: z.literal('PASSAGE'),
       actorId: postgresUuidSchema,
@@ -120,7 +136,7 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     settlements: z
       .array(liveSessionMovementSettlementSchema)
       .check(
-        z.maxLength(2 * MAX_SPATIAL_CANDIDATES + MAX_ENCOUNTER_ACTORS * (MAX_ENCOUNTER_ACTORS + 2))
+        z.maxLength(3 * MAX_SPATIAL_CANDIDATES + MAX_ENCOUNTER_ACTORS * (MAX_ENCOUNTER_ACTORS + 2))
       )
   })
 )

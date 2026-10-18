@@ -93,7 +93,7 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
+import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
@@ -206,6 +206,7 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
+const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
 const pathLifecycleEndTrigger =
   buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
@@ -331,6 +332,34 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
     )
   })
 
+const PATH_LIFECYCLE_ESCAPE_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['escape']>> =
+  pathLifecycleEscape.define('pathLifecycleEscape', ({ map, nodes }) => {
+    const { groupObject } = nodes
+
+    map
+      .set(
+        'activation',
+        groupObject(['activation'], 'Costs', () => ACTIVATION_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'checks',
+        groupObject(['checks'], 'Escape Checks', () => CHECK_CHOICE_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'dc',
+        groupObject(['dc'], 'Escape DC', () => HELD_ESCAPE_DC_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  })
+
 const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
 > = pathLifecycleEndTrigger.define(
@@ -418,7 +447,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject, groupArray } = nodes
+    const { selectSingle, selectMulti, groupObject, groupArray, toggle } = nodes
     const { table } = data
 
     map
@@ -467,6 +496,13 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'holderEnd',
         groupObject(['holderEnd'], 'Holder Can End', () => PATH_LIFECYCLE_HOLDER_END_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set('heldBySource', toggle(['heldBySource'], 'Held By Zone'))
+      .set(
+        'escape',
+        groupObject(['escape'], 'Escape', () => PATH_LIFECYCLE_ESCAPE_NODE_MAP, {
           presentation: 'inline'
         })
       )

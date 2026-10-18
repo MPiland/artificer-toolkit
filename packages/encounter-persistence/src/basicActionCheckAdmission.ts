@@ -21,7 +21,7 @@ import type { EncounterDocument } from './store.js'
 export function storedCheckOccurrenceId(root: StoredCommand | undefined): string | null {
   if (root?.commandType === 'RESOLVE_ACTION')
     return root.root.kind === 'CHECK' ? root.root.checkReceipt.checkOccurrenceId : null
-  if (root?.commandType === 'ESCAPE_RELATIONSHIP') return root.receipt.checkOccurrenceId
+  if (root?.commandType === 'ESCAPE') return root.receipt.checkOccurrenceId
   return null
 }
 

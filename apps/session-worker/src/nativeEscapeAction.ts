@@ -51,7 +51,7 @@ export async function planNativeLiveEscape(
   const { initial, reads, ready, state, system } = admitted
   const { capture } = reads
   const root = ready.command
-  if (root.type !== 'ESCAPE_RELATIONSHIP') throw new Error('The escape is unavailable.')
+  if (root.type !== 'ESCAPE') throw new Error('The escape is unavailable.')
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
     capture
@@ -87,7 +87,7 @@ export async function planNativeLiveEscape(
     actor,
     state,
     holder,
-    activation: escape.module.activation,
+    activation: escape.activation,
     acknowledgedWarnings: root.acknowledgedWarnings,
     capture
   })
