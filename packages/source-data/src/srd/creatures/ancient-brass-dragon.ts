@@ -21,6 +21,11 @@ export const ancientBrassDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 297,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 17,
     die: 20,

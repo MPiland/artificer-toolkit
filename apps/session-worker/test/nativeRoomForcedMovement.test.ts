@@ -53,7 +53,7 @@ function pushRoom(
       [SOURCE_ID]: SOURCE_AT,
       ...Object.fromEntries(others.map(({ id, at }) => [id, at]))
     },
-    ownerFeatureId: creature.features?.find(({ label }) => label === 'Bite')?.id
+    ownerFeatureId: creature.features.find(({ label }) => label === 'Bite')?.id
   })
 }
 type Room = Awaited<ReturnType<typeof pushRoom>>
@@ -137,7 +137,7 @@ describe('an action’s forced movement in the room (ATTACK-7.T5a)', () => {
         srdCreatureActor({ id: FAR_ID, creature: plainWolf })
       ],
       positions: { [SOURCE_ID]: SOURCE_AT, [NEAR_ID]: NEAR_AT, [FAR_ID]: FAR_AT },
-      ownerFeatureId: creature.features?.find(({ label }) => label === 'Bite')?.id
+      ownerFeatureId: creature.features.find(({ label }) => label === 'Bite')?.id
     })
     committed((await room.startDirectedAreaAction({ x: 200, y: 150 }, { x: 500, y: 150 })).answer)
     await answerAllSaves(room)

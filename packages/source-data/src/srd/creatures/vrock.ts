@@ -23,6 +23,9 @@ export const vrock: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 104,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 11,
     die: 10,

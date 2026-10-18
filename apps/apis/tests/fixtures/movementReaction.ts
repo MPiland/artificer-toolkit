@@ -351,7 +351,7 @@ export async function setupCreatureReactionRun(
   const additionalCreature = {
     ...creature,
     id: crypto.randomUUID(),
-    features: creature.features?.map((feature) => ({
+    features: creature.features.map((feature) => ({
       ...feature,
       effects: feature.effects?.map((effect) => ({
         ...effect,

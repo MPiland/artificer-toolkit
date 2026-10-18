@@ -70,7 +70,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
 
   const checksById = new Map(document.skills.map((check) => [check.id, check]))
   const proficiencyByCheckId = new Map<string, NonNullable<typeof creature.proficiencies>[number]>()
-  for (const proficiency of creature.proficiencies ?? []) {
+  for (const proficiency of creature.proficiencies) {
     if (proficiency.proficiencyKind !== PROFICIENCY_KIND.SKILL) continue
     const skillIds =
       proficiency.authoringModeKind === 'ALL'
@@ -121,7 +121,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
   }
 
   const saveProficiencyBonuses: Record<string, number> = {}
-  for (const proficiency of creature.proficiencies ?? []) {
+  for (const proficiency of creature.proficiencies) {
     if (proficiency.proficiencyKind !== PROFICIENCY_KIND.SAVE_ABILITY) continue
     if (challengeRating === null) continue
     const abilityIds =

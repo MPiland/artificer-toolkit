@@ -89,6 +89,22 @@ CI branch `ci/reliability-6-t2`.
 - 6.17: `sectionId` is a required field of `CharacterBuilderIssue` and `CharacterBuilderValidation` and of their DTO schemas. It is set where each issue is produced, and source-raised issues use `characterBuilderSectionOfSource`. The web code maps and the source mapping in `stepNavigation.ts` are deleted. Two behaviour changes: `EQUIPMENT_SOURCE_UNAVAILABLE` now routes to EQUIPMENT instead of REVIEW, and a feature-selection validation now routes by its source instead of REVIEW.
 - 6.18: `requireImportedValue` warns and leaves the entry out. This covers the D&D Beyond race, background, class, subclass, inventory, custom item, feat and spell entries, and the Foundry item name, class level and equipment quantity; the Foundry entries apply the same rule beyond the cited lines. The unreachable collision label fallbacks in `importPreparation.ts`, for the character and for authored content, now read the found record's label.
 
+## T3: typed grant folding, required Creature arrays, typed source facts, small type gaps (6.4, 6.10, 6.11, 6.19)
+
+CI branch `ci/reliability-6-t3`.
+
+| AC   | Proof                                                                                                                                                                                                                | Status |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.4  | Typecheck (exhaustive `never` defaults in the restriction and source-fact folds and the chosen-grant resolver); `compiler-restrictions.test.ts`, `compiler-scaling.test.ts` and the Character grant-fold tests       | coded  |
+| 6.10 | `packages/schema/src/__tests__/subject-schema-parsing.test.ts` (each of the ten Creature arrays is required; a Creature without one is refused)                                                                      | coded  |
+| 6.11 | Typecheck; `packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts` (unchanged facts over the typed traversal)                                                                                               | coded  |
+| 6.19 | `packages/schema/src/__tests__/characterHitpointsState.test.ts` (temporary hit points are required); typecheck (`HeldRoomInputs` is the only input the turn read ports accept; no `as unknown as` in the room store) | coded  |
+
+- 6.4: the fold switches are exhaustive over the grant kind. `SAVING_THROW_ABILITY` reached the untyped default, which copied `requiredIds`, `min` and `max` off the record by cast; it is now an explicit case that folds to `UNAVAILABLE` like the skill-score and saving-throw-bonus restrictions (an `UNAVAILABLE` condition reads none of those fields, so the result is the same). The proficiency compiler passes the authored grant through minus `restrictions` and `scalingKind`; an EQUIPMENT grant in ALL mode now keeps `category` and `properties`, and an empty-string category is kept. Fold results do not change: the fold reads `category` only for `EQUIPMENT_PROPERTY`.
+- 6.10: `details`, `features`, `proficiencies`, `senses`, the three damage-defense lists, `qualifiedDamageDefenses` and `conditionImmunities` are required in the schema and in `CreatureAuthored`. All 317 SRD Creature files state them; every `?? []` and `?.` at Creature-typed sites is gone; `blueprintSnapshots` parses without re-defaults. Development data: stored Creature documents without the arrays fail to parse, so the local backend is reset and reseeded at merge.
+- 6.11: `authoredSourceFacts` walks typed Subjects, effects, proficiency grants and features; behaviour is unchanged.
+- 6.19: `temp` is required in the Character hit-points schema and state; the `temp ?? 0` defaults are gone. `addExtra` builds a typed extra and returns early instead of asserting. `RoomInputs.heldOnly()` returns `HeldRoomInputs`, which the turn read ports require. The room store loads documents typed by table. `executeRelationship`, `getChildMapId` and `prepareAreaCaster` pass-throughs are removed.
+
 ## Proposed ledger edits
 
 None yet.

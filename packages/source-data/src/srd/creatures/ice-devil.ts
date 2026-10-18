@@ -20,6 +20,9 @@ export const iceDevil: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 180,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 19,
     die: 10,

@@ -21,6 +21,12 @@ export const seaHag: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 52,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 8,

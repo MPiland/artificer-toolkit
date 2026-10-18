@@ -21,6 +21,12 @@ export const medusa: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 127,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 17,
     die: 8,

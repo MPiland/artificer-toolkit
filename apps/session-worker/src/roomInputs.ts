@@ -516,9 +516,8 @@ export class RoomInputs {
    * holds stale, throws {@link RoomInputsUnheldError} where this instance would load it. Reads that
    * the room must answer from its own state use it.
    */
-  heldOnly(): RoomInputs {
-    const unheld = () => Promise.reject(new RoomInputsUnheldError())
-    return new RoomInputs(this.#store, unheld, unheld, this.#content, this.#restamps)
+  heldOnly(): HeldRoomInputs {
+    return new HeldRoomInputs(this.#store, this.#content, this.#restamps)
   }
 
   /**
@@ -1302,5 +1301,15 @@ export class RoomInputs {
     if (characterIds.some((id) => !assigned.has(id) && !unassigned.has(id) && !deleted.has(id)))
       throw new Error('A Character was not read.')
     return { characters: [...assigned.values()], deleted: [...deleted] }
+  }
+}
+
+/** The held-only view {@link RoomInputs.heldOnly} returns; its type admits only held reads. */
+export class HeldRoomInputs extends RoomInputs {
+  readonly held = true
+
+  constructor(store: RoomEncounterStore, content: Map<string, LoadedContent>, restamps: Restamps) {
+    const unheld = () => Promise.reject(new RoomInputsUnheldError())
+    super(store, unheld, unheld, content, restamps)
   }
 }

@@ -19,6 +19,10 @@ export const warhorseSkeleton: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 22,
+  details: [],
+  proficiencies: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 10,

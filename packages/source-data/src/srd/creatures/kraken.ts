@@ -21,6 +21,10 @@ export const kraken: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 472,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 27,
     die: 20,

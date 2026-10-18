@@ -1456,7 +1456,7 @@ export function projectCharacterSheetBundle(
         maxHitPoints
       ),
       maxHitPoints,
-      tempHitPoints: character.state.hitpoints.temp ?? 0,
+      tempHitPoints: character.state.hitpoints.temp,
       deathSaves: character.state.hitpoints.deathSaves,
       maxHitPointsOverride: getHitPointAdjustment(adjustments, 'MAXIMUM_OVERRIDE') ?? null,
       maxHitPointsModifier: getHitPointAdjustment(adjustments, 'MAXIMUM_MODIFIER') ?? 0,

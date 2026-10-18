@@ -20,6 +20,12 @@ export const lamia: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 97,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 10,

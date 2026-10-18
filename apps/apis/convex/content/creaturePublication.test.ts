@@ -577,7 +577,7 @@ describe('native Creature publication', () => {
           )
         ).toBe(true)
       }
-      for (const [index, feature] of (document.features ?? []).entries()) {
+      for (const [index, feature] of document.features.entries()) {
         const canonicalFeature = canonical?.features?.[index]
         expect(feature.id).toBe(copied.features?.[index]?.id)
         expect(feature.id).not.toBe(canonicalFeature?.id)

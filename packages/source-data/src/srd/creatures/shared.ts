@@ -834,7 +834,7 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
 export function normalizeLegendaryActionOptions<TCreature extends CreatureAuthored>(
   creature: TCreature
 ): TCreature {
-  if (!creature.features?.some(isLegendaryActionFeature)) {
+  if (!creature.features.some(isLegendaryActionFeature)) {
     return creature
   }
 

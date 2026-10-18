@@ -20,6 +20,11 @@ export const stormGiant: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 230,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 20,
     die: 12,

@@ -19,6 +19,13 @@ export const giantBat: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 22,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 10,

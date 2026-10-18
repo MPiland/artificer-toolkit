@@ -43,7 +43,7 @@ const state = fc.record(
         hitDice: fc.array(hitDie, { maxLength: 3 }),
         deathSaves: fc.constant(NO_DEATH_SAVES)
       },
-      { requiredKeys: ['current', 'hitDice', 'deathSaves'] }
+      { requiredKeys: ['current', 'temp', 'hitDice', 'deathSaves'] }
     ),
     inspiration: fc.boolean(),
     classes: fc.array(fc.record({ classId: text }), { maxLength: 3 }),
@@ -104,7 +104,7 @@ const persisted: fc.Arbitrary<CharacterPersistedState> = fc.record({ state, shee
 describe('Character play state split', () => {
   it('validates typed persisted state and rejects changed state with a stale checksum', () => {
     const state = {
-      hitpoints: { current: 5, hitDice: [], deathSaves: NO_DEATH_SAVES },
+      hitpoints: { current: 5, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],
       attuned: [],
       partyVisibility: { sheet: false, health: 'HIDDEN' as const },
@@ -125,7 +125,10 @@ describe('Character play state split', () => {
     expect(() =>
       readCharacterPlay({
         ...stored,
-        state: { ...state, hitpoints: { current: 4, hitDice: [], deathSaves: NO_DEATH_SAVES } }
+        state: {
+          ...state,
+          hitpoints: { current: 4, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES }
+        }
       })
     ).toThrow('checksum mismatch')
     expect(
@@ -180,7 +183,7 @@ describe('Character play state split', () => {
       state: {
         equipment: { inventory: [], equipped: [], attuned: [] },
         currency: [],
-        hitpoints: { current: 5, hitDice: [], deathSaves: NO_DEATH_SAVES }
+        hitpoints: { current: 5, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES }
       },
       sheetState: {
         adjustments: [],

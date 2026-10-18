@@ -19,6 +19,13 @@ export const plesiosaurus: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 68,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 8,
     die: 10,

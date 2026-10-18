@@ -553,19 +553,6 @@ export function prepareCasterActionOnTarget(
   }).catch(refuseStaleCharacterAction)
 }
 
-/**
- * The caster's own preparation of the action, which an area that keeps no creature is checked and
- * spent against: the action's source, plan and economy do not depend on whom the area catches.
- */
-function prepareAreaCaster(input: ReachPlanInput, base: AreaReach) {
-  return prepareAreaTarget({
-    ...input,
-    base,
-    actor: base.caster,
-    token: base.scene?.sourceToken ?? null
-  })
-}
-
 /** The counter window of a multi-creature cast, held over the caster's lead preparation of the action. */
 function reachCastPause(
   input: ReachPlanInput,
@@ -796,7 +783,15 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     })
   // An area that catches nobody still spends the action: its checks run against the caster's own
   // preparation of it.
-  const lead = reached[0] ?? (await prepareAreaCaster(input, base))
+  // An area that keeps no creature is checked and spent against the caster's own preparation.
+  const lead =
+    reached[0] ??
+    (await prepareAreaTarget({
+      ...input,
+      base,
+      actor: base.caster,
+      token: base.scene?.sourceToken ?? null
+    }))
   refuseActionOutsideItsWindow(lead.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
@@ -1494,7 +1489,12 @@ async function prepareAreaCasterLead(
   base: AreaReach,
   removedActorIds: readonly string[]
 ) {
-  const target = await prepareAreaCaster(input, base)
+  const target = await prepareAreaTarget({
+    ...input,
+    base,
+    actor: base.caster,
+    token: base.scene?.sourceToken ?? null
+  })
   refuseActionOutsideItsWindow(target.prepared)
   return {
     target,

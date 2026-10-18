@@ -20,6 +20,10 @@ export const ghoul: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 22,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 5,
     die: 8,

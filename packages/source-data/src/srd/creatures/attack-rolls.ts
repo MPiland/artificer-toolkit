@@ -32,7 +32,7 @@ function withAttackRoll<TSource extends FeatureBaseAuthored>(source: TSource): T
 export function applyCreatureAttackRolls(creature: CreatureAuthored): CreatureAuthored {
   return {
     ...creature,
-    features: creature.features?.map((feature) => {
+    features: creature.features.map((feature) => {
       const withRoll = withAttackRoll(feature)
       return feature.options
         ? { ...withRoll, options: feature.options.map(withAttackRoll) }

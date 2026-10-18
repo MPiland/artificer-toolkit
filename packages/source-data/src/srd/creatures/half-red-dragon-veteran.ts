@@ -20,6 +20,11 @@ export const halfRedDragonVeteran: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 65,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 10,
     die: 8,

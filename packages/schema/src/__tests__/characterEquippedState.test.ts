@@ -14,7 +14,7 @@ const parseEquipped = (equipped: unknown) =>
       attuned: []
     },
     currency: [],
-    hitpoints: { current: 6, hitDice: [], deathSaves: NO_DEATH_SAVES }
+    hitpoints: { current: 6, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES }
   })
 
 describe('Character equipped state (D107)', () => {

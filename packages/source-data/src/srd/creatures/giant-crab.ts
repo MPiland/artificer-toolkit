@@ -19,6 +19,12 @@ export const giantCrab: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 13,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 3,
     die: 8,

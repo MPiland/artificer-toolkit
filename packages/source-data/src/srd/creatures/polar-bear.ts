@@ -20,6 +20,13 @@ export const polarBear: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 42,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 10,

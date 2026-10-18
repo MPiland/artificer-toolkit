@@ -20,6 +20,12 @@ export const werewolf: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 58,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 9,
     die: 8,

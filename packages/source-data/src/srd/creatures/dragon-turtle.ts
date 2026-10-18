@@ -21,6 +21,11 @@ export const dragonTurtle: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 341,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 22,
     die: 20,

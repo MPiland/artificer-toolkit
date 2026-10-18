@@ -19,6 +19,13 @@ export const cloudGiant: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 200,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 16,
     die: 12,

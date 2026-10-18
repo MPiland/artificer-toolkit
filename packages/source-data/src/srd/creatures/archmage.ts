@@ -19,6 +19,12 @@ export const archmage: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 99,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 18,
     die: 8,

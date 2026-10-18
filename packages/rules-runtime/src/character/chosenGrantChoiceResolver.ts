@@ -1,7 +1,6 @@
 import {
   ABILITY_OPTIONS,
   AUTHORING_MODE_KIND,
-  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   PROFICIENCY_KIND,
@@ -31,43 +30,24 @@ import type {
 } from './builderCatalog.js'
 import { findCurrentCharacterFeatureAcquisition } from './characterBuilderSelections.js'
 
-type ChoiceGrantShape = {
-  id: string
-  grantKind: CharacterBuilderChosenGrantChoice['grantKind']
-  selectionKind: string
-  level?: 'HALF' | 'FULL' | 'DOUBLE'
-  scalingKind?: string
-  count?: number
-  selectionDuplicatePolicy?: AuthoringSelectionDuplicatePolicy
-  authoringModeKind?: string
-  progression?: {
-    levels: Array<{
-      level: number
-      count?: number
-      selectionDuplicatePolicy?: AuthoringSelectionDuplicatePolicy
-      authoringModeKind?: string
-      skillIds?: string[]
-      languageIds?: string[]
-      equipmentIds?: string[]
-      properties?: string[]
-      abilities?: string[]
-      spellIds?: string[]
-      featIds?: string[]
-      senseIds?: string[]
-    }>
-  }
-  proficiencyKind?: string
-  skillIds?: string[]
-  languageIds?: string[]
-  equipmentIds?: string[]
-  properties?: string[]
-  category?: string
-  abilities?: string[]
-  spellIds?: string[]
-  featIds?: string[]
-  senseIds?: string[]
-  filters?: FacetAuthored<'SPELL'>
+type ChoiceGrant =
+  | ProficiencyGrantAuthored
+  | SpellGrantAuthored
+  | FeatGrantAuthored
+  | SenseGrantAuthored
+
+/** One selection a chosen grant asks for: the grant itself, or one of its progression levels. */
+type ChoiceSlot = {
+  progressionLevel?: number
+  count: number
+  duplicatePolicy: AuthoringSelectionDuplicatePolicy
+  /** The ids the author listed, or null when every pool record of the grant's kind is a candidate. */
+  candidateIds: readonly string[] | null
 }
+
+type ListedTarget<K extends string> =
+  | { authoringModeKind: typeof AUTHORING_MODE_KIND.ALL }
+  | ({ authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED } & Record<K, readonly string[]>)
 
 export type CharacterChosenGrantOwner = {
   label: string
@@ -121,18 +101,11 @@ export function resolveCharacterChosenGrantChoices(
 ): CharacterBuilderChosenGrantChoice[] {
   const choices = owners
     .flatMap((owner) =>
-      flattenOwnerGrants(owner).flatMap((grant) => {
-        const shape = grant
-        if (shape.selectionKind !== AUTHORING_SELECTION_KIND.CHOSEN) return []
-
-        if (shape.scalingKind === SCALING.PER_LEVEL) {
-          return (shape.progression?.levels ?? [])
-            .filter((entry) => entry.level <= owner.activeLevel)
-            .map((entry) => createChoice(character, registry, owner, shape, entry))
-        }
-
-        return [createChoice(character, registry, owner, shape)]
-      })
+      flattenOwnerGrants(owner).flatMap((grant) =>
+        choiceSlots(grant, owner.activeLevel).map((slot) =>
+          createChoice(character, registry, owner, grant, slot)
+        )
+      )
     )
     .filter((choice) => choice.requiredCount > 0)
 
@@ -163,10 +136,6 @@ type ChosenGrantWitnessQuestion =
       matches(record: CharacterBuilderFeatCatalogRecord): boolean
     }
 
-type ChoiceGrantTarget =
-  | ChoiceGrantShape
-  | NonNullable<ChoiceGrantShape['progression']>['levels'][number]
-
 export function getChosenGrantWitnessQuestions(
   character: CharacterAuthored,
   registry: CharacterChosenGrantChoiceRegistry,
@@ -179,50 +148,40 @@ export function getChosenGrantWitnessQuestions(
     feats: [],
     ...pool
   })
-  const targetsOf = (owner: CharacterChosenGrantOwner, grant: ChoiceGrantShape) =>
-    grant.scalingKind === SCALING.PER_LEVEL
-      ? (grant.progression?.levels ?? [])
-          .filter((entry) => entry.level <= owner.activeLevel)
-          .map((entry) => ({ entry, target: entry as ChoiceGrantTarget }))
-      : [{ entry: undefined, target: grant as ChoiceGrantTarget }]
-  const isPropertyGrant = (grant: ChoiceGrantShape) =>
-    grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT &&
-    grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY
-  const listed = (target: ChoiceGrantTarget, ids: string[] | undefined) =>
-    target.authoringModeKind === AUTHORING_MODE_KIND.ALL ? null : (ids ?? [])
 
   const questions: ChosenGrantWitnessQuestion[] = []
   const selectedProperties = new Set<string>()
   for (const owner of owners) {
     for (const grant of flattenOwnerGrants(owner)) {
-      if (grant.selectionKind !== AUTHORING_SELECTION_KIND.CHOSEN) continue
-      for (const { entry, target } of targetsOf(owner, grant)) {
-        const choice = createChoice(character, registry, owner, grant, entry)
+      for (const slot of choiceSlots(grant, owner.activeLevel)) {
+        const choice = createChoice(character, registry, owner, grant, slot)
         if (choice.requiredCount <= 0) continue
-        if (isPropertyGrant(grant))
-          for (const id of choice.selectedTargetIds) selectedProperties.add(id)
+        const isPropertyGrant =
+          grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT &&
+          grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY
+        if (isPropertyGrant) for (const id of choice.selectedTargetIds) selectedProperties.add(id)
         if (choice.options.length > 0) continue
         const hasOption = (pool: Partial<CharacterChosenGrantChoiceRegistry>) =>
-          getGrantOptions(grant, target, only(pool)).length > 0
+          getGrantOptions(grant, slot.candidateIds, only(pool)).length > 0
         if (grant.grantKind === GRANT_KIND.SPELL_GRANT)
           questions.push({
             kind: 'SPELL',
-            candidateIds: listed(target, target.spellIds),
+            candidateIds: slot.candidateIds,
             matches: (record) => hasOption({ spells: [record] })
           })
         else if (grant.grantKind === GRANT_KIND.FEAT_GRANT)
           questions.push({
             kind: 'FEAT',
-            candidateIds: listed(target, target.featIds),
+            candidateIds: slot.candidateIds,
             matches: (record) => hasOption({ feats: [record] })
           })
         else if (
           grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT &&
-          (grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT || isPropertyGrant(grant))
+          (grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT || isPropertyGrant)
         )
           questions.push({
             kind: 'EQUIPMENT',
-            candidateIds: isPropertyGrant(grant) ? null : listed(target, target.equipmentIds),
+            candidateIds: isPropertyGrant ? null : slot.candidateIds,
             matches: (record) => hasOption({ equipment: [record] })
           })
       }
@@ -231,62 +190,117 @@ export function getChosenGrantWitnessQuestions(
   // Selected properties are validated, and disabled by granted ranks, through each property
   // grant's options, which a property joins only when some pool Equipment carries it.
   for (const owner of owners) {
-    for (const grant of flattenOwnerGrants(owner)) {
-      if (!isPropertyGrant(grant)) continue
-      const targets =
-        grant.selectionKind === AUTHORING_SELECTION_KIND.CHOSEN
-          ? targetsOf(owner, grant).map(({ target }) => target)
-          : grant.selectionKind === AUTHORING_SELECTION_KIND.GRANTED
-            ? [grant]
-            : []
-      for (const target of targets) {
-        for (const property of selectedProperties) {
-          const offers = (equipment: CharacterBuilderEquipmentCatalogRecord[]) =>
-            getProficiencyOptions(grant, target as ChoiceGrantShape, only({ equipment })).some(
-              (option) => option.id === property
-            )
-          if (offers(registry.equipment)) continue
-          if (
-            target.authoringModeKind !== AUTHORING_MODE_KIND.ALL &&
-            !target.properties?.includes(property)
+    for (const grant of owner.grants.proficiencies ?? []) {
+      if (grant.proficiencyKind !== PROFICIENCY_KIND.EQUIPMENT_PROPERTY) continue
+      const candidateIds = proficiencyCandidateIds(grant)
+      for (const property of selectedProperties) {
+        const offers = (equipment: CharacterBuilderEquipmentCatalogRecord[]) =>
+          getProficiencyOptions(grant, candidateIds, only({ equipment })).some(
+            (option) => option.id === property
           )
-            continue
-          questions.push({
-            kind: 'EQUIPMENT',
-            candidateIds: null,
-            matches: (record) => offers([record])
-          })
-        }
+        if (offers(registry.equipment)) continue
+        if (candidateIds && !candidateIds.includes(property)) continue
+        questions.push({
+          kind: 'EQUIPMENT',
+          candidateIds: null,
+          matches: (record) => offers([record])
+        })
       }
     }
   }
   return questions
 }
 
-function flattenOwnerGrants(owner: CharacterChosenGrantOwner): ChoiceGrantShape[] {
+function flattenOwnerGrants(owner: CharacterChosenGrantOwner): ChoiceGrant[] {
   return [
-    ...(owner.grants.proficiencies ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
-    ...(owner.grants.spells ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
-    ...(owner.grants.feats ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
-    ...(owner.grants.senses ?? []).map((grant) => grant as unknown as ChoiceGrantShape)
+    ...(owner.grants.proficiencies ?? []),
+    ...(owner.grants.spells ?? []),
+    ...(owner.grants.feats ?? []),
+    ...(owner.grants.senses ?? [])
   ]
+}
+
+/** The selections a chosen grant asks for at the owner's active level; a granted grant asks none. */
+function choiceSlots(grant: ChoiceGrant, activeLevel: number): ChoiceSlot[] {
+  if (grant.selectionKind !== AUTHORING_SELECTION_KIND.CHOSEN) return []
+  if (grant.scalingKind === SCALING.NONE) {
+    const slot = { count: grant.count, duplicatePolicy: grant.selectionDuplicatePolicy }
+    switch (grant.grantKind) {
+      case GRANT_KIND.PROFICIENCY_GRANT:
+        return [{ ...slot, candidateIds: proficiencyCandidateIds(grant) }]
+      case GRANT_KIND.SPELL_GRANT:
+        return [{ ...slot, candidateIds: listedIds(grant, 'spellIds') }]
+      case GRANT_KIND.FEAT_GRANT:
+        return [{ ...slot, candidateIds: listedIds(grant, 'featIds') }]
+      case GRANT_KIND.SENSE_GRANT:
+        return [{ ...slot, candidateIds: listedIds(grant, 'senseIds') }]
+    }
+  }
+  switch (grant.grantKind) {
+    case GRANT_KIND.SPELL_GRANT:
+      return levelSlots(grant.progression.levels, 'spellIds', activeLevel)
+    case GRANT_KIND.FEAT_GRANT:
+      return levelSlots(grant.progression.levels, 'featIds', activeLevel)
+    case GRANT_KIND.SENSE_GRANT:
+      return levelSlots(grant.progression.levels, 'senseIds', activeLevel)
+  }
+}
+
+function levelSlots<K extends string>(
+  levels: ReadonlyArray<
+    {
+      level: number
+      count: number
+      selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
+    } & ListedTarget<K>
+  >,
+  key: K,
+  activeLevel: number
+): ChoiceSlot[] {
+  return levels
+    .filter((entry) => entry.level <= activeLevel)
+    .map((entry) => ({
+      progressionLevel: entry.level,
+      count: entry.count,
+      duplicatePolicy: entry.selectionDuplicatePolicy,
+      candidateIds: listedIds(entry, key)
+    }))
+}
+
+function listedIds<K extends string>(target: ListedTarget<K>, key: K): readonly string[] | null {
+  return target.authoringModeKind === AUTHORING_MODE_KIND.ALL ? null : target[key]
+}
+
+function proficiencyCandidateIds(grant: ProficiencyGrantAuthored): readonly string[] | null {
+  switch (grant.proficiencyKind) {
+    case PROFICIENCY_KIND.SKILL:
+      return listedIds(grant, 'skillIds')
+    case PROFICIENCY_KIND.SAVE_ABILITY:
+      return listedIds(grant, 'abilities')
+    case PROFICIENCY_KIND.LANGUAGE:
+      return listedIds(grant, 'languageIds')
+    case PROFICIENCY_KIND.EQUIPMENT:
+      return listedIds(grant, 'equipmentIds')
+    case PROFICIENCY_KIND.EQUIPMENT_PROPERTY:
+      return listedIds(grant, 'properties')
+  }
 }
 
 function createChoice(
   character: CharacterAuthored,
   registry: CharacterChosenGrantChoiceRegistry,
   owner: CharacterChosenGrantOwner,
-  grant: ChoiceGrantShape,
-  progression?: NonNullable<ChoiceGrantShape['progression']>['levels'][number]
+  grant: ChoiceGrant,
+  slot: ChoiceSlot
 ): CharacterBuilderChosenGrantChoice {
-  const progressionLevel = progression?.level
+  const { progressionLevel } = slot
   const selection = character.intent.chosenGrantSelections?.find(
     (record) =>
       record.grantId === grant.id &&
       record.progressionLevel === progressionLevel &&
       isSameCharacterProvenanceIdentity(record.source, owner.source)
   )
-  const targetSource = progression ?? grant
+  const proficiency = grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant : undefined
 
   return {
     id: getCharacterChosenGrantSelectionIdentityKey({
@@ -298,19 +312,21 @@ function createChoice(
     grantKind: grant.grantKind,
     label: getGrantChoiceLabel(owner.label, grant),
     ownerFeatureId: owner.ownerFeatureId,
-    proficiencyKind:
-      grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.proficiencyKind : undefined,
-    proficiencyLevel: grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.level : undefined,
-    displayCategory: grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.category : undefined,
+    proficiencyKind: proficiency?.proficiencyKind,
+    proficiencyLevel: proficiency?.level,
+    displayCategory:
+      proficiency?.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT ||
+      proficiency?.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY
+        ? proficiency.category
+        : undefined,
     sourceLabel: owner.sourceLabel,
     source: owner.source,
     timing: owner.timing,
     progressionLevel,
-    requiredCount: targetSource.count ?? 0,
-    duplicatePolicy:
-      targetSource.selectionDuplicatePolicy ?? AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+    requiredCount: slot.count,
+    duplicatePolicy: slot.duplicatePolicy,
     selectedTargetIds: selection?.targetIds ?? [],
-    options: getGrantOptions(grant, targetSource, registry)
+    options: getGrantOptions(grant, slot.candidateIds, registry)
   }
 }
 
@@ -322,10 +338,9 @@ function getFixedProficiencyRanks(
   for (const owner of owners) {
     for (const grant of owner.grants.proficiencies ?? []) {
       if (grant.selectionKind !== AUTHORING_SELECTION_KIND.GRANTED) continue
-      const shape = grant as unknown as ChoiceGrantShape
-      for (const option of getProficiencyOptions(shape, shape, registry)) {
-        const key = `${shape.proficiencyKind}:${option.id}`
-        addProficiencyLevel(levelsByTarget, key, shape.level, owner.sourceLabel)
+      for (const option of getProficiencyOptions(grant, proficiencyCandidateIds(grant), registry)) {
+        const key = `${grant.proficiencyKind}:${option.id}`
+        addProficiencyLevel(levelsByTarget, key, grant.level, owner.sourceLabel)
       }
     }
   }
@@ -368,7 +383,7 @@ type ProficiencyLevels = {
 function addProficiencyLevel(
   levelsByTarget: Map<string, ProficiencyLevels>,
   key: string,
-  level: ChoiceGrantShape['level'],
+  level: ProficiencyGrantAuthored['level'],
   sourceLabel: string
 ) {
   const levels = levelsByTarget.get(key) ?? { half: false, full: false, double: false }
@@ -404,7 +419,7 @@ function getProficiencyDisabledReason(
   return undefined
 }
 
-function getGrantChoiceLabel(ownerLabel: string, grant: ChoiceGrantShape): string {
+function getGrantChoiceLabel(ownerLabel: string, grant: ChoiceGrant): string {
   if (grant.grantKind !== GRANT_KIND.PROFICIENCY_GRANT) return ownerLabel
 
   switch (grant.proficiencyKind) {
@@ -418,132 +433,111 @@ function getGrantChoiceLabel(ownerLabel: string, grant: ChoiceGrantShape): strin
       return 'Equipment Proficiencies'
     case PROFICIENCY_KIND.EQUIPMENT_PROPERTY:
       return 'Equipment Proficiencies'
-    default:
-      return ownerLabel
   }
 }
 
 function getGrantOptions(
-  grant: ChoiceGrantShape,
-  target: ChoiceGrantShape | NonNullable<ChoiceGrantShape['progression']>['levels'][number],
+  grant: ChoiceGrant,
+  candidateIds: readonly string[] | null,
   registry: CharacterChosenGrantChoiceRegistry
 ): Array<{ id: string; label: string }> {
-  const targetShape = target as ChoiceGrantShape
-
   switch (grant.grantKind) {
     case GRANT_KIND.PROFICIENCY_GRANT:
-      return getProficiencyOptions(grant, targetShape, registry)
-    case GRANT_KIND.SPELL_GRANT:
-      return getSpellOptions(grant, targetShape, registry.spells)
+      return getProficiencyOptions(grant, candidateIds, registry)
+    case GRANT_KIND.SPELL_GRANT: {
+      const eligible = registry.spells.filter((spell) => matchesSpellFilter(spell, grant.filters))
+      return labelIds(
+        getTargetIds(
+          candidateIds,
+          eligible.map((spell) => spell.id)
+        ),
+        eligible
+      )
+    }
     case GRANT_KIND.FEAT_GRANT:
       return labelIds(
         getTargetIds(
-          targetShape.authoringModeKind,
-          targetShape.featIds,
+          candidateIds,
           registry.feats.map((feat) => feat.id)
         ),
         registry.feats
       )
-    case GRANT_KIND.SENSE_GRANT:
-      return labelVocabularyIds(
+    case GRANT_KIND.SENSE_GRANT: {
+      const senses = registry.system?.senses ?? []
+      return labelIds(
         getTargetIds(
-          targetShape.authoringModeKind,
-          targetShape.senseIds,
-          registry.system?.senses.map((sense) => sense.id) ?? []
+          candidateIds,
+          senses.map((sense) => sense.id)
         ),
-        registry.system?.senses ?? []
+        senses
       )
+    }
   }
 }
 
 function getProficiencyOptions(
-  grant: ChoiceGrantShape,
-  target: ChoiceGrantShape,
+  grant: ProficiencyGrantAuthored,
+  candidateIds: readonly string[] | null,
   registry: CharacterChosenGrantChoiceRegistry
 ): Array<{ id: string; label: string }> {
   switch (grant.proficiencyKind) {
-    case PROFICIENCY_KIND.SKILL:
-      return labelVocabularyIds(
+    case PROFICIENCY_KIND.SKILL: {
+      const skills = registry.system?.skills ?? []
+      return labelIds(
         getTargetIds(
-          target.authoringModeKind,
-          target.skillIds,
-          registry.system?.skills.map((skill) => skill.id) ?? []
+          candidateIds,
+          skills.map((skill) => skill.id)
         ),
-        registry.system?.skills ?? []
+        skills
       )
-    case PROFICIENCY_KIND.LANGUAGE:
-      return labelVocabularyIds(
+    }
+    case PROFICIENCY_KIND.LANGUAGE: {
+      const languages = registry.system?.languages ?? []
+      return labelIds(
         getTargetIds(
-          target.authoringModeKind,
-          target.languageIds,
-          registry.system?.languages.map((language) => language.id) ?? []
+          candidateIds,
+          languages.map((language) => language.id)
         ),
-        registry.system?.languages ?? []
+        languages
       )
+    }
     case PROFICIENCY_KIND.SAVE_ABILITY:
       return labelIds(
         getTargetIds(
-          target.authoringModeKind,
-          target.abilities,
+          candidateIds,
           ABILITY_OPTIONS.map((ability) => ability.code)
         ),
         ABILITY_OPTIONS.map((ability) => ({ id: ability.code, label: ability.label }))
       )
-    case PROFICIENCY_KIND.EQUIPMENT:
-      return getEquipmentOptions(target, registry.equipment)
+    case PROFICIENCY_KIND.EQUIPMENT: {
+      const eligible = registry.equipment.filter(
+        (item) =>
+          (!grant.category || item.category === grant.category) &&
+          (!grant.properties?.length ||
+            grant.properties.every((property) =>
+              item.properties.some((itemProperty) => itemProperty === property)
+            ))
+      )
+      return labelIds(
+        getTargetIds(
+          candidateIds,
+          eligible.map((item) => item.id)
+        ),
+        eligible
+      )
+    }
     case PROFICIENCY_KIND.EQUIPMENT_PROPERTY:
-      return getTargetIds(target.authoringModeKind, target.properties, [
+      return getTargetIds(candidateIds, [
         ...new Set(
           registry.equipment
-            .filter((item) => !target.category || item.category === target.category)
+            .filter((item) => !grant.category || item.category === grant.category)
             .flatMap((item) => item.properties)
         )
       ]).map((property) => ({
         id: property,
         label: formatCode(property)
       }))
-    default:
-      return []
   }
-}
-
-function getEquipmentOptions(
-  target: ChoiceGrantShape,
-  equipment: CharacterBuilderEquipmentCatalogRecord[]
-): Array<{ id: string; label: string }> {
-  const eligible = equipment.filter(
-    (item) =>
-      (!target.category || item.category === target.category) &&
-      (!target.properties?.length ||
-        target.properties.every((property) =>
-          item.properties.some((itemProperty) => itemProperty === property)
-        ))
-  )
-
-  return labelIds(
-    getTargetIds(
-      target.authoringModeKind,
-      target.equipmentIds,
-      eligible.map((item) => item.id)
-    ),
-    eligible
-  )
-}
-
-function getSpellOptions(
-  grant: ChoiceGrantShape,
-  target: ChoiceGrantShape,
-  spells: CharacterBuilderSpellCatalogRecord[]
-): Array<{ id: string; label: string }> {
-  const eligible = spells.filter((spell) => matchesSpellFilter(spell, grant.filters))
-  return labelIds(
-    getTargetIds(
-      target.authoringModeKind,
-      target.spellIds,
-      eligible.map((spell) => spell.id)
-    ),
-    eligible
-  )
 }
 
 export function matchesSpellFilter(
@@ -590,21 +584,10 @@ export function matchesSpellFilter(
   )
 }
 
-function getTargetIds(
-  authoringModeKind: string | undefined,
-  selectedIds: string[] | undefined,
-  allIds: string[]
-): string[] {
-  if (authoringModeKind === AUTHORING_MODE_KIND.ALL) return allIds
+function getTargetIds(candidateIds: readonly string[] | null, allIds: string[]): string[] {
+  if (candidateIds === null) return allIds
   const availableIds = new Set(allIds)
-  return (selectedIds ?? []).filter((id) => availableIds.has(id))
-}
-
-function labelVocabularyIds(
-  ids: string[],
-  records: ReadonlyArray<{ id: string; label: string }>
-): Array<{ id: string; label: string }> {
-  return labelIds(ids, records)
+  return candidateIds.filter((id) => availableIds.has(id))
 }
 
 function labelIds(

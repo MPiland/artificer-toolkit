@@ -21,6 +21,11 @@ export const adultBlackDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 195,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 17,
     die: 12,

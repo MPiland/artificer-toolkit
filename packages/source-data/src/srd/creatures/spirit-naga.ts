@@ -20,6 +20,10 @@ export const spiritNaga: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 75,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 10,
     die: 10,

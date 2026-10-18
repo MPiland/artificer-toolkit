@@ -20,6 +20,11 @@ export const ironGolem: CreatureAuthored = {
   },
   naturalArmorBonus: 11,
   hitPoints: 210,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 20,
     die: 10,

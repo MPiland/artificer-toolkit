@@ -21,6 +21,12 @@ export const winterWolf: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 75,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 10,
     die: 10,

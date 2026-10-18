@@ -19,6 +19,11 @@ export const azer: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 39,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 6,
     die: 8,

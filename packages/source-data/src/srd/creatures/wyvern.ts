@@ -19,6 +19,12 @@ export const wyvern: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 110,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 10,

@@ -20,6 +20,9 @@ export const barbedDevil: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 110,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 13,
     die: 8,

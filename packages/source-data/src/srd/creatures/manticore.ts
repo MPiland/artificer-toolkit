@@ -19,6 +19,12 @@ export const manticore: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 68,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 8,
     die: 10,

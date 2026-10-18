@@ -24,10 +24,7 @@ const subjectKinds = {
 } as const
 
 function version(subjectKind: AuthoredDocumentVersion['subjectKind'], document: unknown) {
-  return { subjectKind, document, checksum } as Pick<
-    AuthoredDocumentVersion,
-    'subjectKind' | 'document' | 'checksum'
-  >
+  return { subjectKind, document, checksum } as Parameters<typeof authoredSourceFacts>[0]
 }
 
 describe('authoredSourceFacts', () => {

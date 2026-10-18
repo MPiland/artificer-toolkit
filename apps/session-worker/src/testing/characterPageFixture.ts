@@ -106,6 +106,7 @@ const capturedPage = {
         },
         hitpoints: {
           current: 11,
+          temp: 0,
           hitDice: [{ die: 10, total: 1, used: 0 }],
           deathSaves: NO_DEATH_SAVES
         }
@@ -257,6 +258,7 @@ export function characterOwnerRowFor({
       },
       hitpoints: {
         current: currentHitPoints,
+        temp: 0,
         hitDice: [{ die: 10, total: fighterLevel, used: 0 }],
         deathSaves
       },

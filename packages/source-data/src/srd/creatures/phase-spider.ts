@@ -19,6 +19,12 @@ export const phaseSpider: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 32,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 10,

@@ -23,6 +23,9 @@ export const quasit: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 7,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 4,

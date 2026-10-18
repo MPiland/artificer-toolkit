@@ -19,6 +19,13 @@ export const guard: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 11,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 8,

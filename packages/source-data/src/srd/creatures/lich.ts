@@ -19,6 +19,9 @@ export const lich: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 135,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 18,
     die: 8,

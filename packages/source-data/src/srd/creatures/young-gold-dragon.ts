@@ -21,6 +21,11 @@ export const youngGoldDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 178,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 17,
     die: 10,

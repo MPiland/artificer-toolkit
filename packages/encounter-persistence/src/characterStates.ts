@@ -41,7 +41,7 @@ export function characterProjectionState(
 ) {
   return {
     current: clampCharacterCurrentHitPoints(hitpoints.current, maximumHitPoints),
-    temporary: Math.max(hitpoints.temp ?? 0, 0),
+    temporary: Math.max(hitpoints.temp, 0),
     maximum: maximumHitPoints,
     deathSaves: hitpoints.deathSaves,
     dead: isCharacterDead(hitpoints.deathSaves),

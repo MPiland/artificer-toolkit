@@ -21,6 +21,13 @@ export const gladiator: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 112,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 15,
     die: 8,

@@ -19,6 +19,12 @@ export const griffon: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 59,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 10,

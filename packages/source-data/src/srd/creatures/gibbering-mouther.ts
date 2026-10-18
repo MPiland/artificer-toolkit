@@ -22,6 +22,12 @@ export const gibberingMouther: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 67,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 9,
     die: 8,

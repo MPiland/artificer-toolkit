@@ -22,6 +22,9 @@ export const hornedDevil: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 178,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 17,
     die: 10,

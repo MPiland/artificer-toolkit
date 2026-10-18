@@ -22,6 +22,9 @@ export const dretch: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 18,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 4,
     die: 6,

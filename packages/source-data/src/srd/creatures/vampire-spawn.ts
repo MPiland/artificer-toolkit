@@ -19,6 +19,11 @@ export const vampireSpawn: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 82,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 11,
     die: 8,

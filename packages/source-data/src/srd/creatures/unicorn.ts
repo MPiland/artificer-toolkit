@@ -19,6 +19,10 @@ export const unicorn: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 67,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 9,
     die: 10,

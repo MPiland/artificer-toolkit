@@ -19,6 +19,12 @@ export const gelatinousCube: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 84,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 8,
     die: 10,

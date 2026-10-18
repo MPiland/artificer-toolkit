@@ -121,7 +121,7 @@ async function setup(input: {
   const actor = run.actors.find((candidate) => candidate.kind === 'CREATURE')
   const target = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!actor || !target) throw new Error('The SRD attack fixture actors are missing.')
-  const featureId = creature.features?.find((feature) => feature.label === input.feature)?.id
+  const featureId = creature.features.find((feature) => feature.label === input.feature)?.id
   const actionId = await base.t.run(async (ctx) => {
     await activateFixtureRun(
       ctx,

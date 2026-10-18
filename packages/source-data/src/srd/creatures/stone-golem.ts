@@ -20,6 +20,11 @@ export const stoneGolem: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 178,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 17,
     die: 10,

@@ -20,6 +20,13 @@ export const giantCrocodile: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 85,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 9,
     die: 12,

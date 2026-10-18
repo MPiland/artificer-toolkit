@@ -20,6 +20,13 @@ export const rustMonster: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 27,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 8,

@@ -46,7 +46,7 @@ const character = characterDocumentSchema.parse({
       attuned: []
     },
     currency: [],
-    hitpoints: { current: 6, hitDice: [], deathSaves: NO_DEATH_SAVES },
+    hitpoints: { current: 6, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
     classes: [{ classId: 'wizard', spells: { prepared: ['shield'] } }, { classId: 'wizard' }],
     noteGroups: [{ id: 'session', label: 'Session', sortOrder: 0, kind: 'SESSION' }],
     notes: [

@@ -21,6 +21,10 @@ export const ancientGreenDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 385,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 22,
     die: 20,

@@ -54,6 +54,7 @@ export function createFallbackCharacterFormValues(
       currency: [],
       hitpoints: {
         current: 1,
+        temp: 0,
         hitDice: [],
         deathSaves: NO_DEATH_SAVES
       }

@@ -19,6 +19,11 @@ export const fleshGolem: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 93,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 11,
     die: 8,
