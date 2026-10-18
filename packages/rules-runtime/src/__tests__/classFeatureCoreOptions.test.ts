@@ -136,7 +136,8 @@ describe('Cleric Divine Intervention (SPELLS-31.T3c)', () => {
     expect(candidate.mechanicFacts.outcomes).toEqual([
       expect.objectContaining({ kind: 'EFFECT', effectKind: 'MANUAL_ADJUDICATION' })
     ])
-    const [outcome] = intervention?.effects?.[0]?.paths[0]?.resultBlock.outcomes ?? []
+    const path = intervention?.effects?.[0]?.paths[0]
+    const [outcome] = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []
     if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
       throw new Error('Divine Intervention must stay a manual adjudication.')
     expect(outcome.reasonCode).toBe('GM_CHOICE')
