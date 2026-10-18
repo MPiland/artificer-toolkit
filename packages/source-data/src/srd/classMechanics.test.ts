@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { srdBaselineContent } from './index.js'
 import { prepareSrdImport } from './import.js'
+import { srdSpells } from './spells/index.js'
 
 const { classes, equipment } = srdBaselineContent.subjects
 const equipmentLabel = new Map(equipment.map((item) => [item.id, item.label]))
@@ -105,4 +106,60 @@ describe('SRD 5.1 class weapon and tool proficiencies', () => {
       ).toBe(false)
     }
   )
+})
+
+describe('SRD Bard Magical Secrets (SPELLS-31.T3a, D156)', () => {
+  const spellLabel = new Map(srdSpells.map((spell) => [spell.id, spell.label]))
+  const secrets = (classes.find((entry) => entry.label === 'Bard')?.features ?? [])
+    .filter((feature) => feature.label === 'Magical Secrets')
+    .map((feature) => {
+      const [grant] = feature.grants?.spells ?? []
+      if (grant?.selectionKind !== 'CHOSEN' || !('spellIds' in grant))
+        throw new Error('Magical Secrets must be a chosen spell grant.')
+      return {
+        level: feature.availableAtLevel,
+        count: grant.count,
+        attributes: grant.attributes,
+        spells: new Set(grant.spellIds.map((id) => spellLabel.get(id)))
+      }
+    })
+
+  it('lets a Bard learn two spells from any class at 10th, 14th and 18th level', () => {
+    expect(secrets.map(({ level, count, attributes }) => ({ level, count, attributes }))).toEqual([
+      { level: 10, count: 2, attributes: ['KNOWN'] },
+      { level: 14, count: 2, attributes: ['KNOWN'] },
+      { level: 18, count: 2, attributes: ['KNOWN'] }
+    ])
+  })
+
+  it('offers cantrips and spells of a level the Bard can cast, from other classes too', () => {
+    const [tenth, fourteenth, eighteenth] = secrets.map(({ spells }) => spells)
+    // Fire Bolt and Raise Dead are not Bard spells; Teleport is 7th level and Wish 9th.
+    expect(['Fire Bolt', 'Raise Dead'].every((label) => tenth?.has(label))).toBe(true)
+    expect(tenth?.has('Teleport')).toBe(false)
+    expect(fourteenth?.has('Teleport')).toBe(true)
+    expect(fourteenth?.has('Wish')).toBe(false)
+    expect(eighteenth?.has('Wish')).toBe(true)
+  })
+})
+
+describe('SRD Wizard Signature Spells (SPELLS-31.T3b, D156)', () => {
+  it('casts each chosen 3rd-level spell once at 3rd level without a slot, regained on a short rest', () => {
+    const signature = classes
+      .find((entry) => entry.label === 'Wizard')
+      ?.features?.find((feature) => feature.label === 'Signature Spells')
+    const [grant] = signature?.grants?.spells ?? []
+    expect(grant).toEqual(
+      expect.objectContaining({
+        attributes: ['PREPARED', 'LIMITED_USE', 'CAST_AT_LEVEL'],
+        castAtLevel: 3,
+        charges: expect.objectContaining({
+          limitKind: 'FIXED_AMOUNT',
+          amount: 1,
+          resetKind: 'SHORT_REST'
+        })
+      })
+    )
+    expect(signature?.effects ?? []).toEqual([])
+  })
 })

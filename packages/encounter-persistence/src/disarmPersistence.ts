@@ -48,6 +48,7 @@ import { changedFields, readRunActors } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
+import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -66,6 +67,7 @@ type DisarmCallbacks = {
     characterIds: readonly string[],
     revisions: LiveSessionRulesRevisions
   ): Promise<void>
+  applyForcedMovements: ApplyEncounterForcedMovements
 }
 
 type ReadyDisarm = Extract<Awaited<ReturnType<typeof readDisarmAdmission>>, { kind: 'READY' }>
@@ -196,6 +198,9 @@ export async function persistEncounterDisarmCommit(
       ? execution.applicationOutputs
       : null
   const occurrenceVersion = occurrence ? occurrence.version + 1 : 0
+  // A won basic action contest holds its target (Grapple) or runs its picked outcome (Shove, D105).
+  const pickedOutcome = input.conditionApplications.length > 0 || input.forcedMovements.length > 0
+  const settlesWin = input.createdEffect !== null || pickedOutcome
   if (
     execution.status !== 'COMPLETE' ||
     !outputs ||
@@ -208,15 +213,16 @@ export async function persistEncounterDisarmCommit(
       ? contest.origin.kind !== 'ESCAPE' ||
         contest.origin.activeEffectId !== root.activeEffectId ||
         contest.origin.initiatorCheckDefinitionId !== root.checkDefinitionId ||
-        input.createdEffect !== null
+        settlesWin
       : (contest.origin.kind === 'OPTIONAL_COMBAT'
           ? contest.origin.actionKind !== 'DISARM' ||
             contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||
             contest.origin.pin.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
-            input.createdEffect !== null
+            settlesWin
           : contest.origin.kind !== 'BASIC_ACTION' ||
             root.optionalCombatIntent != null ||
-            (input.createdEffect !== null) !== (outputs.outcome === 'SOURCE_WIN')) ||
+            settlesWin !== (outputs.outcome === 'SOURCE_WIN') ||
+            (input.createdEffect !== null && pickedOutcome)) ||
         contest.actionId !== root.actionId) ||
     contest.sourceActorId !== root.actorId ||
     contest.targetActorId !== targetActorId ||
@@ -294,6 +300,8 @@ export async function persistEncounterDisarmCommit(
     rolls: { initiator: outputs.sourceRoll, defender: outputs.targetRoll },
     actionEconomy: outputs.actionEconomyTransition,
     createdEffect: input.createdEffect,
+    conditionApplications: input.conditionApplications,
+    forcedMovements: input.forcedMovements,
     campaign,
     applyMechanics: callbacks.applyMechanics,
     occurrenceId: execution.occurrenceId,
@@ -304,6 +312,15 @@ export async function persistEncounterDisarmCommit(
   })
   if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
     throw new Error('Live Session Disarm settlement mismatch.')
+  // A won Shove's push moves its target's token on the Scene in this commit (D157).
+  const forcedMovements = input.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: source.id,
+        commandId: root.commandId,
+        movements: input.forcedMovements
+      })
+    : []
   const nextActors = settled.actors
   await deleteGrants(ctx, input.consumedGrants)
   const nextState = encounterRunStateSchema.parse({
@@ -414,6 +431,7 @@ export async function persistEncounterDisarmCommit(
             addedConcentrationCasterId: null,
             speedBonusTurn: null,
             teleportAllowanceTurn: null,
+            forcedMovements,
             turnUses: null
           }),
       commandFingerprint: fingerprint,

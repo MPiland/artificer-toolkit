@@ -123,7 +123,7 @@ export async function readBasicActionAdmission(
     encounterId: input.command.encounterId.toLowerCase(),
     commandId: input.command.commandId.toLowerCase(),
     actorId: input.command.actorId.toLowerCase(),
-    target: { kind: 'ACTOR', actorId: input.command.target.actorId.toLowerCase() }
+    target: { ...input.command.target, actorId: input.command.target.actorId.toLowerCase() }
   }
   return admitCurrentActorCommand(ctx, input, command, {
     checkTarget: async ({ state, membership }) => {

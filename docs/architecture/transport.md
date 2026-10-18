@@ -347,17 +347,33 @@ payloads (action, area, cleaving, concentration and turn) carry the grants the e
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
+A list of chosen creatures (D118) is offered in the action choices as the `ACTORS` target: `maxTargets` caps it,
+and is absent for a list with no cap, which names each creature once (SPELLS-4.T2a3: Pass without Trace's "each
+creature you choose"); the tabletop then shows no cap. A list with `allowRepeatedTargets` always carries its
+`maxTargets`, and the schema refuses one without it. The Worker refuses a list over its cap and, unless it repeats
+creatures, one that names a creature twice.
+
 Held escapes (D105, D152): the action choices' `escapes` carry `dc`, null for an escape the holder contests
 (the tabletop shows "Contested"). A contest participant offered several checks answers its `CONTEST_CHECK`
 pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinitionId`, and the d20 `roll` as
 `ENTER_DICE` or `SYSTEM_ROLL`). "Roll dice" (`ROLL_RULE_EVIDENCE`) accepts the contest's one `requestId` in the
 picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it.
 
+Contest outcomes (D105, ATTACK-7.6): a basic action whose win is a picked outcome (Shove) lists the options as
+`target.choiceOptions` in the action choices, and `RESOLVE_ACTION` names one with `target.choiceOptionId`; an attempt
+without a pick, or with one the action does not offer, is rejected. The `CONTESTED_ACTION` output's `stateTransition`
+records a win's outcome as `CONDITIONS_APPLIED` (`appliedConditionIds`, the conditions newly applied) or
+`FORCED_MOVEMENT` (`direction`, `feet`, `upTo`); `SCENE_TOKEN_MOVED` is removed. The room's contest commit
+(`LiveSessionEncounterDisarmCommitInput`) carries the planned `conditionApplications` and `forcedMovements`; the commit
+lands the push on the Scene through the same `applyRoomForcedMovements` path as an action's push.
+
 Forced-movement destinations (D157): an action whose push has two or more legal squares pauses on a
 `FORCED_MOVEMENT_DESTINATION` pending summary (`sourceActorId`, `targetActorId`, `requestId`, and the server-derived
 `positions`, 2 to `MAX_FORCED_MOVEMENT_DESTINATIONS`, staying put first when legal) with `allowedResponses`
 `['FORCED_MOVEMENT']`. The source's controller or the GM answers with a `FORCED_MOVEMENT` resolution (`requestId`,
-`position`); a square the summary did not offer is rejected and the pick stays open. The commit's
+`position`); a square the summary did not offer is rejected and the pick stays open. An area action's pushes surface
+the same summary once every save settled, one creature at a time, farthest first, its `requestId` naming the creature;
+only the GM and the caster's controllers read it. The commit's
 `LiveSessionForcedMovement` carries `upTo`, `sourceReachFeet` (set only for `ASIDE`) and the picked `position`.
 
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag

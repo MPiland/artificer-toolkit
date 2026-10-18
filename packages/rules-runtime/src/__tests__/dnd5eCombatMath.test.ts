@@ -3,7 +3,8 @@ import type { FacetAuthored, FeatureAuthored } from '@artificer-toolkit/shared/a
 import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import {
   SRD_ABILITIES,
-  SRD_CONDITION_TYPES
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeCharacterGrantRestrictions } from '../character/characterGrantFoldRestrictionFacts.js'
@@ -536,11 +537,57 @@ describe('D&D 5e movement', () => {
     expect(walk(6, [{ label: 'Shield', equipped: true }])).toBe(30)
     expect(walk(6, [{ label: 'Leather Armor', equipped: true }])).toBe(30)
   })
+
+  it('Barbarian Fast Movement adds 10 ft. of walking speed unless heavy armor is worn (SPELLS-31.T3a)', () => {
+    const walk = (level: number, items: { label: string; equipped: boolean }[] = []) =>
+      evaluateSrdCharacter({
+        abilities: { STRENGTH: 15 },
+        race: 'Human',
+        classes: [{ label: 'Barbarian', level }],
+        features: [
+          srdFeature({
+            owner: 'CLASS',
+            classLabel: 'Barbarian',
+            featureLabel: 'Fast Movement',
+            level: 5
+          })
+        ],
+        items
+      }).output.movement.speeds[0]!.amount
+    expect(walk(5)).toBe(40)
+    expect(walk(5, [{ label: 'Hide Armor', equipped: true }])).toBe(40)
+    expect(walk(5, [{ label: 'Chain Mail', equipped: true }])).toBe(30)
+  })
 })
 
 describe('D&D 5e saving throws and defenses', () => {
   const frightened = SRD_CONDITION_TYPES.find((condition) => condition.code === 'FRIGHTENED')!.id
   const poisoned = SRD_CONDITION_TYPES.find((condition) => condition.code === 'POISONED')!.id
+
+  it('Monk Purity of Body grants poison damage and poisoned condition immunity (SPELLS-31.T3a)', () => {
+    const poison = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'POISON')!.id
+    const monk = (level: number) =>
+      evaluateSrdCharacter({
+        classes: [{ label: 'Monk', level }],
+        features:
+          level < 10
+            ? []
+            : [
+                srdFeature({
+                  owner: 'CLASS',
+                  classLabel: 'Monk',
+                  featureLabel: 'Purity of Body',
+                  level: 10
+                })
+              ]
+      }).output
+    expect(monk(10).defenses).toContainEqual(
+      expect.objectContaining({ kind: 'IMMUNITY', damageTypeId: poison })
+    )
+    expect(monk(10).conditionImmunityIds).toEqual([poisoned])
+    expect(monk(9).defenses).toEqual([])
+    expect(monk(9).conditionImmunityIds).toEqual([])
+  })
 
   it('Steel Will grants advantage on saves against being frightened only', () => {
     const character = evaluateSrdCharacter({
@@ -568,6 +615,39 @@ describe('D&D 5e saving throws and defenses', () => {
     expect(save([])).toBe('NORMAL')
     expect(save([poisoned])).toBe('NORMAL')
     expect(character.output.rollModes.savingThrows.WISDOM).toBe('NORMAL')
+  })
+
+  it('Halfling Brave authors the Steel Will advantage: saves of every ability against being frightened only', () => {
+    const halfling = evaluateSrdCharacter({
+      race: 'Halfling',
+      subrace: 'Lightfoot',
+      classes: [{ label: 'Fighter', level: 1 }]
+    })
+    const steelWill = evaluateSrdCharacter({
+      classes: [{ label: 'Ranger', level: 7, subclass: 'Hunter' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Ranger',
+          subclassLabel: 'Hunter',
+          featureLabel: 'Defensive Tactics',
+          level: 7,
+          optionLabels: ['Steel Will']
+        })
+      ]
+    })
+    for (const ability of SRD_ABILITIES) {
+      const save = (character: typeof halfling, conditionIds: string[]) =>
+        selectDnd5eTargetSavingThrow({
+          savingThrowDefinitions: character.output.savingThrowDefinitions,
+          abilityDefinitionId: ability.id,
+          conditionIds
+        }).rollMode
+      expect(save(halfling, [frightened])).toBe('ADVANTAGE')
+      expect(save(halfling, [])).toBe('NORMAL')
+      expect(save(halfling, [poisoned])).toBe('NORMAL')
+      expect(save(halfling, [frightened])).toBe(save(steelWill, [frightened]))
+    }
   })
 
   it('Danger Sense keeps its Dexterity advantage out of the Sheet and hands the Encounter the source-sight grant', () => {

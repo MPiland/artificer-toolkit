@@ -101,18 +101,6 @@ export const dryad: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(90, 307),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(90, 1301), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_INNATE_SPELLCASTING
-        })
-      ],
       order: 1
     },
     {
@@ -139,18 +127,6 @@ export const dryad: CreatureAuthored = {
       label: 'Speak with Beasts and Plants',
       description:
         'Speak with Beasts and Plants. The dryad can communicate with beasts and plants as if they shared a language.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(90, 203),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(90, 1203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_SPEAK_WITH_BEASTS_AND_PLANTS
-        })
-      ],
       order: 3
     },
     {

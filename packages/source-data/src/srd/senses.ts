@@ -8,6 +8,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_BLINDSIGHT_SENSE_ID,
   SRD_DARKVISION_SENSE_ID,
+  SRD_DEVILS_SIGHT_SENSE_ID,
+  SRD_SEE_INVISIBILITY_SENSE_ID,
   SRD_SYSTEM_ID,
   SRD_TREMORSENSE_SENSE_ID,
   SRD_TRUESIGHT_SENSE_ID
@@ -116,6 +118,50 @@ export const SRD_SENSE_DEFINITIONS: readonly SrdSenseDefinitionSeed[] = [
           illuminationAccess: 'MAGICAL_DARKNESS',
           obscurementAccess: 'LIGHT',
           perceivesInvisible: true,
+          physicalConstraints: ['LINE_OF_EFFECT']
+        }
+      ]
+    }
+  }),
+  defineSense({
+    id: SRD_SEE_INVISIBILITY_SENSE_ID,
+    label: 'See Invisibility',
+    description: 'SRD 5.1 See Invisibility: ordinary sight that sees invisible creatures.',
+    document: {
+      schemaVersion: 1,
+      kind: 'SENSE',
+      id: SRD_SEE_INVISIBILITY_SENSE_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      capabilities: [
+        {
+          channel: 'VISUAL',
+          accessGrade: 'PRECISE',
+          satisfies: [...allRequirements],
+          illuminationAccess: 'DIM',
+          obscurementAccess: 'LIGHT',
+          perceivesInvisible: true,
+          physicalConstraints: ['LINE_OF_EFFECT']
+        }
+      ]
+    }
+  }),
+  defineSense({
+    id: SRD_DEVILS_SIGHT_SENSE_ID,
+    label: "Devil's Sight",
+    description: "SRD 5.1 Devil's Sight: normal sight in magical and nonmagical darkness.",
+    document: {
+      schemaVersion: 1,
+      kind: 'SENSE',
+      id: SRD_DEVILS_SIGHT_SENSE_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      capabilities: [
+        {
+          channel: 'VISUAL',
+          accessGrade: 'PRECISE',
+          satisfies: [...allRequirements],
+          illuminationAccess: 'MAGICAL_DARKNESS',
+          obscurementAccess: 'LIGHT',
+          perceivesInvisible: false,
           physicalConstraints: ['LINE_OF_EFFECT']
         }
       ]

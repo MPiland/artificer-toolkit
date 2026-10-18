@@ -286,7 +286,12 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
 /** A CHECK action (First Aid, Help, Dash...): it aims at one creature, never a point. */
 export const resolveCheckActionInputDtoSchema = lazySchema(() =>
   z.extend(resolveEncounterActionInputDtoSchema, {
-    target: z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema })
+    target: z.strictObject({
+      kind: z.literal('ACTOR'),
+      actorId: uuidSchema,
+      /** The outcome the actor picks with the attempt, for a basic action that offers several (D105). */
+      choiceOptionId: z.optional(postgresUuidSchema)
+    })
   })
 )
 export type ResolveCheckActionInputDto = z.infer<typeof resolveCheckActionInputDtoSchema>

@@ -26,6 +26,8 @@ export function plannedTimedCondition(input: {
   spell: SpellAuthored
   /** The holder's lifetime scope: a Character's effect outlasts the Encounter (`OWNER`). */
   lifetimeScope: 'OWNER' | 'ENCOUNTER'
+  /** Whose turn it is when the spell is cast; none by default. */
+  currentActorId?: string | null
 }) {
   const { spell } = input
   const sourceInstanceId = `class-${spell.id}`
@@ -141,7 +143,7 @@ export function plannedTimedCondition(input: {
     sourceActorId: input.sourceActorId,
     sourceLabel: spell.label,
     sourceHidden: false,
-    currentActorId: null,
+    currentActorId: input.currentActorId ?? null,
     target: {
       actorId: input.holderActorId,
       conditionIds: [],

@@ -1,6 +1,7 @@
 import {
   creatureActiveGrantCheckContributors,
-  mergedRollContributors
+  mergedRollContributors,
+  withCreatureActiveGrantSkillTotal
 } from './encounterActiveGrants.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type {
@@ -191,7 +192,11 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     const abilityScore = ruleFacts.abilityScores[input.checkDefinitionId]
     const modifier =
       input.checkKind === 'SKILL'
-        ? ruleFacts.checkTotals?.[input.checkDefinitionId]
+        ? withCreatureActiveGrantSkillTotal(
+            ruleFacts.checkTotals?.[input.checkDefinitionId],
+            input.checkDefinitionId,
+            target.activeEffects
+          )
         : abilityScore === undefined
           ? undefined
           : abilityModifier(abilityScore)

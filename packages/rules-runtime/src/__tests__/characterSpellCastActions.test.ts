@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
@@ -19,6 +20,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
+import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
   readSpellCastSlot,
@@ -53,12 +55,17 @@ const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
 const CURE_WOUNDS = spell('Cure Wounds')
 const HEALING_WORD = spell('Healing Word')
+const MAGE_ARMOR = spell('Mage Armor')
+const GUIDING_BOLT = spell('Guiding Bolt')
+const PASS_WITHOUT_TRACE = spell('Pass without Trace')
+const MIND_BLANK = spell('Mind Blank')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
 const CHARM_PERSON = spell('Charm Person')
 const SLEEP = spell('Sleep')
 const HYPNOTIC_PATTERN = spell('Hypnotic Pattern')
+const CONTACT_OTHER_PLANE = spell('Contact Other Plane')
 const FEAR = spell('Fear')
 const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
 const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
@@ -307,6 +314,61 @@ const HYPNOTIC_PATTERN_FROM_CORE_OPTIONS = {
   ]
 } as SpellAuthored
 
+/** Contact Other Plane written out in core options alone, with no SRD helper (the parity proof). */
+const CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS = {
+  ...CONTACT_OTHER_PLANE,
+  id: testUuid(0x3300),
+  effects: [
+    {
+      id: testUuid(0x3301),
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: testUuid(0x3302),
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: SRD_ABILITIES.find(({ code }) => code === 'INTELLIGENCE')?.id,
+          baseDc: 15
+        },
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: testUuid(0x3303), rangeKind: 'SELF' },
+        targeting: { selectionKind: 'SELF' }
+      },
+      paths: [
+        {
+          id: testUuid(0x3304),
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SEQUENTIAL',
+          originKind: 'SOURCE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: testUuid(0x3305),
+            resultKind: 'SEQUENCE',
+            lifecycle: { endOnEvents: ['ON_LONG_REST'] },
+            outcomes: [
+              {
+                id: testUuid(0x3306),
+                effectKind: 'DAMAGE',
+                damageTypeId: SRD_DAMAGE_TYPES.find(({ code }) => code === 'PSYCHIC')?.id,
+                valueKind: 'DICE',
+                scalingKind: 'NONE',
+                diceConfig: '6d6'
+              },
+              {
+                id: testUuid(0x3307),
+                effectKind: 'CONDITION',
+                conditionId: conditionId('INCAPACITATED')
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+} as SpellAuthored
+
 /** Protection from Energy cast on its caster alone, so its pick has no chosen creature to go with. */
 const PROTECTION_FROM_ENERGY_ON_SELF = {
   ...PROTECTION_FROM_ENERGY,
@@ -328,6 +390,8 @@ const authoredById = new Map(
     WALL_OF_THORNS,
     HYPNOTIC_PATTERN,
     HYPNOTIC_PATTERN_FROM_CORE_OPTIONS,
+    CONTACT_OTHER_PLANE,
+    CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS,
     SCORCHED_INVISIBILITY,
     FIREBALL,
     MEND,
@@ -1212,6 +1276,46 @@ describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t
   })
 })
 
+describe('a save its caster makes, whose failure holds a condition until a long rest (SPELLS-4.T2a1b)', () => {
+  const madness = {
+    recurrenceStage: 'NONE',
+    initialRemaining: null,
+    tickAnchor: 'HOLDER',
+    conditionContributions: [{ conditionId: conditionId('INCAPACITATED') }],
+    lifecycle: { consumeOnFirstEvents: [], endOnEvents: ['ON_LONG_REST'], endOnTriggers: [] },
+    maintenance: null
+  }
+
+  it('tests Contact Other Plane’s caster alone and owns its incapacitated until a long rest, with no Concentration', () => {
+    const compiled = compiledCast(CONTACT_OTHER_PLANE)
+    expect(compiled?.executionPlan.kind).toBe('TEST_OUTCOME')
+    expect(compiled?.activeEffectPlan).toMatchObject(madness)
+  })
+
+  // Parity: the same spell written out in core options alone (no SRD helper) compiles to this plan.
+  it('compiles a spell authored from core options only to the same plan as the SRD data', () => {
+    const compiled = compiledCast(CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS)
+    expect(compiled?.executionPlan.kind).toBe('TEST_OUTCOME')
+    expect(compiled?.activeEffectPlan).toMatchObject(madness)
+  })
+
+  it('ends the effect a failed save stores on a long rest, not a short one', () => {
+    const { definition } = plannedTimedCondition({
+      encounterId: testUuid(0xd911),
+      sourceActorId: testUuid(0xd912),
+      holderActorId: testUuid(0xd912),
+      spell: CONTACT_OTHER_PLANE,
+      lifetimeScope: 'OWNER'
+    })
+    expect(definition.recurrence).toMatchObject({
+      endOnEvents: ['ON_LONG_REST'],
+      expiration: { kind: 'INDEFINITE' }
+    })
+    expect(activeEffectEndsOnRest({ definition }, 'LONG')).toBe(true)
+    expect(activeEffectEndsOnRest({ definition }, 'SHORT')).toBe(false)
+  })
+})
+
 describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', () => {
   const damageTypeId = (code: string) => SRD_DAMAGE_TYPES.find((entry) => entry.code === code)?.id
 
@@ -1789,5 +1893,213 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
     failure.resultBlock.lifecycle = { heldBySource: true }
 
     expect(compiledCast(grease)).toBeNull()
+  })
+})
+
+describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)', () => {
+  it('compiles Mage Armor to an eight-hour 13 + Dexterity armor class formula for an unarmored target', () => {
+    const plan = compiledCast(MAGE_ARMOR)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 4800,
+      maintenance: null,
+      modifierGrantContribution: {
+        modifiers: [
+          {
+            valueDomainCode: 'ARMOR_CLASS',
+            modifierKind: 'SET_VALUE',
+            payload: { amount: 13, abilities: ['DEXTERITY'] },
+            restrictions: [
+              {
+                conditions: expect.arrayContaining([
+                  expect.objectContaining({
+                    kind: 'EQUIPMENT_EQUIPPED',
+                    constraint: 'EXCLUDE',
+                    category: 'ARMOR'
+                  })
+                ])
+              }
+            ]
+          }
+        ]
+      }
+    })
+  })
+
+  it('compiles Guiding Bolt to advantage on the next attack against the target, until the end of the caster’s next turn', () => {
+    const plan = compiledCast(GUIDING_BOLT)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 1,
+      recurrenceStage: 'END_OF_TURN',
+      tickAnchor: 'SOURCE',
+      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
+    })
+    expect(
+      plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, modifierKind }) => ({
+        valueDomainCode,
+        modifierKind
+      }))
+    ).toEqual(
+      Array.from({ length: 4 }, () => ({
+        valueDomainCode: 'ATTACKS_AGAINST',
+        modifierKind: 'ADVANTAGE'
+      }))
+    )
+  })
+})
+
+/** The spell with each GM ruling in its fixed result swapped for a copy of its grant. */
+function withRulingsAsGrants(authored: SpellAuthored): SpellAuthored {
+  return {
+    ...authored,
+    effects: authored.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => {
+        if (path.selectionKind !== 'FIXED') return path
+        const grant = path.resultBlock.outcomes.find(
+          (outcome) => outcome.effectKind === 'APPLY_GRANT'
+        )
+        if (!grant) throw new Error('Expected a grant.')
+        return {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            outcomes: path.resultBlock.outcomes.map((outcome) =>
+              outcome.effectKind === 'MANUAL_ADJUDICATION' ? { ...grant, id: outcome.id } : outcome
+            )
+          }
+        }
+      })
+    }))
+  }
+}
+
+/** Pass without Trace with its list of chosen creatures allowed to name a creature more than once. */
+const REPEATING_PASS_WITHOUT_TRACE: SpellAuthored = {
+  ...PASS_WITHOUT_TRACE,
+  effects: PASS_WITHOUT_TRACE.effects?.map((effect) =>
+    effect.invocation.kind === 'ACTION' &&
+    effect.invocation.targeting?.selectionKind === 'CHOSEN_CREATURES'
+      ? {
+          ...effect,
+          invocation: {
+            ...effect.invocation,
+            targeting: { ...effect.invocation.targeting, allowRepeatedTargets: true }
+          }
+        }
+      : effect
+  )
+}
+
+describe('a grant beside GM rulings, on a list of chosen creatures (SPELLS-4.T2a3, D156)', () => {
+  it('compiles the grant for each chosen creature, with its ruling as a manual-adjudication node', () => {
+    const entry = compiledCastEntry(PASS_WITHOUT_TRACE)
+    // "Each creature you choose" names no cap, so the list is offered without one.
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, null, entry?.compilation.choice)
+    ).toEqual({ kind: 'ACTORS', area: null })
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: 600,
+      modifierGrantContribution: {
+        modifiers: [
+          {
+            valueDomainCode: 'SKILL_MODIFIER',
+            modifierKind: 'BONUS',
+            payload: { valueKind: 'FIXED', amount: 10 }
+          }
+        ]
+      }
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    const { nodes, sourceEntryBindings } = plan.published.definition
+    expect(nodes.map((node) => node.operation.key)).toEqual([
+      'dnd5e.modifier-grant-proposal',
+      'dnd5e.manual-adjudication-proposal'
+    ])
+    expect(sourceEntryBindings).toEqual([expect.objectContaining({ nodeId: nodes[1]!.id })])
+  })
+
+  it('refuses a sequence with two executable outcomes', () => {
+    expect(compiledCast(withRulingsAsGrants(PASS_WITHOUT_TRACE))).toBeNull()
+  })
+
+  it('refuses a list with no cap that names a creature more than once', () => {
+    expect(compiledCast(REPEATING_PASS_WITHOUT_TRACE)).toBeNull()
+  })
+})
+
+/** Mind Blank lasting `rounds` rounds instead of 24 hours. */
+const mindBlankForRounds = (rounds: number): SpellAuthored => ({
+  ...MIND_BLANK,
+  effects: MIND_BLANK.effects?.map((effect) => ({
+    ...effect,
+    paths: effect.paths.map((path) =>
+      path.selectionKind === 'FIXED' && path.resultBlock.duration
+        ? {
+            ...path,
+            resultBlock: {
+              ...path.resultBlock,
+              duration: {
+                ...path.resultBlock.duration,
+                durationKind: 'ROUND' as const,
+                amount: rounds
+              }
+            }
+          }
+        : path
+    )
+  }))
+})
+
+describe('a day-long grant (SPELLS-4.T2a3, D156)', () => {
+  it('compiles Mind Blank’s 24 hours as 14,400 turns, beside its ruling', () => {
+    const entry = compiledCastEntry(MIND_BLANK)
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: MAX_ACTIVE_EFFECT_TURNS,
+      modifierGrantContribution: {
+        modifiers: [
+          { valueDomainCode: 'DAMAGE_IMMUNITY' },
+          { valueDomainCode: 'CONDITION_IMMUNITY' }
+        ]
+      }
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    expect(plan.published.definition.nodes.map((node) => node.operation.key)).toEqual([
+      'dnd5e.modifier-grant-proposal',
+      'dnd5e.manual-adjudication-proposal'
+    ])
+  })
+
+  it('compiles a grant of 14,400 turns and refuses one of 14,401', () => {
+    expect(MAX_ACTIVE_EFFECT_TURNS).toBe(14_400)
+    expect(
+      compiledCastEntry(mindBlankForRounds(14_400))?.compilation.activeEffectPlan
+    ).toMatchObject({ initialRemaining: 14_400 })
+    expect(compiledCast(mindBlankForRounds(14_401))).toBeNull()
+  })
+})
+
+describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, D156)', () => {
+  it('places Plant Growth’s overgrowth with no triggers, costing 4 feet for each foot moved', () => {
+    const placement = compiledCast(spell('Plant Growth'))?.zonePlacement
+    if (!placement || 'options' in placement) throw new Error('Plant Growth places one zone.')
+
+    expect(placement).toMatchObject({
+      attachment: 'PLACED_SPACE',
+      label: 'Plant Growth',
+      triggerModes: [],
+      movementCostMultiplier: 4,
+      bypassAtHalfSpeed: false,
+      grant: null
+    })
+    expect(placement).not.toHaveProperty('turnTriggers')
+    expect(placement).not.toHaveProperty('heldCondition')
+  })
+
+  it('keeps an Instantaneous zone with no Concentration until the GM removes it, with no maintenance', () => {
+    const placement = compiledCast(spell('Plant Growth'))?.zonePlacement
+
+    expect(placement).toMatchObject({ maintenance: null, entry: { maintenance: null } })
   })
 })

@@ -61,18 +61,6 @@ export const gelatinousCube: CreatureAuthored = {
       label: 'Transparent',
       description:
         "Transparent. Even when the cube is in plain sight, it takes a successful DC 15 Wisdom (Perception) check to spot a cube that has neither moved nor attacked. A creature that tries to enter the cube's space while unaware of the cube is surprised by the cube.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(109, 203),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(109, 1203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GELATINOUS_CUBE_TRANSPARENT
-        })
-      ],
       order: 3
     },
     {

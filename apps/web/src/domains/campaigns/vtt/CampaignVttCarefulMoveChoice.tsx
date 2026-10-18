@@ -24,7 +24,7 @@ export function CampaignVttCarefulMoveChoice({
   return (
     <section
       aria-label='Cross field'
-      className={styles.carefulMoveChoice}
+      className={styles.boardChoice}
       onKeyDown={(event) => {
         if (event.key === 'Escape') onCancel()
       }}

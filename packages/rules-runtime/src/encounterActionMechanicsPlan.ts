@@ -50,7 +50,7 @@ export type NativeEncounterActionMechanicsInput = {
   targetReleases?: readonly CharacterEndedEffectReleaseApplication[]
   /**
    * The conditions the target's effects that this action's damage ended held alone
-   * (`damageTakenEndedEffects`), applied to the target after the outcome in the same transaction as
+   * (`targetEndedEffects`), applied to the target after the outcome in the same transaction as
    * the effects' deletion.
    */
   damageReleases?: readonly CharacterEndedEffectReleaseApplication[]

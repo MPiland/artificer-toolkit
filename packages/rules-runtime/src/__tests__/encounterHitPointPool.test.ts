@@ -6,19 +6,22 @@ const candidates = (...hitPoints: number[]) =>
   hitPoints.map((currentHitPoints, index) => ({
     actorId: `actor-${index}`,
     currentHitPoints,
-    creatureTypeId: null
+    creatureTypeId: null,
+    conditionIds: []
   }))
 
 const typed = (...entries: [hitPoints: number, creatureTypeId: string | null][]) =>
   entries.map(([currentHitPoints, creatureTypeId], index) => ({
     actorId: `actor-${index}`,
     currentHitPoints,
-    creatureTypeId
+    creatureTypeId,
+    conditionIds: []
   }))
 
 const areaContents = (types: {
   allowedCreatureTypeIds?: string[]
   excludedCreatureTypeIds?: string[]
+  hitPointPoolIgnoredConditionIds?: string[]
 }) => ({ selectionKind: 'AREA_CONTENTS' as const, ...types })
 
 describe('a hit-point pool choosing whom an area affects (SPELLS-27.T8)', () => {
@@ -64,5 +67,27 @@ describe('a hit-point pool choosing whom an area affects (SPELLS-27.T8)', () => 
     expect(
       selectHitPointPoolTargets(20, candidates, areaContents({ allowedCreatureTypeIds: ['beast'] }))
     ).toEqual(['actor-1', 'actor-2'])
+  })
+
+  // SPELLS-4.T2a1: Sleep spent its pool on creatures already unconscious; the pool passes over the
+  // conditions it ignores, their hit points left in it.
+  it('passes over a creature with a condition the pool ignores', () => {
+    const candidates = [
+      {
+        actorId: 'asleep',
+        currentHitPoints: 3,
+        creatureTypeId: null,
+        conditionIds: ['unconscious']
+      },
+      { actorId: 'prone', currentHitPoints: 5, creatureTypeId: null, conditionIds: ['prone'] },
+      { actorId: 'awake', currentHitPoints: 7, creatureTypeId: null, conditionIds: [] }
+    ]
+    expect(
+      selectHitPointPoolTargets(
+        12,
+        candidates,
+        areaContents({ hitPointPoolIgnoredConditionIds: ['unconscious'] })
+      )
+    ).toEqual(['prone', 'awake'])
   })
 })

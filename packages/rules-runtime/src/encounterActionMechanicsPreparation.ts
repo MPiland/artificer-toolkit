@@ -20,6 +20,8 @@ import {
 } from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import { pickedCastChoiceEffect } from './encounterCastChoice.js'
 import {
   encounterAttackSightContributors,
   type EncounterAttackPerception,
@@ -111,6 +113,14 @@ export function encounterActionCurrentnessChecksum(input: {
   })
 }
 
+/** A capability source that runs `compiledEffect`: the option its actor picked (D148). */
+function withCompiledEffect<Source extends { capability: { compiledEffect: CompiledEffectGroup } }>(
+  source: Source,
+  compiledEffect: CompiledEffectGroup
+): Source {
+  return { ...source, capability: { ...source.capability, compiledEffect } }
+}
+
 /**
  * The action the source actor takes: its source, the adapter and execution plan that run it, and the
  * target policy that decides what it may be aimed at. It reads nothing about any target, so an area
@@ -163,9 +173,10 @@ export async function prepareEncounterActionSource<
     ({ optionId }) => optionId === input.choiceOptionId
   )
   if (
-    compilation?.choice
+    entry &&
+    (compilation?.choice
       ? !picked && !input.readsSharedTest
-      : input.choiceOptionId !== undefined && !compilation?.zonePlacement
+      : input.choiceOptionId !== undefined && !compilation?.zonePlacement)
   )
     throw new CastChoiceUnavailableError()
   const castEntry =
@@ -179,7 +190,7 @@ export async function prepareEncounterActionSource<
           }
         }
       : entry
-  const source = await input.loadSource({
+  const loaded = await input.loadSource({
     actor,
     actionId,
     gameSystemId: state.gameSystemId,
@@ -205,6 +216,18 @@ export async function prepareEncounterActionSource<
         }
       : {})
   })
+  // An authored capability (a basic action's Shove) runs as the option its actor picked (D148).
+  const source =
+    loaded.kind === 'CHARACTER_ACTION'
+      ? loaded
+      : withCompiledEffect(
+          loaded,
+          pickedCastChoiceEffect(
+            loaded.capability.compiledEffect,
+            input.choiceOptionId,
+            input.readsSharedTest
+          )
+        )
   const adapter = characterRuleActionSystemAdapterRegistry.get(state.gameSystemId)
   if (!adapter) throw new Error('The Encounter Game System cannot execute this action.')
   const targetPolicy =

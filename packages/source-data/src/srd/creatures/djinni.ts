@@ -47,18 +47,6 @@ export const djinni: CreatureAuthored = {
       label: 'Elemental Demise',
       description:
         'Elemental Demise. If the djinni dies, its body disintegrates into a warm breeze, leaving behind only equipment the djinni was wearing or carrying.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(82, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(82, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DJINNI_ELEMENTAL_DEMISE
-        })
-      ],
       order: 1
     },
     {
@@ -132,18 +120,6 @@ export const djinni: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(82, 311),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(82, 1302), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DJINNI_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {

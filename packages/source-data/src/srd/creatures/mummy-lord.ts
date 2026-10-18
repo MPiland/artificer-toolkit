@@ -306,40 +306,7 @@ export const mummyLord: CreatureAuthored = {
           label: 'Attack',
           description:
             'The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare.',
-          order: 1,
-          effects: [
-            {
-              id: '00000000-0005-01f5-0070-00ca00000000',
-              order: 1,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: 'ACTIVATED',
-                range: { id: '00000000-0005-0259-0070-00ca00000000', rangeKind: 'SELF' },
-                targeting: { selectionKind: 'SELF' }
-              },
-              paths: [
-                {
-                  id: '26411519-d154-55cb-aa9d-0a472058259c',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: 'fcd75b85-3ee6-5d18-9c6d-89b5f0e11b9e',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '7adef054-858c-51e4-8820-abc73cac8a72',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_MUMMY_LORD_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          order: 1
         },
         {
           id: '00000000-0005-00ca-0070-00ca00000000',

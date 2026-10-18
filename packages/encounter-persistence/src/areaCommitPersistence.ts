@@ -36,6 +36,7 @@ import {
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import {
   requireAreaActionAnswer,
+  requireAreaActionForcedMovement,
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot,
   requireAreaActionRemoval
@@ -263,7 +264,15 @@ export async function persistEncounterAreaCommit(
       })
     }
     if (resume?.area) {
-      if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
+      const resolution = input.response?.resolution
+      if (resolution?.kind === 'FORCED_MOVEMENT')
+        requireAreaActionForcedMovement({
+          stored: resume.area.snapshot,
+          next: area,
+          requestId: resolution.requestId,
+          position: resolution.position
+        })
+      else if (resolution?.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
           next: area,
@@ -305,6 +314,22 @@ export async function persistEncounterAreaCommit(
       )
     )
       throw new Error('Live Session area has an unanswered save or undecided choice.')
+    // Every push its source picked lands where the pick left it (D157), and none is still open.
+    const { landed = [], pick } = context.forcedMovement ?? {}
+    if (
+      pick ||
+      landed.some(
+        ({ targetActorId }) =>
+          !input.forcedMovements.some((movement) => movement.targetActorId === targetActorId)
+      ) ||
+      input.forcedMovements.some(({ targetActorId, position }) => {
+        const picked = landed.find((entry) => entry.targetActorId === targetActorId)?.position
+        return picked
+          ? !position || position.x !== picked.x || position.y !== picked.y
+          : position !== null
+      })
+    )
+      throw new Error('Live Session area forced movement mismatch.')
     // The counters that failed against the cast were sealed with its area and are spent with it.
     if (
       checksumCanonicalJson(context.failedCounters ?? []) !==

@@ -299,11 +299,6 @@ export const boneDevil: CreatureAuthored = {
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
                     onSuccess: { kind: 'END' },
                     onFailure: { kind: 'CONTINUE' }
-                  },
-                  {
-                    id: S.actionId(52, 113),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_POISON_SAVE
                   }
                 ]
               }

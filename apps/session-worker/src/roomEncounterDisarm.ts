@@ -11,6 +11,7 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
+import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
 import { planNativeLiveDisarm, type planNativeLiveContestRolls } from './nativeDisarm.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
@@ -101,7 +102,9 @@ export async function persistRoomEncounterContest(input: {
         epoch: scope.authorityEpoch,
         observed,
         batch
-      })
+      }),
+    applyForcedMovements: (movement) =>
+      applyRoomForcedMovements({ ctx, transaction, userId: scope.expectedUserId, movement })
   }
   return plan.kind === 'PENDING'
     ? persistEncounterDisarmPending(ctx, { ...plan.input, revisions }, callbacks)

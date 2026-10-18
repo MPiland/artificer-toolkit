@@ -5,6 +5,7 @@ import {
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { castChoiceOptions } from '@artificer-toolkit/rules-runtime/encounterCastChoice'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -354,6 +355,8 @@ export async function readEncounterActionChoices(
           ({ definition }) => definition.id === action.definitionId
         )?.document
         const targetPolicy = buildCompiledActionTargetPolicy(action)
+        // A basic action that picks its win's outcome with the attempt (Shove, D105) offers it.
+        const castChoice = castChoiceOptions(action.compiledEffect)
         return {
           id: action.actionId,
           label: action.label,
@@ -364,7 +367,12 @@ export async function readEncounterActionChoices(
           grip: null,
           wieldConflict: admission.kind === 'STOW_HELD_WEAPON' ? admission : null,
           attackSlot: economy.attackSlot,
-          target: encounterActionChoiceTarget(targetPolicy),
+          target: encounterActionChoiceTarget(
+            targetPolicy,
+            null,
+            null,
+            castChoice && { options: castChoice }
+          ),
           warnings: economy.warnings
         }
       })

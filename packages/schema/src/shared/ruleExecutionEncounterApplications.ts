@@ -1007,10 +1007,19 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           beforeStateChecksum: checksumSchema,
           afterStateChecksum: checksumSchema
         }),
+        /** The conditions a won contest's picked outcome newly applied to the target (Shove, D105). */
         z.strictObject({
-          kind: z.literal('SCENE_TOKEN_MOVED'),
-          tokenId: uuidSchema,
-          destination: z.strictObject({ x: z.number(), y: z.number() })
+          kind: z.literal('CONDITIONS_APPLIED'),
+          appliedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        }),
+        /** The push a won contest's picked outcome settles on the target (Shove, D105, D157). */
+        z.strictObject({
+          kind: z.literal('FORCED_MOVEMENT'),
+          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          feet: z.number().check(z.positive()),
+          upTo: z.boolean()
         }),
         /** The relationship effect the win created and the conditions it newly applied to the target. */
         z.strictObject({
@@ -1079,15 +1088,6 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['stateTransition'],
             message: 'Encounter-actor contested-action item state transition is invalid.'
-          })
-        if (
-          value.stateTransition.kind === 'SCENE_TOKEN_MOVED' &&
-          value.stateTransition.tokenId.length === 0
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['stateTransition'],
-            message: 'Contested-action Scene transition is invalid.'
           })
         if (
           value.stateTransition.kind === 'ACTOR_RELATIONSHIP' &&

@@ -25,6 +25,7 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
+import { conditionTypeId } from '../spells/shared.js'
 import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -133,12 +134,20 @@ export const halfling: RaceAuthored = {
       description: 'You have advantage on saving throws against being frightened.',
       availableAtLevel: 1,
       order: 2,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(3, 3, entry),
-          CLOSED_RULE_KIND.RACE_HALFLING_BRAVE
-        )
-      ]
+      grants: {
+        // Frightening effects call for saves of any ability, so each ability gets the advantage.
+        modifiers: Object.values(ABILITY_CODE).map((ability, index) => ({
+          id: raceFeatureId(3, 3, 2 + index),
+          grantKind: GRANT_KIND.MODIFIER_GRANT,
+          valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+          domain: { ability, conditionTypeId: conditionTypeId('FRIGHTENED') },
+          modifierKind: MODIFIER_KIND.ADVANTAGE,
+          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          payload: undefined,
+          order: index
+        }))
+      }
     },
     {
       id: raceFeatureId(3, 4, 1),
@@ -222,13 +231,7 @@ export const lightfoot: RaceAuthored = {
       description:
         'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
       availableAtLevel: 1,
-      order: 1,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(106, 2, entry),
-          CLOSED_RULE_KIND.RACE_NATURALLY_STEALTHY
-        )
-      ]
+      order: 1
     }
   ]
 }

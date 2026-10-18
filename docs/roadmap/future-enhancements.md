@@ -87,7 +87,23 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Plant Growth excluded areas (D156, SPELLS-4.T2a4):** the caster can't cut holes in the zone, so allies in an excluded patch still pay the difficult-terrain cost. The real fix is a zone shape with authored exclusions. A GM-ruling prompt would add a reminder without changing any movement.
+
+- **Choosing when to spend a rolled die (D156, SPELLS-4.T2c):** Guidance and Resistance are used up on the holder's first matching test. The player can't save them for a later roll or decide after seeing the d20. Most Guidance casts happen right before the check they're cast for.
+- **Rolled dice on initiative (D156, SPELLS-4.T2c):** Guidance doesn't apply to initiative, which is a Dexterity check. Using it there is a table trick.
+
+- **Intimidating Presence extension and range end (D156, SPELLS-31.T5l):** the barbarian can't spend an action to extend the fear, and it doesn't end when the creature ends its turn beyond 60 feet or out of sight. Only a 14th-level Berserker has it, and the shipped turn of fear is the common case.
+- **After-save immunity edge forms (D156, SPELLS-31.T5l):** a creature trait whose immunity also ends the effect on that creature, and the Mummy's immunity keyed to every Mummy rather than to one source, stay description-only.
+
+- **Area push picks outside the ordinary area flow (ATTACK-7.T5d, D157).** An area push that needs a destination pick fails closed when the area settles through a GM removal, through a hit-point-pool area or a chosen-creatures action with no saves, or when one creature is moved two ways by the same action. No SRD action does any of these with a choice; hold the pick on those paths if content needs it.
+
+- **Spell grants that spend a class resource pool (D156, SPELLS-31.T3b):** a spell grant's charges are its own pool or an item's charges, so Empty Body's Astral Projection (8 ki, 18th-level monk) stays description-only. To support it, add a class-pool cost to spell grants (SOURCE_CHARGES for class resources).
+
 - **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
+- **Mage Armor on a Creature (SPELLS-4.T2a3):** a Creature's armor class adds only fixed armor-class bonuses (`withCreatureActiveGrantArmorClass`), so Mage Armor's 13 + Dexterity formula does nothing on a Creature. Characters are the usual targets; fold formula grants into Creature facts when a table casts it on a Creature.
+- **Disarm does not use up an `ON_ATTACKED` grant (SPELLS-4.T2a3):** Disarm's attack roll reads the defender's grants but consumes only the defender's `ON_ABILITY_CHECK` grants, and it has no defender batch to release a condition in, so a Guiding Bolt mark survives a Disarm attempt for the next attack. Consume it with `targetEndedEffects` once Disarm settles the defender in its own batch.
+- **A Creature's sense grants in Encounter perception (SPELLS-4.T2a4):** A Creature perceives only with its stat-block Senses; a sense an Active Effect grants it (a Creature casting See Invisibility or Darkvision on itself) is not folded in, unlike a Character's. Fold Creature sense grants into `perceptionSenses` and Scene vision if a Creature caster needs it.
+- **See Invisibility in darkness (D156, SPELLS-4.T2a4):** See Invisibility grants ordinary sight that perceives invisible creatures. Each of a creature's senses is checked on its own, so a caster who also has Darkvision still cannot see an Invisible creature standing in darkness: Darkvision reaches the darkness but not the invisibility, and this sense reaches the invisibility but not the darkness. Fix by combining a creature's visual senses into one check if players hit this.
 - **Couatl poison duration (D156, SPELLS-4.T2a3):** the 24-hour active-effect bound now fits the Couatl's Bite poison, which still stays description-only until its duration is authored.
 - **Random fling direction (D157).** The Air Elemental's Whirlwind flings a creature in a random direction; its controller picks the square instead. Add a rolled direction if GMs ask for it.
 
@@ -269,6 +285,10 @@ Melee-hit retaliation dice are system-rolled even when the zone source rolls by 
 
 A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
 
+### Undo for contested actions (D105)
+
+Undo refuses every CONTESTED_ACTION root: Grapple, Shove, Disarm and the contested escape. A generic contest revert would restore the spent attack, the applied conditions, the forced movement and the grapple hold, the same way for every contest.
+
 ### Disarm defender picks its check (D152)
 
 Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
@@ -288,6 +308,10 @@ Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM
 ### Regenerate regrows limbs (D156)
 
 Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
+
+### Surprise (D156)
+
+Encounters have no surprise step, so Foresight's "can't be surprised" ships as description only (SPELLS-4.T2a2). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
 
 ### Shared live cursors (Q19)
 

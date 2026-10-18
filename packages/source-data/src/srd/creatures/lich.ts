@@ -55,18 +55,6 @@ export const lich: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(183, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(183, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 1
     },
     {

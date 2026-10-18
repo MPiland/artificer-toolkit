@@ -430,18 +430,21 @@ export function prepareRecurringActiveEffect(
     })
   )
   const ownsTemporaryHitPoints = plan.ownsTemporaryHitPoints === true
-  const tickAnchor = grantContribution?.tickAnchor ?? 'HOLDER'
-  // A grant made on its anchor actor's own turn would otherwise lose a counted turn to the very
+  const tickAnchor = plan.tickAnchor ?? 'HOLDER'
+  // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
+  // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest.
+  const countedByGrantTicks = grantContribution
+    ? !grantContribution.countedByTurnEffects
+    : tickAnchor === 'SOURCE'
+  // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
   // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
   // "for the turn" already is that end of turn.
   const initialRemaining =
     plan.initialRemaining !== null &&
-    grantContribution &&
-    !grantContribution.includesCurrentTurn &&
-    !grantContribution.countedByTurnEffects &&
+    countedByGrantTicks &&
+    !grantContribution?.includesCurrentTurn &&
     plan.recurrenceStage === 'END_OF_TURN' &&
-    input.currentActorId ===
-      (grantContribution.tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
+    input.currentActorId === (tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
       ? plan.initialRemaining + 1
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
@@ -473,12 +476,9 @@ export function prepareRecurringActiveEffect(
     },
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
-      // The grant tick planner counts a grant, so the turn-effect kernel never selects it, unless the
-      // grant repeats a save: the kernel then rolls, counts and ends it.
-      recurrenceStage:
-        grantContribution && !grantContribution.countedByTurnEffects
-          ? 'NONE'
-          : plan.recurrenceStage,
+      // An effect the grant tick planner counts stores no stage, so the turn-effect kernel never
+      // selects it.
+      recurrenceStage: countedByGrantTicks ? 'NONE' : plan.recurrenceStage,
       // A grant held beside conditions (Hypnotic Pattern's speed 0) ends with them, so the plan's
       // own lifecycle joins the grant's.
       consumeOnFirstEvents: sortedUnion(

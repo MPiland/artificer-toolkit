@@ -53,18 +53,6 @@ export const rugOfSmothering: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the rug remains motionless, it is indistinguishable from a normal rug.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(240, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(240, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RUG_OF_SMOTHERING_FALSE_APPEARANCE
-        })
-      ],
       order: 1
     },
     {

@@ -324,6 +324,7 @@ describe('basic combat actions in the room (Q11)', () => {
       'Ready',
       'Rouse',
       'Search',
+      'Shove',
       'Use an Object'
     ])
     // First Aid costs an Action and refuses its user as the target; Dash only affects its user.

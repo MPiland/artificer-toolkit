@@ -36,7 +36,10 @@ export function biteWolf(
     damage?: number
     reachFeet?: number
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
-    save?: { ability: 'DEXTERITY' | 'CONSTITUTION'; damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' }
+    save?: {
+      ability: 'DEXTERITY' | 'CONSTITUTION'
+      damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' | 'PSYCHIC'
+    }
     /** The Bite casts a spell: the System spell it references, or the level it is cast at. */
     spellCast?: { castLevel: number }
   } = {}
@@ -294,11 +297,15 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
   })
 }
 
-/** `base` with its Bite's failed save moving the target `feet` in `direction` instead of damage. */
+/**
+ * `base` with its Bite's failed save moving the target `feet` (exactly, or up to) in `direction`
+ * instead of damage.
+ */
 export function forceOnFailedSave(
   base: CreatureAuthored,
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE',
-  feet: number
+  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY',
+  feet: number,
+  distanceMode: 'EXACT' | 'UP_TO' = 'EXACT'
 ): CreatureAuthored {
   return creatureAuthoredDtoSchema.parse({
     ...base,
@@ -327,7 +334,7 @@ export function forceOnFailedSave(
                         effectKind: 'FORCED_MOVEMENT' as const,
                         direction,
                         actionEconomy: 'NONE' as const,
-                        distanceMode: 'EXACT' as const,
+                        distanceMode,
                         amount: feet,
                         unit: 'FEET' as const
                       }

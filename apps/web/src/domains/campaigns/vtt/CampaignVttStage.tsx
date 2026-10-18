@@ -115,6 +115,11 @@ import {
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
 import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
 import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
+import { CampaignVttForcedMovementPick } from './CampaignVttForcedMovementPick'
+import {
+  forcedMovementDestinationOverlays,
+  forcedMovementDestinationPick
+} from './vttForcedMovementPick.model'
 import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
@@ -137,6 +142,9 @@ export function CampaignVttStage({
   const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
     undefined
   )
+  // The legal square the keyboard focuses while a forced movement waits on its source (D157).
+  const [focusedDestination, setFocusedDestination] = useState<ScenePoint | null>(null)
+  const pickDestinationRef = useRef<((position: ScenePoint) => void) | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
@@ -548,6 +556,37 @@ export function CampaignVttStage({
         : presentScene,
     [presentScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
+  // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
+  const destinationPending =
+    pendingOccurrence?.kind === 'FORCED_MOVEMENT_DESTINATION' ? pendingOccurrence : null
+  const destinationSource = activeEncounter?.actors.find(
+    ({ id }) => id === destinationPending?.sourceActorId
+  )
+  const destinationTokenId = [...actorIdByTokenId].find(
+    ([, actorId]) => actorId === destinationPending?.targetActorId
+  )?.[0]
+  const destinationPick = useMemo(
+    () =>
+      destinationPending &&
+      renderedScene &&
+      destinationTokenId &&
+      destinationSource &&
+      isEncounterActorMine(campaign, currentUserId, destinationSource)
+        ? forcedMovementDestinationPick({
+            pending: destinationPending,
+            scene: renderedScene,
+            targetTokenId: destinationTokenId
+          })
+        : null,
+    [
+      campaign,
+      currentUserId,
+      destinationPending,
+      destinationSource,
+      destinationTokenId,
+      renderedScene
+    ]
+  )
   const tokenImageLookups = useMemo(() => {
     const actorsById = new Map(
       (activeEncounter?.actors ?? []).map((actor) => [actor.id, actor] as const)
@@ -628,18 +667,31 @@ export function CampaignVttStage({
     [actionPreview?.sourceTokenId, aimingArea, areaSize]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
-  const overlays = useMemo(
-    () =>
-      stageOverlays({
-        actionPreview,
-        aimingArea: rendererAreaAim !== null,
-        areaAim,
-        areaSize,
-        drawerOpened: actionsOpened,
-        scene: renderedScene ?? null
-      }),
-    [actionPreview, actionsOpened, areaAim, areaSize, rendererAreaAim, renderedScene]
-  )
+  const overlays = useMemo(() => {
+    const staged = stageOverlays({
+      actionPreview,
+      aimingArea: rendererAreaAim !== null,
+      areaAim,
+      areaSize,
+      drawerOpened: actionsOpened,
+      scene: renderedScene ?? null
+    })
+    return destinationPick
+      ? [
+          ...(staged ?? []),
+          ...forcedMovementDestinationOverlays(destinationPick, focusedDestination)
+        ]
+      : staged
+  }, [
+    actionPreview,
+    actionsOpened,
+    areaAim,
+    areaSize,
+    destinationPick,
+    focusedDestination,
+    rendererAreaAim,
+    renderedScene
+  ])
   // A selection whose token left the Scene counts as no selection.
   const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
     ? selectedTokenId
@@ -690,6 +742,7 @@ export function CampaignVttStage({
         role: effectiveRole,
         scene: renderedScene,
         selectedTokenId: selectedSceneTokenId,
+        squarePick: destinationPick?.squares ?? null,
         targeting: targeting !== null,
         tokenPresentations,
         tool,
@@ -813,6 +866,7 @@ export function CampaignVttStage({
         setAimingArea(false)
         setActionsOpened(true)
       },
+      onSquarePick: (center) => pickDestinationRef.current?.(center),
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -954,6 +1008,21 @@ export function CampaignVttStage({
     if (actorId) pickTarget(actorId)
   }
   pickTargetTokenRef.current = pickTargetToken
+
+  function pickDestination(position: ScenePoint): void {
+    if (!destinationPending || !activeEncounter || encounterCommand.isPending) return
+    encounterCommand.mutate({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: activeEncounter.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: destinationPending.encounterVersion,
+      occurrenceId: destinationPending.occurrenceId,
+      expectedOccurrenceVersion: destinationPending.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'FORCED_MOVEMENT', requestId: destinationPending.requestId, position }
+    })
+  }
+  pickDestinationRef.current = destinationPick ? pickDestination : null
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
@@ -1622,6 +1691,15 @@ export function CampaignVttStage({
                 setCarefulChoice(null)
                 commitTokenMove(carefulChoice.tokenId, carefulChoice.path, carefully)
               }}
+            />
+          ) : null}
+          {destinationPick && destinationPending ? (
+            <CampaignVttForcedMovementPick
+              disabled={encounterCommand.isPending}
+              key={`${destinationPending.occurrenceId}:${destinationPending.occurrenceVersion}`}
+              pick={destinationPick}
+              onFocusSquare={setFocusedDestination}
+              onPick={pickDestination}
             />
           ) : null}
           {moveWarning ? (

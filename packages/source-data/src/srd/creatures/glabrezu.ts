@@ -85,18 +85,6 @@ export const glabrezu: CreatureAuthored = {
           )
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(142, 305),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(142, 1301), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GLABREZU_INNATE_SPELLCASTING
-        })
-      ],
       order: 1
     },
     {
@@ -192,12 +180,7 @@ export const glabrezu: CreatureAuthored = {
                     escapeDc: 15,
                     heldAtOnce: 2,
                     largestTarget: S.SIZE_CODE.MEDIUM
-                  }),
-                  {
-                    id: S.actionId(142, 210),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_GLABREZU_PINCER_GRAPPLE
-                  }
+                  })
                 ]
               }
             }

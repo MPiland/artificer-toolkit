@@ -49,17 +49,6 @@ export const aboleth: CreatureAuthored = {
       id: S.featureId(1, 1),
       label: 'Amphibious',
       description: 'Amphibious. The aboleth can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(1, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(1, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {

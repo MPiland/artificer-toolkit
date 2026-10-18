@@ -168,9 +168,10 @@ function sealEncounterContest(input: {
 }
 
 /**
- * Seals a basic action's contest (Grapple) from current facts: the initiator rolls the action's own
- * check, and the defender is offered each check the action's contest DC lists (D152). It rolls and
- * writes nothing.
+ * Seals a basic action's contest (Grapple, Shove) from current facts: the initiator rolls the
+ * action's own check, and the defender is offered each check the action's contest DC lists (D152).
+ * A contest whose win runs an outcome (Shove, D105) tests by its contest graph. It rolls and writes
+ * nothing.
  */
 export function prepareEncounterBasicActionContest(input: {
   state: EncounterRunState
@@ -184,7 +185,8 @@ export function prepareEncounterBasicActionContest(input: {
   priorContest?: ServerContestCheckPendingApplicationContextDto
 }) {
   const { source, plan, sourceFacts, targetFacts } = input.prepared
-  if (source.kind !== 'BASIC_ACTION' || plan.kind !== 'SINGLE_GRAPH')
+  const published = plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
+  if (source.kind !== 'BASIC_ACTION')
     throw new EncounterValidationError('The selected action is not a basic action contest.')
   const { capability } = source
   const invocation = capability.compiledEffect.invocation
@@ -204,14 +206,14 @@ export function prepareEncounterBasicActionContest(input: {
     },
     actionId: input.command.actionId,
     contestGraph: {
-      definitionId: plan.published.id,
-      checksum: plan.published.checksum,
+      definitionId: published.id,
+      checksum: published.checksum,
       identityChecksum: checksumRuleDocument({
         kind: 'BASIC_ACTION',
         definitionId: capability.definitionId,
         definitionChecksum: capability.definitionChecksum,
         compiledEffectChecksum: capability.compiledEffectChecksum,
-        graphChecksum: plan.published.checksum
+        graphChecksum: published.checksum
       })
     },
     source: {
@@ -226,7 +228,7 @@ export function prepareEncounterBasicActionContest(input: {
     initiatorCheck,
     defenderChecks: listedChecks(invocation.check.dc.checks)
   })
-  return { ...sealed, published: plan.published }
+  return { ...sealed, published }
 }
 
 /**

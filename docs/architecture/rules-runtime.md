@@ -325,12 +325,14 @@ drawn by dragging from one end (or the center) to the other end (or the edge), c
 ### A list of chosen creatures (current, SPELLS-8.T12, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
-Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning, Scorching Ray, Eldritch Blast) takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
-`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
+Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning, Scorching Ray, Eldritch Blast), or with no cap
+on a list that names each creature once (SPELLS-4.T2a3: Pass without Trace), takes the fifth target, `{ kind: 'ACTORS', actorIds, scene }`, built from
+`encounterActionTargetKind` and offered as `{ kind: 'ACTORS', maxTargets?, area, allowRepeatedTargets? }` (`area` is the `RADIUS` the
 spell names, or null). It is a reusable target kind, not a spell field: any chosen-creatures policy the compiler
-accepts uses it. The compiler accepts one only when the outcome is a heal, unscaled dice damage, a per-creature save (an `ANY` disposition, a `SAVING_THROW` trigger and no repeated targets) or a per-ray attack (an attack trigger, repeated targets allowed, no shape), the cap is authored (fixed, or
+accepts uses it. The compiler accepts one only when the outcome is a heal, unscaled dice damage, a per-creature save (an `ANY` disposition, a `SAVING_THROW` trigger and no repeated targets) or a per-ray attack (an attack trigger, repeated targets allowed, no shape), the list resolves (`chosenCreaturesCap`: a fixed cap, no cap on a list that does not repeat creatures, or a cap
 scaled by the cast level or the Character's level and resolved first by `resolveChosenCreaturesTargeting`, which reads `spellCastLevel` and `characterLevel` from the descriptor; the Character's level is the sum of its class levels, set on the entry point by `buildCharacterSpellCastActions`), and the shape is absent or a sphere, cylinder or circle
-whose range is a distance. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
+whose range is a distance. A willing list also accepts a timed grant (SPELLS-4.T2a3: Pass without Trace): the room plans one
+active effect per chosen creature, as it does for a link or a form. One `RESOLVE_ACTION` carries the whole list (D118: one cast, one commit, one slot
 spend, one undo; one action per creature is rejected because it breaks undo atomicity).
 
 The room (`nativeEncounterActorsRules.ts`) refuses an over-cap list, and a creature named twice unless the
@@ -521,7 +523,7 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (`effectsEndedBy`). A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
+application heals at least 1 hit point (`effectsEndedBy`). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
 DTO advertises `choosesUnaffected` on its zone target (`POINT`, `CASTER_CENTERED`, `WALL`, `RING` or `ZONE_OPTIONS`), the cast command carries optional
 `unaffectedActorIds` on the zone's target (the Worker refuses it for an action whose zone does not offer it, or for an id
 that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
@@ -966,7 +968,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Manual adjudication.** The `MANUAL_ADJUDICATION` outcome compiles to the stored-state-free proposal
   `dnd5e.manual-adjudication-proposal`: the Action is spent and nothing is applied, so the GM rules the result. Every stored `RESOLVE_ACTION`
   command carries the resolved action's display label (`encounterActionSourceLabel` of the prepared source, for Character, Creature
-  feature and `BASIC_ACTION` sources), and the timeline entry returns it.
+  feature and `BASIC_ACTION` sources), and the timeline entry returns it. **Beside one executable outcome (SPELLS-4.T2a3, D156):**
+  an `ON_USE` fixed `SEQUENCE` whose other outcomes are all `MANUAL_ADJUDICATION` compiles its one executable outcome as if
+  it stood alone (`rulingSequence` in `effectActionCompiler.ts`), and each ruling becomes a further
+  `dnd5e.manual-adjudication-proposal` node bound to its source entry, so the GM notes travel on the same commit. A sequence
+  with two executable outcomes stays refused.
 - **Dodge** is an `APPLY_GRANT` until the start of the holder's next turn with an `ATTACKS_AGAINST` disadvantage modifier
   (`requiresHolderSeesAttacker`) and a Dexterity `SAVING_THROW_MODIFIER` advantage, both under the facet predicates `CAN_ACT` and
   `SPEED_ABOVE_ZERO`, authored as one CHARACTER group and one CREATURE group (unknown contexts fail closed). `withEncounterHolderDefense` (`encounterHolderDefense.ts`) applies the grants
@@ -986,7 +992,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
-- **Forced movement (ATTACK-7.T5a/T5b, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
+- **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
   which the single-target and area room planners pass to the commit as `forcedMovements`. In the action's transaction the room's
@@ -999,11 +1005,16 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
   `{requestId, position}`, the planner restores the completion without running a graph again
   (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
-  re-checks that the square is still legal. Exact away/toward and a movement with one legal square never pause.
+  re-checks that the square is still legal. An area action whose settled pushes owe picks holds them on its own
+  aggregate snapshot (`forcedMovement {landed, pick}`, `holdEncounterAreaForcedMovement`), one creature at a time,
+  farthest first: the room's `readRoomForcedMovementPick` lands the creatures already picked on a copy of the Scene
+  (the same `landForcedMovements` simulation `applyRoomForcedMovements` commits with) and offers the next one's legal
+  squares; each answer lands it (`landEncounterAreaForcedMovement`) and the planner re-plans the commit, which runs after
+  the last answer. Exact away/toward and a movement with one legal square never pause.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
-  legendary and reaction actions still refuse spatial directives; an area action whose movement needs a pick fails closed in its
-  commit; the board pick is ATTACK-7.T5c.
+  legendary and reaction actions still refuse spatial directives; an area pick after a GM removal, on an area with no
+  aggregate snapshot, or for a creature moved twice fails closed (future-enhancements, Deferred edge cases).
 - **Disengage** is an `APPLY_GRANT` on SELF for one `TURN` with an `OPPORTUNITY_ATTACK_IMMUNITY` modifier of the flag kind `ENABLE`
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
@@ -1398,32 +1409,46 @@ Scene geometry, so every actor the policy allows is offered.
 
 **Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
 effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
-which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as the
-contribution's `tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as its
+`tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
 anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
-turn" outlasts the current one. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
-never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every grant
-anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
+turn" outlasts the current one. The longest authorable duration is `MAX_ACTIVE_EFFECT_TURNS` (14,400 turns,
+24 hours; SPELLS-4.T2a3, D156), exported from `packages/schema/src/shared/activeRuleEffectLifecycle.ts`; the compiler
+leaves a longer duration MANUAL and never clamps it. The stored tick fields (`expiration.initialRemaining`,
+`lifecycle.remainingTicks`, the grant listing) allow `MAX_ACTIVE_EFFECT_STORED_TICKS`, one more, for that extra
+own-turn tick. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
+never selects them. A timed condition with a `SOURCE` turn anchor (Color Spray's blindness, "until the end of
+the caster's next turn") is stored and counted the same way, extra turn included; the kernel counts other timed
+conditions on the holder's turns. `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
+such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
-grant that carries both events. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
+grant that carries both events. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
+roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads the grant's modifiers first; the target's
+`targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
+each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or
+chosen-creature attack (once per creature, however many rays name it), the movement reaction attack and the Legendary window;
+turn effects pass `false`. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
 grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
 An event that ends a condition-owning effect (Invisibility on its holder's attack roll, SPELLS-27.T2, D125) also releases the condition: the planner adds `CONDITION_REMOVE` to the action's source batch (`sourceApplications`, required on both mechanics batch receipts; `endedEffectReleases`), and the root receipt's `endedMaintainedStates` and `restoredConditionIds` give the Concentration and the condition back on GM undo, fenced by the source stream version. Every attack-roll or cast root calls `actionEndedEffects` (`makesAttackRoll`, `castsSpell`; `effectsEndedBy` takes several events and ends an effect once): the action, the movement opportunity attack (applied in `liveMovementReactionPersistence`), the Legendary window (applied in `persistEncounterTurnResources` from the evidence's `attackRoll` and `castsSpell`) and Disarm (a required `sourceApplications` on the `CONTESTED_ACTION` output, applied before settlement from the initiator's held effects); only the action has GM undo. **Cast (SPELLS-27.T3):** `ON_CAST_SPELL` is raised when the source's prepared action casts a spell (`preparedCastsSpell`: a Character's spell or cantrip, or a Creature or Legendary action triggered by a spell attack; only Character casts have a counter level, `preparedSpellCastLevel`). The release rides the batch that carries the caster's own spend: the target batch when the caster is the target (the releases come first), else the source batch (`sourceApplications`). An area or chosen-creature cast carries it on the area root's `sourceApplications` (or on the caster's child batch when the caster is caught), and a countered cast on its root; both roots and their commit inputs also carry `consumedGrants`, so the effects end in the same transaction and GM undo gives them back (`restoreReleasedConditions`). **Reactor casts (SPELLS-27.T3b):** a reaction that casts a spell ends the reactor's own cast-ended effects too. A Shield-style reaction (the reactor is the host action's target) puts its releases on the host's target batch (`targetReleases`) and its grants in the host's `consumedGrants`; a Counterspell puts them on the reactor's spend and records them in the countered root's required `counter.applications`, restored by GM undo with the reactor's slot. `NON_RELEASING_EFFECT_EVENTS` keeps authoring from listing an event whose consumer does not release.
 
-A structured end trigger (`recurrence.endOnTriggers`, SPELLS-27.T4) ends an effect on an event that needs a qualifier. Today the one event is `DAMAGE_TAKEN` with `by` (`ANYONE` or `SOURCE_SIDE`, the effect source and its allies) and the same damage-type filter the reaction trigger uses (`damageTypeFilterDtoSchema`). `damageTakenEndedEffects` reads the action's `DAMAGE` applications on the holder (`resolvedAmount > 0`) and returns the ended effects and their condition releases; the single-action path passes the releases to the holder's batch after the outcome (`damageReleases`, beside the Shield-style `targetReleases` that go first) and the effects through `consumedGrants`, so GM undo restores both by receipt: `actionRevert` gives back the target's `CONDITION_REMOVE` applications named `active-effect.ended` (`restoreReleasedConditions`) and refuses (`REVERT_UNAVAILABLE`) any other removed condition. Only the timed-condition plan can author a trigger.
+A structured end trigger (`recurrence.endOnTriggers`, SPELLS-27.T4) ends an effect on an event that needs a qualifier. Today the one event is `DAMAGE_TAKEN` with `by` (`ANYONE` or `SOURCE_SIDE`, the effect source and its allies) and the same damage-type filter the reaction trigger uses (`damageTypeFilterDtoSchema`). `targetEndedEffects` reads the action's `DAMAGE` applications on the holder (`resolvedAmount > 0`) and returns the ended effects and their condition releases; the single-action path passes the releases to the holder's batch after the outcome (`damageReleases`, beside the Shield-style `targetReleases` that go first) and the effects through `consumedGrants`, so GM undo restores both by receipt: `actionRevert` gives back the target's `CONDITION_REMOVE` applications named `active-effect.ended` (`restoreReleasedConditions`) and refuses (`REVERT_UNAVAILABLE`) any other removed condition. Only the timed-condition plan can author a trigger.
 
-SPELLS-27.T4b wires every other damage root and adds the actions that end an effect against an enemy. `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` joins `endOnTriggers` (Sanctuary): `actionEndedEffects` takes a required `againstEnemy` (`actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor, never `NEUTRAL`) and ends the holder's effect when the action makes an attack roll, or casts a spell (the T3 cast fact), against an enemy; an ally or a neutral target ends nothing. `damageTakenEndedEffects` is called by the area commit (per target, deduped across a creature named twice; `consumedGrants` carries the ended effects, so GM undo restores them), the Legendary window (the planner computes it; `turnResourcesPersistence` recomputes it from live effects and refuses a stored receipt that lacks a planned release), the movement reaction (the mover's ended effects ride the REACTION step's `consumedGrants`) and turn effects (`turnEffectDamageEnded`: an execution's own damage ends the holder's other effects, a later candidate of the same turn expires at its own execution, an earlier one is not ended retroactively; the releases are `active-effect.ended` `CONDITION_REMOVE` applications on that execution, which `turnEffectsPersistence` recomputes and deletes the effects for). Death-save damage is an ordinary `DAMAGE` application folded by `encounterCharacterMechanicsBatch`, so the roots above already cover it. Legendary, movement reaction and turn effects have no GM undo, so they are proved without it.
+SPELLS-27.T4b wires every other damage root and adds the actions that end an effect against an enemy. `{ event: 'ATTACK_ROLL' | 'SPELL_CAST', against: 'ENEMY' }` joins `endOnTriggers` (Sanctuary): `actionEndedEffects` takes a required `againstEnemy` (`actsAgainstEnemy`: any target in a `HOSTILE` relationship to the actor, never `NEUTRAL`) and ends the holder's effect when the action makes an attack roll, or casts a spell (the T3 cast fact), against an enemy; an ally or a neutral target ends nothing. `targetEndedEffects` is called by the area commit (per target, deduped across a creature named twice; `consumedGrants` carries the ended effects, so GM undo restores them), the Legendary window (the planner computes it; `turnResourcesPersistence` recomputes it from live effects and refuses a stored receipt that lacks a planned release), the movement reaction (the mover's ended effects ride the REACTION step's `consumedGrants`) and turn effects (`turnEffectDamageEnded`: an execution's own damage ends the holder's other effects, a later candidate of the same turn expires at its own execution, an earlier one is not ended retroactively; the releases are `active-effect.ended` `CONDITION_REMOVE` applications on that execution, which `turnEffectsPersistence` recomputes and deletes the effects for). Death-save damage is an ordinary `DAMAGE` application folded by `encounterCharacterMechanicsBatch`, so the roots above already cover it. Legendary, movement reaction and turn effects have no GM undo, so they are proved without it.
 
 **Effect-owned temporary hit points (SPELLS-4.T2t, D156).** A Character's `hitpoints.tempSourceEffectId` and a Run actor's `tempHitPointsSourceEffectId` name the active effect whose grant set the temporary hit point pool. Both are optional and absent whenever no effect holds the pool, so stored records need no backfill. One rule home, `schema/shared/temporaryHitPoints` (`temporaryHitPointsAfterGrant`, `AfterLoss`, `AfterRelease`, `AfterEffectsEnd`, `Set`, written through `withCharacterTemporaryHitPoints` and `withActorTemporaryHitPoints`), serves the Encounter mechanics fold, the turn-effect executions, the Sheet reducer, rests and GM undo: a bigger grant replaces the pool and its source, an equal or smaller one is ignored, damage keeps the source until the pool is empty, and a manual Sheet edit (`SET_HIT_POINTS`) clears it. A form's origin keeps its amount but not its source. An effect whose definition carries the `TEMPORARY_HIT_POINTS_OWNERSHIP` state contribution stamps `sourceActiveEffectId` on the `TEMPORARY_HIT_POINTS` applications it makes (`withOwnedTemporaryHitPoints`): the Worker stamps the cast batch with the effect id it mints before settlement, and the target-bound executor stamps each recurring execution. The three existing end paths release the pool beside the owned conditions with a `TEMPORARY_HIT_POINTS_RELEASE` application, which empties it only while that effect is still its source: event ends (`endedEffectReleases`), turn-boundary expiry (`expiredEffectReleases`), and the end of maintenance such as Concentration (`settleCharacterEndedEffects`, `planEncounterMaintenanceOwner`, by the removed effect ids).
 
 **Sequential composition (SPELLS-4.T2t, D156).** The dnd5e compiler accepts one cast of two or more DIRECT `SEQUENTIAL` `ON_USE` entries that share target, test, duration and maintenance, holding at most one grant, at most one recurring entry and at most one immediate heal, as one active effect (`sequentialComposition`). The immediate heal, else the grant, compiles as the cast graph. A recurring entry accepts minute and hour durations, does not fire at cast (`recurrenceDeferred`) and builds its own graph; a `FIXED` recurring heal can add ability modifiers, settled at cast into the `dnd5e.recurring-heal-amount` fact, which `castFactKeys` copies from the cast evidence into the effect's adapter facts. A plan with `ownsTemporaryHitPoints` gives its effect the ownership contribution. The compiled active-effect plan carries all three fields as optional (`characterMechanics`), absent on every other plan. Heroism, Enhance Ability (one `CHOICE` option holding a grant beside temporary hit points) and Regenerate compile this way.
 SPELLS-27.T12 adds `{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }` (Sleep, authored with the SRD Rouse basic action): `actionUsedOnHolderEndedEffects` ends, on the target of a basic action another creature uses, the effects whose trigger names that action's definition, and releases the conditions only they held in the target's own mechanics batch, beside the damage ends in the same receipt. Only the single-target action path (`nativeEncounterRules`) consumes it today; the area, legendary, movement-reaction and turn-resource paths do not.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
-where movement targets and Cleaving facts are built. A
+where movement targets and Cleaving facts are built. A fixed `SKILL_MODIFIER` grant (Pass without
+Trace's +10 Stealth) raises that skill's stat block total through `withCreatureActiveGrantSkillTotal`,
+which `actorContestFacts` applies to every Creature skill check and passive it freezes (Hide, Search,
+contests, escapes). A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
 applied in `cleanupRemovedActorEffects` and listed in `removedEffects`). A skipped (defeated or
 absent (`absence`) actor's turn still ticks both boundaries in the turn commit that skips it, so a
@@ -1575,6 +1600,17 @@ the activation; an escaper win ends the held effect through `endEncounterEscaped
 `RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
 applies. Undo refuses a contested escape like other contests.
 
+**Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
+condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the
+contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
+the attempt through `target.choiceOptionId`; `prepareEncounterActionSource` narrows a capability source (basic
+action, Creature) to the picked option (`pickedCastChoiceEffect`), and the basic-action choices offer the options.
+On a win the room runs the outcome graph (`planNativeContestOutcome`), applies its conditions to the target in the
+one direct-outcome batch, and settles `CONDITIONS_APPLIED` or `FORCED_MOVEMENT` on the `CONTESTED_ACTION` output.
+`settleContestOutcome` applies the room-planned conditions in Convex, and the commit lands a push through
+`applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
+contest outcome whose push owes a destination pick fails closed.
+
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
 modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds
@@ -1716,7 +1752,10 @@ definitions (Invisible suppresses VISUAL emission unless a perceives-invisible s
 bypasses it; Blinded suppresses VISUAL sensing) and, with a Scene whose id and version match the action's
 lock, tokens, grid, lighting, darkness, barriers and spatial effects; without a Scene the environment is
 neutral (bright, unobscured, line of effect). A Creature observer's senses are its structured stat-block
-senses (D111), carried on the perception actor as `perceptionSenses` like a Character's; `createActorSensePinner` (`actorSenses.ts`) pins and validates them once per sense definition for the Worker and both movement perception paths. Not wired: Convex action preparation, Disarm,
+senses (D111), carried on the perception actor as `perceptionSenses` like a Character's. A Character's
+`perceptionSenses` are its effective policy senses, so a sense its Active Effects grant (the Darkvision or
+See Invisibility spell) perceives as its own features do (SPELLS-4.T2a4); a Creature's sense grants are not
+folded yet. `createActorSensePinner` (`actorSenses.ts`) pins and validates them once per sense definition for the Worker and both movement perception paths. Not wired: Convex action preparation, Disarm,
 opportunity attacks (movement-owned; movement reaction perception also omits condition contributions).
 
 Believed vs true attack mode (current, D100): `encounterAttackBelief.ts` derives the roller's _believed_

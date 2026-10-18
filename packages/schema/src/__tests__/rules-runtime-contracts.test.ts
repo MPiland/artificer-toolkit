@@ -1,4 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import {
+  activeRuleEffectLifecycleDtoSchema,
+  MAX_ACTIVE_EFFECT_STORED_TICKS,
+  MAX_ACTIVE_EFFECT_TURNS
+} from '../shared/activeRuleEffectLifecycle.js'
 import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 
 import { MAX_CONCENTRATION_DAMAGE_APPLICATIONS } from '../shared/ruleExecutionConcentration.js'
@@ -2873,5 +2878,16 @@ describe('rules runtime contracts', () => {
         }
       })
     ).toThrow('Legendary Resistance')
+  })
+})
+
+describe('the active-effect tick bound (SPELLS-4.T2a3, D156)', () => {
+  it('stores one tick past 24 hours of turns, for a grant made on its anchor’s own turn, and no more', () => {
+    expect(MAX_ACTIVE_EFFECT_TURNS).toBe(14_400)
+    expect(MAX_ACTIVE_EFFECT_STORED_TICKS).toBe(14_401)
+    const lifecycle = (remainingTicks: number) =>
+      activeRuleEffectLifecycleDtoSchema.safeParse({ schemaVersion: 1, remainingTicks }).success
+    expect(lifecycle(14_401)).toBe(true)
+    expect(lifecycle(14_402)).toBe(false)
   })
 })

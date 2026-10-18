@@ -33,8 +33,8 @@ import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/chara
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects,
-  endedEffectReleaseKey
+  endedEffectReleaseKey,
+  targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
@@ -245,11 +245,12 @@ export async function persistEncounterTurnResources(
     await deleteGrants(ctx, consumedGrants)
     // Damage the action dealt ends the target's effects that end on damage, with the conditions
     // only they held, which the planned target batch already released.
-    const damageEnded = damageTakenEndedEffects({
+    const damageEnded = targetEndedEffects({
       holderActorId: targetActorId,
       held: (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).filter(
         ({ id }) => !consumedGrants.some((ended) => ended.id === id)
       ),
+      attacked: attackRoll,
       applications: application.applications.map((planned) => ({
         ...planned,
         targetActorId

@@ -172,13 +172,21 @@ describe('chosen creatures target', () => {
     ).toBeNull()
   })
 
-  it('refuses a selection with no cap, or one this path does not resolve', () => {
+  it('takes an uncapped list that names each creature once (SPELLS-4.T2a3 ruling 4)', () => {
+    expect(encounterActionTargetKind(chosen({}))).toBe('ACTORS')
+    expect(encounterActionChoiceTarget(chosen({}))).toEqual({ kind: 'ACTORS', area: null })
+  })
+
+  it('refuses an uncapped list that repeats creatures, or a cap this path does not resolve', () => {
     const scaling = {
       scalingKind: 'BREAKPOINTS' as const,
       scalingSource: 'CHARACTER_LEVEL' as const,
       breakpoints: [{ id: 'breakpoint', level: 5, order: 0, value: { amount: 8 } }]
     }
-    for (const targeting of [{}, { maxTargets: 6, maxTargetsScaling: scaling }])
+    for (const targeting of [
+      { allowRepeatedTargets: true },
+      { maxTargets: 6, maxTargetsScaling: scaling }
+    ])
       expect(encounterActionTargetKind(chosen(targeting)), JSON.stringify(targeting)).toBeNull()
   })
 })
@@ -213,11 +221,6 @@ describe('encounter action choice target', () => {
           shape: null,
           targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
         })
-      )
-    ).toEqual({ kind: 'ACTOR', self: 'ALLOWED' })
-    expect(
-      encounterActionChoiceTarget(
-        policy({ shape: null, targeting: { selectionKind: 'CHOSEN_CREATURES' } })
       )
     ).toEqual({ kind: 'ACTOR', self: 'ALLOWED' })
   })

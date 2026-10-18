@@ -128,13 +128,7 @@ export const dwarf: RaceAuthored = {
       description:
         'Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.',
       availableAtLevel: 1,
-      order: 1,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(1, 8, entry),
-          CLOSED_RULE_KIND.RACE_DWARF_HEAVY_ARMOR_SPEED
-        )
-      ]
+      order: 1
     },
     {
       id: raceFeatureId(1, 1, 1),
@@ -254,13 +248,7 @@ export const dwarf: RaceAuthored = {
       description:
         'Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.',
       availableAtLevel: 1,
-      order: 6,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(1, 5, entry),
-          CLOSED_RULE_KIND.RACE_STONECUNNING
-        )
-      ]
+      order: 6
     },
     {
       id: raceFeatureId(1, 6, 1),

@@ -43,18 +43,6 @@ export const merrow: CreatureAuthored = {
       id: S.featureId(196, 1),
       label: 'Amphibious',
       description: 'Amphibious. The merrow can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(196, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(196, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MERROW_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {

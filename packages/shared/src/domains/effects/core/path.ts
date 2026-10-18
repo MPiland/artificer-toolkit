@@ -314,6 +314,7 @@ export const PATH_LIFECYCLE_RECURRING_KIND_OPTIONS = valuesOf(
 
 export const PATH_LIFECYCLE_CONSUME_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
+  ON_ATTACKED: 'ON_ATTACKED',
   ON_ABILITY_CHECK: 'ON_ABILITY_CHECK',
   ON_CAST_SPELL: 'ON_CAST_SPELL'
 } as const
@@ -330,6 +331,11 @@ export const PATH_LIFECYCLE_CONSUME_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACK_ROLL,
     label: 'On Attack Roll',
     description: 'Consumed by first attack roll.'
+  },
+  [PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACKED]: {
+    code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACKED,
+    label: 'On Attacked',
+    description: 'Consumed by the first attack roll made against the holder.'
   },
   [PATH_LIFECYCLE_CONSUME_EVENT.ON_ABILITY_CHECK]: {
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ABILITY_CHECK,
@@ -411,7 +417,8 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
   ON_INCAPACITATED: 'ON_INCAPACITATED',
   ON_IDLE_TURN: 'ON_IDLE_TURN',
-  ON_LEAVING_AREA: 'ON_LEAVING_AREA'
+  ON_LEAVING_AREA: 'ON_LEAVING_AREA',
+  ON_LONG_REST: 'ON_LONG_REST'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -452,6 +459,11 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_LEAVING_AREA,
     label: 'On Leaving Area',
     description: 'Ends when the holder leaves the area of the zone that holds it.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_LONG_REST]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_LONG_REST,
+    label: 'On Long Rest',
+    description: 'Ends when the holder finishes a long rest.'
   }
 } as const
 

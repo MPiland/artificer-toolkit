@@ -79,8 +79,10 @@ export async function readLiveEncounterActionAdmission(
     }
   if (admission.kind === 'REPLAY') return { ...admission, resume: null }
   const resume = responseAdmission?.kind === 'READY' ? responseAdmission : null
+  // An area's push pick names its own request, which the response admission already matched.
   if (
     resume &&
+    !(resume.area && resume.resolution.kind === 'FORCED_MOVEMENT') &&
     'requestId' in resume.resolution &&
     resume.resolution.requestId !== resume.pending.snapshot.request.requestId
   )

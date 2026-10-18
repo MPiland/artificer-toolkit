@@ -133,8 +133,8 @@ export type LiveSessionForcedMovement = {
   position: SpatialPointDto | null
 }
 
-const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> = lazySchema(
-  () =>
+export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> =
+  lazySchema(() =>
     z
       .array(
         z.strictObject({
@@ -147,7 +147,7 @@ const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-)
+  )
 
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
 export type LiveSessionEncounterActionCommitInput = Omit<

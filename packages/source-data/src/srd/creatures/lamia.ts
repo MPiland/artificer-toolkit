@@ -103,18 +103,6 @@ export const lamia: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(181, 706),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(181, 707), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LAMIA_INNATE_SPELLCASTING
-        })
-      ],
       order: 1
     },
     {

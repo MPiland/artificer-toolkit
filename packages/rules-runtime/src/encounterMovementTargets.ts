@@ -101,7 +101,7 @@ export type MovementTarget<
   effectiveScalarValues: Readonly<Record<string, number>>
   baseRulePolicyOutput: CharacterRulePolicyOutput | null
   effectiveRulePolicyOutput: CharacterRulePolicyOutput | null
-  /** The Senses the actor perceives with: a Character's pinned Senses or a Creature's authored ones. */
+  /** The Senses the actor perceives with: a Character's, with its Active Effect grants, or a Creature's authored ones. */
   perceptionSenses: readonly { senseDefinitionId: string; range: SenseRangeDto }[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
   /** The save-bonus aura amount (D155) its save rows include, which a rebuilt turn target keeps. */
@@ -389,7 +389,7 @@ export function buildMovementTarget<
       effectiveScalarValues,
       baseRulePolicyOutput,
       effectiveRulePolicyOutput,
-      perceptionSenses: baseRulePolicyOutput.senses,
+      perceptionSenses: effectiveRulePolicyOutput.senses,
       ...(input.includeReactionSources
         ? {
             characterReactionSource: {

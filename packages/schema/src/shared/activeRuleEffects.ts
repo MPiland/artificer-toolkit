@@ -8,7 +8,10 @@ import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { checkChoiceDtoSchema } from '../effects/check.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
-import { activeRuleEffectLifecycleDtoSchema } from './activeRuleEffectLifecycle.js'
+import {
+  activeRuleEffectLifecycleDtoSchema,
+  MAX_ACTIVE_EFFECT_STORED_TICKS
+} from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
   activationCodeSchema,
@@ -216,7 +219,10 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
         z.strictObject({ kind: z.literal('INDEFINITE') }),
         z.strictObject({
           kind: z.literal('TICKS'),
-          initialRemaining: integerSchema.check(z.gte(1)).check(z.lte(10_000)),
+          // One more than the authorable bound: a grant made on its anchor's own turn gets an extra tick.
+          initialRemaining: integerSchema
+            .check(z.gte(1))
+            .check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS)),
           decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
           /** Whose turn boundary ticks the effect: its holder's, or its Encounter source actor's. */
           anchor: z.enum(['HOLDER', 'SOURCE'])

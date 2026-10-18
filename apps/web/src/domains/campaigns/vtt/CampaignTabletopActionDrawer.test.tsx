@@ -1287,6 +1287,13 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     }
   })
 
+  const passWithoutTrace = validatedChoice({
+    ...healingWord,
+    id: 'spell-pass-without-trace:cast',
+    label: 'Pass without Trace',
+    target: { kind: 'ACTORS' as const, area: null }
+  })
+
   const magicMissile = validatedChoice({
     ...healingWord,
     id: 'spell-magic-missile:cast',
@@ -1361,6 +1368,25 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
             point: null
           }
         }
+      })
+    )
+  })
+
+  it('shows no cap for a list that names each chosen creature once (SPELLS-4.T2a3)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [passWithoutTrace] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Targets' }))
+    await user.click(screen.getByRole('option', { name: first.label }))
+    await user.click(screen.getByRole('option', { name: second.label }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: passWithoutTrace.id,
+        target: expect.objectContaining({ kind: 'ACTORS', actorIds: [first.id, second.id] })
       })
     )
   })
