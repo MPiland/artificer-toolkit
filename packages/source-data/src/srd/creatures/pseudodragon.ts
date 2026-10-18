@@ -1,5 +1,4 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const pseudodragon: CreatureAuthored = {
@@ -174,8 +173,14 @@ export const pseudodragon: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(226, 7) + '__result',
+                id: S.actionId(226, 15),
                 resultKind: 'SEQUENCE' as const,
+                // Poisoned for 1 hour (D62.2); a failure by 5 or more also knocks it unconscious.
+                duration: {
+                  id: S.actionId(226, 9),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: S.actionId(226, 7),
@@ -192,76 +197,29 @@ export const pseudodragon: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(226, 502),
-          order: 2,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            savingThrow: {
-              id: S.actionId(226, 602),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 11
-            },
-            range: {
-              id: S.actionId(226, 652),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(226, 802),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(226, 802) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(226, 920),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
                   },
                   {
-                    id: S.actionId(226, 928),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PSEUDODRAGON_STING
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(226, 822),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(226, 822) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(226, 948),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PSEUDODRAGON_STING
+                    ...S.conditionSave({
+                      id: S.actionId(226, 10),
+                      savingThrowId: S.actionId(226, 11),
+                      ability: 'CONSTITUTION',
+                      dc: 11,
+                      conditionOutcomeId: S.actionId(226, 12),
+                      conditionId: conditionTypeId('POISONED'),
+                      repeatsAtTurnEnd: false
+                    }),
+                    failureMarginRider: {
+                      id: S.actionId(226, 13),
+                      failedBy: 5,
+                      outcomes: [
+                        {
+                          id: S.actionId(226, 14),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('UNCONSCIOUS')
+                        }
+                      ],
+                      lifecycle: { endOnTriggers: S.WAKE_END_TRIGGERS }
+                    }
                   }
                 ]
               }

@@ -35,6 +35,7 @@ import {
   type SizeCode
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { CREATURE_IDS } from '../ids.js'
 export { SPELL_IDS } from '../ids.js'
 import {
@@ -191,6 +192,12 @@ function sense(senseDefinitionId: string, feet: number, qualifier?: string): Cre
     ...(qualifier ? { qualifier } : {})
   }
 }
+
+/** A magical sleep ends when the sleeper takes damage or another creature shakes it awake. */
+export const WAKE_END_TRIGGERS = [
+  { event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const },
+  { event: 'ACTION_USED_ON_HOLDER' as const, actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE] }
+]
 
 export const darkvision = (feet: number, qualifier?: string) =>
   sense(SRD_DARKVISION_SENSE_ID, feet, qualifier)

@@ -352,7 +352,8 @@ export async function prepareTurnLegendaryActions<
         eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' },
         ordinal,
         forceTargetVersionAdvance:
-          target.kind === 'CHARACTER' && Boolean(effects.stateEffect || effects.recurringEffect)
+          target.kind === 'CHARACTER' &&
+          Boolean(effects.stateEffect || effects.recurringEffect || effects.riderEffect)
       },
       userId
     )
@@ -376,7 +377,10 @@ export async function prepareTurnLegendaryActions<
         : { kind: 'ENCOUNTER_ACTOR' as const, encounterId: state.id, targetActorId: target.id }
     const targetEffects = [...prepared.targetFacts.activeEffects]
     const createdEffects: ActiveRuleEffectRecord[] = []
-    const createEffect = (kind: 'STATE' | 'RECURRING', planned: typeof effects.stateEffect) => {
+    const createEffect = (
+      kind: 'STATE' | 'RECURRING' | 'RIDER',
+      planned: typeof effects.stateEffect
+    ) => {
       if (!planned) return null
       const record = prepareActiveRuleEffectRecord({
         id: uuidv5(
@@ -395,6 +399,7 @@ export async function prepareTurnLegendaryActions<
     }
     const stateEffect = createEffect('STATE', effects.stateEffect)
     const recurringEffect = createEffect('RECURRING', effects.recurringEffect)
+    const riderEffect = createEffect('RIDER', effects.riderEffect)
     const stored = buildEncounterActionStoredExecution({
       prepared,
       execution: result,
@@ -404,6 +409,7 @@ export async function prepareTurnLegendaryActions<
       effects: projectNativeActionEffectTransitions({
         state: stateEffect,
         recurring: recurringEffect,
+        rider: riderEffect,
         targetActorId: target.id
       }),
       maintainedState: null,

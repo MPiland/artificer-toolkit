@@ -173,6 +173,24 @@ export interface CharacterRuleActionActiveEffectPlan {
     replacementPolicy: 'REPLACE_SAME_DEFINITION'
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
   }
+  /**
+   * Conditions a save failed by at least `failedBy` also applies (unconscious beside poisoned). A
+   * second active effect holds them, bound to this plan's frozen graph node under its own entry.
+   */
+  marginRider: null | {
+    compiledEntryId: string
+    frozenGraphNodeId: string
+    failedBy: number
+    conditionContributions: readonly {
+      conditionId: string
+      recordsSource: boolean
+      fleesSource: boolean
+    }[]
+    lifecycle: {
+      /** The structured events that end the rider, unique and in canonical order. */
+      endOnTriggers: readonly ActiveEffectEndTrigger[]
+    }
+  }
 }
 
 /** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */

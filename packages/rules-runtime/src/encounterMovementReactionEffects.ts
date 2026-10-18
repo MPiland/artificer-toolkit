@@ -87,7 +87,7 @@ export function planEncounterMovementReactionEffects<
     (effect) => !removedIds.has(effect.id)
   )
   const createdEffects: ActiveRuleEffectRecord[] = []
-  const create = (kind: 'STATE' | 'RECURRING', plan: typeof effects.stateEffect) => {
+  const create = (kind: 'STATE' | 'RECURRING' | 'RIDER', plan: typeof effects.stateEffect) => {
     if (!plan) return null
     const record = prepareActiveRuleEffectRecord({
       id: uuidv5(
@@ -103,7 +103,7 @@ export function planEncounterMovementReactionEffects<
       owner,
       definition: plan.definition,
       lifecycle: plan.lifecycle,
-      maintainedEffectStateId: kind === 'RECURRING' ? maintainedState?.id : undefined,
+      maintainedEffectStateId: kind === 'STATE' ? undefined : maintainedState?.id,
       currentEffects,
       occurredAt: input.occurredAt
     })
@@ -113,6 +113,7 @@ export function planEncounterMovementReactionEffects<
   }
   const state = create('STATE', effects.stateEffect)
   const recurring = create('RECURRING', effects.recurringEffect)
+  const rider = create('RIDER', effects.riderEffect)
   return {
     effects,
     maintainedState,
@@ -120,6 +121,7 @@ export function planEncounterMovementReactionEffects<
     ...projectNativeActionEffectTransitions({
       state,
       recurring,
+      rider,
       targetActorId: prepared.target.id
     })
   }

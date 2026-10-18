@@ -96,6 +96,12 @@ export function prepareEncounterActionEffectPlans(input: {
 }): {
   stateEffect: EffectPlan | null
   recurringEffect: EffectPlan | null
+  /**
+   * The effect holding a failure-margin rider's conditions, beside the recurring effect it rides on.
+   * It is created only when the save failed by the margin, which the caller reads from the rider's
+   * applied conditions.
+   */
+  riderEffect: EffectPlan | null
   relationshipConditionApplications: readonly Extract<
     CharacterRuleActionApplication,
     { kind: 'CONDITION_APPLY' }
@@ -103,6 +109,27 @@ export function prepareEncounterActionEffectPlans(input: {
 } {
   const stateEffect = prepareTargetStateEffect(input)
   const recurringEffect = prepareRecurringActiveEffect(input)
+  const plan = input.activeEffectPlan
+  const rider = plan?.marginRider ?? null
+  // The rider shares the effect's duration graph under its own entry, and ends on its own triggers.
+  const riderEffect =
+    plan && rider
+      ? prepareRecurringActiveEffect({
+          ...input,
+          activeEffectPlan: {
+            ...plan,
+            compiledEntryId: rider.compiledEntryId,
+            frozenGraphNodeId: rider.frozenGraphNodeId,
+            conditionContributions: rider.conditionContributions,
+            lifecycle: {
+              consumeOnFirstEvents: [],
+              endOnEvents: [],
+              endOnTriggers: rider.lifecycle.endOnTriggers
+            },
+            marginRider: null
+          }
+        })
+      : null
   const relationshipConditionApplications =
     recurringEffect?.definition.schemaVersion === 2
       ? (() => {
@@ -139,7 +166,7 @@ export function prepareEncounterActionEffectPlans(input: {
           )
         })()
       : []
-  return { stateEffect, recurringEffect, relationshipConditionApplications }
+  return { stateEffect, recurringEffect, riderEffect, relationshipConditionApplications }
 }
 
 /**

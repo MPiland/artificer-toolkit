@@ -221,8 +221,7 @@ export const drow: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(88, 224),
                 resultKind: 'SEQUENCE' as const,
-                // Poisoned for 1 hour (D62.2); the unconsciousness on a failure by 5 or more stays
-                // description-only.
+                // Poisoned for 1 hour (D62.2); a failure by 5 or more also knocks it unconscious.
                 duration: {
                   id: S.actionId(88, 223),
                   durationKind: DURATION_KIND.HOUR,
@@ -260,6 +259,18 @@ export const drow: CreatureAuthored = {
                           conditionId: conditionTypeId('POISONED')
                         }
                       ]
+                    },
+                    failureMarginRider: {
+                      id: S.actionId(88, 225),
+                      failedBy: 5,
+                      outcomes: [
+                        {
+                          id: S.actionId(88, 226),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('UNCONSCIOUS')
+                        }
+                      ],
+                      lifecycle: { endOnTriggers: S.WAKE_END_TRIGGERS }
                     }
                   }
                 ]
