@@ -8,6 +8,8 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
+  SCALING_SOURCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -17,6 +19,10 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const conditions = [
+  { code: 'BLINDED', label: 'Blindness' },
+  { code: 'DEAFENED', label: 'Deafness' }
+] as const
 export const blindnessDeafness: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.BLINDNESS_DEAFNESS,
@@ -51,8 +57,19 @@ export const blindnessDeafness: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          // One creature, and one more for each slot level above 2nd.
+          maxTargetsScaling: {
+            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            breakpoints: Array.from({ length: 8 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x226, index + 1),
+              level: index + 2,
+              order: index + 1,
+              value: { amount: index + 1 }
+            }))
+          }
         }
       },
       paths: [
@@ -63,64 +80,42 @@ export const blindnessDeafness: SpellAuthored = {
           groupType: PATH_GROUP_TYPE.CHOICE,
           originKind: 'SOURCE' as const,
           selectionKind: 'CHOICE' as const,
-          options: [
-            {
-              id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x212, 1),
-              order: 1,
-              label: 'Blindness',
-              description:
-                'If it fails, the target is either blinded or deafened (your choice) for the duration.',
-              resultBlock: {
-                id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x212, 1) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x213, 1),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
+          options: conditions.map(({ code, label }, index) => ({
+            id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x220, index + 1),
+            order: index + 1,
+            label,
+            description:
+              'If it fails, the target is either blinded or deafened (your choice) for the duration. At the end of each of its turns, the target can make a Constitution saving throw. On a success, the spell ends.',
+            resultBlock: {
+              id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x221, index + 1),
+              resultKind: 'SEQUENCE' as const,
+              duration: {
+                id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x222, index + 1),
+                durationKind: DURATION_KIND.MINUTE,
+                amount: 1
+              },
+              outcomes: [
+                {
+                  id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x223, index + 1),
+                  effectKind: EFFECT_KIND.CONDITION,
+                  conditionId: conditionTypeId(code)
                 },
-                outcomes: [
-                  {
-                    id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x212, 1),
-                    effectKind: EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('BLINDED')
-                  }
-                ]
-              }
+                {
+                  id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x224, index + 1),
+                  effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                  timing: 'TARGET_TURN_END' as const,
+                  savingThrow: {
+                    id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x225, index + 1),
+                    dcMethod: 'SOURCE_SAVE_DC' as const,
+                    abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
+                  },
+                  attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                  onSuccess: { kind: 'END' as const },
+                  onFailure: { kind: 'CONTINUE' as const }
+                }
+              ]
             }
-          ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          groupType: PATH_GROUP_TYPE.CHOICE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'CHOICE' as const,
-          options: [
-            {
-              id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 1),
-              order: 1,
-              label: 'Deafness',
-              description:
-                'If it fails, the target is either blinded or deafened (your choice) for the duration.',
-              resultBlock: {
-                id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 1) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x215, 1),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 1),
-                    effectKind: EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('DEAFENED')
-                  }
-                ]
-              }
-            }
-          ]
+          }))
         }
       ]
     }

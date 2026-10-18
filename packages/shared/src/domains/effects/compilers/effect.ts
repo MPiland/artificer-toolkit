@@ -84,6 +84,8 @@ export type CompiledEffect = {
   | {
       resolutionKind: typeof PATH_RESOLUTION_KIND.DIRECT
       groupKind: keyof typeof PATH_GROUP_TYPE
+      /** A CHOICE option's own result kind, which the entry keeps once the option is picked (D148). */
+      optionGroupKind?: typeof PATH_GROUP_TYPE.SINGLE | typeof PATH_GROUP_TYPE.SEQUENTIAL
     }
   | ({
       resolutionKind: typeof PATH_RESOLUTION_KIND.ROLL_TABLE
@@ -341,7 +343,9 @@ function compileOutcomePayload(
   }
 }
 
-function groupKindFromResultKind(resultKind: 'SINGLE' | 'SEQUENCE'): PathGroupType {
+function groupKindFromResultKind(
+  resultKind: 'SINGLE' | 'SEQUENCE'
+): typeof PATH_GROUP_TYPE.SINGLE | typeof PATH_GROUP_TYPE.SEQUENTIAL {
   return resultKind === 'SEQUENCE' ? PATH_GROUP_TYPE.SEQUENTIAL : PATH_GROUP_TYPE.SINGLE
 }
 
@@ -431,10 +435,12 @@ function compileResultBlock(
       compiled.push({
         ...base,
         resolutionKind: PATH_RESOLUTION_KIND.DIRECT,
-        groupKind:
-          path.selectionKind === 'CHOICE'
-            ? PATH_GROUP_TYPE.CHOICE
-            : groupKindFromResultKind(resultBlock.resultKind)
+        ...(path.selectionKind === 'CHOICE'
+          ? {
+              groupKind: PATH_GROUP_TYPE.CHOICE,
+              optionGroupKind: groupKindFromResultKind(resultBlock.resultKind)
+            }
+          : { groupKind: groupKindFromResultKind(resultBlock.resultKind) })
       })
     }
   }

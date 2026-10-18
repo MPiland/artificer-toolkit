@@ -2,6 +2,7 @@ import {
   areaActionTargetOrigin,
   type AreaActionTargetDto,
   type RemoveAreaTargetInputDto,
+  castChoiceOptionId,
   type ResolveEncounterActionInputDto,
   type ResolveEncounterActionTargetDto,
   type ResolveRuleOccurrenceInputDto
@@ -246,7 +247,9 @@ const WRONG_TARGET_MESSAGES: Partial<
  * names another kind is refused, saying what the action takes.
  */
 export async function prepareCasterSource(
-  input: AreaPlanBase & { command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId'> },
+  input: AreaPlanBase & {
+    command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId' | 'target'>
+  },
   targetKind: ReturnType<typeof encounterActionTargetKind>
 ) {
   const { command, state, actors } = input
@@ -258,6 +261,7 @@ export async function prepareCasterSource(
     state,
     actor: caster,
     actionId: command.actionId,
+    choiceOptionId: castChoiceOptionId(command.target),
     sourceFacts: casterFacts,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
   }).catch(refuseStaleCharacterAction)
@@ -505,7 +509,7 @@ export function prepareCasterActionOnTarget(
     AreaPlanBase,
     'state' | 'system' | 'actors' | 'activeEffectsByActorId' | 'capture'
   > & {
-    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict'>
+    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict' | 'target'>
   },
   action: {
     caster: EncounterRunActorState
@@ -523,6 +527,7 @@ export function prepareCasterActionOnTarget(
     target: action.target,
     actors: input.actors,
     actionId: input.command.actionId,
+    choiceOptionId: castChoiceOptionId(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',
       accepted: input.command.acceptedWieldConflict

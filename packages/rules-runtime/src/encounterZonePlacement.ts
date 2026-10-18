@@ -10,6 +10,7 @@ import type {
 } from '@artificer-toolkit/shared/compilers'
 
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
+import { castChoiceOptions } from './encounterCastChoice.js'
 
 type PlacedSpaceManifest = Exclude<
   CompiledManifest,
@@ -76,39 +77,6 @@ function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean
 }
 
 /**
- * The options of an action whose one ON_USE CHOICE path lets its caster pick the zone at cast
- * (D140), each as the action narrowed to that option's entries; null for any other action.
- */
-export function zoneChoiceOptions(
-  compiledEffect: CompiledEffectGroup
-): { optionId: string; label: string; compiledEffect: CompiledEffectGroup }[] | null {
-  const [first] = compiledEffect.entries
-  if (
-    !first ||
-    !compiledEffect.entries.every(
-      (entry) =>
-        'outcome' in entry &&
-        entry.groupKind === 'CHOICE' &&
-        entry.pathCode === 'ON_USE' &&
-        entry.pathGroupId === first.pathGroupId &&
-        entry.label !== undefined
-    )
-  )
-    return null
-  const optionIds = [...new Set(compiledEffect.entries.map(({ entryId }) => entryId))]
-  if (optionIds.length < 2) return null
-  return optionIds.map((optionId) => {
-    const entries = compiledEffect.entries.filter((entry) => entry.entryId === optionId)
-    const [entry] = entries
-    return {
-      optionId,
-      label: entry && 'label' in entry ? (entry.label ?? '') : '',
-      compiledEffect: { ...compiledEffect, entries }
-    }
-  })
-}
-
-/**
  * The manifest of an action whose one outcome places a zone in the space it names (a PLACED_SPACE
  * ZONE) or on its user (a SOURCE ZONE), or null for any other action. Identification only:
  * {@link placedSpaceZone} validates it.
@@ -117,7 +85,7 @@ export function placedSpaceManifest(
   compiledEffect: CompiledEffectGroup
 ): PlacedSpaceManifest | null {
   // A cast-time pick places one of its options' zones, which share the area (D140).
-  const options = zoneChoiceOptions(compiledEffect)
+  const options = castChoiceOptions(compiledEffect)
   if (!options) return singlePlacedSpaceManifest(compiledEffect)
   const manifests = options.map((option) => singlePlacedSpaceManifest(option.compiledEffect))
   return manifests.every((manifest) => manifest !== null) ? (manifests[0] ?? null) : null
