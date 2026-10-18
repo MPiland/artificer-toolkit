@@ -6,7 +6,7 @@ import {
   readNativeActionPending
 } from './actionPending.js'
 import { projectNativeAreaActionPending, readNativeAreaActionPending } from './actionAreaPending.js'
-import { projectNativeDisarmPendingForMember } from './actionDisarmPending.js'
+import { projectNativeContestPendingForMember } from './actionContestPending.js'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
 import { contestCheckMovementContinuation } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
@@ -105,7 +105,7 @@ export async function readPendingRunDecision(
     throw new Error('Stored Encounter occurrence state is invalid.')
   const context = pendingSnapshot.applicationContext
   if (context.kind === 'ENCOUNTER_ACTION' && context.contest)
-    return projectNativeDisarmPendingForMember(ctx, row, campaign, membership, occurrence)
+    return projectNativeContestPendingForMember(ctx, row, campaign, membership, occurrence)
   const actors = await readRunActors(ctx, readRunState(row))
   const controlledActorIds = await readEncounterControlledActorIds(ctx, {
     campaign,

@@ -21,7 +21,7 @@ import {
 } from '../shared/ruleExecutionPrimitives.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 
-const disarmScope = lazySchema(() =>
+const contestScope = lazySchema(() =>
   z.extend(
     z.omit(liveSessionEncounterRulesInputSchema, {
       request: true,
@@ -42,15 +42,15 @@ const disarmScope = lazySchema(() =>
   )
 )
 
-/** A room-planned Disarm waiting on a participant's d20: the sealed contest, nothing applied. */
-export const liveSessionEncounterDisarmPendingInputSchema = lazySchema(() =>
-  z.extend(disarmScope, {
+/** A room-planned contest waiting on a participant's d20: the sealed contest, nothing applied. */
+export const liveSessionEncounterContestPendingInputSchema = lazySchema(() =>
+  z.extend(contestScope, {
     snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema
   })
 )
 
-export type LiveSessionEncounterDisarmPendingInput = z.infer<
-  typeof liveSessionEncounterDisarmPendingInputSchema
+export type LiveSessionEncounterContestPendingInput = z.infer<
+  typeof liveSessionEncounterContestPendingInputSchema
 >
 
 /** A condition a won contest's picked outcome applies to its target, as the room planned it (D105). */
@@ -65,11 +65,11 @@ export type LiveSessionContestConditionApplication = {
 }
 
 /**
- * A room-planned Disarm's settled contest. Convex re-applies the item and ACTION changes it
- * describes and records the receipts; it never rolls or evaluates.
+ * A room-planned contest's settlement. Convex re-applies the changes and ACTION use it describes
+ * and records the receipts; it never rolls or evaluates.
  */
-export type LiveSessionEncounterDisarmCommitInput = Omit<
-  LiveSessionEncounterDisarmPendingInput,
+export type LiveSessionEncounterContestCommitInput = Omit<
+  LiveSessionEncounterContestPendingInput,
   'snapshot'
 > & {
   occurredAt: string
@@ -86,9 +86,9 @@ export type LiveSessionEncounterDisarmCommitInput = Omit<
   forcedMovements: LiveSessionForcedMovement[]
 }
 
-export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSessionEncounterDisarmCommitInput> =
+export const liveSessionEncounterContestCommitInputSchema: z.ZodMiniType<LiveSessionEncounterContestCommitInput> =
   lazySchema(() =>
-    z.extend(disarmScope, {
+    z.extend(contestScope, {
       occurredAt: z.iso.datetime(),
       contest: serverContestCheckPendingContextDtoSchema,
       execution: storedRuleExecutionResultDtoSchema,

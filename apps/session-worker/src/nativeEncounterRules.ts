@@ -68,7 +68,7 @@ import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
 } from './nativeAttackPerception.js'
-import { planNativeLiveContestRolls } from './nativeDisarm.js'
+import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
