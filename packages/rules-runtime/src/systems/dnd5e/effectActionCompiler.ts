@@ -1164,8 +1164,8 @@ function sequentialCompositionPlan(
 
 /**
  * The cast graph of a sequential composition: its immediate heal, else its grant, as that entry
- * alone compiles. A recurring heal with an ability bonus names its outcome on the graph, so the
- * cast settles its amount (see `bindFacts`).
+ * alone compiles. A recurring heal names its outcome on the graph, so the cast heals only its own
+ * row; one with an ability bonus also has its amount settled at cast (see `bindFacts`).
  */
 function compileSequentialComposition(
   action: Dnd5eCompiledEffectActionSource,
@@ -1194,14 +1194,15 @@ function compileSequentialComposition(
   const published = compileDnd5eEffectAction({
     action: { ...castAction, compiledEffect: { ...instantEffect, invocation: instantInvocation } }
   })
-  if (recurring?.outcome.effectKind !== 'HEAL' || (recurring.outcome.bonuses?.length ?? 0) === 0)
-    return published
+  if (recurring?.outcome.effectKind !== 'HEAL') return published
   const definition: RuleGraphDefinition = {
     ...published.definition,
     outputs: {
       ...published.definition.outputs,
       recurringHealOutcomeId: { kind: 'LITERAL', value: recurring.outcome.id },
-      recurringHealAmount: { kind: 'FACT', factKey: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY }
+      ...((recurring.outcome.bonuses?.length ?? 0) > 0 && {
+        recurringHealAmount: { kind: 'FACT', factKey: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY }
+      })
     }
   }
   return serverPublishedRuleDefinitionDtoSchema.parse({
@@ -4984,6 +4985,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     },
     {
       key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
+      key: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {
@@ -8900,7 +8905,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const recurringHealOutcomeId =
       recurringHealOutcome?.kind === 'LITERAL' ? recurringHealOutcome.value : null
     let recurringHealAmountFacts: Record<string, number> = {}
-    if (recurringHealOutcomeId !== null) {
+    if (recurringHealOutcomeId !== null && published.definition.outputs.recurringHealAmount) {
       const rows = resolvedHealOutcomes.filter(
         ({ outcomeId }) => outcomeId === recurringHealOutcomeId
       )

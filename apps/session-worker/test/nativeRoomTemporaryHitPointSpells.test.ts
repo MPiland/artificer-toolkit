@@ -62,7 +62,8 @@ function casterRoom(
     ],
     characterSpellcasting: { spells: [spell], prepared: [spell.id] },
     ...(config.level && { characterPlay: { classLevel: config.level } }),
-    ...(config.rolls && { rolls: config.rolls, fallbackRoll: 0 }),
+    // The cast's dice roll from `rolls` for whoever rolls them, else they wait for a manual roll.
+    ...(config.rolls && { autoRoll: 'BOTH' as const, rolls: config.rolls, fallbackRoll: 0 }),
     characterAction: (action) => action.label === label
   })
 }
