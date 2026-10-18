@@ -17,7 +17,10 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { CharacterSheetExecuteInput } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import {
+  characterSheetCommandInputDtoSchema,
+  type CharacterSheetExecuteInput
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type {
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeResolveRequestDto
@@ -46,6 +49,7 @@ import {
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { contactOtherPlane } from '@artificer-toolkit/source-data/srd/spells/contact-other-plane.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { cureWounds } from '@artificer-toolkit/source-data/srd/spells/cure-wounds.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
@@ -1685,5 +1689,89 @@ describe('Character spell casting in an Encounter', () => {
         { slotKey: 'STANDARD:1', used: 1 }
       ])
     }, 120000)
+  })
+
+  describe('a self save whose failure holds a condition until a long rest (SPELLS-4.T2a1b)', () => {
+    const incapacitatedId = srdSystemRecord.conditionTypes.find(
+      (condition) => condition.code === 'INCAPACITATED'
+    )?.id
+
+    async function streamVersion(fixture: Fixture) {
+      await closeRoom(fixture.campaign.id)
+      return fixture.t.run(async (ctx) => {
+        const row = await readCharacterRow(ctx, fixture.character.id)
+        if (!row) throw new Error('Missing Character row.')
+        return row.play.streamVersion
+      })
+    }
+
+    async function longRest(fixture: Fixture) {
+      const input = {
+        restKind: 'LONG' as const,
+        expectedVersion: await streamVersion(fixture),
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC' as const,
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [],
+        requestRoll: false as const
+      }
+      const preview = await fixture.player.caller.query(api.characters.rest.preview, {
+        id: fixture.character.id,
+        input
+      })
+      await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
+        id: fixture.character.id,
+        command: characterSheetCommandInputDtoSchema.parse({
+          ...input,
+          type: 'COMPLETE_REST',
+          commandId: crypto.randomUUID(),
+          previewFingerprint: preview.previewFingerprint
+        })
+      })
+    }
+
+    it('deals the psychic damage, holds Incapacitated with no Concentration and releases it on a long rest', async () => {
+      const fixture = await setup({
+        known: [srdSpell(contactOtherPlane)],
+        slots: [{ spellLevel: 5, slotCount: 1 }]
+      })
+      if (!incapacitatedId) throw new Error('Missing the Incapacitated condition.')
+      // Room for the 6d6 psychic damage without dropping to 0 hit points.
+      await fixture.owner.caller.mutation(executeSheet, {
+        id: fixture.character.id,
+        command: {
+          type: 'SET_HIT_POINTS',
+          commandId: crypto.randomUUID(),
+          expectedVersion: await streamVersion(fixture),
+          current: 11,
+          temp: 0
+        }
+      })
+
+      // A natural 1 on the Intelligence save against DC 15, then every d6 lands on 1.
+      await queueRoomRolls(fixture.campaign.id, { rolls: [0, 0, 0, 0, 0, 0, 0], repeat: 0 })
+      const cast = await executeInRoom(fixture.player.caller, {
+        command: castCommand(
+          fixture,
+          await choiceId(fixture, 'Contact Other Plane (5th level)', 0),
+          0
+        )
+      })
+      expect(cast.occurrence?.status).toBe('COMPLETE')
+      const afterCast = await storedCharacter(fixture)
+      expect(afterCast.record.state.hitpoints.current).toBe(11 - 6)
+      expect(
+        (afterCast.record.state.conditions ?? []).map((entry) => entry.conditionTypeId)
+      ).toEqual([incapacitatedId])
+      // Nothing maintains it: no Concentration.
+      expect(await maintainedEffects(fixture)).toEqual([])
+      expect(await characterActiveEffects(fixture)).toHaveLength(1)
+
+      await longRest(fixture)
+      const afterLongRest = await storedCharacter(fixture)
+      expect(afterLongRest.record.state.conditions ?? []).toEqual([])
+      expect(await characterActiveEffects(fixture)).toEqual([])
+    }, 180000)
   })
 })

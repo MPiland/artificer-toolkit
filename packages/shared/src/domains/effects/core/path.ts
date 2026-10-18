@@ -411,7 +411,8 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
   ON_INCAPACITATED: 'ON_INCAPACITATED',
   ON_IDLE_TURN: 'ON_IDLE_TURN',
-  ON_LEAVING_AREA: 'ON_LEAVING_AREA'
+  ON_LEAVING_AREA: 'ON_LEAVING_AREA',
+  ON_LONG_REST: 'ON_LONG_REST'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -452,6 +453,11 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_LEAVING_AREA,
     label: 'On Leaving Area',
     description: 'Ends when the holder leaves the area of the zone that holds it.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_LONG_REST]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_LONG_REST,
+    label: 'On Long Rest',
+    description: 'Ends when the holder finishes a long rest.'
   }
 } as const
 

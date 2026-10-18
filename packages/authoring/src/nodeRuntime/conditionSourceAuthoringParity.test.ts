@@ -6,6 +6,7 @@ import { adultRedDragon } from '@artificer-toolkit/source-data/srd/creatures/adu
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { awaken } from '@artificer-toolkit/source-data/srd/spells/awaken.js'
 import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
+import { contactOtherPlane } from '@artificer-toolkit/source-data/srd/spells/contact-other-plane.js'
 import { fear } from '@artificer-toolkit/source-data/srd/spells/fear.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
@@ -150,6 +151,15 @@ describe('a hit-point pool that passes over conditions, and a condition counted 
     ['Awaken', awaken]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     const authored = equipmentWith(spell.effects)
+    const result = await normalize('equipment', authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+})
+
+describe('a self save whose failure holds a condition until a long rest (SPELLS-4.T2a1b)', () => {
+  it('keeps the SRD Contact Other Plane effect, ending on a long rest, exactly as authored', async () => {
+    const authored = equipmentWith(contactOtherPlane.effects)
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)

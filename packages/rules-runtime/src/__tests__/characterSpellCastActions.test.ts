@@ -18,6 +18,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
+import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
   readSpellCastSlot,
@@ -58,6 +59,7 @@ const INVISIBILITY = spell('Invisibility')
 const CHARM_PERSON = spell('Charm Person')
 const SLEEP = spell('Sleep')
 const HYPNOTIC_PATTERN = spell('Hypnotic Pattern')
+const CONTACT_OTHER_PLANE = spell('Contact Other Plane')
 const FEAR = spell('Fear')
 const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
 const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
@@ -303,6 +305,61 @@ const HYPNOTIC_PATTERN_FROM_CORE_OPTIONS = {
   ]
 } as SpellAuthored
 
+/** Contact Other Plane written out in core options alone, with no SRD helper (the parity proof). */
+const CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS = {
+  ...CONTACT_OTHER_PLANE,
+  id: testUuid(0x3300),
+  effects: [
+    {
+      id: testUuid(0x3301),
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: testUuid(0x3302),
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: SRD_ABILITIES.find(({ code }) => code === 'INTELLIGENCE')?.id,
+          baseDc: 15
+        },
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: testUuid(0x3303), rangeKind: 'SELF' },
+        targeting: { selectionKind: 'SELF' }
+      },
+      paths: [
+        {
+          id: testUuid(0x3304),
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SEQUENTIAL',
+          originKind: 'SOURCE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: testUuid(0x3305),
+            resultKind: 'SEQUENCE',
+            lifecycle: { endOnEvents: ['ON_LONG_REST'] },
+            outcomes: [
+              {
+                id: testUuid(0x3306),
+                effectKind: 'DAMAGE',
+                damageTypeId: SRD_DAMAGE_TYPES.find(({ code }) => code === 'PSYCHIC')?.id,
+                valueKind: 'DICE',
+                scalingKind: 'NONE',
+                diceConfig: '6d6'
+              },
+              {
+                id: testUuid(0x3307),
+                effectKind: 'CONDITION',
+                conditionId: conditionId('INCAPACITATED')
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+} as SpellAuthored
+
 /** Protection from Energy cast on its caster alone, so its pick has no chosen creature to go with. */
 const PROTECTION_FROM_ENERGY_ON_SELF = {
   ...PROTECTION_FROM_ENERGY,
@@ -324,6 +381,8 @@ const authoredById = new Map(
     WALL_OF_THORNS,
     HYPNOTIC_PATTERN,
     HYPNOTIC_PATTERN_FROM_CORE_OPTIONS,
+    CONTACT_OTHER_PLANE,
+    CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS,
     SCORCHED_INVISIBILITY,
     FIREBALL,
     MEND,
@@ -868,6 +927,46 @@ describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', ()
         countedByTurnEffects: true
       }
     })
+  })
+})
+
+describe('a save its caster makes, whose failure holds a condition until a long rest (SPELLS-4.T2a1b)', () => {
+  const madness = {
+    recurrenceStage: 'NONE',
+    initialRemaining: null,
+    tickAnchor: 'HOLDER',
+    conditionContributions: [{ conditionId: conditionId('INCAPACITATED') }],
+    lifecycle: { consumeOnFirstEvents: [], endOnEvents: ['ON_LONG_REST'], endOnTriggers: [] },
+    maintenance: null
+  }
+
+  it('tests Contact Other Plane’s caster alone and owns its incapacitated until a long rest, with no Concentration', () => {
+    const compiled = compiledCast(CONTACT_OTHER_PLANE)
+    expect(compiled?.executionPlan.kind).toBe('TEST_OUTCOME')
+    expect(compiled?.activeEffectPlan).toMatchObject(madness)
+  })
+
+  // Parity: the same spell written out in core options alone (no SRD helper) compiles to this plan.
+  it('compiles a spell authored from core options only to the same plan as the SRD data', () => {
+    const compiled = compiledCast(CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS)
+    expect(compiled?.executionPlan.kind).toBe('TEST_OUTCOME')
+    expect(compiled?.activeEffectPlan).toMatchObject(madness)
+  })
+
+  it('ends the effect a failed save stores on a long rest, not a short one', () => {
+    const { definition } = plannedTimedCondition({
+      encounterId: testUuid(0xd911),
+      sourceActorId: testUuid(0xd912),
+      holderActorId: testUuid(0xd912),
+      spell: CONTACT_OTHER_PLANE,
+      lifetimeScope: 'OWNER'
+    })
+    expect(definition.recurrence).toMatchObject({
+      endOnEvents: ['ON_LONG_REST'],
+      expiration: { kind: 'INDEFINITE' }
+    })
+    expect(activeEffectEndsOnRest({ definition }, 'LONG')).toBe(true)
+    expect(activeEffectEndsOnRest({ definition }, 'SHORT')).toBe(false)
   })
 })
 

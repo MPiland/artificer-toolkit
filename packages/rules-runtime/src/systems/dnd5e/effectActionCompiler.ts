@@ -777,6 +777,14 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
           !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
     )
       return false
+  } else if (targeting?.selectionKind === 'SELF') {
+    // A save its user makes (Contact Other Plane) tests the user alone: a Self range, no area.
+    return (
+      invocation.triggerCode === 'SAVING_THROW' &&
+      invocation.range.rangeKind === 'SELF' &&
+      !invocation.shape &&
+      (invocation.activation.code === 'ACTION' || invocation.activation.code === 'BONUS_ACTION')
+    )
   } else if (
     invocation.shape ||
     targeting?.selectionKind !== 'SINGLE_TARGET' ||
@@ -1724,7 +1732,9 @@ function timedImmediateConditionPlan(
  * together through one Encounter active effect that counts the target's turns, carries the authored
  * events that use it up or end it, and removes every condition when it ends. A speed grant authored
  * beside the conditions (Hypnotic Pattern's speed of 0) is held by the same effect and ends with it.
- * With no duration it lasts as long as the Concentration that maintains it. Any other lifecycle
+ * Damage in the same result block (Contact Other Plane's 6d6 psychic) is dealt by the test outcome
+ * as usual; the effect holds only the conditions. With no duration the conditions last as long as
+ * the Concentration that maintains them or until an authored event ends them. Any other lifecycle
  * stays manual.
  */
 function timedConditionPlan(
@@ -1740,10 +1750,14 @@ function timedConditionPlan(
   if (
     !lead ||
     grantEntries.length > 1 ||
-    conditionEntries.length + grantEntries.length !== entries.length ||
-    // The entries are one authored result: same path, block, duration and lifecycle.
+    outcomeEntries.length !== entries.length ||
+    // The held entries and any damage beside them are one authored result: same path, block,
+    // duration and lifecycle.
     outcomeEntries.some(
       (entry) =>
+        (entry.outcome.effectKind !== 'CONDITION' &&
+          entry.outcome.effectKind !== 'APPLY_GRANT' &&
+          entry.outcome.effectKind !== 'DAMAGE') ||
         entry.pathCode !== lead.entry.pathCode ||
         entry.resultBlockId !== lead.entry.resultBlockId ||
         JSON.stringify(entry.duration) !== JSON.stringify(lead.entry.duration) ||
@@ -1761,8 +1775,8 @@ function timedConditionPlan(
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
-  // With no duration the conditions last until their Concentration ends or an authored event ends
-  // them (Imp Invisibility), so Concentration must maintain them: nothing else bounds them.
+  // With no duration the conditions last until their Concentration ends (Imp Invisibility) or an
+  // authored event ends them (Contact Other Plane's long rest): one of them must bound them.
   const { duration } = lead.entry
   const initialRemaining = duration ? conditionDurationTurns(duration) : null
   const indefinite = !duration
@@ -1778,7 +1792,7 @@ function timedConditionPlan(
       })?.modifierGrantContribution
     : null
   if (
-    (indefinite ? !maintenance : initialRemaining === null) ||
+    (indefinite ? !maintenance && endOnEvents.length === 0 : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.
@@ -1835,7 +1849,8 @@ function ownsTimedSaveCondition(
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
     'outcome' in entry &&
-    (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 &&
+    ((entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
+      (entry.lifecycle?.endOnEvents?.length ?? 0) > 0) &&
     timedConditionPlan(action) !== null
   )
 }
