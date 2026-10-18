@@ -24,6 +24,9 @@ on:
       worker_workers:
         description: Vitest workers for the Worker suite (pushes use 4; PLATFORM-13.T4)
         default: '4'
+      web_workers:
+        description: Vitest workers for the web suite (trial; empty uses the config's 50%)
+        default: ''
       full:
         description: Run every test file instead of the affected ones
         type: boolean
@@ -199,10 +202,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - env:
+          WORKERS: ${{ inputs.web_workers && format('--maxWorkers={0}', inputs.web_workers) || '' }}
           FILES: ${{ needs.build.outputs.web-files }}
         run: |
           set -f
-          yarn workspace @artificer-toolkit/web test $FILES
+          yarn workspace @artificer-toolkit/web test $WORKERS $FILES
 
   # The account runs at most 20 jobs at once, so typechecks share two sequential jobs instead of one job
   # each; both finish inside the Convex and web test critical path. Every step runs even after a failure,
