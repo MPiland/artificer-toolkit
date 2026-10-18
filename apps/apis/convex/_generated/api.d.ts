@@ -24525,7 +24525,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -34345,7 +34345,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -44174,7 +44174,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -53994,7 +53994,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -63849,7 +63849,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -73669,7 +73669,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -83476,7 +83476,7 @@ export declare const api: {
                 schemaVersion: 1;
               }
             | {
-                actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                 effects: Array<{
                   grip?: "ONE_HANDED" | "TWO_HANDED";
                   id: string;
@@ -93181,7 +93181,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -103001,7 +103001,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
