@@ -6516,7 +6516,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     )
   )
   if (groups.length === 0) return null
-  const definitions = groups.map((entries, groupIndex) => {
+  const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
