@@ -7,9 +7,12 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
 
-if (fighter.category !== 'BASE') throw new Error('Expected the canonical parent Fighter.')
-const gold = srdSystemRecord.currencies.find(({ id }) => id === fighter.startingGold.currencyId)
-const clubCurrency = srdSystemRecord.currencies.find(({ id }) => id === club.cost?.currencyId)
+if (fighter.category !== 'BASE' || club.category === 'VARIANT')
+  throw new Error('Expected the canonical parent Fighter and Club.')
+const goldId = fighter.startingGold.currencyId
+const clubPriceId = club.cost?.currencyId
+const gold = srdSystemRecord.currencies.find(({ id }) => id === goldId)
+const clubCurrency = srdSystemRecord.currencies.find(({ id }) => id === clubPriceId)
 if (!gold || !clubCurrency) throw new Error('Expected SRD gold and the Club price currency.')
 
 describe('Campaign currency labels', () => {

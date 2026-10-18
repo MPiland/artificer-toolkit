@@ -22,7 +22,9 @@ describe('Character Sheet item cost label', () => {
       }
     }
     const { sheet } = await prepareFixtureSheet({ ...fixture, character })
-    const currency = system.currencies.find(({ id }) => id === club.cost?.currencyId)
+    if (club.category === 'VARIANT') throw new Error('Expected the canonical SRD club.')
+    const priceId = club.cost?.currencyId
+    const currency = system.currencies.find(({ id }) => id === priceId)
     if (!currency) throw new Error('The SRD club must be priced in a System currency.')
 
     expect(sheet.inventory.items.find(({ id }) => id === 'held-club')).toMatchObject({
