@@ -114241,6 +114241,11 @@ export declare const api: {
             total: number;
           } | null;
           optionalRules: Array<{ definitionId: string; label: string }>;
+          releases: Array<{
+            activeEffectId: string;
+            heldActorId: string;
+            label: string;
+          }>;
           unavailableActions: Array<{
             id: string;
             label: string;
