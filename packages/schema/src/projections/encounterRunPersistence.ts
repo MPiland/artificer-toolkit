@@ -422,7 +422,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       )
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.literal('ESCAPE_RELATIONSHIP'),
+      commandType: z.literal('ESCAPE'),
       /** The timeline label: plain "Escape", which never names a grappler a player cannot see (D100). */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,

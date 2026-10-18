@@ -19,6 +19,12 @@ export const tiger: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 37,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 10,

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { fireShield } from '@artificer-toolkit/source-data/srd/spells/fire-shield.js'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { encounterActionChoiceTarget } from '../encounterAreaAction.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
@@ -108,5 +111,176 @@ describe('a cast-time pick between zones (SPELLS-20 T4e, D140)', () => {
     )
 
     expect(entry.compilation.kind).toBe('MANUAL')
+  })
+})
+
+const damageType = (code: string) => SRD_DAMAGE_TYPES.find((type) => type.code === code)!.id
+
+type AuthoredEffects = NonNullable<EquipmentAuthored['effects']>
+
+/** An item carrying Fire Shield's authored effects, gripless as an item's effects are, edited by `change`. */
+function carryingFireShield(change: (effects: AuthoredEffects) => void = () => {}) {
+  const effects = structuredClone(fireShield.effects ?? []).map((effect) => ({
+    ...effect,
+    grip: null
+  }))
+  change(effects)
+  return { ...structuredClone(caltropsBagOf20), id: extraId(0x1a0), label: 'Shield charm', effects }
+}
+
+/** The outcomes of each shield the cast offers. */
+function shieldOutcomes(effects: AuthoredEffects) {
+  const path = effects[0]?.paths[0]
+  if (path?.selectionKind !== 'CHOICE') throw new Error('Fire Shield must author a cast choice.')
+  return path.options.map((option) => option.resultBlock.outcomes)
+}
+
+/** Each shield the cast offers, by label, with its compiled zone. */
+function shields(equipment: EquipmentAuthored) {
+  const path = equipment.effects?.[0]?.paths[0]
+  if (path?.selectionKind !== 'CHOICE') throw new Error('Fire Shield must author a cast choice.')
+  const entry = compileItemEntry(equipment)
+  const placement =
+    entry.schemaVersion === 4 &&
+    entry.compilation.kind === 'COMPILED' &&
+    entry.compilation.zonePlacement
+  if (!placement) throw new Error('Fire Shield must place a zone.')
+  return path.options.map(({ id, label }) => {
+    const zone = chosenZonePlacement(placement, id)
+    if (!zone) throw new Error(`The ${label} must compile a zone.`)
+    return { label, zone }
+  })
+}
+
+/** What a shield's zone does: the dice it rolls, their damage type and the grant its caster holds. */
+function shieldEffect({ zone }: ReturnType<typeof shields>[number]) {
+  const { nodes } = zone.entry.frozenGraph.definition
+  return {
+    dice: nodes
+      .filter((node) => node.operation.key === 'evidence.integer-range')
+      .map((node) => node.inputs.max),
+    damageTypes: nodes.flatMap(({ inputs }) => (inputs.damageTypeId ? [inputs.damageTypeId] : [])),
+    grant: zone.sourceGrant && {
+      initialRemaining: zone.sourceGrant.initialRemaining,
+      modifiers: zone.sourceGrant.modifierGrantContribution?.modifiers
+    }
+  }
+}
+
+describe('Fire Shield: a cast-time pick between shields that burn a melee attacker (SPELLS-20 T6d1, D153)', () => {
+  it('compiles each shield to a 5 ft zone on its caster answering only melee hits, lasting the Run', () => {
+    const picked = shields(carryingFireShield())
+    expect(picked.map(({ label }) => label)).toEqual(['Warm shield', 'Chill shield'])
+    for (const { zone } of picked) {
+      expect(zone).toMatchObject({
+        attachment: 'SOURCE',
+        shape: { shapeKind: 'SPHERE', radius: { amount: 5, unit: 'FEET' } },
+        triggerModes: [],
+        retaliatesMeleeHits: true,
+        maintenance: null,
+        grant: null
+      })
+      expect(zone).not.toHaveProperty('turnTriggers')
+    }
+  })
+
+  it('burns with 2d8 of the shield’s element and gives its caster ten minutes of resistance to the other', () => {
+    const [warm, chill] = shields(carryingFireShield()).map(shieldEffect)
+    for (const [shield, eruption, resistance] of [
+      [warm, 'FIRE', 'COLD'],
+      [chill, 'COLD', 'FIRE']
+    ] as const) {
+      expect(shield?.dice).toEqual([
+        { kind: 'LITERAL', value: 8 },
+        { kind: 'LITERAL', value: 8 }
+      ])
+      expect(shield?.damageTypes).toEqual([{ kind: 'LITERAL', value: damageType(eruption) }])
+      expect(shield?.grant).toEqual({
+        initialRemaining: 100,
+        modifiers: [expect.objectContaining({ payload: { damageTypeId: damageType(resistance) } })]
+      })
+    }
+  })
+
+  it('compiles a shield authored from the same core options with another radius, dice, element and resistance the same way (ADR 0038)', () => {
+    const [warm] = shields(
+      carryingFireShield((effects) => {
+        const [zone, grant] = shieldOutcomes(effects)[0]!
+        if (
+          zone?.effectKind !== 'MANIFEST' ||
+          zone.manifestKind !== 'ZONE' ||
+          grant?.effectKind !== 'APPLY_GRANT'
+        )
+          throw new Error('Each shield authors a zone and a grant.')
+        const radius = { amount: 10, unit: 'FEET' as const }
+        const invocationShape = effects[0]!.invocation.shape
+        if (invocationShape?.shapeKind !== 'SPHERE' || zone.shape?.shapeKind !== 'SPHERE')
+          throw new Error('The shield authors a sphere.')
+        effects[0]!.invocation.shape = { ...invocationShape, radius }
+        for (const outcomes of shieldOutcomes(effects)) {
+          const shieldZone = outcomes[0]
+          if (shieldZone?.effectKind === 'MANIFEST' && shieldZone.shape?.shapeKind === 'SPHERE')
+            shieldZone.shape = { ...shieldZone.shape, radius }
+        }
+        const damagePath = zone.components?.[0]?.behaviors?.[0]?.paths[0]
+        const damage =
+          damagePath?.selectionKind === 'FIXED' ? damagePath.resultBlock.outcomes[0] : undefined
+        if (damage?.effectKind !== 'DAMAGE' || !('diceConfig' in damage))
+          throw new Error('The shield deals dice.')
+        damage.diceConfig = '3d6'
+        damage.damageTypeId = damageType('LIGHTNING')
+        grant.grants!.modifiers![0]!.payload = { damageTypeId: damageType('ACID') }
+      })
+    )
+    expect(warm?.zone).toMatchObject({
+      attachment: 'SOURCE',
+      shape: { radius: { amount: 10 } },
+      retaliatesMeleeHits: true
+    })
+    expect(shieldEffect(warm!)).toEqual({
+      dice: [
+        { kind: 'LITERAL', value: 6 },
+        { kind: 'LITERAL', value: 6 },
+        { kind: 'LITERAL', value: 6 }
+      ],
+      damageTypes: [{ kind: 'LITERAL', value: damageType('LIGHTNING') }],
+      grant: {
+        initialRemaining: 100,
+        modifiers: [expect.objectContaining({ payload: { damageTypeId: damageType('ACID') } })]
+      }
+    })
+  })
+
+  it('gives the caster no grant from a shield authored without one', () => {
+    const picked = shields(
+      carryingFireShield((effects) => {
+        for (const outcomes of shieldOutcomes(effects)) outcomes.splice(1)
+      })
+    )
+    for (const { zone } of picked) expect(zone).not.toHaveProperty('sourceGrant')
+  })
+
+  it.each([
+    ['two grants', (outcomes: unknown[]) => outcomes.push(structuredClone(outcomes[1]))],
+    [
+      'an outcome other than a grant',
+      (outcomes: unknown[]) =>
+        outcomes.splice(1, 1, {
+          id: extraId(0x1b0),
+          effectKind: 'ACTION_ECONOMY_RULE',
+          ruleKind: 'LOSE_ACTION'
+        })
+    ]
+  ])('places no zone beside %s', (_name, change) => {
+    const entry = compileItemEntry(
+      carryingFireShield((effects) => {
+        for (const outcomes of shieldOutcomes(effects)) change(outcomes)
+      })
+    )
+    expect(
+      entry.schemaVersion === 4 &&
+        entry.compilation.kind === 'COMPILED' &&
+        entry.compilation.zonePlacement
+    ).toBeFalsy()
   })
 })

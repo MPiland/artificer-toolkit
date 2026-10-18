@@ -687,7 +687,7 @@ describe('native Character action sources', () => {
       maintenanceDefinitionId: fixture.maintenanceDefinitionId
     })
     expect(descriptorOf(afterCreated.maintainedStates[0]!)).toMatchObject({
-      sourceActionId: root.actionId,
+      provenance: { kind: 'ACTION', sourceActionId: root.actionId },
       sourceActorId: fixture.actor.id
     })
     expectLiveCharacterProjection(fixture, afterCreated, created.projection)
@@ -722,7 +722,7 @@ describe('native Character action sources', () => {
       afterReplacement.maintainedStates[0]?.id
     )
     expect(descriptorOf(afterReplacement.maintainedStates[0]!)).toMatchObject({
-      sourceActionId: replacementRoot.actionId,
+      provenance: { kind: 'ACTION', sourceActionId: replacementRoot.actionId },
       sourceActorId: fixture.actor.id
     })
     expectLiveCharacterProjection(fixture, afterReplacement, replaced.projection)

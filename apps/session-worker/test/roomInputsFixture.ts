@@ -51,7 +51,8 @@ export function roomInputsResponse(
     accountUserIds,
     authorityDocuments,
     characterInputs,
-    definitions = []
+    definitions = [],
+    campaignClockMinute = null
   }: {
     campaignId: string
     systemId: string
@@ -62,6 +63,8 @@ export function roomInputsResponse(
     authorityDocuments?: LiveRoomInputsDocument[]
     characterInputs?: RoomCharacterInputs
     definitions?: readonly LiveRoomDefinition[]
+    /** The Campaign clock's absolute minute; `null` (the default) is a Campaign without a clock. */
+    campaignClockMinute?: number | null
   }
 ): LiveRoomInputsResponse {
   switch (scope.kind) {
@@ -185,9 +188,11 @@ export function roomInputsResponse(
       const system = systemAuthoredDtoSchema.parse({
         id: systemId,
         label: 'Room fixture System',
+        schemaVersion: 4,
         rulesetCode: 'DND5E',
         rulesetVersion: '2014',
         userId: ownerUserId,
+        abilities: [],
         alignments: [],
         challengeRatings: [],
         conditionTypes: [],
@@ -254,6 +259,8 @@ export function roomInputsResponse(
       throw new Error('A Scene read needs raw native Scene documents.')
     case 'SCENE_DEFINITION':
       throw new Error('A Scene definition read needs immutable native Scene documents.')
+    case 'CAMPAIGN_CLOCK':
+      return { kind: 'CAMPAIGN_CLOCK', absoluteMinute: campaignClockMinute }
   }
 }
 

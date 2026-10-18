@@ -19,6 +19,12 @@ export const giantShark: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 126,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 11,
     die: 12,

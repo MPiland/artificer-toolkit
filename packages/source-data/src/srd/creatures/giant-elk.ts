@@ -21,6 +21,13 @@ export const giantElk: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 42,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 12,

@@ -386,7 +386,6 @@ describe('native actor maintained-effect cleanup', () => {
   })
 
   it.each([
-    ['V1', true],
     ['TERMINATE_WHEN_EMPTY', true],
     ['RETAIN_UNTIL_TERMINAL', false]
   ] as const)('applies foreign final-dependent policy %s', async (policy, terminates) => {

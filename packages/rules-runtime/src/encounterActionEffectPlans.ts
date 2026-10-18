@@ -22,6 +22,34 @@ import type {
 
 export class EncounterActionEffectPlanError extends Error {}
 
+/**
+ * Whether a condition an effect comes to own was present without it: the baseline the holder's
+ * other owners of the condition already record, else whether the holder has the condition now.
+ */
+export function conditionBaselinePresent(
+  holder: {
+    activeEffects: readonly Pick<ActiveRuleEffectRecord, 'definition'>[]
+    conditionIds: readonly string[]
+  },
+  conditionId: string
+): boolean {
+  const existingBaselines = holder.activeEffects.flatMap((effect) =>
+    effect.definition.schemaVersion === 2
+      ? effect.definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
+            ? [contribution.baselinePresent]
+            : []
+        )
+      : []
+  )
+  const baselinePresent = existingBaselines[0] ?? holder.conditionIds.includes(conditionId)
+  if (existingBaselines.some((existing) => existing !== baselinePresent))
+    throw new EncounterActionEffectPlanError(
+      'The target condition contribution baseline is inconsistent.'
+    )
+  return baselinePresent
+}
+
 export function compileEffectGraph(
   published: ServerPublishedRuleDefinitionDto,
   contractVersion: number
@@ -87,6 +115,12 @@ export function prepareEncounterActionEffectPlans(input: {
 }): {
   stateEffect: EffectPlan | null
   recurringEffect: EffectPlan | null
+  /**
+   * The effect holding a failure-margin rider's conditions, beside the recurring effect it rides on.
+   * It is created only when the save failed by the margin, which the caller reads from the rider's
+   * applied conditions.
+   */
+  riderEffect: EffectPlan | null
   relationshipConditionApplications: readonly Extract<
     CharacterRuleActionApplication,
     { kind: 'CONDITION_APPLY' }
@@ -94,6 +128,27 @@ export function prepareEncounterActionEffectPlans(input: {
 } {
   const stateEffect = prepareTargetStateEffect(input)
   const recurringEffect = prepareRecurringActiveEffect(input)
+  const plan = input.activeEffectPlan
+  const rider = plan?.marginRider ?? null
+  // The rider shares the effect's duration graph under its own entry, and ends on its own triggers.
+  const riderEffect =
+    plan && rider
+      ? prepareRecurringActiveEffect({
+          ...input,
+          activeEffectPlan: {
+            ...plan,
+            compiledEntryId: rider.compiledEntryId,
+            frozenGraphNodeId: rider.frozenGraphNodeId,
+            conditionContributions: rider.conditionContributions,
+            lifecycle: {
+              consumeOnFirstEvents: [],
+              endOnEvents: [],
+              endOnTriggers: rider.lifecycle.endOnTriggers
+            },
+            marginRider: null
+          }
+        })
+      : null
   const relationshipConditionApplications =
     recurringEffect?.definition.schemaVersion === 2
       ? (() => {
@@ -134,7 +189,7 @@ export function prepareEncounterActionEffectPlans(input: {
           )
         })()
       : []
-  return { stateEffect, recurringEffect, relationshipConditionApplications }
+  return { stateEffect, recurringEffect, riderEffect, relationshipConditionApplications }
 }
 
 /**
@@ -330,23 +385,6 @@ function prepareRecurringActiveEffect(
     )
       return null
   }
-  const conditionBaselinePresent = (conditionId: string): boolean => {
-    const existingBaselines = input.target.activeEffects.flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
-              ? [contribution.baselinePresent]
-              : []
-          )
-        : []
-    )
-    const baselinePresent = existingBaselines[0] ?? input.target.conditionIds.includes(conditionId)
-    if (existingBaselines.some((existing) => existing !== baselinePresent))
-      throw new EncounterActionEffectPlanError(
-        'The target condition contribution baseline is inconsistent.'
-      )
-    return baselinePresent
-  }
   const relationshipConditionIds = relationshipContribution
     ? [
         ...relationshipContribution.conditionIds,
@@ -490,7 +528,7 @@ function prepareRecurringActiveEffect(
             ...conditionContributions.map((contribution) => ({
               kind: 'CONDITION_OWNERSHIP' as const,
               conditionId: contribution.conditionId,
-              baselinePresent: conditionBaselinePresent(contribution.conditionId),
+              baselinePresent: conditionBaselinePresent(input.target, contribution.conditionId),
               ...(contribution.recordsSource && {
                 sourceActorId: input.sourceActorId,
                 ...(contribution.fleesSource && { fleesSource: true })
@@ -499,7 +537,7 @@ function prepareRecurringActiveEffect(
             ...relationshipConditionIds.map((conditionId) => ({
               kind: 'CONDITION_OWNERSHIP' as const,
               conditionId,
-              baselinePresent: conditionBaselinePresent(conditionId)
+              baselinePresent: conditionBaselinePresent(input.target, conditionId)
             })),
             ...(relationshipContribution
               ? [

@@ -326,7 +326,7 @@ describe('GM undo against live Character state', () => {
     expect(undone.projection.version).toBe(bitten.projection.version + 1)
     const restored = (await storedCharacter(fixture)).state.hitpoints
     expect(restored.current).toBe(before.state.hitpoints.current)
-    expect(restored.temp ?? 0).toBe(before.state.hitpoints.temp ?? 0)
+    expect(restored.temp).toBe(before.state.hitpoints.temp)
     expect(projectedHero(fixture, undone).currentHitPoints).toBe(before.state.hitpoints.current)
 
     const again = await enemyBitesHero(fixture, undone)

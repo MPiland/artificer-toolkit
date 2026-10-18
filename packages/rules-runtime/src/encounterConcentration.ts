@@ -62,10 +62,7 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
   if (
     !maintenancePolicy.damageCheckDefinitionId ||
     maintenancePolicy.replacementPolicy !== maintained.descriptor.replacementPolicy ||
-    maintenancePolicy.emptyDependentPolicy !==
-      (maintained.descriptor.schemaVersion === 1
-        ? 'TERMINATE_WHEN_EMPTY'
-        : maintained.descriptor.emptyDependentPolicy)
+    maintenancePolicy.emptyDependentPolicy !== maintained.descriptor.emptyDependentPolicy
   )
     throw new Error('The concentration maintenance policy is stale.')
   const target = await input.loadTarget()

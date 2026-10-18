@@ -87,6 +87,10 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Fire Shield past 100 rounds or recast (D153):** the zone lasts the Run while its resistance expires after 100 turns, and recasting while it is up stacks a second zone; dismissing it early is not offered. A timed zone lifetime would close all three.
+
+- **A cast-time pick on a movement reaction (SPELLS-30.T1, D148).** A Character reaction whose effect offers a CHOICE pick is still discovered as a movement reaction, then fails to prepare with a raw `CastChoiceUnavailableError` instead of being dropped as stale. No SRD reaction offers a pick; fix by skipping such sources at discovery when one does.
+- **An authored pick past the option-list limits (SPELLS-30.T1, D140).** A CHOICE with more than 20 options fails the compiled-entry schema parse, which fails every action of that Character, not just that one action. Zone picks share this. No SRD spell comes near the limit; fix by making the per-candidate compile refuse it (MANUAL) when homebrew needs more.
 - **A carried caster whose dependents are all outside the Run (D151).** The room loads none of those dependents, so it reinstates no Concentration, and damage in the Run stages no check for them. The caster's next Concentration still ends them. A START read of grants stamped with the Run's Characters would close it.
 
 - **A margin rider outlives an early-ended parent (D149).** The Drow's sleep lasts "while poisoned", but curing or GM-ending the poison mid-sleep leaves the unconscious rider for the GM to end. A persisted effect-to-effect end link would close it.
@@ -95,6 +99,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **A GM private roll resent across a room epoch (QUALITY-1.T1).** The room refuses a private-roll nonce sent before the current epoch ("This roll was already made.") instead of replaying the stored roll, as chat now does. Rare (needs a reconnect across an epoch change between send and retry); fix by replaying from the room's retained-roll record.
 - **Creatures that do not need to breathe (SPELLS-20.T4b3, D141).** Stinking Cloud's automatic success covers poison immunity only. No SRD 5.1 stat block states that a creature does not breathe, and the SRD undead and constructs are almost all poison-immune, so no breathing fact is modelled. Add an authored creature fact and a Character grant domain when homebrew content needs it.
 - **Fleeing a source (SPELLS-29.T2):** the `CONDITION_SOURCE_FLEE` warning covers an Action other than Dash taken through `RESOLVE_ACTION` and area actions. Disarm, escapes and held-grant flows do not warn, and the rider never inspects the distance a move actually covers after the Dash.
+- **Other failure-margin riders (SPELLS-27.T11, D149).** `failureMarginRider` covers a follow-up save after a hit whose rider adds a condition for the parent's duration. Still manual: a margin on a direct save (the Medusa's Petrifying Gaze, the Mummy's and Mummy Lord's Dreadful Glare), a margin that changes the parent's duration (the Homunculus bite: 1d10 minutes instead of 1) and a non-condition margin (the Ghost's aging). Extend the rider when one of these is played.
+- **A failure-margin rider on an automatic save failure (SPELLS-27.T11).** The margin node compares the save total with the DC, so a save failed automatically (a paralyzed or unconscious creature's Strength or Dexterity save) probably applies the rider only when its total is also low enough (unverified). None of the three SRD riders is a Strength or Dexterity save; fix when one is.
 - **Trait invisibility that also ends on using a named action (SPELLS-27.T10).** The Quasit (Scare), Will-o'-Wisp (Consume Life) and Duergar (Enlarge) invisibility also ends when the creature uses that action. No end event covers using a named action, so it ends only on an attack, a cast or Concentration; the GM undoes it by hand. Rare; fix with an action-used end event if it arises.
 - **Invisible Characters in the target list (ATTACK-17.T4b, D131).** `unseenReason` reads `INVISIBLE` only for creature actors: a Character's conditions live on its Sheet and are `[]` in the player projection, so an unseen Invisible Character is marked `HIDDEN`. Rare (needs the GM to reveal an unseen Character the player does not control); fix by projecting the Sheet's Invisible fact when it arises.
 - **A maintained-state owner Character that is not a Run actor has no room fixture (ROOM-6.T2, D-pending-room-6-t2).** The room test covers a GM-removed Character (D82; still a Run actor) but not a Character absent from the Run's actors: the memory store's `effects.create` requires the target actor in the Run, and the fixture lists Character dependents only through Run actors. Production loads such an owner through `maintenanceCharacterOwnersAtLoad`, the same path the GM-removed case exercises. Fix by seeding a `CHARACTER`-owned effect when the fixture gains a Character table.
@@ -203,6 +209,11 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **No settled roll card for a sight-adjusted movement reaction or Disarm (ATTACK-10.T3):** an opportunity attack or Disarm whose attack d20 settled in a different mode than the roller entered posts no `D20_MODE_ADJUSTED` card, and Disarm does not store `modeAdjustment`. Movement reactions and Disarm contests post no roll card at all today; the held die and the GM caption still show at the prompt.
 - **A spatial move that catches many prompted creatures can exceed the 256-command cap (SPELLS-20.T1):** each prompted candidate now appends one d20 command plus one per damage die to `resolutionCommands` (capped at `MAX_SPATIAL_CANDIDATES` in the pending root and the receipt metadata), so about 256 / (1 + dice) prompted candidates in one move fails the parse mid-occurrence. Derive the bound from candidates × (1 + max dice) or refuse at plan time if a real table reaches it.
 - **A placed zone whose source actor left the Encounter leaves its damage-dice prompt unanswerable (SPELLS-20.T1, unverified):** `decisionActorIds` reads the source actor to find the roller; a removed source probably throws, leaving the pending entry for a GM revert. Verify and fall back to the target's controller or the GM.
+- **A carried effect does not resume for a Character that joins an ACTIVE Run (SPELLS-5.T10, D151):** only a PREPARED Run's START resumes carried effects, so a Character added mid-fight keeps its Campaign-minute expiry until the Run completes or the clock reaches it. Resume on the actor-add command when a table hits it.
+- **A carried effect held only through a worn form does not resume (SPELLS-5.T10):** `persistCarriedEffectResumes` lists each Character actor's own effects; one carried on a worn form keeps its expiry. Rare, and the clock still ends it.
+- **Removing a reinstated caster from the Run leaves the Concentration standing (SPELLS-5.T12, D151):** an actor removal ends no maintained state, so the relinked grants keep their link until the Run completes, when they detach and carry over again. An action-made Concentration behaves the same today.
+- **Undo cannot restore a relinked carried grant (SPELLS-5.T12):** an effect restore derives `sourceEncounterId` from the definition's origin, which names the earlier Run, so restoring a relinked grant would fail its read check. Rare: it needs an undo of a command that ended one relinked grant alone.
+- **A reinstated Concentration emptied by its own dependents does not record the caster (SPELLS-5.T12):** when the last relinked grant expires or is consumed, `TERMINATE_WHEN_EMPTY` deletes the state without appending the caster to `concentrationCasterCharacterIds`, so stamped grants on Characters outside the Run stay until the caster's next Concentration or the clock ends them.
 
 ### Code-quality refactors (deferred from Phase 8.2, 2026-10-17)
 
@@ -230,6 +241,22 @@ The failure-margin rider is wired only on follow-up saves. Direct-save actions t
 ### Release a grapple to draw (D152)
 
 Drawing a weapon while every hand holds a weapon or a grappled creature is refused today, so the grappler releases first. D107's prompt to release a grapple as part of the draw would save that step.
+
+### Touch and Heated Body retaliation (D153)
+
+The Balor's "touches the balor" clause needs a touch event, which the rules runtime does not model. Heated Body (Azer, Remorhaz, Salamander) is data on D153's `MELEE_HIT_ON_SOURCE` zone option and can be authored once T6d lands.
+
+### Hand-rolled retaliation dice (D153)
+
+Melee-hit retaliation dice are system-rolled even when the zone source rolls by hand. Offering the hand roll would pause the attack for the defender, as turn zones pause today.
+
+### Zones that block vision (D154)
+
+A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
+
+### Disarm defender picks its check (D152)
+
+Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
 
 ### Shared live cursors (Q19)
 

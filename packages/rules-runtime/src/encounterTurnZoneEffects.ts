@@ -26,7 +26,7 @@ import {
   spatialCandidateEvidence,
   spatialExecutionInput,
   spatialExecutionOutcome,
-  toSpatialInstance,
+  toSpatialInstances,
   toSpatialMovementTarget,
   type SpatialD20Roll,
   type SpatialTargetState
@@ -85,6 +85,7 @@ function requirePending(pending: ServerRuleExecutionPendingSnapshotDto): {
  */
 export function selectTurnZoneContacts(input: {
   state: Pick<EncounterRunState, 'turnSequence' | 'zoneApplications'>
+  actors: readonly EncounterRunActorState[]
   commandType: TurnCoordinatorRootDto['commandType']
   boundary: Pick<TurnEffectBoundary, 'ordinal' | 'stage'>
   actorId: string
@@ -92,7 +93,7 @@ export function selectTurnZoneContacts(input: {
 }) {
   const { scene, boundary } = input
   if (![...scene.actorIdByTokenId.values()].includes(input.actorId)) return null
-  const effects = scene.effects.map(toSpatialInstance)
+  const effects = toSpatialInstances(scene.effects, input.actors)
   const sourced =
     boundary.stage === 'START_OF_TURN'
       ? effects.filter((effect) => effect.sourceActorId === input.actorId)
@@ -184,6 +185,7 @@ export async function prepareEncounterTurnZoneEffects<
     scene &&
     selectTurnZoneContacts({
       state,
+      actors: input.actors,
       commandType: input.root.commandType,
       boundary,
       actorId: actor.id,

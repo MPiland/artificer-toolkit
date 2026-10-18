@@ -119,7 +119,7 @@ type Relationship = {
 
 /** Every authored attack with a printed attack bonus and reach, and the printed paragraphs sharing its key. */
 const keyedAttacks = srdBaselineContent.subjects.creatures.flatMap((creature) =>
-  (creature.features ?? [])
+  creature.features
     .flatMap((feature) => [feature, ...(feature.options ?? [])])
     .flatMap((source) => {
       const effect = (source.effects ?? []).find(

@@ -1,9 +1,12 @@
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import {
+  creatureAuraFeature,
   diceDamage,
   noSave,
   variantEquipment,
+  withFeature,
   zonePlacementOf
 } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
 import {
@@ -597,5 +600,208 @@ describe('a zone ending while its save is pending (SPELLS-20 T4f)', () => {
       rollMode: prompt.request.rollMode
     })
     expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+  })
+})
+
+describe('a Creature’s passive zone in the room (SPELLS-20 T6b, D144)', () => {
+  const ZOMBIE_ID = testUuid(0x2247)
+  const searingWolf = withFeature(plainWolf, creatureAuraFeature('1d4'))
+
+  /**
+   * A Run not started yet whose first creature, a Wolf given a 5-foot aura of 1d4 fire with no save
+   * authored from core options, stands beside a Zombie; the Wolf's higher initiative modifier puts
+   * it first.
+   */
+  function searingRoom() {
+    return actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: searingWolf }),
+        srdCreatureActor({ id: ZOMBIE_ID, creature: srdByLabel(SRD.creatures, 'Zombie') })
+      ],
+      ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+      status: 'PREPARED',
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+  }
+
+  it('places the aura on its token as the Encounter starts and burns the creature beside it at its first turn start', async () => {
+    const room = await searingRoom()
+    expect(await readZones(room)).toEqual([])
+    const hitPointsBefore = await hitPointsOf(room, ZOMBIE_ID)
+
+    const start = {
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    }
+    const answer = await room.send(start)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await runStateOf(room)).toMatchObject({ status: 'ACTIVE', currentActorId: WOLF_ID })
+
+    const [zone, ...others] = (await readZones(room)).map(readSpatialEffect)
+    expect(others).toEqual([])
+    expect(zone).toMatchObject({
+      maintainedEffectStateId: null,
+      definition: { origin: { kind: 'ENCOUNTER', sourceActorId: WOLF_ID } },
+      placement: { anchorKind: 'TOKEN', turnTriggers: ['START_OF_SOURCE_TURN'] }
+    })
+    const { incoming } = await storedZonePhases(room, start.commandId)
+    expect(incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: {
+            candidate: {
+              effectId: zone!.id,
+              sourceActorId: WOLF_ID,
+              targetActorId: ZOMBIE_ID,
+              trigger: 'START_OF_SOURCE_TURN'
+            },
+            d20Policy: null
+          },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: DIE + 1 })]
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, ZOMBIE_ID)).toBe((hitPointsBefore ?? 0) - (DIE + 1))
+
+    const held = await readRoomHistory(room.room.base.stub)
+    expect(await room.send(start)).toEqual(answer)
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(held)
+  })
+
+  it('deletes the aura when the GM removes its Creature from the Run', async () => {
+    const room = await searingRoom()
+    const started = await room.send({
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(started.type, JSON.stringify(started)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toHaveLength(1)
+
+    const removed = await room.send({
+      type: 'REMOVE_ACTOR',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: WOLF_ID
+    })
+    expect(removed.type, JSON.stringify(removed)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toEqual([])
+  })
+
+  it('follows its Creature’s token: unbinding deletes the aura and binding again places it on the token (D147)', async () => {
+    const room = await searingRoom()
+    const started = await room.send({
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(started.type, JSON.stringify(started)).toBe('COMMAND_COMMITTED')
+    const [placed] = (await readZones(room)).map(readSpatialEffect)
+    const wolfTokenId = room.room.scene.tokens[0]!.id
+    expect(placed).toMatchObject({ placement: { sourceTokenId: wolfTokenId } })
+
+    const binding = async (command: Record<string, unknown>) => {
+      const answer = await room.send({
+        ...command,
+        actorId: WOLF_ID,
+        commandId: crypto.randomUUID(),
+        encounterId: room.room.encounterId,
+        expectedEncounterVersion: await room.version(),
+        sceneId: room.room.scene.id
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    }
+    await binding({ type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' })
+    expect(await readZones(room)).toEqual([])
+
+    await binding({ type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', tokenId: wolfTokenId })
+    const [again, ...others] = (await readZones(room)).map(readSpatialEffect)
+    expect(others).toEqual([])
+    expect(again).toMatchObject({
+      id: placed!.id,
+      maintainedEffectStateId: null,
+      definition: { origin: { kind: 'ENCOUNTER', sourceActorId: WOLF_ID } },
+      placement: { anchorKind: 'TOKEN', sourceTokenId: wolfTokenId }
+    })
+  })
+})
+
+describe('the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)', () => {
+  const BALOR_ID = testUuid(0x2248)
+  const balor = srdByLabel(SRD.creatures, 'Balor')
+
+  it('burns the Wolf beside the Balor for 3d6 fire at the start of the Balor’s turn', async () => {
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: BALOR_ID, creature: balor }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: creatureFeature(balor, 'Longsword').id,
+      status: 'PREPARED',
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+    const start = {
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    }
+    const answer = await room.send(start)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // Both have Dexterity 15 and roll the same die, so the GM settles the tie with the Balor first;
+    // the turn the settled START opens is recorded on the START's receipt.
+    const tie =
+      answer.type === 'COMMAND_COMMITTED' && answer.delta?.scope === 'ENCOUNTER'
+        ? answer.delta.result.occurrence?.pending
+        : undefined
+    if (tie?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected the initiative tie.')
+    const settled = await room.send({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: tie.encounterVersion,
+      occurrenceId: tie.occurrenceId,
+      expectedOccurrenceVersion: tie.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'INITIATIVE_ENTITY', requestId: tie.requestId, entityId: BALOR_ID }
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect(await runStateOf(room)).toMatchObject({ status: 'ACTIVE', currentActorId: BALOR_ID })
+
+    const [zone, ...others] = (await readZones(room)).map(readSpatialEffect)
+    expect(others).toEqual([])
+    expect(zone).toMatchObject({
+      maintainedEffectStateId: null,
+      definition: { origin: { kind: 'ENCOUNTER', sourceActorId: BALOR_ID } },
+      placement: { anchorKind: 'TOKEN', turnTriggers: ['START_OF_SOURCE_TURN'] }
+    })
+    const { incoming } = await storedZonePhases(room, start.commandId)
+    expect(incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: {
+            candidate: {
+              effectId: zone!.id,
+              sourceActorId: BALOR_ID,
+              targetActorId: WOLF_ID,
+              trigger: 'START_OF_SOURCE_TURN'
+            },
+            d20Policy: null
+          },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 3 * (DIE + 1) })]
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - 3 * (DIE + 1))
   })
 })

@@ -159,15 +159,7 @@ export async function resolveEffectiveInitiativePolicySources(input: {
     )
     if (!parsedSystem.success)
       throw new InitiativePolicySourceError('Encounter Game System is not currently available.')
-    if ('schemaVersion' in parsedSystem.data && parsedSystem.data.schemaVersion === 3) {
-      policyDefinitionId = parsedSystem.data.initiativePolicy.defaultDefinitionId
-    } else if (
-      'schemaVersion' in parsedSystem.data &&
-      parsedSystem.data.schemaVersion === 4 &&
-      parsedSystem.data.initiativePolicy !== undefined
-    ) {
-      policyDefinitionId = parsedSystem.data.initiativePolicy.defaultDefinitionId
-    }
+    policyDefinitionId = parsedSystem.data.initiativePolicy?.defaultDefinitionId ?? null
   }
   return policyDefinitionId === null
     ? null

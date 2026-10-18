@@ -63,7 +63,8 @@ export type NativeEncounterActionSource =
       effectivePolicyOutput: CharacterRulePolicyOutput
     }
 
-function systemAbilityDefinitions(system: SystemAuthoredDto) {
+/** The ability definitions a System authors, as Creature discovery reads them. */
+export function systemAbilityDefinitions(system: SystemAuthoredDto) {
   return 'abilities' in system && Array.isArray(system.abilities)
     ? system.abilities.map((ability) => ({ id: ability.id, code: ability.code }))
     : []
@@ -146,8 +147,6 @@ export function encounterLegendaryActionFeatureIds(
 }
 
 /** The action's display name for logs and prompts; a Character action may have none. */
-export function encounterActionSourceLabel(source: NativeEncounterActionSource): string | null {
-  return source.kind === 'CHARACTER_ACTION'
-    ? (source.candidate.label ?? null)
-    : source.capability.label
+export function encounterActionSourceLabel(source: NativeEncounterActionSource): string {
+  return source.kind === 'CHARACTER_ACTION' ? source.candidate.label : source.capability.label
 }

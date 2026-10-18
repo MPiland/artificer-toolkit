@@ -20,6 +20,12 @@ export const violetFungus: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 18,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 4,
     die: 8,

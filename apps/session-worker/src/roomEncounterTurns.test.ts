@@ -145,9 +145,11 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
   const system = systemAuthoredDtoSchema.parse({
     id: DND5E_SYSTEM_ID,
     label: 'D&D 5e',
+    schemaVersion: 4,
     rulesetCode: 'DND5E',
     rulesetVersion: '2014',
     userId: gmId,
+    abilities: [],
     alignments: [],
     challengeRatings: [],
     conditionTypes: [],

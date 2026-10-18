@@ -19,6 +19,12 @@ export const troll: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 84,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 8,
     die: 10,

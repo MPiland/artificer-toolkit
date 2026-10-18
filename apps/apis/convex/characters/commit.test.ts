@@ -23,7 +23,13 @@ describe('native Character commit', () => {
         currency: [
           {
             id: crypto.randomUUID(),
-            currencies: [{ currencyId: baseClass.startingGold.currencyId, amount: 999 }]
+            currencies: [
+              {
+                kind: 'RULESET' as const,
+                currencyId: baseClass.startingGold.currencyId,
+                amount: 999
+              }
+            ]
           }
         ],
         equipment: {
@@ -53,7 +59,7 @@ describe('native Character commit', () => {
     const materialized = readCharacterRecord(stored)
     expect(materialized.status).toBe('ACTIVE')
     expect(materialized.state.hitpoints.current).toBe(11)
-    expect(materialized.state.hitpoints.temp).toBeUndefined()
+    expect(materialized.state.hitpoints.temp).toBe(0)
     expect(materialized.state.equipment.inventory).toHaveLength(1)
     expect(materialized.state.equipment.inventory[0]).toMatchObject({
       equipmentId: club.id,

@@ -15,7 +15,7 @@ import {
   spatialTriggerDtoSchema,
   spatialTurnTriggerDtoSchema
 } from '../shared/spatialFacts.js'
-import { spatialZoneLabelSchema } from '../shared/spatial.js'
+import { compiledSpatialHeldConditionDtoSchema, spatialZoneLabelSchema } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -155,7 +155,7 @@ const compiledActionMaintenanceSchema = lazySchema(() =>
   )
 )
 
-const compiledActionActiveEffectPlanSchema = lazySchema(() =>
+const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
   z.strictObject({
     authoredEffectId: serverUuidIdentityDtoSchema,
     compiledEntryId: serverUuidIdentityDtoSchema,
@@ -284,16 +284,49 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       ),
       null
     ),
-    maintenance: z._default(compiledActionMaintenanceSchema, null)
+    maintenance: z._default(compiledActionMaintenanceSchema, null),
+    /**
+     * Conditions a save failed by at least `failedBy` also applies, held by a second active effect
+     * with its own duration node; null for none. Required: plans are recompiled, not read
+     * with a default.
+     */
+    marginRider: z.nullable(
+      z.strictObject({
+        compiledEntryId: serverUuidIdentityDtoSchema,
+        frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+        failedBy: z.number().check(z.int()).check(z.gte(1)).check(z.lte(30)),
+        conditionContributions: z
+          .array(
+            z.strictObject({
+              conditionId: serverUuidIdentityDtoSchema,
+              recordsSource: z.boolean(),
+              fleesSource: z.boolean()
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(8)),
+        lifecycle: z.strictObject({
+          endOnTriggers: activeEffectEndTriggersSchema
+        })
+      })
+    )
   })
 )
+
+/** Named so the many schemas embedding a plan stay within the declaration size limit (TS7056). */
+export type CompiledActionActiveEffectPlan = z.infer<
+  typeof compiledActionActiveEffectPlanObjectSchema
+>
+
+const compiledActionActiveEffectPlanSchema: z.ZodMiniType<CompiledActionActiveEffectPlan> =
+  compiledActionActiveEffectPlanObjectSchema
 
 /**
  * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
  * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
  * known; everything else is compiled from the authored manifest.
  */
-const compiledActionZonePlacementSchema = lazySchema(() =>
+export const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
     attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,
@@ -306,6 +339,11 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
         .check(z.minLength(1))
         .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
     ),
+    /**
+     * Whether an attacker standing in a SOURCE zone who hits its source with a melee attack is
+     * caught (D153); absent when not.
+     */
+    retaliatesMeleeHits: z.optional(z.literal(true)),
     /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
     bypassAtHalfSpeed: z.optional(z.boolean()),
     /** Whether the caster designates creatures at cast that the zone never affects. */
@@ -316,6 +354,8 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
     requiresFullyWithin: z.optional(z.boolean()),
     /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
     failedSaveLosesAction: z.optional(z.boolean()),
+    /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
+    heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */
@@ -329,7 +369,9 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
       })
     ),
     /** The Concentration the placing cast opens; the zone depends on it (D135). */
-    maintenance: compiledActionMaintenanceSchema
+    maintenance: compiledActionMaintenanceSchema,
+    /** The timed grant the zone's placer holds once it is placed (D153); absent for none. */
+    sourceGrant: z.optional(compiledActionActiveEffectPlanSchema)
   })
 )
 
@@ -356,6 +398,29 @@ const compiledActionZoneChoiceSchema = lazySchema(() =>
 )
 
 export type CompiledActionZoneChoice = z.infer<typeof compiledActionZoneChoiceSchema>
+
+/**
+ * The plans an action runs when its caster picks one option of its CHOICE path at cast (D148):
+ * each option's active-effect and execution plans, compiled from the action narrowed to that option.
+ * The options share the test and the Concentration the cast opens.
+ */
+const compiledActionChoiceSchema = lazySchema(() =>
+  z.strictObject({
+    options: z
+      .array(
+        z.strictObject({
+          optionId: serverUuidIdentityDtoSchema,
+          label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+          activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
+          executionPlan: compiledActionExecutionPlanSchema
+        })
+      )
+      .check(z.minLength(2))
+      .check(z.maxLength(20))
+  })
+)
+
+export type CompiledActionChoice = z.infer<typeof compiledActionChoiceSchema>
 
 const compiledActionTemplateIdentitySchema = ruleGraphSourceIdentityDtoSchema
 
@@ -458,17 +523,6 @@ export type CompiledActionTargetPolicy = z.infer<typeof compiledActionTargetPoli
 const compiledActionEntryPointSchema = lazySchema(() =>
   z.union([
     z.strictObject({
-      schemaVersion: z.literal(1),
-      kind: z.literal('CHARACTER_ACTION'),
-      actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-      effectId: serverUuidIdentityDtoSchema,
-      targetPolicy: z.optional(compiledActionTargetPolicySchema),
-      compilation: z.strictObject({
-        kind: z.literal('COMPILED'),
-        published: serverPublishedRuleDefinitionDtoSchema
-      })
-    }),
-    z.strictObject({
       schemaVersion: z.literal(4),
       kind: z.literal('CHARACTER_SPELL_CAST'),
       /** The exact current Character spell-cast candidate identity. */
@@ -516,35 +570,12 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         zonePlacement: z.nullable(
           z.union([compiledActionZonePlacementSchema, compiledActionZoneChoiceSchema])
         ),
+        /**
+         * Set for an action whose caster picks an option at cast; the top-level plans hold its first
+         * option and are never run unswapped. Null when `zonePlacement` is set.
+         */
+        choice: z.nullable(compiledActionChoiceSchema),
         executionPlan: compiledActionExecutionPlanSchema
-      })
-    }),
-    z.strictObject({
-      schemaVersion: z.literal(2),
-      kind: z.literal('CHARACTER_ACTION'),
-      actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-      effectId: serverUuidIdentityDtoSchema,
-      targetPolicy: z.optional(compiledActionTargetPolicySchema),
-      compilation: z.strictObject({
-        kind: z.literal('COMPILED'),
-        published: serverPublishedRuleDefinitionDtoSchema,
-        resourceBinding: z.nullable(compiledActionResourceBindingSchema),
-        activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema)
-      })
-    }),
-    z.strictObject({
-      schemaVersion: z.literal(3),
-      kind: z.literal('CHARACTER_ACTION'),
-      actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-      effectId: serverUuidIdentityDtoSchema,
-      targetPolicy: z.optional(compiledActionTargetPolicySchema),
-      compilation: z.strictObject({
-        kind: z.literal('COMPILED'),
-        /** Legacy compiled graph retained for non-phased fixed/recurring actions. */
-        published: serverPublishedRuleDefinitionDtoSchema,
-        resourceBinding: z.nullable(compiledActionResourceBindingSchema),
-        activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
-        compilerSource: compiledActionCompilerSourceSchema
       })
     }),
     z.strictObject({
@@ -731,18 +762,22 @@ export const characterMechanicsProjectionSchema = lazySchema(() =>
           })
         }
         seenActionIds.add(entry.actionId)
+        const graphOf = (plan: z.infer<typeof compiledActionExecutionPlanSchema>) =>
+          plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
         const published =
           entry.compilation.kind !== 'COMPILED'
-            ? null
-            : entry.schemaVersion === 4
-              ? entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
-                ? entry.compilation.executionPlan.published
-                : entry.compilation.executionPlan.test.published
-              : entry.compilation.published
+            ? []
+            : [
+                graphOf(entry.compilation.executionPlan),
+                ...(entry.compilation.choice?.options.map((option) =>
+                  graphOf(option.executionPlan)
+                ) ?? [])
+              ]
         if (
-          published &&
-          (published.id !== entry.effectId ||
-            published.gameSystemId !== projection.commandState.systemId)
+          published.some(
+            (graph) =>
+              graph.id !== entry.effectId || graph.gameSystemId !== projection.commandState.systemId
+          )
         ) {
           ctx.addIssue({
             code: 'custom',
@@ -750,59 +785,15 @@ export const characterMechanicsProjectionSchema = lazySchema(() =>
             path: ['compiledActionEntryPoints', index, 'compilation']
           })
         }
-        if (entry.schemaVersion === 2 && entry.compilation.kind === 'COMPILED') {
-          const binding = entry.compilation.resourceBinding
-          const activeEffectPlan = entry.compilation.activeEffectPlan
-          const resourceUse = candidate.resourceUse
-          const bindingMatches =
-            (resourceUse === null && binding === null) ||
-            (resourceUse !== null &&
-              resourceUse.poolId !== null &&
-              binding !== null &&
-              binding.poolId === resourceUse.poolId &&
-              binding.chargeId === resourceUse.chargeId &&
-              binding.cost === resourceUse.cost)
-          if (!bindingMatches) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Compiled action resource binding must match its exact action candidate.',
-              path: ['compiledActionEntryPoints', index, 'compilation', 'resourceBinding']
-            })
-          }
-          if (
-            activeEffectPlan &&
-            (activeEffectPlan.authoredEffectId !== entry.effectId ||
-              (activeEffectPlan.initialRemaining !== null && activeEffectPlan.initialRemaining < 1))
-          ) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Compiled active-effect plan must match its exact Effect.',
-              path: ['compiledActionEntryPoints', index, 'compilation', 'activeEffectPlan']
-            })
-          }
-          if (
-            activeEffectPlan?.perceptionContributions.some(
-              (contribution) =>
-                contribution.kind === 'SENSE_GRANT' &&
-                contribution.document.gameSystemId !== entry.compilation.published.gameSystemId
-            )
-          )
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Compiled active-effect sense grants must belong to the action Game System.',
-              path: ['compiledActionEntryPoints', index, 'compilation', 'activeEffectPlan']
-            })
-        }
         if (
-          entry.schemaVersion === 1 &&
           entry.compilation.kind === 'COMPILED' &&
-          candidate.resourceUse !== null
+          entry.compilation.choice !== null &&
+          entry.compilation.zonePlacement !== null
         ) {
           ctx.addIssue({
             code: 'custom',
-            message:
-              'Historical compiled action entries are resource-free and cannot align with a resource-bound action candidate.',
-            path: ['compiledActionEntryPoints', index]
+            message: 'A compiled action picks its option or its zone at cast, never both.',
+            path: ['compiledActionEntryPoints', index, 'compilation', 'choice']
           })
         }
       }

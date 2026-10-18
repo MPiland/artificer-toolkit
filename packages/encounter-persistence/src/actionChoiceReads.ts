@@ -251,6 +251,9 @@ export async function readEncounterActionChoices(
               : undefined,
             entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
               ? entry.compilation.zonePlacement
+              : undefined,
+            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
+              ? entry.compilation.choice
               : undefined
           ),
           warnings: [
@@ -364,7 +367,7 @@ export async function readEncounterActionChoices(
       })
     )
   }
-  // The relationships the actor holds and may try to break free of against a fixed DC (D105).
+  // The relationships and zones holding the actor that it may break free of against a fixed DC (D105, D146).
   const heldEscapes = (
     actor.kind === 'CUSTOM' ? [] : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
   ).flatMap((effect) => {
@@ -377,25 +380,26 @@ export async function readEncounterActionChoices(
       tx.ports.requireSystem(state.gameSystemId),
       readRunActors(tx, state)
     ])
-    for (const { effect, module, dc } of heldEscapes) {
+    for (const { effect, activation, checks, dc, zoneLabel } of heldEscapes) {
       const { origin } = effect.definition
       const grappler =
         origin.kind === 'ENCOUNTER'
           ? runActors.find((candidate) => candidate.id === origin.sourceActorId)
           : undefined
       const economy = await readEconomy({
-        code: module.activation.code,
-        amount: 'amount' in module.activation ? module.activation.amount : null
+        code: activation.code,
+        amount: 'amount' in activation ? activation.amount : null
       })
       escapes.push({
         activeEffectId: effect.id,
-        label:
-          grappler && (membership.role === 'OWNER' || grappler.public)
+        label: zoneLabel
+          ? `Escape ${zoneLabel}`
+          : grappler && (membership.role === 'OWNER' || grappler.public)
             ? `Escape from ${grappler.label}`
             : 'Escape a grapple',
         dc,
-        actionCost: module.activation.code,
-        checks: [...module.checks.skillIds, ...module.checks.abilityDefinitionIds].map((id) => ({
+        actionCost: activation.code,
+        checks: [...checks.skillIds, ...checks.abilityDefinitionIds].map((id) => ({
           checkDefinitionId: id,
           label: encounterBasicActionCheckLabel(system, id)
         })),

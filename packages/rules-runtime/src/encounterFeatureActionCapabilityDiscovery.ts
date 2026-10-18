@@ -6,6 +6,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
+import { placedSpaceManifest } from './encounterZonePlacement.js'
 import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   snapshotCreatureEquipmentLoadout,
@@ -66,6 +67,8 @@ interface EncounterFeatureActionUnavailable {
 export interface EncounterFeatureActionDiscovery {
   available: readonly EncounterFeatureActionCapabilityDescriptor[]
   unavailable: readonly EncounterFeatureActionUnavailable[]
+  /** The passive features that keep a zone around the Creature (D144), never offered as actions. */
+  passiveZoneCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
 }
 
 type FeatureOption = NonNullable<FeatureDto['options']>[number]
@@ -544,16 +547,17 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       abilityDefinitions?: readonly { id: string; code: string }[]
     }): EncounterFeatureActionDiscovery {
       if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
-        return { available: [], unavailable: [] }
+        return { available: [], unavailable: [], passiveZoneCapabilities: [] }
       const provenance = snapshotProvenance(input.actor)
       const gameSystemId = requireCanonicalUuid(
         input.actor.systemId!,
         'Creature Game System identity'
       )
       const adapter = adaptersBySystemId.get(gameSystemId)
-      if (!adapter) return { available: [], unavailable: [] }
+      if (!adapter) return { available: [], unavailable: [], passiveZoneCapabilities: [] }
       const available: EncounterFeatureActionCapabilityDescriptor[] = []
       const unavailable: EncounterFeatureActionUnavailable[] = []
+      const passiveZoneCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const actionIds = new Set<string>()
       const features = snapshotFeatures(input.actor)
       for (const feature of features) {
@@ -568,7 +572,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               : requireCanonicalUuid(entry.featureOption.id, 'Creature feature option identity')
           const effect = entry.effect
           const effectId = requireCanonicalUuid(effect.id, 'Creature feature Effect identity')
-          if (effect.invocation.kind === 'PASSIVE') continue
+          const passive = effect.invocation.kind === 'PASSIVE'
           const exactActionId = actionId(input.actor.id, ownerFeatureId, featureOptionId, effectId)
           if (actionIds.has(exactActionId)) {
             throw new Error(
@@ -580,6 +584,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           // One action's invalid authored mechanics make only that action unavailable (D54).
           try {
             const compiledEffect = compileEffect(effect)
+            if (passive && !placedSpaceManifest(compiledEffect)) continue
             const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
             const normalized = bindEffect(adapter, {
               gameSystemId,
@@ -588,7 +593,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               abilityDefinitions: input.abilityDefinitions ?? []
             })
             if (normalized === null) continue
-            available.push({
+            ;(passive ? passiveZoneCapabilities : available).push({
               kind: 'ENCOUNTER_FEATURE',
               gameSystemId,
               authoredRootKind: 'effect',
@@ -618,6 +623,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               ...provenance
             })
           } catch (error) {
+            if (passive) continue
             unavailable.push({
               actionId: exactActionId,
               ownerFeatureId,
@@ -627,7 +633,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           }
         }
       }
-      return { available, unavailable }
+      return { available, unavailable, passiveZoneCapabilities }
     }
   }
 }

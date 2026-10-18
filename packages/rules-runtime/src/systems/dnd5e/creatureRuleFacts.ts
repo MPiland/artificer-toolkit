@@ -43,11 +43,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
 }): EncounterCreatureRuleFactsSnapshot {
   const { creature, vocabulary } = input
   const document = vocabulary.document
-  if (
-    vocabulary.systemId !== DND5E_SYSTEM_ID ||
-    !('schemaVersion' in document) ||
-    document.schemaVersion !== 4
-  ) {
+  if (vocabulary.systemId !== DND5E_SYSTEM_ID) {
     throw new Error('D&D Creature rule facts require the current D&D System vocabulary.')
   }
 
@@ -70,7 +66,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
 
   const checksById = new Map(document.skills.map((check) => [check.id, check]))
   const proficiencyByCheckId = new Map<string, NonNullable<typeof creature.proficiencies>[number]>()
-  for (const proficiency of creature.proficiencies ?? []) {
+  for (const proficiency of creature.proficiencies) {
     if (proficiency.proficiencyKind !== PROFICIENCY_KIND.SKILL) continue
     const skillIds =
       proficiency.authoringModeKind === 'ALL'
@@ -121,7 +117,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
   }
 
   const saveProficiencyBonuses: Record<string, number> = {}
-  for (const proficiency of creature.proficiencies ?? []) {
+  for (const proficiency of creature.proficiencies) {
     if (proficiency.proficiencyKind !== PROFICIENCY_KIND.SAVE_ABILITY) continue
     if (challengeRating === null) continue
     const abilityIds =

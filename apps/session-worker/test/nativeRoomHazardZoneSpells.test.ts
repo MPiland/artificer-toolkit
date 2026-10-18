@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
+import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
 import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
@@ -15,6 +16,7 @@ import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
 import { stinkingCloud } from '@artificer-toolkit/source-data/srd/spells/stinking-cloud.js'
+import { web } from '@artificer-toolkit/source-data/srd/spells/web.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -28,7 +30,12 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { hitPointsOf, readZones, walkerMoves } from './placedZoneRoomReads.js'
+import {
+  endConcentrationAtSheet,
+  hitPointsOf,
+  readZones,
+  walkerMoves
+} from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -125,11 +132,15 @@ const SPELLS = [
   }
 ] as const
 
-/** The Character casts the action labelled `castLabel`; the Wolf stands at `wolfAt`. */
+/**
+ * The Character casts the action labelled `castLabel`; the Wolf stands at `wolfAt`. `rolls` are the
+ * first dice draws (a face less one), before every die shows its lowest face.
+ */
 function zoneRoom(
   { spell, slotSpell }: { spell: SpellAuthored; slotSpell?: SpellAuthored },
   castLabel: string,
-  wolfAt: { x: number; y: number }
+  wolfAt: { x: number; y: number },
+  rolls: readonly number[] = []
 ) {
   return actionRoom({
     actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
@@ -140,6 +151,7 @@ function zoneRoom(
     },
     characterAction: (action) => action.label === castLabel,
     autoRoll: 'EVERYONE',
+    rolls,
     fallbackRoll: DIE
   })
 }
@@ -388,5 +400,186 @@ describe('the SRD Stinking Cloud zone (SPELLS-20.T4b3b)', () => {
     )
     expect(wolf?.spent).toContainEqual([ACTION, 1])
     expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+  })
+})
+
+const RESTRAINED_ID = conditionTypeId('RESTRAINED')
+
+/** The Wolf's effects, through which its zone holds a condition (D146), with their definitions. */
+async function heldEffectsOf(room: Room) {
+  return (await readRoomHistory(room.room.base.stub)).activeEffects
+    .filter(({ targetActorId }) => targetActorId === WOLF_ID)
+    .map(({ id, definitionJson }) => ({ id, definition: JSON.parse(definitionJson) }))
+}
+
+/** The Wolf, in its turn, tries to escape the effect `activeEffectId` with the check named. */
+async function escapeWith(room: Room, activeEffectId: string, checkDefinitionId: string) {
+  return room.send({
+    type: 'ESCAPE',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId: WOLF_ID,
+    activeEffectId,
+    checkDefinitionId,
+    acknowledgedWarnings: []
+  })
+}
+
+/**
+ * SPELLS-4.T1e: zones that hold the condition their failed save applies (D142, D146). The 20-foot
+ * cube is centered on the map, clear of the caster's token and the Wolf's starting point. Each
+ * offers an escape at the caster's save DC; Black Tentacles also deals its damage.
+ */
+const HELD_ZONES = [
+  {
+    spell: web,
+    castLabel: 'Web (2nd level)',
+    damage: 0,
+    escapeChecks: ['STRENGTH'],
+    endsOnLeavingArea: true
+  },
+  {
+    spell: blackTentacles,
+    castLabel: 'Black Tentacles (4th level)',
+    // 3d6, every die a 1.
+    damage: 3,
+    escapeChecks: ['STRENGTH', 'DEXTERITY'],
+    endsOnLeavingArea: false
+  }
+] as const
+
+describe.each(HELD_ZONES)('the SRD $spell.label zone (SPELLS-4.T1e)', (subject) => {
+  const { spell, castLabel, damage, escapeChecks, endsOnLeavingArea } = subject
+  const room = (wolfAt: { x: number; y: number }, rolls?: readonly number[]) =>
+    zoneRoom({ spell }, castLabel, wolfAt, rolls)
+
+  /** The Wolf, in its turn, walks into the zone and fails its save. */
+  async function restrainedWolf(rolls?: readonly number[]) {
+    const zoneRoomed = await room(OUTSIDE_THE_ZONE, rolls)
+    const zone = await castAtTheCenter(zoneRoomed)
+    await zoneRoomed.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(zoneRoomed, WOLF_ID)
+    const walk = await walkerMoves(zoneRoomed, [OUTSIDE_THE_ZONE, ZONE_CENTER])
+    return { zoneRoomed, zone, hitPointsBefore, walk }
+  }
+
+  it('restrains and stops a creature that enters the area and fails its save, held by the zone', async () => {
+    const { zoneRoomed, zone, hitPointsBefore, walk } = await restrainedWolf()
+
+    // A zone that releases on leaving reacts to the exit as well.
+    expect(zone.placement.triggerModes).toEqual(
+      endsOnLeavingArea ? ['ENTER', 'EXIT', 'CROSS'] : ['ENTER', 'CROSS']
+    )
+    expect(zone.placement.heldCondition).toEqual({
+      conditionId: RESTRAINED_ID,
+      ...(endsOnLeavingArea ? { endsOnLeavingArea: true } : {}),
+      escape: {
+        activation: { code: 'ACTION', amount: 1 },
+        checks: {
+          skillIds: [],
+          abilityDefinitionIds: escapeChecks.map((code) => SRD_ABILITY_DEFINITION_IDS[code]).sort()
+        },
+        dc: WIZARD_SAVE_DC
+      }
+    })
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]?.execution.movementInterruption).not.toBeNull()
+    expect(walk.terminalPosition).not.toEqual(ZONE_CENTER)
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
+    expect(await hitPointsOf(zoneRoomed, WOLF_ID)).toBe((hitPointsBefore ?? 0) - damage)
+    const [held, ...others] = await heldEffectsOf(zoneRoomed)
+    expect(others).toEqual([])
+    expect(held?.definition).toMatchObject({
+      recurrence: { endOnEvents: endsOnLeavingArea ? ['ON_LEAVING_AREA'] : [] },
+      stateContributions: [
+        {
+          kind: 'CONDITION_OWNERSHIP',
+          conditionId: RESTRAINED_ID,
+          baselinePresent: false,
+          heldBySpatialEffectId: zone.id
+        },
+        { kind: 'CONDITION_ESCAPE', label: spell.label, dc: WIZARD_SAVE_DC }
+      ]
+    })
+  })
+
+  it(
+    endsOnLeavingArea
+      ? 'releases a creature that leaves the area, in a settled move'
+      : 'keeps a creature that leaves the area restrained',
+    async () => {
+      const { zoneRoomed, walk } = await restrainedWolf()
+      const versionBefore = await zoneRoomed.version()
+
+      const leave = await walkerMoves(zoneRoomed, [walk.terminalPosition, OUTSIDE_THE_ZONE])
+
+      expect(leave.terminalPosition).toEqual(OUTSIDE_THE_ZONE)
+      expect(leave.executions).toEqual([])
+      if (endsOnLeavingArea) {
+        expect(leave.status).toBe('MOVEMENT_COMPLETE')
+        expect(await zoneRoomed.version()).toBe(versionBefore + 1)
+        expect(await heldEffectsOf(zoneRoomed)).toEqual([])
+        expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([])
+      } else {
+        expect(leave.status).toBeNull()
+        expect(await zoneRoomed.version()).toBe(versionBefore)
+        expect(await heldEffectsOf(zoneRoomed)).toHaveLength(1)
+        expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([
+          { conditionTypeId: RESTRAINED_ID }
+        ])
+      }
+    }
+  )
+
+  it('releases the creature when the caster’s Concentration on the zone ends', async () => {
+    const { zoneRoomed } = await restrainedWolf()
+
+    const answer = await endConcentrationAtSheet(zoneRoomed, CASTER_ID)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(zoneRoomed)).toEqual([])
+    expect(await heldEffectsOf(zoneRoomed)).toEqual([])
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([])
+  })
+
+  it('frees a creature whose escape check reaches the caster’s save DC', async () => {
+    // The save fails on a 1, each damage die shows a 1, and the escape check shows a 20.
+    const { zoneRoomed } = await restrainedWolf([0, ...Array<number>(damage).fill(0), 19])
+    const [held] = await heldEffectsOf(zoneRoomed)
+    if (!held) throw new Error('The zone holds no condition.')
+
+    const answer = await escapeWith(zoneRoomed, held.id, SRD_ABILITY_DEFINITION_IDS.STRENGTH)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await heldEffectsOf(zoneRoomed)).toEqual([])
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([])
+    expect(await readZones(zoneRoomed)).toHaveLength(1)
+  })
+
+  it('keeps a creature whose escape check falls short restrained', async () => {
+    const { zoneRoomed } = await restrainedWolf()
+    const [held] = await heldEffectsOf(zoneRoomed)
+    if (!held) throw new Error('The zone holds no condition.')
+
+    const answer = await escapeWith(zoneRoomed, held.id, SRD_ABILITY_DEFINITION_IDS.STRENGTH)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await heldEffectsOf(zoneRoomed)).map(({ id }) => id)).toEqual([held.id])
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
+  })
+
+  it('restrains a creature that starts its turn in the area and fails its save', async () => {
+    const zoneRoomed = await room(ZONE_CENTER)
+    const zone = await castAtTheCenter(zoneRoomed)
+
+    const wolfStarts = await advanceTurn(zoneRoomed)
+
+    expect(wolfStarts.incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [{ candidate: { candidate: { effectId: zone.id, targetActorId: WOLF_ID } } }]
+    })
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
+    expect(await heldEffectsOf(zoneRoomed)).toHaveLength(1)
   })
 })

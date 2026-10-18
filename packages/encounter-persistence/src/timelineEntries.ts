@@ -109,7 +109,7 @@ export function presentTimelineEntry(
     roll: receipt?.roll ?? null,
     label:
       command.commandType === 'RESOLVE_ACTION' ||
-      command.commandType === 'ESCAPE_RELATIONSHIP' ||
+      command.commandType === 'ESCAPE' ||
       command.commandType === 'END_HELD_GRANT' ||
       command.commandType === 'RELEASE_RELATIONSHIP' ||
       command.commandType === 'RELATIONSHIPS_ENDED' ||
@@ -118,7 +118,7 @@ export function presentTimelineEntry(
         : null,
     ruleOverrides:
       command.commandType === 'RESOLVE_ACTION' ||
-      command.commandType === 'ESCAPE_RELATIONSHIP' ||
+      command.commandType === 'ESCAPE' ||
       command.commandType === 'END_HELD_GRANT'
         ? command.ruleOverrides
         : [],

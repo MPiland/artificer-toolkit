@@ -19,6 +19,12 @@ export const drider: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 123,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 10,

@@ -20,6 +20,9 @@ export const invisibleStalker: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 104,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 16,
     die: 8,

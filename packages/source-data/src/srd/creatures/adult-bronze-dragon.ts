@@ -21,6 +21,11 @@ export const adultBronzeDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 9,
   hitPoints: 212,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 17,
     die: 12,

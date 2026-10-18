@@ -101,7 +101,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
       z.strictObject({
         kind: z.literal('ACTOR'),
         /** As authored: the client lists the user among the creatures unless it is `REFUSED` (Help, First Aid). */
-        self: targetingSelfDtoSchema
+        self: targetingSelfDtoSchema,
+        /** The options the caster picks one of at cast (D148); absent for an action with none. */
+        choiceOptions: choiceOptionsSchema
       }),
       /**
        * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word);
@@ -136,7 +138,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
          * The action lets the user name any Creature as the form (Polymorph); the Worker checks it
          * against the action's filter at cast.
          */
-        choosesCreatureForm: z.optional(z.literal(true))
+        choosesCreatureForm: z.optional(z.literal(true)),
+        /** The options the caster picks one of at cast (D148); absent for an action with none. */
+        choiceOptions: choiceOptionsSchema
       }),
       z.strictObject({
         kind: z.literal('POINT'),

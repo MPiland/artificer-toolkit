@@ -1,10 +1,11 @@
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES,
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CreatureAuthored, EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
@@ -155,4 +156,109 @@ export function noSave(
     )
     delete savePath.resultBlock.lifecycle
   }
+}
+
+type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
+const auraId = (offset: number) => testUuid(0x1900 + offset)
+const FIRE = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'FIRE')!.id
+
+/**
+ * A Creature feature authored from core options (D144): a passive zone of `radiusFeet` around the
+ * Creature dealing `diceConfig` fire damage, with no save, to each other creature in it at the
+ * start of the Creature's turn.
+ */
+export function creatureAuraFeature(diceConfig = '1d6', radiusFeet = 5): CreatureFeature {
+  const self = (offset: number) => ({ id: auraId(offset), rangeKind: 'SELF' as const })
+  const shape = (offset: number) => ({
+    id: auraId(offset),
+    shapeKind: 'SPHERE' as const,
+    radius: { amount: radiusFeet, unit: 'FEET' as const }
+  })
+  return {
+    id: auraId(1),
+    label: 'Searing Aura',
+    description: 'Searing Aura. At the start of its turn, each creature within 5 feet of it takes fire damage.',
+    order: 99,
+    effects: [
+      {
+        id: auraId(2),
+        order: 1,
+        invocation: {
+          kind: 'PASSIVE',
+          triggerCode: 'ACTIVATED',
+          range: self(3),
+          targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' },
+          shape: shape(4)
+        },
+        paths: [
+          {
+            id: auraId(5),
+            order: 1,
+            pathCode: 'ON_USE',
+            groupType: 'SINGLE',
+            originKind: 'SOURCE',
+            selectionKind: 'FIXED',
+            resultBlock: {
+              id: `${auraId(5)}__result`,
+              resultKind: 'SINGLE',
+              outcomes: [
+                {
+                  id: auraId(6),
+                  effectKind: 'MANIFEST',
+                  manifestKind: 'ZONE',
+                  attachmentKind: 'SOURCE',
+                  label: 'Searing Aura',
+                  shape: shape(7),
+                  components: [
+                    {
+                      id: auraId(8),
+                      order: 1,
+                      label: 'Searing heat',
+                      interactionKinds: ['START_OF_SOURCE_TURN'],
+                      behaviors: [
+                        {
+                          id: auraId(9),
+                          order: 1,
+                          invocation: { kind: 'PASSIVE', triggerCode: 'ACTIVATED', range: self(10) },
+                          paths: [
+                            {
+                              id: auraId(11),
+                              order: 1,
+                              pathCode: 'ON_USE',
+                              groupType: 'SINGLE',
+                              originKind: 'SOURCE',
+                              selectionKind: 'FIXED',
+                              resultBlock: {
+                                id: `${auraId(11)}__result`,
+                                resultKind: 'SINGLE',
+                                outcomes: [
+                                  {
+                                    id: auraId(12),
+                                    effectKind: 'DAMAGE',
+                                    damageTypeId: FIRE,
+                                    valueKind: 'DICE',
+                                    diceConfig,
+                                    scalingKind: 'NONE'
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/** An SRD Creature record given one more feature, as a homebrew copy of it would be. */
+export function withFeature(creature: CreatureAuthored, feature: CreatureFeature): CreatureAuthored {
+  return { ...creature, features: [...(creature.features ?? []), feature] }
 }

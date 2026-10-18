@@ -291,7 +291,9 @@ describe('subject schema parsing', () => {
       skills: [],
       speeds: [],
       terrains: [],
-      userId: 'master'
+      userId: 'master',
+      schemaVersion: 4,
+      abilities: []
     })
 
     const list = systemListResponseDtoSchema.parse([
@@ -314,7 +316,12 @@ describe('subject schema parsing', () => {
     expect(params.id).toBe(system.id)
   })
 
-  it('keeps schema-v1 vocabulary snapshots readable while requiring unique UUID abilities in v2', () => {
+  it('refuses System documents and snapshots of every retired version', () => {
+    const ability = {
+      id: '00000000-0000-0000-0011-000300000000',
+      code: 'CONSTITUTION',
+      label: 'Constitution'
+    }
     const v1 = {
       id: 'dnd-5e-srd',
       label: 'D&D 5e SRD',
@@ -338,46 +345,30 @@ describe('subject schema parsing', () => {
       terrains: [],
       userId: 'master'
     }
+    const v2 = { ...v1, schemaVersion: 2, abilities: [ability] }
+    const v3 = {
+      ...v2,
+      schemaVersion: 3,
+      initiativePolicy: { defaultDefinitionId: '00000000-0000-4000-8000-000000000002' }
+    }
     expect(
-      systemVocabularySnapshotSchema.parse({
+      systemAuthoredDtoSchema.parse({ ...v1, schemaVersion: 4, abilities: [ability] })
+    ).toMatchObject({
+      schemaVersion: 4
+    })
+    for (const retired of [v1, v2, v3]) {
+      expect(systemAuthoredDtoSchema.safeParse(retired).success).toBe(false)
+    }
+    expect(
+      systemVocabularySnapshotSchema.safeParse({
         snapshotId: '00000000-0000-4000-8000-000000000001',
         systemId: v1.id,
         snapshotVersion: 1,
         schemaVersion: 1,
         checksum: 'a'.repeat(64),
         document: v1
-      }).document
-    ).toEqual(v1)
-    const v2 = {
-      ...v1,
-      schemaVersion: 2 as const,
-      abilities: [
-        { id: '00000000-0000-0000-0011-000300000000', code: 'CONSTITUTION', label: 'Constitution' }
-      ]
-    }
-    const parsedV2 = systemAuthoredDtoSchema.parse(v2)
-    expect('abilities' in parsedV2 ? parsedV2.abilities : []).toHaveLength(1)
-    expect(() =>
-      systemAuthoredDtoSchema.parse({ ...v1, schemaVersion: 2, abilities: [] })
-    ).toThrow()
-    expect(() =>
-      systemAuthoredDtoSchema.parse({ ...v2, abilities: [v2.abilities[0], v2.abilities[0]] })
-    ).toThrow()
-    expect(() =>
-      systemAuthoredDtoSchema.parse({
-        ...v2,
-        abilities: [
-          v2.abilities[0],
-          { ...v2.abilities[0], id: '00000000-0000-0000-0011-000400000000' }
-        ]
-      })
-    ).toThrow()
-    expect(() =>
-      systemAuthoredDtoSchema.parse({
-        ...v2,
-        abilities: [{ ...v2.abilities[0], id: 'not-a-uuid' }]
-      })
-    ).toThrow()
+      }).success
+    ).toBe(false)
   })
 
   it('requires v4 check definitions to be UUID-backed and governed by a local ability', () => {
@@ -627,6 +618,14 @@ describe('subject schema parsing', () => {
       naturalArmorBonus: 1,
       hitPoints: 32,
       speeds: [{ speedId: 'walk', amount: 50, unit: 'FEET' }],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: [],
       features: [
         {
           id: 'gore',
@@ -648,7 +647,7 @@ describe('subject schema parsing', () => {
 
     expect(creature.category).toBe('BEAST')
     expect(creature.mountProfile?.riderCount).toBe(1)
-    expect(creature.features?.[0]?.section).toBe('ACTION')
+    expect(creature.features[0]?.section).toBe('ACTION')
   })
 
   it('normalizes creature logistics-note editor rows to the canonical string array', () => {
@@ -671,10 +670,65 @@ describe('subject schema parsing', () => {
       naturalArmorBonus: 1,
       hitPoints: 32,
       speeds: [],
+      features: [],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: [],
       logisticsNotes: [{ value: 'Can carry a rider.' }, 'Requires a saddle.']
     })
 
     expect(creature.logisticsNotes).toEqual(['Can carry a rider.', 'Requires a saddle.'])
+  })
+
+  it.each([
+    'speeds',
+    'details',
+    'features',
+    'proficiencies',
+    'senses',
+    'damageVulnerabilities',
+    'damageResistances',
+    'damageImmunities',
+    'qualifiedDamageDefenses',
+    'conditionImmunities'
+  ])('refuses a Creature without its %s array, which is empty when it has none', (key) => {
+    const creature: Record<string, unknown> = {
+      id: 'bare-hart',
+      label: 'Bare Hart',
+      category: 'BEAST',
+      creatureTypeId: 'beast',
+      size: 'LARGE',
+      userId: 'user-1',
+      systemId: 'system-1',
+      abilityScores: {
+        STRENGTH: 18,
+        DEXTERITY: 14,
+        CONSTITUTION: 15,
+        INTELLIGENCE: 3,
+        WISDOM: 12,
+        CHARISMA: 7
+      },
+      naturalArmorBonus: 1,
+      hitPoints: 32,
+      speeds: [],
+      features: [],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: []
+    }
+    expect(creatureAuthoredDtoSchema.safeParse(creature).success).toBe(true)
+    delete creature[key]
+    expect(creatureAuthoredDtoSchema.safeParse(creature).success).toBe(false)
   })
 
   it('parses authored content list and single-resource transport wrappers', () => {

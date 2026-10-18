@@ -2,6 +2,7 @@ import {
   areaActionTargetOrigin,
   type AreaActionTargetDto,
   type RemoveAreaTargetInputDto,
+  castChoiceOptionId,
   type ResolveEncounterActionInputDto,
   type ResolveEncounterActionTargetDto,
   type ResolveRuleOccurrenceInputDto
@@ -251,7 +252,10 @@ const WRONG_TARGET_MESSAGES: Partial<
  */
 export async function prepareCasterSource(
   input: AreaPlanBase & {
-    command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId' | 'acceptedWieldConflict'>
+    command: Pick<
+      ResolveEncounterActionInputDto,
+      'actorId' | 'actionId' | 'target' | 'acceptedWieldConflict'
+    >
   },
   targetKind: ReturnType<typeof encounterActionTargetKind>
 ) {
@@ -264,6 +268,7 @@ export async function prepareCasterSource(
     state,
     actor: caster,
     actionId: command.actionId,
+    choiceOptionId: castChoiceOptionId(command.target),
     sourceFacts: casterFacts,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
   }).catch(refuseStaleCharacterAction)
@@ -521,7 +526,7 @@ export function prepareCasterActionOnTarget(
     AreaPlanBase,
     'state' | 'system' | 'actors' | 'activeEffectsByActorId' | 'capture'
   > & {
-    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict'>
+    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict' | 'target'>
   },
   action: {
     caster: EncounterRunActorState
@@ -539,6 +544,7 @@ export function prepareCasterActionOnTarget(
     target: action.target,
     actors: input.actors,
     actionId: input.command.actionId,
+    choiceOptionId: castChoiceOptionId(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',
       accepted: input.command.acceptedWieldConflict
@@ -567,19 +573,6 @@ export function prepareCasterActionOnTarget(
       activeEffectsByActorId: input.activeEffectsByActorId
     })
   }).catch(refuseStaleCharacterAction)
-}
-
-/**
- * The caster's own preparation of the action, which an area that keeps no creature is checked and
- * spent against: the action's source, plan and economy do not depend on whom the area catches.
- */
-function prepareAreaCaster(input: ReachPlanInput, base: AreaReach) {
-  return prepareAreaTarget({
-    ...input,
-    base,
-    actor: base.caster,
-    token: base.scene?.sourceToken ?? null
-  })
 }
 
 /** The counter window of a multi-creature cast, held over the caster's lead preparation of the action. */
@@ -812,7 +805,15 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     })
   // An area that catches nobody still spends the action: its checks run against the caster's own
   // preparation of it.
-  const lead = reached[0] ?? (await prepareAreaCaster(input, base))
+  // An area that keeps no creature is checked and spent against the caster's own preparation.
+  const lead =
+    reached[0] ??
+    (await prepareAreaTarget({
+      ...input,
+      base,
+      actor: base.caster,
+      token: base.scene?.sourceToken ?? null
+    }))
   refuseActionOutsideItsWindow(lead.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
@@ -1510,7 +1511,12 @@ async function prepareAreaCasterLead(
   base: AreaReach,
   removedActorIds: readonly string[]
 ) {
-  const target = await prepareAreaCaster(input, base)
+  const target = await prepareAreaTarget({
+    ...input,
+    base,
+    actor: base.caster,
+    token: base.scene?.sourceToken ?? null
+  })
   refuseActionOutsideItsWindow(target.prepared)
   return {
     target,
@@ -1868,17 +1874,24 @@ export async function completeAreaCommit(args: {
         ...effectInput,
         maintainedEffectStateId: joined?.id
       })
+    const riderEffect =
+      effects.riderEffect &&
+      createNativeActiveEffect(effects.riderEffect, {
+        ...effectInput,
+        maintainedEffectStateId: joined?.id
+      })
     const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // The effect of a reaction the creature used on being chosen lands with its first outcome.
     const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
     const reactionRecord =
       reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
-    const created = [stateEffect, recurringEffect, reactionRecord].flatMap((effect) =>
+    const created = [stateEffect, recurringEffect, riderEffect, reactionRecord].flatMap((effect) =>
       effect ? [effect] : []
     )
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
+      rider: riderEffect,
       targetActorId: actor.id
     })
     const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(

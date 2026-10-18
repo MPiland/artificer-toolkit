@@ -4,7 +4,7 @@ import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
@@ -42,7 +42,7 @@ export async function endEffects(
     const state = await store.findMaintainedStateById({ encounterId, stateId })
     if (
       !state ||
-      !maintainedStateTerminatesWhenEmpty(state) ||
+      state.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY' ||
       (await store.hasDependents({ encounterId, stateId }))
     )
       continue

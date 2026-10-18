@@ -20,6 +20,10 @@ export const specter: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 22,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 5,
     die: 8,

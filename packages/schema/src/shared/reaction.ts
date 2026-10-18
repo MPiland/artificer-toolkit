@@ -3,10 +3,18 @@ import { z, lazySchema } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
-import { abilityModifierReferenceSchema } from './enums.js'
+import {
+  abilityModifierReferenceSchema,
+  pathLifecycleEndTriggerAgainstSchema,
+  pathLifecycleEndTriggerBySchema
+} from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
-import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import {
+  AUTHORED_LIMITS,
+  MAX_ENCOUNTER_ACTORS,
+  authoredReferenceCollectionSchema
+} from './authoredLimits.js'
 
 const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
 const actionIdentitySchema = lazySchema(() =>
@@ -69,6 +77,27 @@ export const basicActionFilterDtoSchema = lazySchema(() =>
     .array(postgresUuidSchema)
     .check(z.minLength(1))
     .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+)
+
+/** Structured events that end an authored effect early, each with its own filter. */
+export const pathLifecycleEndTriggersDtoSchema = lazySchema(() =>
+  authoredReferenceCollectionSchema(
+    z.discriminatedUnion('event', [
+      z.strictObject({
+        event: z.literal('DAMAGE_TAKEN'),
+        by: pathLifecycleEndTriggerBySchema,
+        damageTypeIds: z.optional(damageTypeFilterDtoSchema)
+      }),
+      z.strictObject({
+        event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
+        against: pathLifecycleEndTriggerAgainstSchema
+      }),
+      z.strictObject({
+        event: z.literal('ACTION_USED_ON_HOLDER'),
+        actionDefinitionIds: basicActionFilterDtoSchema
+      })
+    ])
+  )
 )
 
 /**

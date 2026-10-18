@@ -34,6 +34,7 @@ describe('Character action rule contracts', () => {
   it('accepts exact action candidates and rejects non-contiguous or incomplete equipment candidates', () => {
     const candidate = {
       sequence: 0,
+      label: 'Strike',
       actionId: 'source:ACTION:effect',
       effectId: EFFECT_ID,
       sourceId: 'source',
@@ -45,6 +46,8 @@ describe('Character action rule contracts', () => {
       mechanicFacts
     }
     expect(characterActionCandidatesSchema.safeParse([candidate]).success).toBe(true)
+    const { label: _label, ...unlabelled } = candidate
+    expect(characterActionCandidatesSchema.safeParse([unlabelled]).success).toBe(false)
     expect(characterActionCandidatesSchema.safeParse([{ ...candidate, sequence: 1 }]).success).toBe(
       false
     )
@@ -90,6 +93,7 @@ describe('Character action rule contracts', () => {
   it('requires canonical condition definition UUIDs in action facts', () => {
     const candidate = {
       sequence: 0,
+      label: 'Strike',
       actionId: 'source:ACTION:effect',
       effectId: EFFECT_ID,
       sourceId: 'source',
@@ -126,6 +130,7 @@ describe('Character action rule contracts', () => {
   it('round-trips a reaction movement trigger binding through an action candidate', () => {
     const candidate = {
       sequence: 0,
+      label: 'Strike',
       actionId: 'source:ACTION:effect',
       effectId: EFFECT_ID,
       sourceId: 'source',
@@ -162,6 +167,7 @@ describe('Character action rule contracts', () => {
   it('round-trips an attacked-self reaction trigger through an action candidate', () => {
     const candidate = {
       sequence: 0,
+      label: 'Strike',
       actionId: 'source:ACTION:effect',
       effectId: EFFECT_ID,
       sourceId: 'source',
@@ -181,7 +187,8 @@ describe('Character action rule contracts', () => {
     }
 
     expect(
-      characterActionCandidatesSchema.parse([candidate])[0]?.mechanicFacts.invocation.reactionTrigger
+      characterActionCandidatesSchema.parse([candidate])[0]?.mechanicFacts.invocation
+        .reactionTrigger
     ).toEqual({ kind: 'ATTACKED_SELF' })
     expect(
       characterActionCandidatesSchema.safeParse([

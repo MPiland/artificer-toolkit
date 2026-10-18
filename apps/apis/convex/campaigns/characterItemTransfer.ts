@@ -8,11 +8,10 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
 import {
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  characterCurrencyIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { readCampaignInventoryCurrencyOptions } from './characterCurrencyLifecycle'
 import type { InventoryCustodyOwner } from './inventoryCustodyOwners'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import { removeCharacterItemReferences } from '@artificer-toolkit/rules-runtime/character/characterSourceLoss'
@@ -56,8 +55,7 @@ function assertDistinctGroupIds(groups: readonly { id: string }[], label: string
 
 function qualifyCharacterGroups(
   owner: CharacterOwner,
-  groups: readonly (typeof owner.character.state.currency)[number][],
-  options: Awaited<ReturnType<typeof readCampaignInventoryCurrencyOptions>>
+  groups: readonly (typeof owner.character.state.currency)[number][]
 ) {
   assertDistinctGroupIds(owner.character.state.currency, 'Character inventory')
   const itemIds = new Set(owner.character.state.equipment.inventory.map((item) => item.id))
@@ -70,9 +68,7 @@ function qualifyCharacterGroups(
       currencies: group.currencies.map((currency) => {
         if (!Number.isSafeInteger(currency.amount) || currency.amount < 0)
           throw new Error('Character currency amount is outside the supported range.')
-        const identity = resolveCharacterCurrencyIdentity(currency, options)
-        if (identity.kind !== 'RULESET' && identity.kind !== 'CAMPAIGN')
-          throw new Error('Character currency needs a current qualified identity before transfer.')
+        const identity = characterCurrencyIdentity(currency)
         const key = createCharacterCurrencyIdentityKey(identity)
         if (identities.has(key)) throw new Error('Character currency group has duplicate balances.')
         identities.add(key)
@@ -178,11 +174,7 @@ export async function transferCharacterItemCustody(
       : []
   const qualifiedSourceCharacterGroups =
     source.kind === 'CHARACTER' && sourceCharacterGroups.length > 0
-      ? qualifyCharacterGroups(
-          source,
-          sourceCharacterGroups,
-          await readCampaignInventoryCurrencyOptions(ctx, campaign)
-        )
+      ? qualifyCharacterGroups(source, sourceCharacterGroups)
       : []
   const sharedCharacterGroups =
     source.kind === 'SHARED'

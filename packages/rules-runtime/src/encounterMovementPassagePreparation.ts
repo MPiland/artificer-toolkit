@@ -99,10 +99,7 @@ export function checkAbilityCode(
   const abilityId =
     checkKind === 'ABILITY'
       ? checkDefinitionId
-      : 'schemaVersion' in system && system.schemaVersion === 4
-        ? system.skills.find((skill) => skill.id === checkDefinitionId)
-            ?.governingAbilityDefinitionId
-        : null
+      : system.skills.find((skill) => skill.id === checkDefinitionId)?.governingAbilityDefinitionId
   return (
     Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).find(([, id]) => id === abilityId)?.[0] ??
     null

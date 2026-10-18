@@ -6,7 +6,7 @@ import {
   encounterSpatialMovementBatchRuleExecutionResultDtoSchema,
   movementCompleteRuleExecutionResultDtoSchema
 } from '../shared/ruleExecutionSpatialResults.js'
-import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
+import { MAX_SPATIAL_CANDIDATES, spatialPointDtoSchema } from '../shared/spatialFacts.js'
 import { spatialMovementPendingRootDtoSchema } from '../shared/ruleExecutionSpatial.js'
 import { projectionChecksumSchema } from './identity.js'
 
@@ -32,6 +32,22 @@ export const sceneSpatialPreparationSchema = lazySchema(() =>
         selectionChecksum: projectionChecksumSchema,
         currentnessChecksum: projectionChecksumSchema,
         terminalPathDistance: z.optional(z.number().check(z.nonnegative())),
+        /**
+         * The zones holding a condition on the mover until it leaves their area that it left, in path
+         * order; each settles as an `AREA_DEPARTURE` step (D146).
+         */
+        areaDepartures: z.optional(
+          z
+            .array(
+              z.strictObject({
+                zoneEffectId: postgresUuidSchema,
+                holderActorId: postgresUuidSchema,
+                pathDistance: z.number().check(z.nonnegative())
+              })
+            )
+            .check(z.minLength(1))
+            .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
+        ),
         resolutionCommands: z.optional(spatialMovementPendingRootDtoSchema.shape.resolutionCommands)
       }),
       z.strictObject({

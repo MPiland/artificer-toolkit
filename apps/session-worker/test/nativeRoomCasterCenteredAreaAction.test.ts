@@ -44,7 +44,7 @@ function centeredRoom(creature: ReturnType<typeof casterCenteredAreaWolf>) {
       )
     ],
     positions: { [FAR_ID]: { x: 450, y: 650 } },
-    ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
+    ownerFeatureId: creature.features.find((feature) => feature.label === 'Bite')?.id
   })
 }
 type Room = Awaited<ReturnType<typeof centeredRoom>>
@@ -88,7 +88,7 @@ describe('room radius centered on the caster', () => {
         srdCreatureActor({ id: THIRD_ID, creature: plainWolf })
       ],
       positions: { [THIRD_ID]: { x: 750, y: 150 } },
-      ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
+      ownerFeatureId: creature.features.find((feature) => feature.label === 'Bite')?.id
     })
     const { command, answer } = await room.startCasterCenteredAreaAction()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')

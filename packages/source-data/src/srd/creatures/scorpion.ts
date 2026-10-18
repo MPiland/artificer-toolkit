@@ -19,6 +19,13 @@ export const scorpion: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 1,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 1,
     die: 4,

@@ -21,6 +21,11 @@ export const youngCopperDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 119,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 14,
     die: 10,

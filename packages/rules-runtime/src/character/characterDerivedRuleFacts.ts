@@ -9,8 +9,7 @@ import {
   normalizeAbilityKey,
   resolveAbilityAlias,
   resolveSkillAlias,
-  resolveSystemSkillAbilities,
-  SKILL_ABILITY_MAP
+  resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
 
 type DerivedFacts = CharacterRulePolicyInput['derivedBaseFacts']
@@ -190,12 +189,11 @@ export function buildCharacterDerivedRuleFacts(
     }
   )
 
-  const systemSkills =
-    registry.system?.schemaVersion === 4
-      ? resolveSystemSkillAbilities(registry.system).map(
-          ({ canonicalId, abilityCode }) => [canonicalId, abilityCode] as const
-        )
-      : Object.entries(SKILL_ABILITY_MAP)
+  const systemSkills = registry.system
+    ? resolveSystemSkillAbilities(registry.system).map(
+        ({ canonicalId, abilityCode }) => [canonicalId, abilityCode] as const
+      )
+    : []
 
   const skills: DerivedFacts['skills'] = systemSkills.map(([skillId, defaultAbilityId]) => {
     const skillAdjustments = adjustments.filter(

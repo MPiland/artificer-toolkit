@@ -30,15 +30,7 @@ export async function buildEncounterBlueprintEnemies({
       continue
     }
     const source = await readSource(enemy.sourceId, 'CREATURE')
-    const parsed = creatureAuthoredDtoSchema.parse(source.document)
-    // The validated DTO has the same conditional grant bridge as authored publication.
-    const creature = {
-      ...parsed,
-      damageVulnerabilities: parsed.damageVulnerabilities ?? [],
-      damageResistances: parsed.damageResistances ?? [],
-      damageImmunities: parsed.damageImmunities ?? [],
-      conditionImmunities: parsed.conditionImmunities ?? []
-    } as CreatureAuthored
+    const creature: CreatureAuthored = creatureAuthoredDtoSchema.parse(source.document)
     const equipmentSources = pinCreatureEquipmentSources({
       creature,
       equipmentRecords: await readCreatureEquipmentRecords(

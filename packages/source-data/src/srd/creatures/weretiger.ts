@@ -23,6 +23,11 @@ export const weretiger: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 120,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 16,
     die: 8,

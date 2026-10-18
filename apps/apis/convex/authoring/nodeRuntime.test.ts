@@ -25,6 +25,7 @@ import { api, components, internal } from '../_generated/api'
 import schema from '../schema'
 import authSchema from '../betterAuth/schema'
 import { createSystemSourceReader } from './systemSources'
+import { readSystemOwner } from '../content/definitionStore'
 import { authoredSourceFacts, resolveNodeRuntime } from '@artificer-toolkit/authoring/nodeRuntime'
 
 process.env.SITE_URL = 'http://localhost:3000'
@@ -871,9 +872,14 @@ describe('native Convex authoring resolver', () => {
         .withIndex('by_publicId', (q) => q.eq('id', definition.id))
         .unique()
       if (!stored) throw new Error('Missing definition fixture')
-      await ctx.db.patch(stored._id, { ownerUserId: userId })
+      await ctx.db.patch(stored._id, {
+        ownerUserId: userId,
+        contractVersion: undefined,
+        publishedAt: undefined,
+        publishedBy: undefined
+      })
     })
-    // USER publications require complete native metadata, never the PLATFORM fallback.
+    // A publication without its complete metadata is refused.
     await expect(caller.query(resolve, request)).rejects.toThrow(
       'Stored authoring definition mismatch'
     )
@@ -909,6 +915,39 @@ describe('native Convex authoring resolver', () => {
         gameSystemId: '10000000-0000-4000-8000-000000000099'
       })
     })
+    await expect(caller.query(resolve, request)).rejects.toThrow(
+      'Stored authoring definition mismatch'
+    )
+  })
+
+  it('publishes imported definitions with their metadata and refuses one without it', async () => {
+    const { t, caller } = await fixture()
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [definition]
+    })
+    const read = () =>
+      t.run(async (ctx) => {
+        const stored = await ctx.db
+          .query('reusableDefinitions')
+          .withIndex('by_publicId', (q) => q.eq('id', definition.id))
+          .unique()
+        if (!stored) throw new Error('Missing definition fixture')
+        return { stored, owner: await readSystemOwner(ctx, srdSystemRecord.id) }
+      })
+    const { stored, owner } = await read()
+    expect(stored).toMatchObject({ version: 1, contractVersion: 1, publishedBy: owner })
+    expect(Number.isNaN(Date.parse(stored.publishedAt ?? ''))).toBe(false)
+
+    const request = { mapId: 'feature', systemId: srdSystemRecord.id, values: {} }
+    await caller.query(resolve, request)
+    await t.run((ctx) =>
+      ctx.db.patch(stored._id, {
+        contractVersion: undefined,
+        publishedAt: undefined,
+        publishedBy: undefined
+      })
+    )
     await expect(caller.query(resolve, request)).rejects.toThrow(
       'Stored authoring definition mismatch'
     )

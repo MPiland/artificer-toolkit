@@ -47,8 +47,11 @@ const state = prepareMaintainedEffectStateRecord({
     schemaVersion: 2,
     maintenanceDefinitionId: MAINTENANCE_DEFINITION_ID,
     definitionChecksum: 'c'.repeat(64),
-    sourceActionId: 'concentration-source-action',
-    sourceOccurrenceId: testUuid(0x313),
+    provenance: {
+      kind: 'ACTION',
+      sourceActionId: 'concentration-source-action',
+      sourceOccurrenceId: testUuid(0x313)
+    },
     sourceActorId: CASTER_ID,
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

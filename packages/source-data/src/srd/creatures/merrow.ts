@@ -21,6 +21,12 @@ export const merrow: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 45,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 6,
     die: 10,

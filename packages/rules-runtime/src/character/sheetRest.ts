@@ -484,7 +484,7 @@ export function applyCompletedCharacterRest(params: {
         currentBefore,
         currentAfter,
         temporaryBefore,
-        temporaryAfter: Math.max(next.state.hitpoints.temp ?? 0, 0),
+        temporaryAfter: Math.max(next.state.hitpoints.temp, 0),
         healingApplied: Math.max(currentAfter - preview.hitPoints.current, 0)
       },
       exhaustion: { before: exhaustionBefore, after: next.state.exhaustion?.level ?? 0 },

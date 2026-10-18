@@ -21,6 +21,9 @@ export const shamblingMound: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 136,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 16,
     die: 10,

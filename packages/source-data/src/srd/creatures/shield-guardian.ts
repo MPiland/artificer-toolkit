@@ -20,6 +20,11 @@ export const shieldGuardian: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 142,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 15,
     die: 10,

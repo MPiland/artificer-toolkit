@@ -19,6 +19,12 @@ export const fireGiant: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 162,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 12,

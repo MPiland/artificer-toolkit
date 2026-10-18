@@ -19,6 +19,13 @@ export const basilisk: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 52,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 8,
     die: 8,

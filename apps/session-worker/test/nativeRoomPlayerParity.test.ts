@@ -198,12 +198,12 @@ const PARITY: Record<CommandType, Entry> = {
         rollMode: probe.pending!.request.rollMode
       })
   },
-  ESCAPE_RELATIONSHIP: {
+  ESCAPE: {
     access: 'PLAYER',
     actorScoped: true,
     build: (probe) => ({
       ...base(probe),
-      type: 'ESCAPE_RELATIONSHIP',
+      type: 'ESCAPE',
       actorId: probe.actorId,
       activeEffectId: SOME_ID,
       checkDefinitionId: SOME_ID
@@ -525,7 +525,7 @@ describe('registry', () => {
     expect(typesOf('PLAYER')).toEqual([
       'ADVANCE_TURN',
       'END_HELD_GRANT',
-      'ESCAPE_RELATIONSHIP',
+      'ESCAPE',
       'RELEASE_RELATIONSHIP',
       'RESOLVE_ACTION',
       'RESOLVE_RULE_OCCURRENCE',

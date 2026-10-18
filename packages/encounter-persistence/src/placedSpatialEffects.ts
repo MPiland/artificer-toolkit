@@ -1,6 +1,17 @@
+import {
+  isEncounterPassiveZone,
+  planEncounterPassiveZones
+} from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
 import type { LiveSessionPlacedSpatialEffect } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
+import type { SceneGrid, SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
+import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
 import { rejectDomain } from './domainRejections.js'
+import type { EncounterPersistenceTransaction } from './ports.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import type { EncounterWriteContext } from './store.js'
 
@@ -35,4 +46,71 @@ export async function deletePlacedSpatialEffect(
   })
   const current = await store?.get(input.id)
   if (store && current) await store.deleteCas({ id: current.id, expectedVersion: current.version })
+}
+
+/**
+ * Places the passive zones of the given Creatures that are bound to tokens in the Encounter's Scene
+ * (D144). A zone the Creature already has keeps its place, so placing again changes nothing.
+ */
+export async function placeEncounterPassiveZones(
+  ctx: EncounterPersistenceTransaction,
+  input: {
+    state: EncounterRunState
+    actors: readonly EncounterRunActorState[]
+    occurrenceId: string
+    rootCommandId: string
+  },
+  readScene: (sceneId: string) => Promise<{ grid: SceneGrid; tokens: readonly SpatialSceneToken[] }>
+) {
+  const { state } = input
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
+    .unique()
+  if (!binding) return
+  const scope = { encounterId: state.id, sceneId: binding.sceneId }
+  const store = await createSpatialRuleEffectStore(ctx).scope(scope)
+  if (!store) throw new Error('Placed spatial effect Scene is not bound to the Encounter.')
+  const tokenBindings = await readEncounterActorTokenBindings(ctx, state, binding.sceneId)
+  const scene = await readScene(binding.sceneId)
+  const zones = planEncounterPassiveZones({
+    state,
+    occurrenceId: input.occurrenceId,
+    rootCommandId: input.rootCommandId,
+    actors: input.actors,
+    system: await ctx.ports.requireSystem(state.gameSystemId),
+    sceneGrid: scene.grid,
+    tokens: scene.tokens,
+    actorIdByTokenId: new Map(tokenBindings.map(({ actorId, tokenId }) => [tokenId, actorId]))
+  })
+  for (const zone of zones)
+    if (!(await store.get(zone.id))) await createPlacedSpatialEffect(ctx, { ...scope, zone })
+}
+
+/**
+ * Deletes an actor's passive zones (D144): when it leaves the Run, and when its token binding
+ * changes, before any new token gets them (D147).
+ */
+export async function deleteActorPassiveZones(
+  ctx: EncounterWriteContext,
+  input: { state: EncounterRunState; actorId: string }
+) {
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', input.state.id))
+    .unique()
+  const store =
+    binding &&
+    (await createSpatialRuleEffectStore(ctx).scope({
+      encounterId: input.state.id,
+      sceneId: binding.sceneId
+    }))
+  if (!store) return
+  for (const zone of await store.list())
+    if (
+      isEncounterPassiveZone(zone) &&
+      zone.definition.origin.kind === 'ENCOUNTER' &&
+      zone.definition.origin.sourceActorId === input.actorId
+    )
+      await store.deleteCas({ id: zone.id, expectedVersion: zone.version })
 }

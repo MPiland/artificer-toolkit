@@ -270,7 +270,7 @@ export async function executeRoomEncounterCommand(input: {
             ? await executeVoid()
             : command.type === 'REMOVE_AREA_TARGET'
               ? await executeAreaRemoval(command)
-              : command.type === 'ESCAPE_RELATIONSHIP'
+              : command.type === 'ESCAPE'
                 ? await executeEscape(command)
                 : command.type === 'END_HELD_GRANT'
                   ? await executeEndHeldGrant(command)
@@ -365,19 +365,22 @@ export async function executeRoomEncounterCommand(input: {
         if (sceneId !== input.presentedSceneId?.toLowerCase()) rejectDomain('SCENE_NOT_PRESENTED')
         return readRoomScene(transaction, sceneId).header
       },
-      hasToken: async (sceneId, tokenId) => {
+      readToken: async (sceneId, tokenId) => {
         const { header } = readRoomScene(transaction, sceneId)
         const live = await readers.readLiveToken(sceneId, tokenId)
-        if (live) return parseSceneLiveEntity(live, header.version).value?.collection === 'tokens'
+        if (live) {
+          const { value } = parseSceneLiveEntity(live, header.version)
+          return value?.collection === 'tokens' ? value.entity : null
+        }
         const base = await readers.readDefinitionToken(header.definitionSaveId, tokenId)
-        if (!base) return false
+        if (!base) return null
         if (
           base.value.collection !== 'tokens' ||
           base.value.entity.id !== base.entityId ||
           base.checksum !== checksumCanonicalJson(base.value)
         )
           throw new Error('Stored Scene token is inconsistent.')
-        return true
+        return base.value.entity
       }
     })
   }

@@ -1,6 +1,14 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANIFEST_KIND, SHAPE_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+
+/** The 5-foot sphere around the balor that its Fire Aura covers. */
+const fireAuraShape = (offset: number) => ({
+  id: S.actionId(36, offset),
+  shapeKind: SHAPE_KIND.SPHERE,
+  radius: { amount: 5, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+})
+
 export const balor: CreatureAuthored = {
   id: S.CREATURE_IDS.BALOR,
   label: 'Balor',
@@ -21,6 +29,9 @@ export const balor: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 262,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 21,
     die: 12,
@@ -73,16 +84,12 @@ export const balor: CreatureAuthored = {
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(36, 104),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
+            range: { id: S.actionId(36, 104), rangeKind: S.RANGE_KIND.SELF },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            },
+            shape: fireAuraShape(124)
           },
           paths: [
             {
@@ -97,17 +104,55 @@ export const balor: CreatureAuthored = {
                 resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(36, 106),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('FIRE'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6'
-                  },
-                  {
                     id: S.actionId(36, 107),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_BALOR_FIRE_AURA
+                    effectKind: S.EFFECT_KIND.MANIFEST,
+                    manifestKind: MANIFEST_KIND.ZONE,
+                    attachmentKind: 'SOURCE',
+                    label: 'Fire Aura',
+                    shape: fireAuraShape(125),
+                    components: [
+                      {
+                        id: S.actionId(36, 126),
+                        order: 1,
+                        label: 'Searing heat',
+                        interactionKinds: ['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'],
+                        behaviors: [
+                          {
+                            id: S.actionId(36, 127),
+                            order: 1,
+                            invocation: {
+                              kind: 'PASSIVE',
+                              triggerCode: S.TRIGGER.ACTIVATED,
+                              range: { id: S.actionId(36, 128), rangeKind: S.RANGE_KIND.SELF }
+                            },
+                            paths: [
+                              {
+                                id: S.actionId(36, 129),
+                                order: 1,
+                                pathCode: S.PATH_CODE.ON_USE,
+                                groupType: S.PATH_GROUP_TYPE.SINGLE,
+                                originKind: 'SOURCE',
+                                selectionKind: 'FIXED',
+                                resultBlock: {
+                                  id: `${S.actionId(36, 129)}__result`,
+                                  resultKind: 'SINGLE',
+                                  outcomes: [
+                                    {
+                                      id: S.actionId(36, 106),
+                                      effectKind: S.EFFECT_KIND.DAMAGE,
+                                      damageTypeId: S.damageTypeId('FIRE'),
+                                      valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                      scalingKind: S.SCALING.NONE,
+                                      diceConfig: '3d6'
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }

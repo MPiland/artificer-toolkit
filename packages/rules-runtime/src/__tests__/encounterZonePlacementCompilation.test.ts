@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
   SRD_ABILITY_DEFINITION_IDS,
-  SRD_CONDITION_TYPES
+  SRD_CONDITION_TYPES,
+  srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { encounterActionTargetKind } from '../encounterAreaAction.js'
+import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
@@ -18,10 +21,17 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
-import { ENCOUNTER_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import {
+  ENCOUNTER_ID,
+  TIMESTAMP,
+  srdCreatureActor,
+  testUuid
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   compileCaltropsEntry,
   compileItemEntry,
+  creatureAuraFeature,
   diceDamage,
   extraId,
   failedSaveOnly,
@@ -29,6 +39,7 @@ import {
   lostActionOutcome,
   noSave,
   variantEquipment,
+  withFeature,
   zonePlacementOf,
   type ZoneParts
 } from '../testing/authoredZoneFixture.js'
@@ -705,10 +716,60 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
     expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
   })
 
+  it('proposes a condition beside the damage from a proposal node of its own (SPELLS-4.T1e)', () => {
+    const authored = startOfTurnZone((parts) =>
+      parts.savePath.resultBlock.outcomes.push(conditionOutcome())
+    )
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+    const zone = zonePlacementOf(authored)
+    const { nodes, sourceEntryBindings } = zone.entry.frozenGraph.definition
+    const withoutCondition = zonePlacementOf(startOfTurnZone())
+    // The condition's proposal follows the test graph's own; the stop's interruption comes last.
+    expect(nodes.map((node) => node.id)).toEqual(
+      withoutCondition.entry.frozenGraph.definition.nodes.flatMap((node) =>
+        node.id === 'proposal-on_save_fail'
+          ? [node.id, 'proposal-on_save_fail-condition']
+          : [node.id]
+      )
+    )
+    expect(nodes.find((node) => node.id === 'proposal-on_save_fail-condition')).toMatchObject({
+      inputs: { conditionId: { kind: 'LITERAL', value: conditionId('POISONED') } }
+    })
+    expect(sourceEntryBindings).toContainEqual({
+      sourceEntryId: extraId(21),
+      nodeId: 'proposal-on_save_fail-condition'
+    })
+    expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
+    expect(zone).not.toHaveProperty('heldCondition')
+  })
+
   it.each<readonly [string, EquipmentAuthored]>([
     [
-      'damage and a condition, until the graph holds a zone-held condition (SPELLS-4.T1e)',
-      startOfTurnZone((parts) => parts.savePath.resultBlock.outcomes.push(conditionOutcome()))
+      'a zone-held condition on a zone that Concentration does not maintain',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { heldBySource: true }
+      })
+    ],
+    [
+      'a lifecycle on a condition the zone does not hold',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_LEAVING_AREA'] }
+      })
+    ],
+    [
+      'a zone-held condition that ends on another event',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = { heldBySource: true, endOnEvents: ['ON_ATTACK_ROLL'] }
+      })
+    ],
+    [
+      'a zone-held condition with a further lifecycle',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+        savePath.resultBlock.lifecycle = {
+          heldBySource: true,
+          holderEnd: { activation: 'ACTION' }
+        }
+      })
     ],
     [
       'two conditions',
@@ -873,6 +934,122 @@ describe('a zone outcome with no save, at the start of its source’s turn (D144
       adapterFacts: {},
       castSaveDcFactKey: null
     })
+  })
+})
+
+describe('a creature’s passive zone (D144)', () => {
+  const aura = creatureAuraFeature('2d6', 10)
+  const discover = (feature = aura) =>
+    discoverEncounterFeatureActions({
+      actor: srdCreatureActor({
+        id: testUuid(0x1950),
+        creature: withFeature(srdByLabel(SRD.creatures, 'Goblin'), feature)
+      }),
+      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+    })
+
+  it('compiles to a source-anchored zone acting at its source’s turn start, never offered as an action', () => {
+    const discovery = discover()
+    expect(discovery.available.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(false)
+    expect(discovery.unavailable.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(
+      false
+    )
+    expect(discovery.passiveZones).toHaveLength(1)
+    const [{ capability, zone }] = discovery.passiveZones
+    expect(capability).toMatchObject({ ownerFeatureId: aura.id, effectId: aura.effects![0]!.id })
+    expect(zone).toMatchObject({
+      attachment: 'SOURCE',
+      turnTriggers: ['START_OF_SOURCE_TURN'],
+      triggerModes: []
+    })
+  })
+
+  it('shows a passive zone the System cannot honor as unavailable, with no zone', () => {
+    const mover = structuredClone(aura)
+    const path = mover.effects![0]!.paths[0]!
+    const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+      throw new Error('The aura is a manifest zone.')
+    outcome.components![0]!.interactionKinds = ['ENTER_SPACE']
+    const discovery = discover(mover)
+    expect(discovery.passiveZones).toEqual([])
+    expect(discovery.unavailable).toContainEqual(
+      expect.objectContaining({ ownerFeatureId: aura.id })
+    )
+  })
+})
+
+describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6d1, D153)', () => {
+  const withInteractions = (
+    interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']>,
+    diceConfig = '2d6'
+  ) => {
+    const feature = creatureAuraFeature(diceConfig)
+    const path = feature.effects![0]!.paths[0]!
+    const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+      throw new Error('The aura is a manifest zone.')
+    outcome.components![0]!.interactionKinds = interactionKinds
+    return feature
+  }
+  const passiveZoneOf = (creature: Parameters<typeof srdCreatureActor>[0]['creature']) => {
+    const { passiveZones } = discoverEncounterFeatureActions({
+      actor: srdCreatureActor({ id: testUuid(0x1951), creature }),
+      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+    })
+    const [passive, ...others] = passiveZones
+    if (!passive || others.length) throw new Error('The creature must keep exactly one zone.')
+    return passive.zone
+  }
+  const goblinWith = (feature: ReturnType<typeof creatureAuraFeature>) =>
+    passiveZoneOf(withFeature(srdByLabel(SRD.creatures, 'Goblin'), feature))
+
+  it('compiles the melee-hit interaction beside the turn trigger of the same component', () => {
+    expect(
+      goblinWith(withInteractions(['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE']))
+    ).toMatchObject({
+      attachment: 'SOURCE',
+      triggerModes: [],
+      turnTriggers: ['START_OF_SOURCE_TURN'],
+      retaliatesMeleeHits: true
+    })
+  })
+
+  it('compiles a zone that only answers melee hits, with no movement or turn trigger', () => {
+    const zone = goblinWith(withInteractions(['MELEE_HIT_ON_SOURCE']))
+    expect(zone).toMatchObject({ triggerModes: [], retaliatesMeleeHits: true, grant: null })
+    expect(zone).not.toHaveProperty('turnTriggers')
+  })
+
+  it('leaves the flag off a zone that does not answer melee hits', () => {
+    expect(goblinWith(creatureAuraFeature('2d6'))).not.toHaveProperty('retaliatesMeleeHits')
+  })
+
+  it('compiles the SRD Balor’s Fire Aura as the same zone a core-options aura of 3d6 fire answering melee hits is (ADR 0038)', () => {
+    const comparable = ({ label: _label, shape, entry, ...rest }: CompiledActionZonePlacement) => ({
+      ...rest,
+      shape: { ...shape, id: null },
+      nodes: entry.frozenGraph.definition.nodes.map(({ id, operation }) => ({ id, operation }))
+    })
+    const balor = passiveZoneOf(srdByLabel(SRD.creatures, 'Balor'))
+    const homebrew = goblinWith(
+      withInteractions(['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'], '3d6')
+    )
+    expect(balor).toMatchObject({ label: 'Fire Aura', retaliatesMeleeHits: true })
+    expect(comparable(balor)).toEqual(comparable(homebrew))
+  })
+
+  it('stays manual on a zone left at a point, which has no source to hit', () => {
+    expect(
+      compileItemEntry(
+        variantEquipment((parts) => {
+          diceDamage('2d6')(parts)
+          noSave(['MELEE_HIT_ON_SOURCE'])(parts)
+        })
+      ).compilation
+    ).toMatchObject({ kind: 'MANUAL', reasonCode: 'NOT_NORMALIZED' })
   })
 })
 

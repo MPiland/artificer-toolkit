@@ -429,6 +429,21 @@ persistence path, and the stored zone phase holds one chained mechanics batch pe
 `readEncounterActorTokenBindings` (the `ACTOR_TOKEN_BINDINGS` capture on the Worker) and settles caught creatures
 in the order a spatial prefix does (`orderSpatialSettlementActors`: Characters by source id, then creatures by id). `collectSpatialTurnCandidates` (shared/vtt) is the
 containment seam for turn triggers: it applies `spatialEffectAffects` and the per-turn limit, as movement does.
+A Creature's passive zone (D144, SPELLS-20 T6b) is a PASSIVE feature Effect manifesting one zone that acts at its
+source's turn; discovery returns it in `passiveZones`, never as an action. `planEncounterPassiveZones` plans one
+TOKEN-anchored zone per such feature of each Creature bound to a token, with no maintained state and an id fixed by
+the Encounter, actor and feature Effect. One persistence helper, `placeEncounterPassiveZones`, creates them: at the
+START terminal before the incoming zone phase, and at a GM token bind in a PREPARED or ACTIVE Run (D147); the room's
+turn preparation plans the same START records (`plannedSpatialEffectRecord`). Removing the Creature, or unbinding or
+rebinding its token, deletes them first. While the source is defeated its passive zones stay stored and drawn but are
+`suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
+candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
+placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+`MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
+other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
+authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the
+active-effect clock, independent of the zone's lifetime. Target: T6d2 applies the grant at placement and answers a
+melee hit on the source from inside the zone; until then neither field is persisted or acted on.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's
@@ -479,7 +494,17 @@ attachment, shape, spared-creature choice, Concentration and any save at the cas
 (`zoneChoicePlan`); the action's facts read that shared save from every option (`zoneEntrySavingThrow`). The
 choice DTO lists them as `choiceOptions` on the `POINT` / `CASTER_CENTERED` target, the cast command names one as
 `choiceOptionId`, and the Worker places that option's zone (`chosenZonePlacement`), refusing a missing or unknown
-pick; later triggers run the stored definition. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
+pick; later triggers run the stored definition. A `CHOICE` path whose options place no zone (Protection from
+Energy's damage type, Blindness/Deafness's condition, SPELLS-30, D148) compiles to `compilation.choice =
+{ options: [{ optionId, label, activeEffectPlan, executionPlan }] }`, exclusive with `zonePlacement`. Both pickers
+narrow the action to one option with `castChoiceOptions`, which restores each option's own result kind from the
+compiled entry's `optionGroupKind`. The options must share their test and maintenance graphs, or the action goes
+manual. The top-level plans hold the first option. The choice DTO lists the options as `choiceOptions` on the
+`ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
+kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
+modifiers) passes `readsSharedTest` and reads the top-level option.
+`prepareEncounterActionSource` is the one place the picked option's plans replace the top-level ones. It refuses
+a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
@@ -815,6 +840,16 @@ sources of the held, sourced, fleeing owners. An Action other than Dash taken by
 `CONDITION_SOURCE_FLEE` warning, and the turn movement projection (`turnMovement[].fleeSourceActorIds`,
 read by `readTurnMovementView`) drives the tabletop's "Dash away from the source" prompt. Shown and
 softly enforced, never blocked. SRD Fear authors it.
+
+**Failure-margin rider (SPELLS-27.T11, D149).** An immediate `FOLLOW_UP_SAVE` whose failed outcomes are
+timed conditions may author `failureMarginRider { id, failedBy, outcomes, lifecycle { endOnTriggers } }`:
+one more condition applied when the save fails by `failedBy` or more. The compiler adds a
+`nested-save-margin` threshold node (`dc - failedBy + 1`) and a margin-gated condition proposal, and the
+plan carries `marginRider` (required, nullable) with its own `rider-condition-duration` node. The
+encounter planner then creates a second active effect, the rider's, with the parent's duration and the
+rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
+parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
+the parent: ending the parent early leaves the rider for the GM to end. Only a follow-up save takes a rider. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author it.
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
@@ -1339,6 +1374,34 @@ reached. The room has no Campaign clock, so Convex converts them (see
 it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;
 a fighting Character's are checked on the next advance.
 
+**Resume in a later Run (D151, SPELLS-5.13).** A Run's START resumes its Characters' carried effects in the
+START's own transaction, before the opening turn is planned (`persistCarriedEffectResumes`, called by the
+room's `executeRoomEncounterTurn`). Only a `PREPARED` Run resumes, so a replayed START changes nothing.
+The room reads the clock through the `CAMPAIGN_CLOCK` room input, and only when an effect carries an
+expiry. `planResumedCarriedEffects` gives each carried `TICKS` grant or condition-owning effect
+`remainingTicks = min(initialRemaining, (expiresAtCampaignMinute - now) x 10)` and drops the expiry, so
+the turn kernels count it again from the next turn boundary; a result of zero or less ends it like an
+expired grant. A grant carried with no expiry (no clock at completion) stays untimed, and no clock now
+resumes nothing. A carried grant's `SOURCE` anchor names an actor of the earlier Run, so it counts on its
+holder's turns instead (`grantAnchorActorId`), and the departed-source removal skips it. Tick writes
+spread the stored lifecycle, so the caster stamp survives every count. Not resumed: a Character that joins
+an already `ACTIVE` Run, and a carried effect held only through a worn form.
+
+**Reinstated Concentration (D151, SPELLS-5.12).** After the resume, the same START gives a carried caster
+who is a Character actor of the Run back the Concentration their surviving carried grants are stamped
+with. `planReinstatedConcentrations` groups the Run's Character-owned, unlinked, stamped effects by caster,
+keeps the casters in the Run, and builds one maintained-state descriptor each from the System
+Concentration definition (`requireInstalledConcentrationMaintenanceDefinitionId`, read only when a caster
+reinstates) with `provenance: { kind: 'CARRIED', casterCharacterId }`. `persistCarriedEffectResumes`
+creates the state on the caster's actor and relinks each grant (`relinkCarriedCas`), so damage stages a
+Concentration check and every loss path (failed check, incapacitation, edit or chosen end) ends the grants
+as dependents through `applyLiveConcentrationCleanup`, which also records the caster in
+`concentrationCasterCharacterIds` when the ended state is `CARRIED`. At COMPLETE the relinked grants carry
+over again through the usual detach. A turn effect under a `CARRIED` state binds by its caster stamp, not
+its origin (`requireTurnMaintainedStates`). An `ACTION` provenance names the creating action and
+occurrence; the receipt's `priorState` names neither (its checksum pins the prior descriptor). Not
+reinstated: a caster whose stamped grants all sit on Characters outside the Run.
+
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
 whether the source was hidden, rounds left or the carried expiry minute, and its polarity);
 `hideActiveGrantSources` nulls a hidden source's label for everyone but the GM and keeps the polarity (D110).
@@ -1411,7 +1474,7 @@ effect: `encounterEscapeEndedConditionIds` names the conditions only that effect
 `CONDITION_OWNERSHIP` contributions through `endedMaintenanceConditions`, so a condition another remaining
 effect retains stays), and `encounterActorsAfterEscape` strips them from a Creature holder. A Character's
 conditions live on its Sheet, so the room's plan does not carry them; persistence removes them with the
-effect (`endEncounterRelationshipEffect` reconciles the maintenance owners on the Character's stream). The
+effect (`endEncounterEscapedEffect` reconciles the maintenance owners on the Character's stream). The
 commit re-derives the escape from the holder's stored effect (`escapeEffectVerification.ts`) and refuses a
 plan whose DC, check, module or spent allowance the effect does not carry. A failure only spends the
 activation.

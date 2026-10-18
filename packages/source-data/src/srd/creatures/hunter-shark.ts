@@ -19,6 +19,12 @@ export const hunterShark: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 45,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 6,
     die: 10,

@@ -38,9 +38,7 @@ import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.
 export const seedStoryUserId = '00000000-0000-0000-0000-000000000000'
 export const seedStorySystemId = '00000000-0000-0000-0000-000000000001'
 const authoredStorySpeeds = SRD_SPEEDS.map((speed) => ({ ...speed }))
-const authoredStoryWalkingSpeedId = authoredStorySpeeds.find(
-  (speed) => speed.code === 'WALK'
-)!.id
+const authoredStoryWalkingSpeedId = authoredStorySpeeds.find((speed) => speed.code === 'WALK')!.id
 
 export const authoredRouteStoryUser = {
   id: 'story-author',
@@ -65,7 +63,7 @@ export const authoredRouteStorySystem = {
   description: 'Seed-derived SRD system used for authoring route stories.',
   rulesetCode: 'dnd5e',
   rulesetVersion: '2014',
-  schemaVersion: 2,
+  schemaVersion: 4,
   abilities: [
     { id: '00000000-0000-0000-0011-000100000000', code: 'STRENGTH', label: 'Strength' },
     { id: '00000000-0000-0000-0011-000200000000', code: 'DEXTERITY', label: 'Dexterity' },
@@ -356,6 +354,13 @@ const seedWizardClass = {
 const seedAcolyteCreature = {
   id: '00000000-0000-0000-0070-000200000000',
   label: 'Acolyte',
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   userId: seedStoryUserId,
   systemId: seedStorySystemId,
   status: 'ACTIVE',

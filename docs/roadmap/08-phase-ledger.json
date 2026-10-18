@@ -6114,6 +6114,18 @@
               "closes": ["ATTACK-7.3"]
             },
             {
+              "id": "ATTACK-7.T3m",
+              "text": "D152: move Disarm and the movement-passage contests (Overrun, Tumble, Shove Aside) onto the one ENCOUNTER_CONTEST_CHECK context with a discriminated source; own commit and green run before the grapple contest uses it.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 8,
+                "size": 3
+              }
+            },
+            {
               "id": "ATTACK-7.T3",
               "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
               "status": "IN_PROGRESS",
@@ -6125,6 +6137,19 @@
               "text": "Slice D: release with no action, and the end sweeps (grappler can't act; movement leaves the sealed reach).",
               "status": "TODO",
               "closes": ["ATTACK-7.4"]
+            },
+            {
+              "id": "ATTACK-7.T4b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["ATTACK-7.T4"]
+              },
+              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control."
             },
             {
               "id": "ATTACK-7.T5a",
@@ -7602,7 +7627,7 @@
             },
             {
               "id": "SPELLS-4.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7611,7 +7636,21 @@
                 "size": 5,
                 "after": ["SPELLS-20.T4b2b2"]
               },
-              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE)."
+              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T1b2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-4.T1b"]
+              },
+              "text": "Wall of Fire's damaging side (D154): a cast-time choice of the wall's damaging side and a one-sided 10 ft band geometry; a creature ending its turn in the band, or entering it, takes the fire damage. Proved on Wall of Fire with a room journey."
             },
             {
               "id": "SPELLS-4.T1c",
@@ -7657,7 +7696,7 @@
             },
             {
               "id": "SPELLS-4.T1e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7667,7 +7706,7 @@
                 "after": ["SPELLS-4.T1d", "SPELLS-20.T4b3b"]
               },
               "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save: widen the frozen test graph and testApplications to a second proposal per result path for the zone condition (the composable set from SPELLS-20.T4b3b refuses it until then). Proved on Web and Black Tentacles.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Web and Black Tentacles restrained zones with held conditions and the generic ESCAPE command (D146). Green: ci/spells-4-t1e 26410b01b Tests 39099580716, Live 39099580780; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
             },
             {
               "id": "SPELLS-4.T1g",
@@ -7680,7 +7719,7 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1e"]
               },
-              "text": "Cast-time area save on a zone-placing cast: each creature in the area when the zone appears makes the save once (Insect Plague, Grease, Entangle), from core options. For Entangle it is the only save, with the T1e restrained condition and escape. Proved on all three."
+              "text": "Cast-time area save on a zone-placing cast: each creature in the area when the zone appears makes the save once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each."
             },
             {
               "id": "SPELLS-4.T2",
@@ -7700,12 +7739,13 @@
         {
           "id": "SPELLS-5",
           "title": "Grants apply through APPLY_GRANT",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
-            "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+            "apps/apis/convex/encounters/antitoxinGrant.test.ts",
+            "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts"
           ],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7868,16 +7908,29 @@
             },
             {
               "text": "A caster whose Concentration carried over to the Campaign clock is still concentrating in a later Encounter: damage stages a Concentration check, and losing it ends every carried grant that depends on it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts (room journey).",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts.",
+                "packages/rules-runtime/src/__tests__/encounterTurnEffectState.test.ts.",
+                "apps/apis/convex/rules/maintainedProvenanceMigration.test.ts (descriptor provenance backfill).",
+                "Green: ci/spells-5 256f30770 Tests 39100454433, Live 39100454389; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
+              ],
               "origin": [],
               "note": "Found 2026-10-09 while planning SPELLS-5.11: a carried-only caster holds no Run slot, so damage in a new Run stages no check. Builds after SPELLS-5.11 and reuses its by-caster grant index.",
               "id": "SPELLS-5.12"
             },
             {
               "text": "A grant carried over to the Campaign clock counts down in rounds while its holder is in a later Encounter and ends there when its time runs out, and completing an Encounter offers the GM to advance the Campaign clock by the Encounter's elapsed rounds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts (room journey).",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts.",
+                "apps/apis/convex/liveSessions/roomInputs.test.ts (CAMPAIGN_CLOCK room input).",
+                "apps/web/src/domains/campaigns/components/CampaignEncounterWorkspace.test.tsx (clock advance offer).",
+                "packages/rules-runtime/src/__tests__/campaignClock.test.ts.",
+                "Green: ci/spells-5 256f30770 Tests 39100454433, Live 39100454389; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
+              ],
               "origin": [],
               "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
               "id": "SPELLS-5.13"
@@ -7916,38 +7969,41 @@
             {
               "id": "SPELLS-5.T10",
               "text": "D151: resume carried timers at START through the CAMPAIGN_CLOCK capture; fix the tick UPDATE that drops optional lifecycle fields (red first); room journey with Fly carried from Run 1 ending in Run 2.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-5.13"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "note": "phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718). D151 amendment: the replacement receipt's priorState carries no action ids."
             },
             {
               "id": "SPELLS-5.T12",
               "text": "D151: reinstate a carried caster's Concentration at START as a real maintained state, with a required descriptor provenance discriminant (migrated); damage check and loss end dependents; room journey.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-5.12"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "note": "phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718). D151 amendment: the replacement receipt's priorState carries no action ids."
             },
             {
               "id": "SPELLS-5.T11",
               "text": "D151: the completed-Encounter view offers to advance the Campaign clock by ceil(rounds / 10) minutes through campaigns.clock.advance; component test and Convex journey.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-5.13"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 2,
                 "size": 1
-              }
+              },
+              "note": "phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718). D151 amendment: the replacement receipt's priorState carries no action ids."
             }
           ]
         },
@@ -9205,7 +9261,7 @@
             },
             {
               "id": "SPELLS-20.T6b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9215,11 +9271,11 @@
                 "after": ["SPELLS-20.T6a"]
               },
               "text": "A creature's passive zones (D144, D147): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, and when the GM binds a token to an actor in a PREPARED or ACTIVE Run, with no maintained state. It is deleted when its token is unbound, its actor is removed or the Encounter finishes, and suppressed while its source is defeated (candidates skip it; a revived source has it again). Proved on a core-options creature zone; the Balor (T6c) is the SRD consumer.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Fast-path merge 1a4de8a8a (m94 backstop), slice tip 426dc55fa Tests 39090990190, Live 39090990126. Proofs: encounterPassiveZones.test.ts, nativeRoomTurnZoneEffects.test.ts. REINFORCE gets its zone at token bind (no separate call)."
             },
             {
               "id": "SPELLS-20.T6c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9228,10 +9284,39 @@
                 "size": 2,
                 "after": ["SPELLS-20.T6b"]
               },
-              "text": "Balor Fire Aura data: author it as a T6b passive zone (5 ft, 3d6 fire, START_OF_SOURCE_TURN, no save), delete CLOSED_RULE CREATURE_BALOR_FIRE_AURA, add the ADR 0038 authoring-parity proof and a room journey (the Balor's turn starts and a Wolf beside it takes 3d6 fire)."
+              "text": "Balor Fire Aura data: author it as a T6b passive zone (5 ft, 3d6 fire, START_OF_SOURCE_TURN, no save), delete CLOSED_RULE CREATURE_BALOR_FIRE_AURA, add the ADR 0038 authoring-parity proof and a room journey (the Balor's turn starts and a Wolf beside it takes 3d6 fire).",
+              "note": "Proofs: packages/authoring/src/nodeRuntime/creatureZoneAuthoringParity.test.ts, packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts, apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts (Balor START journey), packages/source-data/src/srd/zoneAttachment.test.ts. Green: ci/spells-20-t6c f60198f2b Tests 39096997496, Live 39095790702 (2ee29a29b); phase merge da59db5d1 (backstop ci/merge-m97 Tests 39098235652). CLOSED_RULE CREATURE_BALOR_FIRE_AURA deleted."
             },
             {
-              "id": "SPELLS-20.T6d",
+              "id": "SPELLS-20.T6d1",
+              "status": "DONE",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T6c"]
+              },
+              "text": "Melee-hit retaliation authoring (D153): the SOURCE zone interaction kind MELEE_HIT_ON_SOURCE and its compiled placement, the Balor Fire Aura retaliation component and Fire Shield as a 5 ft SOURCE zone with a warm/chill cast choice and a 10-minute lifetime, each with an ADR 0038 parity proof. FIRE_SHIELD stays until T6d2.",
+              "note": "MELEE_HIT_ON_SOURCE authored on Fire Shield and the Balor with parity proofs: packages/authoring/src/nodeRuntime/creatureZoneAuthoringParity.test.ts, packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts, packages/rules-runtime/src/__tests__/encounterZoneChoiceCompilation.test.ts. Green: ci/spells-20-t6d1 0080b0370 Tests 39103745714, Live 39103745695; phase merge c3f6c3b97 (backstop ci/merge-m100b)."
+            },
+            {
+              "id": "SPELLS-20.T6d2a",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T6c"]
+              },
+              "text": "Melee-hit retaliation on ordinary actions (D153): one shared pure retaliation step after the attack mechanics plan, wired into the ordinary action commit and its receipt; persisted placement carries retaliatesMeleeHits and sourceGrant applies at placement; retaliation dice are system-rolled and recorded. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T6d2b",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
@@ -9241,7 +9326,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6c"]
               },
-              "text": "Melee-hit retaliation rider (D144): when a creature within an authored range hits the holder with a melee attack, the attacker takes authored damage, from core options. Proved on the Balor's Fire Aura and the Fire Shield spell (both CLOSED_RULE today; delete each closed rule it replaces)."
+              "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths."
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"
@@ -9863,7 +9948,7 @@
             {
               "id": "SPELLS-27.T11",
               "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9872,7 +9957,7 @@
                 "size": 3,
                 "after": ["SPELLS-27.T5"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              "note": "Margin-of-failure save riders from core options. Proofs: packages/rules-runtime/src/__tests__/creatureFailureMarginRider.test.ts, apps/session-worker/test/nativeRoomFailureMarginRider.test.ts. Green: ci/spells-27-t11 13a099601 Tests 39099290805, Live 39099290761; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
             },
             {
               "id": "SPELLS-27.T6",
@@ -10000,7 +10085,7 @@
           "tasks": [
             {
               "id": "SPELLS-30.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-30.1"],
               "wsjf": {
                 "bv": 3,
@@ -10009,7 +10094,8 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4e"]
               },
-              "text": "Per-option execution plan (D140 amendment: added with its first non-zone consumer): the cast choice selects the option's outcome in the compiled execution plan. Protection from Energy grants resistance to the chosen type on the touched willing creature for its Concentration; Blindness/Deafness applies the chosen condition on a failed Constitution save with a repeat save at the end of each of the target's turns and one extra target per slot level above 2nd. Proved on both SRD spells with a room journey."
+              "text": "Per-option execution plan (D140 amendment: added with its first non-zone consumer): the cast choice selects the option's outcome in the compiled execution plan. Protection from Energy grants resistance to the chosen type on the touched willing creature for its Concentration; Blindness/Deafness applies the chosen condition on a failed Constitution save with a repeat save at the end of each of the target's turns and one extra target per slot level above 2nd. Proved on both SRD spells with a room journey.",
+              "note": "Proofs: apps/session-worker/test/nativeRoomCastChoice.test.ts, packages/rules-runtime/src/__tests__/characterSpellCastActions.test.ts. Green: ci/spells-30-t1 Tests 39092705384, Live 39092706566; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767). AC 30.1 stays open for T2 (Blade Barrier)."
             },
             {
               "id": "SPELLS-30.T2",
@@ -11011,8 +11097,11 @@
             },
             {
               "text": "The compiled CHARACTER_ACTION contract holds only the versions the compiler emits (COMPILED v4, MANUAL v1); the dead COMPILED v1-v3 members and every reader branch on them are deleted and development data is reseeded.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/compiledActionEntryVersions.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "characterMechanics.ts:306-405; readers in encounterActionEffects.ts:28, encounterActionMaintenance.ts:42, characterNativeActionResources.ts:216-218. The compiler emits only v4 COMPILED and v1 MANUAL.",
               "id": "RELIABILITY-6.2"
@@ -11031,40 +11120,55 @@
             },
             {
               "text": "Grant and restriction folding narrows on each grant's discriminant and reads typed fields, with exhaustive switches; no `as unknown as Record<string, unknown>` casts remain, so a new kind or renamed field fails to compile.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/compiler-restrictions.test.ts and compiler-scaling.test.ts, plus the Character grant-fold tests; typecheck proves the exhaustive never defaults in the restriction and source-fact folds and the chosen-grant resolver.",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "characterGrantFoldSourceFacts.ts:73/125/133, characterGrantFoldRestrictionFacts.ts:25/174, chosenGrantChoiceResolver.ts:266-333.",
               "id": "RELIABILITY-6.4"
             },
             {
               "text": "Currency holdings always carry an explicit kind: the legacy ambiguous identity and the PRESERVE ambiguity policy are deleted and development data is migrated.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/character-currency.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "characterCurrency.ts:4/64/84; 8 non-test PRESERVE callers.",
               "id": "RELIABILITY-6.5"
             },
             {
               "text": "Stored definitions always carry their publish metadata: the legacy-publisher synthesis in definitionStore is deleted, the fields are required, and development data is reseeded.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/authoring/nodeRuntime.test.ts and apps/apis/convex/content/publication.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "apps/apis/convex/content/definitionStore.ts:65-105 (legacyPublisherUserId). Also check the optional ruleState.ts:163/246 fields read with ?? [] for the same never-written-versus-empty gap.",
               "id": "RELIABILITY-6.6"
             },
             {
               "text": "A maintained-effect descriptor always carries its emptyDependentPolicy: the version 1 descriptor is deleted and every consumer reads the policy directly, with no version-derived predicate.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/rules-runtime-contracts.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "activeRuleEffects.ts:318-329; predicates at actorRemovalEffects.ts:142, characterRunEffects.ts:53, turnEffectsPersistence.ts:277, nativeEncounterTurnCompletion.ts:110, encounterConcentration.ts:66, effectActionCompiler.ts:519, characterRuleActionSystemAdapter.ts:93.",
               "id": "RELIABILITY-6.7"
             },
             {
               "text": "A System document has one current schema: the historical System schema versions and the v4-only gate in optionalCombatCheckDefinitions are deleted and development data is migrated.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/subject-schema-parsing.test.ts and packages/shared/src/__tests__/skill-subject-aliases.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "packages/schema/src/vocabulary/system.ts (versions 2-4); packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.ts requireCurrentCheckVocabulary.",
               "id": "RELIABILITY-6.8"
@@ -11084,24 +11188,33 @@
             },
             {
               "text": "An authored Creature's defence, speed, detail, feature and proficiency arrays are required in the contract (empty when none), so no consumer re-defaults or casts them.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/subject-schema-parsing.test.ts (each of the ten Creature arrays is required; a Creature without one is refused).",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "creature.ts:339-340 optional arrays; re-defaults in creatureAuthoring.utils.ts:84-123 and blueprintSnapshots.ts:34-46 (with an `as CreatureAuthored` cast).",
               "id": "RELIABILITY-6.10"
             },
             {
               "text": "Authored-source fact extraction traverses the typed authored DTOs per subject kind, with no `as unknown as AuthoredRecord` casts or untyped record helpers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts (unchanged facts over the typed traversal); typecheck.",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "packages/authoring/src/nodeRuntime/authoredSourceFacts.ts:180-238.",
               "id": "RELIABILITY-6.11"
             },
             {
               "text": "A live-session envelope key is built by one shared function with an explicit owner (a player or the shared party), used by the web client and the Worker alike.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-scene-stream-key.test.ts.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "liveSessionClient.ts:195 and nativeLiveSessionRoom.ts:295 both build `${kind}:${ownerUserId ?? 'SHARED_PARTY'}`.",
               "id": "RELIABILITY-6.12"
@@ -11109,15 +11222,24 @@
             {
               "text": "Campaign inventory currency ids are typed at the contract: the web's legacy non-UUID currency check and its label fallbacks are deleted (with RELIABILITY-6.5).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/campaigns/components/CampaignInventory.test.ts (T4: no legacy non-UUID check or label fallback).",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "apps/web/src/domains/campaigns/components/campaignInventory.utils.ts:155-204.",
               "id": "RELIABILITY-6.13"
             },
             {
               "text": "A dangling reference fails loudly instead of being labelled: an unknown condition type, an unreadable content label on an action, area or legendary-action commit, and the unreachable null optional-combat checksum no longer fall back to 'Unknown condition', 'Action', 'Legendary Action' or ''; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterConditionLabels.test.ts.",
+                "packages/encounter-persistence/src/__tests__/danglingReferences.test.ts.",
+                "packages/rules-runtime/src/__tests__/encounterCleaving.test.ts.",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "characterStates.ts:51 and sheetProjection.ts:1470; actionCommitPersistence.ts:313, areaCommitPersistence.ts:465, turnResourcesPersistence.ts:314 (readContentLabel ?? literal, persisted into roll cards); nativeEncounterCleaving.ts:188/306 (checksum is non-nullable in encounterRunState.ts:194).",
               "id": "RELIABILITY-6.14"
@@ -11146,24 +11268,34 @@
             },
             {
               "text": "Builder issues and validation errors carry their section id from the server (the existing section enum), so the web routes them without its own code-to-step maps or a silent Review fallback.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterBuilderResolution.test.ts.",
+                "apps/web/src/domains/characters/builder/core/CharacterBuilderRenderer.test.tsx.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "apps/web/src/domains/characters/builder/.../stepNavigation.ts:64-74 (issueStepByCode, validationStepByCode, ?? 'REVIEW'; SPELL_SELECTION_INVALID in both maps).",
               "id": "RELIABILITY-6.17"
             },
             {
               "text": "An imported entry with no name, level or quantity raises an import warning in the preview instead of being stored as 'Imported <kind>' or 1.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/imports/importParsers.test.ts.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "packages/authoring/src/imports/importParsers.ts:145-318 (seven 'Imported ...' labels), :171 and :198 (?? 1); importPreparation.ts:1024 unreachable 'Imported character'.",
               "id": "RELIABILITY-6.18"
             },
             {
               "text": "Small type gaps close: a Character's temporary hit points are required (0 when none) so nine `temp ?? 0` repeats go; the Sheet extras form narrows the creature origin instead of defaulting it to WORLD; stored encounter documents are typed without `as unknown as`; the held-only read port input is a narrowed type rather than a comment; and the pure wrappers prepareAreaCaster, getChildMapId and executeRelationshipPlan are removed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/characterHitpointsState.test.ts (temporary hit points are required); typecheck (HeldRoomInputs is the only input the turn read ports accept; no double cast in the room store).",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "characterState.ts:205; CharacterSheetExtras.tsx:78; roomEncounterStore.ts:803/928; roomEncounterTurnReadPorts.ts:13-17; nativeEncounterAreaRules.ts:240-250, authoringNodeDefaults.ts:685, relationshipExecutor.ts:37-43.",
               "id": "RELIABILITY-6.19"
@@ -11219,7 +11351,7 @@
             {
               "id": "RELIABILITY-6.T2",
               "text": "Fail loudly and own identities in one place: live-session envelope keys, dangling references, server section ids and import warnings.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-6.12",
                 "RELIABILITY-6.14",
@@ -11231,12 +11363,13 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767). D150 as built: the commit label is required; readContentLabel stays for contributor sources."
             },
             {
               "id": "RELIABILITY-6.T3",
               "text": "Typed narrowing instead of casts: grant folding, required Creature arrays, authored fact extraction and small type gaps.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-6.4",
                 "RELIABILITY-6.10",
@@ -11248,12 +11381,13 @@
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
             },
             {
               "id": "RELIABILITY-6.T4",
               "text": "Dead contract versions and legacy shapes are deleted with development data migrated.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-6.2",
                 "RELIABILITY-6.5",
@@ -11267,7 +11401,21 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8
-              }
+              },
+              "note": "phase merge ad532219a (fast path; backstop ci/merge-m101)."
+            },
+            {
+              "id": "RELIABILITY-6.T5",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
+              "closes": ["RELIABILITY-6.13"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "text": "Currency labels resolve by currency identity everywhere, plus the PBI journey. Bug: sheetProjection looks up an equipment costLabel by the raw currencyId, but currencyLabels is keyed by identity, so the Sheet never shows a cost label. Fix it with a regression test that fails first. Journey: a browser test of a Campaign inventory currency flow that shows the labelled holdings."
             }
           ]
         },

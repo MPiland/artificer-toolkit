@@ -22,6 +22,9 @@ export const imp: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 10,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 4,

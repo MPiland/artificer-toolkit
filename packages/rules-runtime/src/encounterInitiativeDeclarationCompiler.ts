@@ -62,12 +62,11 @@ function creatureCapabilities(source: Extract<InitiativeDeclarationSource, { kin
 function publishedChecksum(entry: CompiledActionEntryPoint): string {
   if (entry.compilation.kind !== 'COMPILED')
     throw new EncounterValidationError('The declared Character action is not executable.')
-  return entry.schemaVersion === 4
-    ? (entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
-        ? entry.compilation.executionPlan.published
-        : entry.compilation.executionPlan.test.published
-      ).checksum
-    : entry.compilation.published.checksum
+  return (
+    entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
+      ? entry.compilation.executionPlan.published
+      : entry.compilation.executionPlan.test.published
+  ).checksum
 }
 
 /**
@@ -203,7 +202,7 @@ function options(source: InitiativeDeclarationSource) {
     choices.push({
       kind: 'CHARACTER_ACTION',
       optionId: candidate.actionId,
-      label: candidate.label ?? (activationCode === 'BONUS_ACTION' ? 'Bonus action' : 'Action'),
+      label: candidate.label,
       selectionContract: checksumRuleDocument({
         kind: 'CHARACTER_ACTION',
         optionId: candidate.actionId,

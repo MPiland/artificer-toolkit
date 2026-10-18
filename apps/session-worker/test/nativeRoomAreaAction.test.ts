@@ -1162,7 +1162,7 @@ describe('room area action that leaves a condition behind (SPELLS-19.1)', () => 
         srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
         srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
       ],
-      ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
+      ownerFeatureId: creature.features.find((feature) => feature.label === 'Bite')?.id
     })
     const before = await readRoomHistory(room.room.base.stub)
     const { answer } = await room.startAreaAction({ x: 50, y: 150 })
@@ -1319,7 +1319,7 @@ describe('room area action whose outcome leaves a lasting effect only once settl
         srdCreatureActor({ id: CASTER_ID, creature }),
         srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf })
       ],
-      ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
+      ownerFeatureId: creature.features.find((feature) => feature.label === 'Bite')?.id
     })
     expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
     await answerAllSaves(room)

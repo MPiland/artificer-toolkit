@@ -1,7 +1,11 @@
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { planSpatialHeldCondition } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { orderSpatialSettlementActors } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
-import type { TurnEffectBoundary } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import {
+  turnEffectOwner,
+  type TurnEffectBoundary
+} from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { selectTurnZoneContacts } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
 import type {
   EncounterRunActorState,
@@ -16,9 +20,10 @@ import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
-import { readRunActor } from './documents.js'
+import { readRunActor, readRunActors } from './documents.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 
@@ -79,6 +84,7 @@ export async function persistEncounterTurnZoneEffects(
     binding && scope
       ? selectTurnZoneContacts({
           state,
+          actors: await readRunActors(ctx, state),
           commandType: input.commandType,
           boundary,
           actorId,
@@ -141,6 +147,7 @@ export async function persistEncounterTurnZoneEffects(
   const encounterActorTransitions: ReturnType<
     typeof executedTurnZonePhaseEvidenceDtoSchema.parse
   >['encounterActorTransitions'] = []
+  const effectStore = createActiveRuleEffectStore(ctx)
   for (const [index, target] of orderSpatialSettlementActors(caught).entries()) {
     const targetExecutions = executions.filter(
       (execution) => execution.candidate.candidate.targetActorId === target.id
@@ -189,6 +196,31 @@ export async function persistEncounterTurnZoneEffects(
       (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
     )
       throw new Error('Turn zone settlement differs from its plan.')
+    // A zone holds the condition its failed save applied (D146).
+    const owner = turnEffectOwner(target, state.id)
+    for (const [ordinal, execution] of executions.entries()) {
+      if (execution.candidate.candidate.targetActorId !== target.id) continue
+      const zone = effects[ordinal]!
+      const held = planSpatialHeldCondition({
+        zone,
+        holder: {
+          activeEffects: await effectStore.list(owner),
+          conditionIds: execution.targetTransition.before.conditionIds
+        },
+        applications: execution.applications,
+        encounterId: state.id,
+        occurrenceId: input.occurrenceId,
+        sourceCommandId: input.rootCommandId,
+        targetActorId: target.id
+      })
+      if (held)
+        await effectStore.create({
+          ...held,
+          owner,
+          maintainedEffectStateId: zone.maintainedEffectStateId,
+          occurredAt: input.occurredAt
+        })
+    }
     let settledActor = applied.updatedActor
     for (const { actionEconomy } of targetExecutions)
       if (actionEconomy)

@@ -85,7 +85,8 @@ export interface ParsedExternalCharacter {
     'STRENGTH' | 'DEXTERITY' | 'CONSTITUTION' | 'INTELLIGENCE' | 'WISDOM' | 'CHARISMA',
     number
   >
-  hitPoints?: { current: number; temp?: number }
+  /** Temporary hit points are 0 when the source records none. */
+  hitPoints?: { current: number; temp: number }
   references: ExternalContentReference[]
   customContent: ExternalCustomContent[]
   issues: ImportIssueDto[]
@@ -130,7 +131,15 @@ export function parseDndBeyondCharacterPayload(
   }
 
   const race = asRecord(source.race)
-  if (race) {
+  const raceLabel =
+    race &&
+    requireImportedValue(
+      readString(race.fullName) ?? readString(race.baseRaceName) ?? readString(race.name),
+      'race name',
+      ['race'],
+      issues
+    )
+  if (race && raceLabel) {
     references.push({
       role: 'RACE',
       subjectKind: 'RACE',
@@ -138,23 +147,27 @@ export function parseDndBeyondCharacterPayload(
         readIdentifier(race.baseRaceId) ??
         readIdentifier(race.entityRaceId) ??
         readIdentifier(race.id),
-      label:
-        readString(race.fullName) ??
-        readString(race.baseRaceName) ??
-        readString(race.name) ??
-        'Imported race',
+      label: raceLabel,
       path: ['race']
     })
   }
 
   const background = asRecord(source.background)
   const backgroundDefinition = asRecord(background?.definition) ?? background
-  if (backgroundDefinition) {
+  const backgroundLabel =
+    backgroundDefinition &&
+    requireImportedValue(
+      readString(backgroundDefinition.name),
+      'background name',
+      ['background'],
+      issues
+    )
+  if (backgroundDefinition && backgroundLabel) {
     references.push({
       role: 'BACKGROUND',
       subjectKind: 'BACKGROUND',
       externalId: readIdentifier(backgroundDefinition.id),
-      label: readString(backgroundDefinition.name) ?? 'Imported background',
+      label: backgroundLabel,
       path: ['background']
     })
   }
@@ -163,23 +176,41 @@ export function parseDndBeyondCharacterPayload(
     const classRecord = asRecord(classValue)
     const definition = asRecord(classRecord?.definition)
     if (!classRecord || !definition) continue
+    const classPath = ['classes', index]
+    const classLabel = requireImportedValue(
+      readString(definition.name),
+      'class name',
+      classPath,
+      issues
+    )
+    const classLevel = requireImportedValue(
+      readPositiveInteger(classRecord.level),
+      'class level',
+      classPath,
+      issues
+    )
+    if (!classLabel || classLevel === undefined) continue
     references.push({
       role: 'CLASS',
       subjectKind: 'CLASS',
       externalId: readIdentifier(definition.id),
-      label: readString(definition.name) ?? 'Imported class',
-      level: readInteger(classRecord.level) ?? 1,
-      path: ['classes', index]
+      label: classLabel,
+      level: classLevel,
+      path: classPath
     })
 
     const subclass = asRecord(classRecord.subclassDefinition)
-    if (subclass) {
+    const subclassPath = ['classes', index, 'subclassDefinition']
+    const subclassLabel =
+      subclass &&
+      requireImportedValue(readString(subclass.name), 'subclass name', subclassPath, issues)
+    if (subclass && subclassLabel) {
       references.push({
         role: 'SUBCLASS',
         subjectKind: 'CLASS',
         externalId: readIdentifier(subclass.id),
-        label: readString(subclass.name) ?? 'Imported subclass',
-        path: ['classes', index, 'subclassDefinition']
+        label: subclassLabel,
+        path: subclassPath
       })
     }
   }
@@ -189,13 +220,26 @@ export function parseDndBeyondCharacterPayload(
     const definition = asRecord(item?.definition)
     if (!item || !definition) continue
     const itemExternalId = readIdentifier(definition.id)
-    const itemLabel = readString(definition.name) ?? 'Imported equipment'
+    const itemPath = ['inventory', index]
+    const itemLabel = requireImportedValue(
+      readString(definition.name),
+      'equipment name',
+      itemPath,
+      issues
+    )
+    const quantity = requireImportedValue(
+      readPositiveInteger(item.quantity),
+      'equipment quantity',
+      itemPath,
+      issues
+    )
+    if (!itemLabel || quantity === undefined) continue
     references.push({
       role: 'EQUIPMENT',
       subjectKind: 'EQUIPMENT',
       externalId: itemExternalId,
       label: itemLabel,
-      quantity: readPositiveInteger(item.quantity) ?? 1,
+      quantity,
       equipped: item.equipped === true,
       attuned: item.isAttuned === true,
       path: ['inventory', index]
@@ -219,12 +263,20 @@ export function parseDndBeyondCharacterPayload(
   for (const [index, customValue] of asArray(source.customItems).entries()) {
     const custom = asRecord(customValue)
     if (!custom) continue
+    const customPath = ['customItems', index]
+    const customLabel = requireImportedValue(
+      readString(custom.name),
+      'custom item name',
+      customPath,
+      issues
+    )
+    if (!customLabel) continue
     addCustomContent(
       customEquipmentContent(
         {
           externalId: readIdentifier(custom.id) ?? `custom-item-${index + 1}`,
-          label: readString(custom.name) ?? `Imported custom item ${index + 1}`,
-          path: ['customItems', index],
+          label: customLabel,
+          path: customPath,
           description: readString(custom.description)
         },
         mapDndBeyondEquipment(custom),
@@ -265,7 +317,13 @@ export function parseDndBeyondCharacterPayload(
     const definition = asRecord(record?.definition) ?? record
     if (!definition) continue
     const featId = readIdentifier(definition.id)
-    const featLabel = readString(definition.name) ?? 'Imported feat'
+    const featLabel = requireImportedValue(
+      readString(definition.name),
+      'feat name',
+      ['feats', index],
+      issues
+    )
+    if (!featLabel) continue
     references.push({
       role: 'FEAT',
       subjectKind: 'FEAT',
@@ -315,7 +373,8 @@ export function parseDndBeyondCharacterPayload(
     const spellId = readIdentifier(definition.id)
     if (spellId && seenSpellIds.has(spellId)) continue
     if (spellId) seenSpellIds.add(spellId)
-    const spellLabel = readString(definition.name) ?? 'Imported spell'
+    const spellLabel = requireImportedValue(readString(definition.name), 'spell name', path, issues)
+    if (!spellLabel) continue
     references.push({
       role: 'SPELL',
       subjectKind: 'SPELL',
@@ -415,11 +474,12 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
     const item = asRecord(value)
     if (!item) continue
     const type = readString(item.type)?.toLowerCase()
-    const itemLabel = readString(item.name) ?? `Imported item ${index + 1}`
+    const path = ['items', index]
+    const itemLabel = requireImportedValue(readString(item.name), 'item name', path, issues)
+    if (!itemLabel) continue
     const itemExternalId = readIdentifier(item._id) ?? readIdentifier(item.id)
     const itemSystem = asRecord(item.system)
     const nativeId = readNestedString(item, ['flags', 'artificer', 'subjectId'])
-    const path = ['items', index]
     const common = {
       externalId: itemExternalId,
       nativeId,
@@ -428,12 +488,14 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
     }
 
     if (type === 'class') {
-      references.push({
-        ...common,
-        role: 'CLASS',
-        subjectKind: 'CLASS',
-        level: readPositiveInteger(itemSystem?.levels) ?? 1
-      })
+      const level = requireImportedValue(
+        readPositiveInteger(itemSystem?.levels),
+        'class level',
+        path,
+        issues
+      )
+      if (level !== undefined)
+        references.push({ ...common, role: 'CLASS', subjectKind: 'CLASS', level })
       continue
     }
     if (type === 'subclass') {
@@ -457,6 +519,13 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
       type === 'loot' ||
       type === 'backpack'
     if (equipmentType) {
+      const quantity = requireImportedValue(
+        readPositiveInteger(itemSystem?.quantity),
+        'equipment quantity',
+        path,
+        issues
+      )
+      if (quantity === undefined) continue
       if (isFoundryCustomItem(item)) {
         if (!itemExternalId) {
           issues.push(
@@ -489,7 +558,7 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
         ...common,
         role: 'EQUIPMENT',
         subjectKind: 'EQUIPMENT',
-        quantity: readPositiveInteger(itemSystem?.quantity) ?? 1,
+        quantity,
         equipped: itemSystem ? readNestedBoolean(itemSystem, ['equipped']) : false,
         attuned: itemSystem ? readNestedNumber(itemSystem, ['attunement']) === 2 : false
       })
@@ -550,10 +619,7 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
       flaws: readString(details?.flaw)
     }),
     abilities,
-    hitPoints:
-      hpCurrent === undefined
-        ? undefined
-        : { current: hpCurrent, ...(hpTemp ? { temp: hpTemp } : {}) },
+    hitPoints: hpCurrent === undefined ? undefined : { current: hpCurrent, temp: hpTemp ?? 0 },
     references,
     customContent,
     issues
@@ -664,10 +730,9 @@ function parseDndBeyondHitPoints(
   if (base === undefined) return undefined
   const bonus = readNonnegativeInteger(source.bonusHitPoints) ?? 0
   const removed = readNonnegativeInteger(source.removedHitPoints) ?? 0
-  const temp = readNonnegativeInteger(source.temporaryHitPoints)
   return {
     current: Math.max(0, base + bonus - removed),
-    ...(temp ? { temp } : {})
+    temp: readNonnegativeInteger(source.temporaryHitPoints) ?? 0
   }
 }
 
@@ -1083,6 +1148,30 @@ function issue(
   correctionRequired: boolean
 ): ImportIssueDto {
   return { severity, code, message, path, correctionRequired }
+}
+
+/**
+ * A value an imported entry needs. A missing one raises a preview warning and the entry is left out,
+ * rather than stored under an invented name, level or quantity.
+ */
+function requireImportedValue<T>(
+  value: T | undefined,
+  description: string,
+  path: Array<string | number>,
+  issues: ImportIssueDto[]
+): T | undefined {
+  if (value === undefined) {
+    issues.push(
+      issue(
+        'WARNING',
+        'IMPORTED_ENTRY_INCOMPLETE',
+        `An imported entry has no ${description}, so it was not imported.`,
+        path,
+        false
+      )
+    )
+  }
+  return value
 }
 
 function compactStrings(values: Record<string, string | undefined>): Record<string, string> {

@@ -21,6 +21,7 @@ import {
   persistLiveMovementConcentration,
   persistLiveMovementConcentrationEnd
 } from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
+import { persistLiveMovementAreaDeparture } from '@artificer-toolkit/encounter-persistence/escapedEffectEndPersistence'
 import {
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState
@@ -336,6 +337,7 @@ export async function executeRoomSceneGeometry(input: {
           persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
         persistConcentrationEnd: (step) =>
           persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
+        persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),
         endHolderGrants: (step) => endHolderStateGrants(ctx, step)
       }
     )

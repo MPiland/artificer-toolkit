@@ -72,7 +72,7 @@ export async function readLiveMovementTargetState(
   const { form } = actor
   return {
     currentHitPoints: form ? form.currentHitPoints : character.state.hitpoints.current,
-    temporaryHitPoints: form ? form.tempHitPoints : (character.state.hitpoints.temp ?? 0),
+    temporaryHitPoints: form ? form.tempHitPoints : character.state.hitpoints.temp,
     maximumHitPoints: plannedMaximumHitPoints,
     deathSaves: form ? null : character.state.hitpoints.deathSaves,
     conditionIds: [

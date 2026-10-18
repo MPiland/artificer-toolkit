@@ -20,6 +20,12 @@ export const hydra: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 172,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 15,
     die: 12,

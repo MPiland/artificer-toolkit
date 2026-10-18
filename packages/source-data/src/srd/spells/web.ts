@@ -16,7 +16,8 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const web: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.WEB,
@@ -81,7 +82,81 @@ export const web: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.WEB, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Web',
+                shape: {
+                  id: spellChildId(SPELL_IDS.WEB, 0x220, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.WEB, 0x221, 1),
+                    order: 1,
+                    label: 'Enter the webs',
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'START_TURN_IN_SPACE' as const
+                    ],
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.WEB, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.WEB, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.WEB, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.WEB, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.WEB, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              lifecycle: {
+                                heldBySource: true,
+                                endOnEvents: ['ON_LEAVING_AREA' as const],
+                                escape: {
+                                  activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+                                  checks: {
+                                    skillIds: [],
+                                    abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH]
+                                  },
+                                  dc: { kind: 'SOURCE_SAVE_DC' as const }
+                                }
+                              },
+                              outcomes: [
+                                {
+                                  id: spellChildId(SPELL_IDS.WEB, 0x226, 1),
+                                  effectKind: EFFECT_KIND.CONDITION,
+                                  conditionId: conditionTypeId('RESTRAINED')
+                                },
+                                {
+                                  id: spellChildId(SPELL_IDS.WEB, 0x227, 1),
+                                  effectKind: EFFECT_KIND.MOVEMENT_RULE,
+                                  ruleKind: 'STOP_CURRENT_MOVEMENT' as const
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

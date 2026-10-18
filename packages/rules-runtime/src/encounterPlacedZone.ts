@@ -1,5 +1,9 @@
 import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { LiveSessionPlacedSpatialEffect } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import {
+  encounterSpatialRuleEffectRecordSchema,
+  type EncounterSpatialRuleEffectRecord
+} from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { spatialRuleEffectPlacementDtoSchema } from '@artificer-toolkit/schema/shared/spatial'
 import {
@@ -9,6 +13,7 @@ import {
   type SpatialAreaShape,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { compileEffectGraph } from './encounterActionEffectPlans.js'
 
@@ -44,7 +49,7 @@ export function planEncounterPlacedZone(input: {
 }): LiveSessionPlacedSpatialEffect {
   const { zone, point, area } = input
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
-  const { entry, grant } = zone
+  const { entry, grant, heldCondition } = zone
   const pinnedDc = entry.castSaveDcFactKey
     ? { [entry.castSaveDcFactKey]: castSaveDc(input.saveDc) }
     : {}
@@ -110,12 +115,59 @@ export function planEncounterPlacedZone(input: {
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
       ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
+      // A held condition's escape against its source's save DC pins the caster's DC (D146).
+      ...(heldCondition
+        ? {
+            heldCondition: {
+              ...heldCondition,
+              ...(heldCondition.escape
+                ? {
+                    escape: {
+                      ...heldCondition.escape,
+                      dc:
+                        heldCondition.escape.dc.kind === 'FIXED'
+                          ? heldCondition.escape.dc.value
+                          : castSaveDc(input.saveDc)
+                    }
+                  }
+                : {})
+            }
+          }
+        : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
         : {})
     }),
     spatialState: { schemaVersion: 1, revealed: true }
   }
+}
+
+/**
+ * A planned zone as the Scene effect store keeps it once created: its first version, with the
+ * checksums the store pins. A turn plans against the zones its own commit is about to place.
+ */
+export function plannedSpatialEffectRecord(
+  placed: LiveSessionPlacedSpatialEffect,
+  scope: { encounterId: string; sceneId: string; createdOrdinal: number; createdAt: string }
+): EncounterSpatialRuleEffectRecord {
+  return encounterSpatialRuleEffectRecordSchema.parse({
+    id: placed.id,
+    encounterId: scope.encounterId,
+    sceneId: scope.sceneId,
+    createdOrdinal: scope.createdOrdinal,
+    version: 1,
+    maintainedEffectStateId: placed.maintainedEffectStateId,
+    definition: placed.definition,
+    definitionChecksum: checksumCanonicalJson(placed.definition),
+    lifecycle: placed.lifecycle,
+    lifecycleChecksum: checksumCanonicalJson(placed.lifecycle),
+    placement: placed.placement,
+    placementChecksum: checksumCanonicalJson(placed.placement),
+    spatialState: placed.spatialState,
+    spatialStateChecksum: checksumCanonicalJson(placed.spatialState),
+    createdAt: scope.createdAt,
+    updatedAt: scope.createdAt
+  })
 }
 
 function castSaveDc(saveDc: number | null): number {

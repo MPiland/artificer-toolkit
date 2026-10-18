@@ -1,4 +1,7 @@
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -129,6 +132,7 @@ export async function prepareEncounterSpatialMovement<
 >(args: {
   input: SpatialMovementPreparationInput
   state: EncounterRunState
+  actors: readonly EncounterRunActorState[]
   userId: string
   runtime?: RulesRuntimeService
   random: (maxExclusive: number) => number
@@ -192,7 +196,7 @@ export async function prepareEncounterSpatialMovement<
     ...input,
     interruptAfterContactToActorIds: concentrationActorIds,
     actorUserId: userId,
-    encounter: { ...state, actors: state.actorIds.map((id) => ({ id })) },
+    encounter: { ...state, actors: args.actors },
     runtime: args.runtime,
     random: (maxExclusive) => {
       if (input.retainedExecutions) {

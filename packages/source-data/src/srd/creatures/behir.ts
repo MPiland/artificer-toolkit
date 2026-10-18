@@ -21,6 +21,11 @@ export const behir: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 168,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 16,
     die: 12,

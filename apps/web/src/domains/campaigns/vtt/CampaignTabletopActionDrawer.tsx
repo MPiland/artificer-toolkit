@@ -238,14 +238,18 @@ export function CampaignTabletopActionDrawer({
     choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
   // A zone the action places can spare creatures the caster designates at cast.
   const sparesCreatures = zoneTarget?.choosesUnaffected === true
-  // A zone the cast picks between places the chosen one (D140); the first is preselected.
+  // A cast that picks an option, a zone (D140) or what it does to its targets (D148), sends the
+  // chosen one; the first is preselected.
+  const choiceOptions =
+    choiceTarget && 'choiceOptions' in choiceTarget ? choiceTarget.choiceOptions : undefined
   const chosenOption =
-    zoneTarget?.choiceOptions?.find((option) => option.id === pickedChoiceOptionId) ??
-    zoneTarget?.choiceOptions?.[0] ??
+    choiceOptions?.find((option) => option.id === pickedChoiceOptionId) ??
+    choiceOptions?.[0] ??
     null
+  const castChoice = chosenOption ? { choiceOptionId: chosenOption.id } : {}
   const zoneChoices = {
     ...(sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}),
-    ...(chosenOption ? { choiceOptionId: chosenOption.id } : {})
+    ...castChoice
   }
   const namesNoCreature = areaTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none.
@@ -303,6 +307,7 @@ export function CampaignTabletopActionDrawer({
       ? {
           kind: 'ACTORS',
           actorIds: pickedActorIds,
+          ...castChoice,
           ...(chosenForm ? { formId: chosenForm.id } : {}),
           ...(actorsTarget.choosesCreatureForm && pickedFormCreatureId
             ? { creatureId: pickedFormCreatureId }
@@ -324,7 +329,7 @@ export function CampaignTabletopActionDrawer({
             }
           : null
         : targetActorId
-          ? { kind: 'ACTOR', actorId: targetActorId }
+          ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice }
           : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
@@ -744,11 +749,11 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedActorIds}
                 />
               ) : null}
-              {zoneTarget?.choiceOptions ? (
+              {choiceOptions ? (
                 <Select
                   allowDeselect={false}
                   comboboxProps={{ withinPortal: false }}
-                  data={zoneTarget.choiceOptions.map((option) => ({
+                  data={choiceOptions.map((option) => ({
                     label: option.label,
                     value: option.id
                   }))}

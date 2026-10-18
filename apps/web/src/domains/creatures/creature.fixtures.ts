@@ -9,6 +9,7 @@ import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.f
 export const ownedMonsterFixture: CreatureAuthoredDto = {
   id: 'owned-owlbear',
   label: 'Moonlit Owlbear',
+  qualifiedDamageDefenses: [],
   description: 'A territorial owlbear with pale feathers and a thunderous warning cry.',
   quote: 'The trees go quiet before it charges.',
   status: 'ACTIVE',

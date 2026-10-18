@@ -79,8 +79,7 @@ async function holderFixture(actor: Holder, gmRollVisibility: 'PUBLIC' | 'PRIVAT
       schemaVersion: 2,
       maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
       definitionChecksum: 'a'.repeat(64),
-      sourceActionId: 'cast',
-      sourceOccurrenceId: OCCURRENCE_ID,
+      provenance: { kind: 'ACTION', sourceActionId: 'cast', sourceOccurrenceId: OCCURRENCE_ID },
       sourceActorId: actor.id,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

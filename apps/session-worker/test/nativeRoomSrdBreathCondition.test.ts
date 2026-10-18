@@ -49,7 +49,7 @@ async function breathRoom(breath: {
   condition: string
 }) {
   const creature = installedSrdCreature(breath.creature)
-  const feature = creature.features?.find(({ label }) => label.startsWith(breath.featureLabel))
+  const feature = creature.features.find(({ label }) => label.startsWith(breath.featureLabel))
   if (!feature) throw new Error(`${creature.label} has no ${breath.featureLabel}.`)
   // The one Effect of the feature that leaves the condition rather than damage.
   const effect = feature.effects?.find((candidate) =>

@@ -22,6 +22,11 @@ export const rugOfSmothering: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 33,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 6,
     die: 10,

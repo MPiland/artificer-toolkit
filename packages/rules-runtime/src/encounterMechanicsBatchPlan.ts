@@ -323,7 +323,7 @@ export function planEncounterMechanicsBatch(input: {
     batch,
     sheet: {
       currentHitPoints: sheetHitPoints.current,
-      temporaryHitPoints: sheetHitPoints.temp ?? 0,
+      temporaryHitPoints: sheetHitPoints.temp,
       deathSaves: sheetHitPoints.deathSaves
     },
     ownConditionIds,
@@ -359,7 +359,7 @@ export function planEncounterMechanicsBatch(input: {
   const sheetStateChanged = resourceConsumption !== undefined || itemConsumption !== undefined
   const sheetHitPointsChanged =
     sheetHitPoints.current !== folded.sheet.currentHitPoints ||
-    (sheetHitPoints.temp ?? 0) !== folded.sheet.temporaryHitPoints ||
+    sheetHitPoints.temp !== folded.sheet.temporaryHitPoints ||
     JSON.stringify(sheetHitPoints.deathSaves) !== JSON.stringify(folded.sheet.deathSaves)
   const shouldAdvance =
     sheetHitPointsChanged ||

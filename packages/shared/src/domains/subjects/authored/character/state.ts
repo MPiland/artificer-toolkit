@@ -59,7 +59,7 @@ export interface CharacterRosterEquipmentAssignmentState {
 
 export interface CharacterCurrencyAmountState {
   currencyId: string
-  kind?: 'RULESET' | 'CAMPAIGN'
+  kind: 'RULESET' | 'CAMPAIGN'
   campaignCurrencySystemId?: string
   amount: number
 }
@@ -149,7 +149,7 @@ export interface CharacterDeathSavesState {
 
 export interface CharacterHitpointsState {
   current: number
-  temp?: number
+  temp: number
   hitDice: CharacterHitDiceUsageState[]
   deathSaves: CharacterDeathSavesState
 }

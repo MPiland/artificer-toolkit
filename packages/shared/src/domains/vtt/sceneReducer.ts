@@ -15,7 +15,12 @@ import type {
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
-import { FEET_PER_SCENE_UNIT, METERS_PER_FOOT, VTT_SCENE_LIMITS } from './scene.js'
+import {
+  FEET_PER_SCENE_UNIT,
+  METERS_PER_FOOT,
+  sceneFogOwnerKey,
+  VTT_SCENE_LIMITS
+} from './scene.js'
 import {
   deriveSceneTokenPreviewFogLayers,
   isScenePointExplored,
@@ -31,10 +36,6 @@ function upsertById<T extends { id: string }>(values: T[], value: T): T[] {
 
 function removeById<T extends { id: string }>(values: T[], id: string): T[] {
   return values.filter((value) => value.id !== id)
-}
-
-function fogLayerKey(layer: SceneFogLayer): string {
-  return layer.ownerUserId ?? 'SHARED_PARTY'
 }
 
 type SceneLength = { amount: number; unit: LengthUnitCode }
@@ -132,9 +133,9 @@ function sceneAtomicDeltaConflictKey(delta: SceneAtomicDelta): string {
     case 'ANNOTATION_REMOVED':
       return `ANNOTATION:${delta.annotationId}`
     case 'FOG_CHUNKS_PATCHED':
-      return `FOG:${fogLayerKey(delta.layer)}`
+      return `FOG:${sceneFogOwnerKey(delta.layer.ownerUserId)}`
     case 'FOG_LAYER_REPLACED':
-      return `FOG:${delta.ownerUserId ?? 'SHARED_PARTY'}`
+      return `FOG:${sceneFogOwnerKey(delta.ownerUserId)}`
     case 'VISION_REVEAL_MODE_SET':
       return 'VISION_REVEAL_MODE'
     case 'FOG_MODE_SET':
@@ -222,8 +223,10 @@ function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): C
     case 'ANNOTATION_REMOVED':
       return { ...state, annotations: removeById(state.annotations, delta.annotationId) }
     case 'FOG_CHUNKS_PATCHED': {
-      const key = fogLayerKey(delta.layer)
-      const index = state.fogLayers.findIndex((layer) => fogLayerKey(layer) === key)
+      const key = sceneFogOwnerKey(delta.layer.ownerUserId)
+      const index = state.fogLayers.findIndex(
+        (layer) => sceneFogOwnerKey(layer.ownerUserId) === key
+      )
       if (index < 0) return { ...state, fogLayers: [...state.fogLayers, delta.layer] }
       const current = state.fogLayers[index]
       if (
@@ -251,8 +254,10 @@ function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): C
       if (delta.layer && delta.layer.ownerUserId !== delta.ownerUserId) {
         throw new Error('Fog replacement owner must match its layer owner.')
       }
-      const key = delta.ownerUserId ?? 'SHARED_PARTY'
-      const remaining = state.fogLayers.filter((layer) => fogLayerKey(layer) !== key)
+      const key = sceneFogOwnerKey(delta.ownerUserId)
+      const remaining = state.fogLayers.filter(
+        (layer) => sceneFogOwnerKey(layer.ownerUserId) !== key
+      )
       return {
         ...state,
         fogLayers: delta.layer ? [...remaining, structuredClone(delta.layer)] : remaining

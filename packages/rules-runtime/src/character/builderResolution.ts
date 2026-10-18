@@ -44,6 +44,7 @@ import {
   resolveEligibleStartingEquipment
 } from './builderStartingEquipment.js'
 import {
+  characterBuilderSectionOfSource,
   createReadiness,
   resolveRecommendedCharacterBuilderSection
 } from './builderPresentation.js'
@@ -90,6 +91,7 @@ function appendChosenGrantChoiceIssues(
       validations.push({
         code: 'DUPLICATE_CHOSEN_GRANT_SELECTION_IDENTITY',
         severity: 'blocking',
+        sectionId: 'REVIEW',
         message: `Grant selection "${selection.grantId}" is recorded more than once for the same source.`
       })
       reportedDuplicateSelectionKeys.add(key)
@@ -110,6 +112,7 @@ function appendChosenGrantChoiceIssues(
           ? 'EXPERTISE_REQUIRES_PROFICIENCY'
           : 'REDUNDANT_PROFICIENCY_SELECTION',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `${choice.label}: ${disabledReason}`,
         sourceLabel: choice.sourceLabel,
         source: choice.source
@@ -125,6 +128,7 @@ function appendChosenGrantChoiceIssues(
       validations.push({
         code: 'CHOSEN_GRANT_OPTIONS_UNAVAILABLE',
         severity: 'blocking',
+        sectionId: characterBuilderSectionOfSource(choice.source),
         message: `${choice.label} does not expose selectable targets.`,
         sourceLabel: choice.sourceLabel,
         source: choice.source
@@ -140,6 +144,7 @@ function appendChosenGrantChoiceIssues(
             ? 'CHOSEN_GRANT_SELECTION_DUPLICATE'
             : 'CHOSEN_GRANT_SELECTION_OVER_LIMIT',
         severity: 'blocking',
+        sectionId: characterBuilderSectionOfSource(choice.source),
         message: invalidTarget
           ? `${choice.label} includes a selection that is no longer available.`
           : isUniqueDuplicate
@@ -157,6 +162,7 @@ function appendChosenGrantChoiceIssues(
           selectedIds.length === 0
             ? 'CHOSEN_GRANT_SELECTION_REQUIRED'
             : 'CHOSEN_GRANT_SELECTION_INCOMPLETE',
+        sectionId: characterBuilderSectionOfSource(choice.source),
         message: `${choice.label} requires ${choice.requiredCount} selection${choice.requiredCount === 1 ? '' : 's'}.`,
         sourceLabel: choice.sourceLabel,
         source: choice.source,
@@ -171,6 +177,7 @@ function appendChosenGrantChoiceIssues(
     validations.push({
       code: 'STALE_CHOSEN_GRANT_SELECTION',
       severity: 'blocking',
+      sectionId: characterBuilderSectionOfSource(selection.source),
       message: `Grant selection "${selection.grantId}" no longer matches the current build.`,
       source: selection.source
     })
@@ -502,6 +509,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'INVALID_HITPOINT_PROGRESSION',
       severity: 'blocking',
+      sectionId: 'ABILITIES',
       message: 'Hit point entries no longer match the selected class progression.'
     })
   }
@@ -510,6 +518,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'RACE_NOT_FOUND',
       severity: 'blocking',
+      sectionId: 'RACE',
       message: 'The selected race no longer exists.'
     })
   }
@@ -518,6 +527,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'SUBRACE_NOT_FOUND',
       severity: 'blocking',
+      sectionId: 'RACE',
       message: 'The selected subrace no longer exists.'
     })
   }
@@ -526,6 +536,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'BACKGROUND_NOT_FOUND',
       severity: 'blocking',
+      sectionId: 'BACKGROUND',
       message: 'The selected background no longer exists.'
     })
   }
@@ -535,6 +546,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'CLASS_NOT_FOUND',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `The selected class "${selection.row.classId}" no longer exists.`
       })
     }
@@ -543,6 +555,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'SUBCLASS_NOT_FOUND',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `The selected subclass "${selection.row.subclassId}" no longer exists.`
       })
     }
@@ -555,6 +568,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'SUBCLASS_PARENT_MISMATCH',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `${selection.subclass.label} no longer belongs to ${selection.baseClass.label}.`
       })
     }
@@ -569,6 +583,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'SUBCLASS_SELECTION_UNAVAILABLE',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message:
           availableAt === undefined
             ? `${selection.baseClass.label} does not define a subclass selection level.`
@@ -586,6 +601,7 @@ export async function resolveCharacterBuilder({
   if (selectedRace?.ancestry && !selectedAncestryOption) {
     outstandingChoices.push({
       code: 'ANCESTRY_SELECTION_REQUIRED',
+      sectionId: 'RACE',
       message: `${selectedRace.ancestry.label} requires an option selection.`,
       sourceLabel: selectedRace.label,
       required: true
@@ -602,6 +618,7 @@ export async function resolveCharacterBuilder({
     if (availableSubclasses.length > 0 && !selection.row.subclassId) {
       outstandingChoices.push({
         code: 'SUBCLASS_SELECTION_REQUIRED',
+        sectionId: 'CLASSES',
         message: `${selection.baseClass?.label ?? 'This class'} requires a subclass selection at class level ${selection.baseClass?.subclassSelectionLevel}.`,
         sourceLabel: selection.baseClass?.label ?? 'Class',
         source: {
@@ -616,6 +633,7 @@ export async function resolveCharacterBuilder({
     if (selection.subclass?.specializations?.length && !selection.row.specializationId) {
       outstandingChoices.push({
         code: 'SPECIALIZATION_REQUIRED',
+        sectionId: 'CLASSES',
         message: `${selection.subclass.label} requires a specialization.`,
         sourceLabel: selection.subclass.label,
         required: true
@@ -653,6 +671,7 @@ export async function resolveCharacterBuilder({
 
     outstandingChoices.push({
       code: spellSelectionIssueCode,
+      sectionId: 'CLASSES',
       message: spellSelectionIssueMessage,
       sourceLabel: requirement.sourceLabel,
       source: requirement.source,
@@ -671,6 +690,7 @@ export async function resolveCharacterBuilder({
   ) {
     outstandingChoices.push({
       code: 'CLASS_STARTING_EQUIPMENT_REQUIRED',
+      sectionId: 'EQUIPMENT',
       message: `${primaryClass.label} has starting equipment choices to resolve.`,
       sourceLabel: primaryClass.label,
       required: true
@@ -688,6 +708,7 @@ export async function resolveCharacterBuilder({
   ) {
     outstandingChoices.push({
       code: 'BACKGROUND_STARTING_EQUIPMENT_REQUIRED',
+      sectionId: 'EQUIPMENT',
       message: `${selectedBackground.label} has starting equipment choices to resolve.`,
       sourceLabel: selectedBackground.label,
       required: true
@@ -702,6 +723,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'BACKGROUND_STARTING_EQUIPMENT_UNAVAILABLE',
       severity: 'blocking',
+      sectionId: 'EQUIPMENT',
       message: `${selectedBackground?.label ?? 'The selected background'} has no eligible option for a required starting equipment group.`
     })
   }
@@ -720,6 +742,7 @@ export async function resolveCharacterBuilder({
     if (!acquisition) {
       outstandingChoices.push({
         code: 'FEATURE_SELECTION_REQUIRED',
+        sectionId: characterBuilderSectionOfSource(granted.source),
         message: `${granted.feature.label} requires a selection.`,
         sourceLabel: granted.sourceLabel,
         source: granted.source,
@@ -764,6 +787,7 @@ export async function resolveCharacterBuilder({
               ? 'FEATURE_SELECTION_OVER_LIMIT'
               : 'FEATURE_SELECTION_REPLACEMENT_OVER_LIMIT',
         severity: 'blocking',
+        sectionId: characterBuilderSectionOfSource(granted.source),
         message: hasInvalidOption
           ? `${granted.feature.label} includes a selection that is no longer available.`
           : hasDuplicateOption
@@ -778,6 +802,7 @@ export async function resolveCharacterBuilder({
     if (selectedOptionIds.length < requiredOptionCount) {
       outstandingChoices.push({
         code: 'FEATURE_SELECTION_INCOMPLETE',
+        sectionId: characterBuilderSectionOfSource(granted.source),
         message: `${granted.feature.label} has incomplete selections.`,
         sourceLabel: granted.sourceLabel,
         source: granted.source,
@@ -793,6 +818,7 @@ export async function resolveCharacterBuilder({
         validations.push({
           code: 'DUPLICATE_FEAT_ACQUISITION',
           severity: 'blocking',
+          sectionId: 'REVIEW',
           message: 'A Feat can have only one root acquisition.'
         })
       }
@@ -812,6 +838,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'STALE_FEATURE_ACQUISITION',
         severity: 'blocking',
+        sectionId: 'REVIEW',
         message: `Feature acquisition "${acquisition.featureId}" no longer matches the current build.`
       })
     }
@@ -822,6 +849,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'STALE_SPELL_SELECTION',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `Spell selection "${selection.id}" no longer matches the current build.`
       })
     }
@@ -832,6 +860,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'EQUIPMENT_SOURCE_UNAVAILABLE',
         severity: 'blocking',
+        sectionId: 'EQUIPMENT',
         message: `Inventory equipment "${item.equipmentId}" is no longer available.`
       })
     }
@@ -842,6 +871,7 @@ export async function resolveCharacterBuilder({
       validations.push({
         code: 'STALE_RESOURCE_GRANT',
         severity: 'blocking',
+        sectionId: 'CLASSES',
         message: `Resource grant "${grant.id}" no longer matches the current build.`
       })
     }
@@ -854,6 +884,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'STALE_ANCESTRY_SELECTION',
       severity: 'blocking',
+      sectionId: 'RACE',
       message: 'The selected ancestry option no longer belongs to the current race choice.'
     })
   }
@@ -862,6 +893,7 @@ export async function resolveCharacterBuilder({
     validations.push({
       code: 'ANCESTRY_SOURCE_MISMATCH',
       severity: 'blocking',
+      sectionId: 'RACE',
       message: 'The selected ancestry option no longer matches the current race or subrace.'
     })
   }

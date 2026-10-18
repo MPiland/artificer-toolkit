@@ -1,7 +1,8 @@
 import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  characterCurrencyIdentity,
+  currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import {
   ABILITIES,
@@ -39,6 +40,7 @@ import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
+import { labelCharacterConditions } from './characterConditionLabels.js'
 import { effectiveHitPointMaximum } from './activeEffectGrantTotals.js'
 import {
   CHARACTER_ABILITY_ALIASES,
@@ -878,7 +880,6 @@ export function projectCharacterSheetBundle(
     label: condition.label,
     ...(condition.description ? { description: condition.description } : {})
   }))
-  const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(
     resolution.registry.equipment.map((equipment) => [equipment.id, equipment])
   )
@@ -902,11 +903,7 @@ export function projectCharacterSheetBundle(
   ]
   const currencyLabels = new Map(
     currencyOptions.map((currency) => [
-      createCharacterCurrencyIdentityKey({
-        currencyId: currency.id,
-        kind: currency.kind ?? 'RULESET',
-        campaignCurrencySystemId: currency.campaignCurrencySystemId
-      }),
+      createCharacterCurrencyIdentityKey(currencyOptionIdentity(currency)),
       currency.label
     ])
   )
@@ -1301,7 +1298,7 @@ export function projectCharacterSheetBundle(
     .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
   const currencies = character.state.currency.flatMap((group) =>
     group.currencies.map((currency) => {
-      const identity = resolveCharacterCurrencyIdentity(currency, currencyOptions, 'PRESERVE')
+      const identity = characterCurrencyIdentity(currency)
       return {
         ...identity,
         label: currencyLabels.get(createCharacterCurrencyIdentityKey(identity)) ?? 'Currency',
@@ -1456,7 +1453,7 @@ export function projectCharacterSheetBundle(
         maxHitPoints
       ),
       maxHitPoints,
-      tempHitPoints: character.state.hitpoints.temp ?? 0,
+      tempHitPoints: character.state.hitpoints.temp,
       deathSaves: character.state.hitpoints.deathSaves,
       maxHitPointsOverride: getHitPointAdjustment(adjustments, 'MAXIMUM_OVERRIDE') ?? null,
       maxHitPointsModifier: getHitPointAdjustment(adjustments, 'MAXIMUM_MODIFIER') ?? 0,
@@ -1482,15 +1479,10 @@ export function projectCharacterSheetBundle(
         maximumLevel: ruleEvaluation.output.rest.maximumExhaustion,
         ...(character.state.exhaustion?.notes ? { notes: character.state.exhaustion.notes } : {})
       },
-      conditions: [
-        ...(character.state.conditions ?? []),
-        ...(params.additionalConditions ?? [])
-      ].map((condition) => ({
-        conditionTypeId: condition.conditionTypeId,
-        label: conditionsById.get(condition.conditionTypeId)?.label ?? 'Unknown condition',
-        description: conditionsById.get(condition.conditionTypeId)?.description,
-        notes: condition.notes
-      })),
+      conditions: labelCharacterConditions(
+        [...(character.state.conditions ?? []), ...(params.additionalConditions ?? [])],
+        conditionOptions
+      ),
       hitDice: character.state.hitpoints.hitDice.map((die) => ({
         die: die.die,
         total: die.total,

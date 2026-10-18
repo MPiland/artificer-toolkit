@@ -139,7 +139,16 @@ const authoredRootBoundaryCases: Array<{
       },
       naturalArmorBonus: 0,
       hitPoints: 10,
-      speeds: []
+      speeds: [],
+      features: [],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: []
     }
   },
   {

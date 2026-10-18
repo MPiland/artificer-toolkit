@@ -29,6 +29,7 @@ import {
   dnd5eTemporaryHitPointsProposalOperation,
   dnd5eTestScalarReductionProposalOperation,
   dnd5eTestConditionProposalOperation,
+  dnd5eTestMarginConditionProposalOperation,
   dnd5eTestDamageProposalOperation,
   dnd5eTestHealProposalOperation,
   dnd5eTestTemporaryHitPointsProposalOperation,
@@ -91,6 +92,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eTestDamageProposalOperation,
     dnd5eTestScalarReductionProposalOperation,
     dnd5eTestConditionProposalOperation,
+    dnd5eTestMarginConditionProposalOperation,
     dnd5eMovementInterruptionAuthorizationOperation
   ] satisfies readonly RuleOperationContract[]
 } as const

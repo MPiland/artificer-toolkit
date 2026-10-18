@@ -202,7 +202,7 @@ export const NO_DEATH_SAVES: Readonly<z.infer<typeof characterDeathSavesDtoSchem
 const characterHitpointsStateDtoSchemaRaw = lazySchema(() =>
   z.object({
     current: z.number().check(z.int()),
-    temp: z.optional(z.number().check(z.int())),
+    temp: z.number().check(z.int()),
     hitDice: characterHitDiceUsageStateDtoSchema,
     deathSaves: characterDeathSavesDtoSchema
   })

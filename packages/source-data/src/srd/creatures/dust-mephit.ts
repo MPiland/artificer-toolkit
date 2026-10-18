@@ -21,6 +21,9 @@ export const dustMephit: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 17,
+  details: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 5,
     die: 6,

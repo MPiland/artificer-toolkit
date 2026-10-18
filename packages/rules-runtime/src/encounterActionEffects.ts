@@ -27,9 +27,7 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   published: CompleteExecution['published']
 ) {
   if (prepared.source.kind === 'CHARACTER_ACTION')
-    return prepared.source.entry.schemaVersion === 1
-      ? null
-      : (prepared.source.entry.compilation.activeEffectPlan ?? null)
+    return prepared.source.entry.compilation.activeEffectPlan
   const plans =
     prepared.adapter.activeEffectPlans?.({
       action: prepared.source.capability,
@@ -155,9 +153,21 @@ export function prepareNativeActionEffectsPlan<
     relationship || grant || appliedCondition || appliedRecurringOutcome
       ? effects.recurringEffect
       : null
+  // A rider's effect exists exactly when the save failed by its margin and applied its conditions.
+  const riderEffect = execution.applications.some(
+    (application) =>
+      application.kind === 'CONDITION_APPLY' &&
+      application.targetActorId === prepared.target.id &&
+      plan?.marginRider?.conditionContributions.some(
+        ({ conditionId }) => application.conditionId === conditionId
+      )
+  )
+    ? effects.riderEffect
+    : null
   return {
     ...effects,
     recurringEffect,
+    riderEffect,
     maintenance: recurringEffect ? (plan?.maintenance ?? null) : null
   }
 }

@@ -19,6 +19,13 @@ export const hillGiant: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 105,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 10,
     die: 12,

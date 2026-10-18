@@ -142,8 +142,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
     schemaVersion: 2,
     maintenanceDefinitionId: definitionId,
     definitionChecksum: 'b'.repeat(64),
-    sourceActionId: uuid(0xd31),
-    sourceOccurrenceId: uuid(0xd30),
+    provenance: { kind: 'ACTION', sourceActionId: uuid(0xd31), sourceOccurrenceId: uuid(0xd30) },
     sourceActorId: actors[0]!.id,
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

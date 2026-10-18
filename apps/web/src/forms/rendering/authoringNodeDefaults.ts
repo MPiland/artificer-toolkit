@@ -3,7 +3,6 @@ import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type {
   NodeRuntimeArrayGroupNodeDto,
-  NodeRuntimeGroupNodeDto,
   NodeRuntimeObjectGroupNodeDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { getAuthoringDefaultKind } from './authoringNodeDefaultRegistry'
@@ -18,13 +17,13 @@ export function createDefaultAuthoringArrayItem(
   node: NodeRuntimeArrayGroupNodeDto,
   currentLength: number
 ): AuthoringGroupValues {
-  return createDefaultAuthoringNodeValue(getChildMapId(node), currentLength + 1)
+  return createDefaultAuthoringNodeValue(node.childMapId, currentLength + 1)
 }
 
 export function createDefaultAuthoringObjectItem(
   node: NodeRuntimeObjectGroupNodeDto
 ): AuthoringGroupValues {
-  return createDefaultAuthoringNodeValue(getChildMapId(node), 1)
+  return createDefaultAuthoringNodeValue(node.childMapId, 1)
 }
 
 function createDefaultAuthoringNodeValue(childMapId: string, order = 1): AuthoringGroupValues {
@@ -73,6 +72,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { skillIds: [], abilityDefinitionIds: [] }
     case 'checkDc':
       return { kind: 'FIXED', value: 10 }
+    case 'heldEscapeDc':
+      return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
     case 'chargeBonus':
@@ -475,6 +476,15 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'END' }
     case 'followUpSaveAttempts':
       return { kind: 'ONCE' }
+    case 'followUpSaveFailureMarginRider':
+      return {
+        id: crypto.randomUUID(),
+        failedBy: 5,
+        outcomes: [],
+        lifecycle: { endOnTriggers: [] }
+      }
+    case 'followUpSaveFailureMarginRiderLifecycle':
+      return { endOnTriggers: [] }
     case 'followUpSaveRepeatRollInfluence':
       return {
         influence: 'ADVANTAGE',
@@ -519,6 +529,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return {}
     case 'pathLifecycleEndTrigger':
       return { event: 'DAMAGE_TAKEN', by: 'ANYONE' }
+    case 'pathLifecycleEscape':
+      return {
+        activation: { code: 'ACTION', amount: 1 },
+        checks: { skillIds: [], abilityDefinitionIds: [] },
+        dc: { kind: 'SOURCE_SAVE_DC' }
+      }
     case 'pathLifecycleHolderEnd':
       return { activation: 'BONUS_ACTION' }
     case 'pathLifecycleTurnAnchor':
@@ -732,10 +748,6 @@ export function createTargeting(selectionKind = 'SELF'): TargetingDto {
   if (selectionKind === 'AREA_CONTENTS')
     return { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' }
   return { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
-}
-
-function getChildMapId(node: NodeRuntimeGroupNodeDto): string {
-  return node.childMapId
 }
 
 function createAbilityScores() {

@@ -20,6 +20,12 @@ export const bugbear: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 27,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 8,

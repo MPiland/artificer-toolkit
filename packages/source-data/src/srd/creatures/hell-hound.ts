@@ -20,6 +20,11 @@ export const hellHound: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 45,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 8,

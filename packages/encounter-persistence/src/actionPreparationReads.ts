@@ -255,6 +255,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     actionId: string
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     overridable: boolean
+    readsSharedTest?: boolean
     movementTargets?: ReadonlyMap<string, MovementTarget<TFacts>>
     sceneContext?: Awaited<ReturnType<typeof readActionSceneContext>>
     loadAttackPerception?: Parameters<
@@ -279,6 +280,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     actionId: input.actionId,
     wieldConflictAcceptance: input.wieldConflictAcceptance,
     overridable: input.overridable,
+    readsSharedTest: input.readsSharedTest,
     movementTargets,
     sceneContext: input.sceneContext,
     loadAttackPerception: input.loadAttackPerception,

@@ -375,8 +375,6 @@ function maintainedCharacterReceipt() {
     version: number
     maintenanceDefinitionId: string
     descriptorChecksum: string
-    sourceActionId: string
-    sourceOccurrenceId: string
     sourceActorId: string
   }
   type RemovedDependentEffect = {
@@ -2103,8 +2101,6 @@ describe('rules runtime contracts', () => {
         version: 1,
         maintenanceDefinitionId: turnBatchIds.effect,
         descriptorChecksum: 'a'.repeat(64),
-        sourceActionId: 'prior-action',
-        sourceOccurrenceId: turnBatchIds.source,
         sourceActorId: turnBatchIds.effect
       }
       receipt.maintenanceTransition.removedDependentEffects.push({
@@ -2149,8 +2145,6 @@ describe('rules runtime contracts', () => {
         version: 1,
         maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
         descriptorChecksum: 'a'.repeat(64),
-        sourceActionId: 'prior-action',
-        sourceOccurrenceId: turnBatchIds.source,
         sourceActorId: turnBatchIds.actor
       }
       receipt.maintenanceTransition.characterOwnerTransitions.push(
@@ -2164,8 +2158,6 @@ describe('rules runtime contracts', () => {
         version: 1,
         maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
         descriptorChecksum: 'a'.repeat(64),
-        sourceActionId: 'prior-action',
-        sourceOccurrenceId: turnBatchIds.source,
         sourceActorId: turnBatchIds.actor
       }
       receipt.maintenanceTransition.removedDependentEffects.push({
@@ -2219,8 +2211,6 @@ describe('rules runtime contracts', () => {
       version: 1,
       maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
       descriptorChecksum: 'a'.repeat(64),
-      sourceActionId: 'prior-action',
-      sourceOccurrenceId: turnBatchIds.source,
       sourceActorId: turnBatchIds.actor
     }
 
@@ -2248,8 +2238,11 @@ describe('rules runtime contracts', () => {
       schemaVersion: 2 as const,
       maintenanceDefinitionId: turnBatchIds.effect,
       definitionChecksum: 'a'.repeat(64),
-      sourceActionId: `RESOLVE_ACTION:${turnBatchIds.actor}:feature:action`,
-      sourceOccurrenceId: turnBatchIds.occurrence,
+      provenance: {
+        kind: 'ACTION' as const,
+        sourceActionId: `RESOLVE_ACTION:${turnBatchIds.actor}:feature:action`,
+        sourceOccurrenceId: turnBatchIds.occurrence
+      },
       sourceActorId: turnBatchIds.actor,
       replacementPolicy: 'REPLACE_SAME_DEFINITION' as const,
       emptyDependentPolicy: 'RETAIN_UNTIL_TERMINAL' as const
@@ -2258,9 +2251,15 @@ describe('rules runtime contracts', () => {
     expect(() =>
       encounterMaintainedEffectDescriptorDtoSchema.parse({
         ...descriptor,
-        sourceActionId: 'x'.repeat(241)
+        provenance: { ...descriptor.provenance, sourceActionId: 'x'.repeat(241) }
       })
     ).toThrow()
+    const versionOne = Object.fromEntries(
+      Object.entries({ ...descriptor, schemaVersion: 1 }).filter(
+        ([key]) => key !== 'emptyDependentPolicy'
+      )
+    )
+    expect(encounterMaintainedEffectDescriptorDtoSchema.safeParse(versionOne).success).toBe(false)
   })
 
   it('binds maintained Character owner transitions to the immutable source Character', () => {
@@ -2272,8 +2271,6 @@ describe('rules runtime contracts', () => {
         version: 1,
         maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
         descriptorChecksum: 'a'.repeat(64),
-        sourceActionId: 'prior-action',
-        sourceOccurrenceId: turnBatchIds.source,
         sourceActorId: turnBatchIds.actor
       }
       receipt.maintenanceTransition.removedDependentEffects.push({
@@ -2504,8 +2501,6 @@ describe('rules runtime contracts', () => {
           maintenanceDefinitionId:
             receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
           descriptorChecksum: 'f'.repeat(64),
-          sourceActionId: 'prior-action',
-          sourceOccurrenceId: turnBatchIds.source,
           sourceActorId: turnBatchIds.actor
         },
         removedDependentEffects: [
@@ -2553,8 +2548,6 @@ describe('rules runtime contracts', () => {
       version: 1,
       maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
       descriptorChecksum: 'a'.repeat(64),
-      sourceActionId: 'prior-action',
-      sourceOccurrenceId: turnBatchIds.source,
       sourceActorId: turnBatchIds.actor
     }
     receipt.maintenanceTransition.removedDependentEffects.push(

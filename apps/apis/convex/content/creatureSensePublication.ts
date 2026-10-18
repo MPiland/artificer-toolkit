@@ -13,7 +13,7 @@ export async function assertCreatureSensesDefined(
   creature: Pick<CreatureAuthoredDto, 'senses'>,
   userId: string
 ) {
-  for (const { senseDefinitionId } of creature.senses ?? []) {
+  for (const { senseDefinitionId } of creature.senses) {
     const root = await readDefinitionRoot(ctx, senseDefinitionId, userId)
     if (!root?.current || root.definitionFamilyKey !== 'sense')
       throw new Error('Every Creature sense must reference a published sense definition.')

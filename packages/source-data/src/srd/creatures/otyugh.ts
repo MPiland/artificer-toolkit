@@ -22,6 +22,12 @@ export const otyugh: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 114,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 10,

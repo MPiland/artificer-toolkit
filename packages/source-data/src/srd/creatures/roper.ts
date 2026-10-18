@@ -19,6 +19,12 @@ export const roper: CreatureAuthored = {
   },
   naturalArmorBonus: 11,
   hitPoints: 93,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 11,
     die: 10,

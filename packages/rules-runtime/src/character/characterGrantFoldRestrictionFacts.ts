@@ -172,6 +172,10 @@ function normalizeCondition(
     case 'SAVING_THROW_ABILITY':
     case 'SAVING_THROW_ABILITY_BONUS':
       return baseCondition(condition, 'UNAVAILABLE')
+    default: {
+      const unhandled: never = condition
+      return baseCondition(unhandled, 'UNAVAILABLE')
+    }
   }
 }
 
@@ -263,10 +267,7 @@ export function normalizeCharacterGrantRestrictions(
           return [
             holderKindCondition(context, 'CHARACTER'),
             ...(context.conditions ?? []).map((condition) =>
-              normalizeCondition(
-                condition as FacetConditionAuthored<'CHARACTER'>,
-                normalizeProficiencyTarget
-              )
+              normalizeCondition(condition, normalizeProficiencyTarget)
             )
           ]
         case 'EQUIPMENT':

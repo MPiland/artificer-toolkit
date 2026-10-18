@@ -82,7 +82,7 @@ const characterPlay = (): RoomDocument => ({
     maximumHitPoints: 10,
     speeds: [{ speedId: uuid(5), amount: 30, unit: 'FEET' }],
     state: {
-      hitpoints: { current: 10, hitDice: [], deathSaves: NO_DEATH_SAVES },
+      hitpoints: { current: 10, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],
       attuned: [],
       resourceUsage: [],
@@ -750,7 +750,7 @@ describe('room checkpoint records', () => {
   it('checkpoints Character play changes with the room play clock', () => {
     const document = characterPlay()
     const state = {
-      hitpoints: { current: 7, hitDice: [], deathSaves: NO_DEATH_SAVES },
+      hitpoints: { current: 7, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],
       attuned: [],
       resourceUsage: [],
@@ -968,7 +968,7 @@ describe('room checkpoint records', () => {
       const snapshot = room.checkpointSnapshot()
       const fetched = characterPlay()
       const nextState = {
-        hitpoints: { current: 7, hitDice: [], deathSaves: NO_DEATH_SAVES },
+        hitpoints: { current: 7, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
         equipped: [],
         attuned: [],
         resourceUsage: [],

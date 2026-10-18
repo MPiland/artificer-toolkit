@@ -17,7 +17,8 @@ import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
   readPendingActionDecision,
-  readRoomHistory
+  readRoomHistory,
+  readRoomRollCards
 } from './roomHistoryReads.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
 
@@ -131,6 +132,25 @@ describe('seeded SRD Creature hit riders in the room', () => {
       [4, damageTypeId('PIERCING')],
       [2, damageTypeId('FIRE')]
     ])
+  })
+
+  it('labels the roll cards of a Creature feature action by the action the Worker planned (D150)', async () => {
+    // The action id is compound (`<actor>:FEATURE:<feature>:EFFECT:<effect>`); no content label
+    // lookup can read it, so the card names the planned action, never a generic "Action".
+    const room = await hitRiderRoom({
+      creature: 'Hell Hound',
+      feature: 'Bite',
+      playerAutoRoll: true,
+      rolls: [18, 0, 0, 0]
+    })
+    expect(room.actionId).toMatch(/:FEATURE:.+:EFFECT:/)
+    await settle(room, null)
+    const labels = (await readRoomRollCards(room.room.base.stub)).map(
+      ({ roll }) => roll.source.label
+    )
+    expect(labels[0]).toBe('Bite')
+    expect(labels.slice(1).every((label) => label.startsWith('Bite: '))).toBe(true)
+    expect(labels).toHaveLength(3)
   })
 
   it('rolls every damage die of the Hell Hound’s Bite twice on a critical hit', async () => {

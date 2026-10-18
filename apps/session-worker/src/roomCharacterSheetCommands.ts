@@ -305,7 +305,7 @@ export async function executeRoomCharacterSheetCommand(input: {
   // Hit points the player lowers at the Sheet are damage taken: they engage a Rage (SRD).
   if (
     updated.state.hitpoints.current < initial.character.state.hitpoints.current ||
-    (updated.state.hitpoints.temp ?? 0) < (initial.character.state.hitpoints.temp ?? 0)
+    updated.state.hitpoints.temp < initial.character.state.hitpoints.temp
   )
     await engageStoredIdleTurnActor(ctx, state, holder.id)
   if (deathSaveDie !== undefined) {

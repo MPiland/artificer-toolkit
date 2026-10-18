@@ -21,6 +21,11 @@ export const adultWhiteDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 200,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 16,
     die: 12,

@@ -681,7 +681,7 @@ export const EscapeFromGrapple: Story = {
     await expect(await section.findByText('Escape attempted.')).toBeVisible()
     await expect(escapeSent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'ESCAPE_RELATIONSHIP',
+        type: 'ESCAPE',
         actorId: sourceActor.id,
         activeEffectId: escapes[0].activeEffectId,
         checkDefinitionId: escapes[0].checks[1].checkDefinitionId

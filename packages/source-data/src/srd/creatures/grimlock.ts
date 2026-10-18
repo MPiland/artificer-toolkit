@@ -20,6 +20,11 @@ export const grimlock: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 11,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 2,
     die: 8,

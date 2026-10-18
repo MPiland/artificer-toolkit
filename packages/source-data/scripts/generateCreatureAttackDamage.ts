@@ -147,7 +147,7 @@ function selectPrinted(
 const entries: { entry: string; comment: string }[] = []
 const review: string[] = []
 for (const creature of srdCreatureRecords) {
-  const sources = (creature.features ?? []).flatMap((feature) => [
+  const sources = creature.features.flatMap((feature) => [
     { source: feature, owner: null, path: feature.label },
     ...(feature.options ?? []).map((option) => ({
       source: option,

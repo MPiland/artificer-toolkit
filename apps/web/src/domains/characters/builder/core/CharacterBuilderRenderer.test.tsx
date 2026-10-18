@@ -208,7 +208,7 @@ describe('CharacterBuilderRenderer', () => {
     )
   })
 
-  it('assigns class starting-equipment issues to Equipment instead of Classes', async () => {
+  it('marks the section the service names for an outstanding choice, not the source class', async () => {
     renderCharacterBuilderHarness({
       payload: {
         ...characterBuilderPayloadFixture,
@@ -217,6 +217,7 @@ describe('CharacterBuilderRenderer', () => {
           outstandingChoices: [
             {
               code: 'CLASS_STARTING_EQUIPMENT_REQUIRED',
+              sectionId: 'EQUIPMENT',
               message: 'Wizard has starting equipment choices to resolve.',
               sourceLabel: 'Wizard',
               required: true
@@ -243,7 +244,7 @@ describe('CharacterBuilderRenderer', () => {
     )
   })
 
-  it('routes service validation codes to their owning builder steps', async () => {
+  it('routes service validations to the section the service names', async () => {
     renderCharacterBuilderHarness({
       payload: {
         ...characterBuilderPayloadFixture,
@@ -252,16 +253,19 @@ describe('CharacterBuilderRenderer', () => {
           validations: [
             {
               code: 'STALE_ANCESTRY_SELECTION',
+              sectionId: 'RACE',
               severity: 'blocking',
               message: 'The ancestry selection is stale.'
             },
             {
               code: 'MULTICLASS_PREREQUISITE_UNMET',
+              sectionId: 'CLASSES',
               severity: 'blocking',
               message: 'The multiclass prerequisite is not met.'
             },
             {
               code: 'INVALID_HITPOINT_PROGRESSION',
+              sectionId: 'ABILITIES',
               severity: 'blocking',
               message: 'The hitpoint progression is invalid.'
             }
@@ -825,6 +829,7 @@ describe('CharacterBuilderRenderer', () => {
           outstandingChoices: [
             {
               code: 'ANCESTRY_SELECTION_REQUIRED',
+              sectionId: 'RACE',
               message: 'Choose a Draconic Ancestry option.',
               sourceLabel: 'Draconic Ancestry',
               required: true

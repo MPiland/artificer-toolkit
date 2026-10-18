@@ -22,6 +22,13 @@ export const sprite: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 2,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 1,
     die: 4,
@@ -168,8 +175,8 @@ export const sprite: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(260, 215),
                 resultKind: 'SEQUENCE',
-                // Poisoned for 1 minute (D62.2); the unconsciousness on a save of 5 or lower stays
-                // description-only.
+                // Poisoned for 1 minute (D62.2); a save of 5 or lower (failing DC 10 by 5 or more)
+                // also knocks it unconscious.
                 duration: {
                   id: S.actionId(260, 218),
                   durationKind: DURATION_KIND.MINUTE,
@@ -184,15 +191,29 @@ export const sprite: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     amount: 1
                   },
-                  S.conditionSave({
-                    id: S.actionId(260, 217),
-                    savingThrowId: S.actionId(260, 219),
-                    ability: 'CONSTITUTION',
-                    dc: 10,
-                    conditionOutcomeId: S.actionId(260, 220),
-                    conditionId: conditionTypeId('POISONED'),
-                    repeatsAtTurnEnd: false
-                  })
+                  {
+                    ...S.conditionSave({
+                      id: S.actionId(260, 217),
+                      savingThrowId: S.actionId(260, 219),
+                      ability: 'CONSTITUTION',
+                      dc: 10,
+                      conditionOutcomeId: S.actionId(260, 220),
+                      conditionId: conditionTypeId('POISONED'),
+                      repeatsAtTurnEnd: false
+                    }),
+                    failureMarginRider: {
+                      id: S.actionId(260, 222),
+                      failedBy: 5,
+                      outcomes: [
+                        {
+                          id: S.actionId(260, 223),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('UNCONSCIOUS')
+                        }
+                      ],
+                      lifecycle: { endOnTriggers: S.WAKE_END_TRIGGERS }
+                    }
+                  }
                 ]
               }
             }

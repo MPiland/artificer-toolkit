@@ -19,6 +19,11 @@ export const animatedArmor: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 33,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 6,
     die: 8,

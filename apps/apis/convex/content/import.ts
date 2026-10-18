@@ -40,6 +40,7 @@ import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import { ensureAuthoredRouteId } from './routeIds'
 import { readSystem } from './systemDocuments'
+import { readSystemOwner } from './definitionStore'
 import { decodeDefinitionDocument, encodeDefinitionDocument } from './definitionDocumentJson'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
@@ -531,6 +532,7 @@ export const importDefinitions: RegisteredMutation<
     const { contentSourceId, definitions } = sourceImportDefinitionsInputSchema.parse(args)
     uniqueIds(definitions)
     const source = await requireSource(ctx, contentSourceId)
+    const publishedBy = await readSystemOwner(ctx, source.gameSystemId)
     let inserted = 0
     let reused = 0
     let replaced = 0
@@ -549,25 +551,30 @@ export const importDefinitions: RegisteredMutation<
         documentJson: encodeDefinitionDocument(document),
         contentSourceId,
         gameSystemId: source.gameSystemId,
-        version: 1
+        version: 1,
+        contractVersion: 1,
+        publishedBy
       }
       const current = await ctx.db
         .query('reusableDefinitions')
         .withIndex('by_publicId', (q) => q.eq('id', definition.id))
         .unique()
       if (current) {
-        const changes = mutableChanges(current, record, [
+        const changes = mutableChanges(current, { ...record, publishedAt: current.publishedAt }, [
           'label',
           'description',
           'checksum',
           'documentJson'
         ])
         if (changes) {
-          await ctx.db.patch(current._id, changes)
+          await ctx.db.patch(current._id, { ...changes, publishedAt: new Date().toISOString() })
           replaced++
         } else reused++
       } else {
-        await ctx.db.insert('reusableDefinitions', record)
+        await ctx.db.insert('reusableDefinitions', {
+          ...record,
+          publishedAt: new Date().toISOString()
+        })
         inserted++
       }
     }

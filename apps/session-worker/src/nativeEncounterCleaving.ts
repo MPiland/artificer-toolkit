@@ -304,7 +304,7 @@ export async function rebuildNativeLiveDeferredCleaving(
   return createNativeCleavingChoice({
     ...state,
     ...context,
-    optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum ?? '',
+    optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
     sourceCurrentness,
     chainStep: context.chainStep - 1,
     candidates

@@ -19,6 +19,12 @@ export const giantWeasel: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 9,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 8,

@@ -1,9 +1,8 @@
-import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CurrencySystemDto } from '@artificer-toolkit/schema/api/campaignInventory'
 import { campaignStoredAssignmentSchema } from '@artificer-toolkit/schema/projections/campaignPersistence'
 import {
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  characterCurrencyIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
@@ -14,10 +13,8 @@ import {
   type CharacterRow
 } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
-import { requireSystem } from '../content/systemDocuments'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
 import { requireCampaignAuthority } from './authority'
-import { readCampaignCurrencyOptions } from './currencySystemDocuments'
 
 type CharacterCurrencyGroup = CharacterAuthored['state']['currency'][number]
 type CharacterCurrency = CharacterCurrencyGroup['currencies'][number]
@@ -48,27 +45,8 @@ function requireSafeNextStreamVersion(version: number) {
   return version + 1
 }
 
-export async function readCampaignInventoryCurrencyOptions(
-  ctx: MutationCtx,
-  campaign: Doc<'campaigns'>
-): Promise<CharacterSheetCurrencyOptionDto[]> {
-  const [system, campaignOptions] = await Promise.all([
-    requireSystem(ctx, campaign.gameSystemId),
-    readCampaignCurrencyOptions(ctx, campaign)
-  ])
-  return [
-    ...system.currencies.map((currency) => ({
-      id: currency.id,
-      kind: 'RULESET' as const,
-      label: currency.label
-    })),
-    ...campaignOptions
-  ]
-}
-
 function rewriteGroup(input: {
   group: CharacterCurrencyGroup
-  options: readonly CharacterSheetCurrencyOptionDto[]
   systemId: string
   oldDenominations: CharacterCurrencyRewriteInput['oldDenominations']
   nextDenominations: CharacterCurrencyRewriteInput['nextDenominations']
@@ -78,7 +56,7 @@ function rewriteGroup(input: {
     requireSafeAmount(currency.amount)
     return {
       currency,
-      identity: resolveCharacterCurrencyIdentity(currency, input.options)
+      identity: characterCurrencyIdentity(currency)
     }
   })
   const identities = new Set<string>()
@@ -131,7 +109,7 @@ function rewriteGroup(input: {
   if (!changed) return { group: input.group, changed: false }
   const rewrittenIdentities = new Set<string>()
   for (const currency of currencies) {
-    const identity = resolveCharacterCurrencyIdentity(currency, input.options)
+    const identity = characterCurrencyIdentity(currency)
     const key = createCharacterCurrencyIdentityKey(identity)
     if (rewrittenIdentities.has(key))
       throw new Error('Character currency replacement would duplicate a balance.')
@@ -144,7 +122,6 @@ export async function prepareCampaignCharacterCurrencyRewrites(
   ctx: MutationCtx,
   input: CharacterCurrencyRewriteInput
 ): Promise<CharacterCurrencyRewrite[]> {
-  const options = await readCampaignInventoryCurrencyOptions(ctx, input.campaign)
   const assignments: ReturnType<typeof campaignStoredAssignmentSchema.parse>[] = []
   const userIds = new Set<string>()
   const characterIds = new Set<string>()
@@ -172,7 +149,6 @@ export async function prepareCampaignCharacterCurrencyRewrites(
     const groups = character.state.currency.map((group) =>
       rewriteGroup({
         group,
-        options,
         systemId: input.systemId,
         oldDenominations: input.oldDenominations,
         nextDenominations: input.nextDenominations,

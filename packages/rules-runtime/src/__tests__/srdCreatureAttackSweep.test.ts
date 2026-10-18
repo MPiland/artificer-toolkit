@@ -122,7 +122,7 @@ function printedCriticalDice(unit: AttackUnit): string[] {
 }
 
 function attackUnits(creature: CreatureAuthored): AttackUnit[] {
-  return (creature.features ?? []).flatMap((owner) =>
+  return creature.features.flatMap((owner) =>
     [
       { option: null, source: owner },
       ...(owner.options ?? []).map((option) => ({ option, source: option }))

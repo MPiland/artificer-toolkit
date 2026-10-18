@@ -20,6 +20,10 @@ export const grayOoze: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 22,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 8,

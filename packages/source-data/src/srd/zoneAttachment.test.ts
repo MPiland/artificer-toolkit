@@ -5,7 +5,7 @@ import { srdBaselineContent } from './index.js'
 type CorpusZone = { owner: string; manifest: { attachmentKind?: string } }
 
 /** Every ZONE manifest outcome in the corpus, wherever it is nested, with the labelled subject that owns it. */
-function zoneManifests(node: unknown, owner = '(unlabelled subject)'): CorpusZone[] {
+function zoneManifests(node: unknown, owner: string): CorpusZone[] {
   if (Array.isArray(node)) return node.flatMap((child) => zoneManifests(child, owner))
   if (typeof node !== 'object' || node === null) return []
   const record = node as Record<string, unknown>
@@ -19,7 +19,10 @@ function zoneManifests(node: unknown, owner = '(unlabelled subject)'): CorpusZon
 }
 
 describe('SRD zones state where they are placed (ADR 0038)', () => {
-  const zones = zoneManifests(srdBaselineContent.subjects)
+  // Creatures author no `kind`, so each subject starts as its own owner.
+  const zones = Object.values(srdBaselineContent.subjects)
+    .flat()
+    .flatMap((subject) => zoneManifests(subject, subject.label))
   const ownersOf = (attachmentKind: string) => [
     ...new Set(
       zones
@@ -41,6 +44,8 @@ describe('SRD zones state where they are placed (ADR 0038)', () => {
     expect(ownersOf('SOURCE').sort()).toEqual([
       'Antilife Shell',
       'Antimagic Field',
+      'Balor',
+      'Fire Shield',
       'Spirit Guardians'
     ])
     expect(ownersOf('PRIMARY_TARGET')).toEqual(['Resilient Sphere'])

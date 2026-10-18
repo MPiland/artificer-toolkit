@@ -19,6 +19,13 @@ export const centaur: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 45,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 6,
     die: 10,

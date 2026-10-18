@@ -350,7 +350,8 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
     'ON_CAST_SPELL',
     'ON_HIT_POINTS_REGAINED',
     'ON_INCAPACITATED',
-    'ON_IDLE_TURN'
+    'ON_IDLE_TURN',
+    'ON_LEAVING_AREA'
   ])
 )
 /** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */

@@ -19,6 +19,10 @@ export const ogreZombie: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 85,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 9,
     die: 10,

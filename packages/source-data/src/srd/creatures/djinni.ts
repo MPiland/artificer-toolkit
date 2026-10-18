@@ -21,6 +21,11 @@ export const djinni: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 161,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 14,
     die: 10,

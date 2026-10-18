@@ -29,6 +29,7 @@ import { deleteGrants } from './consumedGrantPersistence.js'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
 import type { persistLiveMovementReaction } from './liveMovementReactionPersistence.js'
+import type { persistLiveMovementAreaDeparture } from './escapedEffectEndPersistence.js'
 import type {
   persistLiveMovementConcentration,
   persistLiveMovementConcentrationEnd
@@ -155,6 +156,9 @@ export async function persistMovementSettlements(
     persistConcentrationEnd: (
       input: Parameters<typeof persistLiveMovementConcentrationEnd>[1]
     ) => ReturnType<typeof persistLiveMovementConcentrationEnd>
+    persistAreaDeparture: (
+      input: Parameters<typeof persistLiveMovementAreaDeparture>[1]
+    ) => ReturnType<typeof persistLiveMovementAreaDeparture>
     endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
   }
 ) {
@@ -250,6 +254,9 @@ export async function persistMovementSettlements(
   let actors = input.actors
   let spatialIndex = 0
   let reactionIndex = 0
+  const departures =
+    preparation.outcome.kind === 'TERMINAL' ? (preparation.outcome.areaDepartures ?? []) : []
+  let departureIndex = 0
   let distance = -1
   const appliedEffectIds = new Set(
     priorPrefix?.spatialEffectTransitions.map((entry) => entry.effectId) ?? []
@@ -267,6 +274,8 @@ export async function persistMovementSettlements(
       (checks.length || ends.length)
     )
       throw new Error('Movement Concentration must settle before the next contact.')
+    if (step.kind !== 'AREA_DEPARTURE' && departureIndex)
+      throw new Error('Movement area departures settle after every contact.')
     if (step.kind === 'SPATIAL') {
       const expected = spatial.slice(spatialIndex, spatialIndex + step.executions.length)
       if (
@@ -335,6 +344,22 @@ export async function persistMovementSettlements(
       await deleteGrants(ctx, step.consumedGrants)
       actors = actors.map((entry) => (entry.id === next.id ? next : entry))
       passageSettled = true
+    } else if (step.kind === 'AREA_DEPARTURE') {
+      const expected = departures[departureIndex]
+      if (!expected || checksumCanonicalJson(expected) !== checksumCanonicalJson(step.departure))
+        throw new Error('Movement area departure differs from its retained move.')
+      const committed = await callbacks.persistAreaDeparture({
+        state: input.state,
+        actors,
+        step,
+        occurredAt: preparation.occurredAt
+      })
+      actors = committed.actors
+      transitions.push({
+        kind: 'AREA_DEPARTURE',
+        characterTransitions: committed.characterTransitions
+      })
+      departureIndex++
     } else if (step.kind === 'CONCENTRATION_END') {
       const expected = ends.shift()
       if (!expected || checksumOnce(expected) !== checksumCanonicalJson(step.execution))
@@ -374,6 +399,7 @@ export async function persistMovementSettlements(
   if (
     spatialIndex !== spatial.length ||
     reactionIndex !== reactions.length ||
+    departureIndex !== departures.length ||
     checks.length ||
     ends.length ||
     Boolean(passage) !== passageSettled

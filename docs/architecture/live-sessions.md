@@ -165,15 +165,16 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
 
 - `RESOLVE_ACTION` runs the action planner, or the Disarm planner (`nativeDisarm.ts`) when it carries
   an optional-combat intent, and an action authored with the `CHECK` test (First Aid) takes the check branch
-  (`nativeCheckAction.ts`, persisted through `roomEncounterBasicActions.ts`); `ESCAPE_RELATIONSHIP` runs
+  (`nativeCheckAction.ts`, persisted through `roomEncounterBasicActions.ts`); `ESCAPE` runs
   `nativeEscapeAction.ts`; `START` and `ADVANCE_TURN` run the turn planner (`nativeEncounterTurn.ts`).
-- `ESCAPE_RELATIONSHIP` (D105) is the current actor's attempt to break a fixed-DC hold. It shares the
+- `ESCAPE` (D105, D146) is the current actor's attempt to break a hold: a fixed-DC grapple, or a condition
+  a zone holds (`CONDITION_ESCAPE`, its DC pinned from the caster's save DC at placement). It shares the
   `BASIC_ACTION` capture scope with the `RESOLVE_ACTION` basic-action check path (`basicActionScopeAdmission.ts`
   dispatches by command type and pending context), and there is no Convex mutation for it. The command
   spends the effect's authored activation, then either settles in the same commit (the roller rolls
   automatically) or leaves a PENDING `ENCOUNTER_ESCAPE_CHECK` occurrence owned by `ESCAPE` that the roller's
   `RESOLVE_RULE_OCCURRENCE` settles through `nativeEscapeActionResponse.ts`. A total at or above the DC deletes
-  the relationship effect and the conditions only it owned in that commit (`relationshipEndPersistence.ts`).
+  the escaped effect and the conditions only it owned in that commit (`escapedEffectEndPersistence.ts`).
   The room's plan is never trusted for the effect's own terms: both commits (`escapePersistence.ts`,
   `escapeCheckSettlement.ts`) load the holder's stored effect and re-derive the escape
   (`escapeEffectVerification.ts`), refusing a DC, check, module or spent allowance it does not carry.
@@ -182,6 +183,13 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   deleted effect row and the removed conditions are not kept in receipts. Action choices offer the attempt as
   `escapes`, labelled "Escape from <grappler>" or "Escape a grapple" when the grappler is hidden from the
   requester.
+- A creature that moves out of a zone holding a condition on it until it leaves (`ON_LEAVING_AREA`, D146)
+  is released in the move's commit. The spatial evaluator keeps those exits out of the graph candidates and
+  returns them as `areaDepartures` on the TERMINAL preparation outcome (`MOVEMENT_COMPLETE` when nothing else
+  executed). The room plans one `AREA_DEPARTURE` movement settlement per departure, after every other step;
+  `persistMovementSettlements` checks it against the retained departures, and
+  `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
+  escape end path. The spatial receipt is unchanged.
 - Pending decisions are routed by `roomEncounterResponseRouting.ts` from the Run's retained occurrence:
   TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, DISARM or MOVEMENT. The selected planner repeats canonical
   admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
@@ -811,6 +819,9 @@ call is one subrequest however many query pages it spans. A page is at most 1024
   and Campaign-owner USER root, including unpublished roots, retained as per-root `ROOM_DEFINITION`
   records and one inventory marker; stale SYSTEM/CAMPAIGN pins reload the whole inventory).
 - `AUTHORITY`: the native Campaign document, memberships of all statuses and assignments.
+- `CAMPAIGN_CLOCK` (D151): the Campaign clock's absolute minute now, or `null` without a clock. It is
+  derived at read time from the running clock, so it carries no revisions and the room never caches it; a
+  Run's START reads it only when a Character holds a carried-over effect.
 - `CHAT_METADATA`: conversations, members and entry headers, excluding text and roll bodies.
 - `SCENE`: the five native Scene families (`sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`,
   `sceneFogSaves`, `sceneFogChunks`) behind immutable definition, presentation and Scene-version pins. A page

@@ -20,6 +20,9 @@ export const iceMephit: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 21,
+  details: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 6,
     die: 6,

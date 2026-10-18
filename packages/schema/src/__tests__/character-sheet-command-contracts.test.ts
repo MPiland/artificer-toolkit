@@ -385,6 +385,7 @@ describe('character sheet command contracts', () => {
         type: 'ADJUST_CURRENCY',
         commandId: '00000000-0000-4000-8000-000000000001',
         expectedVersion: 1,
+        kind: 'RULESET',
         currencyId: 'currency-1',
         amount: -5
       }).success

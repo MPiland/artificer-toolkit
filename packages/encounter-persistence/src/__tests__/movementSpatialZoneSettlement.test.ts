@@ -79,6 +79,7 @@ async function plannedMovementThroughZone() {
   const state = srdEncounterState({ actors, currentActorId: GOBLIN_ID, turnSequence: 3 })
   const settled: PreparedSpatialMovementPlan<ProjectableCharacterFacts>[] = []
   const prepared = await prepareEncounterSpatialMovement({
+    actors,
     input: {
       autoRoll: AUTO_ROLL,
       sceneId: SCENE_ID,
@@ -192,6 +193,7 @@ describe('persistMovementSettlements spatial zone currentness', () => {
           persistReaction: unreachable,
           persistConcentration: unreachable,
           persistConcentrationEnd: unreachable,
+          persistAreaDeparture: unreachable,
           endHolderGrants: unreachable
         }
       )

@@ -37,7 +37,7 @@ function withBite(
 ): CreatureAuthored {
   return {
     ...creature,
-    features: creature.features?.map((feature) =>
+    features: creature.features.map((feature) =>
       feature.label === 'Bite' ? rewrite(feature) : feature
     )
   }

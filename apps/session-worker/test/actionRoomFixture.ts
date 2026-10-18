@@ -381,6 +381,7 @@ export interface ActionRoomConfig extends Pick<
   | 'definitions'
   | 'seed'
   | 'status'
+  | 'campaignClockMinute'
 > {
   /** The Run's actors, side by side 100 px apart from the first, which is the acting (current) actor. */
   actors: readonly EncounterRunActorState[]
@@ -558,14 +559,18 @@ export async function actionRoom(config: ActionRoomConfig) {
         targetTokenId: targetToken.id
       }
     },
-    /** The acting actor's action at `targetActorId`; the room's answer, not yet checked. */
+    /**
+     * The acting actor's action at `targetActorId`, with `choiceOptionId` the option a cast-time pick
+     * names (D148); the room's answer, not yet checked.
+     */
     async startAction(
       targetActorId: string,
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       sceneContext: ResolveEncounterActionInputDto['sceneContext'] = null,
       optionalCombatIntent: ResolveEncounterActionInputDto['optionalCombatIntent'] = null,
       chosenActionId = actionId,
-      actorId = source.id
+      actorId = source.id,
+      choiceOptionId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -575,7 +580,11 @@ export async function actionRoom(config: ActionRoomConfig) {
         commandId: crypto.randomUUID(),
         expectedVersion: await version(),
         actorId,
-        target: { kind: 'ACTOR', actorId: targetActorId },
+        target: {
+          kind: 'ACTOR',
+          actorId: targetActorId,
+          ...(choiceOptionId && { choiceOptionId })
+        },
         actionId: chosenActionId,
         optionalCombatIntent,
         sceneContext
@@ -658,7 +667,8 @@ export async function actionRoom(config: ActionRoomConfig) {
     /**
      * The acting actor's action on the chosen creatures `actorIds`, read against the Scene or not;
      * `point` is the Scene point an action that names an area is aimed at; `formId` is the
-     * creature form the cast takes, or `creatureId` the Creature a filtered form is.
+     * creature form the cast takes, or `creatureId` the Creature a filtered form is; `choiceOptionId`
+     * is the option a cast-time pick names (D148).
      */
     async startActorsAction(
       actorIds: readonly string[],
@@ -666,7 +676,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       withScene = true,
       point: { x: number; y: number } | null = null,
       formId?: string,
-      creatureId?: string
+      creatureId?: string,
+      choiceOptionId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -681,6 +692,7 @@ export async function actionRoom(config: ActionRoomConfig) {
           actorIds: [...actorIds],
           ...(formId && { formId }),
           ...(creatureId && { creatureId }),
+          ...(choiceOptionId && { choiceOptionId }),
           scene: withScene
             ? { sceneId: room.scene.id, expectedSceneVersion: room.scene.version, point }
             : null
@@ -739,6 +751,13 @@ export async function actionRoom(config: ActionRoomConfig) {
           definitionId,
           sceneContext
         }
+      })
+    },
+    /** What each creature would add to the acting actor's attack with its action, off the Scene. */
+    async actionTargetModifiers() {
+      return readRoom({
+        kind: 'ACTION_TARGET_MODIFIERS',
+        input: { encounterId: room.encounterId, actorId: source.id, actionId, scene: null }
       })
     },
     /** The PENDING decision, as the room shows it to the GM; throws when none waits. */

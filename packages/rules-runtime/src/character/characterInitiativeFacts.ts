@@ -44,7 +44,7 @@ export function toCharacterInitiativeActorFacts(input: {
   }
   const registry = input.registry as CharacterAssemblyRegistry
   const checkTotals: Record<string, number> = {}
-  if (registry.system?.schemaVersion === 4) {
+  if (registry.system) {
     const skillsById = new Map<
       string,
       CharacterRulePolicyOutput['derivedStats']['skills'][number]

@@ -139,7 +139,7 @@ async function setup(
   const sourceCreature = relationship
     ? {
         ...creature,
-        features: creature.features?.map((feature) =>
+        features: creature.features.map((feature) =>
           feature.label !== 'Bite'
             ? feature
             : {

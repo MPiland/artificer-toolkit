@@ -16,7 +16,7 @@ export type StoredEscape = NonNullable<ReturnType<typeof findEncounterHolderEsca
 
 /**
  * The holder's stored fixed-DC escape that a frozen check context was derived from, or null once the
- * effect has ended. Rejects a context whose DC, module, relationship outcome or chosen check the
+ * effect has ended. Rejects a context whose DC, escape source or chosen check the
  * stored effect does not carry: the room's plan is never trusted for the effect's own terms.
  */
 export async function findStoredEscape(
@@ -36,12 +36,11 @@ export async function findStoredEscape(
   const escape = findEncounterHolderEscape(effect)
   if (
     !escape ||
-    escape.module.id !== context.escapeModuleId ||
-    escape.relationshipOutcomeId !== context.relationshipOutcomeId ||
+    escape.escapeSourceId !== context.escapeSourceId ||
     escape.dc !== context.check.dc ||
     !(
-      escape.module.checks.skillIds.includes(context.check.checkDefinitionId) ||
-      escape.module.checks.abilityDefinitionIds.includes(context.check.checkDefinitionId)
+      escape.checks.skillIds.includes(context.check.checkDefinitionId) ||
+      escape.checks.abilityDefinitionIds.includes(context.check.checkDefinitionId)
     )
   )
     throw new Error(ESCAPE_EFFECT_MISMATCH)
@@ -74,6 +73,6 @@ export function requireEscapeAllowance(
   escape: StoredEscape,
   spent: { definitionId: string } | null
 ): void {
-  if (!activationAllowanceMatches(state, escape.module.activation, spent))
+  if (!activationAllowanceMatches(state, escape.activation, spent))
     throw new Error(ESCAPE_EFFECT_MISMATCH)
 }

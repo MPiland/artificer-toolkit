@@ -393,13 +393,17 @@ describe('Cleaving choice', () => {
     visitedTargetActorIds?: readonly string[]
     damage?: CleavingContext['damage']
     action?: CleavingContext['action']
+    optionalCombatSnapshotChecksum?: string | null
   }) {
     const rules = input.rules ?? cleavingRules
     return createNativeCleavingChoice({
       automationMode: input.automationMode ?? 'ASSISTED',
       gameSystemId: SRD_SYSTEM_ID,
       optionalCombatSnapshot: rules.snapshot,
-      optionalCombatSnapshotChecksum: rules.checksum,
+      optionalCombatSnapshotChecksum:
+        input.optionalCombatSnapshotChecksum === undefined
+          ? rules.checksum
+          : input.optionalCombatSnapshotChecksum,
       parentOccurrenceId: PARENT_OCCURRENCE_ID,
       parentResultChecksum: 'd'.repeat(64),
       sourceActorId: ATTACKER_ID,
@@ -497,6 +501,12 @@ describe('Cleaving choice', () => {
     expect(
       choose({ candidates: [goblinNext], action: { ...greataxe, attackKind: 'RANGED' } })
     ).toBeNull()
+  })
+
+  it('fails loudly instead of sealing a choice for a Run without a pinned optional-combat policy', () => {
+    expect(() =>
+      choose({ candidates: [goblinNext], optionalCombatSnapshotChecksum: null })
+    ).toThrow(/pinned optional-combat policy/)
   })
 
   it('creates no child when no damage is left to carry', () => {

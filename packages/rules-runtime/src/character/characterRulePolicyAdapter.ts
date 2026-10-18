@@ -63,7 +63,8 @@ function selectionCalculation<T extends string>(value: {
     base: value.base,
     effective: value.effective,
     contributions: [],
-    ...(value.override && (value.override.source?.kind ?? 'MANUAL_ADJUSTMENT') === 'MANUAL_ADJUSTMENT'
+    ...(value.override &&
+    (value.override.source?.kind ?? 'MANUAL_ADJUSTMENT') === 'MANUAL_ADJUSTMENT'
       ? {
           override: {
             adjustmentId:
