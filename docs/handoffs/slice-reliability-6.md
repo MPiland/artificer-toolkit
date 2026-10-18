@@ -7,10 +7,10 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 | Task | ACs                           | Status      |
 | ---- | ----------------------------- | ----------- |
 | T1a  | 6.1, 6.3, 6.15                | merged      |
-| T1b  | 6.16                          | CI          |
-| T1c  | 6.9                           | in progress |
-| T2   | 6.12, 6.14, 6.17, 6.18        | todo        |
-| T3   | 6.4, 6.10, 6.11, 6.19         | todo        |
+| T1b  | 6.16                          | merging     |
+| T1c  | 6.9                           | green       |
+| T2   | 6.12, 6.14, 6.17, 6.18        | CI          |
+| T3   | 6.4, 6.10, 6.11, 6.19         | in progress |
 | T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | todo        |
 
 ## T1a: hit-die source kind, System skill abilities, shared initiative reader
@@ -62,7 +62,7 @@ CI branch `ci/reliability-6-t1b`. Rebased from local `r6-t1b` (571c6a5f3) onto t
 
 ## T1c: typed roll-mode contributor source (6.9)
 
-CI branch `ci/reliability-6-t1c` (stacked on T1b). Rebased from local `r6-t1c` (22932bdbe); earlier red: `ci/reliability-6-red-69` Tests 38891936885 on 7264b2819.
+CI branch `ci/reliability-6-t1c` (stacked on T1b). Rebased from local `r6-t1c` (22932bdbe); earlier red: `ci/reliability-6-red-69` Tests 38891936885 on 7264b2819. Green on e6e38cd7b: Tests 39081656178, Live backend 39081656156; red proof RED for rollModeContributorSource (5 of 5), encounterActiveGrants (6 of 29) and actionRelationshipFacts (1 of 1). The local reset and reseed belongs with the merge, when the local deployment carries the new source shape.
 
 | AC  | Proof                                                                                                                                                                                                                                                                               | Status |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
