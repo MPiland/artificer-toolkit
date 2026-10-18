@@ -10455,6 +10455,114 @@
               "text": "Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey."
             }
           ]
+        },
+        {
+          "id": "SPELLS-31",
+          "title": "Class feature closed rules become core authoring options",
+          "status": "TODO",
+          "origin": ["Q25 answered A (user, 2026-10-18)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "SPELLS-31.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds.",
+              "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-31.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
+              },
+              "text": "Classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-32",
+          "title": "Racial trait closed rules become core authoring options",
+          "status": "TODO",
+          "origin": ["Q25 answered A (user, 2026-10-18)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "SPELLS-32.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: 14 racial trait closed-rule kinds.",
+              "text": "Every racial trait CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-32.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
+              },
+              "text": "Classify the racial trait closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-33",
+          "title": "Creature trait and action closed rules become core authoring options",
+          "status": "TODO",
+          "origin": ["Q25 answered A (user, 2026-10-18)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "SPELLS-33.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds.",
+              "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-33.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
+              },
+              "text": "Classify the creature trait, action and reaction closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+            }
+          ]
         }
       ]
     },
