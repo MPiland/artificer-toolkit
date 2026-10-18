@@ -18,7 +18,8 @@ import {
   undirectedAreaGeometry,
   VTT_SPATIAL_LIMITS,
   wallAreaBoundsInSceneCoordinates,
-  wallOutline
+  wallOutline,
+  wallSideBandGeometry
 } from '../domains/vtt/spatial.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
@@ -1332,6 +1333,84 @@ describe('wall geometry (SPELLS-4.T1b, D154)', () => {
         feetGrid
       )
     ).toBeNull()
+  })
+
+  describe('the band a zone reaches beside its wall (D154 amendment)', () => {
+    const wall = { kind: 'WALL', to: { x: 0, y: 100 }, thickness: 20 } as const
+    const ring = { kind: 'RING', outerRadius: 200, innerRadius: 180 } as const
+    const center = { x: 50, y: 50 }
+
+    it('widens a straight wall by the distance on the side of travel picked', () => {
+      // Travelling down the Scene (y grows downward), the right is toward smaller x.
+      expect(wallSideBandGeometry({ x: 0, y: 0 }, wall, 'RIGHT', 200)).toEqual({
+        kind: 'POLYGON',
+        points: [
+          { x: -210, y: 0 },
+          { x: -210, y: 100 },
+          { x: 10, y: 100 },
+          { x: 10, y: 0 }
+        ]
+      })
+      expect(wallSideBandGeometry({ x: 0, y: 0 }, wall, 'LEFT', 200)).toEqual({
+        kind: 'POLYGON',
+        points: [
+          { x: -10, y: 0 },
+          { x: -10, y: 100 },
+          { x: 210, y: 100 },
+          { x: 210, y: 0 }
+        ]
+      })
+    })
+
+    it('widens a ring outward, or inward until it fills to the center', () => {
+      expect(wallSideBandGeometry(center, ring, 'OUTSIDE', 200)).toEqual({
+        kind: 'RING',
+        center,
+        outerRadius: 400,
+        innerRadius: 180
+      })
+      expect(wallSideBandGeometry(center, ring, 'INSIDE', 100)).toEqual({
+        kind: 'RING',
+        center,
+        outerRadius: 200,
+        innerRadius: 80
+      })
+      expect(wallSideBandGeometry(center, ring, 'INSIDE', 200)).toEqual({
+        kind: 'CIRCLE',
+        center,
+        radius: 200
+      })
+    })
+
+    it('has no band on a side the wall does not have, or beside a wall of no length', () => {
+      expect(wallSideBandGeometry(center, ring, 'LEFT', 200)).toBeNull()
+      expect(wallSideBandGeometry({ x: 0, y: 0 }, wall, 'OUTSIDE', 200)).toBeNull()
+      expect(
+        wallSideBandGeometry({ x: 0, y: 100 }, { ...wall, to: { x: 0, y: 100 } }, 'LEFT', 200)
+      ).toBeNull()
+    })
+
+    it('catches a token on the side picked and spares one on the other', () => {
+      const band = wallSideBandGeometry(
+        { x: 0, y: 0 },
+        { ...wall, to: { x: 0, y: 400 } },
+        'RIGHT',
+        200
+      )
+      if (!band) throw new Error('The band must have an outline.')
+      expect(
+        spatialGeometryOverlapsTokenFootprint({
+          geometry: band,
+          token: token(ids.targetToken, -150, 200)
+        })
+      ).toBe(true)
+      expect(
+        spatialGeometryOverlapsTokenFootprint({
+          geometry: band,
+          token: token(ids.targetToken, 150, 200)
+        })
+      ).toBe(false)
+    })
   })
 })
 

@@ -10,12 +10,20 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { choiceOptionIdOf, hitPointsOf, readZones, walkerMoves } from './placedZoneRoomReads.js'
+import {
+  choiceOptionIdOf,
+  endConcentrationAtSheet,
+  hitPointsOf,
+  readZones,
+  revertLastAction,
+  walkerMoves
+} from './placedZoneRoomReads.js'
 
 /**
  * SPELLS-4.T1b (D154): the SRD Wall of Fire, cast through a real room as the straight wall or the
  * ring its caster picks. The caster draws the wall between two ends or the ring out from its
- * center; a creature entering or crossing the fire, or ending its turn in it, takes the damage with
+ * center, and picks the side its fire also burns (the D154 amendment): a creature entering or
+ * crossing the wall, or ending its turn in it or within 10 feet on that side, takes the damage with
  * no save.
  */
 
@@ -30,12 +38,27 @@ const FIRE_DAMAGE = 5
 /** 5 feet is 100 Scene units: the 1-foot wall is 20 units thick and the 60-foot one 1200 long. */
 const STRAIGHT = choiceOptionIdOf(wallOfFire, 'Straight Wall')
 const RINGED = choiceOptionIdOf(wallOfFire, 'Ringed Wall')
-/** A 30-foot wall standing north to south across the middle of the map. */
-const WALL = { kind: 'WALL', from: { x: 500, y: 300 }, to: { x: 500, y: 900 } } as const
+/**
+ * A 30-foot wall standing north to south across the middle of the map. Drawn southward, its right is
+ * the west: the fire burns the wall and the 200 units west of it.
+ */
+const WALL = {
+  kind: 'WALL',
+  from: { x: 500, y: 300 },
+  to: { x: 500, y: 900 },
+  side: 'RIGHT'
+} as const
 const WEST_OF_THE_WALL = { x: 300, y: 600 }
 const EAST_OF_THE_WALL = { x: 750, y: 600 }
-/** The 10-foot ring around the middle of the map: its band runs 180 to 200 units out. */
-const RING = { kind: 'RING', center: { x: 600, y: 600 }, outerRadius: 200 } as const
+/** Within 10 feet of the wall on its harmless side. */
+const JUST_EAST_OF_THE_WALL = { x: 650, y: 600 }
+/** The 10-foot ring around the middle of the map: its wall runs 180 to 200 units out, burning outward. */
+const RING = {
+  kind: 'RING',
+  center: { x: 600, y: 600 },
+  outerRadius: 200,
+  side: 'OUTSIDE'
+} as const
 
 afterEach(() => {
   closeTrackedSockets()
@@ -61,26 +84,31 @@ function wallRoom(wolfAt: { x: number; y: number }) {
   })
 }
 
+/** The cast places the wall and the band of its burning side, both held by its Concentration. */
 async function placed(room: Room, target: Parameters<Room['startAreaCommand']>[0]) {
   const { answer } = await room.startAreaCommand(target)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  const [zone, ...others] = await readZones(room)
-  expect(others).toEqual([])
-  if (!zone) throw new Error('The cast left no zone.')
-  return zone
+  const zones = await readZones(room)
+  expect(zones).toHaveLength(2)
+  const wall = zones.find(({ placement }) => placement.triggerModes.length > 0)
+  const band = zones.find(({ placement }) => placement.triggerModes.length === 0)
+  if (!wall || !band) throw new Error('The cast must leave its wall and its band.')
+  expect(wall.maintainedEffectStateId).not.toBeNull()
+  expect(band.maintainedEffectStateId).toBe(wall.maintainedEffectStateId)
+  return { wall, band }
 }
 
 describe('the SRD Wall of Fire drawn as a straight wall (SPELLS-4.T1b, D154)', () => {
   it('stands between the two ends drawn, its thickness centered on them', async () => {
     const room = await wallRoom(WEST_OF_THE_WALL)
 
-    const zone = await placed(room, { ...WALL, choiceOptionId: STRAIGHT })
+    const { wall, band } = await placed(room, { ...WALL, choiceOptionId: STRAIGHT })
 
-    expect(zone.placement).toMatchObject({
+    expect(wall.placement.turnTriggers ?? []).toEqual([])
+    expect(wall.placement).toMatchObject({
       anchorKind: 'FIXED',
       label: 'Wall of Fire',
       triggerModes: ['ENTER', 'CROSS'],
-      turnTriggers: ['END_OF_TURN'],
       maxApplicationsPerTurn: 1,
       blockingRules: ['BLOCKS_SIGHT'],
       geometry: {
@@ -90,6 +118,22 @@ describe('the SRD Wall of Fire drawn as a straight wall (SPELLS-4.T1b, D154)', (
           points: [
             { x: 490, y: 300 },
             { x: 490, y: 900 },
+            { x: 510, y: 900 },
+            { x: 510, y: 300 }
+          ]
+        }
+      }
+    })
+    expect(band.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      turnTriggers: ['END_OF_TURN'],
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: 290, y: 300 },
+            { x: 290, y: 900 },
             { x: 510, y: 900 },
             { x: 510, y: 300 }
           ]
@@ -126,19 +170,61 @@ describe('the SRD Wall of Fire drawn as a straight wall (SPELLS-4.T1b, D154)', (
 
     expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - FIRE_DAMAGE)
   })
+
+  it.each([
+    { name: 'burns', where: 'on the side picked', wolfAt: WEST_OF_THE_WALL, damage: FIRE_DAMAGE },
+    { name: 'spares', where: 'on the other side', wolfAt: JUST_EAST_OF_THE_WALL, damage: 0 }
+  ])('$name a creature that ends its turn within 10 feet $where', async ({ wolfAt, damage }) => {
+    const room = await wallRoom(wolfAt)
+    await placed(room, { ...WALL, choiceOptionId: STRAIGHT })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    // The caster's turn ends, then the Wolf's.
+    await room.advanceTurn()
+    await room.advanceTurn()
+
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - damage)
+  })
+
+  it('takes back the wall and its band together when the GM undoes the cast', async () => {
+    const room = await wallRoom(WEST_OF_THE_WALL)
+    await placed(room, { ...WALL, choiceOptionId: STRAIGHT })
+
+    await revertLastAction(room)
+
+    expect(await readZones(room)).toEqual([])
+  })
+
+  it('ends the wall and its band together when its caster ends Concentration', async () => {
+    const room = await wallRoom(WEST_OF_THE_WALL)
+    await placed(room, { ...WALL, choiceOptionId: STRAIGHT })
+
+    const answer = await endConcentrationAtSheet(room, CASTER_ID)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toEqual([])
+  })
 })
 
 describe('the SRD Wall of Fire drawn as a ring (SPELLS-4.T1b, D154)', () => {
   it('rings the center out to the radius drawn, hollow by all but its thickness', async () => {
     const room = await wallRoom(RING.center)
 
-    const zone = await placed(room, { ...RING, choiceOptionId: RINGED })
+    const { wall, band } = await placed(room, { ...RING, choiceOptionId: RINGED })
 
-    expect(zone.placement).toMatchObject({
+    expect(wall.placement).toMatchObject({
       label: 'Wall of Fire Ring',
       geometry: {
         frame: 'SCENE_ABSOLUTE',
         shape: { kind: 'RING', center: RING.center, outerRadius: 200, innerRadius: 180 }
+      }
+    })
+    // Burning outward, the band is the ring and the 10 feet beyond it.
+    expect(band.placement).toMatchObject({
+      turnTriggers: ['END_OF_TURN'],
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: { kind: 'RING', center: RING.center, outerRadius: 400, innerRadius: 180 }
       }
     })
   })
@@ -169,11 +255,17 @@ describe('the SRD Wall of Fire refuses what its option does not allow (SPELLS-4.
       message: 'This action must be drawn as a ring around a point.'
     },
     {
+      name: 'a wall drawn with no side for its fire',
+      target: { kind: 'WALL' as const, from: WALL.from, to: WALL.to, choiceOptionId: STRAIGHT },
+      message: 'Pick the side of the wall this zone also reaches.'
+    },
+    {
       name: 'a wall longer than 60 feet',
       target: {
         kind: 'WALL' as const,
         from: { x: 50, y: 950 },
         to: { x: 950, y: 50 },
+        side: 'LEFT' as const,
         choiceOptionId: STRAIGHT
       },
       message: 'This area is larger than the action allows.'

@@ -19,6 +19,7 @@ import { tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import {
   actionPreviewOverlays,
   aimedAreaShape,
+  areaBandOverlay,
   areaOverlay,
   buildVttFogMask,
   canPreserveSceneTokenDrag,
@@ -1278,5 +1279,39 @@ describe('VTT drawn wall and ring areas (SPELLS-4.T1b, D154)', () => {
       center: origin,
       radius: 150
     })
+  })
+  it('previews the band on the picked side: beside a wall, or by a ring band edge away from its wall', () => {
+    const origin = { x: 0, y: 0 }
+    const toward = { x: 300, y: 0 }
+    expect(areaBandOverlay(wall, { origin, toward })).toBeNull()
+    expect(
+      areaBandOverlay({ ...wall, band: { distance: 100, side: 'RIGHT' } }, { origin, toward })
+    ).toMatchObject({
+      id: 'area-band',
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 110 },
+        { x: 300, y: 110 },
+        { x: 300, y: -10 },
+        { x: 0, y: -10 }
+      ]
+    })
+    const ringAim = { origin, toward: { x: 0, y: 150 } }
+    expect(
+      areaBandOverlay({ ...ring, band: { distance: 100, side: 'OUTSIDE' } }, ringAim)
+    ).toMatchObject({ kind: 'CIRCLE', center: origin, radius: 250 })
+    expect(
+      areaBandOverlay({ ...ring, band: { distance: 100, side: 'INSIDE' } }, ringAim)
+    ).toMatchObject({ kind: 'CIRCLE', center: origin, radius: 30 })
+    expect(
+      stageOverlays({
+        actionPreview: null,
+        aimingArea: false,
+        areaAim: { origin, toward },
+        areaSize: { ...wall, band: { distance: 100, side: 'LEFT' } },
+        drawerOpened: true,
+        scene: null
+      })?.map((overlay) => overlay.id)
+    ).toEqual(['area-origin', 'area-band'])
   })
 })

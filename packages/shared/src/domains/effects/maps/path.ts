@@ -112,6 +112,7 @@ type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
 type ManifestDestructionCriterionNode = AllUnionFields<ManifestDestructionCriterionAuthored>
 type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
+type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
@@ -221,6 +222,7 @@ const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
 const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
+const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
@@ -970,6 +972,27 @@ const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNo
       )
   })
 
+const MANIFEST_COMPONENT_REGION_NODE_MAP: NodeMap<ManifestComponentRegionNode> =
+  manifestComponentRegion.define('manifestComponentRegion', ({ map, nodes }) => {
+    const { selectSingle, groupObject } = nodes
+
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'Region', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'SIDE_BAND', label: 'Band on the Chosen Side' }]
+        })
+      )
+      .set(
+        'distance',
+        groupObject(['distance'], 'Band Distance', () => MEASUREMENT_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  })
+
 const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifestComponent.define(
   'manifestComponent',
   ({ map, nodes, data }) => {
@@ -980,6 +1003,12 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       .set('id', text(['id'], 'ID'))
       .set('order', number(['order'], 'Order', { requiredIf: true }))
       .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set(
+        'region',
+        groupObject(['region'], 'Region', () => MANIFEST_COMPONENT_REGION_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
       .set(
         'interactionKinds',
         selectMulti(['interactionKinds'], 'Interactions', {

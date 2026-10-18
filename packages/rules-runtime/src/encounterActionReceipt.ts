@@ -218,8 +218,8 @@ export function buildEncounterAreaStoredExecution(input: {
   caughtChecksum: string
   removedActorIds: readonly string[]
   targetOccurrenceIds: readonly string[]
-  /** The Scene spatial effect this action placed; its undo deletes it. */
-  placedSpatialEffectId: string | null
+  /** The Scene spatial effects this action placed (a zone's own and its bands); undo deletes them. */
+  placedSpatialEffectIds: readonly string[]
   /** The Concentration a zone-only cast opens; null when a creature outcome carries it or none opens. */
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
   /** The timed grant the placed zone gave the source; its undo deletes it. */
@@ -255,7 +255,7 @@ export function buildEncounterAreaStoredExecution(input: {
       caughtChecksum: input.caughtChecksum,
       removedActorIds: input.removedActorIds,
       targetOccurrenceIds: input.targetOccurrenceIds,
-      placedSpatialEffectId: input.placedSpatialEffectId,
+      placedSpatialEffectIds: input.placedSpatialEffectIds,
       ...(input.maintenanceTransition
         ? { maintenanceTransition: input.maintenanceTransition }
         : {}),

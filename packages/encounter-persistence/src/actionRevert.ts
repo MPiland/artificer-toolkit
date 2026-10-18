@@ -607,12 +607,10 @@ export async function revertLastEncounterAction(
         : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: areaRoot.sourceActorId },
       expectedVersion: sourceGrant.afterVersion
     })
-  // The zone an area action placed leaves the Scene with it, before the state it depends on goes.
-  if (areaRoot?.placedSpatialEffectId)
-    await deletePlacedSpatialEffect(ctx, {
-      encounterId: state.id,
-      id: areaRoot.placedSpatialEffectId
-    })
+  // Every record an area action placed (a zone's own and its bands) leaves the Scene with it,
+  // before the state they depend on goes.
+  for (const id of areaRoot?.placedSpatialEffectIds ?? [])
+    await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id })
   // Every creature of an area shares the one state, so it goes once, after the last dependent.
   for (const created of createdStates.values())
     await store.deleteMaintainedStateCas({

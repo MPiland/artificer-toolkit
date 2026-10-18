@@ -339,7 +339,7 @@ A placed zone (SPELLS-17) is one `encounterSpatialRuleEffects` row written by th
 rule, `spatialZoneLabelSchema`), `visibility`, `activation`, `movementKinds`, `triggerModes` and
 `bypassAtHalfSpeed` (the zone may be crossed carefully at double cost) and, when the caster designated creatures at cast (SPELLS-20 T4c), `unaffectedActorIds` (a non-empty Encounter actor list the zone never catches; omitted when empty, immutable with the placement checksum) and, when authored (SPELLS-20 T4b1), `maxApplicationsPerTurn` (a positive integer; also immutable). The count of applications lives on the Encounter run state, never on the placement: `zoneApplications` (optional, keyed `effectId:actorId`, each entry `{ turnSequence, count }`, bounded by `MAX_ENCOUNTER_ACTORS * MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`). An entry whose `turnSequence` differs from the run's current `turnSequence` counts as unspent; no step clears it on a turn change, and `recordZoneApplications` prunes stale entries whenever it writes the map. The terminal movement publications (`publishSpatialTerminal`, the movement-response terminal) write it from the settled executions; `recurrence.endOnEvents` stays empty, and a
 creature's lingering grant takes its end events from the grant template. The area receipt names the row as
-`placedSpatialEffectId`, so GM undo deletes it with the commit. The Scene holds at most
+`placedSpatialEffectIds` (one per zone component), so GM undo deletes them with the commit. The Scene holds at most
 `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE` rows; the next placement is refused with `TARGET_UNAVAILABLE`.
 
 A zone that depends on a Concentration (SPELLS-20.T2a, D135) records `maintainedEffectStateId` on its row. A cast

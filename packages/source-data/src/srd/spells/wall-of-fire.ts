@@ -19,6 +19,7 @@ import {
   TRIGGER,
   SPELL_COMPONENT,
   type ManifestAuthored,
+  type ManifestBehaviorAuthored,
   type ShapeAuthored,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -27,9 +28,59 @@ import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from
 
 const ONE_FOOT = { amount: 1, unit: MEASUREMENT_UNIT_CODE.FEET }
 
+const TEN_FEET = { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
+
 /**
- * The fire a creature takes, with no save, on entering the wall for the first time on a turn or
- * ending its turn there: 5d8 at the 4th level, and 1d8 more for each slot level above it.
+ * The fire a creature takes with no save: 5d8 at the 4th level, and 1d8 more for each slot level
+ * above it.
+ */
+const createFireBehavior = (scope: number): ManifestBehaviorAuthored => ({
+  id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope, 1),
+  order: 1,
+  invocation: {
+    kind: 'PASSIVE',
+    triggerCode: TRIGGER.ACTIVATED,
+    range: {
+      id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 1, 1),
+      rangeKind: RANGE_KIND.SELF
+    }
+  },
+  paths: [
+    {
+      id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 2, 1),
+      order: 1,
+      pathCode: PATH_CODE.ON_USE,
+      groupType: PATH_GROUP_TYPE.SINGLE,
+      originKind: 'SOURCE',
+      selectionKind: 'FIXED',
+      resultBlock: {
+        id: `${spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 2, 1)}__result`,
+        resultKind: 'SINGLE',
+        outcomes: [
+          {
+            id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 3, 1),
+            effectKind: EFFECT_KIND.DAMAGE,
+            damageTypeId: damageTypeId('FIRE'),
+            valueKind: DAMAGE_VALUE_KIND.DICE,
+            scalingKind: SCALING.PER_LEVEL,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            levels: Array.from({ length: 6 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 3, index + 2),
+              level: index + 4,
+              order: index + 1,
+              diceConfig: `${index + 5}d8`
+            }))
+          }
+        ]
+      }
+    }
+  ]
+})
+
+/**
+ * The opaque wall, which burns a creature entering it for the first time on a turn, and the band of
+ * its damaging side (the wall and 10 feet beside it, chosen at cast), which burns a creature ending
+ * its turn there. The other side deals no damage.
  */
 const createFireManifest = (
   scope: number,
@@ -49,53 +100,18 @@ const createFireManifest = (
       id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 1, 1),
       order: 1,
       label: 'Wall of Fire',
-      interactionKinds: ['ENTER_OR_PASS_THROUGH', 'END_TURN_IN_SPACE'],
+      interactionKinds: ['ENTER_OR_PASS_THROUGH'],
       maxApplicationsPerTurn: 1,
       blockingRules: ['BLOCKS_SIGHT'],
-      behaviors: [
-        {
-          id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 0x10, 1),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: {
-              id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 0x11, 1),
-              rangeKind: RANGE_KIND.SELF
-            }
-          },
-          paths: [
-            {
-              id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 0x12, 1),
-              order: 1,
-              pathCode: PATH_CODE.ON_USE,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 0x12, 1)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 0x13, 1),
-                    effectKind: EFFECT_KIND.DAMAGE,
-                    damageTypeId: damageTypeId('FIRE'),
-                    valueKind: DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: SCALING.PER_LEVEL,
-                    scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
-                    levels: Array.from({ length: 6 }, (_, index) => ({
-                      id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 0x13, index + 2),
-                      level: index + 4,
-                      order: index + 1,
-                      diceConfig: `${index + 5}d8`
-                    }))
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ]
+      behaviors: [createFireBehavior(scope + 0x10)]
+    },
+    {
+      id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 2, 1),
+      order: 2,
+      label: 'Wall of Fire Burning Side',
+      region: { kind: 'SIDE_BAND', distance: TEN_FEET },
+      interactionKinds: ['END_TURN_IN_SPACE'],
+      behaviors: [createFireBehavior(scope + 0x20)]
     }
   ]
 })

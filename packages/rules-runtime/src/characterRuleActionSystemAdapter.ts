@@ -196,10 +196,15 @@ export interface CharacterRuleActionActiveEffectPlan {
 /** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */
 export type CharacterRuleActionZonePlacementPlan = Omit<
   CompiledActionZonePlacement,
-  'entry' | 'sourceGrant'
+  'entry' | 'sourceGrant' | 'regionComponents'
 > & {
   entry: CharacterRuleActionActiveEffectPlan
   sourceGrant?: CharacterRuleActionActiveEffectPlan
+  regionComponents?: Array<
+    Omit<NonNullable<CompiledActionZonePlacement['regionComponents']>[number], 'entry'> & {
+      entry: CharacterRuleActionActiveEffectPlan
+    }
+  >
 }
 
 /** The zones an action places when its caster picks one at cast (D140). */

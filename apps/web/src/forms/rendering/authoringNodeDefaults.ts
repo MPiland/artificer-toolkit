@@ -391,6 +391,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         blockingRules: [],
         destructionCriteria: []
       }
+    case 'manifestComponentRegion':
+      return { kind: 'SIDE_BAND', distance: createMeasurement('FEET') }
     case 'manifestCreatureForm':
       return {
         id: crypto.randomUUID(),

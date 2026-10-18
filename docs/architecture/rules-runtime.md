@@ -493,11 +493,12 @@ ends beyond the field still triggers the save and, on a failure, stops at the fi
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
 `PUBLIC`. The compiled zone stores only the grant contribution the planner reads: the zone row's own
 `recurrence.endOnEvents` stays empty, and the creature's grant takes its end events from the grant template. The
-action opens no area occurrence (`placesZone` on the pending root): it commits the spend and one
-`liveSessionPlacedSpatialEffect` in the same transaction as every other area commit. The zone is
+action opens no area occurrence (`placesZone` on the pending root): it commits the spend and a
+`liveSessionPlacedSpatialEffect` per zone component (see the bands below) in the same transaction as every other
+area commit. The zone is
 built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored
 through `createPlacedSpatialEffect` (refused with `TARGET_UNAVAILABLE` at `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`), named
-on the area root as `placedSpatialEffectId`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. A concentration
+on the area root in `placedSpatialEffectIds`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. A concentration
 zone compiles `zonePlacement.maintenance` (the same policy shape as `activeEffectPlan.maintenance`);
 `prepareEncounterActionMaintenance` selects it, so a zone-only cast opens Concentration and the zone depends on that
 state (`maintainedEffectStateId`, D135). When a
@@ -541,6 +542,15 @@ learns which fields offer the choice from `halfSpeedFields` on the Encounter ses
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
 preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
 (D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
+authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
+today), each with its own label, triggers and frozen entry, sharing the zone's Concentration and never sparing
+designated creatures. A band is only beside a `WALL` or `RING`: its target offers `sideBand`, the command must name
+`side` (`LEFT`/`RIGHT` of travel from `from` to `to`, or `INSIDE`/`OUTSIDE` a ring) and a command for a zone with
+no band must not (`evaluateEncounterZoneTarget`: `SIDE_REQUIRED`, `SIDE_NOT_OFFERED`). The Worker places the
+band as its own FIXED record (`planEncounterZoneBands`, geometry from `wallSideBandGeometry`: the wall plus the
+distance on that side), so every record a cast places is named on its root, removed by undo and ended with its
+Concentration together.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and

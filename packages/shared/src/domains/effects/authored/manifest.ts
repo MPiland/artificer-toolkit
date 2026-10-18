@@ -157,6 +157,11 @@ export type ManifestComponentAuthored = {
   id: string
   order: number
   label: string
+  /**
+   * Where the component reaches, when not the manifest's own shape: SIDE_BAND covers the shape
+   * plus `distance` on the side its caster chooses (beside a wall, inside or outside a ring).
+   */
+  region?: { kind: 'SIDE_BAND'; distance: { amount: number; unit: LengthUnitCode } }
   interactionKinds?: ManifestInteractionKind[]
   bypassAtHalfSpeed?: boolean
   choosesUnaffected?: boolean

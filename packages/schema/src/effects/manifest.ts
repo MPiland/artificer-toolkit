@@ -221,6 +221,15 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             id: authoredIdentifierSchema,
             order: z.number().check(z.int()),
             label: authoredShortTextSchema,
+            region: z.optional(
+              z.object({
+                kind: z.literal('SIDE_BAND'),
+                distance: z.object({
+                  amount: authoredPositiveLengthAmountSchema,
+                  unit: lengthUnitCodeSchema
+                })
+              })
+            ),
             interactionKinds: z.optional(
               authoredReferenceCollectionSchema(manifestInteractionKindSchema)
             ),

@@ -73,6 +73,7 @@ type AuthoringDefaultKind =
   | 'invocation'
   | 'manifestBehavior'
   | 'manifestComponent'
+  | 'manifestComponentRegion'
   | 'manifestCreatureForm'
   | 'manifestCreatureFormFilter'
   | 'manifestDestructionCriterion'
@@ -219,6 +220,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
+  manifestComponentRegion: ['manifestComponentRegion'],
   manifestCreatureForm: ['manifestCreatureForm'],
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
