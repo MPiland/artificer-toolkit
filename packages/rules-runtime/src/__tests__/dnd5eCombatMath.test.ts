@@ -610,7 +610,8 @@ describe('D&D 5e saving throws and defenses', () => {
       creatureTypeIds: [],
       canAct,
       speedAboveZero: true,
-      freeHand: true
+      freeHand: true,
+      stowableHeldItemInstanceId: null
     })
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(true))).toBe(true)
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(false))).toBe(false)

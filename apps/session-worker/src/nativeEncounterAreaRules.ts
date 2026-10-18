@@ -151,10 +151,14 @@ import {
   readNativeLivePointPerception,
   readNativeLivePointSight
 } from './nativeAttackPerception.js'
-import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
+import {
+  captureActionEconomyDefinitions,
+  evaluateNativeLiveActionEconomy
+} from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
+  refuseUnmetBasicActionRestrictions,
   interpretForcedMovements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -246,7 +250,9 @@ const WRONG_TARGET_MESSAGES: Partial<
  * names another kind is refused, saying what the action takes.
  */
 export async function prepareCasterSource(
-  input: AreaPlanBase & { command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId'> },
+  input: AreaPlanBase & {
+    command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId' | 'acceptedWieldConflict'>
+  },
   targetKind: ReturnType<typeof encounterActionTargetKind>
 ) {
   const { command, state, actors } = input
@@ -268,6 +274,16 @@ export async function prepareCasterSource(
       reason: 'TARGET_UNAVAILABLE',
       message: (takes && WRONG_TARGET_MESSAGES[takes]) ?? 'This action does not take that target.'
     })
+  await refuseUnmetBasicActionRestrictions(
+    { source, acceptedWieldConflict: command.acceptedWieldConflict },
+    {
+      target: casterFacts,
+      gameSystemId: state.gameSystemId,
+      definitions: captureActionEconomyDefinitions(input.capture),
+      speedDefinitions: input.system.speeds,
+      runEffectsByActorId: input.activeEffectsByActorId
+    }
+  )
   return { caster, casterFacts, movementTargets, source, targetPolicy }
 }
 

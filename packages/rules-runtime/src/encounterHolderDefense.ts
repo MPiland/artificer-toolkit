@@ -48,6 +48,9 @@ export async function encounterHolderState(input: {
     encounterConditionSpeed({ mechanics: target.conditionMechanics, speed: speedFeet })
   )
   const creatureTypeId = snapshotCreatureTypeId(target.actor)
+  const items = heldItems(target)
+  const holds = encounterSourceHandHolds(input.runEffectsByActorId, target.actor.id)
+  const freeHand = resolveHandOccupancy(items).emptyHands > holds
   return {
     kind: target.actor.kind,
     creatureTypeIds: creatureTypeId === null ? [] : [creatureTypeId],
@@ -58,10 +61,32 @@ export async function encounterHolderState(input: {
       definitions: input.definitions
     })),
     speedAboveZero: !feet.length || feet.some((value) => value > 0),
-    freeHand:
-      resolveHandOccupancy(heldItems(target)).emptyHands >
-      encounterSourceHandHolds(input.runEffectsByActorId, target.actor.id)
+    freeHand,
+    stowableHeldItemInstanceId: freeHand ? null : stowableHeldWeapon(target, items, holds)
   }
+}
+
+/** The Character's held weapon whose stow frees a hand beyond its holds: the off hand first. */
+function stowableHeldWeapon(
+  target: MovementTarget,
+  items: readonly HandOccupancyItem[],
+  holds: number
+): string | null {
+  if (target.actor.kind !== 'CHARACTER') return null
+  const shieldIds = new Set(
+    (target.characterFacts?.ruleEvaluation.facts.armorClassFacts?.equipment ?? []).flatMap(
+      ({ itemInstanceId, category }) => (category === 'SHIELD' ? [itemInstanceId] : [])
+    )
+  )
+  const { offHandId, mainHandId } = resolveHandOccupancy(items)
+  return (
+    [offHandId, mainHandId].find(
+      (id): id is string =>
+        id !== null &&
+        !shieldIds.has(id) &&
+        resolveHandOccupancy(items.filter((item) => item.id !== id)).emptyHands > holds
+    ) ?? null
+  )
 }
 
 /** What the holder's hands hold now: a Character's equipped items or a Creature's loadout. */

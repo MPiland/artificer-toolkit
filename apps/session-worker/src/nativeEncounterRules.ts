@@ -575,13 +575,16 @@ export async function planNativeLiveEncounterAction(
   refuseActionOutsideItsWindow(prepared)
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
-  await refuseUnmetBasicActionRestrictions(prepared, {
-    target: actorTarget,
-    gameSystemId: state.gameSystemId,
-    definitions,
-    speedDefinitions: system.speeds,
-    runEffectsByActorId: activeEffectsByActorId
-  })
+  await refuseUnmetBasicActionRestrictions(
+    { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
+    {
+      target: actorTarget,
+      gameSystemId: state.gameSystemId,
+      definitions,
+      speedDefinitions: system.speeds,
+      runEffectsByActorId: activeEffectsByActorId
+    }
+  )
   refuseUnmetItemActionRequirements(prepared, state)
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')

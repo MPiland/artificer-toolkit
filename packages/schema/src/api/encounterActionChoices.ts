@@ -3,7 +3,10 @@ import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.j
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
-import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
+import {
+  encounterHeldWeaponStowDtoSchema,
+  encounterShieldStowDtoSchema
+} from './encounterRuleCommands.js'
 import { activationCodeSchema, equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
@@ -68,11 +71,17 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * sharing `attackKey` are the same attack offered one- and two-handed. Null for every other action.
      */
     grip: z.nullable(z.strictObject({ value: equipmentGripSchema, attackKey: labelSchema })),
-    /** Present when attacking with this action stows the active shield; the client must confirm. */
+    /**
+     * Present when taking this action stows an item: the active shield (with the armor class it
+     * costs) or a held weapon that frees the hand the action needs. The client must confirm.
+     */
     wieldConflict: z.nullable(
-      z.extend(encounterAcceptedWieldConflictDtoSchema, {
-        armorClassDelta: z.number().check(z.int()).check(z.lte(0))
-      })
+      z.discriminatedUnion('kind', [
+        z.extend(encounterShieldStowDtoSchema, {
+          armorClassDelta: z.number().check(z.int()).check(z.lte(0))
+        }),
+        encounterHeldWeaponStowDtoSchema
+      ])
     ),
     /**
      * Soft-rule warnings that already apply before a target is chosen (no allowance left, item not

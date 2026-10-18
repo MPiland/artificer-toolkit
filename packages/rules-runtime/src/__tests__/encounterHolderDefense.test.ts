@@ -320,7 +320,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         creatureTypeIds: [],
         canAct: true,
         speedAboveZero: true,
-        freeHand: true
+        freeHand: true,
+        stowableHeldItemInstanceId: null
       })
     ).toEqual([])
     expect(
@@ -329,7 +330,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         creatureTypeIds: [],
         canAct: true,
         speedAboveZero: true,
-        freeHand: true
+        freeHand: true,
+        stowableHeldItemInstanceId: null
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
   })
@@ -342,7 +344,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         creatureTypeIds: [],
         canAct,
         speedAboveZero,
-        freeHand: true
+        freeHand: true,
+        stowableHeldItemInstanceId: null
       }).length > 0
     expect(holds(true, true)).toBe(true)
     expect(holds(false, true)).toBe(false)

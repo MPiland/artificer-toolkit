@@ -11,7 +11,7 @@ import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/enc
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
-import { encounterBasicActionRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
+import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
@@ -327,22 +327,21 @@ export async function readEncounterActionChoices(
       abilityDefinitions:
         'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
     })
-    // An action is offered only to an actor that meets its restrictions; none means every actor.
+    // An action is offered only to an actor that meets its restrictions, or would by stowing a
+    // held weapon (D152); none means every actor.
     const holderState = discovered.available.some(({ restrictions }) => restrictions)
       ? await readActionHolderState(tx, { actor, state, campaign, target: actorTarget })
       : null
-    const offered = discovered.available.filter(
-      ({ restrictions }) =>
-        !holderState || encounterBasicActionRestrictionsHold(restrictions, holderState)
-    )
+    const offered = discovered.available.flatMap((action) => {
+      const admission = holderState
+        ? encounterBasicActionAdmission(action.restrictions, holderState)
+        : ({ kind: 'MET' } as const)
+      return admission.kind === 'UNMET' ? [] : [{ action, admission }]
+    })
     basicActionChoices = await Promise.all(
-      offered.map(async (action) => {
+      offered.map(async ({ action, admission }) => {
         const { activation, triggerCode } = action.mechanicFacts.invocation
-        const economy = await readEconomy(
-          activation,
-          triggerCode,
-          action.actionCost === 'ATTACK'
-        )
+        const economy = await readEconomy(activation, triggerCode, action.actionCost === 'ATTACK')
         const document = catalogue.find(
           ({ definition }) => definition.id === action.definitionId
         )?.document
@@ -355,7 +354,7 @@ export async function readEncounterActionChoices(
           // The activation it spends; an attack it replaces shows as its `attackSlot`.
           ...(activation ? { actionCost: activationCodeSchema.parse(activation.code) } : {}),
           grip: null,
-          wieldConflict: null,
+          wieldConflict: admission.kind === 'STOW_HELD_WEAPON' ? admission : null,
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(targetPolicy),
           warnings: economy.warnings

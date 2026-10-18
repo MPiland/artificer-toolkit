@@ -12,6 +12,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import { encounterStowedItemInstanceId } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { writeRunActor } from './documents.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
@@ -84,15 +85,14 @@ export function sourceSpendMutation(input: {
   } else if (receipts.spellCastConsumption !== null)
     throw new Error('Live Session action spell slot is missing.')
   const stow = input.command.acceptedWieldConflict
-  if (stow && source.kind !== 'CHARACTER')
-    throw new Error('Live Session shield stow scope mismatch.')
+  if (stow && source.kind !== 'CHARACTER') throw new Error('Live Session stow scope mismatch.')
   return {
     spends: Boolean(resource || item || spell || stow),
     mutation: {
       ...(resource ? { characterResourceConsumption: resource } : {}),
       ...(item ? { characterItemConsumption: item } : {}),
       ...(spell ? { characterSpellConsumptions: [spell] } : {}),
-      ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
+      ...(stow ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) } : {})
     }
   }
 }

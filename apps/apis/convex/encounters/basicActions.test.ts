@@ -158,7 +158,7 @@ async function storedGrants(base: PlayerControlFixture, actorId: string) {
           valueDomainCode: modifier.valueDomainCode,
           modifierKind: modifier.modifierKind,
           domain: modifier.domain,
-          conditions: modifier.restrictions.flatMap((group) =>
+          conditions: modifier.restrictions.map((group) =>
             group.conditions.map((condition) => condition.kind)
           )
         }))
@@ -178,6 +178,12 @@ const dodgeDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
 )
 if (dodgeDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Dodge fixture.')
 
+/** Dodge's restriction groups: one per holder kind, each needing it can act and move (D152). */
+const dodgeConditions = [
+  ['HOLDER_KIND', 'CAN_ACT', 'SPEED_ABOVE_ZERO'],
+  ['HOLDER_KIND', 'CAN_ACT', 'SPEED_ABOVE_ZERO']
+]
+
 /** The one Active Effect Dodge leaves: its authored effect, with disadvantage against attacks and Dexterity save advantage. */
 const dodgeGrant = {
   authoredEffectId: dodgeDefinition.document.effects[0]!.id,
@@ -189,13 +195,13 @@ const dodgeGrant = {
           valueDomainCode: 'ATTACKS_AGAINST',
           modifierKind: 'DISADVANTAGE',
           domain: { attackDomain, requiresHolderSeesAttacker: true },
-          conditions: ['CAN_ACT', 'SPEED_ABOVE_ZERO']
+          conditions: dodgeConditions
         })),
         {
           valueDomainCode: 'SAVING_THROW_MODIFIER',
           modifierKind: 'ADVANTAGE',
           domain: { ability: 'DEXTERITY' },
-          conditions: ['CAN_ACT', 'SPEED_ABOVE_ZERO']
+          conditions: dodgeConditions
         }
       ]
     }

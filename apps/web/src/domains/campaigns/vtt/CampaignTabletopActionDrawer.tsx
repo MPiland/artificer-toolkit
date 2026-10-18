@@ -390,7 +390,11 @@ export function CampaignTabletopActionDrawer({
     actionsLoading ||
     actionChoicesError !== null
   const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
-  const wieldConflict = optionalRuleId === null ? (selectedAction?.wieldConflict ?? null) : null
+  // A held-weapon stow is offered only on a basic action (D152).
+  const wieldConflict =
+    optionalRuleId === null && selectedAction?.wieldConflict?.kind === 'STOW_SHIELD'
+      ? selectedAction.wieldConflict
+      : null
   const confirmingStow =
     wieldConflict !== null && stowConfirmationIdentity === choiceRequestIdentity
   const confirmingWarnings =

@@ -212,6 +212,11 @@ export type EncounterHolderState = {
   canAct: boolean
   speedAboveZero: boolean
   freeHand: boolean
+  /**
+   * When no hand is free, the held weapon a Character can stow for free to free one (its off hand
+   * first, never a shield, D152); null otherwise.
+   */
+  stowableHeldItemInstanceId: string | null
 }
 
 type ModifierRestrictions = CharacterGrantFoldModifier['restrictions']

@@ -330,18 +330,29 @@ export async function prepareEncounterActionMechanics<
           policyOutput: source.effectivePolicyOutput
         })
       : null
-  const acceptedWieldConflict = wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
+  const shieldStow = wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
   const accepted = acceptance.kind === 'PROMPTED' ? acceptance.accepted : null
+  // A Character's basic action may stow a held weapon for free; the room's basic-action admission
+  // checks it against the holder's hands (`encounterBasicActionAdmission`, D152).
+  const heldWeaponStow =
+    accepted?.kind === 'STOW_HELD_WEAPON' &&
+    source.kind === 'BASIC_ACTION' &&
+    input.actor.kind === 'CHARACTER'
+      ? accepted
+      : null
   if (
-    acceptedWieldConflict
-      ? accepted?.shieldItemInstanceId !== acceptedWieldConflict.shieldItemInstanceId
-      : accepted !== null
+    !heldWeaponStow &&
+    (shieldStow
+      ? accepted?.kind !== 'STOW_SHIELD' ||
+        accepted.shieldItemInstanceId !== shieldStow.shieldItemInstanceId
+      : accepted !== null)
   )
     throw new Error(
-      acceptedWieldConflict
+      shieldStow
         ? 'This attack would stow a shield; confirm it first.'
         : 'This attack does not stow a shield.'
     )
+  const acceptedWieldConflict = heldWeaponStow ?? shieldStow
   const facts = buildEncounterActorRuleFacts({ actors })
   const actorRules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),

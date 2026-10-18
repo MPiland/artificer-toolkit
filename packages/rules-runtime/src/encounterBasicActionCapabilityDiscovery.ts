@@ -97,7 +97,7 @@ export async function readEncounterBasicActionEntries(input: {
 /**
  * The authored basic actions an actor can take: every ACTION-invoked Effect of the catalogue's
  * authored entries, compiled like a Feature's. Each carries its document's restrictions; deciding
- * whether the actor meets them is `encounterBasicActionRestrictionsHold`, applied by the offering
+ * whether the actor meets them is `encounterBasicActionAdmission`, applied by the offering
  * and the resolution, not here.
  */
 export function discoverEncounterBasicActions(input: {

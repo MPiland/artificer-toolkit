@@ -97,12 +97,18 @@ export const optionalCombatActionIntentDtoSchema = lazySchema(() =>
 )
 export type OptionalCombatActionIntentDto = z.infer<typeof optionalCombatActionIntentDtoSchema>
 
-/** The submitter's explicit consent to stow this exact shield for a two-handed attack. */
+/**
+ * The submitter's explicit consent to stow this exact item: its shield for a two-handed attack, or
+ * a held weapon, for free, to free the hand an action needs (D152).
+ */
+export const encounterShieldStowDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('STOW_SHIELD'), shieldItemInstanceId: uuidSchema })
+)
+export const encounterHeldWeaponStowDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('STOW_HELD_WEAPON'), itemInstanceId: uuidSchema })
+)
 export const encounterAcceptedWieldConflictDtoSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('STOW_SHIELD'),
-    shieldItemInstanceId: uuidSchema
-  })
+  z.discriminatedUnion('kind', [encounterShieldStowDtoSchema, encounterHeldWeaponStowDtoSchema])
 )
 export type EncounterAcceptedWieldConflictDto = z.infer<
   typeof encounterAcceptedWieldConflictDtoSchema
