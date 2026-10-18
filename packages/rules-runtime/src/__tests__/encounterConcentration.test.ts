@@ -281,8 +281,11 @@ const maintained = encounterMaintainedEffectStateRecordSchema.parse({
     schemaVersion: 2,
     maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
     definitionChecksum: CHECKSUM('1'),
-    sourceActionId: 'spell-bless',
-    sourceOccurrenceId: '00000000-0000-4000-8000-00000000f000',
+    provenance: {
+      kind: 'ACTION',
+      sourceActionId: 'spell-bless',
+      sourceOccurrenceId: '00000000-0000-4000-8000-00000000f000'
+    },
     sourceActorId: CASTER_ID,
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

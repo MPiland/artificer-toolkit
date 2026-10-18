@@ -301,8 +301,11 @@ export function prepareNativeLiveMaintainedState(input: {
       schemaVersion: 2,
       maintenanceDefinitionId: maintenance.policy.definitionId,
       definitionChecksum: maintenance.definitionChecksum,
-      sourceActionId: input.actionId,
-      sourceOccurrenceId: input.sourceOccurrenceId,
+      provenance: {
+        kind: 'ACTION',
+        sourceActionId: input.actionId,
+        sourceOccurrenceId: input.sourceOccurrenceId
+      },
       sourceActorId: input.ownerActorId,
       replacementPolicy: maintenance.policy.replacementPolicy,
       emptyDependentPolicy: maintenance.policy.emptyDependentPolicy

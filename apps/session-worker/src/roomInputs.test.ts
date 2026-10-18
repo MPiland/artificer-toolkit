@@ -591,6 +591,8 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
         }
       case 'SYSTEM':
         return { kind: 'SYSTEM', revisions: revisions(state.label), system: null, vocabulary: null }
+      case 'CAMPAIGN_CLOCK':
+        return { kind: 'CAMPAIGN_CLOCK', absoluteMinute: null }
       case 'DEFINITIONS': {
         const start = Number(scope.cursor?.paginationCursor ?? 0)
         state.onDefinitionPage(start)

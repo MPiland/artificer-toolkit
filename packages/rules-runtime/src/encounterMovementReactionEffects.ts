@@ -59,8 +59,11 @@ export function planEncounterMovementReactionEffects<
           schemaVersion: 2,
           maintenanceDefinitionId: maintenance.policy.definitionId,
           definitionChecksum: maintenance.definitionChecksum,
-          sourceActionId: input.prepared.option.actionId,
-          sourceOccurrenceId: input.occurrenceId,
+          provenance: {
+            kind: 'ACTION',
+            sourceActionId: input.prepared.option.actionId,
+            sourceOccurrenceId: input.occurrenceId
+          },
           sourceActorId: prepared.actor.id,
           replacementPolicy: maintenance.policy.replacementPolicy,
           emptyDependentPolicy: maintenance.policy.emptyDependentPolicy

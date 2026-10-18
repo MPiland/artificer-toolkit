@@ -62,8 +62,11 @@ function createPriorState(input: {
       schemaVersion: 2,
       maintenanceDefinitionId: maintenanceDefinition.id,
       definitionChecksum: maintenanceDefinition.checksum,
-      sourceActionId: testUuid(0xe30),
-      sourceOccurrenceId: PRIOR_OCCURRENCE_ID,
+      provenance: {
+        kind: 'ACTION',
+        sourceActionId: testUuid(0xe30),
+        sourceOccurrenceId: PRIOR_OCCURRENCE_ID
+      },
       sourceActorId: FIGHTER_ACTOR_ID,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: input.emptyDependentPolicy

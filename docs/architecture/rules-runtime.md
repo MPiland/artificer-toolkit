@@ -1364,6 +1364,34 @@ reached. The room has no Campaign clock, so Convex converts them (see
 it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;
 a fighting Character's are checked on the next advance.
 
+**Resume in a later Run (D151, SPELLS-5.13).** A Run's START resumes its Characters' carried effects in the
+START's own transaction, before the opening turn is planned (`persistCarriedEffectResumes`, called by the
+room's `executeRoomEncounterTurn`). Only a `PREPARED` Run resumes, so a replayed START changes nothing.
+The room reads the clock through the `CAMPAIGN_CLOCK` room input, and only when an effect carries an
+expiry. `planResumedCarriedEffects` gives each carried `TICKS` grant or condition-owning effect
+`remainingTicks = min(initialRemaining, (expiresAtCampaignMinute - now) x 10)` and drops the expiry, so
+the turn kernels count it again from the next turn boundary; a result of zero or less ends it like an
+expired grant. A grant carried with no expiry (no clock at completion) stays untimed, and no clock now
+resumes nothing. A carried grant's `SOURCE` anchor names an actor of the earlier Run, so it counts on its
+holder's turns instead (`grantAnchorActorId`), and the departed-source removal skips it. Tick writes
+spread the stored lifecycle, so the caster stamp survives every count. Not resumed: a Character that joins
+an already `ACTIVE` Run, and a carried effect held only through a worn form.
+
+**Reinstated Concentration (D151, SPELLS-5.12).** After the resume, the same START gives a carried caster
+who is a Character actor of the Run back the Concentration their surviving carried grants are stamped
+with. `planReinstatedConcentrations` groups the Run's Character-owned, unlinked, stamped effects by caster,
+keeps the casters in the Run, and builds one maintained-state descriptor each from the System
+Concentration definition (`requireInstalledConcentrationMaintenanceDefinitionId`, read only when a caster
+reinstates) with `provenance: { kind: 'CARRIED', casterCharacterId }`. `persistCarriedEffectResumes`
+creates the state on the caster's actor and relinks each grant (`relinkCarriedCas`), so damage stages a
+Concentration check and every loss path (failed check, incapacitation, edit or chosen end) ends the grants
+as dependents through `applyLiveConcentrationCleanup`, which also records the caster in
+`concentrationCasterCharacterIds` when the ended state is `CARRIED`. At COMPLETE the relinked grants carry
+over again through the usual detach. A turn effect under a `CARRIED` state binds by its caster stamp, not
+its origin (`requireTurnMaintainedStates`). An `ACTION` provenance names the creating action and
+occurrence; the receipt's `priorState` names neither (its checksum pins the prior descriptor). Not
+reinstated: a caster whose stamped grants all sit on Characters outside the Run.
+
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
 whether the source was hidden, rounds left or the carried expiry minute, and its polarity);
 `hideActiveGrantSources` nulls a hidden source's label for everyone but the GM and keeps the polarity (D110).

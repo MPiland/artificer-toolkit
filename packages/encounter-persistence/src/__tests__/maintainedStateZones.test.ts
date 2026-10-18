@@ -26,8 +26,11 @@ const descriptor = {
   schemaVersion: 2 as const,
   maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
   definitionChecksum: 'a'.repeat(64),
-  sourceActionId: 'cast',
-  sourceOccurrenceId: OCCURRENCE_ID,
+  provenance: {
+    kind: 'ACTION' as const,
+    sourceActionId: 'cast',
+    sourceOccurrenceId: OCCURRENCE_ID
+  },
   sourceActorId: ACTOR_ID,
   replacementPolicy: 'REPLACE_SAME_DEFINITION' as const,
   emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' as const
@@ -84,7 +87,10 @@ describe('a Concentration zone is a dependent of its maintained state (D135)', (
       id: NEXT_ID,
       encounterId: ENCOUNTER_ID,
       ownerActorId: ACTOR_ID,
-      descriptor: { ...descriptor, sourceOccurrenceId: NEXT_ID },
+      descriptor: {
+        ...descriptor,
+        provenance: { ...descriptor.provenance, sourceOccurrenceId: NEXT_ID }
+      },
       occurredAt: OCCURRED_AT
     })
 

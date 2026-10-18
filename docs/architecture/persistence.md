@@ -285,7 +285,12 @@ store.
   The caster stamp is also a top-level column of `characterActiveRuleEffects`
   (`concentrationCasterCharacterId`, index `by_concentrationCaster`), written with the lifecycle and
   checked against it on read, so a caster's carried grants are found without scanning Characters
-  (SPELLS-5.11, D101). `endCarriedGrantsOfConcentratingCasters` is the one ending path for both the
+  (SPELLS-5.11, D101). A carried grant relinked to its caster's reinstated Concentration (D151,
+  SPELLS-5.12) stores the later Run as `sourceEncounterId` beside its `maintainedEffectStateId`, while its
+  definition keeps the earlier Run's origin; `readCharacterEffect` accepts that pair only on a stamped row.
+  A maintained state's descriptor names its `provenance` (`ACTION` with the creating action and
+  occurrence, or `CARRIED` with the caster); `rules/maintainedProvenanceMigration:run` moved stored
+  descriptors' top-level action ids into it. `endCarriedGrantsOfConcentratingCasters` is the one ending path for both the
   checkpoint and the caster's own `END_CONCENTRATION`; `listCarriedActiveRuleEffects` is bounded by
   `.take(64 + 1)` and throws beyond it. A caster outside an ACTIVE Run ends in one user action that
   sends Convex `END_CONCENTRATION` (the caster's own and every holder outside an ACTIVE Run; a held
@@ -649,7 +654,9 @@ whole command. The clock stays a GM-owned Convex record outside the room. An `en
 `lib/mutations.ts` pauses a running clock when a Campaign's set of ACTIVE Runs changes (from a command,
 checkpoint or deletion) and sets `pausedForCombat`; once no Run is ACTIVE it resumes only a clock combat paused,
 and an explicit GM start or pause clears the flag. The system pause and resume write no receipt and leave the
-recovery watermark alone. Characters in a fight are not recovered automatically when a boundary passes;
+recovery watermark alone. The resume never adds the fight's time. Right after COMPLETE, the GM's Encounter view
+instead offers an ordinary `ADVANCE_CLOCK` by the elapsed rounds at ten a minute (`campaignMinutesForRounds`,
+D151), and the GM may decline it. Characters in a fight are not recovered automatically when a boundary passes;
 one `campaignClockRecoveryPrompts` row per Campaign, boundary and Character asks the GM, and prompts are removed
 when the Character leaves or the Campaign is deleted (`campaigns/clockSegments.ts`, `clockRecovery.ts`).
 The same mutation then ends the carried-over grants the new clock minute has reached (D99,

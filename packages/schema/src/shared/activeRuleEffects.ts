@@ -507,6 +507,21 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * Where a maintained state came from: the action occurrence that started it, or (D151) a Character's
+ * Concentration carried out of an earlier Run and reinstated at this Run's START.
+ */
+export const encounterMaintainedEffectProvenanceDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('ACTION'),
+      sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
+      sourceOccurrenceId: uuidSchema
+    }),
+    z.strictObject({ kind: z.literal('CARRIED'), casterCharacterId: uuidSchema })
+  ])
+)
+
+/**
  * Immutable System-owned maintenance identity. The application layer only
  * persists and replaces this descriptor; it never interprets its meaning.
  */
@@ -514,8 +529,7 @@ const encounterMaintainedEffectDescriptorBaseDtoSchema = lazySchema(() =>
   z.strictObject({
     maintenanceDefinitionId: uuidSchema,
     definitionChecksum: checksumSchema,
-    sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
-    sourceOccurrenceId: uuidSchema,
+    provenance: encounterMaintainedEffectProvenanceDtoSchema,
     sourceActorId: uuidSchema,
     replacementPolicy: z.literal('REPLACE_SAME_DEFINITION')
   })

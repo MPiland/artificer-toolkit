@@ -120,8 +120,11 @@ describe('requireTurnMaintainedStates', () => {
       schemaVersion: 2,
       maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
       definitionChecksum: '1'.repeat(64),
-      sourceActionId: 'spell-fear',
-      sourceOccurrenceId: CAST_OCCURRENCE_ID,
+      provenance: {
+        kind: 'ACTION',
+        sourceActionId: 'spell-fear',
+        sourceOccurrenceId: CAST_OCCURRENCE_ID
+      },
       sourceActorId: CASTER_ID,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
@@ -167,6 +170,46 @@ describe('requireTurnMaintainedStates', () => {
       bind(encounterAreaTargetOccurrenceId(CAST_OCCURRENCE_ID, CHARACTER_ACTOR_ID))
     ).rejects.toThrow('Maintained turn effect source binding is stale.')
     await expect(bind(testUuid(0x107))).rejects.toThrow(
+      'Maintained turn effect source binding is stale.'
+    )
+  })
+
+  it('binds a carried effect, whose origin is an earlier Run, by its caster stamp (D151)', async () => {
+    const CASTER_CHARACTER_ID = testUuid(0x108)
+    const reinstated = {
+      ...maintained,
+      descriptor: {
+        ...maintained.descriptor,
+        provenance: { kind: 'CARRIED' as const, casterCharacterId: CASTER_CHARACTER_ID }
+      }
+    }
+    const carried = async (casterCharacterId: string | null) => {
+      const held = await heldEffect(testUuid(0x109))
+      const { origin } = held.definition
+      if (origin.kind !== 'ENCOUNTER')
+        throw new Error('The fixture effect is applied in an Encounter.')
+      return {
+        ...held,
+        definition: {
+          ...held.definition,
+          origin: { ...origin, sourceAggregateId: testUuid(0x10a) }
+        },
+        lifecycle: { ...held.lifecycle, concentrationCasterCharacterId: casterCharacterId }
+      }
+    }
+    const bindCarried = async (casterCharacterId: string | null) =>
+      requireTurnMaintainedStates(
+        ENCOUNTER_ID,
+        goblin,
+        [await carried(casterCharacterId)],
+        async () => reinstated
+      )
+
+    expect(await bindCarried(CASTER_CHARACTER_ID)).toEqual(new Map([[STATE_ID, reinstated]]))
+    await expect(bindCarried(testUuid(0x10b))).rejects.toThrow(
+      'Maintained turn effect source binding is stale.'
+    )
+    await expect(bindCarried(null)).rejects.toThrow(
       'Maintained turn effect source binding is stale.'
     )
   })

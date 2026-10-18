@@ -101,13 +101,18 @@ describe('conditions ended with maintained effects', () => {
 })
 
 describe('maintained-effect replacement transition', () => {
+  const occurrenceId = (version: number) =>
+    `00000000-0000-4000-8000-00000000f2${version.toString().padStart(2, '0')}`
   function state(id: string, version: number, sourceActionId: string) {
     const descriptor = {
       schemaVersion: 2 as const,
       maintenanceDefinitionId: MAINTENANCE_DEFINITION_ID,
       definitionChecksum: 'a'.repeat(64),
-      sourceActionId,
-      sourceOccurrenceId: `00000000-0000-4000-8000-00000000f2${version.toString().padStart(2, '0')}`,
+      provenance: {
+        kind: 'ACTION' as const,
+        sourceActionId,
+        sourceOccurrenceId: occurrenceId(version)
+      },
       sourceActorId: SOURCE_ACTOR_ID,
       replacementPolicy: 'REPLACE_SAME_DEFINITION' as const,
       emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' as const
@@ -134,7 +139,7 @@ describe('maintained-effect replacement transition', () => {
     descriptorChecksum: created.descriptorChecksum,
     definitionChecksum: 'a'.repeat(64),
     sourceActionId: 'hold-person-cast-2',
-    sourceOccurrenceId: created.descriptor.sourceOccurrenceId,
+    sourceOccurrenceId: occurrenceId(1),
     sourceActorId: SOURCE_ACTOR_ID
   }
 
@@ -197,8 +202,6 @@ describe('maintained-effect replacement transition', () => {
         version: 2,
         maintenanceDefinitionId: MAINTENANCE_DEFINITION_ID,
         descriptorChecksum: prior.descriptorChecksum,
-        sourceActionId: 'hold-person-cast-1',
-        sourceOccurrenceId: prior.descriptor.sourceOccurrenceId,
         sourceActorId: SOURCE_ACTOR_ID
       },
       removedDependentEffects: [
