@@ -462,6 +462,12 @@ and placed by the same `planEncounterPassiveZones`, which takes each Character's
 (`characterRules`) and resolves the zone against its ability modifiers and class levels; a Creature resolves against its
 snapshot ability scores. `placeEncounterPassiveZones` reads those rules through the host's `readCharacterRules`, as the
 Campaign owner reads them; a Character whose rules are unavailable keeps no zones.
+At save time (T5c) `encounterOccupantSaveAuras` finds the auras holding an actor (its token footprint shares area with
+the zone, the source is the actor or its ally, a defeated Creature source is suppressed); the Worker reads them through
+the internal `OCCUPANT_SAVE_AURAS` turn capture, and `withEncounterOccupantSaveBonus`, applied after
+`withEncounterHolderDefense` in the one save-target preparation, skips a Character source that is unconscious and adds
+the largest amount to every save row's modifier, so the bound save fact records it. The target records the amount
+(`occupantSaveBonus`) and `rebuildEncounterTurnTarget` reapplies it, because turn stages rebuild caught targets from raw facts.
 `MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
 other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
 authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the
@@ -978,16 +984,24 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
-- **Pushes and pulls (ATTACK-7.T5a, D139).** A `FORCED_MOVEMENT` outcome with `AWAY_FROM_SOURCE` or `TOWARD_SOURCE` and an exact
-  `FIXED_DISTANCE` compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
+- **Forced movement (ATTACK-7.T5a/T5b, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
+  `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
   which the single-target and area room planners pass to the commit as `forcedMovements`. In the action's transaction the room's
-  `applyRoomForcedMovements` moves each target along the straight square-grid ray from the source's token
-  (`deriveSquareGridForcedMovementDestination`, `packages/shared/src/domains/vtt/optionalCombatGeometry.ts`), farthest target first (ties by
-  actor ID), stopping before the first barrier or occupied square, as a `FORCED` Scene move: no opportunity attack, no movement spent.
+  `applyRoomForcedMovements` moves each target, farthest first (ties by actor ID), to a square
+  `deriveSquareGridForcedMovementDestinations` (`packages/shared/src/domains/vtt/optionalCombatGeometry.ts`) calls legal: along the
+  straight square-grid ray from the source's token for away and toward, stopping before the first barrier or occupied square, or any
+  free square within the distance for `ANY` (and within the source's reach for `ASIDE`), as a `FORCED` Scene move: no opportunity
+  attack, no movement spent. When a single-target action's movement has two or more legal squares, the planner holds the settled
+  outcome (`holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
+  OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
+  `{requestId, position}`, the planner restores the completion without running a graph again
+  (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
+  re-checks that the square is still legal. Exact away/toward and a movement with one legal square never pause.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
-  legendary and reaction actions still refuse spatial directives; `ASIDE`, `ANY` and `UP_TO` stay with ATTACK-7.T5.
+  legendary and reaction actions still refuse spatial directives; an area action whose movement needs a pick fails closed in its
+  commit; the board pick is ATTACK-7.T5c.
 - **Disengage** is an `APPLY_GRANT` on SELF for one `TURN` with an `OPPORTUNITY_ATTACK_IMMUNITY` modifier of the flag kind `ENABLE`
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
@@ -1275,7 +1289,8 @@ miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Ea
 one evidence stage; resource use, mutations and receipts wait for the terminal phase.
 `diceGraphDefinition` is the only place that doubles critical dice.
 
-**On-hit riders (D119).** A passive Feature's trigger-matched `ON_HIT` `DAMAGE` outcomes merge into the
+**On-hit riders (D119).** A passive Feature's trigger-matched direct `ON_HIT` outcomes (damage, and since
+ATTACK-7.T5 any other outcome, such as a forced movement) merge into the
 weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action
 (`character/characterOnHitRiders`), so the rider is one more part of the same hit: resistance and critical
 doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes the damage type of the attack's
@@ -1283,6 +1298,9 @@ first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow wit
 rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
 `exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
 other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+A path restriction's `DAMAGE_TYPE` check on the `EQUIPMENT` subject ("an attack that deals bludgeoning
+damage") is settled with the weapon checks in `reduceEffectRestrictions`, against the types of the hit's
+`ON_HIT` damage that no restriction, use limit or player choice withholds.
 `ADD_BONUS_DIE` stays non-executable.
 
 **Optional on-hit riders (D123, current).** A rider authored with `optionalOnHit: { kind: 'SPELL_SLOT' }` on a

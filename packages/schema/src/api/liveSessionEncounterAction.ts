@@ -50,6 +50,7 @@ import {
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
 export const liveSessionEncounterActionPendingInputSchema = lazySchema(() =>
@@ -118,13 +119,18 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
 )
 
 /**
- * A creature an action's outcome pushes away from or pulls toward the acting creature, straight and
- * by an exact distance (ATTACK-7.T5a). The room settles it on the Encounter's Scene in the commit.
+ * A creature an action's outcome moves (D139, D157): away from or toward the acting creature along
+ * the straight line, aside within its reach, or in any direction, by an exact or up-to distance. The
+ * room settles it on the Encounter's Scene in the commit, at `position` when its source chose one.
  */
 export type LiveSessionForcedMovement = {
   targetActorId: string
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
+  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY'
   feet: number
+  upTo: boolean
+  /** The reach of the action an ASIDE move stays within; null for every other direction. */
+  sourceReachFeet: number | null
+  position: SpatialPointDto | null
 }
 
 const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> = lazySchema(
@@ -133,8 +139,11 @@ const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[
       .array(
         z.strictObject({
           targetActorId: postgresUuidSchema,
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE']),
-          feet: z.number().check(z.positive())
+          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          feet: z.number().check(z.positive()),
+          upTo: z.boolean(),
+          sourceReachFeet: z.nullable(z.number().check(z.nonnegative())),
+          position: z.nullable(spatialPointDtoSchema)
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

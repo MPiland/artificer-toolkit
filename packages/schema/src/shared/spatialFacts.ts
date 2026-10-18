@@ -6,6 +6,8 @@ import { postgresUuidSchema } from './postgresUuid.js'
 
 export const MAX_SPATIAL_PATH_POINTS = 256
 export const MAX_SPATIAL_CANDIDATES = 256
+/** The legal squares one chosen forced movement may offer: the square-grid geometry's interaction bound. */
+export const MAX_FORCED_MOVEMENT_DESTINATIONS = 1_024
 
 const coordinateSchema = lazySchema(() =>
   z

@@ -24,6 +24,7 @@ import {
   ruleExecutionUuidSchema
 } from './ruleExecutionPrimitives.js'
 import { serverContestCheckPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
+import { encounterForcedMovementOfferDtoSchema } from './ruleExecutionForcedMovementChoice.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 // Explicitly typed so the pending-context declaration stays within the compiler's size limit (TS7056).
@@ -97,7 +98,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * reaction to the hit has settled. The snapshot's continuation is that choice; the TEST stays
        * unsettled until the answer.
        */
-      onHitChoice: z.optional(encounterOnHitOfferDtoSchema)
+      onHitChoice: z.optional(encounterOnHitOfferDtoSchema),
+      /**
+       * Set while a settled action waits on its source's choice of where a push leaves a creature
+       * (D157). The roller is the source; the snapshot's continuation is that choice, and the settled
+       * OUTCOME's phase stays in `twoPhase` so the answer commits the action unchanged.
+       */
+      forcedMovementDestination: z.optional(encounterForcedMovementOfferDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -203,6 +210,23 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'An on-hit offer belongs to a TEST held for the attacker.'
             })
         }
+        if (
+          value.forcedMovementDestination &&
+          (value.legendaryResistance ||
+            value.reactionChoice ||
+            value.castReaction ||
+            value.onHitChoice ||
+            value.twoPhase?.phase === 'TEST' ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['forcedMovementDestination'],
+            message:
+              'A forced-movement destination belongs to a settled action held for its source.'
+          })
         if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({
             code: 'custom',

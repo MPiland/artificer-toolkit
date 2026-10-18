@@ -72,7 +72,14 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
-import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import {
+  advanceNativeActionGraphs,
+  restoreHeldNativeActionCompletion
+} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import {
+  holdForForcedMovementDestination,
+  settleForcedMovementDestination
+} from '@artificer-toolkit/rules-runtime/encounterForcedMovementChoice'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import {
   replayNativeActionReaction,
@@ -90,6 +97,9 @@ import {
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { SpatialPointDto } from '@artificer-toolkit/schema/shared/spatialFacts'
 import {
   applyNativeReactionEffect,
   discoverNativeAttackReaction
@@ -124,7 +134,8 @@ import {
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import {
   liveSessionEncounterActionPendingInputSchema,
-  liveSessionEncounterActionCommitInputSchema
+  liveSessionEncounterActionCommitInputSchema,
+  type LiveSessionForcedMovement
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
@@ -186,6 +197,12 @@ export async function planNativeLiveEncounterAction(
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
     captures: LiveCaptureReads
+    /** The legal squares the Encounter's Scene offers one forced movement now (D157). */
+    forcedMovementDestinations(input: {
+      encounterId: string
+      sourceActorId: string
+      movement: LiveSessionForcedMovement
+    }): Promise<SpatialPointDto[]>
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
@@ -253,6 +270,12 @@ export async function planNativeLiveEncounterAction(
     offer: EncounterOnHitOfferDto
     selection: EncounterOnHitSelection
   } | null = null
+  let forcedMovementAnswer: {
+    offer: EncounterForcedMovementOfferDto
+    continuation: ServerRuleExecutionContinuationDto
+    outcomePhase: ReturnType<typeof restoreEncounterActionPending>['twoPhase']
+    position: SpatialPointDto
+  } | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
@@ -301,6 +324,18 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires an on-hit decision.')
       onHitAnswer = { offer: snapshot.applicationContext.onHitChoice, selection: resolution }
+    } else if (snapshot.applicationContext.forcedMovementDestination) {
+      if (
+        resolution.kind !== 'FORCED_MOVEMENT' ||
+        snapshot.request.requestId !== resolution.requestId
+      )
+        throw new Error('The action requires a forced-movement destination.')
+      forcedMovementAnswer = {
+        offer: snapshot.applicationContext.forcedMovementDestination,
+        continuation: pendingSnapshotContinuation(snapshot),
+        outcomePhase: restoreEncounterActionPending(snapshot).twoPhase,
+        position: resolution.position
+      }
     } else if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
@@ -1024,7 +1059,18 @@ export async function planNativeLiveEncounterAction(
         adjustedBinding: heldReactionNow?.adjustedBinding ?? null
       })
     : null
+  // A held destination pick resumes the action its OUTCOME already settled, running no graph again.
+  const heldCompletion = forcedMovementAnswer
+    ? restoreHeldNativeActionCompletion({
+        adapter: prepared.adapter,
+        binding: prepared.binding,
+        occurrenceId,
+        offer: forcedMovementAnswer.offer,
+        outcomePhase: forcedMovementAnswer.outcomePhase
+      })
+    : null
   const execution =
+    heldCompletion ??
     answered?.execution ??
     reactionAnswered?.execution ??
     answeredOnHit?.execution ??
@@ -1040,7 +1086,7 @@ export async function planNativeLiveEncounterAction(
         targetStateChecksum
       }
     }))
-  const retained = resume?.pending.twoPhase
+  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
   const resistance =
     answered?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
@@ -1140,12 +1186,65 @@ export async function planNativeLiveEncounterAction(
   )
   const failedTargetEconomy = failedTarget?.economy ?? null
   const targetFailedCounterSpend = Boolean(failedTarget?.spellConsumption)
-  const forcedMovements = interpretForcedMovements(prepared, {
+  const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
     published: execution.published,
     targetActorId: prepared.target.id
   })
+  // A movement with two or more legal squares waits for its source to pick one (D157).
+  const picks = await Promise.all(
+    interpretedMovements.map(async (movement) => {
+      const positions = await executionOptions.forcedMovementDestinations({
+        encounterId: state.id,
+        sourceActorId: prepared.actor.id,
+        movement
+      })
+      return positions.length > 1 ? { movement, positions } : null
+    })
+  )
+  const owedPicks = picks.filter((pick) => pick !== null)
+  if (owedPicks.length > 1)
+    throw new Error(
+      'An action that moves its target more than one chosen way is not supported yet.'
+    )
+  const [owedPick] = owedPicks
+  if (owedPick && !forcedMovementAnswer)
+    return {
+      ...preflight(),
+      kind: 'PENDING' as const,
+      execution: await holdForForcedMovementDestination({
+        runtime: executionOptions.runtime,
+        occurrenceId,
+        completion: {
+          execution: execution.execution,
+          published: execution.published,
+          initialPublished: execution.initialPublished,
+          initialFactsChecksum: execution.initialFactsChecksum,
+          phaseReceipts: execution.phaseReceipts ?? null,
+          d20: execution.d20,
+          nestedD20: execution.nestedD20
+        },
+        outcomePhase: execution.outcomePhase,
+        targetActorId: owedPick.movement.targetActorId,
+        positions: owedPick.positions
+      }),
+      failedCounters
+    }
+  if (forcedMovementAnswer && !owedPick)
+    throw new Error('The forced-movement destination is no longer owed.')
+  const chosenPosition =
+    forcedMovementAnswer && owedPick
+      ? await settleForcedMovementDestination({
+          runtime: executionOptions.runtime,
+          continuation: forcedMovementAnswer.continuation,
+          offer: forcedMovementAnswer.offer,
+          position: forcedMovementAnswer.position
+        })
+      : null
+  const forcedMovements = interpretedMovements.map((movement) =>
+    movement === owedPick?.movement ? { ...movement, position: chosenPosition } : movement
+  )
   const applications = [
     ...execution.applications,
     ...preparedEffects.relationshipConditionApplications

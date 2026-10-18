@@ -1,5 +1,6 @@
 import type { SceneGrid, ScenePoint, SceneToken } from './scene.js'
 import { canTokenFootprintMoveBetween, measureSceneDistance } from './geometry.js'
+import { measureSceneTokenFootprintDistance } from './sceneCombatPerception.js'
 import type { CampaignSceneState } from './scene.js'
 
 const EPSILON = 1e-9
@@ -419,23 +420,30 @@ export function deriveSquareGridShoveAsideDestinations(input: {
 }
 
 /**
- * Where a forced movement leaves its target on a square grid: straight along the ray from the
- * source's centre through the target's (reversed toward the source), one cell along the ray's major
- * axis per step, up to `distance` in the Scene's measurement domain. It stops before the first step
- * that crosses a barrier, overlaps another token or leaves the map, so a blocked target can stay
- * where it is. Null fails closed: a gridless Scene, a footprint off the grid, or a target centred on
- * its source has no straight line to follow.
+ * Where a forced movement may leave its target on a square grid, in the Scene's measurement domain
+ * (D105). `AWAY_FROM_SOURCE` and `TOWARD_SOURCE` follow the ray from the source's centre through the
+ * target's (reversed toward the source), one cell along its major axis per step, stopping before the
+ * first step that crosses a barrier, overlaps another token or leaves the map: an exact distance
+ * yields only the farthest square reached, an up-to distance every square along the way. `ASIDE`
+ * and `ANY` yield each unoccupied square within the map that the target reaches in a straight line
+ * at exactly (or, up to, no more than) `distance`; `ASIDE` keeps only squares within `sourceReach`
+ * of the source. Staying put is listed first whenever it is legal: for an up-to distance, or when no
+ * square is reachable. Null fails closed: a gridless Scene, a footprint off the grid, a ray with no
+ * direction, an `ASIDE` without a reach, or more squares than the interaction bound.
  */
-export function deriveSquareGridForcedMovementDestination(input: {
-  readonly direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
-  /** Exact, already-converted distance in this Scene's measurement domain. */
+export function deriveSquareGridForcedMovementDestinations(input: {
+  readonly direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY'
+  /** Already-converted distance in this Scene's measurement domain. */
   readonly distance: number
+  readonly upTo: boolean
+  /** The source's reach in this Scene's measurement domain; only `ASIDE` reads it. */
+  readonly sourceReach: number | null
   readonly source: Pick<SceneToken, 'height' | 'position' | 'width'>
   readonly target: Pick<SceneToken, 'height' | 'position' | 'width'>
   /** Every other token on the Scene, the source included. */
   readonly occupants: readonly Pick<SceneToken, 'height' | 'position' | 'width'>[]
   readonly state: Pick<CampaignSceneState, 'barriers' | 'doorStates' | 'grid' | 'map'>
-}): ScenePoint | null {
+}): ScenePoint[] | null {
   const grid = input.state.grid
   if (
     !validSquareGrid(grid) ||
@@ -447,30 +455,58 @@ export function deriveSquareGridForcedMovementDestination(input: {
     return null
   const occupants = input.occupants.map((token) => enumerateSquareGridFootprint(grid, token))
   if (occupants.some((footprint) => footprint === null)) return null
-  const sign = input.direction === 'AWAY_FROM_SOURCE' ? 1 : -1
-  const rayX = sign * (input.target.position.x - input.source.position.x)
-  const rayY = sign * (input.target.position.y - input.source.position.y)
-  const major = Math.max(Math.abs(rayX), Math.abs(rayY))
-  if (major <= EPSILON) return null
   const size = { width: input.target.width, height: input.target.height }
-  let reached = input.target.position
-  for (let step = 1; step <= MAX_SQUARE_GRID_LINE_CHECKS; step += 1) {
-    const next = {
-      x: input.target.position.x + Math.round((step * rayX) / major) * grid.cellSize,
-      y: input.target.position.y + Math.round((step * rayY) / major) * grid.cellSize
-    }
-    if (measureSceneDistance(grid, input.target.position, next) > input.distance + EPSILON) break
+  const origin = input.target.position
+  const lands = (from: ScenePoint, next: ScenePoint) => {
     const footprint = enumerateSquareGridFootprint(grid, { ...size, position: next })
-    if (
-      footprint === null ||
-      !footprintIsWithinMap(footprint, input.state.map) ||
-      !canTokenFootprintMoveBetween(input.state, reached, next, size) ||
-      occupants.some((occupant) => footprintsOverlap(footprint, occupant!))
+    return (
+      footprint !== null &&
+      footprintIsWithinMap(footprint, input.state.map) &&
+      canTokenFootprintMoveBetween(input.state, from, next, size) &&
+      !occupants.some((occupant) => footprintsOverlap(footprint, occupant!))
     )
-      break
-    reached = next
   }
-  return reached
+  if (input.direction === 'AWAY_FROM_SOURCE' || input.direction === 'TOWARD_SOURCE') {
+    const sign = input.direction === 'AWAY_FROM_SOURCE' ? 1 : -1
+    const rayX = sign * (origin.x - input.source.position.x)
+    const rayY = sign * (origin.y - input.source.position.y)
+    const major = Math.max(Math.abs(rayX), Math.abs(rayY))
+    if (major <= EPSILON) return null
+    const reached = [origin]
+    for (let step = 1; step <= MAX_SQUARE_GRID_LINE_CHECKS; step += 1) {
+      const next = {
+        x: origin.x + Math.round((step * rayX) / major) * grid.cellSize,
+        y: origin.y + Math.round((step * rayY) / major) * grid.cellSize
+      }
+      if (measureSceneDistance(grid, origin, next) > input.distance + EPSILON) break
+      if (!lands(reached.at(-1)!, next)) break
+      reached.push(next)
+    }
+    return input.upTo ? reached : [reached.at(-1)!]
+  }
+  if (input.direction === 'ASIDE' && (input.sourceReach === null || input.sourceReach < 0))
+    return null
+  const radius = Math.floor(input.distance / grid.distancePerCell + EPSILON)
+  if ((2 * radius + 1) ** 2 > MAX_SQUARE_GRID_INTERACTION_EVIDENCE) return null
+  const squares: ScenePoint[] = []
+  for (let row = -radius; row <= radius; row += 1)
+    for (let column = -radius; column <= radius; column += 1) {
+      if (row === 0 && column === 0) continue
+      const next = { x: origin.x + column * grid.cellSize, y: origin.y + row * grid.cellSize }
+      const moved = measureSceneDistance(grid, origin, next)
+      if (
+        (input.upTo
+          ? moved > input.distance + EPSILON
+          : Math.abs(moved - input.distance) > EPSILON) ||
+        !lands(origin, next) ||
+        (input.direction === 'ASIDE' &&
+          measureSceneTokenFootprintDistance(grid, input.source, { ...size, position: next }) >
+            input.sourceReach! + EPSILON)
+      )
+        continue
+      squares.push(next)
+    }
+  return input.upTo || squares.length === 0 ? [origin, ...squares] : squares
 }
 
 /** Returns exact adjacent, opposite-cell pairs; reach/range intentionally has no role here. */

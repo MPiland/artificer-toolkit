@@ -30,10 +30,12 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomInputs } from './roomInputs.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
+import { readRoomSceneState } from './roomSceneRead.js'
 import { readBasicActionScopeAdmission } from '@artificer-toolkit/encounter-persistence/basicActionScopeAdmission'
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterActorTokenBindings } from '@artificer-toolkit/encounter-persistence/actorTokenBindings'
+import { readEncounterOccupantSaveAuras } from '@artificer-toolkit/encounter-persistence/occupantSaveAuras'
 import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs
@@ -461,6 +463,18 @@ export async function readRoomEncounterTurnCapture(
     response = {
       kind: 'ACTOR_TOKEN_BINDINGS',
       bindings: await readEncounterActorTokenBindings(ctx, state)
+    }
+  } else if (request.kind === 'OCCUPANT_SAVE_AURAS') {
+    const actorId = request.actorId.toLowerCase()
+    response = {
+      kind: 'OCCUPANT_SAVE_AURAS',
+      actorId,
+      auras: await readEncounterOccupantSaveAuras(
+        ctx,
+        state,
+        actorId,
+        async (sceneId) => (await readRoomSceneState(transaction, sceneId)).scene
+      )
     }
   } else if (request.kind === 'ACTION_SCENE') {
     const actorId = request.command.actorId.toLowerCase()

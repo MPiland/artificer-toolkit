@@ -8,6 +8,7 @@ import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/enc
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { encounterActionReachFeet } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -115,9 +116,12 @@ export function refuseUnmetItemActionRequirements(
     })
 }
 
-/** The straight pushes and pulls an action's completed outcome on one target settles in its commit. */
+/**
+ * The forced movements an action's completed outcome on one target settles in its commit, each still
+ * without the square its source may pick (D157); one aside stays within the action's reach.
+ */
 export function interpretForcedMovements(
-  prepared: Pick<Prepared, 'adapter'>,
+  prepared: Pick<Prepared, 'adapter' | 'targetPolicy'>,
   input: {
     execution: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['execution']
     occurrenceId: string
@@ -126,6 +130,14 @@ export function interpretForcedMovements(
   }
 ): LiveSessionForcedMovement[] {
   return (prepared.adapter.interpretSpatial?.(input) ?? []).map(
-    ({ targetActorId, direction, feet }) => ({ targetActorId, direction, feet })
+    ({ targetActorId, direction, feet, upTo }) => ({
+      targetActorId,
+      direction,
+      feet,
+      upTo,
+      sourceReachFeet:
+        direction === 'ASIDE' ? encounterActionReachFeet(prepared.targetPolicy) : null,
+      position: null
+    })
   )
 }

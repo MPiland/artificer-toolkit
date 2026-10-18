@@ -72,7 +72,8 @@ import type {
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
   CharacterRuleActionTargetDefenseUnavailableError,
-  CharacterRuleActionUnsupportedCompilationError
+  CharacterRuleActionUnsupportedCompilationError,
+  isCharacterRuleActionForcedMovementDirection
 } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
@@ -300,7 +301,7 @@ type Outcome =
       destinationKind: TeleportAllowanceDestinationKind
     }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
-  | { kind: 'FORCED_MOVEMENT'; direction: ForcedMovementDirection; feet: number }
+  | { kind: 'FORCED_MOVEMENT'; direction: ForcedMovementDirection; feet: number; upTo: boolean }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -1302,8 +1303,8 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
   }
   if (outcome.effectKind === 'FORCED_MOVEMENT')
     return (
-      exactForcedMovement(outcome) ??
-      unsupported('D&D forced movement must move an exact distance away from or toward its source.')
+      settledForcedMovement(outcome) ??
+      unsupported('D&D forced movement must move its target a distance in feet, at no cost to it.')
     )
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D test action outcome is not supported.')
@@ -1329,11 +1330,11 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
 }
 
 /**
- * An authored push or pull the room settles along the straight line from the action's source
- * (D105): an exact distance, away from or toward the source, that costs the target nothing. Null
- * for any other forced movement, which the System cannot settle yet.
+ * An authored forced movement the room settles on the Scene (D105, D157): an exact or up-to distance
+ * in feet, in any authored direction, that costs the target nothing. Null for any other forced
+ * movement, which the System cannot settle yet.
  */
-function exactForcedMovement(outcome: {
+function settledForcedMovement(outcome: {
   direction: string
   actionEconomy: string
   distanceMode: string
@@ -1341,16 +1342,21 @@ function exactForcedMovement(outcome: {
   unit?: string
 }): Extract<Outcome, { kind: 'FORCED_MOVEMENT' }> | null {
   if (
-    (outcome.direction !== 'AWAY_FROM_SOURCE' && outcome.direction !== 'TOWARD_SOURCE') ||
+    !isCharacterRuleActionForcedMovementDirection(outcome.direction) ||
     outcome.actionEconomy !== 'NONE' ||
-    outcome.distanceMode !== 'FIXED_DISTANCE' ||
+    (outcome.distanceMode !== 'EXACT' && outcome.distanceMode !== 'UP_TO') ||
     outcome.unit !== 'FEET' ||
     typeof outcome.amount !== 'number' ||
     !Number.isSafeInteger(outcome.amount) ||
     outcome.amount <= 0
   )
     return null
-  return { kind: 'FORCED_MOVEMENT', direction: outcome.direction, feet: outcome.amount }
+  return {
+    kind: 'FORCED_MOVEMENT',
+    direction: outcome.direction,
+    feet: outcome.amount,
+    upTo: outcome.distanceMode === 'UP_TO'
+  }
 }
 
 /**
@@ -3090,7 +3096,7 @@ function exactImmediateFollowUpSaveShape(
     failed.outcomes.length === 1 &&
     failure?.effectKind === 'FORCED_MOVEMENT' &&
     UUID.test(failure.id) &&
-    exactForcedMovement(failure) &&
+    settledForcedMovement(failure) &&
     commonBoundedSave
   ) {
     return 'FORCED_MOVEMENT_ONLY'
@@ -4204,6 +4210,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     authoredPath: RULE_VALUE_KIND.TEXT,
     direction: RULE_VALUE_KIND.TEXT,
     feet: RULE_VALUE_KIND.NUMBER,
+    upTo: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
   },
   outputs: {
@@ -4213,6 +4220,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     authoredPath: RULE_VALUE_KIND.TEXT,
     direction: RULE_VALUE_KIND.TEXT,
     feet: RULE_VALUE_KIND.NUMBER,
+    upTo: RULE_VALUE_KIND.BOOLEAN,
     applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
     authorized: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
@@ -4225,6 +4233,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       authoredPath,
       direction,
       feet,
+      upTo,
       targetStateChecksum
     } = inputs
     if (
@@ -4234,10 +4243,11 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       !UUID.test(sourceEntryId) ||
       typeof resultPath !== 'string' ||
       typeof authoredPath !== 'string' ||
-      (direction !== 'AWAY_FROM_SOURCE' && direction !== 'TOWARD_SOURCE') ||
+      !isCharacterRuleActionForcedMovementDirection(direction) ||
       typeof feet !== 'number' ||
       !Number.isSafeInteger(feet) ||
       feet <= 0 ||
+      typeof upTo !== 'boolean' ||
       typeof targetStateChecksum !== 'string' ||
       !/^[a-f0-9]{64}$/.test(targetStateChecksum)
     ) {
@@ -4250,6 +4260,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       authoredPath,
       direction,
       feet,
+      upTo,
       applicationCandidate: true,
       authorized: resultPath === authoredPath,
       targetStateChecksum
@@ -4275,6 +4286,7 @@ function forcedMovementProposalNode(input: {
       authoredPath: { kind: 'LITERAL' as const, value: input.authoredPath },
       direction: { kind: 'LITERAL' as const, value: input.outcome.direction },
       feet: { kind: 'LITERAL' as const, value: input.outcome.feet },
+      upTo: { kind: 'LITERAL' as const, value: input.outcome.upTo },
       targetStateChecksum: { kind: 'FACT' as const, factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
     }
   }
@@ -5597,7 +5609,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
   const reduction = immediateFollowUpSaveMaximumReduction(input.action)
   const forcedMovementOutcome =
     shape === 'FORCED_MOVEMENT_ONLY' && failure?.effectKind === 'FORCED_MOVEMENT'
-      ? exactForcedMovement(failure)
+      ? settledForcedMovement(failure)
       : null
   const forcedMovement =
     forcedMovementOutcome && failure ? { id: failure.id, outcome: forcedMovementOutcome } : null
@@ -7999,13 +8011,14 @@ function interpretSpatial(
   const sourceEntryId = value('sourceEntryId')
   const direction = value('direction')
   const feet = value('feet')
+  const upTo = value('upTo')
   const bindings = input.published.definition.sourceEntryBindings?.filter(
     (binding) => binding.nodeId === trace.nodeId
   )
   // The trace must echo the published node's literals: the evidence moves only what was authored.
   const literalsEchoed =
     node !== undefined &&
-    (['sourceEntryId', 'authoredPath', 'direction', 'feet'] as const).every((port) => {
+    (['sourceEntryId', 'authoredPath', 'direction', 'feet', 'upTo'] as const).every((port) => {
       const binding = node.inputs[port]
       return (
         binding?.kind === 'LITERAL' &&
@@ -8025,10 +8038,11 @@ function interpretSpatial(
     !UUID.test(sourceEntryId) ||
     bindings?.length !== 1 ||
     bindings[0]?.sourceEntryId !== sourceEntryId ||
-    (direction !== 'AWAY_FROM_SOURCE' && direction !== 'TOWARD_SOURCE') ||
+    !isCharacterRuleActionForcedMovementDirection(direction) ||
     typeof feet !== 'number' ||
     !Number.isSafeInteger(feet) ||
     feet <= 0 ||
+    typeof upTo !== 'boolean' ||
     trace.inputs.resultPath !== value('resultPath') ||
     value('targetStateChecksum') !==
       input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY] ||
@@ -8048,6 +8062,7 @@ function interpretSpatial(
       sourceOperationKey: trace.operation.key,
       direction,
       feet,
+      upTo,
       targetStateChecksum: String(value('targetStateChecksum'))
     }
   ]

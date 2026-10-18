@@ -50,6 +50,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
   if (kind === 'REACTION_CHOICE') return 'Reaction available'
   if (kind === 'ON_HIT_CHOICE') return 'Add on-hit damage'
+  if (kind === 'FORCED_MOVEMENT_DESTINATION') return 'Forced movement'
   if (kind === 'LEGENDARY_ACTION_CHOICE') return 'Legendary Action'
   if (kind === 'INITIATIVE_EVIDENCE') return 'Initiative roll required'
   if (kind === 'INITIATIVE_DECLARATION') return 'Initiative declaration required'
