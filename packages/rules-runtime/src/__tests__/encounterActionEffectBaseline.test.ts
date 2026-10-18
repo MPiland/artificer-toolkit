@@ -5,6 +5,11 @@ import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { telepathicBond } from '@artificer-toolkit/source-data/srd/spells/telepathic-bond.js'
 import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
   ACTIVATION_CODE,
   EFFECT_KIND,
   PATH_CODE,
@@ -254,12 +259,13 @@ function planWith(
   conditionIds: readonly string[],
   input: {
     authoredPath?: 'ON_HIT' | 'ON_CRIT'
-    resultPath?: 'ON_HIT' | 'ON_CRIT'
+    resultPath?: 'ON_HIT' | 'ON_CRIT' | 'ON_CHECK_SUCCESS' | 'ON_CHECK_FAIL'
     heldAtOnce?: number
     otherHolds?: ReadonlyArray<readonly [string, readonly ActiveRuleEffectRecord[]]>
+    fixture?: ReturnType<typeof fixturePlan>
   } = {}
 ) {
-  const { plan, published } = fixturePlan(input.authoredPath, input.heldAtOnce)
+  const { plan, published } = input.fixture ?? fixturePlan(input.authoredPath, input.heldAtOnce)
   return prepareEncounterActionEffectPlans({
     encounterId: ids.encounter,
     occurrenceId: ids.occurrence,
@@ -350,6 +356,42 @@ describe('encounter action effect condition baselines', () => {
         expect.objectContaining({ authoredPath: 'ON_CRIT', resolvedPath: 'ON_CRIT' })
       ])
     )
+  })
+})
+
+describe('a contest win holds the target (Grapple, D152)', () => {
+  function grapplePlan() {
+    const effect = SRD_BASIC_ACTION_DEFINITIONS.find(
+      ({ id }) => id === SRD_BASIC_ACTION_IDS.GRAPPLE
+    )?.document.effects[0]
+    if (!effect) throw new Error('Missing the SRD Grapple.')
+    const action = {
+      ...characterActionDescriptor(compileEffect({ ...effect, id: ACTION_EFFECT_ID })),
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map(({ id }) => id)
+    }
+    const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+    const plan = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({ action, published })[0]
+    if (!plan?.actorRelationshipContribution) throw new Error('Missing the Grapple plan.')
+    return { plan, published }
+  }
+  const grappledId = SRD_CONDITION_TYPES.find(({ code }) => code === 'GRAPPLED')!.id
+
+  it('applies Grappled when the initiator wins the contest', () => {
+    const won = planWith([], [], { fixture: grapplePlan(), resultPath: 'ON_CHECK_SUCCESS' })
+    expect(won.recurringEffect).not.toBeNull()
+    expect(won.relationshipConditionApplications).toEqual([
+      expect.objectContaining({
+        conditionId: grappledId,
+        authoredPath: 'ON_CHECK_SUCCESS',
+        resolvedPath: 'ON_CHECK_SUCCESS'
+      })
+    ])
+  })
+
+  it('holds nothing when the initiator loses the contest', () => {
+    const lost = planWith([], [], { fixture: grapplePlan(), resultPath: 'ON_CHECK_FAIL' })
+    expect(lost.recurringEffect).toBeNull()
+    expect(lost.relationshipConditionApplications).toEqual([])
   })
 })
 

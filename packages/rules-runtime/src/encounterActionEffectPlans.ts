@@ -99,7 +99,11 @@ export function prepareEncounterActionEffectPlans(input: {
           if (!relationshipContribution) return []
           const authoredPath =
             recurringEffect.definition.adapterFacts['dnd5e.relationship-authored-path']
-          if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
+          if (
+            authoredPath !== 'ON_HIT' &&
+            authoredPath !== 'ON_CRIT' &&
+            authoredPath !== 'ON_CHECK_SUCCESS'
+          )
             throw new EncounterActionEffectPlanError(
               'Encounter relationship authored path is unavailable.'
             )
@@ -132,8 +136,8 @@ export function prepareEncounterActionEffectPlans(input: {
 }
 
 /**
- * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, and a failed-save
- * outcome only on a failed save.
+ * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, a failed-save
+ * outcome only on a failed save, and a contest-win relationship (Grapple) only on the win.
  */
 function reachesAuthoredPath(
   authoredPath: unknown,
@@ -141,6 +145,8 @@ function reachesAuthoredPath(
   outcome: 'grant' | 'relationship'
 ): boolean {
   if (outcome === 'grant' && authoredPath === 'ON_SAVE_FAIL') return resultPath === 'ON_SAVE_FAIL'
+  if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
+    return resultPath === 'ON_CHECK_SUCCESS'
   if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
     throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
   return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')

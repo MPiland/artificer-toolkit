@@ -47,7 +47,9 @@ describe('authored basic action compilation', () => {
     for (const capability of available) {
       expect(capability).toMatchObject({
         kind: 'BASIC_ACTION',
-        restrictions: null,
+        // Each capability carries its entry's restrictions: Grapple's free hand, none for the rest.
+        restrictions:
+          authored.find(({ id }) => id === capability.definitionId)?.document.restrictions ?? null,
         encounterActorId: ACTOR_ID,
         entryPointDefinitionId: capability.effectId,
         sourceId: capability.definitionId

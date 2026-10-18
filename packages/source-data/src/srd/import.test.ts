@@ -84,7 +84,8 @@ describe('canonical Convex import preparation', () => {
       Rouse: ['ACTION', ['MANUAL_ADJUDICATION']],
       Search: ['ACTION', ['DETECT_CONCEALED']],
       'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
-      'First Aid': ['ACTION', ['STABILIZE']]
+      'First Aid': ['ACTION', ['STABILIZE']],
+      Grapple: ['ATTACK', ['ACTOR_RELATIONSHIP']]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()

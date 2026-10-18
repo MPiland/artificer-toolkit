@@ -318,6 +318,7 @@ describe('basic combat actions in the room (Q11)', () => {
       'Disengage',
       'Dodge',
       'First Aid',
+      'Grapple',
       'Help',
       'Hide',
       'Ready',

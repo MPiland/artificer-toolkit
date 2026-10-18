@@ -19,6 +19,9 @@ import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/sh
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
+  SRD_ACROBATICS_SKILL_ID,
+  SRD_ATHLETICS_SKILL_ID,
+  SRD_CONDITION_TYPES,
   SRD_MEDICINE_SKILL_ID,
   SRD_PASSIVE_PERCEPTION_ID,
   SRD_PERCEPTION_SKILL_ID,
@@ -37,7 +40,8 @@ export const SRD_BASIC_ACTION_IDS = {
   SEARCH: '00000000-0000-4000-8000-000000000b07',
   USE_AN_OBJECT: '00000000-0000-4000-8000-000000000b08',
   FIRST_AID: '00000000-0000-4000-8000-000000000b09',
-  ROUSE: '00000000-0000-4000-8000-000000000b0a'
+  ROUSE: '00000000-0000-4000-8000-000000000b0a',
+  GRAPPLE: '00000000-0000-4000-8000-000000000b0b'
 } as const
 
 /** Deterministic ids of an authored basic action's nested rows, derived from the entry's id. */
@@ -53,6 +57,8 @@ function defineBasicAction(input: {
   label: string
   rulesText: string
   effects: unknown[]
+  actionCost?: 'ACTION' | 'ATTACK'
+  restrictions?: unknown
 }) {
   const document = basicActionReusableDefinitionDocumentDtoSchema.parse({
     schemaVersion: 1,
@@ -60,8 +66,8 @@ function defineBasicAction(input: {
     id: input.id,
     gameSystemId: SRD_SYSTEM_ID,
     rulesText: input.rulesText,
-    actionCost: 'ACTION',
-    restrictions: null,
+    actionCost: input.actionCost ?? 'ACTION',
+    restrictions: input.restrictions ?? null,
     effects: input.effects
   })
   return {
@@ -128,14 +134,18 @@ function manualActionEffect(actionId: string, label: string, instructions: strin
 }
 
 /**
- * Dodge's benefits apply only while the holder can act and move: one group for a Character holder
- * and one for a Creature holder, since each facet context gates on the holder's kind (D152).
+ * Holder restrictions met only while every predicate holds: one group for a Character holder and
+ * one for a Creature holder, since each facet context gates on the holder's kind (D152).
  */
-function holderCanActAndMove(actionId: string) {
+function holderMeets(
+  actionId: string,
+  predicateCodes: readonly ('CAN_ACT' | 'SPEED_ABOVE_ZERO' | 'FREE_HAND')[]
+) {
   return {
     id: basicActionChildId(actionId, 0x220, 1),
     groups: (['CHARACTER', 'CREATURE'] as const).map((subject, index) => {
-      const part = (offset: number) => basicActionChildId(actionId, 0x220, index * 5 + offset)
+      const part = (offset: number) =>
+        basicActionChildId(actionId, 0x220, index * (predicateCodes.length + 3) + offset)
       return {
         id: part(2),
         order: index + 1,
@@ -146,28 +156,22 @@ function holderCanActAndMove(actionId: string) {
             subject,
             // A Creature context states its authoring mode; any Creature holder qualifies.
             ...(subject === 'CREATURE' ? { authoringModeKind: 'ALL' as const } : {}),
-            conditions: [
-              {
-                id: part(4),
-                order: 1,
-                kind: 'PREDICATE' as const,
-                constraint: 'INCLUDE' as const,
-                predicateCode: 'CAN_ACT' as const
-              },
-              {
-                id: part(5),
-                order: 2,
-                kind: 'PREDICATE' as const,
-                constraint: 'INCLUDE' as const,
-                predicateCode: 'SPEED_ABOVE_ZERO' as const
-              }
-            ]
+            conditions: predicateCodes.map((predicateCode, conditionIndex) => ({
+              id: part(4 + conditionIndex),
+              order: conditionIndex + 1,
+              kind: 'PREDICATE' as const,
+              constraint: 'INCLUDE' as const,
+              predicateCode
+            }))
           }
         ]
       }
     })
   }
 }
+
+/** Dodge's benefits apply only while the holder can act and move. */
+const DODGE_HOLDER_PREDICATES = ['CAN_ACT', 'SPEED_ABOVE_ZERO'] as const
 
 function dodgeEffect(actionId: string) {
   const attackDomains = Object.values(ATTACK_DOMAIN_CODE)
@@ -187,7 +191,7 @@ function dodgeEffect(actionId: string) {
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             order: index,
-            restrictions: holderCanActAndMove(actionId)
+            restrictions: holderMeets(actionId, DODGE_HOLDER_PREDICATES)
           })),
           {
             id: basicActionChildId(actionId, 0x214, attackDomains.length + 1),
@@ -198,7 +202,7 @@ function dodgeEffect(actionId: string) {
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             order: attackDomains.length,
-            restrictions: holderCanActAndMove(actionId)
+            restrictions: holderMeets(actionId, DODGE_HOLDER_PREDICATES)
           }
         ]
       }
@@ -390,6 +394,83 @@ function selfCheckEffect(
 }
 
 /**
+ * Grapple (D105): within reach, a creature at most one size larger is Grappled when the grappler's
+ * Athletics check beats the check the target picks, Athletics or Acrobatics. One hold fills one of
+ * the grappler's hands, two at once; the held creature escapes with its Action by winning an
+ * Athletics or Acrobatics check against the grappler's Athletics.
+ */
+function grappleEffect(actionId: string) {
+  const athleticsOrAcrobatics = {
+    skillIds: [SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID].sort(),
+    abilityDefinitionIds: []
+  }
+  const athletics = { skillIds: [SRD_ATHLETICS_SKILL_ID], abilityDefinitionIds: [] }
+  const grappled = SRD_CONDITION_TYPES.find(({ code }) => code === 'GRAPPLED')
+  if (!grappled) throw new Error('Missing SRD Grappled condition.')
+  return {
+    id: basicActionChildId(actionId, 0x210, 1),
+    order: 1,
+    invocation: {
+      kind: 'ACTION' as const,
+      triggerCode: TRIGGER.CHECK,
+      check: { checks: athletics, dc: { kind: 'CONTEST' as const, checks: athleticsOrAcrobatics } },
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.TOUCH },
+      targeting: {
+        selectionKind: 'SINGLE_TARGET' as const,
+        dispositionKind: 'ANY' as const,
+        self: 'REFUSED' as const,
+        sizeLimit: { stepsAboveActor: 1 }
+      }
+    },
+    paths: [
+      {
+        id: basicActionChildId(actionId, 0x212, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_CHECK_SUCCESS,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE' as const,
+        selectionKind: 'FIXED' as const,
+        resultBlock: {
+          id: basicActionChildId(actionId, 0x212, 2),
+          resultKind: 'SINGLE' as const,
+          outcomes: [
+            {
+              id: basicActionChildId(actionId, 0x213, 1),
+              effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
+              heldAtOnce: 2,
+              modules: [
+                {
+                  id: basicActionChildId(actionId, 0x216, 1),
+                  order: 1,
+                  kind: 'SOURCE_OCCUPIES_HAND' as const
+                },
+                {
+                  id: basicActionChildId(actionId, 0x216, 2),
+                  order: 2,
+                  kind: 'ESCAPE_CHECK' as const,
+                  activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+                  checks: athleticsOrAcrobatics,
+                  dc: { kind: 'CONTEST' as const, checks: athletics },
+                  actorKinds: ['TARGET' as const]
+                }
+              ],
+              conditions: [
+                {
+                  id: basicActionChildId(actionId, 0x217, 1),
+                  effectKind: EFFECT_KIND.CONDITION,
+                  conditionId: grappled.id
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+/**
  * The SRD System's basic combat actions. Names and rules text are authored System data. Dash,
  * Disengage, Dodge, Help, Hide, Search and First Aid are authored effects; Ready and Use an Object
  * spend the Action and leave the result to the GM.
@@ -533,5 +614,14 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     rulesText:
       'You tend a dying creature within reach. Make a DC 10 Wisdom (Medicine) check; on a success the creature becomes stable.',
     effects: [firstAidEffect(SRD_BASIC_ACTION_IDS.FIRST_AID)]
+  }),
+  defineBasicAction({
+    id: SRD_BASIC_ACTION_IDS.GRAPPLE,
+    label: 'Grapple',
+    rulesText:
+      "In place of one attack of the Attack action, you try to seize a creature within your reach that is no more than one size larger than you, using a free hand. Make a Strength (Athletics) check contested by the target's Strength (Athletics) or Dexterity (Acrobatics) check, the target choosing. If you win, the target has the Grappled condition until it escapes or you release it. A grappled creature can use its action to escape by winning an Athletics or Acrobatics check against your Athletics.",
+    actionCost: 'ATTACK',
+    restrictions: holderMeets(SRD_BASIC_ACTION_IDS.GRAPPLE, ['FREE_HAND']),
+    effects: [grappleEffect(SRD_BASIC_ACTION_IDS.GRAPPLE)]
   })
 ]

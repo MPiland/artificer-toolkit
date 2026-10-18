@@ -9,7 +9,8 @@ import {
 
 import {
   SRD_ABILITY_DEFINITION_IDS,
-  SRD_ATHLETICS_SKILL_ID
+  SRD_ATHLETICS_SKILL_ID,
+  SRD_CONDITION_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
@@ -38,12 +39,14 @@ function operationKeys(value: unknown): string[] {
   return [...own, ...Object.values(value).flatMap(operationKeys)]
 }
 
-function firstAidEffect(): EffectAuthored {
-  const effect = SRD_BASIC_ACTION_DEFINITIONS.find(
-    ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
-  )?.document.effects[0]
-  if (!effect) throw new Error('First Aid has no authored effect.')
+function basicActionEffect(actionId: string): EffectAuthored {
+  const effect = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === actionId)?.document.effects[0]
+  if (!effect) throw new Error('The basic action has no authored effect.')
   return { ...effect, id: ACTION_EFFECT_ID }
+}
+
+function firstAidEffect(): EffectAuthored {
+  return basicActionEffect(SRD_BASIC_ACTION_IDS.FIRST_AID)
 }
 
 function withCheck(check: unknown): EffectAuthored {
@@ -51,10 +54,16 @@ function withCheck(check: unknown): EffectAuthored {
   return { ...effect, invocation: { ...effect.invocation, check } } as EffectAuthored
 }
 
+/** An action under the SRD System, whose condition vocabulary a relationship outcome names. */
+function srdAction(effect: EffectAuthored) {
+  return {
+    ...characterActionDescriptor(compileEffect(effect)),
+    conditionDefinitionIds: SRD_CONDITION_TYPES.map(({ id }) => id)
+  }
+}
+
 function compile(effect: EffectAuthored) {
-  return dnd5eCharacterRuleActionSystemAdapter.compile({
-    action: characterActionDescriptor(compileEffect(effect))
-  })
+  return dnd5eCharacterRuleActionSystemAdapter.compile({ action: srdAction(effect) })
 }
 
 describe('the CHECK action test compiles through the dnd5e adapter', () => {
@@ -74,7 +83,7 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
       ).toContain(DND5E_STABILIZE_PROPOSAL_OPERATION_KEY)
   })
 
-  it('refuses a contest until the opposed check exists (ATTACK-7)', () => {
+  it('refuses a contest whose success is not a relationship', () => {
     expect(() =>
       compile(
         withCheck({
@@ -82,7 +91,34 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
           dc: { kind: 'CONTEST', checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] } }
         })
       )
-    ).toThrow()
+    ).toThrow('check action outcome')
+  })
+
+  it('compiles the SRD Grapple, a contest, to the two-roller contest graph', () => {
+    const published = compile(basicActionEffect(SRD_BASIC_ACTION_IDS.GRAPPLE))
+    expect(published.id).toBe(ACTION_EFFECT_ID)
+    expect(Object.keys(published.definition.outputs).sort()).toEqual([
+      'initiatorNaturalD20',
+      'initiatorTotal',
+      'targetNaturalD20',
+      'targetTotal'
+    ])
+  })
+
+  it('holds the Grapple target under a relationship its check success applies', () => {
+    const action = srdAction(basicActionEffect(SRD_BASIC_ACTION_IDS.GRAPPLE))
+    const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+    const [plan, ...rest] = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({
+      action,
+      published
+    })
+    expect(rest).toEqual([])
+    expect(plan?.adapterFacts['dnd5e.relationship-authored-path']).toBe('ON_CHECK_SUCCESS')
+    expect(plan?.actorRelationshipContribution?.heldAtOnce).toBe(2)
+    expect(plan?.actorRelationshipContribution?.modules.map(({ kind }) => kind)).toEqual([
+      'SOURCE_OCCUPIES_HAND',
+      'ESCAPE_CHECK'
+    ])
   })
 
   it('refuses an action that lists more than one check, since a resolution names no choice', () => {
