@@ -7916,7 +7916,7 @@
             },
             {
               "id": "SPELLS-4.T2a1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -7925,7 +7925,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2a1"]
               },
-              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted."
+              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted.",
+              "note": "Green: ci/spells-4-t2a1b 8168f966a Tests 39154174874, Live 39154174808; batch ci/merge-m129 a63a47e83 green (Tests 39155855398, Live 39155855438); phase merge d44c5bbcc."
             },
             {
               "status": "DONE",
