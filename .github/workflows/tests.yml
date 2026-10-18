@@ -115,6 +115,15 @@ jobs:
           else
             yarn workspace @artificer-toolkit/apis test:convex $FILES $SHARD --fileParallelism --maxWorkers=$CONVEX_WORKERS $REPORT
           fi
+      # A full run's per-file durations refresh apps/apis/tests/convexFileDurations.json, which balances the
+      # shards (scripts/convexShards.mjs).
+      - uses: actions/upload-artifact@v4
+        if: always() && needs.build.outputs.full == 'true' && steps.tests.outcome != 'skipped'
+        with:
+          name: convex-report-${{ matrix.shard }}
+          path: local-validation/vitest-convex.json
+          retention-days: 7
+          if-no-files-found: ignore
       - uses: ./.github/actions/regenerate-snapshots
         if: failure() && steps.tests.outcome == 'failure'
         with:
