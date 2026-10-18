@@ -2274,6 +2274,9 @@ function zonePlacementPlan(
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
   if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  if (triggers.retaliatesMeleeHits && zone.attachment !== 'SOURCE')
+    unsupported('Only a zone centered on its source answers a melee hit on that source.')
+  const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
   const placement = {
     attachment: zone.attachment,
     label: zone.label,
@@ -2284,7 +2287,8 @@ function zonePlacementPlan(
     ...(zone.component.maxApplicationsPerTurn
       ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
       : {}),
-    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {})
+    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(sourceGrant ? { sourceGrant } : {})
   }
   if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
@@ -2487,6 +2491,19 @@ function zoneHeldCondition(
       ? { escape: { activation: escape.activation, checks: escape.checks, dc: escape.dc } }
       : {})
   }
+}
+
+/**
+ * The timed grant a zone's placer receives when the zone is placed (D153), counted on its own
+ * active-effect clock rather than the zone's, compiled as any timed modifier grant. A grant that is not one is refused rather than dropped.
+ */
+function sourceGrantPlan(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledEffectGroup['entries'][number]
+): CharacterRuleActionActiveEffectPlan {
+  const plan = modifierGrantEntryPlan({ action, entry, attack: false, untilEndEvent: false })
+  if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
+  return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
 }
 
 /**

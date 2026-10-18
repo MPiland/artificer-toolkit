@@ -216,6 +216,17 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `nativeRoomTurnZoneEffects.test.ts`: a room START places the Balor's aura on its token; once the GM settles the initiative tie (both Dexterity 15) with the Balor first, the adjacent Wolf takes 3d6 fire at the Balor's turn start.
   - `zoneAttachment.test.ts`: the corpus audit now names each zone's owning subject (creatures author no `kind`) and lists the Balor among the SOURCE zones.
 
+### T6d1 (melee-hit retaliation authoring, D153)
+
+- Contract: the zone interaction kind `MELEE_HIT_ON_SOURCE` (schema, shared kind, path option). `zoneTriggers` compiles it to `retaliatesMeleeHits: true` on the placement, beside any turn trigger of the same component; a zone with only this kind has no movement or turn trigger. The compiler refuses it on a zone not centered on its source. A zone placement may carry an optional `sourceGrant`: one APPLY_GRANT beside the zone manifest in the same result (or the same cast-choice option), compiled through `modifierGrantEntryPlan` as a timed grant on the active-effect clock. A zone with two grants or any other extra outcome is not a placed zone. `CompiledActionActiveEffectPlan` is now a named type (TS7056).
+- Data: the Balor's Fire Aura component authors both `START_OF_SOURCE_TURN` and `MELEE_HIT_ON_SOURCE`. Deviation from D153's "second component": the damage is identical and a placed zone allows one component, so one component carries both kinds. Fire Shield is an ON_USE cast choice (warm/chill), each option a 5-foot SOURCE zone answering melee hits with 2d8 fire/cold and a 10-minute (100-turn) cold/fire resistance grant; the zone has no maintenance and lasts the Run (D153 amendment). CLOSED_RULE `FIRE_SHIELD` stays until T6d2.
+- Not yet applied (T6d2): the attack-time seam, the receipt, applying `sourceGrant` at placement and mapping both fields onto the persisted placement.
+- Proofs:
+  - `encounterZonePlacementCompilation.test.ts`: both interactions compile together; a melee-only zone has no turn trigger; the flag is absent without the kind; the Balor compiles the same zone as a core-options 3d6 aura answering melee hits (ADR 0038); a PLACED_SPACE zone with the kind goes manual.
+  - `encounterZoneChoiceCompilation.test.ts`: Fire Shield compiles two SOURCE 5-foot zones, melee-hit only, no maintenance, 2d8 fire/cold, and a 100-turn cold/fire resistance grant; a variant with another radius, dice, element and resistance compiles accordingly (ADR 0038); no grant without one; two grants or a non-grant outcome place no zone.
+  - `sourceZoneAuthoringParity.test.ts`, `creatureZoneAuthoringParity.test.ts`: Fire Shield and the Balor pass their node maps unchanged.
+  - `zoneAttachment.test.ts`: Fire Shield is among the SOURCE zones.
+
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.

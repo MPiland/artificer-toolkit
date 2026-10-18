@@ -6139,6 +6139,19 @@
               "closes": ["ATTACK-7.4"]
             },
             {
+              "id": "ATTACK-7.T4b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["ATTACK-7.T4"]
+              },
+              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control."
+            },
+            {
               "id": "ATTACK-7.T5a",
               "status": "DONE",
               "closes": ["ATTACK-7.7"],
@@ -9276,7 +9289,7 @@
             },
             {
               "id": "SPELLS-20.T6d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9286,11 +9299,11 @@
                 "after": ["SPELLS-20.T6c"]
               },
               "text": "Melee-hit retaliation authoring (D153): the SOURCE zone interaction kind MELEE_HIT_ON_SOURCE and its compiled placement, the Balor Fire Aura retaliation component and Fire Shield as a 5 ft SOURCE zone with a warm/chill cast choice and a 10-minute lifetime, each with an ADR 0038 parity proof. FIRE_SHIELD stays until T6d2.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "MELEE_HIT_ON_SOURCE authored on Fire Shield and the Balor with parity proofs: packages/authoring/src/nodeRuntime/creatureZoneAuthoringParity.test.ts, packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts, packages/rules-runtime/src/__tests__/encounterZoneChoiceCompilation.test.ts. Green: ci/spells-20-t6d1 0080b0370 Tests 39103745714, Live 39103745695; phase merge c3f6c3b97 (backstop ci/merge-m100b)."
             },
             {
               "id": "SPELLS-20.T6d2a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9299,7 +9312,8 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6c"]
               },
-              "text": "Melee-hit retaliation on ordinary actions (D153): one shared pure retaliation step after the attack mechanics plan, wired into the ordinary action commit and its receipt; persisted placement carries retaliatesMeleeHits and sourceGrant applies at placement; retaliation dice are system-rolled and recorded. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD."
+              "text": "Melee-hit retaliation on ordinary actions (D153): one shared pure retaliation step after the attack mechanics plan, wired into the ordinary action commit and its receipt; persisted placement carries retaliatesMeleeHits and sourceGrant applies at placement; retaliation dice are system-rolled and recorded. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6d2b",
