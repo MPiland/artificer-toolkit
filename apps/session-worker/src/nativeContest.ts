@@ -7,9 +7,9 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
-  liveSessionEncounterDisarmCommitInputSchema,
-  liveSessionEncounterDisarmPendingInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
+  liveSessionEncounterContestCommitInputSchema,
+  liveSessionEncounterContestPendingInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterContest'
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput,
@@ -36,8 +36,8 @@ import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-tool
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
-  disarmApplicationOutputs,
-  disarmSourceWins,
+  contestApplicationOutputs,
+  contestSourceWins,
   planEncounterDisarmSuccess,
   prepareEncounterDisarmContest,
   readEncounterDisarmSelection,
@@ -100,7 +100,7 @@ type PreparedContest = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<PreparedLiveCharacterSheet>>
 >
 type ContestReady = Omit<
-  NonNullable<Extract<LiveSessionEncounterRulesResponse, { kind: 'DISARM' }>['ready']>,
+  NonNullable<Extract<LiveSessionEncounterRulesResponse, { kind: 'CONTEST' }>['ready']>,
   'command'
 >
 type ContestPendingContext = Extract<
@@ -346,7 +346,7 @@ function planNativeContestHold(
  * roll here with the room's randomness and each participant's auto-roll preference. Convex stores
  * the paused contest or re-applies the settled changes; it never rolls.
  */
-export async function planNativeLiveDisarm(
+export async function planNativeLiveContest(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto,
   executionOptions: {
@@ -355,7 +355,7 @@ export async function planNativeLiveDisarm(
     captures: LiveCaptureReads
   }
 ) {
-  const request = { kind: 'DISARM' as const, command }
+  const request = { kind: 'CONTEST' as const, command }
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
     // A player's admitted contest lets its follow-up captures read the rules inputs.
@@ -820,7 +820,7 @@ export async function planNativeLiveContestRolls(input: {
         : null
     return {
       kind: 'PENDING' as const,
-      input: liveSessionEncounterDisarmPendingInputSchema.parse({
+      input: liveSessionEncounterContestPendingInputSchema.parse({
         ...planned,
         snapshot: serverRuleExecutionPendingSnapshotDtoSchema.parse({
           ...execution.continuation,
@@ -858,7 +858,7 @@ export async function planNativeLiveContestRolls(input: {
     ] as const)
       record(participant, roll.requestNodeId, roll.rawFaces)
   const occurredAt = new Date().toISOString()
-  const sourceWins = disarmSourceWins(execution)
+  const sourceWins = contestSourceWins(execution)
   const characterFacts = prepared?.targetFacts.characterFacts
   const success =
     sourceWins && contest.origin.kind === 'OPTIONAL_COMBAT'
@@ -972,7 +972,7 @@ export async function planNativeLiveContestRolls(input: {
   const nextFacts = buildEncounterActorRuleFacts({ actors: nextActors })
   return {
     kind: 'PLANNED' as const,
-    input: liveSessionEncounterDisarmCommitInputSchema.parse({
+    input: liveSessionEncounterContestCommitInputSchema.parse({
       ...planned,
       occurredAt,
       contest,
@@ -990,7 +990,7 @@ export async function planNativeLiveContestRolls(input: {
         occurrenceVersion,
         outputs: execution.execution.outputs,
         evidence: execution.execution.evidence,
-        applicationOutputs: disarmApplicationOutputs({
+        applicationOutputs: contestApplicationOutputs({
           occurrenceId,
           contest,
           rolls: execution,

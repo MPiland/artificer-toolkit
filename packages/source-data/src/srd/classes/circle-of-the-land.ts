@@ -156,7 +156,8 @@ function specializationRestriction(specializationId: string, specializationOrder
             id: circleSpellRestrictionId(specializationOrder, 3),
             order: 1,
             subject: 'SUBCLASS' as const,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            subclassIds: [SUBCLASS_IDS.LAND],
             conditions: [
               {
                 id: circleSpellRestrictionId(specializationOrder, 4),

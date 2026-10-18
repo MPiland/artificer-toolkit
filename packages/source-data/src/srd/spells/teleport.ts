@@ -45,7 +45,9 @@ export const teleport: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          // The caster and up to eight willing creatures.
+          maxTargets: 9
         }
       },
       paths: [
@@ -62,8 +64,11 @@ export const teleport: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TELEPORT, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TELEPORT' as const
+                // The travelers leave the Encounter for a place the table does not model; the
+                // familiarity table, the mishap damage and the object variant are the GM's.
+                effectKind: EFFECT_KIND.TELEPORT,
+                targetKind: 'CHOSEN_CREATURES',
+                destinationKind: 'SPECIAL'
               },
               {
                 id: spellChildId(SPELL_IDS.TELEPORT, 0x212, 1),

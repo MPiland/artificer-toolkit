@@ -39,7 +39,7 @@ import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
-import { executeRoomEncounterDisarm } from './roomEncounterDisarm.js'
+import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
   executeRoomEncounterEscape,
@@ -496,7 +496,7 @@ export async function executeRoomEncounterCommand(input: {
       throw new Error('Room response execution is unavailable.')
     if (route === 'TURN') return executeTurn(command)
     if (route === 'ACTION') return executeAction(command)
-    if (route === 'CONTEST') return executeDisarm(command)
+    if (route === 'CONTEST') return executeContest(command)
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
       route === 'CLEAVING'
@@ -530,7 +530,7 @@ export async function executeRoomEncounterCommand(input: {
     command: Parameters<typeof executeRoomEncounterAction>[0]['command']
   ) {
     if (command.type === 'RESOLVE_ACTION' && command.optionalCombatIntent != null)
-      return executeDisarm(command)
+      return executeContest(command)
     if (!input.turnExecution) throw new Error('Room action execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     return executeRoomEncounterAction({
@@ -562,12 +562,12 @@ export async function executeRoomEncounterCommand(input: {
     return recordRuleOccurrenceVoid(context, command)
   }
 
-  async function executeDisarm(
-    command: Parameters<typeof executeRoomEncounterDisarm>[0]['command']
+  async function executeContest(
+    command: Parameters<typeof executeRoomEncounterContest>[0]['command']
   ) {
-    if (!input.turnExecution) throw new Error('Room Disarm execution is unavailable.')
+    if (!input.turnExecution) throw new Error('Room contest execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
-    return executeRoomEncounterDisarm({
+    return executeRoomEncounterContest({
       ...input.turnExecution,
       ctx: context,
       store,

@@ -537,7 +537,7 @@ export function prepareEncounterDisarmContest(input: {
 }
 
 type DisarmContest = ReturnType<typeof prepareEncounterDisarmContest>['contest']
-type DisarmStateTransition = ReturnType<
+type ContestStateTransition = ReturnType<
   typeof contestedActionApplicationOutputDtoSchema.parse
 >['stateTransition']
 
@@ -552,8 +552,8 @@ export function planEncounterDisarmSuccess(input: {
   /** The target Character's current record; null for a Creature. */
   character: { id: string; streamVersion: number; document: CharacterAuthored } | null
 }):
-  | { kind: 'CHARACTER'; character: CharacterAuthored; stateTransition: DisarmStateTransition }
-  | { kind: 'CREATURE'; actor: EncounterRunActorState; stateTransition: DisarmStateTransition } {
+  | { kind: 'CHARACTER'; character: CharacterAuthored; stateTransition: ContestStateTransition }
+  | { kind: 'CREATURE'; actor: EncounterRunActorState; stateTransition: ContestStateTransition } {
   const { target, contest, character } = input
   const { origin } = contest
   if (
@@ -622,14 +622,14 @@ export function planEncounterDisarmSuccess(input: {
 }
 
 /** Each participant's settled d20: a completed execution's rolls, or a stored receipt's. */
-type DisarmRolls = Record<'initiator' | 'defender', { total: number }>
+type ContestRolls = Record<'initiator' | 'defender', { total: number }>
 
 /** A settled contest's receipt outputs; the source wins only on a higher total. */
-export function disarmApplicationOutputs(input: {
+export function contestApplicationOutputs(input: {
   occurrenceId: string
   contest: DisarmContest
-  rolls: DisarmRolls
-  stateTransition: DisarmStateTransition
+  rolls: ContestRolls
+  stateTransition: ContestStateTransition
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   /** What the initiator's ended effects released from the initiator; receipted with the contest. */
   sourceApplications: ReceiptApplications
@@ -654,13 +654,13 @@ export function disarmApplicationOutputs(input: {
     contestGraph: contest.contestGraph,
     sourceRoll: rolls.initiator,
     targetRoll: rolls.defender,
-    outcome: disarmSourceWins(rolls) ? 'SOURCE_WIN' : 'TARGET_WIN_OR_TIE',
+    outcome: contestSourceWins(rolls) ? 'SOURCE_WIN' : 'TARGET_WIN_OR_TIE',
     stateTransition: input.stateTransition,
     actionEconomyTransition: input.actionEconomy,
     sourceApplications: input.sourceApplications
   })
 }
 
-export function disarmSourceWins(rolls: DisarmRolls) {
+export function contestSourceWins(rolls: ContestRolls) {
   return rolls.initiator.total > rolls.defender.total
 }

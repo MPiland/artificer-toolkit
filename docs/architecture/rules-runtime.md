@@ -35,7 +35,7 @@ flowchart TD
 
 - **Session Durable Object** (`apps/session-worker`): the `native*` modules (`nativeEncounterRules`,
   `nativeEncounterTurn`, `nativeEncounterMovement`, `nativeCharacterRules`, `nativeCheckAction`,
-  `nativeDisarm`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
+  `nativeContest`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
   movement and Sheet-play rules from the room's SQLite inputs, and the `room*` modules commit the results
   there. Held Sheet play runs through `roomCharacterSheetCommands` and `roomCharacterWrites`. See
   [live sessions](live-sessions.md) for the room protocol, ordering and recovery.
@@ -1310,7 +1310,11 @@ doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes th
 first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow with class level lists `CLASS_LEVEL`
 rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
 `exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
-other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+other level-keyed dice (T12) reuse. A Character's riders are collected from class, subclass, race and feat
+Features only. A Creature's attack takes the riders of its own passive Features through the same collect, merge
+and `reduceEffectRestrictions` path in `encounterFeatureActionCapabilityDiscovery` (SPELLS-33.T3a5), with no
+Equipment facts, so a rider's weapon checks never hold. An Effect that still carries a `CLOSED_RULE` outcome
+contributes no rider, since its gate or remainder would be lost (D156).
 A path restriction's `DAMAGE_TYPE` check on the `EQUIPMENT` subject ("an attack that deals bludgeoning
 damage") is settled with the weapon checks in `reduceEffectRestrictions`, against the types of the hit's
 `ON_HIT` damage that no restriction, use limit or player choice withholds.
