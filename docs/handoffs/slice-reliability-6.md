@@ -128,6 +128,7 @@ CI branch `ci/reliability-6-t4`.
 - 6.8: the System schema and seed record are v4 only. `SKILL_ABILITY_MAP` and its fallback are gone, so a Character with no vocabulary snapshot has no skills. `subject-schema-parsing.test.ts`'s v1-snapshot readability test (retired behaviour) is replaced by the refusal test.
 - Development data: stored currency holdings without `kind`, definitions without metadata and pre-v4 Systems fail to parse; the local backend is reset and reseeded at merge.
 - `_generated/api.d.ts` inlines the old optional shapes; the live-backend auto-fix regenerates it on the CI branch.
+- First CI run (39101740674) caught fixtures still on the retired shapes: the builder fixture and the `ADJUST_CURRENCY` contract fixture now name `kind: 'RULESET'`; `roomInputs` and `playSettingsOptions` insert published definitions with their publication metadata; `publication.test.ts` corrupts publication evidence by removing `publishedAt`, since import now writes complete metadata and setting `contractVersion` no longer corrupts it.
 
 ## Proposed ledger edits
 
