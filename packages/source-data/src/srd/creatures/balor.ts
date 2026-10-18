@@ -115,7 +115,7 @@ export const balor: CreatureAuthored = {
                         id: S.actionId(36, 126),
                         order: 1,
                         label: 'Searing heat',
-                        interactionKinds: ['START_OF_SOURCE_TURN'],
+                        interactionKinds: ['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'],
                         behaviors: [
                           {
                             id: S.actionId(36, 127),
