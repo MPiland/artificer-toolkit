@@ -6322,6 +6322,13 @@
             {
               "id": "ATTACK-7.T6",
               "text": "Slice F: author the Shove basic action on ATTACK-18 (prone or a 5-foot AWAY push on a win).",
+              "status": "DONE",
+              "closes": ["ATTACK-7.6"],
+              "note": "Green: ci/attack-7-t6 2694c1f23 Tests 39162983674, Live 39162983521; merge d01738380 (m134)."
+            },
+            {
+              "id": "ATTACK-7.T6b",
+              "text": "Rename the Disarm-named contest seam that now settles every basic action contest (nativeDisarm, disarmSettlement, disarmPersistence, roomEncounterDisarm, liveSessionEncounterDisarm and its commit input) to a contest domain name, with no behavior change and no compatibility aliases; docs updated.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.6"],
               "activeWorkbook": "docs/handoffs/slice-attack-7.md"
