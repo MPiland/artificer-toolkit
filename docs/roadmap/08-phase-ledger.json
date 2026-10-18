@@ -7962,9 +7962,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-4.T1"]
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2a3"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): PLANT_GROWTH, PRODUCE_FLAME, REGENERATE, SEE_INVISIBILITY, SEQUESTER. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "text": "Convert closed rules (D156 T2 split; T2a4 ruling): SEE_INVISIBILITY (new SRD sense perceiving invisible creatures), PLANT_GROWTH (terrain-only zones place without an appear save; Instantaneous zones persist until the GM removes them), SEQUESTER (after T2a3's SEQUENCE capability lands). Parity proof per spell, plus a room test where it shows in combat; each kind deleted. PRODUCE_FLAME moved to T2v, REGENERATE to T2t.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -8223,10 +8223,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), with a parity proof; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), and REGENERATE (an immediate heal beside a recurring one; fix its SRD data: no Concentration, a 1-minute cast, a 1-hour duration), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -8252,7 +8252,7 @@
                 "size": 8,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE, PRODUCE_FLAME (an optional later hurl that ends the spell) and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted."
             },
             {
               "status": "TODO",
