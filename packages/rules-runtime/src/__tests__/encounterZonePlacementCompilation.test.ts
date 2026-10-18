@@ -21,7 +21,12 @@ import {
   DND5E_SAVE_DC_FACT_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
-import { ENCOUNTER_ID, TIMESTAMP, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import {
+  ENCOUNTER_ID,
+  TIMESTAMP,
+  srdCreatureActor,
+  testUuid
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   compileCaltropsEntry,
   compileItemEntry,
@@ -896,7 +901,9 @@ describe('a creature’s passive zone (D144)', () => {
   it('compiles to a source-anchored zone acting at its source’s turn start, never offered as an action', () => {
     const discovery = discover()
     expect(discovery.available.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(false)
-    expect(discovery.unavailable.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(false)
+    expect(discovery.unavailable.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(
+      false
+    )
     expect(discovery.passiveZones).toHaveLength(1)
     const [{ capability, zone }] = discovery.passiveZones
     expect(capability).toMatchObject({ ownerFeatureId: aura.id, effectId: aura.effects![0]!.id })
@@ -909,8 +916,10 @@ describe('a creature’s passive zone (D144)', () => {
 
   it('shows a passive zone the System cannot honor as unavailable, with no zone', () => {
     const mover = structuredClone(aura)
-    const outcome = mover.effects![0]!.paths[0]!.resultBlock.outcomes[0]!
-    if (outcome.effectKind !== 'MANIFEST') throw new Error('The aura is a manifest zone.')
+    const path = mover.effects![0]!.paths[0]!
+    const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+      throw new Error('The aura is a manifest zone.')
     outcome.components![0]!.interactionKinds = ['ENTER_SPACE']
     const discovery = discover(mover)
     expect(discovery.passiveZones).toEqual([])

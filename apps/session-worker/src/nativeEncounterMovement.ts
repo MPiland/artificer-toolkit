@@ -354,6 +354,7 @@ export async function prepareNativeLiveMovement(
         prepareEncounterSpatialMovement({
           input: { ...spatial, carefully },
           state,
+          actors: captured.actors,
           userId,
           runtime: state.automationMode === 'MANUAL' ? undefined : runtime,
           random,

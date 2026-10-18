@@ -12,6 +12,7 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import { readRunActors, readRunState } from './documents.js'
 import { rejectDomain } from './domainRejections.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
@@ -21,15 +22,22 @@ import {
   readEncounterReplayReceipt,
   replayEncounterCommandResult
 } from './replayReceipts.js'
+import { deleteActorPassiveZones, placeEncounterPassiveZones } from './placedSpatialEffects.js'
 import { insertRunCommand } from './timelineEntries.js'
 
-/** Binds or unbinds an Encounter actor's Scene token; the host reads its own Scene state. */
+/**
+ * Binds or unbinds an Encounter actor's Scene token; the host reads its own Scene state. In a
+ * prepared or active Run the actor's passive zones follow its token (D144, D147): a bind places
+ * them on the new token and an unbind deletes them.
+ */
 export async function executeEncounterActorTokenBinding(
   ctx: EncounterPersistenceTransaction,
   args: EncounterActorTokenBindingCommandInputDto,
   callbacks: {
-    readScene(sceneId: string): Promise<Pick<SceneLiveStateHeader, 'id' | 'campaignId'> | null>
-    hasToken(sceneId: string, tokenId: string): Promise<boolean>
+    readScene(
+      sceneId: string
+    ): Promise<Pick<SceneLiveStateHeader, 'id' | 'campaignId' | 'grid'> | null>
+    readToken(sceneId: string, tokenId: string): Promise<SpatialSceneToken | null>
   }
 ): Promise<EncounterCommandResultDto> {
   const input = encounterActorTokenBindingCommandInputDtoSchema.parse({
@@ -111,9 +119,11 @@ export async function executeEncounterActorTokenBinding(
     .unique()
   if (actorBinding && actorBinding.sceneId !== scene.id)
     throw new Error('Stored Encounter actor token binding is inconsistent.')
+  const followsToken = run.status === 'PREPARED' || run.status === 'ACTIVE'
+  if (followsToken) await deleteActorPassiveZones(ctx, { state, actorId: input.actorId })
   if (input.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING') {
-    if (!(await callbacks.hasToken(scene.id, input.tokenId)))
-      rejectDomain('TARGET_UNAVAILABLE', 'Scene token was not found.')
+    const token = await callbacks.readToken(scene.id, input.tokenId)
+    if (!token) rejectDomain('TARGET_UNAVAILABLE', 'Scene token was not found.')
     const tokenBinding = await ctx.db
       .query('encounterActorTokenBindings')
       .withIndex('by_encounterId_tokenId', (q) =>
@@ -132,6 +142,17 @@ export async function executeEncounterActorTokenBinding(
     })
     if (actorBinding) await ctx.db.patch(actorBinding._id, value)
     else await ctx.db.insert('encounterActorTokenBindings', value)
+    if (followsToken)
+      await placeEncounterPassiveZones(
+        ctx,
+        {
+          state,
+          actors: actors.filter((actor) => actor.id === input.actorId),
+          occurrenceId: input.commandId,
+          rootCommandId: input.commandId
+        },
+        async () => ({ grid: scene.grid, tokens: [token] })
+      )
   } else {
     if (!actorBinding)
       rejectDomain('TARGET_UNAVAILABLE', 'Encounter actor token binding was not found.')

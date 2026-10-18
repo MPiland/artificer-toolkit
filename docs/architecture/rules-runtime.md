@@ -415,6 +415,16 @@ persistence path, and the stored zone phase holds one chained mechanics batch pe
 `readEncounterActorTokenBindings` (the `ACTOR_TOKEN_BINDINGS` capture on the Worker) and settles caught creatures
 in the order a spatial prefix does (`orderSpatialSettlementActors`: Characters by source id, then creatures by id). `collectSpatialTurnCandidates` (shared/vtt) is the
 containment seam for turn triggers: it applies `spatialEffectAffects` and the per-turn limit, as movement does.
+A Creature's passive zone (D144, SPELLS-20 T6b) is a PASSIVE feature Effect manifesting one zone that acts at its
+source's turn; discovery returns it in `passiveZones`, never as an action. `planEncounterPassiveZones` plans one
+TOKEN-anchored zone per such feature of each Creature bound to a token, with no maintained state and an id fixed by
+the Encounter, actor and feature Effect. One persistence helper, `placeEncounterPassiveZones`, creates them: at the
+START terminal before the incoming zone phase, and at a GM token bind in a PREPARED or ACTIVE Run (D147); the room's
+turn preparation plans the same START records (`plannedSpatialEffectRecord`). Removing the Creature, or unbinding or
+rebinding its token, deletes them first. While the source is defeated its passive zones stay stored and drawn but are
+`suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
+candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
+placement.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's
