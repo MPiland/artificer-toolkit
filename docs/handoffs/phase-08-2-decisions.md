@@ -919,6 +919,9 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rejected:** per-condition end triggers inside one effect (partial-effect mutation in the end consumer and undo).
   - **Amended (2026-10-17):** no `endsWithParent` link. A Drow poison cured or GM-ended mid-sleep leaves the rider for the GM to end (deferred edge case); nothing links one active effect to another today.
   - **Deferred:** a rider on a direct-save action (Medusa, Mummy and Ghost gazes, Homunculus). It fails closed at compile until a post-launch follow-up.
+* **D150** (2026-10-17) Commit labels come from the plan (RELIABILITY-6.T2, AC 6.14; [slice-reliability-6.md](slice-reliability-6.md)). Orchestrator ruling.
+  - **Rule:** the Worker resolves an action's label while planning, from the offered option or source that the execution uses, and sends it as a required `actionLabel` in the action, area, countered-cast and legendary commit inputs (DO to Convex transport). Persistence records that label, with no content read and no 'Action' fallback; a missing label fails at plan time. Compiled creature and nested definitions are never stored rows, so a port lookup by id could not resolve them, and the fallback was hiding that.
+  - **Rejected:** teaching both readContentLabel ports to resolve compiled ids (two implementations of the plan's knowledge, extra reads) and keeping the fallback for commit labels (a band-aid).
 
 ## Approved implementation decisions
 
