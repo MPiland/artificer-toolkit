@@ -739,9 +739,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_WARLOCK_ARMOR_OF_SHADOWS_COMPONENTS)
-          ],
           order: 1
         },
         {
@@ -815,9 +812,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_WARLOCK_FIENDISH_VIGOR_COMPONENTS)
-          ],
           order: 4
         },
         {
@@ -859,9 +853,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_WARLOCK_MISTY_VISIONS_COMPONENTS)
-          ],
           order: 6
         },
         {
@@ -989,9 +980,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_WARLOCK_BOOK_OF_ANCIENT_SECRETS)
-          ],
           // Requires Pact of the Tome (classRowId(W, 3, 25))
           restrictions: {
             id: classRowId(W, 6, 1),
@@ -1197,7 +1185,6 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 9),
           label: 'Eyes of the Rune Keeper',
           description: 'You can read all writing.',
-          effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_WARLOCK_EYES_OF_RUNE_KEEPER)],
           // No requirements. Passive ability — description-only.
           order: 14
         },
@@ -1555,9 +1542,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_WARLOCK_OTHERWORLDLY_LEAP_COMPONENTS)
-          ],
           order: 21
         },
         {
@@ -1981,7 +1965,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_TOME)],
           order: 2
         }
       ]

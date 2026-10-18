@@ -754,7 +754,6 @@ export const wizard: ClassAuthored = {
           }
         ]
       },
-      effects: [selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_WIZARD_SPELL_MASTERY)],
       availableAtLevel: 18,
       order: 10
     },

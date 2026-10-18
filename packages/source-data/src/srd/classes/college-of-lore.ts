@@ -88,19 +88,7 @@ export const collegeOfLore: ClassAuthored = {
             order: 0
           }
         ]
-      },
-      effects: [
-        closedRuleEffect({
-          id: classRowId(BD, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(BD, 21, 3), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_COLLEGE_OF_LORE_ADDITIONAL_MAGICAL_SECRETS
-        })
-      ]
+      }
     },
     {
       id: classRowId(BD, 11, 2),

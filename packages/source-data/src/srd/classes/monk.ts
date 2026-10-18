@@ -439,7 +439,6 @@ export const monk: ClassAuthored = {
         'Beginning at 1st level, while you are wearing no armor and not wielding a shield, your AC equals 10 + your Dexterity modifier + your Wisdom modifier.',
       availableAtLevel: 1,
       order: 0,
-      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_DEFENSE)],
       grants: {
         modifiers: [
           {
@@ -536,7 +535,6 @@ export const monk: ClassAuthored = {
         'Starting at 2nd level, your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus increases when you reach certain monk levels, as shown in the Monk table.',
       availableAtLevel: 2,
       order: 3,
-      effects: [selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_MOVEMENT)],
       grants: { modifiers: unarmoredMovementModifiers }
     },
     {
@@ -803,22 +801,7 @@ export const monk: ClassAuthored = {
       description:
         'Starting at 13th level, you learn to touch the ki of other minds so that you understand all spoken languages. Moreover, any creature that can understand a language can understand what you say.',
       availableAtLevel: 13,
-      order: 19,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 20),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_TONGUE_OF_SUN_AND_MOON,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(M, 0x69, 20), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
-            }
-          }
-        })
-      ]
+      order: 19
     },
     {
       id: classRowId(M, 3, 21),
@@ -885,8 +868,7 @@ export const monk: ClassAuthored = {
       description:
         "At 15th level, your ki sustains you so that you suffer none of the frailty of old age, and you can't be aged magically. You can still die of old age, however. In addition, you no longer need food or water.",
       availableAtLevel: 15,
-      order: 21,
-      effects: [selfClassRuleEffect(22, CLOSED_RULE_KIND.CLASS_MONK_TIMELESS_BODY)]
+      order: 21
     },
     {
       id: classRowId(M, 3, 23),
