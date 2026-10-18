@@ -805,7 +805,7 @@
             },
             {
               "id": "PLATFORM-13.T13",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 3,
@@ -814,7 +814,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test."
+              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test. Also the Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" flake: its console.error spy catches a stray room alarm log (seen on ci/spells-4-t2t twice); fix the leak at its source, not the spy.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             }
           ]
         },
