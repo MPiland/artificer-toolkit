@@ -21,6 +21,9 @@ on:
       convex_workers:
         description: Vitest workers per Convex shard (trial; pushes use 1)
         default: '1'
+      worker_workers:
+        description: Vitest workers for the Worker suite (trial; pushes use 1)
+        default: '1'
       full:
         description: Run every test file instead of the affected ones
         type: boolean
@@ -166,11 +169,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - env:
+          WORKER_WORKERS: ${{ inputs.worker_workers || '1' }}
           FILES: ${{ needs.build.outputs.worker-files }}
         run: |
           set -f
           yarn workspace @artificer-toolkit/session-worker types
-          yarn workspace @artificer-toolkit/session-worker test $FILES
+          if [ "$WORKER_WORKERS" = "1" ]; then
+            yarn workspace @artificer-toolkit/session-worker test $FILES
+          else
+            yarn workspace @artificer-toolkit/session-worker vitest run --config vitest.config.ts --maxWorkers=$WORKER_WORKERS --no-isolate $FILES
+          fi
 
   web:
     name: Web tests
