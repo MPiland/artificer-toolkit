@@ -1,6 +1,6 @@
 # CI validation and affected-test selection
 
-**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18).
+**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18; parallelism and shard balance PLATFORM-13.T4, 2026-10-18).
 
 Slices validate on GitHub runners by pushing to `ci/<slice>` (AGENTS.md Validation). `.github/workflows/tests.yml` builds the packages once, typechecks everything, and runs only the Vitest files the slice can affect. `.github/workflows/live-backend.yml` is unchanged by this guide.
 
@@ -54,6 +54,21 @@ A changed `__snapshots__/<test>.snap` selects its test. A change outside the sou
 ## Outputs
 
 The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex spreads any selection over one shard per selected file, up to 4: one Convex file can take as long as a hundred others, so a count budget left 112 heavy files on 2 shards for 18 minutes. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.
+
+## Parallelism and shard balance
+
+Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci-parallelism-2026-10-18.md)). The job count stays the same, because the account runs at most 20 jobs at once.
+
+- **Convex:** 2 Vitest file workers per shard (`convex_workers`, default `2`). 4 workers timed out `campaigns/developmentCustody.test.ts`, so that setting was rejected.
+- **Worker:** 4 file workers (`worker_workers`, default `4`), still `--no-isolate`. The local `test` script stays at one worker.
+- **Shards:** `apps/apis/vitest.config.ts` uses `DurationSequencer`, which overrides Vitest's path-hash shard. Each file, longest first, goes to the shard with the least recorded time (`scripts/convexShards.mjs`). Each shard then runs its files longest first. A file with no record counts as the median file. Every file lands on exactly one shard, and that holds for an affected-only selection too.
+- **Refresh:** a full run uploads each shard's JSON report as `convex-report-<n>`. When shard times drift apart, refresh the durations:
+  ```bash
+  gh run download <run> -p 'convex-report-*' -D local-validation/convex-reports
+  node scripts/convexShards.mjs local-validation/convex-reports/*/vitest-convex.json
+  ```
+  This rewrites `apps/apis/tests/convexFileDurations.json`.
+- **Changing a setting:** dispatch `-f full=true -f convex_workers=N` (or `worker_workers=N`) on your own `ci/` branch. Keep a new setting only after three consecutive clean full runs. A timeout rejects the setting, and per-test timeouts are never raised to make one pass.
 
 ## Lint
 
