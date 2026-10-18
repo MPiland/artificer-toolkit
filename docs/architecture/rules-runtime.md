@@ -438,7 +438,7 @@ turn preparation plans the same START records (`plannedSpatialEffectRecord`). Re
 rebinding its token, deletes them first. While the source is defeated its passive zones stay stored and drawn but are
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
-placement.
+placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's

@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import { planEncounterPassiveZones } from '../encounterPassiveZones.js'
@@ -109,6 +110,22 @@ describe('placing a Creature’s passive zones (SPELLS-20 T6b, D144)', () => {
 
   it('places nothing for a Creature with no token in the Scene', () => {
     expect(plan([searing()], new Map([[GOBLIN_TOKEN_ID, GOBLIN_ID]]))).toEqual([])
+  })
+
+  it('places the SRD Balor’s Fire Aura as the same zone a core-options aura of 3d6 fire is (T6c, ADR 0038)', () => {
+    const atSource = (creature: CreatureAuthored) =>
+      plan([srdCreatureActor({ id: SOURCE_ID, creature })])
+    const [balorAura, ...others] = atSource(srdByLabel(SRD.creatures, 'Balor'))
+    const [homebrewAura] = atSource(
+      withFeature(srdByLabel(SRD.creatures, 'Goblin'), creatureAuraFeature('3d6'))
+    )
+    expect(others).toEqual([])
+    expect(balorAura!.placement).toMatchObject({ label: 'Fire Aura' })
+    expect({ ...balorAura!.placement, label: null }).toEqual({
+      ...homebrewAura!.placement,
+      label: null
+    })
+    expect(balorAura!.spatialState).toEqual(homebrewAura!.spatialState)
   })
 })
 

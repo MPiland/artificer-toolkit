@@ -14,7 +14,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - D138 cleanup (after the T4b2b2 green): `spatialEffectPin.ts` and its movement-persistence call are removed (a placed zone is fixed at placement). Movement still refuses a deleted zone (`movementSpatialZoneSettlement.test.ts`) and a zone or path that changed since a pause (`encounterSpatialMovementStale.test.ts`: zone gone, path misses, zone version bumped, creature changed). The turn path keeps its selection-checksum and 'settlement differs from its plan' refusals.
 - T4f (START journey, pending-prompt interleaves, spatial resume checks): see the T4f log entry. A Sheet END_CONCENTRATION while a prompt was pending deleted the aura under it; it now refuses with PENDING_DECISION, and REMOVE_ACTOR now refuses with PENDING_DECISION instead of a plain error. The resume harness in `encounterSpatialMovementStale.test.ts` now resumes from the paused position and Scene version, so two older stale tests now assert the guard that actually fires.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
-- T6 is split by D144 into T6a (source-turn zone outcome with no save), T6b (passive creature zones and their lifecycle; the Pit Fiend Fear Aura stays CLOSED_RULE and moved to future-enhancements, D147), T6c (Balor data, CLOSED_RULE deletion, ADR 0038 parity, room journey) and T6d (melee-hit retaliation rider). T6a merged as `bc68ead1f`. T6b: see its log entry; on `ci/spells-20-t6b`.
+- T6 is split by D144 into T6a (source-turn zone outcome with no save), T6b (passive creature zones and their lifecycle; the Pit Fiend Fear Aura stays CLOSED_RULE and moved to future-enhancements, D147), T6c (Balor data, CLOSED_RULE deletion, ADR 0038 parity, room journey) and T6d (melee-hit retaliation rider). T6a merged as `bc68ead1f`, T6b as `1a4de8a8a` (m94). T6c: see its log entry; on `ci/spells-20-t6c`.
 
 ## Scope
 
@@ -206,6 +206,15 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterZonePlacementCompilation.test.ts`: the aura compiles to a passive zone; a mover-triggered copy does not.
   - `encounterPassiveZones.test.ts`: one TOKEN zone per bound Creature, the same id from any command, none for an unbound Creature; a defeated source's zone catches no one and acts again once revived.
   - `nativeRoomTurnZoneEffects.test.ts`: a room START places a core-options aura on the Wolf's token and burns the adjacent Zombie at the Wolf's first turn start, replaying exactly; REMOVE_ACTOR deletes it; unbinding the Wolf's token deletes it and binding the token again places the same zone on it.
+
+### T6c (the Balor's Fire Aura as a passive zone, D144)
+
+- Data: the SRD Balor's Fire Aura is a PASSIVE feature Effect manifesting one SOURCE zone (5-foot sphere) whose component acts at `START_OF_SOURCE_TURN` with 3d6 fire and no save. `CREATURE_BALOR_FIRE_AURA` is deleted from the closed rule kinds. The melee-hit and touch retaliation in its text is T6d.
+- Proofs:
+  - `creatureZoneAuthoringParity.test.ts` (authoring, ADR 0038): the Balor and a 10-foot 2d8 variant pass the creature node map unchanged, with no closed rule.
+  - `encounterPassiveZones.test.ts`: the Balor plans the same zone placement and spatial state as a core-options 3d6 aura, apart from its label.
+  - `nativeRoomTurnZoneEffects.test.ts`: a room START places the Balor's aura on its token; once the GM settles the initiative tie (both Dexterity 15) with the Balor first, the adjacent Wolf takes 3d6 fire at the Balor's turn start.
+  - `zoneAttachment.test.ts`: the corpus audit now names each zone's owning subject (creatures author no `kind`) and lists the Balor among the SOURCE zones.
 
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
