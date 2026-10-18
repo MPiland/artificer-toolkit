@@ -35,7 +35,7 @@ flowchart TD
 
 - **Session Durable Object** (`apps/session-worker`): the `native*` modules (`nativeEncounterRules`,
   `nativeEncounterTurn`, `nativeEncounterMovement`, `nativeCharacterRules`, `nativeCheckAction`,
-  `nativeDisarm`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
+  `nativeContest`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
   movement and Sheet-play rules from the room's SQLite inputs, and the `room*` modules commit the results
   there. Held Sheet play runs through `roomCharacterSheetCommands` and `roomCharacterWrites`. See
   [live sessions](live-sessions.md) for the room protocol, ordering and recovery.

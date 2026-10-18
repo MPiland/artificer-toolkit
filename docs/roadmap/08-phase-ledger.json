@@ -741,7 +741,7 @@
                 "size": 2,
                 "after": ["PLATFORM-13.T4"]
               },
-              "text": "CI wall below 10 min with no added jobs: web unit project isolate:false (then maxWorkers 3 if clean), slim the two 30 s developmentCustody tests, retry Convex at 3 workers per shard. Gate: three clean full dispatches, no timeout raised, no assertion weakened. Hosting test shards inside typecheck jobs rejected (couples type-error cancel to test failures)."
+              "text": "CI wall under 10 min with no added jobs, first lever: web unit maxWorkers 50% to 3, still isolated. Gate: three clean full dispatches, no timeout raised. isolate:false was rejected 2026-10-18 (42 files leak mock and module state; the hygiene migration is in future-enhancements). Hosting test shards inside typecheck jobs was rejected because it couples type-error cancellation to test failures. The Convex lever is T17."
             },
             {
               "id": "PLATFORM-13.T16",
@@ -755,6 +755,19 @@
                 "after": []
               },
               "text": "Flake: nativeRoomAdmission.test.ts \"renews the authorization lease with one read per half-lease while a member is connected, and not before\" saw 4 authorization reads, expected 3 (line 407), on merge batch ci/merge-m139 c227b16a6 (Tests 39172295228), whose diff does not touch the Worker. Find the timing source (clock vs alarm vs resume ordering), make the test deterministic on the fake clock without weakening the read-count assertion, with a repeat-run proof. Found 2026-10-18."
+            },
+            {
+              "id": "PLATFORM-13.T17",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -6382,15 +6395,28 @@
             {
               "id": "ATTACK-7.T6b",
               "text": "Rename the Disarm-named contest seam that now settles every basic action contest (nativeDisarm, disarmSettlement, disarmPersistence, roomEncounterDisarm, liveSessionEncounterDisarm and its commit input) to a contest domain name, with no behavior change and no compatibility aliases; docs updated.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.6"],
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "note": "Merged m140 (43d436cbc)."
             },
             {
               "id": "ATTACK-7.T7",
               "text": "Slice G: drag at double movement cost unless two or more sizes smaller; blocked destinations refused; no opportunity attacks.",
               "status": "TODO",
               "closes": ["ATTACK-7.5"]
+            },
+            {
+              "id": "ATTACK-7.T7b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 2,
+                "size": 1,
+                "after": ["ATTACK-7.T7"]
+              },
+              "text": "The web route preview prices a grapple drag at single cost because the session projection carries no actor size. Carry each actor's size on the projection so the preview shows the D105 ×2 drag cost (×4 in difficult terrain, no ×2 when the held creature is two or more sizes smaller), from the same pure rule the room uses, with a preview test. Found in T7, 2026-10-18."
             },
             {
               "id": "ATTACK-7.T8",

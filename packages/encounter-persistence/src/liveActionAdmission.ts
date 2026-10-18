@@ -7,7 +7,7 @@ import { readNativeEncounterActionResponseAdmission } from './actionResumeAdmiss
 import { rejectDomain } from './domainRejections.js'
 import { readAreaRemovalCommitAdmission } from './areaTargetRemoval.js'
 import { readCleavingResponseAdmission } from './cleavingResponseAdmission.js'
-import { readDisarmAdmission } from './disarmAdmission.js'
+import { readContestAdmission } from './contestAdmission.js'
 import { readBasicActionScopeAdmission } from './basicActionScopeAdmission.js'
 import type { EncounterReadTransaction } from './ports.js'
 
@@ -114,13 +114,13 @@ export async function readLiveEncounterActionScope(
     if (cleaving.kind !== 'READY') throw new Error('The admitted Cleaving answer is unavailable.')
     return cleaving
   }
-  if (input.action.kind === 'DISARM') {
-    const disarm = await readDisarmAdmission(ctx, {
+  if (input.action.kind === 'CONTEST') {
+    const contest = await readContestAdmission(ctx, {
       ...input,
       command: input.action.command
     })
-    if (disarm.kind !== 'READY') throw new Error('The admitted Disarm is unavailable.')
-    return disarm
+    if (contest.kind !== 'READY') throw new Error('The admitted contest is unavailable.')
+    return contest
   }
   if (input.action.kind === 'BASIC_ACTION') {
     const basic = await readBasicActionScopeAdmission(ctx, {

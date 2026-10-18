@@ -10,8 +10,8 @@ import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { readEncounterActorOptionalContestContext } from '../encounterActorOptionalContestContext.js'
 import {
-  disarmApplicationOutputs,
-  disarmSourceWins,
+  contestApplicationOutputs,
+  contestSourceWins,
   planEncounterDisarmSuccess
 } from '../encounterDisarmPreparation.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
@@ -276,16 +276,16 @@ describe('Disarm contest winner', () => {
     'initiator $initiator vs defender $defender: source wins is $wins',
     ({ initiator, defender, wins }) => {
       expect(
-        disarmSourceWins({ initiator: { total: initiator }, defender: { total: defender } })
+        contestSourceWins({ initiator: { total: initiator }, defender: { total: defender } })
       ).toBe(wins)
     }
   )
 
   it('compares totals, not natural faces', () => {
     // Natural 10 + 4 = 14 beats natural 12 + 1 = 13.
-    expect(disarmSourceWins(rolls(10, 12))).toBe(true)
+    expect(contestSourceWins(rolls(10, 12))).toBe(true)
     // Natural 9 + 4 = 13 ties natural 12 + 1 = 13.
-    expect(disarmSourceWins(rolls(9, 12))).toBe(false)
+    expect(contestSourceWins(rolls(9, 12))).toBe(false)
   })
 })
 
@@ -548,7 +548,7 @@ describe('Disarm receipt outputs', () => {
   it('records a source win with its item transition and spent Action', () => {
     const settled = rolls(12, 10)
     expect(
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: settled,
@@ -572,7 +572,7 @@ describe('Disarm receipt outputs', () => {
   ])('records $name as TARGET_WIN_OR_TIE with no state change', ({ initiator, defender }) => {
     const settled = rolls(initiator, defender)
     expect(
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: settled,
@@ -592,7 +592,7 @@ describe('Disarm receipt outputs', () => {
 
   it('refuses an outcome whose state transition contradicts the rolls', () => {
     expect(() =>
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: rolls(10, 13),
@@ -602,7 +602,7 @@ describe('Disarm receipt outputs', () => {
       })
     ).toThrow('A contested-action target win or tie cannot mutate item state.')
     expect(() =>
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: rolls(12, 10),
@@ -621,7 +621,7 @@ describe('Disarm receipt outputs', () => {
         defender: { requestId: 'target_d20', rawFaces: [10], checkDefinitionId: DEFENDER_CHECK_ID }
       }
     })
-    const settled = disarmApplicationOutputs({
+    const settled = contestApplicationOutputs({
       occurrenceId: OCCURRENCE_ID,
       contest: withEvidence,
       rolls: rolls(12, 10),

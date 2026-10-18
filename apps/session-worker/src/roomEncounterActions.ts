@@ -26,7 +26,7 @@ import {
 } from './nativeEncounterRules.js'
 import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncounterCastReaction.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
-import { persistRoomEncounterContest } from './roomEncounterDisarm.js'
+import { persistRoomEncounterContest } from './roomEncounterContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'

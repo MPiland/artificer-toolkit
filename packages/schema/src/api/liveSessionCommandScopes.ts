@@ -45,9 +45,9 @@ export const liveSessionActionCaptureScopeSchema = lazySchema(() =>
       kind: z.literal('CLEAVING_RESPONSE'),
       response: resolveRuleOccurrenceInputDtoSchema
     }),
-    /** A Disarm, or a participant's d20 for one. */
+    /** A contest (Disarm, Grapple, Shove, a contested escape), or a participant's d20 for one. */
     z.strictObject({
-      kind: z.literal('DISARM'),
+      kind: z.literal('CONTEST'),
       command: z.discriminatedUnion('type', [
         resolveEncounterActionInputDtoSchema,
         resolveRuleOccurrenceInputDtoSchema
