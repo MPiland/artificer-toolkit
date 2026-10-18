@@ -937,6 +937,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rule (T4):** the relationship contribution persists `sealedReachFeet`. A free `RELEASE_RELATIONSHIP` command can be issued only by the source. An after-commit sweep ends a grapple when the grappler can't act or the held creature is outside the sealed reach. The receipt lists `relationshipEnds`.
   - **Rule (drawing with full hands):** drawing a weapon while every hand is held is refused by the existing hand check; the grappler releases first. A release-on-draw prompt is deferred, because AC 7.1 doesn't name it.
   - **Rejected:** a second contest context beside the optional-combat one (two homes for one rule).
+  - **Amendment (orchestrator, 2026-10-18, ruling 1 option A):** the defender answers with a new resolution kind, `CONTEST_CHECK {requestId, checkDefinitionId, roll}`, where `roll` is `ENTER_DICE {rawFaces, rollMode}` or `SYSTEM_ROLL {rollId}`. It picks one of the sealed checks and rolls it in the same step. A defender that auto-rolls takes the sealed check with the highest modifier; a tie goes to the first in sealed order. Only the BASIC_ACTION and ESCAPE origins seal more than one check. Disarm keeps the check its initiator selects.
+  - **Amendment (orchestrator, 2026-10-18, ruling 2):** the current actor's action choices list `releases` (one per hold it sources), shown as a Holding section in the tabletop action drawer. A follow-up task (T4b) adds a per-member read of the holds a member's actors source, and a Release control on any turn.
 
 ## Approved implementation decisions
 

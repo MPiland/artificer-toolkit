@@ -10,7 +10,10 @@ import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnE
 import { readHolderEndState } from './concentrationEnd.js'
 import { readRunActors, readRunState } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'
-import type { EncounterPersistenceTransaction, EncounterWriteTransaction } from './ports.js'
+import type {
+  EncounterCharacterWriteTransaction,
+  EncounterPersistenceTransaction
+} from './ports.js'
 import { endEncounterRelationshipEffect } from './relationshipEndPersistence.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { insertRunCommand } from './timelineEntries.js'
@@ -62,7 +65,7 @@ export async function readEndedEncounterRelationships(
  * returns false when no hold broke. An ended relationship is not restored by an undo.
  */
 export async function endBrokenEncounterRelationships(
-  ctx: EncounterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction,
   input: SweepInput & { commandId: string; occurredAt: string }
 ): Promise<boolean> {
   const { state, occurredAt } = input
