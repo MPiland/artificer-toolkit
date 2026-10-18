@@ -464,7 +464,11 @@ export type AuthoredPointArea =
   | { readonly kind: 'RADIUS'; readonly radius: AuthoredPointAreaLength }
   | { readonly kind: 'CUBE'; readonly edgeLength: AuthoredPointAreaLength }
 
-function coordinateLength(length: AuthoredPointAreaLength, grid: SceneGrid): number | null {
+/** An authored length in Scene coordinates. Null for a length that is scaled or empty. */
+export function authoredLengthInSceneCoordinates(
+  length: AuthoredPointAreaLength,
+  grid: SceneGrid
+): number | null {
   if (length.scaling !== undefined || !(length.amount > 0)) return null
   return sceneDistanceAsCoordinateLength(grid, lengthMeasurementInSceneUnits(length, grid))
 }
@@ -478,10 +482,10 @@ export function pointAreaInSceneCoordinates(
   grid: SceneGrid
 ): SpatialPointAreaShape | null {
   if (area.kind === 'CUBE') {
-    const edgeLength = coordinateLength(area.edgeLength, grid)
+    const edgeLength = authoredLengthInSceneCoordinates(area.edgeLength, grid)
     return edgeLength === null ? null : { kind: 'CUBE', edgeLength }
   }
-  const radius = coordinateLength(area.radius, grid)
+  const radius = authoredLengthInSceneCoordinates(area.radius, grid)
   return radius === null ? null : { kind: 'RADIUS', radius }
 }
 
@@ -588,16 +592,65 @@ export function undirectedAreaGeometry(
     case 'CUBE':
       return { kind: 'POLYGON', points: pointCubeOutline(origin, shape.edgeLength) }
     case 'RING':
-      return {
-        kind: 'RING',
-        center: origin,
-        outerRadius: shape.outerRadius,
-        innerRadius: shape.innerRadius
-      }
+      return ringGeometry(origin, shape)
     case 'WALL': {
       const points = wallOutline(origin, shape.to, shape.thickness)
       return points && { kind: 'POLYGON', points }
     }
+  }
+}
+
+/** The side of a zone's wall its band reaches (D154): of travel along a straight wall, or of a ring. */
+export type SpatialWallSide = 'LEFT' | 'RIGHT' | 'INSIDE' | 'OUTSIDE'
+
+/**
+ * The Scene geometry a zone's band covers (D154): its wall plus `distance` on `side`. Beside a
+ * straight wall it is the wall's rectangle widened on that side, where the right of travel from the
+ * origin to `to` is the side of {@link wallOutline}'s first edge (Scene y grows downward). Inside a
+ * ring it fills toward the center (a circle once it reaches it); outside, it widens the ring. Null
+ * for a side the wall does not have, or a wall of no length.
+ */
+export function wallSideBandGeometry(
+  origin: ScenePoint,
+  shape: SpatialWallAreaShape,
+  side: SpatialWallSide,
+  distance: number
+): SpatialGeometry | null {
+  if (shape.kind === 'RING') {
+    if (side === 'OUTSIDE')
+      return { ...ringGeometry(origin, shape), outerRadius: shape.outerRadius + distance }
+    if (side !== 'INSIDE') return null
+    const innerRadius = shape.innerRadius - distance
+    return innerRadius > EPSILON
+      ? { ...ringGeometry(origin, shape), innerRadius }
+      : { kind: 'CIRCLE', center: origin, radius: shape.outerRadius }
+  }
+  if (side !== 'LEFT' && side !== 'RIGHT') return null
+  const { to } = shape
+  const length = Math.hypot(to.x - origin.x, to.y - origin.y)
+  if (!(length > EPSILON)) return null
+  const half = shape.thickness / 2
+  const [near, far] = side === 'RIGHT' ? [half + distance, -half] : [half, -half - distance]
+  const unit = { x: -(to.y - origin.y) / length, y: (to.x - origin.x) / length }
+  const offset = (point: ScenePoint, by: number) => ({
+    x: point.x + unit.x * by,
+    y: point.y + unit.y * by
+  })
+  return {
+    kind: 'POLYGON',
+    points: [offset(origin, near), offset(to, near), offset(to, far), offset(origin, far)]
+  }
+}
+
+function ringGeometry(
+  center: ScenePoint,
+  shape: Extract<SpatialWallAreaShape, { kind: 'RING' }>
+): Extract<SpatialGeometry, { kind: 'RING' }> {
+  return {
+    kind: 'RING',
+    center,
+    outerRadius: shape.outerRadius,
+    innerRadius: shape.innerRadius
   }
 }
 
@@ -619,11 +672,11 @@ export function wallAreaBoundsInSceneCoordinates(
   area: AuthoredWallArea,
   grid: SceneGrid
 ): { readonly maximum: number; readonly thickness: number } | null {
-  const maximum = coordinateLength(
+  const maximum = authoredLengthInSceneCoordinates(
     area.kind === 'WALL' ? area.maxLength : area.maxOuterRadius,
     grid
   )
-  const thickness = coordinateLength(area.thickness, grid)
+  const thickness = authoredLengthInSceneCoordinates(area.thickness, grid)
   return maximum === null || thickness === null ? null : { maximum, thickness }
 }
 
@@ -645,20 +698,20 @@ export function directedAreaSizeInSceneCoordinates(
   grid: SceneGrid
 ): SpatialDirectedAreaSize | null {
   if (area.kind === 'CUBE_FROM_SIDE') {
-    const edgeLength = coordinateLength(area.edgeLength, grid)
+    const edgeLength = authoredLengthInSceneCoordinates(area.edgeLength, grid)
     // A gridless Scene has no cells, so the cube snaps to the 5 ft squares of the rules from (0, 0).
     const [cellSize, gridOrigin] =
       grid.kind === 'GRIDLESS'
-        ? [coordinateLength(FIVE_FEET, grid), { x: 0, y: 0 }]
+        ? [authoredLengthInSceneCoordinates(FIVE_FEET, grid), { x: 0, y: 0 }]
         : [grid.cellSize, grid.origin]
     return edgeLength === null || cellSize === null
       ? null
       : { kind: 'CUBE_FROM_SIDE', edgeLength, cellSize, gridOrigin }
   }
-  const length = coordinateLength(area.length, grid)
+  const length = authoredLengthInSceneCoordinates(area.length, grid)
   if (length === null) return null
   if (area.kind === 'CONE') return { kind: 'CONE', length }
-  const width = coordinateLength(area.width ?? FIVE_FEET, grid)
+  const width = authoredLengthInSceneCoordinates(area.width ?? FIVE_FEET, grid)
   return width === null ? null : { kind: 'LINE', length, width }
 }
 

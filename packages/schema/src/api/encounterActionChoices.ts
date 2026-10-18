@@ -39,6 +39,14 @@ const choosesUnaffectedShape = lazySchemaParts(() => ({
   choosesUnaffected: z.optional(z.literal(true))
 }))
 
+/**
+ * The band a zone also reaches on the side its caster picks after aiming its wall (D154): the wall
+ * plus distance beside it, or inside or outside a ring. Absent when the zone has none.
+ */
+const sideBandShape = lazySchemaParts(() => ({
+  sideBand: z.optional(z.strictObject({ distance: shapeMeasurementDtoSchema }))
+}))
+
 /** An area centered on a point the client picks. */
 const pointTargetSchema = lazySchema(() =>
   z.strictObject({
@@ -71,7 +79,8 @@ const wallTargetSchema = lazySchema(() =>
     area: z.strictObject({
       maxLength: shapeMeasurementDtoSchema,
       thickness: shapeMeasurementDtoSchema
-    })
+    }),
+    ...sideBandShape()
   })
 )
 
@@ -85,7 +94,8 @@ const ringTargetSchema = lazySchema(() =>
     area: z.strictObject({
       maxOuterRadius: shapeMeasurementDtoSchema,
       thickness: shapeMeasurementDtoSchema
-    })
+    }),
+    ...sideBandShape()
   })
 )
 

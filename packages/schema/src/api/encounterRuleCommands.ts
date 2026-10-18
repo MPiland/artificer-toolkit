@@ -179,6 +179,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       expectedSceneVersion: versionSchema,
       from: spatialPointDtoSchema,
       to: spatialPointDtoSchema,
+      /** The side of travel from `from` to `to` its band reaches, when the zone has one (D154). */
+      side: z.optional(z.enum(['LEFT', 'RIGHT'])),
       unaffectedActorIds: unaffectedActorIdsSchema,
       /** The zone the caster picks at cast, for an action that offers several (D140). */
       choiceOptionId: z.optional(postgresUuidSchema)
@@ -190,6 +192,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       expectedSceneVersion: versionSchema,
       center: spatialPointDtoSchema,
       outerRadius: z.number().check(z.positive()),
+      /** Whether its band reaches inside or outside the ring, when the zone has one (D154). */
+      side: z.optional(z.enum(['INSIDE', 'OUTSIDE'])),
       unaffectedActorIds: unaffectedActorIdsSchema,
       /** The zone the caster picks at cast, for an action that offers several (D140). */
       choiceOptionId: z.optional(postgresUuidSchema)

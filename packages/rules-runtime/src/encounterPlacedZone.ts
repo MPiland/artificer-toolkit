@@ -12,11 +12,15 @@ import {
   type ScenePoint,
   type SpatialAreaShape,
   type SpatialPointAreaShape,
-  type SpatialWallAreaShape
+  type SpatialWallAreaShape,
+  type SpatialWallSide,
+  wallSideBandGeometry
 } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { compileEffectGraph } from './encounterActionEffectPlans.js'
+
+type ZoneRegionComponent = NonNullable<CompiledActionZonePlacement['regionComponents']>[number]
 
 /**
  * The spatial effect an area action leaves at the point its user chose: the compiled zone fixed to
@@ -30,9 +34,52 @@ import { compileEffectGraph } from './encounterActionEffectPlans.js'
  * Every placed zone is visible to all, triggers again for each mover and reacts to every kind of
  * movement: these are the System's defaults for a zone, not authored by the action.
  */
-export function planEncounterPlacedZone(input: {
+export function planEncounterPlacedZone(
+  input: PlacedZoneInput & { id: string }
+): LiveSessionPlacedSpatialEffect {
+  const { zone, point, area } = input
+  if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
+  return placedZoneRecord(
+    input,
+    input.id,
+    zone,
+    zoneAnchor(zone.attachment, area, point, input.sourceToken)
+  )
+}
+
+/**
+ * The records a zone's region components place beside its wall (D154), one per component in order
+ * with the id at its index: each covers its band on the side the caster picked, fixed to the Scene,
+ * and is maintained, pinned and spares creatures as the zone's own record does.
+ */
+export function planEncounterZoneBands(
+  input: PlacedZoneInput & {
+    ids: readonly string[]
+    /** Each region component's side and reach in Scene coordinates, in order. */
+    regions: readonly { side: SpatialWallSide; distance: number }[]
+  }
+): LiveSessionPlacedSpatialEffect[] {
+  const components = input.zone.regionComponents ?? []
+  const { area, point } = input
+  if (components.length !== input.regions.length || components.length !== input.ids.length)
+    throw new Error('Each band a zone reaches has its side and its id.')
+  if (!components.length) return []
+  if (area.kind !== 'WALL' && area.kind !== 'RING')
+    throw new Error('A band reaches beside a wall or a ring.')
+  return components.map((component, index) => {
+    const { side, distance } = input.regions[index]!
+    const shape = wallSideBandGeometry(point, area, side, distance)
+    if (!shape) throw new Error('A band covers some of the Scene on a side its wall has.')
+    return placedZoneRecord(input, input.ids[index]!, component, {
+      anchorKind: 'FIXED' as const,
+      sourceTokenId: null,
+      geometry: { frame: 'SCENE_ABSOLUTE' as const, shape }
+    })
+  })
+}
+
+type PlacedZoneInput = {
   zone: CompiledActionZonePlacement
-  id: string
   /** The Concentration the placing cast opens or joins; null when the zone depends on none. */
   maintainedEffectStateId: string | null
   encounterId: string
@@ -47,9 +94,16 @@ export function planEncounterPlacedZone(input: {
   saveDc: number | null
   /** Creatures the caster designated at cast; the zone never catches them. */
   unaffectedActorIds?: readonly string[]
-}): LiveSessionPlacedSpatialEffect {
-  const { zone, point, area } = input
-  if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
+}
+
+/** What a placed record of one zone component holds: its entry, triggers and the area it covers. */
+function placedZoneRecord(
+  input: PlacedZoneInput,
+  id: string,
+  zone: Omit<ZoneRegionComponent, 'region'> &
+    Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits'>,
+  anchor: ReturnType<typeof zoneAnchor>
+): LiveSessionPlacedSpatialEffect {
   const { entry, grant, heldCondition } = zone
   const pinnedDc = entry.castSaveDcFactKey
     ? { [entry.castSaveDcFactKey]: castSaveDc(input.saveDc) }
@@ -96,13 +150,13 @@ export function planEncounterPlacedZone(input: {
       : {})
   })
   return {
-    id: input.id,
+    id,
     maintainedEffectStateId: input.maintainedEffectStateId,
     definition,
     lifecycle: { schemaVersion: 1, remainingTicks: null },
     placement: spatialRuleEffectPlacementDtoSchema.parse({
       schemaVersion: 1,
-      ...zoneAnchor(zone.attachment, area, point, input.sourceToken),
+      ...anchor,
       triggerModes: zone.triggerModes,
       ...(zone.turnTriggers ? { turnTriggers: zone.turnTriggers } : {}),
       movementKinds: ['VOLUNTARY', 'FORCED', 'TELEPORT'],

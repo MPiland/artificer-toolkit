@@ -21,7 +21,9 @@ import {
   type SpatialDirectedAreaSize,
   type SpatialPointAreaShape,
   type SpatialTokenFootprint,
-  wallOutline
+  type SpatialWallSide,
+  wallOutline,
+  wallSideBandGeometry
 } from '@artificer-toolkit/shared/vtt'
 
 const unexploredOpacity = 224
@@ -136,6 +138,7 @@ export type VttScenePresentationOverlay =
     }
 
 const pointAreaColor = 0xe8590c
+const areaBandColor = 0xfab005
 
 /**
  * Where the caster aimed an area: a point area's center, or a directed area's origin on their
@@ -155,6 +158,8 @@ export interface VttDrawnAreaSize {
   kind: 'WALL' | 'RING'
   maximum: number
   thickness: number
+  /** The band beside the wall the zone also reaches (D154), once the caster picks its side. */
+  band?: { distance: number; side: SpatialWallSide }
 }
 
 /** The selected action's area in Scene coordinates, before it is aimed. */
@@ -241,6 +246,35 @@ export function areaOverlay(
         purpose: 'TARGET'
       }
     : null
+}
+
+/**
+ * The band a drawn zone also reaches on the side the caster picked: the polygon beside a wall, or a
+ * ring's band drawn by its edge away from the wall. Null before a side is picked.
+ */
+export function areaBandOverlay(
+  size: VttAreaSize,
+  aim: VttAreaAim
+): VttScenePresentationOverlay | null {
+  if (!isDrawnAreaSize(size) || !size.band) return null
+  const shape = aimedAreaShape(size, aim)
+  if (shape?.kind !== 'WALL' && shape?.kind !== 'RING') return null
+  const band = wallSideBandGeometry(aim.origin, shape, size.band.side, size.band.distance)
+  if (!band) return null
+  const overlay = {
+    color: areaBandColor,
+    id: 'area-band',
+    label: 'Area band',
+    purpose: 'TARGET' as const
+  }
+  if (band.kind === 'POLYGON') return { ...overlay, kind: 'POLYGON', points: [...band.points] }
+  const radius =
+    band.kind === 'CIRCLE'
+      ? band.radius
+      : size.band.side === 'OUTSIDE'
+        ? band.outerRadius
+        : band.innerRadius
+  return { ...overlay, kind: 'CIRCLE', center: band.center, radius }
 }
 
 /**
@@ -390,9 +424,11 @@ export function stageOverlays({
   // A directed area is drawn from the token the action is previewed for.
   const caster = scene?.tokens.find((token) => token.id === actionPreview?.sourceTokenId) ?? null
   const picked = areaSize && areaAim && !aimingArea ? areaOverlay(areaSize, areaAim, caster) : null
+  const band = picked && areaSize && areaAim ? areaBandOverlay(areaSize, areaAim) : null
   const overlays = [
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
-    ...(picked ? [picked] : [])
+    ...(picked ? [picked] : []),
+    ...(band ? [band] : [])
   ]
   return overlays.length > 0 ? overlays : undefined
 }

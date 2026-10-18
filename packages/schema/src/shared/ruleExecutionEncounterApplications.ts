@@ -1160,8 +1160,11 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
         .array(concentrationDamageApplicationDtoSchema)
         .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS)),
       ...sourceSpendReceiptShape(),
-      /** The spatial effect this action placed in the Scene, which GM undo deletes; null for none. */
-      placedSpatialEffectId: z.nullable(uuidSchema),
+      /**
+       * The spatial effects this action placed in the Scene, which GM undo deletes: a zone's own and
+       * one per band beside its wall (D154). Empty for none.
+       */
+      placedSpatialEffectIds: z.array(uuidSchema).check(z.maxLength(5)),
       /**
        * The Concentration a zone-only cast opens, which no creature outcome carries (D135). Absent
        * when a creature outcome carries it or the cast maintains nothing.
@@ -1175,7 +1178,7 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
         validateSourceSpendReceipts(value, context)
         if (
           value.sourceGrantTransition &&
-          (value.placedSpatialEffectId === null ||
+          (value.placedSpatialEffectIds.length === 0 ||
             value.sourceGrantTransition.targetActorId !== value.sourceActorId)
         )
           context.addIssue({
@@ -1189,7 +1192,13 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
             path: ['targetOccurrenceIds'],
             message: 'Area target occurrences must be unique.'
           })
-        if (value.maintenanceTransition && value.placedSpatialEffectId === null)
+        if (new Set(value.placedSpatialEffectIds).size !== value.placedSpatialEffectIds.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['placedSpatialEffectIds'],
+            message: 'Placed spatial effects must be unique.'
+          })
+        if (value.maintenanceTransition && value.placedSpatialEffectIds.length === 0)
           context.addIssue({
             code: 'custom',
             path: ['maintenanceTransition'],
@@ -1209,7 +1218,7 @@ export type EncounterAreaActionApplicationOutputDto = SourceSpendReceipts & {
   removedActorIds: string[]
   targetOccurrenceIds: string[]
   damage: z.infer<typeof concentrationDamageApplicationDtoSchema>[]
-  placedSpatialEffectId: string | null
+  placedSpatialEffectIds: string[]
   maintenanceTransition?: z.infer<typeof maintainedEffectTransitionDtoSchema> | null
   sourceGrantTransition?: z.infer<typeof encounterActorActiveEffectCreateReceiptDtoSchema>
 }

@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1 (audit) is done: the zone table is in [slice-spells-20.md](slice-spells-20.md#zone-table-srd-zones-with-turn-startend-text-static-audit-2026-10-17).
-- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. T1b (wall geometry: Wall of Fire, Wall of Thorns) is on `ci/spells-4-t1b`. Next: T1b2 (Wall of Fire's one-side band) and T1g (the save when a wall appears); Blade Barrier's re-authoring is SPELLS-30.T2.
+- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. T1b (wall geometry: Wall of Fire, Wall of Thorns) merged in m103. T1b2 (Wall of Fire's one-side band) is on `ci/spells-4-t1b2`. Next: T1g (the save when a wall appears); Blade Barrier's re-authoring is SPELLS-30.T2.
 
 ## Scope
 
@@ -71,7 +71,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 - Compiler: `zonePlacementPlan` also accepts a failed save that applies exactly one condition from the pinned System vocabulary and nothing else, with no made-save outcome. The entry graph's failed-save proposal is then the existing `CONDITION_APPLY`, which the zone trigger already settles. A condition beside damage, two conditions, a condition outside the vocabulary, or a condition on the made save stay MANUAL.
 - Authoring (prone):
-  - Grease: its bare zone gains a label, the 10-foot square, `ENTER_OR_PASS_THROUGH` + `END_TURN_IN_SPACE`, and a Dexterity save against `SOURCE_SAVE_DC` whose failure knocks the creature prone. No per-turn limit: the SRD gives a save on each entry and at each turn end. Its separate cast-time area save (effect 2) is removed: an Encounter offers no spell with two non-reaction effect groups (uildCharacterSpellCastActions), so Grease was never castable there. That makes it the same named gap as Insect Plague's area save.
+  - Grease: its bare zone gains a label, the 10-foot square, `ENTER_OR_PASS_THROUGH` + `END_TURN_IN_SPACE`, and a Dexterity save against `SOURCE_SAVE_DC` whose failure knocks the creature prone. No per-turn limit: the SRD gives a save on each entry and at each turn end. Its separate cast-time area save (effect 2) is removed: an Encounter offers no spell with two non-reaction effect groups (`buildCharacterSpellCastActions`), so Grease was never castable there. That makes it the same named gap as Insect Plague's area save.
   - Sleet Storm: re-authored from `CLOSED_RULE` `SLEET_STORM` (deleted, since nothing else used it) as a 40-foot-radius, 20-foot-tall cylinder with `ENTER_OR_PASS_THROUGH` + `START_TURN_IN_SPACE`, `maxApplicationsPerTurn: 1`, and the same Dexterity save and prone failure.
   - "Enters the area" uses `ENTER_OR_PASS_THROUGH`, following SPELLS-17.2 and Blade Barrier. ENTER alone fires only when a move ends inside the area.
 - Proofs:
@@ -165,3 +165,14 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Authoring: Wall of Fire (5d8 fire, no save on enter or turn end, `BLOCKS_SIGHT`) and Wall of Thorns (7d8 piercing, Dexterity save for half, ×4 movement cost), each with a straight wall and a ring option.
 - Proofs: `nativeRoomWallZoneSpells.test.ts` (real casts: polygon and ring placement, damage on crossing, turn end and leaving the ring, the five refusals), `characterSpellCastActions.test.ts`, `vtt-spatial.test.ts`, `vttAreaAimGesture.test.ts`, `vttSceneRenderer.model.test.ts`, `CampaignTabletopActionDrawer.test.tsx`, `zoneInteractionKinds.test.ts`, `sourceZoneAuthoringParity.test.ts`. Two `encounterZoneChoiceCompilation.test.ts` tests changed by the ruling (zone choices moved to `ZONE_OPTIONS`). `saveForHalfDamage.test.ts` drops Wall of Thorns from the unauthored list.
 - Not here: Wall of Fire's 10-foot one-side band (T1b2), the save when a wall appears (T1g), Blade Barrier (SPELLS-30.T2).
+
+### T1b2 (Wall of Fire's burning side)
+
+- Contract (D154 amendment, option A):
+  - A zone may author several components. The first covers the zone's shape; a later one authors `region: { kind: 'SIDE_BAND', distance }`, the wall plus `distance` on one side. At most one band, only beside a `WALL` or `RING`, sharing the cast's Concentration and not sparing designated creatures.
+  - The choice target carries `sideBand: { distance }`; the command names `side` (`LEFT`/`RIGHT` of travel from `from` to `to`, `INSIDE`/`OUTSIDE` a ring) exactly when there is a band (`SIDE_REQUIRED`, `SIDE_NOT_OFFERED`).
+  - Each component places its own record. The area root names them all in `placedSpatialEffectIds` (the receipt in `placedZones`), so undo and Concentration end remove every record the cast placed.
+- Shared geometry: `wallSideBandGeometry`, `authoredLengthInSceneCoordinates` (exported). Web: after aiming, the drawer asks for the side and the stage previews the band (`areaBandOverlay`).
+- Authoring: Wall of Fire's wall burns on `ENTER_OR_PASS_THROUGH` (once a turn, `BLOCKS_SIGHT`); its "Wall of Fire Burning Side" band burns on `END_TURN_IN_SPACE`.
+- Proofs: `nativeRoomWallZoneSpells.test.ts` (wall and band placed under one Concentration; the band burns a creature ending its turn on the side picked and spares the other side; a wall with no side refused; undo and Concentration end remove both records), `characterSpellCastActions.test.ts` (band compilation, four malformed bands refused, side required and not offered), `vtt-spatial.test.ts`, `vttSceneRenderer.model.test.ts`, `CampaignTabletopActionDrawer.test.tsx`. Two `characterSpellCastActions.test.ts` Wall of Fire tests changed by the ruling (the wall no longer burns at turn end; the band does).
+- Pre-launch data: the area root's `placedSpatialEffectId` became `placedSpatialEffectIds`; stored local executions from before need the local reset.

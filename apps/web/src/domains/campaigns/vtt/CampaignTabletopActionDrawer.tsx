@@ -39,8 +39,10 @@ import {
   formatLengthMeasurement
 } from '@artificer-toolkit/shared/core'
 import {
+  authoredLengthInSceneCoordinates,
   directedAreaSizeInSceneCoordinates,
   pointAreaInSceneCoordinates,
+  type SpatialWallSide,
   spatialTokensInsideArea,
   wallAreaBoundsInSceneCoordinates
 } from '@artificer-toolkit/shared/vtt'
@@ -85,6 +87,21 @@ const AREA_AIM_COPY = {
     hint: "Drag from the ring's center out to its edge."
   }
 } as const
+
+/** The sides of a drawn wall a zone's band can reach (D154): a wall's as drawn, or a ring's. */
+const BAND_SIDES = {
+  WALL: [
+    { label: 'Left as drawn', value: 'LEFT' },
+    { label: 'Right as drawn', value: 'RIGHT' }
+  ],
+  RING: [
+    { label: 'Inside', value: 'INSIDE' },
+    { label: 'Outside', value: 'OUTSIDE' }
+  ]
+} as const satisfies Record<
+  'WALL' | 'RING',
+  ReadonlyArray<{ label: string; value: SpatialWallSide }>
+>
 
 function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto['attackSlot']>) {
   return `Attack ${number} of ${total}`
@@ -183,6 +200,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedChoiceOptionId, setPickedChoiceOptionId] = useState<string | null>(null)
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
+  const [pickedBandSide, setPickedBandSide] = useState<SpatialWallSide | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
@@ -268,6 +286,9 @@ export function CampaignTabletopActionDrawer({
   const drawnTarget =
     aimedTarget?.kind === 'WALL' || aimedTarget?.kind === 'RING' ? aimedTarget : null
   const aimKind = areaTarget?.kind ?? drawnTarget?.kind ?? null
+  // A zone that also reaches a band beside its wall takes the side the caster picks after aiming.
+  const bandSides = drawnTarget?.sideBand ? BAND_SIDES[drawnTarget.kind] : null
+  const bandSide = bandSides?.find((side) => side.value === pickedBandSide)?.value ?? null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = aimedTarget?.kind === 'CASTER_CENTERED' ? aimedTarget : null
   // A zone the action places can spare creatures the caster designates at cast.
@@ -300,12 +321,20 @@ export function CampaignTabletopActionDrawer({
           : { kind: 'RING', ...drawnTarget.area },
         sceneGrid
       )
-      return bounds && { kind: drawnTarget.kind, ...bounds }
+      const bandDistance =
+        drawnTarget.sideBand &&
+        authoredLengthInSceneCoordinates(drawnTarget.sideBand.distance, sceneGrid)
+      if (!bounds || bandDistance === null) return null
+      return {
+        kind: drawnTarget.kind,
+        ...bounds,
+        ...(bandDistance && bandSide ? { band: { distance: bandDistance, side: bandSide } } : {})
+      }
     }
     if (!areaTarget) return null
     if (areaTarget.kind === 'POINT') return pointAreaInSceneCoordinates(areaTarget.area, sceneGrid)
     return sourceTokenId ? directedAreaSizeInSceneCoordinates(areaTarget.area, sceneGrid) : null
-  }, [areaTarget, drawnTarget, sceneGrid, sourceTokenId])
+  }, [areaTarget, bandSide, drawnTarget, sceneGrid, sourceTokenId])
   const tokensInArea = useMemo(() => {
     const shape = areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
     if (!areaAim || !shape) return []
@@ -320,7 +349,7 @@ export function CampaignTabletopActionDrawer({
   }, [areaAim, areaSize, sceneTokens, sourceTokenId])
   const drawnShape = drawnTarget && areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
   const drawnCommandTarget: ResolveEncounterActionInputDto['target'] | null =
-    !scene || !areaAim || !drawnShape
+    !scene || !areaAim || !drawnShape || (bandSides && !bandSide)
       ? null
       : drawnShape.kind === 'WALL'
         ? {
@@ -329,6 +358,7 @@ export function CampaignTabletopActionDrawer({
             expectedSceneVersion: scene.version,
             from: areaAim.origin,
             to: drawnShape.to,
+            ...(bandSide === 'LEFT' || bandSide === 'RIGHT' ? { side: bandSide } : {}),
             ...zoneChoices
           }
         : drawnShape.kind === 'RING'
@@ -338,6 +368,7 @@ export function CampaignTabletopActionDrawer({
               expectedSceneVersion: scene.version,
               center: areaAim.origin,
               outerRadius: drawnShape.outerRadius,
+              ...(bandSide === 'INSIDE' || bandSide === 'OUTSIDE' ? { side: bandSide } : {}),
               ...zoneChoices
             }
           : null
@@ -554,6 +585,7 @@ export function CampaignTabletopActionDrawer({
     setUnaffectedActorIds([])
     setPickedChoiceOptionId(null)
     setPickedFormId(null)
+    setPickedBandSide(null)
   }, [selectedActionId])
 
   useEffect(() => {
@@ -887,6 +919,27 @@ export function CampaignTabletopActionDrawer({
                       </Group>
                       {areaAim ? (
                         <>
+                          {bandSides && drawnTarget?.sideBand ? (
+                            <Stack gap={4}>
+                              <Text size='sm'>
+                                It also reaches{' '}
+                                {formatLengthMeasurement(drawnTarget.sideBand.distance)} on one
+                                side:
+                              </Text>
+                              <SegmentedControl
+                                aria-label='Side the zone also reaches'
+                                data={[...bandSides]}
+                                disabled={selectionControlsDisabled}
+                                fullWidth
+                                value={bandSide ?? ''}
+                                onChange={(value) =>
+                                  setPickedBandSide(
+                                    bandSides.find((side) => side.value === value)?.value ?? null
+                                  )
+                                }
+                              />
+                            </Stack>
+                          ) : null}
                           <Text size='sm'>
                             In the area: {tokensInArea.length ? tokensInArea.join(', ') : 'no one'}
                           </Text>

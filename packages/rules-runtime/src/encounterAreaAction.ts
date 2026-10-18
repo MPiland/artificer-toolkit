@@ -10,6 +10,7 @@ import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/enc
 import type { ResolveEncounterActionTargetDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ShapeDto } from '@artificer-toolkit/schema/shared/shape'
 import {
+  authoredLengthInSceneCoordinates,
   directedAreaInSceneCoordinates,
   isDirectedAreaOriginOnToken,
   lengthMeasurementInSceneUnits,
@@ -23,7 +24,8 @@ import {
   type SpatialDirectedAreaShape,
   type SpatialPointAreaShape,
   type SpatialTokenFootprint,
-  type SpatialWallAreaShape
+  type SpatialWallAreaShape,
+  type SpatialWallSide
 } from '@artificer-toolkit/shared/vtt'
 
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
@@ -212,6 +214,8 @@ function pointAreaOfShape(shape: ShapeDto): PointArea | null {
   return null
 }
 
+type ZoneRegionComponent = NonNullable<CompiledActionZonePlacement['regionComponents']>[number]
+
 /** What the client aims to place one zone, with its authored area. */
 export type EncounterZoneChoiceTarget = Extract<
   EncounterActionChoiceDto['target'],
@@ -227,19 +231,29 @@ export type EncounterZoneChoiceTarget = Extract<
  * Worker all read it.
  */
 export function encounterZoneChoiceTarget(
-  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness'>,
+  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness'> & {
+    regionComponents?: readonly Pick<ZoneRegionComponent, 'region'>[]
+  },
   rangeKind: string
 ): EncounterZoneChoiceTarget | null {
   const { shape, ringThickness } = zone
+  // A band beside the wall is reached on the side the caster picks once the wall is aimed.
+  const band = zone.regionComponents?.find(({ region }) => region.kind === 'SIDE_BAND')
+  const sideBand = band ? { sideBand: { distance: band.region.distance } } : {}
   if (shape.shapeKind === 'WALL')
     return shape.thickness && rangeKind !== 'SELF'
-      ? { kind: 'WALL', area: { maxLength: shape.length, thickness: shape.thickness } }
+      ? { kind: 'WALL', area: { maxLength: shape.length, thickness: shape.thickness }, ...sideBand }
       : null
   const area = pointAreaOfShape(shape)
   if (ringThickness)
     return area?.kind === 'RADIUS' && rangeKind !== 'SELF'
-      ? { kind: 'RING', area: { maxOuterRadius: area.radius, thickness: ringThickness } }
+      ? {
+          kind: 'RING',
+          area: { maxOuterRadius: area.radius, thickness: ringThickness },
+          ...sideBand
+        }
       : null
+  if (band) return null
   const kind = encounterAreaTargetKind(rangeKind, shape.shapeKind)
   if (kind === 'POINT' && area) return { kind, area }
   return kind === 'CASTER_CENTERED' && area?.kind === 'RADIUS' ? { kind, area } : null
@@ -449,7 +463,7 @@ const AREA_SIZE_TOLERANCE = 1e-6
  * than authored, or a wall has no length or a ring no room inside its wall.
  */
 export function evaluateEncounterZoneTarget(input: {
-  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness'>
+  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness' | 'regionComponents'>
   range: CompiledActionTargetPolicy['range']
   target: ZoneCommandTarget
   grid: SceneGrid
@@ -458,14 +472,41 @@ export function evaluateEncounterZoneTarget(input: {
   /** Whether the caster sees every point the target is aimed at. */
   aimSeen: boolean
 }):
-  | { shape: SpatialPointAreaShape | SpatialWallAreaShape; warnings: EncounterRuleWarningDto[] }
-  | { refusal: 'UNSUPPORTED_AREA' | 'AREA_TOO_LARGE' | 'AREA_TOO_SMALL' } {
+  | {
+      shape: SpatialPointAreaShape | SpatialWallAreaShape
+      /** Each region component's band, in order: the side the caster picked and its reach. */
+      regions: Array<{ side: SpatialWallSide; distance: number }>
+      warnings: EncounterRuleWarningDto[]
+    }
+  | {
+      refusal:
+        | 'UNSUPPORTED_AREA'
+        | 'AREA_TOO_LARGE'
+        | 'AREA_TOO_SMALL'
+        | 'SIDE_REQUIRED'
+        | 'SIDE_NOT_OFFERED'
+    } {
   const { target, grid } = input
   const aim = encounterZoneChoiceTarget(input.zone, input.range.rangeKind)
   const unsupported = { refusal: 'UNSUPPORTED_AREA' } as const
+  // A zone with a band beside its wall takes the side it reaches, and only such a zone does.
+  const side = 'side' in target ? target.side : undefined
+  const bands = input.zone.regionComponents ?? []
+  if (bands.length > 0 && !side) return { refusal: 'SIDE_REQUIRED' }
+  if (bands.length === 0 && side) return { refusal: 'SIDE_NOT_OFFERED' }
+  const regions: Array<{ side: SpatialWallSide; distance: number }> = []
+  for (const { region } of bands) {
+    const distance = authoredLengthInSceneCoordinates(region.distance, grid)
+    if (distance === null || !side) return unsupported
+    regions.push({ side, distance })
+  }
+  const placed = (
+    shape: SpatialPointAreaShape | SpatialWallAreaShape,
+    warnings: EncounterRuleWarningDto[]
+  ) => ({ shape, regions, warnings })
   if (aim?.kind === 'CASTER_CENTERED' && target.kind === 'CASTER_CENTERED') {
     const shape = pointAreaInSceneCoordinates(aim.area, grid)
-    return shape ? { shape, warnings: [] } : unsupported
+    return shape ? placed(shape, []) : unsupported
   }
   const aimedAt = (points: readonly ScenePoint[]) => {
     const outOfRange = points.map((point) =>
@@ -480,7 +521,7 @@ export function evaluateEncounterZoneTarget(input: {
   if (aim?.kind === 'POINT' && target.kind === 'POINT') {
     const shape = pointAreaInSceneCoordinates(aim.area, grid)
     const warnings = aimedAt([target.point])
-    return shape && warnings ? { shape, warnings } : unsupported
+    return shape && warnings ? placed(shape, warnings) : unsupported
   }
   if (aim?.kind === 'WALL' && target.kind === 'WALL') {
     const bounds = wallAreaBoundsInSceneCoordinates({ kind: 'WALL', ...aim.area }, grid)
@@ -489,7 +530,7 @@ export function evaluateEncounterZoneTarget(input: {
     const length = Math.hypot(target.to.x - target.from.x, target.to.y - target.from.y)
     if (length > bounds.maximum * (1 + AREA_SIZE_TOLERANCE)) return { refusal: 'AREA_TOO_LARGE' }
     if (!(length > 0)) return { refusal: 'AREA_TOO_SMALL' }
-    return { shape: { kind: 'WALL', to: target.to, thickness: bounds.thickness }, warnings }
+    return placed({ kind: 'WALL', to: target.to, thickness: bounds.thickness }, warnings)
   }
   if (aim?.kind === 'RING' && target.kind === 'RING') {
     const bounds = wallAreaBoundsInSceneCoordinates({ kind: 'RING', ...aim.area }, grid)
@@ -499,10 +540,10 @@ export function evaluateEncounterZoneTarget(input: {
     if (outerRadius > bounds.maximum * (1 + AREA_SIZE_TOLERANCE))
       return { refusal: 'AREA_TOO_LARGE' }
     if (!(outerRadius > bounds.thickness)) return { refusal: 'AREA_TOO_SMALL' }
-    return {
-      shape: { kind: 'RING', outerRadius, innerRadius: outerRadius - bounds.thickness },
+    return placed(
+      { kind: 'RING', outerRadius, innerRadius: outerRadius - bounds.thickness },
       warnings
-    }
+    )
   }
   return unsupported
 }

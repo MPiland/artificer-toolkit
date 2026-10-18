@@ -126,7 +126,10 @@ import {
   actsAgainstEnemy,
   damageTakenEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
+import {
+  planEncounterPlacedZone,
+  planEncounterZoneBands
+} from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -234,7 +237,9 @@ const AREA_REFUSALS = {
   UNSUPPORTED_AREA: "This action's area size is not supported.",
   ORIGIN_OFF_CASTER: 'This area cannot extend from there.',
   AREA_TOO_LARGE: 'This area is larger than the action allows.',
-  AREA_TOO_SMALL: 'This area is too small to place.'
+  AREA_TOO_SMALL: 'This area is too small to place.',
+  SIDE_REQUIRED: 'Pick the side of the wall this zone also reaches.',
+  SIDE_NOT_OFFERED: 'This zone has no side to pick.'
 } as const
 
 /** What a command that names the wrong kind of target is told, by the target the action takes. */
@@ -403,6 +408,7 @@ export async function prepareAreaScene(
           zone,
           origin,
           shape: area.shape,
+          regions: 'regions' in area ? area.regions : [],
           sourceToken: scene.sourceToken ?? null,
           unaffectedActorIds
         }
@@ -2091,25 +2097,34 @@ export async function completeAreaCommit(args: {
     sourceLabel
   }))
   const damage = nativeConcentrationDamageApplications(damageSources, false)
-  const placedZone = placement
-    ? planEncounterPlacedZone({
-        zone: placement.zone,
-        id: crypto.randomUUID(),
-        maintainedEffectStateId: placement.zone.maintenance ? (maintainedState?.id ?? null) : null,
-        encounterId: state.id,
-        occurrenceId: areaOccurrenceId,
-        rootCommandId: command.commandId,
-        sourceActorId: caster.id,
-        point: placement.origin,
-        area: placement.shape,
-        sourceToken: placement.sourceToken,
-        saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
-        unaffectedActorIds: placement.unaffectedActorIds
-      })
-    : null
+  // The zone's own record, then one per band beside its wall (D154), all in the cast's maintenance.
+  const zoneInput = placement && {
+    zone: placement.zone,
+    maintainedEffectStateId: placement.zone.maintenance ? (maintainedState?.id ?? null) : null,
+    encounterId: state.id,
+    occurrenceId: areaOccurrenceId,
+    rootCommandId: command.commandId,
+    sourceActorId: caster.id,
+    point: placement.origin,
+    area: placement.shape,
+    sourceToken: placement.sourceToken,
+    saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
+    unaffectedActorIds: placement.unaffectedActorIds
+  }
+  const placedZones =
+    zoneInput && placement
+      ? [
+          planEncounterPlacedZone({ ...zoneInput, id: crypto.randomUUID() }),
+          ...planEncounterZoneBands({
+            ...zoneInput,
+            ids: placement.regions.map(() => crypto.randomUUID()),
+            regions: placement.regions
+          })
+        ]
+      : []
   // The placed zone's timed grant lands on the creature that placed it (D153).
   const zoneSourceGrant =
-    placedZone && placement?.zone.sourceGrant
+    placedZones.length && placement?.zone.sourceGrant
       ? createNativeActiveEffect(
           prepareNativeZoneSourceGrantEffect({
             prepared: lead,
@@ -2142,7 +2157,7 @@ export async function completeAreaCommit(args: {
     caughtChecksum,
     removedActorIds,
     targetOccurrenceIds: children.map((child) => child.occurrenceId),
-    placedSpatialEffectId: placedZone?.id ?? null,
+    placedSpatialEffectIds: placedZones.map(({ id }) => id),
     maintenanceTransition: zoneMaintenanceTransition,
     sourceGrantTransition: zoneSourceGrant
       ? projectNativeActionEffectTransitions({
@@ -2317,7 +2332,7 @@ export async function completeAreaCommit(args: {
     label: sourceLabel,
     ruleOverrides,
     concentration,
-    placedZone,
+    placedZones,
     zoneSourceGrant,
     forcedMovements
   }
@@ -2352,7 +2367,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     targets: plan.targets,
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
-    placedZone: plan.placedZone,
+    placedZones: plan.placedZones,
     zoneSourceGrant: plan.zoneSourceGrant,
     forcedMovements: plan.forcedMovements,
     rules: plan.rules,

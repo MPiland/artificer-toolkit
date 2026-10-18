@@ -17,6 +17,7 @@ import {
   type EncounterEscapeChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
+  authoredLengthInSceneCoordinates,
   directedAreaSizeInSceneCoordinates,
   pointAreaInSceneCoordinates,
   wallAreaBoundsInSceneCoordinates
@@ -1151,6 +1152,54 @@ describe('CampaignTabletopActionDrawer wall or ring (SPELLS-4.T1b, D154)', () =>
           center: from,
           outerRadius: 150,
           choiceOptionId: RING_ID
+        }
+      })
+    )
+  })
+
+  it('asks for the side its band reaches after aiming, previews it and sends the side (D154 amendment)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaSizeChange = vi.fn()
+    const banded = validatedChoice({
+      ...wallOfFire,
+      target: {
+        kind: 'WALL' as const,
+        area: { maxLength: feet(60), thickness: feet(1) },
+        sideBand: { distance: feet(10) }
+      }
+    })
+    const options = { choices: [banded], onAreaSizeChange }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseWall(user)
+    expect(screen.queryByRole('radio', { name: 'Left as drawn' })).not.toBeInTheDocument()
+    view.rerender(drawerElement(onResolve, { ...options, areaAim: { origin: from, toward: to } }))
+    expect(screen.getByText(/also reaches 10 feet on one side/)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+
+    await user.click(screen.getByRole('radio', { name: 'Right as drawn' }))
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith({
+      kind: 'WALL',
+      ...wallAreaBoundsInSceneCoordinates(
+        { kind: 'WALL', maxLength: feet(60), thickness: feet(1) },
+        tabletopLiveScene.grid
+      ),
+      band: {
+        distance: authoredLengthInSceneCoordinates(feet(10), tabletopLiveScene.grid),
+        side: 'RIGHT'
+      }
+    })
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          kind: 'WALL',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          from,
+          to,
+          side: 'RIGHT'
         }
       })
     )
