@@ -6308,8 +6308,9 @@
             {
               "id": "ATTACK-7.T6",
               "text": "Slice F: author the Shove basic action on ATTACK-18 (prone or a 5-foot AWAY push on a win).",
-              "status": "TODO",
-              "closes": ["ATTACK-7.6"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.6"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T7",
