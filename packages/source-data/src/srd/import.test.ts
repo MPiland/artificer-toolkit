@@ -50,6 +50,13 @@ function fixedResultBlock(path: EffectPathAuthored) {
   return path.resultBlock
 }
 
+/** The result blocks a basic action's path may resolve: its fixed one, or each option it offers. */
+function pathResultBlocks(path: EffectPathAuthored) {
+  return path.selectionKind === 'CHOICE'
+    ? path.options.map(({ resultBlock }) => resultBlock)
+    : [fixedResultBlock(path)]
+}
+
 describe('canonical Convex import preparation', () => {
   it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
     const catalogue = preparedDefinitions().filter(
@@ -66,7 +73,9 @@ describe('canonical Convex import preparation', () => {
                   action.actionCost,
                   action.effects.flatMap((effect) =>
                     effect.paths.flatMap((path) =>
-                      fixedResultBlock(path).outcomes.map((outcome) => outcome.effectKind)
+                      pathResultBlocks(path).flatMap(({ outcomes }) =>
+                        outcomes.map((outcome) => outcome.effectKind)
+                      )
                     )
                   )
                 ]
@@ -85,7 +94,8 @@ describe('canonical Convex import preparation', () => {
       Search: ['ACTION', ['DETECT_CONCEALED']],
       'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
       'First Aid': ['ACTION', ['STABILIZE']],
-      Grapple: ['ATTACK', ['ACTOR_RELATIONSHIP']]
+      Grapple: ['ATTACK', ['ACTOR_RELATIONSHIP']],
+      Shove: ['ATTACK', ['CONDITION', 'FORCED_MOVEMENT']]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()

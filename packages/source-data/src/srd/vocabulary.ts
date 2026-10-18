@@ -637,6 +637,13 @@ const SRD_SENSES = [
     label: 'See Invisibility',
     description:
       'A creature with this sense sees invisible creatures and objects as if they were visible.'
+  },
+  {
+    id: vocabId(D.sense, 6),
+    code: 'DEVILS_SIGHT',
+    label: "Devil's Sight",
+    description:
+      'A creature with this sense sees normally in darkness, both magical and nonmagical.'
   }
 ]
 
@@ -647,6 +654,7 @@ export const SRD_BLINDSIGHT_SENSE_ID = SRD_SENSES[1]!.id
 export const SRD_TREMORSENSE_SENSE_ID = SRD_SENSES[2]!.id
 export const SRD_TRUESIGHT_SENSE_ID = SRD_SENSES[3]!.id
 export const SRD_SEE_INVISIBILITY_SENSE_ID = SRD_SENSES[4]!.id
+export const SRD_DEVILS_SIGHT_SENSE_ID = SRD_SENSES[5]!.id
 
 // ─── Skills ───────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 import {
   actionTargetActorId,
+  castChoiceOptionId,
   type EscapeRelationshipInputDto,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
@@ -57,6 +58,8 @@ import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encount
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import { resolveEncounterActionPhaseExecution } from '@artificer-toolkit/rules-runtime/encounterActionPhaseExecution'
+import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import {
   contestDefenderPicksCheck,
   contestDefenderPolicy,
@@ -84,6 +87,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
+import { interpretForcedMovements } from './nativeEncounterActionInputs.js'
 import { spendNativeHolderActivation } from './nativeHolderActivation.js'
 
 type ContestPreparation = {
@@ -151,26 +155,144 @@ function readContestPendingContext(
     : null
 }
 
+type ContestWin = {
+  prepared: PreparedContest
+  occurrenceId: string
+  commandId: string
+  occurredAt: string
+  userId: string
+}
+
+/** The one mechanics batch a won basic action contest applies to its target (D152). */
+function planNativeContestTargetMechanics(
+  input: ContestWin,
+  applications: readonly CharacterRuleActionApplication[]
+) {
+  const { prepared, occurrenceId, commandId, occurredAt } = input
+  const holder = prepared.movementTargets.get(prepared.target.id)
+  if (!holder) throw new Error('The contest target is unavailable.')
+  return planEncounterMechanicsBatch({
+    batch: {
+      encounterId: prepared.state.id,
+      targetActorId: holder.actor.id,
+      expectedEncounterVersion: prepared.state.version,
+      occurrenceId,
+      sourceCommandId: commandId,
+      commandId: deriveEncounterCharacterMechanicsEventCommandId({
+        occurrenceId,
+        sourceCommandId: commandId,
+        phase: 'DIRECT_ACTION_OUTCOME',
+        ordinal: 0,
+        targetCharacterId: holder.characterFacts?.active.id ?? holder.actor.id
+      }),
+      occurredAt,
+      applications: [...applications],
+      expectedCharacterStreamVersion: holder.characterFacts?.active.play.streamVersion ?? null,
+      effectiveMaximumHitPoints: holder.effectiveMaximumHitPoints,
+      effectiveScalarValues: holder.effectiveScalarValues,
+      forceVersionAdvance: false
+    },
+    actor: holder.actor,
+    userId: input.userId,
+    ...(holder.characterFacts ? { characterFacts: holder.characterFacts } : {})
+  })
+}
+
+/**
+ * What a won basic action contest whose win is its picked outcome (Shove, D105) settles on its
+ * target: the sealed ON_CHECK_SUCCESS graph run on the prepared facts, its conditions applied here
+ * and in Convex, and its forced movements landed on the Scene in the commit (D157).
+ */
+async function planNativeContestOutcome(
+  input: ContestWin & { execution: ContestRolls['execution']; runtime: RulesRuntimeService }
+) {
+  const { prepared, occurrenceId } = input
+  const { adapter, plan, binding } = prepared
+  // The compiler admits only a condition or a forced movement as a contest outcome, which no
+  // scaling fact specializes.
+  const outcome = resolveEncounterActionPhaseExecution({
+    plan,
+    phase: 'TEST',
+    execution: input.execution,
+    adapter,
+    facts: {},
+    testRollMode: 'NORMAL',
+    effectivePath: 'ON_CHECK_SUCCESS'
+  })
+  if (outcome.kind !== 'OUTCOME') throw new Error('The contest win outcome is unavailable.')
+  const { published } = outcome.outcome
+  const execution = await input.runtime.executeResolved({
+    command: {
+      definitionId: published.id,
+      occurrenceId,
+      facts: adapter.bindFacts({ ...binding, published }).facts
+    },
+    published
+  })
+  if (execution.status === 'PAUSED') throw new Error('A contest win outcome rolls no dice.')
+  const applications = adapter.interpret({
+    execution,
+    occurrenceId,
+    published,
+    targetActorId: binding.targetActorId,
+    currentHitPoints: binding.currentHitPoints,
+    temporaryHitPoints: binding.temporaryHitPoints,
+    maximumHitPoints: binding.maximumHitPoints,
+    defenses: binding.defenses,
+    conditionImmunityIds: binding.conditionImmunityIds
+  })
+  const conditionApplications = applications.flatMap((application) =>
+    application.kind === 'CONDITION_APPLY' ? [application] : []
+  )
+  if (conditionApplications.length !== applications.length)
+    throw new Error('A contest win outcome applies only conditions.')
+  const forcedMovements = interpretForcedMovements(prepared, {
+    execution,
+    occurrenceId,
+    published,
+    targetActorId: prepared.target.id
+  })
+  const [movement, ...more] = forcedMovements
+  if (more.length || (movement && conditionApplications.length))
+    throw new Error('A contest win outcome is one condition or one forced movement.')
+  const mechanics = planNativeContestTargetMechanics(input, conditionApplications)
+  return {
+    actor: mechanics.updatedActor,
+    conditionApplications,
+    forcedMovements,
+    stateTransition: movement
+      ? {
+          kind: 'FORCED_MOVEMENT' as const,
+          direction: movement.direction,
+          feet: movement.feet,
+          upTo: movement.upTo
+        }
+      : {
+          kind: 'CONDITIONS_APPLIED' as const,
+          appliedConditionIds: mechanics.receiptApplications.flatMap((application) =>
+            application.kind === 'CONDITION_APPLY' && application.applied
+              ? [application.conditionId]
+              : []
+          )
+        }
+  }
+}
+
 /**
  * The hold a won basic action contest (Grapple) creates on its target: the action's relationship
  * effect, from the initiator's winning check against the defender's total, and the conditions it
  * newly applies (D152). Convex re-derives both from the stored effect at settlement.
  */
-function planNativeContestHold(input: {
-  prepared: PreparedContest
-  published: ContestPreparation['published']
-  rolls: ContestRolls
-  initiatorRequestId: string
-  occurrenceId: string
-  commandId: string
-  occurredAt: string
-  userId: string
-  activeEffectsByActorId: ContestActors['activeEffectsByActorId']
-}) {
+function planNativeContestHold(
+  input: ContestWin & {
+    published: ContestPreparation['published']
+    rolls: ContestRolls
+    initiatorRequestId: string
+    activeEffectsByActorId: ContestActors['activeEffectsByActorId']
+  }
+) {
   const { prepared, rolls, occurrenceId, commandId, occurredAt } = input
   const { initiator, defender } = rolls
-  const holder = prepared.movementTargets.get(prepared.target.id)
-  if (!holder) throw new Error('The contest target is unavailable.')
   const effects = prepareNativeActionEffectsPlan({
     prepared,
     execution: {
@@ -202,31 +324,7 @@ function planNativeContestHold(input: {
     occurredAt
   })
   const applications = effects.relationshipConditionApplications
-  const mechanics = planEncounterMechanicsBatch({
-    batch: {
-      encounterId: prepared.state.id,
-      targetActorId: holder.actor.id,
-      expectedEncounterVersion: prepared.state.version,
-      occurrenceId,
-      sourceCommandId: commandId,
-      commandId: deriveEncounterCharacterMechanicsEventCommandId({
-        occurrenceId,
-        sourceCommandId: commandId,
-        phase: 'DIRECT_ACTION_OUTCOME',
-        ordinal: 0,
-        targetCharacterId: holder.characterFacts?.active.id ?? holder.actor.id
-      }),
-      occurredAt,
-      applications: [...applications],
-      expectedCharacterStreamVersion: holder.characterFacts?.active.play.streamVersion ?? null,
-      effectiveMaximumHitPoints: holder.effectiveMaximumHitPoints,
-      effectiveScalarValues: holder.effectiveScalarValues,
-      forceVersionAdvance: false
-    },
-    actor: holder.actor,
-    userId: input.userId,
-    ...(holder.characterFacts ? { characterFacts: holder.characterFacts } : {})
-  })
+  const mechanics = planNativeContestTargetMechanics(input, applications)
   const [createdEffect] = projectNativeActionEffectTransitions({
     state: null,
     recurring: record,
@@ -369,6 +467,8 @@ export async function planNativeLiveDisarm(
     target,
     actors,
     actionId: root.actionId,
+    // A resumed contest runs as the outcome its root picked (Shove, D105).
+    choiceOptionId: castChoiceOptionId(root.target),
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     overridable: false,
     movementTargets,
@@ -774,21 +874,37 @@ export async function planNativeLiveContestRolls(input: {
             : null
         })
       : null
-  const hold =
+  const win: ContestWin | null =
     sourceWins && prepared && contest.origin.kind === 'BASIC_ACTION'
-      ? planNativeContestHold({
+      ? {
           prepared,
-          published: preparation.published,
-          rolls: execution,
-          initiatorRequestId: contest.rollEvidence.initiator!.requestId,
           occurrenceId,
           commandId: root.commandId,
           occurredAt,
-          userId: ready.initiatorUserId,
+          userId: ready.initiatorUserId
+        }
+      : null
+  // A win holds the target (Grapple), or runs the outcome its initiator picked (Shove, D105).
+  const hold =
+    win && win.prepared.plan.kind === 'SINGLE_GRAPH'
+      ? planNativeContestHold({
+          ...win,
+          published: preparation.published,
+          rolls: execution,
+          initiatorRequestId: contest.rollEvidence.initiator!.requestId,
           activeEffectsByActorId
         })
       : null
-  const settledTarget = success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? target)
+  const outcome =
+    win && win.prepared.plan.kind === 'TEST_OUTCOME'
+      ? await planNativeContestOutcome({
+          ...win,
+          execution: execution.execution,
+          runtime: input.runtime
+        })
+      : null
+  const settledTarget =
+    success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? outcome?.actor ?? target)
   // A won escape frees its source from the holding effect and the conditions only it held.
   const escaped =
     sourceWins && settlement.kind === 'ESCAPE'
@@ -866,6 +982,8 @@ export async function planNativeLiveContestRolls(input: {
         ...effectsEndedBy(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
       ],
       createdEffect: hold?.record ?? null,
+      conditionApplications: outcome?.conditionApplications ?? [],
+      forcedMovements: outcome?.forcedMovements ?? [],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,
@@ -878,6 +996,7 @@ export async function planNativeLiveContestRolls(input: {
           rolls: execution,
           stateTransition: success?.stateTransition ??
             hold?.stateTransition ??
+            outcome?.stateTransition ??
             escaped?.stateTransition ?? { kind: 'NONE' },
           actionEconomy,
           sourceApplications: sourceRelease?.sourceResourcePlan?.receiptApplications ?? []

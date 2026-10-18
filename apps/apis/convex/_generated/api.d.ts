@@ -112667,7 +112667,7 @@ export declare const api: {
                     maxTargets: number;
                   }>;
                   kind: "ACTORS";
-                  maxTargets: number;
+                  maxTargets?: number;
                 }
               | {
                   area:
@@ -114394,7 +114394,7 @@ export declare const api: {
                     maxTargets: number;
                   }>;
                   kind: "ACTORS";
-                  maxTargets: number;
+                  maxTargets?: number;
                 }
               | {
                   area:

@@ -41,7 +41,8 @@ export const SRD_BASIC_ACTION_IDS = {
   USE_AN_OBJECT: '00000000-0000-4000-8000-000000000b08',
   FIRST_AID: '00000000-0000-4000-8000-000000000b09',
   ROUSE: '00000000-0000-4000-8000-000000000b0a',
-  GRAPPLE: '00000000-0000-4000-8000-000000000b0b'
+  GRAPPLE: '00000000-0000-4000-8000-000000000b0b',
+  SHOVE: '00000000-0000-4000-8000-000000000b0c'
 } as const
 
 /** Deterministic ids of an authored basic action's nested rows, derived from the entry's id. */
@@ -393,6 +394,32 @@ function selfCheckEffect(
   }
 }
 
+const ATHLETICS_OR_ACROBATICS = {
+  skillIds: [SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID].sort(),
+  abilityDefinitionIds: []
+}
+const ATHLETICS = { skillIds: [SRD_ATHLETICS_SKILL_ID], abilityDefinitionIds: [] }
+
+/**
+ * The SRD grapple-and-shove contest (D105): the actor's Athletics against the target's Athletics or
+ * Acrobatics, the target choosing, at a creature within reach and at most one size larger.
+ */
+function athleticsContestInvocation(actionId: string) {
+  return {
+    kind: 'ACTION' as const,
+    triggerCode: TRIGGER.CHECK,
+    check: { checks: ATHLETICS, dc: { kind: 'CONTEST' as const, checks: ATHLETICS_OR_ACROBATICS } },
+    activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+    range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.TOUCH },
+    targeting: {
+      selectionKind: 'SINGLE_TARGET' as const,
+      dispositionKind: 'ANY' as const,
+      self: 'REFUSED' as const,
+      sizeLimit: { stepsAboveActor: 1 }
+    }
+  }
+}
+
 /**
  * Grapple (D105): within reach, a creature at most one size larger is Grappled when the grappler's
  * Athletics check beats the check the target picks, Athletics or Acrobatics. One hold fills one of
@@ -400,29 +427,12 @@ function selfCheckEffect(
  * Athletics or Acrobatics check against the grappler's Athletics.
  */
 function grappleEffect(actionId: string) {
-  const athleticsOrAcrobatics = {
-    skillIds: [SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID].sort(),
-    abilityDefinitionIds: []
-  }
-  const athletics = { skillIds: [SRD_ATHLETICS_SKILL_ID], abilityDefinitionIds: [] }
   const grappled = SRD_CONDITION_TYPES.find(({ code }) => code === 'GRAPPLED')
   if (!grappled) throw new Error('Missing SRD Grappled condition.')
   return {
     id: basicActionChildId(actionId, 0x210, 1),
     order: 1,
-    invocation: {
-      kind: 'ACTION' as const,
-      triggerCode: TRIGGER.CHECK,
-      check: { checks: athletics, dc: { kind: 'CONTEST' as const, checks: athleticsOrAcrobatics } },
-      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-      range: { id: basicActionChildId(actionId, 0x211, 1), rangeKind: RANGE_KIND.TOUCH },
-      targeting: {
-        selectionKind: 'SINGLE_TARGET' as const,
-        dispositionKind: 'ANY' as const,
-        self: 'REFUSED' as const,
-        sizeLimit: { stepsAboveActor: 1 }
-      }
-    },
+    invocation: athleticsContestInvocation(actionId),
     paths: [
       {
         id: basicActionChildId(actionId, 0x212, 1),
@@ -450,8 +460,8 @@ function grappleEffect(actionId: string) {
                   order: 2,
                   kind: 'ESCAPE_CHECK' as const,
                   activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-                  checks: athleticsOrAcrobatics,
-                  dc: { kind: 'CONTEST' as const, checks: athletics },
+                  checks: ATHLETICS_OR_ACROBATICS,
+                  dc: { kind: 'CONTEST' as const, checks: ATHLETICS },
                   actorKinds: ['TARGET' as const]
                 }
               ],
@@ -465,6 +475,60 @@ function grappleEffect(actionId: string) {
             }
           ]
         }
+      }
+    ]
+  }
+}
+
+/**
+ * Shove (D105): the grapple contest, and on a win the shover's pick, made with the attempt (D148):
+ * the target has the Prone condition, or is pushed 5 feet straight away (D157).
+ */
+function shoveEffect(actionId: string) {
+  const prone = SRD_CONDITION_TYPES.find(({ code }) => code === 'PRONE')
+  if (!prone) throw new Error('Missing SRD Prone condition.')
+  const options = [
+    {
+      label: 'Knock prone',
+      description: 'The target has the Prone condition.',
+      outcome: { effectKind: EFFECT_KIND.CONDITION, conditionId: prone.id }
+    },
+    {
+      label: 'Push 5 feet away',
+      description: 'The target is pushed 5 feet straight away from you.',
+      outcome: {
+        effectKind: EFFECT_KIND.FORCED_MOVEMENT,
+        direction: 'AWAY_FROM_SOURCE' as const,
+        actionEconomy: 'NONE' as const,
+        distanceMode: 'EXACT' as const,
+        amount: 5,
+        unit: 'FEET' as const
+      }
+    }
+  ]
+  return {
+    id: basicActionChildId(actionId, 0x210, 1),
+    order: 1,
+    invocation: athleticsContestInvocation(actionId),
+    paths: [
+      {
+        id: basicActionChildId(actionId, 0x212, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_CHECK_SUCCESS,
+        groupType: PATH_GROUP_TYPE.CHOICE,
+        originKind: 'SOURCE' as const,
+        selectionKind: 'CHOICE' as const,
+        options: options.map(({ label, description, outcome }, index) => ({
+          id: basicActionChildId(actionId, 0x220, index + 1),
+          order: index + 1,
+          label,
+          description,
+          resultBlock: {
+            id: basicActionChildId(actionId, 0x221, index + 1),
+            resultKind: 'SINGLE' as const,
+            outcomes: [{ id: basicActionChildId(actionId, 0x213, index + 1), ...outcome }]
+          }
+        }))
       }
     ]
   }
@@ -623,5 +687,13 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     actionCost: 'ATTACK',
     restrictions: holderMeets(SRD_BASIC_ACTION_IDS.GRAPPLE, ['FREE_HAND']),
     effects: [grappleEffect(SRD_BASIC_ACTION_IDS.GRAPPLE)]
+  }),
+  defineBasicAction({
+    id: SRD_BASIC_ACTION_IDS.SHOVE,
+    label: 'Shove',
+    rulesText:
+      "In place of one attack of the Attack action, you try to shove a creature within your reach that is no more than one size larger than you, either to knock it prone or to push it away from you. Make a Strength (Athletics) check contested by the target's Strength (Athletics) or Dexterity (Acrobatics) check, the target choosing. If you win, you either knock the target prone or push it 5 feet away from you.",
+    actionCost: 'ATTACK',
+    effects: [shoveEffect(SRD_BASIC_ACTION_IDS.SHOVE)]
   })
 ]

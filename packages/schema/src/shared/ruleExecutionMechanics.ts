@@ -7,6 +7,7 @@ import {
   activeRuleEffectStateContributionDtoSchema
 } from './activeRuleEffects.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
+import { MAX_ACTIVE_EFFECT_STORED_TICKS } from './activeRuleEffectLifecycle.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
 import { characterResourcePoolIdentitySchema } from './characterResourceIdentity.js'
 import {
@@ -225,7 +226,9 @@ export const characterActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
     frozenSourceChecksum: checksumSchema,
     capabilityContractVersion: contractVersionSchema,
     recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-    remainingTicks: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(10_000))),
+    remainingTicks: z.nullable(
+      integerSchema.check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS))
+    ),
     maintainedEffectStateId: z.nullable(uuidSchema)
   })
 )
@@ -245,7 +248,9 @@ export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
     frozenSourceChecksum: checksumSchema,
     capabilityContractVersion: contractVersionSchema,
     recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-    remainingTicks: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(10_000))),
+    remainingTicks: z.nullable(
+      integerSchema.check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS))
+    ),
     maintainedEffectStateId: z.optional(z.nullable(uuidSchema))
   })
 )
