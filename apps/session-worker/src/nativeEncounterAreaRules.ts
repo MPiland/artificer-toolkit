@@ -124,7 +124,7 @@ import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCa
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
   planEncounterPlacedZone,
@@ -2004,11 +2004,12 @@ export async function completeAreaCommit(args: {
     const carriesFailedCounterSpend =
       actor.id !== caster.id && failedReactorSlots.has(actor.id) && firstEntry
     const applications = [...complete.applications, ...effects.relationshipConditionApplications]
-    const damageEnded = damageTakenEndedEffects({
+    const damageEnded = targetEndedEffects({
       holderActorId: actor.id,
       held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
         ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
       ),
+      attacked: prepared.makesAttackRoll,
       applications,
       damagerActorId: caster.id,
       dispositions

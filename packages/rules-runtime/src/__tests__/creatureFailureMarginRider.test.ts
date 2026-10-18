@@ -6,7 +6,7 @@ import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import {
   actionUsedOnHolderEndedEffects,
-  damageTakenEndedEffects
+  targetEndedEffects
 } from '../encounterEndedEffectRelease.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
@@ -138,16 +138,17 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
     })
     expect(roused.endedEffects.map(({ id }) => id)).toEqual([testUuid(0x2205)])
     expect(roused.releases).toMatchObject([{ conditionId: UNCONSCIOUS }])
-    const damaged = damageTakenEndedEffects({
+    const damaged = targetEndedEffects({
       holderActorId: TARGET_ID,
       held,
+      attacked: false,
       applications: [
         {
           kind: 'DAMAGE',
           targetActorId: TARGET_ID,
           damageTypeId: testUuid(0x2207),
           resolvedAmount: 1
-        } as Parameters<typeof damageTakenEndedEffects>[0]['applications'][number]
+        } as Parameters<typeof targetEndedEffects>[0]['applications'][number]
       ],
       damagerActorId: testUuid(0x2206),
       dispositions: new Map()

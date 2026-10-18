@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
@@ -16,6 +17,7 @@ const reader = createSrdNodeRuntimeReader()
 /** D156 T2a3: spells converted from closed rules to existing core options (ADR 0038 parity). */
 describe('spells authored from core options through the effect node map (SPELLS-4.T2a3)', () => {
   it.each([
+    ['Guiding Bolt', guidingBolt],
     ['Light', light],
     ['Mage Armor', mageArmor],
     ['Mind Blank', mindBlank],

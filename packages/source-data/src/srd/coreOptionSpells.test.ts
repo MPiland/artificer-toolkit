@@ -9,6 +9,7 @@ const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g,
  * resolves is authored; the clauses it does not are the GM's ruling, quoted from the description.
  */
 describe.each([
+  { label: 'Guiding Bolt', ruleKind: 'GUIDING_BOLT', effectKinds: ['DAMAGE', 'APPLY_GRANT'] },
   { label: 'Light', ruleKind: 'LIGHT', effectKinds: ['MANIFEST', 'MANUAL_ADJUDICATION'] },
   { label: 'Mage Armor', ruleKind: 'MAGE_ARMOR', effectKinds: ['APPLY_GRANT'] },
   {

@@ -53,6 +53,8 @@ const HOLD_PERSON = spell('Hold Person')
 const CURE_WOUNDS = spell('Cure Wounds')
 const HEALING_WORD = spell('Healing Word')
 const MAGE_ARMOR = spell('Mage Armor')
+const GUIDING_BOLT = spell('Guiding Bolt')
+const PASS_WITHOUT_TRACE = spell('Pass without Trace')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
@@ -1479,5 +1481,105 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
         ]
       }
     })
+  })
+
+  it('compiles Guiding Bolt to advantage on the next attack against the target, until the end of the caster’s next turn', () => {
+    const plan = compiledCast(GUIDING_BOLT)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 1,
+      recurrenceStage: 'END_OF_TURN',
+      modifierGrantContribution: {
+        tickAnchor: 'SOURCE',
+        consumeOnFirstEvents: ['ON_ATTACKED']
+      }
+    })
+    expect(
+      plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, modifierKind }) => ({
+        valueDomainCode,
+        modifierKind
+      }))
+    ).toEqual(
+      Array.from({ length: 4 }, () => ({
+        valueDomainCode: 'ATTACKS_AGAINST',
+        modifierKind: 'ADVANTAGE'
+      }))
+    )
+  })
+})
+
+/** The spell with each GM ruling in its fixed result swapped for a copy of its grant. */
+function withRulingsAsGrants(authored: SpellAuthored): SpellAuthored {
+  return {
+    ...authored,
+    effects: authored.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => {
+        if (path.selectionKind !== 'FIXED') return path
+        const grant = path.resultBlock.outcomes.find(
+          (outcome) => outcome.effectKind === 'APPLY_GRANT'
+        )
+        if (!grant) throw new Error('Expected a grant.')
+        return {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            outcomes: path.resultBlock.outcomes.map((outcome) =>
+              outcome.effectKind === 'MANUAL_ADJUDICATION' ? { ...grant, id: outcome.id } : outcome
+            )
+          }
+        }
+      })
+    }))
+  }
+}
+
+/** Pass without Trace with its list capped at three creatures, as a bounded list authors it. */
+const CAPPED_PASS_WITHOUT_TRACE: SpellAuthored = {
+  ...PASS_WITHOUT_TRACE,
+  effects: PASS_WITHOUT_TRACE.effects?.map((effect) =>
+    effect.invocation.kind === 'ACTION' &&
+    effect.invocation.targeting?.selectionKind === 'CHOSEN_CREATURES'
+      ? {
+          ...effect,
+          invocation: {
+            ...effect.invocation,
+            targeting: { ...effect.invocation.targeting, maxTargets: 3 }
+          }
+        }
+      : effect
+  )
+}
+
+describe('a grant beside GM rulings, on a list of chosen creatures (SPELLS-4.T2a3, D156)', () => {
+  it('compiles the grant for each chosen creature, with its ruling as a manual-adjudication node', () => {
+    const entry = compiledCastEntry(CAPPED_PASS_WITHOUT_TRACE)
+    expect(entry?.targetPolicy.targeting).toMatchObject({
+      selectionKind: 'CHOSEN_CREATURES',
+      maxTargets: 3
+    })
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: 600,
+      modifierGrantContribution: {
+        modifiers: [
+          {
+            valueDomainCode: 'SKILL_MODIFIER',
+            modifierKind: 'BONUS',
+            payload: { valueKind: 'FIXED', amount: 10 }
+          }
+        ]
+      }
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    const { nodes, sourceEntryBindings } = plan.published.definition
+    expect(nodes.map((node) => node.operation.key)).toEqual([
+      'dnd5e.modifier-grant-proposal',
+      'dnd5e.manual-adjudication-proposal'
+    ])
+    expect(sourceEntryBindings).toEqual([expect.objectContaining({ nodeId: nodes[1]!.id })])
+  })
+
+  it('refuses a sequence with two executable outcomes', () => {
+    expect(compiledCast(withRulingsAsGrants(CAPPED_PASS_WITHOUT_TRACE))).toBeNull()
   })
 })

@@ -40,7 +40,7 @@ import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -1249,14 +1249,15 @@ export async function planNativeLiveEncounterAction(
     ...execution.applications,
     ...preparedEffects.relationshipConditionApplications
   ]
-  // Damage the target takes ends the effects it holds that end on damage, and releases the
-  // conditions only they held in the target's own batch.
+  // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
+  // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
     ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
   )
-  const damageEnded = damageTakenEndedEffects({
+  const damageEnded = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: targetHeld,
+    attacked: prepared.makesAttackRoll,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions

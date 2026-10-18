@@ -353,7 +353,7 @@ export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
 export const pathLifecycleConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
+  z.enum(['ON_ATTACK_ROLL', 'ON_ATTACKED', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
 )
 export const pathLifecycleEndEventSchema = lazySchema(() =>
   z.enum([
@@ -369,9 +369,12 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
 export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
 /** Whom an action must be aimed at to end an effect: only enemies of its holder (Sanctuary). */
 export const pathLifecycleEndTriggerAgainstSchema = lazySchema(() => z.enum(['ENEMY']))
-/** The consume events a timed grant can carry (a cast does not use a grant up). */
+/**
+ * The consume events a timed grant can carry (a cast does not use a grant up). ON_ATTACKED is an
+ * attack roll made against the holder: the grant counts toward that roll, then is used up.
+ */
 export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK'] satisfies z.infer<
+  z.enum(['ON_ATTACK_ROLL', 'ON_ATTACKED', 'ON_ABILITY_CHECK'] satisfies z.infer<
     typeof pathLifecycleConsumeEventSchema
   >[])
 )
