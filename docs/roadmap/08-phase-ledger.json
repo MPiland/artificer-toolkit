@@ -1464,6 +1464,64 @@
             }
           ],
           "journeyStatus": "verified"
+        },
+        {
+          "id": "PLATFORM-25",
+          "title": "CI fixes mechanical failures and merges approved slices itself",
+          "status": "TODO",
+          "origin": ["User request 2026-10-18 (cycle-time gains)"],
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "wsjf": {
+            "bv": 3,
+            "tc": 5,
+            "rr": 5,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-25.1",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-18 (cycle-time gains)"],
+              "note": "AC confirmed by the user 2026-10-18.",
+              "text": "When a ci/<slice> Tests run's only failures are formatting (oxfmt) or lint findings lint can fix itself, CI commits the fixes to the same ci/<slice> branch (fast-forward push, an auto-fix trailer, never the phase branch or main, never twice in a row) and reruns Tests and Live on the new commit; watchCi.ps1 follows it, as it does the _generated auto-fix."
+            },
+            {
+              "id": "PLATFORM-25.2",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-18 (cycle-time gains)"],
+              "note": "AC confirmed by the user 2026-10-18. The orchestrator still reviews every slice for band-aids and weakened assertions before approving.",
+              "text": "After the orchestrator approves a reviewed slice tip (a workflow dispatch naming the ci/<slice> branch and tip SHA), a workflow checks that Tests and Live are green on that exact tip and merges it into the phase branch: the fast path (--no-ff, tree check, then the ci/merge-m<N> backstop run) when the tip contains the phase tip, otherwise a ci/merge-m<N> batch run that pushes to the phase branch only when green. A conflict, a red run or a moved tip fails with nothing pushed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-25.T1",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Format and lint auto-fix job in tests.yml on the live-backend auto-fix pattern, with watchCi.ps1 following it."
+            },
+            {
+              "id": "PLATFORM-25.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 5
+              },
+              "text": "merge-slice.yml workflow_dispatch: verify green runs on the tip, fast path or ci/merge-m<N> batch (next N from the existing ci/merge-m* refs), push to the phase branch on green, fail closed otherwise; the CI validation guide documents it."
+            }
+          ]
         }
       ]
     },
