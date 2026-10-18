@@ -24,7 +24,6 @@ type CurrencyIdentity = Pick<
   'kind' | 'campaignCurrencySystemId' | 'denominationId'
 >
 type CurrencyDisplayRow = Omit<InventoryDto['currencies'][number], 'amount'> & { amount: bigint }
-type QualifiedCurrency = CurrencyDisplayRow & { kind: 'RULESET' | 'CAMPAIGN' }
 
 function sharedEquipmentLabel(share: CampaignContentShareDto): string {
   const document = share.document
@@ -35,10 +34,6 @@ function sharedEquipmentLabel(share: CampaignContentShareDto): string {
     typeof document.label === 'string'
     ? document.label
     : share.subjectId
-}
-
-function isQualifiedCurrency(currency: CurrencyDisplayRow): currency is QualifiedCurrency {
-  return currency.kind === 'RULESET' || currency.kind === 'CAMPAIGN'
 }
 
 function currencyKey(currency: CurrencyIdentity): string {
@@ -163,52 +158,35 @@ export function CampaignPartyInventoryActions({
             onMutate={submit}
           />
         ))}
-        {heldCurrencies.map((currency) =>
-          isQualifiedCurrency(currency) ? (
-            <PartyCurrencyActions
-              currency={currency}
-              disabled={mutation.isPending}
-              key={JSON.stringify([currencyKey(currency), currency.containerId])}
-              containers={containers}
-              onMove={(toContainerId, amount) =>
-                submit({
-                  kind: 'CURRENCY_MOVE',
-                  campaignCurrencySystemId:
-                    currency.kind === 'RULESET' ? null : currency.campaignCurrencySystemId,
-                  denominationId: currency.denominationId,
-                  fromContainerId: currency.containerId,
-                  toContainerId,
-                  amount
-                })
-              }
-              onAdjust={(amount) =>
-                submit({
-                  kind: 'CURRENCY_ADJUST',
-                  campaignCurrencySystemId:
-                    currency.kind === 'RULESET' ? null : currency.campaignCurrencySystemId,
-                  denominationId: currency.denominationId,
-                  containerId: currency.containerId,
-                  amount
-                })
-              }
-            />
-          ) : (
-            <div
-              className={inventoryStyles.partyInventoryActionRow}
-              key={JSON.stringify([currencyKey(currency), currency.containerId])}
-            >
-              <div>
-                <Text fw={600}>{currency.label}</Text>
-                <Text c='dimmed' size='sm'>
-                  {currency.amount.toString()} {currency.abbreviation}
-                </Text>
-              </div>
-              <Text c='dimmed' size='sm'>
-                Historic currency identity
-              </Text>
-            </div>
-          )
-        )}{' '}
+        {heldCurrencies.map((currency) => (
+          <PartyCurrencyActions
+            currency={currency}
+            disabled={mutation.isPending}
+            key={JSON.stringify([currencyKey(currency), currency.containerId])}
+            containers={containers}
+            onMove={(toContainerId, amount) =>
+              submit({
+                kind: 'CURRENCY_MOVE',
+                campaignCurrencySystemId:
+                  currency.kind === 'RULESET' ? null : currency.campaignCurrencySystemId,
+                denominationId: currency.denominationId,
+                fromContainerId: currency.containerId,
+                toContainerId,
+                amount
+              })
+            }
+            onAdjust={(amount) =>
+              submit({
+                kind: 'CURRENCY_ADJUST',
+                campaignCurrencySystemId:
+                  currency.kind === 'RULESET' ? null : currency.campaignCurrencySystemId,
+                denominationId: currency.denominationId,
+                containerId: currency.containerId,
+                amount
+              })
+            }
+          />
+        ))}
       </div>
 
       <Select
@@ -444,7 +422,7 @@ function PartyCurrencyActions({
   onMove,
   onAdjust
 }: {
-  currency: QualifiedCurrency
+  currency: CurrencyDisplayRow
   disabled: boolean
   containers: InventoryDto['items']
   onMove: (toContainerId: string | null, amount: number) => void
