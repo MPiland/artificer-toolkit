@@ -9687,7 +9687,7 @@
             },
             {
               "id": "SPELLS-20.T4d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Half speed inside a zone, on SPELLS-4.T1b's zone movementCostMultiplier (D154): Spirit Guardians authors multiplier 2 for affected creatures only (the movement cost honors unaffected actors, the source and suppression), zone movement costs are projected in the session state, and the web movement preview uses them. Proved on Spirit Guardians. The same zone movement-cost path authors the difficult terrain of Web, Black Tentacles, Sleet Storm and Entangle (D156).",
               "wsjf": {
@@ -9696,7 +9696,8 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["SPELLS-20.T4b2b2"]
-              }
+              },
+              "note": "Green: ci/spells-20-t4d 3ecaaf4da Tests 39146054596, Live 39146056406; batch ci/merge-m121 2e060aa68 green (Tests 39147575910, Live 39147575898); phase merge 66441dfe8."
             },
             {
               "closes": ["SPELLS-20.1"],

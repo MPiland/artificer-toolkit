@@ -97,6 +97,8 @@ export const sleetStorm: SpellAuthored = {
                       'ENTER_OR_PASS_THROUGH' as const,
                       'START_TURN_IN_SPACE' as const
                     ],
+                    // The area is difficult terrain.
+                    movementCostMultiplier: 2,
                     maxApplicationsPerTurn: 1,
                     behaviors: [
                       {

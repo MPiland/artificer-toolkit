@@ -1222,7 +1222,8 @@ function renderWindow(
       waitingOn: null,
       turnMovement: [],
       halfSpeedFields: [],
-      auras: []
+      auras: [],
+      movementCostZones: []
     })
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
@@ -1261,7 +1262,8 @@ function renderWindow(
     waitingOn: null,
     turnMovement: [],
     halfSpeedFields: [],
-    auras: []
+    auras: [],
+    movementCostZones: []
   })
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   queryClient.setQueryData(rollPreferencesQuery.queryKey, {
@@ -1281,7 +1283,8 @@ function renderWindow(
           waitingOn: null,
           turnMovement: [],
           halfSpeedFields: [],
-          auras: []
+          auras: [],
+          movementCostZones: []
         }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header

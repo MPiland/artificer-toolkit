@@ -108,6 +108,7 @@ function toSpatialInstance(
     turnTriggers: effect.placement.turnTriggers,
     movementKinds: effect.placement.movementKinds,
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
+    movementCostMultiplier: effect.placement.movementCostMultiplier,
     unaffectedActorIds: effect.placement.unaffectedActorIds,
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
     requiresFullyWithin: effect.placement.requiresFullyWithin,
