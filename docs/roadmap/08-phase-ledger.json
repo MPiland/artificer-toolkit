@@ -9231,7 +9231,7 @@
             },
             {
               "id": "SPELLS-20.T6c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9241,7 +9241,7 @@
                 "after": ["SPELLS-20.T6b"]
               },
               "text": "Balor Fire Aura data: author it as a T6b passive zone (5 ft, 3d6 fire, START_OF_SOURCE_TURN, no save), delete CLOSED_RULE CREATURE_BALOR_FIRE_AURA, add the ADR 0038 authoring-parity proof and a room journey (the Balor's turn starts and a Wolf beside it takes 3d6 fire).",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Proofs: packages/authoring/src/nodeRuntime/creatureZoneAuthoringParity.test.ts, packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts, apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts (Balor START journey), packages/source-data/src/srd/zoneAttachment.test.ts. Green: ci/spells-20-t6c f60198f2b Tests 39096997496, Live 39095790702 (2ee29a29b); phase merge da59db5d1 (backstop ci/merge-m97 Tests 39098235652). CLOSED_RULE CREATURE_BALOR_FIRE_AURA deleted."
             },
             {
               "id": "SPELLS-20.T6d1",
