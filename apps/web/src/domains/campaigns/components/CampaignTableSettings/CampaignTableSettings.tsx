@@ -24,6 +24,7 @@ import {
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { TableSafetyPracticeDto } from '@artificer-toolkit/schema/api/tableSafety'
 import { useMutation as useConvexMutation } from 'convex/react'
+import { isCampaignTableSettingsEditable } from '../../campaignAccess'
 import * as styles from './CampaignTableSettings.css'
 
 const practices: ReadonlyArray<{
@@ -296,10 +297,4 @@ function PolicyField({
 function toDraft(settings: CampaignPlaySettingsDto): Draft {
   const { campaignId: _campaignId, updatedAt: _updatedAt, version: _version, ...draft } = settings
   return draft
-}
-
-export function isCampaignTableSettingsEditable(
-  campaign: Pick<CampaignDetailDto, 'role' | 'status'>
-) {
-  return campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
 }

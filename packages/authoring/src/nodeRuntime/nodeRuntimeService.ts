@@ -16,7 +16,7 @@ import type {
   ArrayGroupPresentation,
   InlineFilter,
   NodeArrayAuthoringMeta,
-  NodeEntry,
+  RuntimeNodeEntry,
   NodeSelectSource
 } from '@artificer-toolkit/shared/maps'
 import {
@@ -381,7 +381,7 @@ function setValueAtPathSegment(source: unknown, path: RuntimePath, value: unknow
 
 async function resolveSectionNodes(
   db: NodeRuntimeReader,
-  section: SectionedNodeGroup<Record<string, unknown>>,
+  section: SectionedNodeGroup,
   scope: NodeRuntimeScope,
   clearPaths: RuntimePath[]
 ): Promise<NodeRuntimeNodeDto[]> {
@@ -397,7 +397,7 @@ async function resolveSectionNodes(
 async function resolveNode(
   db: NodeRuntimeReader,
   id: string,
-  node: NodeEntry<Record<string, unknown>>,
+  node: RuntimeNodeEntry,
   scope: NodeRuntimeScope,
   clearPaths: RuntimePath[]
 ): Promise<NodeRuntimeNodeDto> {
@@ -526,13 +526,11 @@ function toScope(request: NodeRuntimeResolveRequestDto): NodeRuntimeScope {
   }
 }
 
-function resolveRuntimeSteps(
-  nodeMap: ReturnType<typeof getRuntimeNodeMap>
-): SteppedNodeGroup<Record<string, unknown>>[] {
+function resolveRuntimeSteps(nodeMap: ReturnType<typeof getRuntimeNodeMap>): SteppedNodeGroup[] {
   const steps = resolveNodeMapSteps(nodeMap)
   if (steps.length > 0) return steps
 
-  const defaultSection: SectionedNodeGroup<Record<string, unknown>> = {
+  const defaultSection: SectionedNodeGroup = {
     id: 'default',
     label: 'Details',
     order: 10,

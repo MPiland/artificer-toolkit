@@ -8,26 +8,19 @@ import type {
 type RestrictionCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 type NormalizeProficiencyTarget = (kind: string, targetId: string) => string
 
-function strings(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : []
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
 function baseCondition(
-  condition: { readonly id: string; readonly constraint: RestrictionCondition['constraint'] },
+  condition: {
+    readonly id: string
+    readonly constraint: RestrictionCondition['constraint']
+    readonly authoringModeKind?: string
+  },
   kind: RestrictionCondition['kind']
 ): RestrictionCondition {
-  const value = condition as unknown as Record<string, unknown>
   return {
     conditionId: condition.id,
     constraint: condition.constraint,
     kind,
-    mode: value.authoringModeKind === 'SELECTED' ? 'SELECTED' : 'ALL',
+    mode: condition.authoringModeKind === 'SELECTED' ? 'SELECTED' : 'ALL',
     abilityId: null,
     classIds: [],
     requiredIds: [],
@@ -176,17 +169,9 @@ function normalizeCondition(
         requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.sizes] : []
       }
     case 'SKILL_SCORE':
+    case 'SAVING_THROW_ABILITY':
     case 'SAVING_THROW_ABILITY_BONUS':
       return baseCondition(condition, 'UNAVAILABLE')
-    default: {
-      const value = condition as unknown as Record<string, unknown>
-      return {
-        ...baseCondition(condition, 'UNAVAILABLE'),
-        requiredIds: strings(value.requiredIds),
-        min: numberOrNull(value.min),
-        max: numberOrNull(value.max)
-      }
-    }
   }
 }
 

@@ -14,6 +14,8 @@ export * from './portableContent.js'
 export type {
   NodeMap,
   NodeEntry,
+  RuntimeNodeMap,
+  RuntimeNodeEntry,
   NodeId,
   NodeSectionSpec,
   NodeStepSpec,

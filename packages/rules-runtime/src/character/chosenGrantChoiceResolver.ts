@@ -265,10 +265,10 @@ export function getChosenGrantWitnessQuestions(
 
 function flattenOwnerGrants(owner: CharacterChosenGrantOwner): ChoiceGrantShape[] {
   return [
-    ...(owner.grants.proficiencies ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
-    ...(owner.grants.spells ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
-    ...(owner.grants.feats ?? []).map((grant) => grant as unknown as ChoiceGrantShape),
-    ...(owner.grants.senses ?? []).map((grant) => grant as unknown as ChoiceGrantShape)
+    ...(owner.grants.proficiencies ?? []),
+    ...(owner.grants.spells ?? []),
+    ...(owner.grants.feats ?? []),
+    ...(owner.grants.senses ?? [])
   ]
 }
 
@@ -322,7 +322,7 @@ function getFixedProficiencyRanks(
   for (const owner of owners) {
     for (const grant of owner.grants.proficiencies ?? []) {
       if (grant.selectionKind !== AUTHORING_SELECTION_KIND.GRANTED) continue
-      const shape = grant as unknown as ChoiceGrantShape
+      const shape: ChoiceGrantShape = grant
       for (const option of getProficiencyOptions(shape, shape, registry)) {
         const key = `${shape.proficiencyKind}:${option.id}`
         addProficiencyLevel(levelsByTarget, key, shape.level, owner.sourceLabel)
