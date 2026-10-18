@@ -28,6 +28,7 @@ type Condition = NonNullable<Context['conditions']>[number]
 type RollModeCondition = Extract<Condition, { predicateCode: 'ATTACK_ROLL_MODE' }>
 type CreatureTypeCondition = Extract<Condition, { predicateCode: 'CREATURE_TYPE' }>
 type EnemyNearCondition = Extract<Condition, { predicateCode: 'ENEMY_NEAR_TARGET' }>
+type DamageTypeCondition = Extract<Condition, { predicateCode: 'DAMAGE_TYPE' }>
 type CircumstanceCondition = RollModeCondition | EnemyNearCondition | CreatureTypeCondition
 
 function isEnemyNearCondition(condition: Condition): condition is EnemyNearCondition {
@@ -36,6 +37,32 @@ function isEnemyNearCondition(condition: Condition): condition is EnemyNearCondi
 
 function isCreatureTypeCondition(condition: Condition): condition is CreatureTypeCondition {
   return condition.kind === 'PREDICATE' && condition.predicateCode === 'CREATURE_TYPE'
+}
+
+/** A check on the damage the attack deals, settled with the weapon's own checks. */
+function isDamageTypeCondition(
+  context: Context,
+  condition: Condition
+): condition is DamageTypeCondition {
+  return (
+    context.subject === 'EQUIPMENT' &&
+    condition.kind === 'PREDICATE' &&
+    condition.predicateCode === 'DAMAGE_TYPE'
+  )
+}
+
+/** Whether every damage-type check of a group holds for the damage types the hit deals. */
+function damageTypeChecksMet(group: Group, dealtDamageTypeIds: ReadonlySet<string>): boolean {
+  return group.contexts.every((context) =>
+    (context.conditions ?? []).every((condition) => {
+      if (!isDamageTypeCondition(context, condition)) return true
+      const matches =
+        condition.authoringModeKind === 'ALL'
+          ? dealtDamageTypeIds.size > 0
+          : condition.damageTypeIds.some((id) => dealtDamageTypeIds.has(id))
+      return condition.constraint === 'INCLUDE' ? matches : !matches
+    })
+  )
 }
 
 /**
@@ -53,11 +80,15 @@ function isCircumstanceCondition(
   )
 }
 
-/** The context without its circumstance checks; a target context left with none no longer constrains the weapon. */
+/**
+ * The context without its circumstance and damage-type checks; a target context left with none no
+ * longer constrains the weapon.
+ */
 function withoutCircumstanceConditions(context: Context): Context | null {
   const { conditions, ...rest } = context
   const kept = (conditions ?? []).filter(
-    (condition) => !isCircumstanceCondition(context, condition)
+    (condition) =>
+      !isCircumstanceCondition(context, condition) && !isDamageTypeCondition(context, condition)
   )
   if (kept.length === 0 && context.subject === 'CREATURE') return null
   return (kept.length > 0 ? { ...rest, conditions: kept } : rest) as Context
@@ -81,8 +112,8 @@ const WEAPON_CHECK_KINDS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Resolves the weapon checks of an attack's restrictions against the weapon it is made with,
- * leaving only the circumstance checks (roll mode, nearby enemies, target creature type), which are
+ * Resolves the weapon checks of an attack's restrictions against the weapon it is made with, and
+ * its damage-type checks against the damage types its hit deals, leaving only the circumstance checks (roll mode, nearby enemies, target creature type), which are
  * decided when the attack rolls. A group whose weapon checks fail can never hold and is dropped; a
  * group with nothing left to decide always holds, as does a facet without groups. Returns `null`
  * when the restrictions can never be met and `undefined` when they always are. Only the attacking
@@ -91,11 +122,13 @@ const WEAPON_CHECK_KINDS: ReadonlySet<string> = new Set([
  */
 function reduceRestrictions(
   restrictions: Restrictions,
-  item: Dnd5eAttackingItem | null
+  item: Dnd5eAttackingItem | null,
+  dealtDamageTypeIds: ReadonlySet<string>
 ): Restrictions | null | undefined {
   if (restrictions.groups.length === 0) return undefined
   const groups: Group[] = []
   for (const group of restrictions.groups) {
+    if (!damageTypeChecksMet(group, dealtDamageTypeIds)) continue
     const weaponContexts = group.contexts.flatMap(
       (context) => withoutCircumstanceConditions(context) ?? []
     )
@@ -122,18 +155,32 @@ function reduceRestrictions(
 }
 
 /**
- * Settles every path restriction of a compiled attack Effect against the weapon it is made with,
- * so only the circumstance checks remain for {@link attackRestrictionsMet}. An entry that can never
- * be owed is removed.
+ * Settles every path restriction of a compiled attack Effect against the weapon it is made with
+ * and the damage its hit always deals (its `ON_HIT` damage that no restriction, use limit or player
+ * choice withholds), so only the circumstance checks remain for {@link attackRestrictionsMet}. An
+ * entry that can never be owed is removed.
  */
 export function reduceEffectRestrictions<TEffect extends CompiledEffectGroup>(
   effect: TEffect,
   item: Dnd5eAttackingItem | null
 ): TEffect {
   if (!effect.entries.some((entry) => 'restrictions' in entry && entry.restrictions)) return effect
+  const dealtDamageTypeIds = new Set(
+    effect.entries.flatMap((entry) =>
+      'outcome' in entry &&
+      entry.pathCode === 'ON_HIT' &&
+      entry.outcome.effectKind === 'DAMAGE' &&
+      entry.outcome.damageTypeId !== undefined &&
+      !entry.restrictions &&
+      !entry.usage &&
+      !entry.optionalRider
+        ? [entry.outcome.damageTypeId]
+        : []
+    )
+  )
   const entries = effect.entries.flatMap((entry) => {
     if (!('restrictions' in entry) || !entry.restrictions) return [entry]
-    const restrictions = reduceRestrictions(entry.restrictions, item)
+    const restrictions = reduceRestrictions(entry.restrictions, item, dealtDamageTypeIds)
     if (restrictions === null) return []
     const { restrictions: _settled, ...unrestricted } = entry
     return [restrictions === undefined ? unrestricted : { ...unrestricted, restrictions }]

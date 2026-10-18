@@ -129,9 +129,10 @@ export const airElemental: CreatureAuthored = {
                   {
                     id: S.actionId(13, 109),
                     effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
-                    direction: 'CHOICE',
+                    // "Flung up to 20 feet away ... in a random direction": the mover picks.
+                    direction: 'ANY',
                     actionEconomy: 'NONE',
-                    distanceMode: 'FIXED_DISTANCE',
+                    distanceMode: 'UP_TO_DISTANCE',
                     amount: 20,
                     unit: S.MEASUREMENT_UNIT_CODE.FEET
                   },
