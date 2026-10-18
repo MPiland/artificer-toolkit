@@ -12490,7 +12490,7 @@
         {
           "id": "QUALITY-3",
           "title": "Lint in CI stops double casts and component-file exports returning",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -12501,16 +12501,21 @@
           "acs": [
             {
               "id": "QUALITY-3.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user. Narrowed 2026-10-17 by the user (scope cut for time to market): knip, package boundaries, the root-barrel ban and the large-file flag moved post-launch.",
-              "text": "Lint runs as a failing CI job at zero warnings and fails on double casts through unknown outside tests and on non-component exports from component files, with each rule's existing violations fixed."
+              "text": "Lint runs as a failing CI job at zero warnings and fails on double casts through unknown outside tests and on non-component exports from component files, with each rule's existing violations fixed.",
+              "proof": [
+                ".github/workflows/tests.yml lint job (yarn lint: oxlint --deny-warnings, lint:schemas, lint:casts).",
+                "scripts/doubleCasts.test.mjs (double-cast detector and shrink-only allowlist).",
+                "Green: ci/quality-3 e4ac7a36e Tests 39079954816, Live 39079954759; phase merge 70bc4f677 (batch ci/merge-m89, Tests 39082387558, Live 39082387550; landed as 007f00a37)."
+              ]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-3.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-3.1"],
               "wsjf": {
                 "bv": 3,
@@ -12518,9 +12523,12 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "A lint job in tests.yml running yarn lint (fails the run); fix the 6 no-unused-vars errors on the tip; ban double casts through unknown outside tests (~49 sites fixed by typing them properly) and non-component exports from component files (10 sites, moved to non-component files). Measured 2026-10-17 in slice-quality-3.md."
+              "text": "A lint job in tests.yml running yarn lint (fails the run); fix the 6 no-unused-vars errors on the tip; ban double casts through unknown outside tests (~49 sites fixed by typing them properly) and non-component exports from component files (10 sites, moved to non-component files). Measured 2026-10-17 in slice-quality-3.md.",
+              "note": "phase merge 70bc4f677 (batch ci/merge-m89, Tests 39082387558, Live 39082387550; landed as 007f00a37). Allowlist: 19 double casts in scripts/doubleCasts.mjs, shrink-only."
             }
-          ]
+          ],
+          "journeyTests": ["scripts/doubleCasts.test.mjs"],
+          "journeyStatus": "verified"
         }
       ]
     },
