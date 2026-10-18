@@ -6139,6 +6139,19 @@
               "closes": ["ATTACK-7.4"]
             },
             {
+              "id": "ATTACK-7.T4b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["ATTACK-7.T4"]
+              },
+              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control."
+            },
+            {
               "id": "ATTACK-7.T5a",
               "status": "DONE",
               "closes": ["ATTACK-7.7"],
