@@ -456,6 +456,7 @@ export async function planNativeLiveEncounterAction(
     }
   }
   const targetActorId = actionTargetActorId(command.target)
+  const { choiceOptionId } = command.target
   const selectedActors = actors.filter(
     (actor) => actor.id === command.actorId || actor.id === targetActorId
   )
@@ -519,6 +520,7 @@ export async function planNativeLiveEncounterAction(
       target: actors.find((actor) => actor.id === targetActorId)!,
       actors,
       actionId: command.actionId,
+      choiceOptionId,
       wieldConflictAcceptance: {
         kind: 'PROMPTED',
         accepted: command.acceptedWieldConflict

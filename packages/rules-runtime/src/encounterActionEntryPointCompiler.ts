@@ -6,6 +6,7 @@ import {
   CompiledActionTargetPolicy
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { characterResourcePoolIdentitySchema } from '@artificer-toolkit/schema/shared/characterResourceIdentity'
 
@@ -23,6 +24,7 @@ import {
   resolveAreaContentsTargeting,
   resolveChosenCreaturesTargeting
 } from './encounterAreaAction.js'
+import { castChoiceOptions } from './encounterCastChoice.js'
 import { placedSpaceManifest } from './encounterZonePlacement.js'
 
 class CharacterActionEntryPointIntegrityError extends Error {
@@ -188,6 +190,46 @@ function assertDescriptorAlignment(input: {
   }
 }
 
+/** The plans that run an action: its execution plan and its at most one active-effect plan. */
+function compileActionPlans(
+  adapter: CharacterRuleActionSystemAdapter,
+  descriptor: CharacterActionCapabilityDescriptor
+) {
+  const source = buildCompiledActionCompilerSource(descriptor)
+  const executionPlan = adapter.compileExecutionPlan?.({
+    action: descriptor,
+    compilerSource: source
+  }) ?? {
+    kind: 'SINGLE_GRAPH' as const,
+    published: adapter.compile({ action: descriptor })
+  }
+  const published =
+    executionPlan.kind === 'SINGLE_GRAPH' ? executionPlan.published : executionPlan.test.published
+  const activeEffectPlans = adapter.activeEffectPlans?.({ action: descriptor, published }) ?? []
+  if (activeEffectPlans.length > 1) {
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'Character actions support at most one active-effect plan.'
+    )
+  }
+  // A grant freezes its own graph and reads only the TEST's hit path, a condition's repeated
+  // save is its own graph that reads only the cast's save DC, and a creature form is gated on
+  // the TEST's failed-save path, so only those join the two-phase execution.
+  if (
+    executionPlan.kind === 'TEST_OUTCOME' &&
+    activeEffectPlans.some(
+      (plan) =>
+        !plan.modifierGrantContribution &&
+        !plan.conditionContributions?.length &&
+        !plan.creatureFormContribution
+    )
+  ) {
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'TEST/OUTCOME actions combine only with grant, repeated-save or creature-form active-effect plans.'
+    )
+  }
+  return { activeEffectPlan: activeEffectPlans[0] ?? null, executionPlan }
+}
+
 export function compileCharacterActionEntryPoints(
   input: {
     gameSystemId: string
@@ -230,6 +272,7 @@ export function compileCharacterActionEntryPoints(
               resourceBinding: compiledResourceBinding(candidate),
               activeEffectPlan: null,
               zonePlacement,
+              choice: null,
               executionPlan: {
                 kind: 'SINGLE_GRAPH',
                 published: ('options' in zonePlacement
@@ -240,41 +283,28 @@ export function compileCharacterActionEntryPoints(
             }
           }
         }
-        const source = buildCompiledActionCompilerSource(descriptor)
-        const executionPlan = adapter.compileExecutionPlan?.({
-          action: descriptor,
-          compilerSource: source
-        }) ?? {
-          kind: 'SINGLE_GRAPH' as const,
-          published: adapter.compile({ action: descriptor })
-        }
-        const published =
-          executionPlan.kind === 'SINGLE_GRAPH'
-            ? executionPlan.published
-            : executionPlan.test.published
-        const activeEffectPlans =
-          adapter.activeEffectPlans?.({ action: descriptor, published }) ?? []
-        if (activeEffectPlans.length > 1) {
-          throw new CharacterRuleActionUnsupportedCompilationError(
-            'Character actions support at most one active-effect plan.'
-          )
-        }
-        // A grant freezes its own graph and reads only the TEST's hit path, a condition's repeated
-        // save is its own graph that reads only the cast's save DC, and a creature form is gated on
-        // the TEST's failed-save path, so only those join the two-phase execution.
+        const options = castChoiceOptions(descriptor.compiledEffect)?.map((option) => ({
+          optionId: option.optionId,
+          label: option.label,
+          ...compileActionPlans(adapter, { ...descriptor, compiledEffect: option.compiledEffect })
+        }))
+        // The pick is made at cast, after the test and Concentration are settled (D148).
         if (
-          executionPlan.kind === 'TEST_OUTCOME' &&
-          activeEffectPlans.some(
-            (plan) =>
-              !plan.modifierGrantContribution &&
-              !plan.conditionContributions?.length &&
-              !plan.creatureFormContribution
-          )
-        ) {
+          options &&
+          new Set(
+            options.map(({ activeEffectPlan, executionPlan }) =>
+              checksumCanonicalJson([
+                executionPlan.kind === 'TEST_OUTCOME' ? executionPlan.test : null,
+                activeEffectPlan?.maintenance ?? null
+              ])
+            )
+          ).size !== 1
+        )
           throw new CharacterRuleActionUnsupportedCompilationError(
-            'TEST/OUTCOME actions combine only with grant, repeated-save or creature-form active-effect plans.'
+            'The options a cast picks between share their test and their Concentration.'
           )
-        }
+        const { activeEffectPlan, executionPlan } =
+          options?.[0] ?? compileActionPlans(adapter, descriptor)
         return {
           schemaVersion: 4,
           kind: 'CHARACTER_ACTION',
@@ -284,8 +314,9 @@ export function compileCharacterActionEntryPoints(
           compilation: {
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),
-            activeEffectPlan: activeEffectPlans[0] ?? null,
+            activeEffectPlan,
             zonePlacement: null,
+            choice: options ? { options } : null,
             executionPlan
           }
         }

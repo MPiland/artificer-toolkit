@@ -23,6 +23,7 @@ import {
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { encounterActionChoiceTarget } from '../encounterAreaAction.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
@@ -54,6 +55,8 @@ const CHARM_PERSON = spell('Charm Person')
 const SLEEP = spell('Sleep')
 const HYPNOTIC_PATTERN = spell('Hypnotic Pattern')
 const FEAR = spell('Fear')
+const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
+const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -313,6 +316,8 @@ const authoredById = new Map(
     INVISIBILITY,
     CHARM_PERSON,
     FEAR,
+    PROTECTION_FROM_ENERGY,
+    BLINDNESS_DEAFNESS,
     WATCHFUL_MIASMA,
     GAPPED_HEAL,
     LATE_HEAL
@@ -336,7 +341,7 @@ function build(
 }
 
 /** The compiled entry the Encounter would run for the spell's cast, or null when it stays manual. */
-function compiledCast(authored: SpellAuthored, castLevel = authored.level) {
+function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) {
   const built = build([candidate(authored, castLevel)])
   const compiled = compileCharacterActionEntryPoints({
     gameSystemId: SRD_SYSTEM_ID,
@@ -353,9 +358,13 @@ function compiledCast(authored: SpellAuthored, castLevel = authored.level) {
   return entry?.kind === 'CHARACTER_ACTION' &&
     entry.schemaVersion === 4 &&
     entry.compilation.kind === 'COMPILED'
-    ? entry.compilation
+    ? entry
     : null
 }
+
+/** The compiled plans the Encounter would run for the spell's cast, or null when it stays manual. */
+const compiledCast = (authored: SpellAuthored, castLevel = authored.level) =>
+  compiledCastEntry(authored, castLevel)?.compilation ?? null
 
 describe('the cast choices an Encounter offers a Character', () => {
   const levels = [3, 4].map((level) => candidate(FIREBALL, level))
@@ -829,6 +838,75 @@ describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', ()
         ),
         countedByTurnEffects: true
       }
+    })
+  })
+})
+
+describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', () => {
+  const damageTypeId = (code: string) => SRD_DAMAGE_TYPES.find((entry) => entry.code === code)?.id
+
+  it('compiles Protection from Energy to one resistance grant per damage type, each under the cast’s Concentration', () => {
+    const options = compiledCast(PROTECTION_FROM_ENERGY)?.choice?.options ?? []
+
+    expect(options.map(({ label }) => label)).toEqual([
+      'Acid',
+      'Cold',
+      'Fire',
+      'Lightning',
+      'Thunder'
+    ])
+    for (const [index, code] of ['ACID', 'COLD', 'FIRE', 'LIGHTNING', 'THUNDER'].entries()) {
+      expect(options[index]?.activeEffectPlan, code).toMatchObject({
+        modifierGrantContribution: {
+          modifiers: [
+            { valueDomainCode: 'DAMAGE_RESISTANCE', payload: { damageTypeId: damageTypeId(code) } }
+          ]
+        },
+        maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+      })
+    }
+  })
+
+  it('runs the first option at the top level and offers every option on the creature it touches', () => {
+    const entry = compiledCastEntry(PROTECTION_FROM_ENERGY)
+    const options = entry?.compilation.choice?.options ?? []
+
+    expect(entry?.compilation.activeEffectPlan).toEqual(options[0]?.activeEffectPlan)
+    expect(entry?.compilation.executionPlan).toEqual(options[0]?.executionPlan)
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, null, entry?.compilation.choice)
+    ).toMatchObject({
+      kind: 'ACTOR',
+      choiceOptions: options.map(({ optionId, label }) => ({ id: optionId, label }))
+    })
+  })
+
+  it('compiles Blindness/Deafness to the picked condition on a failed save, repeated at the end of each of its turns', () => {
+    const options = compiledCast(BLINDNESS_DEAFNESS)?.choice?.options ?? []
+
+    expect(options.map(({ label }) => label)).toEqual(['Blindness', 'Deafness'])
+    for (const [index, code] of ['BLINDED', 'DEAFENED'].entries()) {
+      expect(options[index]?.executionPlan.kind, code).toBe('TEST_OUTCOME')
+      expect(options[index]?.activeEffectPlan, code).toMatchObject({
+        recurrenceStage: 'END_OF_TURN',
+        initialRemaining: 10,
+        conditionContributions: [{ conditionId: conditionId(code) }],
+        maintenance: null
+      })
+    }
+  })
+
+  it('reaches one more creature for each slot level above 2nd, each offered both options', () => {
+    const second = compiledCastEntry(BLINDNESS_DEAFNESS, 2)
+    const third = compiledCastEntry(BLINDNESS_DEAFNESS, 3)
+
+    expect(second?.targetPolicy?.targeting).toMatchObject({ maxTargets: 1 })
+    expect(
+      encounterActionChoiceTarget(third?.targetPolicy, null, null, third?.compilation.choice)
+    ).toMatchObject({
+      kind: 'ACTORS',
+      maxTargets: 2,
+      choiceOptions: [{ label: 'Blindness' }, { label: 'Deafness' }]
     })
   })
 })

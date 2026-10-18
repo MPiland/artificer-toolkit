@@ -248,6 +248,9 @@ export async function readEncounterActionChoices(
               : undefined,
             entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
               ? entry.compilation.zonePlacement
+              : undefined,
+            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
+              ? entry.compilation.choice
               : undefined
           ),
           warnings: [

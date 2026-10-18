@@ -124,9 +124,16 @@ const unaffectedActorIdsSchema = lazySchema(() =>
 
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
+    z.strictObject({
+      kind: z.literal('ACTOR'),
+      actorId: uuidSchema,
+      /** The option the caster picks at cast, for an action that offers several (D148). */
+      choiceOptionId: z.optional(postgresUuidSchema)
+    }),
     z.strictObject({
       kind: z.literal('ACTORS'),
+      /** The option the caster picks at cast, for an action that offers several (D148). */
+      choiceOptionId: z.optional(postgresUuidSchema),
       /** One entry per creature, or per dart for an action that allows repeated targets. */
       actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       /** The form the creatures take, for an action that authors forms (Giant Insect); absent otherwise. */
@@ -176,6 +183,11 @@ export type AreaActionTargetDto = Exclude<
 >
 
 /** The creature a single-target action aims at; an area or a creature list names none. */
+/** The option or zone the caster picked at cast (D140, D148); a directed area takes none. */
+export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): string | undefined {
+  return 'choiceOptionId' in target ? target.choiceOptionId : undefined
+}
+
 export function actionTargetActorId(target: ResolveEncounterActionTargetDto): string {
   if (target.kind !== 'ACTOR') throw new Error('Only a single-target action names one creature.')
   return target.actorId
