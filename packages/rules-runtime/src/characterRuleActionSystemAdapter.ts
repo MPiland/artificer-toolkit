@@ -61,6 +61,11 @@ export interface CharacterRuleActionActiveEffectPlan {
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /**
+   * Whose turn boundary counts the effect down: its holder's (the default) or its source's. The
+   * grant tick planner counts a source-anchored effect on the source's turns.
+   */
+  tickAnchor?: 'HOLDER' | 'SOURCE'
+  /**
    * The source-bound conditions this effect owns together (Hypnotic Pattern: charmed and
    * incapacitated). The aggregate records each pre-existing baseline when it creates the
    * active-effect row; adapters do not infer condition ownership from labels or later mutable state.
@@ -86,8 +91,6 @@ export interface CharacterRuleActionActiveEffectPlan {
     applyGrantOutcomeId: string
     modifiers: readonly CharacterGrantFoldModifier[]
     senses: readonly CharacterGrantFoldSense[]
-    /** Whose turn boundary counts the grant down: its holder's or its source's. */
-    tickAnchor: 'HOLDER' | 'SOURCE'
     /** Whether the duration already counts the turn the grant is made in ("for the turn"). */
     includesCurrentTurn: boolean
     /**

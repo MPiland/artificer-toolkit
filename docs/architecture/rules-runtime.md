@@ -1388,12 +1388,14 @@ Scene geometry, so every actor the policy allows is offered.
 
 **Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
 effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
-which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as the
-contribution's `tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as its
+`tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
 anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
 turn" outlasts the current one. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
-never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every grant
-anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
+never selects them. A timed condition with a `SOURCE` turn anchor (Color Spray's blindness, "until the end of
+the caster's next turn") is stored and counted the same way, extra turn included; the kernel counts other timed
+conditions on the holder's turns. `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
+such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the

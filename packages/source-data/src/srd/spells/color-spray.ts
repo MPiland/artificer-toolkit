@@ -3,9 +3,12 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
+  SCALING_SOURCE,
   SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -15,7 +18,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const colorSpray: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.COLOR_SPRAY,
@@ -53,7 +56,23 @@ export const colorSpray: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          hitPointPool: { diceConfig: '6d10' },
+          // A blinded creature is one that can't see.
+          hitPointPoolIgnoredConditionIds: [
+            conditionTypeId('UNCONSCIOUS'),
+            conditionTypeId('BLINDED')
+          ],
+          hitPointPoolScaling: {
+            scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+            breakpoints: Array.from({ length: 8 }, (_, index) => ({
+              id: spellChildId(SPELL_IDS.COLOR_SPRAY, 0x215, index + 1),
+              level: index + 2,
+              order: index + 1,
+              value: { diceConfig: `${8 + index * 2}d10` }
+            }))
+          }
         }
       },
       paths: [
@@ -67,11 +86,20 @@ export const colorSpray: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.COLOR_SPRAY, 0x213, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            // The spell lasts 1 round: until the end of the caster's next turn.
+            duration: {
+              id: spellChildId(SPELL_IDS.COLOR_SPRAY, 0x214, 1),
+              durationKind: DURATION_KIND.ROUND,
+              amount: 1
+            },
+            lifecycle: {
+              turnAnchor: { actor: 'SOURCE' as const, boundary: 'END_OF_TURN' as const }
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COLOR_SPRAY, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'COLOR_SPRAY' as const
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('BLINDED')
               }
             ]
           }

@@ -753,7 +753,10 @@ function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
   caught: readonly Caught[],
   pool: number,
   targeting: CompiledActionTargetPolicy['targeting'],
-  movementTargets: ReadonlyMap<string, { state: { current: number } }>
+  movementTargets: ReadonlyMap<
+    string,
+    { state: { current: number; conditions: readonly string[] } }
+  >
 ) {
   const covered = new Set(
     selectHitPointPoolTargets(
@@ -761,7 +764,8 @@ function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
       caught.map(({ actor }) => ({
         actorId: actor.id,
         currentHitPoints: movementTargets.get(actor.id)!.state.current,
-        creatureTypeId: snapshotCreatureTypeId(actor)
+        creatureTypeId: snapshotCreatureTypeId(actor),
+        conditionIds: movementTargets.get(actor.id)!.state.conditions
       })),
       targeting
     )
