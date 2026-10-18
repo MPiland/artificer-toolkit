@@ -10757,7 +10757,7 @@
             },
             {
               "id": "SPELLS-31.T3a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10767,7 +10767,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "Class A: Fast Movement, Divine Strike, Purity of Body, Magical Secrets, with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Stunning Strike moved to T5r. (Fighter Extra Attack 11th/20th steps were already authored; T1 misread them.)",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Green: ci/spells-31-t3a 96c9eecd4 Tests 39160213728, Live 39160213758; merge 4e5063e4c (m131). The merge title misnames the features; the scope is Fast Movement, Divine Strike, Purity of Body and Magical Secrets."
             },
             {
               "id": "SPELLS-31.T3b",
