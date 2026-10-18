@@ -20,6 +20,7 @@ describe('hand occupancy', () => {
       mainHandId: null,
       offHandId: null,
       offHandBlocked: false,
+      emptyHands: 2,
       freeHand: true,
       conflicts: []
     })
@@ -29,12 +30,14 @@ describe('hand occupancy', () => {
     expect(resolveHandOccupancy([item('sword', 'MAIN_HAND')])).toMatchObject({
       mainHandId: 'sword',
       offHandId: null,
+      emptyHands: 1,
       freeHand: true,
       conflicts: []
     })
     expect(resolveHandOccupancy([item('shield', 'OFF_HAND')])).toMatchObject({
       mainHandId: null,
       offHandId: 'shield',
+      emptyHands: 1,
       freeHand: true,
       conflicts: []
     })
@@ -47,6 +50,7 @@ describe('hand occupancy', () => {
       mainHandId: 'sword',
       offHandId: 'shield',
       offHandBlocked: false,
+      emptyHands: 0,
       freeHand: false,
       conflicts: []
     })
@@ -57,6 +61,7 @@ describe('hand occupancy', () => {
       mainHandId: 'greatclub',
       offHandId: null,
       offHandBlocked: true,
+      emptyHands: 0,
       freeHand: false,
       conflicts: []
     })

@@ -186,7 +186,8 @@ const frighteningBite = withBite(biteWolf('SAVE'), (bite) => ({
 }))
 
 /** An attack (+10) whose hit binds the target to the attacker for a Medium-sized target. */
-const bindingBite = withBite(biteWolf('ATTACK'), (bite) => ({
+// A hold seals its source's reach (D152): the Bite reaches 5 feet.
+const bindingBite = withBite(biteWolf('ATTACK', { reachFeet: 5 }), (bite) => ({
   ...bite,
   rollDefinitions: bite.rollDefinitions?.map((roll) => ({
     ...roll,

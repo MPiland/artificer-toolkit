@@ -103,6 +103,7 @@ function evaluate(input: {
   /** `false` evaluates the actor as a Creature, which has no Character policy output. */
   character?: boolean
   activeEffects?: ActiveRuleEffectRecord[]
+  replacesAttack?: boolean
 }) {
   const { state, movementTargets } = creatureEncounter([input.actor], input.automationMode)
   const creatureTarget = movementTargets.get(input.actor.id)
@@ -119,6 +120,7 @@ function evaluate(input: {
     state,
     activation: input.activation ?? ACTION,
     triggerCode: input.triggerCode ?? MELEE,
+    replacesAttack: input.replacesAttack,
     target,
     loadTarget: async () => target,
     definitions: srdDefinitions
@@ -186,6 +188,40 @@ describe('an attack in the Attack action', () => {
 
   it('tracks nothing in Manual mode', async () => {
     const result = await evaluate({ actor: actorWith({}), automationMode: 'MANUAL' })
+    expect(result.attackAction).toBeNull()
+    expect(result.slot).toBeNull()
+  })
+})
+
+describe('an action that takes the place of one attack (D152)', () => {
+  it('opens the Attack action with the Action when none is open', async () => {
+    const result = await evaluate({
+      actor: actorWith({}),
+      triggerCode: 'ACTIVATED',
+      replacesAttack: true
+    })
+    expect(result.economy).toMatchObject({ available: true, consumption: { afterUsed: 1 } })
+    expect(result.attackAction).toMatchObject({ before: null, total: 2, attacksMade: [] })
+    expect(result.slot).toEqual({ number: 1, total: 2 })
+  })
+
+  it('fills the open Attack action without spending another Action', async () => {
+    const result = await evaluate({
+      actor: actorWith({ attacks: 1, actionUsed: 1 }),
+      triggerCode: 'ACTIVATED',
+      replacesAttack: true
+    })
+    expect(result.economy).toBeNull()
+    expect(result.slot).toEqual({ number: 2, total: 2 })
+  })
+
+  it('takes no attack slot with a bonus action', async () => {
+    const result = await evaluate({
+      actor: actorWith({ attacks: 1, actionUsed: 1 }),
+      triggerCode: 'ACTIVATED',
+      activation: { code: 'BONUS_ACTION', amount: 1 },
+      replacesAttack: true
+    })
     expect(result.attackAction).toBeNull()
     expect(result.slot).toBeNull()
   })

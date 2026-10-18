@@ -75,7 +75,8 @@ export async function readNativeEncounterActionResponseAdmission(
     : occurrence.state === 'PENDING'
       ? await readNativeActionPending(ctx, occurrence)
       : null
-  let parsed = pending?.command
+  // A contested escape resumes through the contest path, never an action's.
+  let parsed = pending?.command.type === 'RESOLVE_ACTION' ? pending.command : undefined
   if (!parsed) {
     if (rootReceipt?.commandType !== 'RESOLVE_ACTION')
       throw new Error('Stored Encounter action root mismatch.')

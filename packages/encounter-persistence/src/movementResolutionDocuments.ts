@@ -147,7 +147,7 @@ export async function readMovementResponseAuthority(
   let decisionActorIds: string[]
   if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE') {
     decisionActorIds = [context.sourceActorId]
-  } else if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST') {
+  } else if (context.kind === 'ENCOUNTER_CONTEST_CHECK') {
     if (!kernelSnapshot) throw new Error('Stored movement response evidence is inconsistent.')
     const participantActorId =
       kernelSnapshot.request.nodeId === context.initiator.requestNodeId

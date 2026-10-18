@@ -688,7 +688,7 @@ export async function prepareNativeLiveMovement(
     }
   } else if (
     response.context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-    response.context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+    response.context.kind === 'ENCOUNTER_CONTEST_CHECK'
   ) {
     const evaluated = await evaluateEncounterMovementPassageResponse(
       {

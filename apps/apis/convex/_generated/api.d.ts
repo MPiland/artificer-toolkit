@@ -24525,7 +24525,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -25601,6 +25601,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -26724,6 +26725,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -27910,6 +27912,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -29136,6 +29139,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -30281,6 +30285,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -31409,6 +31414,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -32593,6 +32599,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -34345,7 +34352,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -35421,6 +35428,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -36544,6 +36552,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -37730,6 +37739,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -38956,6 +38966,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -40101,6 +40112,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -41229,6 +41241,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -42413,6 +42426,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -44174,7 +44188,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -45250,6 +45264,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -46373,6 +46388,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -47559,6 +47575,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -48785,6 +48802,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -49930,6 +49948,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -51058,6 +51077,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -52242,6 +52262,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -53994,7 +54015,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -55070,6 +55091,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -56193,6 +56215,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -57379,6 +57402,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -58605,6 +58629,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -59750,6 +59775,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -60878,6 +60904,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -62062,6 +62089,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -63849,7 +63877,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -64925,6 +64953,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -66048,6 +66077,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -67234,6 +67264,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -68460,6 +68491,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -69605,6 +69637,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -70733,6 +70766,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -71917,6 +71951,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -73669,7 +73704,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -74745,6 +74780,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -75868,6 +75904,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -77054,6 +77091,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -78280,6 +78318,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -79425,6 +79464,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -80553,6 +80593,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -81737,6 +81778,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -83476,7 +83518,7 @@ export declare const api: {
                 schemaVersion: 1;
               }
             | {
-                actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                 effects: Array<{
                   grip?: "ONE_HANDED" | "TWO_HANDED";
                   id: string;
@@ -84534,6 +84576,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -85645,6 +85688,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -86813,6 +86857,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -88017,6 +88062,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -89150,6 +89196,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -90266,6 +90313,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -91434,6 +91482,7 @@ export declare const api: {
                               excludedCreatureTypeIds?: Array<string>;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
+                              sizeLimit?: { stepsAboveActor: number };
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -93181,7 +93230,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -94257,6 +94306,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -95380,6 +95430,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -96566,6 +96617,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -97792,6 +97844,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -98937,6 +98990,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -100065,6 +100119,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -101249,6 +101304,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -103001,7 +103057,7 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
@@ -104077,6 +104133,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -105200,6 +105257,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -106386,6 +106444,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -107612,6 +107671,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -108757,6 +108817,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -109885,6 +109946,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -111069,6 +111131,7 @@ export declare const api: {
                                 excludedCreatureTypeIds?: Array<string>;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
+                                sizeLimit?: { stepsAboveActor: number };
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -113979,14 +114042,18 @@ export declare const api: {
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
-                | "TARGET_RANGE_UNCHECKED";
+                | "TARGET_RANGE_UNCHECKED"
+                | "TARGET_TOO_LARGE";
               message: string;
             }>;
-            wieldConflict: {
-              armorClassDelta: number;
-              kind: "STOW_SHIELD";
-              shieldItemInstanceId: string;
-            } | null;
+            wieldConflict:
+              | {
+                  armorClassDelta: number;
+                  kind: "STOW_SHIELD";
+                  shieldItemInstanceId: string;
+                }
+              | { itemInstanceId: string; kind: "STOW_HELD_WEAPON" }
+              | null;
           }>;
           actorId: string;
           basicActionChoices: Array<{
@@ -115702,14 +115769,18 @@ export declare const api: {
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
-                | "TARGET_RANGE_UNCHECKED";
+                | "TARGET_RANGE_UNCHECKED"
+                | "TARGET_TOO_LARGE";
               message: string;
             }>;
-            wieldConflict: {
-              armorClassDelta: number;
-              kind: "STOW_SHIELD";
-              shieldItemInstanceId: string;
-            } | null;
+            wieldConflict:
+              | {
+                  armorClassDelta: number;
+                  kind: "STOW_SHIELD";
+                  shieldItemInstanceId: string;
+                }
+              | { itemInstanceId: string; kind: "STOW_HELD_WEAPON" }
+              | null;
           }>;
           encounterId: string;
           encounterVersion: number;
@@ -115717,7 +115788,7 @@ export declare const api: {
             actionCost: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
             activeEffectId: string;
             checks: Array<{ checkDefinitionId: string; label: string }>;
-            dc: number;
+            dc: number | null;
             label: string;
             warnings: Array<{
               code:
@@ -115733,7 +115804,8 @@ export declare const api: {
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
-                | "TARGET_RANGE_UNCHECKED";
+                | "TARGET_RANGE_UNCHECKED"
+                | "TARGET_TOO_LARGE";
               message: string;
             }>;
           }>;
@@ -115755,7 +115827,8 @@ export declare const api: {
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_OUT_OF_SIGHT"
-                | "TARGET_RANGE_UNCHECKED";
+                | "TARGET_RANGE_UNCHECKED"
+                | "TARGET_TOO_LARGE";
               message: string;
             }>;
           }>;
@@ -115766,6 +115839,11 @@ export declare const api: {
             total: number;
           } | null;
           optionalRules: Array<{ definitionId: string; label: string }>;
+          releases: Array<{
+            activeEffectId: string;
+            heldActorId: string;
+            label: string;
+          }>;
           unavailableActions: Array<{
             id: string;
             label: string;
@@ -116173,6 +116251,22 @@ export declare const api: {
                     };
               }
             | {
+                actionLabel: string;
+                allowedResponses: Array<"CONTEST_CHECK">;
+                checks: Array<{
+                  checkDefinitionId: string;
+                  derivedRollModeReasons: Array<string>;
+                  label: string;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                }>;
+                encounterVersion: number;
+                kind: "CONTEST_CHECK";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                requestId: string;
+                rollerActorId: string;
+              }
+            | {
                 allowedResponses: Array<
                   "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
                 >;
@@ -116480,6 +116574,22 @@ export declare const api: {
                         dc: number | null;
                         kind: "BASIC_ACTION_CHECK";
                       };
+                }
+              | {
+                  actionLabel: string;
+                  allowedResponses: Array<"CONTEST_CHECK">;
+                  checks: Array<{
+                    checkDefinitionId: string;
+                    derivedRollModeReasons: Array<string>;
+                    label: string;
+                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  }>;
+                  encounterVersion: number;
+                  kind: "CONTEST_CHECK";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  requestId: string;
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<
@@ -117318,6 +117428,22 @@ export declare const api: {
                 };
           }
         | {
+            actionLabel: string;
+            allowedResponses: Array<"CONTEST_CHECK">;
+            checks: Array<{
+              checkDefinitionId: string;
+              derivedRollModeReasons: Array<string>;
+              label: string;
+              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            }>;
+            encounterVersion: number;
+            kind: "CONTEST_CHECK";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            requestId: string;
+            rollerActorId: string;
+          }
+        | {
             allowedResponses: Array<
               "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
             >;
@@ -118141,6 +118267,22 @@ export declare const api: {
                       dc: number | null;
                       kind: "BASIC_ACTION_CHECK";
                     };
+              }
+            | {
+                actionLabel: string;
+                allowedResponses: Array<"CONTEST_CHECK">;
+                checks: Array<{
+                  checkDefinitionId: string;
+                  derivedRollModeReasons: Array<string>;
+                  label: string;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                }>;
+                encounterVersion: number;
+                kind: "CONTEST_CHECK";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                requestId: string;
+                rollerActorId: string;
               }
             | {
                 allowedResponses: Array<

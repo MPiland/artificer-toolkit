@@ -347,6 +347,12 @@ payloads (action, area, cleaving, concentration and turn) carry the grants the e
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
+Held escapes (D105, D152): the action choices' `escapes` carry `dc`, null for an escape the holder contests
+(the tabletop shows "Contested"). A contest participant offered several checks answers its `CONTEST_CHECK`
+pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinitionId`, and the d20 `roll` as
+`ENTER_DICE` or `SYSTEM_ROLL`). "Roll dice" (`ROLL_RULE_EVIDENCE`) accepts the contest's one `requestId` in the
+picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it.
+
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
 carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones

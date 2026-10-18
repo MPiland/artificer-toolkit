@@ -11,10 +11,14 @@ import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/enc
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
-import { encounterBasicActionRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
+import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
-import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
+import {
+  findEncounterHolderContestEscape,
+  findEncounterHolderEscape
+} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -26,6 +30,7 @@ import {
   type EncounterActionChoiceDto,
   type EncounterActionChoicesDto,
   type EncounterActionChoicesResponseDto,
+  type EncounterHeldRelationshipDto,
   type EncounterOptionalActionChoicesDto,
   type GetEncounterActionChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
@@ -33,7 +38,7 @@ import {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { activationCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
-import { requireEncounterActorControl } from './actorController.js'
+import { readEncounterControlledActorIds, requireEncounterActorControl } from './actorController.js'
 import {
   evaluateActionAttackAction,
   readActionHolderState,
@@ -105,11 +110,12 @@ export async function readEncounterActionChoices(
   const economyReads = new Map<string, Promise<EconomyRead>>()
   const readEconomy = (
     activation: { code: string; amount: number | null } | null,
-    triggerCode = ''
+    triggerCode = '',
+    replacesAttack = false
   ): Promise<EconomyRead> => {
     if (!activation || activation.amount === null)
       return Promise.resolve({ warnings: [], attackSlot: null })
-    const key = `${activation.code}:${activation.amount}:${triggerCode}`
+    const key = `${activation.code}:${activation.amount}:${triggerCode}:${replacesAttack}`
     const known = economyReads.get(key)
     if (known) return known
     const read = evaluateActionAttackAction(tx, {
@@ -118,7 +124,8 @@ export async function readEncounterActionChoices(
       campaign,
       activation: { code: activation.code, amount: activation.amount },
       target: actorTarget,
-      triggerCode
+      triggerCode,
+      replacesAttack
     }).then(({ economy, suppressed, slot }) => ({
       warnings: [
         ...encounterActionEconomyWarnings(economy, activation.code),
@@ -328,20 +335,21 @@ export async function readEncounterActionChoices(
       abilityDefinitions:
         'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
     })
-    // An action is offered only to an actor that meets its restrictions; none means every actor.
+    // An action is offered only to an actor that meets its restrictions, or would by stowing a
+    // held weapon (D152); none means every actor.
     const holderState = discovered.available.some(({ restrictions }) => restrictions)
       ? await readActionHolderState(tx, { actor, state, campaign, target: actorTarget })
       : null
-    const offered = discovered.available.filter(
-      ({ restrictions }) =>
-        !holderState || encounterBasicActionRestrictionsHold(restrictions, holderState)
-    )
+    const offered = discovered.available.flatMap((action) => {
+      const admission = holderState
+        ? encounterBasicActionAdmission(action.restrictions, holderState)
+        : ({ kind: 'MET' } as const)
+      return admission.kind === 'UNMET' ? [] : [{ action, admission }]
+    })
     basicActionChoices = await Promise.all(
-      offered.map(async (action) => {
-        const economy = await readEconomy(
-          action.mechanicFacts.invocation.activation,
-          action.mechanicFacts.invocation.triggerCode
-        )
+      offered.map(async ({ action, admission }) => {
+        const { activation, triggerCode } = action.mechanicFacts.invocation
+        const economy = await readEconomy(activation, triggerCode, action.actionCost === 'ATTACK')
         const document = catalogue.find(
           ({ definition }) => definition.id === action.definitionId
         )?.document
@@ -351,9 +359,10 @@ export async function readEncounterActionChoices(
           label: action.label,
           ...encounterActionChoiceRange(targetPolicy),
           rulesText: document?.rulesText,
-          actionCost: document?.actionCost,
+          // The activation it spends; an attack it replaces shows as its `attackSlot`.
+          ...(activation ? { actionCost: activationCodeSchema.parse(activation.code) } : {}),
           grip: null,
-          wieldConflict: null,
+          wieldConflict: admission.kind === 'STOW_HELD_WEAPON' ? admission : null,
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(targetPolicy),
           warnings: economy.warnings
@@ -361,11 +370,15 @@ export async function readEncounterActionChoices(
       })
     )
   }
-  // The relationships and zones holding the actor that it may break free of against a fixed DC (D105, D146).
+  // The relationships and zones holding the actor that it may break free of, against a fixed DC
+  // (D105, D146) or contested by its holder, which has no DC (D152).
   const heldEscapes = (
     actor.kind === 'CUSTOM' ? [] : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
   ).flatMap((effect) => {
-    const escape = findEncounterHolderEscape(effect)
+    const contested = findEncounterHolderContestEscape(effect)
+    const escape = contested
+      ? { activation: contested.activation, checks: contested.checks, dc: null, zoneLabel: null }
+      : findEncounterHolderEscape(effect)
     return escape ? [{ effect, ...escape }] : []
   })
   const escapes: EncounterActionChoicesDto['escapes'] = []
@@ -425,6 +438,10 @@ export async function readEncounterActionChoices(
       warnings: economy.warnings
     })
   }
+  // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
+  const releases: EncounterActionChoicesDto['releases'] = (
+    await readHeldRelationships(tx, { state, membership, sourceActorIds: new Set([actor.id]) })
+  ).map(({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label }))
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
@@ -443,6 +460,7 @@ export async function readEncounterActionChoices(
     basicActionChoices,
     escapes,
     heldGrantEnds,
+    releases,
     optionalRules: activeOptionalCombatDefinitions({
       automationMode: state.automationMode,
       snapshot: state.optionalCombatSnapshot
@@ -452,6 +470,62 @@ export async function readEncounterActionChoices(
         definitionId: definition.definitionId,
         label: definition.label
       }))
+  })
+}
+
+/** The holds `sourceActorIds` apply in the Run, each labelled for the member who may release it. */
+async function readHeldRelationships(
+  tx: EncounterTurnReadTransaction,
+  input: {
+    state: ReturnType<typeof readRunState>
+    membership: CampaignAuthority['membership']
+    sourceActorIds: ReadonlySet<string>
+  }
+): Promise<EncounterHeldRelationshipDto[]> {
+  const { state, membership, sourceActorIds } = input
+  const runActors = await readRunActors(tx, state)
+  const activeEffectsByActorId = new Map(
+    await Promise.all(
+      runActors.map(
+        async (held) =>
+          [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
+      )
+    )
+  )
+  return encounterRelationships(activeEffectsByActorId)
+    .filter(({ sourceActorId }) => sourceActorIds.has(sourceActorId))
+    .map(({ sourceActorId, actorId: heldActorId, effect }) => {
+      const held = runActors.find((candidate) => candidate.id === heldActorId)
+      return {
+        sourceActorId,
+        heldActorId,
+        activeEffectId: effect.id,
+        label:
+          held && (membership.role === 'OWNER' || held.public)
+            ? `Release ${held.label}`
+            : 'Release a creature'
+      }
+    })
+}
+
+/**
+ * The holds the member's creatures source, released for no action on any turn (D152); the GM's
+ * are every hold. A Run without assisted play offers none.
+ */
+export async function readEncounterHeldRelationships(
+  tx: EncounterTurnReadTransaction,
+  input: ActionChoiceReadInput<unknown>
+): Promise<EncounterHeldRelationshipDto[]> {
+  const { campaign, membership } = input
+  const state = readRunState(input.run)
+  if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
+    throw new Error('Encounter Campaign is stale.')
+  if (state.status !== 'ACTIVE' || state.automationMode === 'MANUAL') return []
+  const actors = await readRunActors(tx, state)
+  return readHeldRelationships(tx, {
+    state,
+    membership,
+    sourceActorIds: await readEncounterControlledActorIds(tx, { campaign, membership, actors })
   })
 }
 

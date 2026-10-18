@@ -76,6 +76,13 @@ const restrictionConditionSchema = lazySchema(() =>
       'FREE_HAND',
       /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
       'ATTACK_ACTION_OTHER_WEAPON',
+      /**
+       * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on
+       * its subject. The Character fold decides it as a constant; an Encounter reads the holder (D152).
+       */
+      'HOLDER_KIND',
+      /** The Creature holder's type is in `requiredIds` (any type in ALL mode); never a Character. */
+      'CREATURE_TYPE',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',

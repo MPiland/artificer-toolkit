@@ -651,16 +651,15 @@ describe("passage contests under the contestants' conditions (D94)", () => {
         rollMode: 'DISADVANTAGE',
         contributors: [poisonedBy(ids.source)]
       })
-      expect(prepared.defender).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+      expect(prepared.defender.checks).toMatchObject([{ rollMode: 'NORMAL', contributors: [] }])
     }
   )
 
   it('a Poisoned blocker makes its contest check with disadvantage', async () => {
     const prepared = await contest('TUMBLE', [source, poisoned(first)])
     expect(prepared.initiator).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
-    expect(prepared.defender).toMatchObject({
-      rollMode: 'DISADVANTAGE',
-      contributors: [poisonedBy(ids.first)]
-    })
+    expect(prepared.defender.checks).toMatchObject([
+      { rollMode: 'DISADVANTAGE', contributors: [poisonedBy(ids.first)] }
+    ])
   })
 })

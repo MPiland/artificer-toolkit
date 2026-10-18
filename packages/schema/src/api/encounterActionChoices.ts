@@ -1,9 +1,13 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
-import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
+import {
+  encounterHeldWeaponStowDtoSchema,
+  encounterShieldStowDtoSchema
+} from './encounterRuleCommands.js'
 import { activationCodeSchema, equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
@@ -132,11 +136,17 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * sharing `attackKey` are the same attack offered one- and two-handed. Null for every other action.
      */
     grip: z.nullable(z.strictObject({ value: equipmentGripSchema, attackKey: labelSchema })),
-    /** Present when attacking with this action stows the active shield; the client must confirm. */
+    /**
+     * Present when taking this action stows an item: the active shield (with the armor class it
+     * costs) or a held weapon that frees the hand the action needs. The client must confirm.
+     */
     wieldConflict: z.nullable(
-      z.extend(encounterAcceptedWieldConflictDtoSchema, {
-        armorClassDelta: z.number().check(z.int()).check(z.lte(0))
-      })
+      z.discriminatedUnion('kind', [
+        z.extend(encounterShieldStowDtoSchema, {
+          armorClassDelta: z.number().check(z.int()).check(z.lte(0))
+        }),
+        encounterHeldWeaponStowDtoSchema
+      ])
     ),
     /**
      * Soft-rule warnings that already apply before a target is chosen (no allowance left, item not
@@ -261,15 +271,16 @@ export const MAX_BASIC_ACTION_CHOICES = 64
 export const MAX_ESCAPE_CHECK_CHOICES = 64
 
 /**
- * A relationship effect the actor holds and can try to escape against a fixed DC (D105): the
- * grapple's offer. The client submits `activeEffectId` and one of the allowed `checks`.
+ * A relationship effect the actor holds and can try to escape (D105): the grapple's offer. The
+ * client submits `activeEffectId` and one of the allowed `checks`. `dc` is the fixed DC, or null
+ * when the holder contests the escape with its own check (D152).
  */
 export const encounterEscapeChoiceDtoSchema = lazySchema(() =>
   z.strictObject({
     activeEffectId: postgresUuidSchema,
     /** "Escape from <grappler>", or "Escape a grapple" when the grappler is hidden from the requester. */
     label: labelSchema,
-    dc: z.number().check(z.int()).check(z.positive()),
+    dc: z.nullable(z.number().check(z.int()).check(z.positive())),
     actionCost: activationCodeSchema,
     /** The ability or skill checks the escape allows; the first is the default. */
     checks: z
@@ -294,6 +305,24 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
     /** Soft-rule warnings that already apply, as for `actions`. */
     warnings: encounterRuleWarningsDtoSchema
   })
+)
+
+/**
+ * A creature the actor holds through a relationship it applied (D152): the release offer, which
+ * spends nothing. The client submits `heldActorId` and `activeEffectId`.
+ */
+export const encounterReleaseChoiceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    heldActorId: postgresUuidSchema,
+    activeEffectId: postgresUuidSchema,
+    /** "Release <creature>", or "Release a creature" when the creature is hidden from the requester. */
+    label: labelSchema
+  })
+)
+
+/** A hold a creature the requester controls applied, which its source may release on any turn (D152). */
+export const encounterHeldRelationshipDtoSchema = lazySchema(() =>
+  z.extend(encounterReleaseChoiceDtoSchema, { sourceActorId: postgresUuidSchema })
 )
 
 export const encounterActionChoicesDtoSchema = lazySchema(() =>
@@ -331,6 +360,8 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     heldGrantEnds: z
       .array(encounterHeldGrantEndChoiceDtoSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** One entry per creature the actor holds through a relationship it applied. */
+    releases: z.array(encounterReleaseChoiceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
   })
 )
@@ -387,6 +418,8 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
+export type EncounterReleaseChoiceDto = z.infer<typeof encounterReleaseChoiceDtoSchema>
+export type EncounterHeldRelationshipDto = z.infer<typeof encounterHeldRelationshipDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema

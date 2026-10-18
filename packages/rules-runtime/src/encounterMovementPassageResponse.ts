@@ -89,12 +89,12 @@ export async function evaluateEncounterMovementPassageResponse<
   const movement =
     context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
       ? context.movement
-      : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
-        ? context.movementContinuation
+      : context.kind === 'ENCOUNTER_CONTEST_CHECK'
+        ? context.origin.movementContinuation
         : null
   if (
     (context.kind !== 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' &&
-      context.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST') ||
+      context.kind !== 'ENCOUNTER_CONTEST_CHECK') ||
     !movement
   )
     throw new Error('Movement passage response is unavailable.')
@@ -120,7 +120,7 @@ export async function evaluateEncounterMovementPassageResponse<
   if (input.retained) {
     if (
       input.retained.kind === 'PENDING' &&
-      input.retained.pendingSnapshot.applicationContext.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+      input.retained.pendingSnapshot.applicationContext.kind === 'ENCOUNTER_CONTEST_CHECK'
     )
       retained = {
         snapshot: requireServerKernelRuleExecutionPendingSnapshot(input.retained.pendingSnapshot)

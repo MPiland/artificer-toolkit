@@ -11,6 +11,7 @@ import type {
   ResolveRuleOccurrenceInputDto,
   RollRuleEvidenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { contestCheckD20Request } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterStoredEvidenceRollSchema,
@@ -83,6 +84,14 @@ export async function readLatestAttempt(
 function pendingEvidenceRequests(pending: PendingEncounterRuleOccurrenceSummaryDto) {
   if (pending.kind === 'AREA_SAVES')
     return pending.saves.map((save) => ({ request: save.request, rollerActorId: save.actorId }))
+  // A contest check is one d20 whichever check the roller picks; the app rolls in that check's
+  // mode, so the first check's mode is only the default.
+  if (pending.kind === 'CONTEST_CHECK') {
+    const [check] = pending.checks
+    return check
+      ? [{ request: contestCheckD20Request(pending, check), rollerActorId: pending.rollerActorId }]
+      : []
+  }
   return 'request' in pending
     ? [
         {
@@ -311,8 +320,9 @@ export async function rollEncounterRuleEvidence(
 }
 
 /**
- * The recorded faces a `SYSTEM_ROLL` answer settles with. The roll must be the responder's latest
- * attempt for this exact request, so a client can neither invent faces nor reuse another roll.
+ * The recorded faces a `SYSTEM_ROLL` answer, or a contest check rolled in the app, settles with. The
+ * roll must be the responder's latest attempt for this exact request, so a client can neither
+ * invent faces nor reuse another roll.
  */
 export async function readEncounterSettledAppRoll(
   ctx: EncounterReadTransaction,
@@ -322,7 +332,10 @@ export async function readEncounterSettledAppRoll(
     userId: string
   }
 ): Promise<EncounterSettledAppRollDto | null> {
-  const { resolution } = input.response
+  const resolution =
+    input.response.resolution.kind === 'CONTEST_CHECK'
+      ? input.response.resolution.roll
+      : input.response.resolution
   if (resolution.kind !== 'SYSTEM_ROLL') return null
   const rollId = resolution.rollId.toLowerCase()
   const row = await ctx.db

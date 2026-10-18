@@ -1,4 +1,3 @@
-import { DND5E_DISARM_OPERATION_KEY } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
@@ -13,7 +12,7 @@ type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext'
  * dispatches on it and the Session room routes pending occurrences by it.
  */
 type NativeEncounterOccurrenceOwner =
-  | 'DISARM'
+  | 'CONTEST'
   | 'CONCENTRATION'
   | 'CLEAVING'
   | 'BASIC_ACTION'
@@ -48,7 +47,7 @@ export function isEncounterMovementContext(
     context?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
     context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
     context?.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-    (context?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && !!context.movementContinuation)
+    (context?.kind === 'ENCOUNTER_CONTEST_CHECK' && !!context.origin?.movementContinuation)
   )
 }
 
@@ -79,25 +78,30 @@ export type NativeEncounterOccurrenceFacts = {
   occurrence: Pick<EncounterDocument<'encounterRuleOccurrences'>, 'id' | 'rootCommandId'>
   context:
     | (Pick<PendingContext, 'kind'> & {
-        contest?: { actionKind: string } | null
-        movementContinuation?: unknown
+        contest?: { origin: { kind: string; actionKind?: string } } | null
+        origin?: { kind: string; movementContinuation?: unknown }
       })
     | null
   rootCommandType: string | null
-  completedDisarm: boolean
+  completedContest: boolean
 }
 
 export function classifyNativeEncounterOccurrence({
   occurrence,
   context,
   rootCommandType,
-  completedDisarm
+  completedContest
 }: NativeEncounterOccurrenceFacts): NativeEncounterOccurrenceOwner {
+  // The contests one planner settles: Disarm, a basic action its target contests, and an escape
+  // its holder contests.
+  const contestOrigin = context?.kind === 'ENCOUNTER_ACTION' ? context.contest?.origin : null
   if (
-    (context?.kind === 'ENCOUNTER_ACTION' && context.contest?.actionKind === 'DISARM') ||
-    completedDisarm
+    contestOrigin?.actionKind === 'DISARM' ||
+    contestOrigin?.kind === 'BASIC_ACTION' ||
+    contestOrigin?.kind === 'ESCAPE' ||
+    completedContest
   )
-    return 'DISARM'
+    return 'CONTEST'
   if (isNativeConcentrationOccurrence(occurrence)) return 'CONCENTRATION'
   if (
     context?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' ||
@@ -148,13 +152,13 @@ export async function readNativeEncounterOccurrenceOwner(
     occurrence,
     context,
     rootCommandType,
-    completedDisarm:
+    completedContest:
       occurrence.state === 'COMPLETED' &&
-      rootCommandType === 'RESOLVE_ACTION' &&
-      (await isCompletedNativeDisarm(ctx, run, occurrence))
+      (rootCommandType === 'RESOLVE_ACTION' || rootCommandType === 'ESCAPE') &&
+      (await isCompletedNativeContest(ctx, run, occurrence))
   })
 }
-async function isCompletedNativeDisarm(
+async function isCompletedNativeContest(
   ctx: EncounterReadContext,
   run: EncounterDocument<'encounterRuns'>,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
@@ -167,9 +171,5 @@ async function isCompletedNativeDisarm(
     .unique()
   if (!ruleReceipt) return false
   const payload = storedRuleExecutionResultDtoSchema.parse(JSON.parse(ruleReceipt.resultJson))
-  return (
-    payload.status === 'COMPLETE' &&
-    payload.applicationOutputs.kind === 'CONTESTED_ACTION' &&
-    payload.applicationOutputs.policy.moduleKey === DND5E_DISARM_OPERATION_KEY
-  )
+  return payload.status === 'COMPLETE' && payload.applicationOutputs.kind === 'CONTESTED_ACTION'
 }

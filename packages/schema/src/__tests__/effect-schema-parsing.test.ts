@@ -1390,3 +1390,20 @@ describe('single-target self policy (D99)', () => {
     expect(targetingDtoSchema.safeParse({ ...targeting, self: true }).success).toBe(false)
   })
 })
+
+describe('single-target size limit (D152)', () => {
+  const targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' }
+
+  it.each([0, 1])('keeps a limit of %i steps above the actor', (stepsAboveActor) => {
+    const limited = { ...targeting, sizeLimit: { stepsAboveActor } }
+
+    expect(targetingDtoSchema.parse(limited)).toEqual(limited)
+  })
+
+  it('rejects a negative or fractional limit', () => {
+    for (const stepsAboveActor of [-1, 0.5])
+      expect(
+        targetingDtoSchema.safeParse({ ...targeting, sizeLimit: { stepsAboveActor } }).success
+      ).toBe(false)
+  })
+})

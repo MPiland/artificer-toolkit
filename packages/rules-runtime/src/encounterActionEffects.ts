@@ -7,6 +7,7 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
+import { encounterRelationshipReachFeet } from './encounterActionTargetPolicy.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -34,7 +35,7 @@ function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
           (condition) => condition.conditionTypeId
         )
       : target.state.conditions,
-    effectiveSize: effectiveSize(target),
+    effectiveSize: encounterActorEffectiveSize(target),
     lifetimeScope: target.actor.kind === 'CHARACTER' ? ('OWNER' as const) : ('ENCOUNTER' as const),
     activeEffects: target.activeEffects
   }
@@ -92,7 +93,10 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function effectiveSize(target: MovementTarget<CharacterActionMovementFacts>): string | null {
+/** An actor's size now: a Creature's snapshot size, or a Character's effective size from its facts. */
+export function encounterActorEffectiveSize(
+  target: MovementTarget<CharacterActionMovementFacts>
+): string | null {
   if (target.actor.kind !== 'CHARACTER') {
     const snapshot = target.actor.snapshot
     const payload =
@@ -118,7 +122,8 @@ export function prepareNativeActionEffectsPlan<
   TCharacterFacts extends CharacterActionMovementFacts
 >(input: {
   prepared: PreparedMechanics<TCharacterFacts>
-  execution: CompleteExecution
+  /** The settled graph run; a contest win supplies its own d20 and no applications. */
+  execution: Pick<CompleteExecution, 'published' | 'execution' | 'd20' | 'applications'>
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
@@ -155,6 +160,9 @@ export function prepareNativeActionEffectsPlan<
     target: effectTarget(target),
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
+    sealedReachFeet: plan?.actorRelationshipContribution
+      ? encounterRelationshipReachFeet(prepared.targetPolicy)
+      : undefined,
     concealment: input.concealment,
     link: input.link,
     form: input.form,

@@ -20,6 +20,7 @@ export type ActorRelationshipModuleAuthored =
       influence: 'ADVANTAGE'
     }
   | { id: string; order: number; kind: 'SOURCE_FOLLOWS_TARGET' }
+  | { id: string; order: number; kind: 'SOURCE_OCCUPIES_HAND' }
   | {
       id: string
       order: number

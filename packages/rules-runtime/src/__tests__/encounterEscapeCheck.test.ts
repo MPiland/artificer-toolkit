@@ -9,12 +9,12 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionCheckTrigger,
   evaluateEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '../encounterBasicActionCheck.js'
+import { encounterBasicActionCheckLabel } from '../encounterMovementPassagePreparation.js'
 import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,
@@ -83,6 +83,7 @@ function grappled(owner: string, modules: EscapeModule[] = [escapeModule()]) {
       {
         kind: 'ACTOR_RELATIONSHIP',
         relationshipOutcomeId: OUTCOME_ID,
+        sealedReachFeet: 5,
         modules,
         conditionIds: [],
         capabilitySuppressions: []

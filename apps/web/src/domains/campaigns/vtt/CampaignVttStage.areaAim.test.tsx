@@ -92,7 +92,14 @@ const room = (): HeldEncounterSession => ({
     pending: null,
     waitingOn: null,
     turnMovement: [
-      { actorId: emberActor.id, used: 0, speedId: null, allowances: [], teleport: [], fleeSourceActorIds: [] }
+      {
+        actorId: emberActor.id,
+        used: 0,
+        speedId: null,
+        allowances: [],
+        teleport: [],
+        fleeSourceActorIds: []
+      }
     ],
     halfSpeedFields: [],
     auras: []
@@ -161,6 +168,7 @@ const roomChoices = validatedChoices({
   basicActionChoices: [],
   escapes: [],
   heldGrantEnds: [],
+  releases: [],
   optionalRules: []
 })
 

@@ -59,9 +59,10 @@ export const sceneSpatialPreparationSchema = lazySchema(() =>
               pending.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
               pending.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
               pending.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-              (pending.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' &&
-                pending.movementContinuation !== null &&
-                pending.movementContinuation !== undefined)
+              (pending.kind === 'ENCOUNTER_CONTEST_CHECK' &&
+                pending.origin.kind === 'OPTIONAL_COMBAT' &&
+                pending.origin.movementContinuation !== null &&
+                pending.origin.movementContinuation !== undefined)
             if (!allowed)
               context.addIssue({
                 code: 'custom',

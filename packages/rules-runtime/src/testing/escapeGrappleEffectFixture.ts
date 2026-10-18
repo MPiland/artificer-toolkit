@@ -77,6 +77,7 @@ export function escapeGrappleEffectDefinition(input: {
       {
         kind: 'ACTOR_RELATIONSHIP',
         relationshipOutcomeId: ESCAPE_GRAPPLE_RELATIONSHIP_OUTCOME_ID,
+        sealedReachFeet: 5,
         modules: [
           {
             id: ESCAPE_GRAPPLE_MODULE_ID,

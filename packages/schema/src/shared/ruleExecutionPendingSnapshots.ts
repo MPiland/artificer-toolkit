@@ -8,7 +8,7 @@ import { spatialPointDtoSchema } from './spatialFacts.js'
 import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionInitiativePending.js'
 import {
   optionalCombatPassageContinuationDtoSchema,
-  serverOptionalCombatContestPendingContextDtoSchema
+  serverContestCheckPendingContextDtoSchema
 } from './ruleExecutionOptionalCombatPending.js'
 import {
   encounterLegendaryResistancePinDtoSchema,
@@ -739,7 +739,7 @@ export const serverMovementRuleExecutionPendingSnapshotDtoSchema: z.ZodMiniType<
         applicationContext: z.discriminatedUnion('kind', [
           spatialPendingContextDtoSchema,
           movementReactionPendingContextDtoSchema,
-          serverOptionalCombatContestPendingContextDtoSchema
+          serverContestCheckPendingContextDtoSchema
         ])
       }),
       z.safeExtend(serverAggregateChoicePendingSnapshotObjectSchema, {

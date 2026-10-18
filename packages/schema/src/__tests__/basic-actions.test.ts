@@ -31,4 +31,11 @@ describe('basic-action catalogue contracts (Q11)', () => {
     expect(parse({ check: null })).toBe(false)
     expect(parse({ actionCost: 'REACTION' })).toBe(false)
   })
+
+  it('accepts a cost of one attack of the Attack action (D152)', () => {
+    expect(
+      basicActionReusableDefinitionDocumentDtoSchema.safeParse({ ...dodge, actionCost: 'ATTACK' })
+        .success
+    ).toBe(true)
+  })
 })

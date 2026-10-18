@@ -1,4 +1,4 @@
-import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   actionD20RollRecord,
   actionDamageRollRecord,

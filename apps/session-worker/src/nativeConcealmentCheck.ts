@@ -8,11 +8,11 @@ import type { EncounterConcealmentCheckPendingContextDto } from '@artificer-tool
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   rollEncounterCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   completeEncounterConcealmentCheckResult,
   createEncounterConcealmentEffect,

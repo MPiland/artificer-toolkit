@@ -11,33 +11,205 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { encounterActorRelationship } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import { relationshipConditionApplications } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
+import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
+import { readActorConditionIds } from './concentrationEnd.js'
 import { replaceRunActor, writeRunActor } from './documents.js'
-import { engageIdleTurnActor } from './idleTurnMark.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
+import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
+import { armIdleTurnActor, engageIdleTurnActor } from './idleTurnMark.js'
+import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
+import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
+import type { EncounterDocument } from './store.js'
 
 type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
 
+type ContestSettlementInput = Omit<DisarmSettlementInput, 'stateTransition'> & {
+  state: EncounterRunState
+  campaign: EncounterDocument<'campaigns'>
+  /** Every current Run actor, which an escape's ended effect may reconcile. */
+  actors: readonly EncounterRunActorState[]
+  actor: EncounterRunActorState
+  target: EncounterRunActorState
+  /** The hold effect a won basic action contest creates on its target; null otherwise. */
+  createdEffect: ActiveRuleEffectRecord | null
+  commandId: string
+  sourceCommandId: string
+  userId: string
+  occurredAt: string
+  applyMechanics(
+    batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+  ): Promise<EncounterMechanicsBatchResult>
+}
+
 /**
- * Persists a settled Disarm inside the caller's transaction: a won contest moves the held item to
- * carried, and the source spends its ACTION. It re-derives every change from current state.
+ * A won basic action contest (Grapple) applies the conditions its hold names to the target, then
+ * creates the hold effect the room planned. It checks the effect against its current owner and
+ * source and re-derives the conditions from the effect and the target's current conditions.
+ */
+async function settleContestHold(
+  ctx: EncounterCharacterWriteTransaction,
+  input: ContestSettlementInput
+) {
+  const { state, actor, target, occurrenceId, sourceCommandId, occurredAt } = input
+  const effect = input.createdEffect
+  const owner = turnEffectOwner(target, state.id)
+  const origin = effect?.definition.origin
+  if (
+    !effect ||
+    checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
+    origin?.kind !== 'ENCOUNTER' ||
+    origin.sourceAggregateId !== state.id ||
+    origin.sourceActorId !== actor.id ||
+    origin.sourceOccurrenceId !== occurrenceId ||
+    origin.rootCommandId !== sourceCommandId ||
+    effect.definition.frozenGraph.source.gameSystemId !== state.gameSystemId ||
+    effect.maintainedEffectStateId !== null ||
+    effect.sourceEncounterId !==
+      (owner.kind === 'CHARACTER' ? sourceEncounterIdForDefinition(effect.definition, null) : null)
+  )
+    throw new Error('Contest hold effect does not match its current owner and source.')
+  const store = createActiveRuleEffectStore(ctx)
+  const applications = relationshipConditionApplications({
+    definition: effect.definition,
+    target: {
+      actorId: target.id,
+      conditionIds: await readActorConditionIds(ctx, {
+        state,
+        actor: target,
+        campaign: input.campaign
+      })
+    },
+    resolvedPath: 'ON_CHECK_SUCCESS'
+  })
+  const mechanics = await input.applyMechanics({
+    encounterId: state.id,
+    targetActorId: target.id,
+    expectedEncounterVersion: state.version,
+    occurrenceId,
+    sourceCommandId,
+    commandId: deriveEncounterCharacterMechanicsEventCommandId({
+      occurrenceId,
+      sourceCommandId,
+      phase: 'DIRECT_ACTION_OUTCOME',
+      ordinal: 0,
+      targetCharacterId: target.kind === 'CHARACTER' ? target.sourceId : target.id
+    }),
+    occurredAt,
+    applications,
+    effectiveMaximumHitPoints:
+      target.kind === 'CHARACTER'
+        ? await readLiveCharacterMaximumHitPoints(ctx, state, target.sourceId)
+        : effectiveHitPointMaximum(target.maxHitPoints, await store.list(owner)),
+    // The hold lands on the Character, so its stream advances with it.
+    forceVersionAdvance: target.kind === 'CHARACTER'
+  })
+  const created = await store.create({
+    id: effect.id,
+    owner: effect.owner,
+    definition: effect.definition,
+    lifecycle: effect.lifecycle,
+    maintainedEffectStateId: null,
+    occurredAt
+  })
+  if (checksumCanonicalJson(created) !== checksumCanonicalJson(effect))
+    throw new Error('Contest hold effect changed before settlement.')
+  const armed = armIdleTurnActor({
+    actor: mechanics.updatedActor,
+    createdEffects: [effect],
+    currentActorId: state.currentActorId
+  })
+  if (armed !== mechanics.updatedActor) await replaceRunActor(ctx, mechanics.updatedActor, armed)
+  const [createdEffect] = projectNativeActionEffectTransitions({
+    state: null,
+    recurring: effect,
+    targetActorId: target.id
+  }).activeEffectTransitions
+  return {
+    target: armed,
+    stateTransition: {
+      kind: 'ACTOR_RELATIONSHIP' as const,
+      createdEffect: createdEffect!,
+      appliedConditionIds: mechanics.receiptApplications.flatMap((application) =>
+        application.kind === 'CONDITION_APPLY' && application.applied
+          ? [application.conditionId]
+          : []
+      )
+    }
+  }
+}
+
+/**
+ * A contested escape spends the escaper's action; a win ends the target's holding effect on the
+ * escaper and the conditions only it held. It checks the effect is still the target's hold.
+ */
+async function settleContestEscape(
+  ctx: EncounterCharacterWriteTransaction,
+  input: ContestSettlementInput,
+  activeEffectId: string
+) {
+  const { state, target, occurredAt } = input
+  const actor = input.actionEconomy
+    ? await consumeNativeActionEconomy(ctx, {
+        actor: input.actor,
+        consumption: input.actionEconomy,
+        overridden: false
+      })
+    : input.actor
+  let actors = input.actors.map((entry) => (entry.id === actor.id ? actor : entry))
+  let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
+  if (disarmSourceWins(input.rolls)) {
+    const held = await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))
+    const origin = held.find((effect) => effect.id === activeEffectId)?.definition.origin
+    if (origin?.kind !== 'ENCOUNTER' || origin.sourceActorId !== target.id)
+      throw new Error('Contested escape effect does not match its holder.')
+    const ended = await endEncounterEscapedEffect(ctx, {
+      encounterId: state.id,
+      actors,
+      holderActorId: actor.id,
+      activeEffectId,
+      occurredAt
+    })
+    if (!ended) throw new Error('Contested escape effect changed before settlement.')
+    actors = ended.actors
+    stateTransition = {
+      kind: 'RELATIONSHIP_ENDED',
+      endedEffectId: activeEffectId,
+      removedConditionIds: ended.endedConditionIds
+    }
+  }
+  return { actors, applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition }) }
+}
+
+/**
+ * Persists a settled contest inside the caller's transaction: a won Disarm moves the held item to
+ * carried, a won basic action contest creates its hold, a won escape ends the hold, and the source
+ * spends its action economy.
+ * It re-derives every change from current state.
  */
 export async function settleDisarm(
   ctx: EncounterCharacterWriteTransaction,
-  input: Omit<DisarmSettlementInput, 'stateTransition'> & {
-    state: EncounterRunState
-    actor: EncounterRunActorState
-    target: EncounterRunActorState
-    commandId: string
-    sourceCommandId: string
-    userId: string
-    occurredAt: string
-  }
+  input: ContestSettlementInput
 ) {
   const { contest, rolls } = input
+  if (contest.origin.kind === 'ESCAPE')
+    return settleContestEscape(ctx, input, contest.origin.activeEffectId)
   let target = input.target
   let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
-  if (disarmSourceWins(rolls)) {
+  if (disarmSourceWins(rolls) && contest.origin.kind === 'BASIC_ACTION') {
+    const hold = await settleContestHold(ctx, input)
+    target = hold.target
+    stateTransition = hold.stateTransition
+  } else if (disarmSourceWins(rolls)) {
     const targetRow = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) =>
@@ -80,7 +252,7 @@ export async function settleDisarm(
         overridden: false
       })
     : input.actor
-  // The contest is the Disarmer's attack roll against the target: against a hostile creature it
+  // The contest is the initiator's action against the target: against a hostile creature it
   // engages an actor armed for an idle-bound grant (SRD Rage).
   const engaged =
     encounterActorRelationship(input.actor.disposition, target.disposition) === 'HOSTILE'
@@ -88,8 +260,9 @@ export async function settleDisarm(
       : spent
   if (engaged !== spent) await replaceRunActor(ctx, spent, engaged)
   return {
-    actor: engaged,
-    target,
+    actors: input.actors.map((actor) =>
+      actor.id === engaged.id ? engaged : actor.id === target.id ? target : actor
+    ),
     applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition })
   }
 }

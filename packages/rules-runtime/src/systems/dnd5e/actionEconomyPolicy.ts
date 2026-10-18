@@ -31,13 +31,19 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
     }
     return { kind: 'NONE' }
   },
-  /** Weapon and unarmed attacks made with the Action are the Attack action; spell attacks are not. */
-  isAttackActionAttack({ activationKind, activationAmount, triggerCode }) {
+  /**
+   * Weapon and unarmed attacks made with the Action are the Attack action, and so is an action that
+   * takes the place of one of its attacks; spell attacks are not.
+   */
+  isAttackActionAttack({ activationKind, activationAmount, triggerCode, replacesAttack }) {
     const attackKind = dnd5eAttackKind(triggerCode)
     return (
       activationKind === 'ACTION' &&
       activationAmount === 1 &&
-      (attackKind === 'MELEE' || attackKind === 'RANGED' || attackKind === 'UNARMED')
+      (replacesAttack ||
+        attackKind === 'MELEE' ||
+        attackKind === 'RANGED' ||
+        attackKind === 'UNARMED')
     )
   },
   actorActionCapabilityDefinitionId() {

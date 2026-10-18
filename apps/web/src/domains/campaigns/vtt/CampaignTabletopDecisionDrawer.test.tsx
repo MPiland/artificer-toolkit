@@ -854,6 +854,95 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
   })
 })
 
+describe('CampaignTabletopDecisionDrawer contest check', () => {
+  const contestPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+    kind: 'CONTEST_CHECK',
+    occurrenceId,
+    occurrenceVersion: 2,
+    encounterVersion: tabletopGmEncounter.version,
+    rollerActorId: tabletopGmEncounter.actors[1]!.id,
+    actionLabel: 'Grapple',
+    requestId: 'target_d20',
+    checks: [
+      {
+        checkDefinitionId: '77777777-7777-4777-8777-777777777791',
+        label: 'Strength (Athletics)',
+        rollMode: 'NORMAL' as const,
+        derivedRollModeReasons: []
+      },
+      {
+        checkDefinitionId: '77777777-7777-4777-8777-777777777792',
+        label: 'Dexterity (Acrobatics)',
+        rollMode: 'ADVANTAGE' as const,
+        derivedRollModeReasons: ['Bless']
+      }
+    ],
+    allowedResponses: ['CONTEST_CHECK']
+  })
+  const contestRoll: EncounterEvidenceRollDto = {
+    rollId: '77777777-7777-4777-8777-777777777793',
+    occurrenceId,
+    occurrenceVersion: 2,
+    requestId: 'target_d20',
+    attempt: 1,
+    faces: [6, 15],
+    value: 15,
+    rollMode: 'ADVANTAGE',
+    derivedRollMode: 'ADVANTAGE'
+  }
+
+  it('rolls the picked check in its mode and answers with that check (D152)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async (command: { type: string }) =>
+      command.type === 'ROLL_RULE_EVIDENCE'
+        ? { ...resolved(), occurrence: null, evidenceRoll: contestRoll }
+        : resolved()
+    )
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={contestPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Contest check')).toBeVisible()
+    expect(screen.getByText('Grapple: roll for Vault Warden')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull()
+    await user.click(screen.getByRole('combobox', { name: 'Check' }))
+    await user.click(screen.getByRole('option', { name: 'Dexterity (Acrobatics)' }))
+    expect(screen.getByRole('radio', { name: 'Advantage' })).toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Roll dice' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'ROLL_RULE_EVIDENCE',
+        requestId: 'target_d20',
+        rollMode: 'ADVANTAGE'
+      })
+    )
+    expect(await screen.findByText('Rolled by the app · attempt 1')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        resolution: {
+          kind: 'CONTEST_CHECK',
+          requestId: 'target_d20',
+          checkDefinitionId: '77777777-7777-4777-8777-777777777792',
+          roll: { kind: 'SYSTEM_ROLL', requestId: 'target_d20', rollId: contestRoll.rollId }
+        }
+      })
+    )
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer area saves', () => {
   const [ember, warden] = tabletopGmEncounter.actors
   const saveRequest = (requestId: string) => ({

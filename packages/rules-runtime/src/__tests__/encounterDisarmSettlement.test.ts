@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { baseEquipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -29,7 +29,7 @@ const HELD_ITEM_INSTANCE_ID = '00000000-0000-4000-8000-00000000d109'
 const SHIELD_ITEM_INSTANCE_ID = '00000000-0000-4000-8000-00000000d10a'
 const CHARACTER_STREAM_VERSION = 7
 
-type Contest = ServerOptionalCombatContestPendingApplicationContextDto
+type Contest = ServerContestCheckPendingApplicationContextDto
 
 const heldWeapon = baseEquipmentAuthoredDtoSchema.parse(dagger)
 const carriedWeapon = baseEquipmentAuthoredDtoSchema.parse(club)
@@ -131,29 +131,38 @@ function disarmContest(input: {
 }): Contest {
   const contributors: Contest['initiator']['contributors'] = []
   return prepareDnd5eOptionalCombatContestPendingContext({
-    actionKind: 'DISARM',
+    origin: {
+      kind: 'OPTIONAL_COMBAT',
+      actionKind: 'DISARM',
+      pin: {
+        snapshotChecksum: '1'.repeat(64),
+        definitionId: '00000000-0000-4000-8000-00000000d10c',
+        definitionVersion: 1,
+        definitionChecksum: '2'.repeat(64),
+        moduleKey: 'd20.action.disarm',
+        moduleContractVersion: 1
+      },
+      optionId: '5'.repeat(64),
+      selectionContractChecksum: '6'.repeat(64),
+      resolvedSelectionChecksum: '7'.repeat(64),
+      selection: {
+        kind: 'DISARM',
+        heldItemId: input.heldItemId,
+        defenderCheckDefinitionId: DEFENDER_CHECK_ID,
+        heldItemStateChecksum: input.heldItemStateChecksum
+      }
+    },
     actionId: 'disarm',
     sourceActorId: SOURCE_ACTOR_ID,
     targetActorId: TARGET_ACTOR_ID,
     initiatorControllerCharacterId: null,
     sceneContext: null,
     positionalDependencyChecksum: null,
-    optionalCombat: {
-      snapshotChecksum: '1'.repeat(64),
-      definitionId: '00000000-0000-4000-8000-00000000d10c',
-      definitionVersion: 1,
-      definitionChecksum: '2'.repeat(64),
-      moduleKey: 'd20.action.disarm',
-      moduleContractVersion: 1
-    },
     contestGraph: {
       definitionId: '00000000-0000-4000-8000-00000000d10d',
       checksum: '3'.repeat(64),
       identityChecksum: '4'.repeat(64)
     },
-    optionId: '5'.repeat(64),
-    selectionContractChecksum: '6'.repeat(64),
-    resolvedSelectionChecksum: '7'.repeat(64),
     source: {
       kind: 'OPTIONAL_COMBAT_DEFINITION',
       definitionId: '00000000-0000-4000-8000-00000000d10c',
@@ -174,19 +183,18 @@ function disarmContest(input: {
     defender: {
       actorId: TARGET_ACTOR_ID,
       requestNodeId: 'target_d20',
-      rollMode: 'NORMAL',
-      contributors,
-      contributorChecksum: checksumRuleDocument(contributors),
-      modifier: 1,
-      checkDefinitionId: DEFENDER_CHECK_ID
+      checks: [
+        {
+          checkDefinitionId: DEFENDER_CHECK_ID,
+          label: 'Strength (Athletics)',
+          rollMode: 'NORMAL',
+          contributors,
+          contributorChecksum: checksumRuleDocument(contributors),
+          modifier: 1
+        }
+      ]
     },
     rollEvidence: { initiator: null, defender: null },
-    selection: {
-      kind: 'DISARM',
-      heldItemId: input.heldItemId,
-      defenderCheckDefinitionId: DEFENDER_CHECK_ID,
-      heldItemStateChecksum: input.heldItemStateChecksum
-    },
     actionEconomy: null
   })
 }
@@ -476,18 +484,25 @@ describe('Disarm settlement plan', () => {
   })
 
   it('refuses a contest that is not a Disarm', () => {
+    const disarm = creatureContest()
+    const { origin } = disarm
+    if (origin.kind !== 'OPTIONAL_COMBAT')
+      throw new Error('The fixture Disarm is an optional combat contest.')
     const shove = prepareDnd5eOptionalCombatContestPendingContext({
-      ...creatureContest(),
-      actionKind: 'SHOVE_ASIDE',
-      selection: {
-        kind: 'SHOVE_ASIDE',
-        defenderCheckDefinitionId: DEFENDER_CHECK_ID,
-        destination: { x: 5, y: 0 },
-        displacement: { amount: 5, unit: 'FEET', sceneUnits: 1 },
-        sceneId: '00000000-0000-4000-8000-00000000d10e',
-        sceneVersion: 1,
-        targetTokenId: '00000000-0000-4000-8000-00000000d10f',
-        stateChecksum: 'f'.repeat(64)
+      ...disarm,
+      origin: {
+        ...origin,
+        actionKind: 'SHOVE_ASIDE',
+        selection: {
+          kind: 'SHOVE_ASIDE',
+          defenderCheckDefinitionId: DEFENDER_CHECK_ID,
+          destination: { x: 5, y: 0 },
+          displacement: { amount: 5, unit: 'FEET', sceneUnits: 1 },
+          sceneId: '00000000-0000-4000-8000-00000000d10e',
+          sceneVersion: 1,
+          targetTokenId: '00000000-0000-4000-8000-00000000d10f',
+          stateChecksum: 'f'.repeat(64)
+        }
       }
     })
     expect(() =>
@@ -603,7 +618,7 @@ describe('Disarm receipt outputs', () => {
       ...contest,
       rollEvidence: {
         initiator: { requestId: 'initiator_d20', rawFaces: [12] },
-        defender: { requestId: 'target_d20', rawFaces: [10] }
+        defender: { requestId: 'target_d20', rawFaces: [10], checkDefinitionId: DEFENDER_CHECK_ID }
       }
     })
     const settled = disarmApplicationOutputs({

@@ -7,6 +7,7 @@ import type {
   EncounterGmProjectionDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -104,10 +105,12 @@ function drawerElement(
     authoredBasicActions = [],
     escapes = [],
     heldGrantEnds = [],
+    releases = [],
     openAttackAction = null,
     encounter = tabletopGmEncounter,
     onEscape = vi.fn(),
     onEndHeldGrant = vi.fn(),
+    onRelease = vi.fn(),
     escapeResult = resolved,
     isGm = false,
     waitingOn = null,
@@ -124,10 +127,12 @@ function drawerElement(
     authoredBasicActions?: EncounterActionChoiceDto[]
     escapes?: EncounterEscapeChoiceDto[]
     heldGrantEnds?: EncounterActionChoicesDto['heldGrantEnds']
+    releases?: EncounterActionChoicesDto['releases']
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     encounter?: EncounterGmProjectionDto
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
     onEndHeldGrant?: (command: EndHeldGrantInputDto) => Promise<unknown>
+    onRelease?: (command: ReleaseRelationshipInputDto) => Promise<unknown>
     /** What the room answers an escape with. */
     escapeResult?: EncounterCommandResultDto
     isGm?: boolean
@@ -148,6 +153,7 @@ function drawerElement(
       basicActionChoices={authoredBasicActions}
       escapes={escapes}
       heldGrantEnds={heldGrantEnds}
+      releases={releases}
       openAttackAction={openAttackAction}
       actionsLoading={false}
       actorIdByTokenId={actorIdByTokenId}
@@ -178,6 +184,10 @@ function drawerElement(
       }}
       onEndHeldGrant={async (command) => {
         await onEndHeldGrant(command)
+        return resolved
+      }}
+      onRelease={async (command) => {
+        await onRelease(command)
         return resolved
       }}
     />
@@ -616,6 +626,44 @@ describe('CampaignTabletopActionDrawer held grant ends', () => {
   })
 })
 
+const releaseChoices = validated(encounterActionChoicesDtoSchema.shape.releases)([
+  {
+    heldActorId: '00000000-0000-4000-8000-000000000f11',
+    activeEffectId: '00000000-0000-4000-8000-000000000f12',
+    label: 'Release Wolf'
+  }
+])
+
+describe('CampaignTabletopActionDrawer releases (D152)', () => {
+  it('offers each creature the actor holds for no action, and sends the release command', async () => {
+    const user = userEvent.setup()
+    const onRelease = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(vi.fn(), { releases: releaseChoices, onRelease })
+
+    const section = await screen.findByRole('region', { name: 'Holding' })
+    expect(within(section).getByText(/No action/)).toBeVisible()
+
+    await user.click(within(section).getByRole('button', { name: 'Release Wolf' }))
+    expect(onRelease).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RELEASE_RELATIONSHIP',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        heldActorId: releaseChoices[0].heldActorId,
+        activeEffectId: releaseChoices[0].activeEffectId
+      })
+    )
+    expect(await screen.findByText('Released.')).toBeVisible()
+  })
+
+  it('shows no section when the actor holds no creature', async () => {
+    renderDrawer(vi.fn())
+    await screen.findByRole('button', { name: 'Resolve action' })
+    expect(screen.queryByRole('region', { name: 'Holding' })).not.toBeInTheDocument()
+  })
+})
+
 describe('CampaignTabletopActionDrawer escapes', () => {
   it('offers the escape with its DC and cost in its own section', async () => {
     renderDrawer(vi.fn(), { escapes: escapeChoices })
@@ -624,6 +672,14 @@ describe('CampaignTabletopActionDrawer escapes', () => {
     expect(within(section).getByText('Escape from Giant Toad')).toBeVisible()
     expect(within(section).getByText(/DC 13/)).toBeVisible()
     expect(within(section).getByText(/Action/)).toBeVisible()
+  })
+
+  it('names a contested escape, which its holder resists with no DC (D152)', async () => {
+    renderDrawer(vi.fn(), { escapes: [{ ...escapeChoices[0], dc: null }] })
+
+    const section = await screen.findByRole('region', { name: 'Escape' })
+    expect(within(section).getByText(/Contested/)).toBeVisible()
+    expect(within(section).queryByText(/DC/)).not.toBeInTheDocument()
   })
 
   it('sends the first allowed check unless another is chosen', async () => {

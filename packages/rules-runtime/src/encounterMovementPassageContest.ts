@@ -1,11 +1,12 @@
 import type {
-  ServerOptionalCombatContestPendingApplicationContextDto,
+  ServerContestCheckPendingApplicationContextDto,
   ServerRuleExecutionContinuationDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
 import {
+  contestDefenderPolicy,
   executeEncounterOptionalContestAction,
   type OptionalContestResolution
 } from './encounterOptionalContestActionExecution.js'
@@ -20,7 +21,7 @@ import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 export async function executeEncounterMovementPassageContest(input: {
   readonly autoRoll: EncounterAutoRollByActorId
   readonly continuation?: ServerRuleExecutionContinuationDto
-  readonly pending: ServerOptionalCombatContestPendingApplicationContextDto
+  readonly pending: ServerContestCheckPendingApplicationContextDto
   readonly occurrenceId: string
   readonly resolution?: OptionalContestResolution
   readonly rollD20: () => number
@@ -47,18 +48,20 @@ export async function executeEncounterMovementPassageContest(input: {
     }
 > {
   if (
-    (input.pending.actionKind !== 'OVERRUN' && input.pending.actionKind !== 'TUMBLE') ||
-    input.pending.movementContinuation === null ||
-    input.pending.movementContinuation === undefined
+    input.pending.origin.kind !== 'OPTIONAL_COMBAT' ||
+    (input.pending.origin.actionKind !== 'OVERRUN' &&
+      input.pending.origin.actionKind !== 'TUMBLE') ||
+    input.pending.origin.movementContinuation === null ||
+    input.pending.origin.movementContinuation === undefined
   ) {
     throw new EncounterConflictError('Movement passage contest is unavailable.')
   }
   const graph = createDnd5eOptionalCombatContestGraph({
-    definitionId: input.pending.optionalCombat.definitionId,
-    definitionVersion: input.pending.optionalCombat.definitionVersion,
-    definitionChecksum: input.pending.optionalCombat.definitionChecksum,
-    moduleKey: input.pending.optionalCombat.moduleKey,
-    moduleContractVersion: input.pending.optionalCombat.moduleContractVersion
+    definitionId: input.pending.origin.pin.definitionId,
+    definitionVersion: input.pending.origin.pin.definitionVersion,
+    definitionChecksum: input.pending.origin.pin.definitionChecksum,
+    moduleKey: input.pending.origin.pin.moduleKey,
+    moduleContractVersion: input.pending.origin.pin.moduleContractVersion
   })
   if (
     graph.published.id !== input.pending.contestGraph.definitionId ||
@@ -90,9 +93,12 @@ export async function executeEncounterMovementPassageContest(input: {
   const result = await executeEncounterOptionalContestAction({
     autoRoll: input.autoRoll,
     ...(input.continuation ? { continuation: input.continuation } : {}),
-    graph,
+    published: graph.published,
     initiator: { ...input.pending.initiator, requestNodeId: 'initiator_d20' },
-    defender: { ...input.pending.defender, requestNodeId: 'target_d20' },
+    defender: {
+      ...contestDefenderPolicy(input.pending.defender, null),
+      requestNodeId: 'target_d20'
+    },
     occurrenceId: input.occurrenceId,
     ...(input.resolution ? { resolution: input.resolution } : {}),
     rollD20,

@@ -6,15 +6,26 @@ import type {
   EncounterCommandResultDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopCommandOutcome } from './CampaignTabletopCommandOutcome'
 import { useWarnedCommand } from './useWarnedCommand'
 import * as styles from './CampaignTabletopActionList.css'
+
+/** The held-weapon stow a choice needs, which the submitter accepts by confirming it (D152). */
+function heldWeaponStow(
+  choice: EncounterActionChoiceDto
+): ResolveEncounterActionInputDto['acceptedWieldConflict'] {
+  return choice.wieldConflict?.kind === 'STOW_HELD_WEAPON'
+    ? { kind: 'STOW_HELD_WEAPON', itemInstanceId: choice.wieldConflict.itemInstanceId }
+    : null
+}
 
 /**
  * The System's basic actions (Q11), listed apart from the actor's own features. Each row names the
  * action; its rules text is one hover or focus away. A `SELF` action resolves on the actor; an
  * `ACTOR` action asks for a creature first, listing the actor unless its targeting refuses it
- * (Help, First Aid).
+ * (Help, First Aid). An action that needs a free hand the actor can free by stowing a held weapon
+ * asks to stow it first.
  */
 export function CampaignTabletopBasicActions({
   authoredActions,
@@ -36,11 +47,13 @@ export function CampaignTabletopBasicActions({
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
 }) {
   const [targetByAction, setTargetByAction] = useState<Record<string, string>>({})
+  const [stowingId, setStowingId] = useState<string | null>(null)
   const { submittingId, confirming, feedback, error, run, cancelConfirmation } =
     useWarnedCommand(actorId)
 
   useEffect(() => {
     setTargetByAction({})
+    setStowingId(null)
   }, [actorId])
 
   function resolve(
@@ -59,7 +72,7 @@ export function CampaignTabletopBasicActions({
           actionId: choice.id,
           target: { kind: 'ACTOR', actorId: targetByAction[choice.id] ?? actorId },
           sceneContext: null,
-          acceptedWieldConflict: null,
+          acceptedWieldConflict: heldWeaponStow(choice),
           acknowledgedWarnings,
           optionalCombatIntent: null
         }),
@@ -68,6 +81,7 @@ export function CampaignTabletopBasicActions({
   }
 
   const confirmingAuthored = authoredActions.find((choice) => choice.id === confirming?.id)
+  const stowing = authoredActions.find((choice) => choice.id === stowingId)
   return (
     <section aria-labelledby='basic-actions-title' className={styles.section}>
       <Title id='basic-actions-title' order={3} size='h5'>
@@ -130,7 +144,9 @@ export function CampaignTabletopBasicActions({
                 loading={submittingId === choice.id}
                 size='xs'
                 variant='default'
-                onClick={() => void resolve(choice, [])}
+                onClick={() =>
+                  heldWeaponStow(choice) ? setStowingId(choice.id) : void resolve(choice, [])
+                }
               >
                 Use
               </Button>
@@ -138,6 +154,23 @@ export function CampaignTabletopBasicActions({
           )
         })}
       </ul>
+      {stowing ? (
+        <CampaignTabletopActionConfirmation
+          confirmIsPrimary
+          confirmLabel={`Stow weapon and ${stowing.label.toLowerCase()}`}
+          disabled={disabled || submittingId !== null}
+          title='Stow a held weapon?'
+          onCancel={() => setStowingId(null)}
+          onConfirm={() => {
+            setStowingId(null)
+            void resolve(stowing, [])
+          }}
+        >
+          <Text size='sm'>
+            {stowing.label} needs a free hand, so it stows a weapon you hold. Stowing it is free.
+          </Text>
+        </CampaignTabletopActionConfirmation>
+      ) : null}
       <CampaignTabletopCommandOutcome
         disabled={disabled || submittingId !== null}
         error={error}

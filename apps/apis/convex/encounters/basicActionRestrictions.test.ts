@@ -5,18 +5,13 @@ import type {
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type { FacetDto } from '@artificer-toolkit/schema/shared/facet'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
-import {
-  SRD_BASIC_ACTION_DEFINITIONS,
-  SRD_BASIC_ACTION_IDS
-} from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   domainRejection,
   playerControlFixture,
@@ -28,6 +23,11 @@ import {
   readRoomTimeline,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import {
+  restrictedAction,
+  restrictedTo,
+  useAnObjectEffectId
+} from '../../tests/fixtures/restrictedBasicAction'
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 
@@ -36,52 +36,6 @@ const actionChoices = makeFunctionReference<
   GetEncounterActionChoicesInputDto,
   EncounterActionChoicesResponseDto
 >('encounters/actionChoices:get')
-
-const useAnObject = SRD_BASIC_ACTION_DEFINITIONS.find(
-  ({ id }) => id === SRD_BASIC_ACTION_IDS.USE_AN_OBJECT
-)
-if (useAnObject?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Use an Object fixture.')
-const useAnObjectEffectId = useAnObject.document.effects[0]!.id
-
-/** One OR-group holding one AND-ed holder predicate, the way a basic action's restrictions are authored. */
-function restrictedTo(seed: number, predicateCode: 'FREE_HAND' | 'CAN_ACT'): FacetDto {
-  const id = (offset: number) => `00000000-0000-4000-8000-0000000e${seed}0${offset}`
-  return {
-    id: id(0),
-    groups: [
-      {
-        id: id(1),
-        order: 1,
-        contexts: [
-          {
-            id: id(2),
-            order: 1,
-            subject: 'CHARACTER',
-            conditions: [
-              { id: id(3), order: 1, kind: 'PREDICATE', constraint: 'INCLUDE', predicateCode }
-            ]
-          }
-        ]
-      }
-    ]
-  } as FacetDto
-}
-
-/** A System-authored copy of Use an Object under its own identity, taken only by actors meeting `restrictions`. */
-function restrictedAction(seed: number, label: string, restrictions: FacetDto) {
-  const document = {
-    ...useAnObject!.document,
-    id: `00000000-0000-4000-8000-0000000b${seed}00`,
-    restrictions
-  }
-  return {
-    ...useAnObject!,
-    id: document.id,
-    label,
-    document,
-    checksum: checksumRuleDocument(document)
-  }
-}
 
 const needsFreeHand = restrictedAction(10, 'Pull Free', restrictedTo(10, 'FREE_HAND'))
 const needsToAct = restrictedAction(20, 'Steady Hands', restrictedTo(20, 'CAN_ACT'))

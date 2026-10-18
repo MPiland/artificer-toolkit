@@ -33,6 +33,8 @@ export interface ActionEconomyCapabilityAdapter {
     activationKind: string
     activationAmount: number
     triggerCode: string
+    /** The action takes the place of one attack (a basic action that costs ATTACK). */
+    replacesAttack: boolean
   }): boolean
   /** The capability an actor that can't act (incapacitated) has suppressed. */
   actorActionCapabilityDefinitionId(): string
@@ -76,6 +78,7 @@ export function createActionEconomyCapabilityRegistry(
       activationKind: string
       activationAmount: number
       triggerCode: string
+      replacesAttack: boolean
     }): boolean {
       return (
         bySystemId.get(canonicalSystemId(input.gameSystemId))?.isAttackActionAttack(input) ?? false

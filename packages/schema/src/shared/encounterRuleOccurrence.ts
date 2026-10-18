@@ -187,6 +187,34 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         request: d20EvidenceRequestDtoSchema,
         allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
       }),
+      /**
+       * A contest defender's roll: it picks one of the checks the contest sealed for it and rolls it
+       * in the same answer (D152), such as Strength (Athletics) or Dexterity (Acrobatics) against a
+       * Grapple.
+       */
+      z.strictObject({
+        kind: z.literal('CONTEST_CHECK'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        rollerActorId: uuidSchema,
+        actionLabel: triggerLabelSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        checks: z
+          .array(
+            z.strictObject({
+              checkDefinitionId: uuidSchema,
+              label: triggerLabelSchema,
+              rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+              derivedRollModeReasons: z
+                .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
+                .check(z.maxLength(32))
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('CONTEST_CHECK')])
+      }),
       z
         .strictObject({
           kind: z.literal('AREA_SAVES'),
@@ -504,3 +532,21 @@ export type PendingEncounterRuleOccurrenceSummaryDto = z.infer<
 export type EncounterRuleOccurrenceSummaryDto = z.infer<
   typeof encounterRuleOccurrenceSummaryDtoSchema
 >
+type ContestCheckPendingDto = Extract<
+  PendingEncounterRuleOccurrenceSummaryDto,
+  { kind: 'CONTEST_CHECK' }
+>
+
+/** The one d20 a contest defender rolls for the check it picked, in that check's mode (D152). */
+export function contestCheckD20Request(
+  pending: ContestCheckPendingDto,
+  check: ContestCheckPendingDto['checks'][number]
+): z.infer<typeof d20EvidenceRequestDtoSchema> {
+  return {
+    requestId: pending.requestId,
+    min: 1,
+    max: 20,
+    rollMode: check.rollMode,
+    derivedRollModeReasons: check.derivedRollModeReasons
+  }
+}

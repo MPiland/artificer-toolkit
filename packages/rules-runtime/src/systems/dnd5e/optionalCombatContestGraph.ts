@@ -77,19 +77,22 @@ function requirePin(pin: Dnd5eOptionalCombatContestPolicyPin): void {
 }
 
 /**
- * Creates a bounded, one-stage graph for a two-participant contested check.
+ * The bounded, one-stage graph for a two-participant contested check, identified by the
+ * definition that starts the contest: an optional-combat policy or an authored contest action.
  * The application owns authority and tie outcomes.
  */
-export function createDnd5eOptionalCombatContestGraph(
-  pin: Dnd5eOptionalCombatContestPolicyPin
-): Dnd5eOptionalCombatContestGraph {
-  requirePin(pin)
+export function createDnd5eContestGraph(
+  definitionId: string
+): ReturnType<typeof serverPublishedRuleDefinitionDtoSchema.parse> {
+  if (!UUID_PATTERN.test(definitionId)) {
+    throw new Error('Contest definition identity must be a lowercase UUID.')
+  }
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
-    id: pin.definitionId,
+    id: definitionId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
-    sourceEntryBindings: [{ sourceEntryId: pin.definitionId, nodeId: 'initiator_d20' }],
+    sourceEntryBindings: [{ sourceEntryId: definitionId, nodeId: 'initiator_d20' }],
     nodes: [
       {
         id: 'initiator_d20',
@@ -134,13 +137,21 @@ export function createDnd5eOptionalCombatContestGraph(
       targetTotal: { kind: 'NODE_OUTPUT', nodeId: 'target_total', port: 'value' }
     }
   }
-  const published = serverPublishedRuleDefinitionDtoSchema.parse({
+  return serverPublishedRuleDefinitionDtoSchema.parse({
     id: definition.id,
     gameSystemId: definition.gameSystemId,
     definitionFamilyKey: definition.definitionFamilyKey,
     checksum: checksumRuleDocument(definition),
     definition
   })
+}
+
+/** The contest graph an optional-combat policy starts, retained beside its exact policy pin. */
+export function createDnd5eOptionalCombatContestGraph(
+  pin: Dnd5eOptionalCombatContestPolicyPin
+): Dnd5eOptionalCombatContestGraph {
+  requirePin(pin)
+  const published = createDnd5eContestGraph(pin.definitionId)
   return {
     pin: { ...pin },
     published,

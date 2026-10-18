@@ -114,11 +114,12 @@ function command(input: {
   actionId: string
   commandId?: string
   expectedVersion: number
+  acknowledgedWarnings?: ResolveEncounterActionInputDto['acknowledgedWarnings']
 }): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
     acceptedWieldConflict: null,
-    acknowledgedWarnings: [],
+    acknowledgedWarnings: input.acknowledgedWarnings ?? [],
     encounterId: input.encounterId,
     commandId: input.commandId ?? crypto.randomUUID(),
     expectedVersion: input.expectedVersion,
@@ -157,7 +158,17 @@ async function setup(
                 ],
                 effects: feature.effects?.map((effect) => ({
                   ...effect,
-                  invocation: { ...effect.invocation, triggerCode: 'MELEE_WEAPON_ATTACK' as const },
+                  // A hold seals its source's reach (D152): the Bite reaches 5 feet.
+                  invocation: {
+                    ...effect.invocation,
+                    triggerCode: 'MELEE_WEAPON_ATTACK' as const,
+                    range: {
+                      id: effect.invocation.range.id,
+                      rangeKind: 'DISTANCE' as const,
+                      amount: 5,
+                      unit: 'FEET' as const
+                    }
+                  },
                   paths: effect.paths?.map((path) =>
                     !('resultBlock' in path)
                       ? path
@@ -347,7 +358,9 @@ describe('native Creature actions against Character targets', () => {
       actorId: base.actor.id,
       targetActorId: base.target.id,
       actionId: base.actionId,
-      expectedVersion: base.run.version
+      expectedVersion: base.run.version,
+      // The 5-foot reach cannot be measured in a room without a Scene.
+      acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED']
     })
     const before = await records(base)
     await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 14 })

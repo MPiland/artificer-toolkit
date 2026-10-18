@@ -219,6 +219,17 @@ const PARITY: Record<CommandType, Entry> = {
       activeEffectId: SOME_ID
     })
   },
+  RELEASE_RELATIONSHIP: {
+    access: 'PLAYER',
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'RELEASE_RELATIONSHIP',
+      actorId: probe.actorId,
+      heldActorId: SOME_ID,
+      activeEffectId: SOME_ID
+    })
+  },
   VOID_RULE_OCCURRENCE: {
     access: 'TABLE',
     rule: UNDO_VOID,
@@ -515,6 +526,7 @@ describe('registry', () => {
       'ADVANCE_TURN',
       'END_HELD_GRANT',
       'ESCAPE',
+      'RELEASE_RELATIONSHIP',
       'RESOLVE_ACTION',
       'RESOLVE_RULE_OCCURRENCE',
       'ROLL_RULE_EVIDENCE'

@@ -483,6 +483,68 @@ describe('encounter action rule warning gate', () => {
     })
   })
 
+  describe('a size limit above the actor (D152)', () => {
+    const tooLarge: EncounterRuleWarningDto = {
+      code: 'TARGET_TOO_LARGE',
+      message: 'The target is too large for this action.'
+    }
+    const gate = (
+      sizes: { actorSize: string | null; targetSize: string | null },
+      acknowledged: EncounterRuleWarningDto['code'][] = []
+    ) =>
+      evaluateEncounterActionRuleWarnings({
+        preparedWarnings: [],
+        target: {
+          actor: { id: ACTOR_ID, disposition: 'FRIENDLY' },
+          target: { id: TARGET_ID, disposition: 'HOSTILE' },
+          targetPolicy: {
+            range: { id: 'range', rangeKind: 'TOUCH' },
+            targeting: {
+              selectionKind: 'SINGLE_TARGET',
+              dispositionKind: 'HOSTILE',
+              sizeLimit: { stepsAboveActor: 1 }
+            },
+            shape: null,
+            pathOverrides: []
+          },
+          makesAttackRoll: false,
+          sceneContext: null
+        },
+        ...sizes,
+        targetDefeated: false,
+        stabilize: null,
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged: ['TARGET_RANGE_UNCHECKED', ...acknowledged]
+      })
+
+    it('allows a target up to the limit above the actor', () => {
+      expect(gate({ actorSize: 'MEDIUM', targetSize: 'LARGE' })).toMatchObject({
+        kind: 'ACCEPTED'
+      })
+      expect(gate({ actorSize: 'MEDIUM', targetSize: 'TINY' })).toMatchObject({
+        kind: 'ACCEPTED'
+      })
+    })
+
+    it('warns for a larger target, which only an override proceeds against', () => {
+      expect(gate({ actorSize: 'MEDIUM', targetSize: 'HUGE' })).toEqual({
+        kind: 'UNACKNOWLEDGED',
+        warnings: [tooLarge, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+      })
+      expect(
+        gate({ actorSize: 'MEDIUM', targetSize: 'HUGE' }, ['TARGET_TOO_LARGE'])
+      ).toMatchObject({ kind: 'ACCEPTED', overrides: expect.arrayContaining([tooLarge]) })
+    })
+
+    it('raises nothing when either size is unknown', () => {
+      expect(gate({ actorSize: null, targetSize: 'GARGANTUAN' })).toMatchObject({
+        kind: 'ACCEPTED'
+      })
+      expect(gate({ actorSize: 'TINY', targetSize: null })).toMatchObject({ kind: 'ACCEPTED' })
+    })
+  })
+
   describe('a list of chosen creatures', () => {
     const undeadId = '00000000-0000-4000-8000-0000000b00aa'
     const excludedWarning: EncounterRuleWarningDto = {

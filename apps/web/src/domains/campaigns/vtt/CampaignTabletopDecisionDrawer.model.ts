@@ -1,4 +1,7 @@
-import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import {
+  contestCheckD20Request,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -53,6 +56,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'RECHARGE_EVIDENCE') return 'Recharge roll required'
   if (kind === 'ACTION_OUTCOME_EVIDENCE') return 'Action outcome required'
   if (kind === 'AREA_SAVES') return 'Area saves'
+  if (kind === 'CONTEST_CHECK') return 'Contest check'
   return 'Initiative order required'
 }
 
@@ -66,4 +70,23 @@ export function rollPromptText(
   if (trigger?.kind === 'BASIC_ACTION_CHECK')
     return `${trigger.actionLabel}: ${trigger.checkLabel}${trigger.dc === null ? '' : ` DC ${trigger.dc}`}`
   return `Roll for ${actorLabel}`
+}
+
+/**
+ * The d20 a contest check asks for, in the chosen check's mode, as the evidence row's request. Every
+ * check shares the contest's one request.
+ */
+export function contestCheckEvidence(
+  pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'CONTEST_CHECK' }>,
+  check: (typeof pending.checks)[number]
+): Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }> {
+  return {
+    kind: 'D20_EVIDENCE',
+    occurrenceId: pending.occurrenceId,
+    occurrenceVersion: pending.occurrenceVersion,
+    encounterVersion: pending.encounterVersion,
+    rollerActorId: pending.rollerActorId,
+    request: contestCheckD20Request(pending, check),
+    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+  }
 }

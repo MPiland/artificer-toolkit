@@ -6,7 +6,7 @@ import { facetDtoSchema } from './facet.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 /** The allowance a basic action spends; a free one spends none. */
-export const basicActionCostDtoSchema = lazySchema(() => z.enum(['ACTION', 'BONUS_ACTION', 'FREE']))
+export const basicActionCostDtoSchema = lazySchema(() => z.enum(['ACTION', 'ATTACK', 'BONUS_ACTION', 'FREE']))
 
 /**
  * One System-authored basic combat action (Q11): the System names it and writes its rules text.

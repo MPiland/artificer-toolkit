@@ -7,6 +7,7 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchPlan } from './encounterMechanicsBatchPlan.js'
+import { contestCheckMovementContinuation } from './encounterMovementPendingContext.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { spatialEffectTransition } from './encounterSpatialMovementEffects.js'
 import type {
@@ -32,8 +33,9 @@ export function retainedMovementSpatialExecutions(outcome: Outcome) {
   if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE')
     return context.movement.completedSpatialExecutions
 
-  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation)
-    return context.movementContinuation.completedSpatialExecutions
+  const continuation =
+    context.kind === 'ENCOUNTER_CONTEST_CHECK' ? contestCheckMovementContinuation(context) : null
+  if (continuation) return continuation.completedSpatialExecutions
 
   throw new Error('Retained Scene movement evidence is unavailable.')
 }
@@ -50,8 +52,9 @@ export function retainedMovementReactionExecutions(outcome: Outcome) {
   if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE')
     return context.movement.completedReactionExecutions
 
-  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation)
-    return context.movementContinuation.completedReactionExecutions
+  const continuation =
+    context.kind === 'ENCOUNTER_CONTEST_CHECK' ? contestCheckMovementContinuation(context) : null
+  if (continuation) return continuation.completedReactionExecutions
 
   throw new Error('Retained Scene movement reaction evidence is unavailable.')
 }

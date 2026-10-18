@@ -14,13 +14,13 @@ import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/e
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
   completeEncounterBasicActionCheckResult,
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionStabilizeApplication,
   evaluateEncounterBasicActionCheck,
   prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'

@@ -119,7 +119,10 @@ import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationId
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
 import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
-import { dnd5eOptionalCombatContestCapabilityContribution } from './optionalCombatContestGraph.js'
+import {
+  createDnd5eContestGraph,
+  dnd5eOptionalCombatContestCapabilityContribution
+} from './optionalCombatContestGraph.js'
 import { dnd5eReactionEligibilityCapabilityContribution } from './reactionEligibilityPolicy.js'
 import {
   resolveDnd5eFlankingContributor,
@@ -984,15 +987,20 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   if (entries.length !== 1) unsupported('D&D action has more than one relationship outcome.')
   const entry = entries[0]!
   const relationship = entry.outcome
+  // An attack holds its target on a hit; a contest (Grapple) on the initiator's win.
+  const invocation = action.compiledEffect.invocation
+  const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
   if (
-    action.compiledEffect.invocation.kind !== 'ACTION' ||
-    testPhaseKindOrNull(action) !== 'ATTACK' ||
+    invocation.kind !== 'ACTION' ||
     entry.resolutionKind !== 'DIRECT' ||
     (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-    (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT') ||
+    (contest
+      ? entry.pathCode !== 'ON_CHECK_SUCCESS'
+      : testPhaseKindOrNull(action) !== 'ATTACK' ||
+        (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT')) ||
     !UUID.test(relationship.id)
   ) {
-    unsupported('D&D relationship outcomes require one bounded attack-hit result.')
+    unsupported('D&D relationship outcomes require one bounded attack-hit or contest-win result.')
   }
   const orderedModules = [...relationship.modules].sort(
     (left, right) => left.order - right.order || left.id.localeCompare(right.id)
@@ -3537,16 +3545,21 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   return { kind, branches }
 }
 
-function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome {
+// A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
+// to the contest graph alone; its relationship is the action's active-effect plan.
+function supported(
+  action: Dnd5eCompiledEffectActionSource
+): SpecializedOutcome | { kind: 'CONTEST_RELATIONSHIP' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
   const formPlan = creatureFormPlan(action)
-  // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
-  // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
+  // A CHECK action rolls its authored check against a fixed DC, each observer's passive score, the
+  // concealments that hide creatures from the checker, or the target's own check in a contest.
   const checkAction = invocation.triggerCode === 'CHECK'
+  const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
@@ -3626,8 +3639,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
-    (invocation.triggerCode !== 'ACTIVATED' &&
-      !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
+    (invocation.triggerCode !== 'ACTIVATED' && invocation.triggerCode !== 'CHECK') ||
     !supportedActivation ||
     (!supportsSelf &&
       !selfTeleport &&
@@ -3674,8 +3686,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const outcome = entry.outcome
   if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
+  if (contestAction && outcome.effectKind !== 'ACTOR_RELATIONSHIP')
+    unsupported('D&D contest check action outcome must be an actor relationship.')
   if (
     checkAction &&
+    !contestAction &&
     outcome.effectKind !== 'STABILIZE' &&
     outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS' &&
     outcome.effectKind !== 'DETECT_CONCEALED'
@@ -3720,6 +3735,17 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       1
   )
     unsupported('D&D check action must list exactly one check.')
+  if (contestAction) {
+    if (
+      invocation.check.dc.kind !== 'CONTEST' ||
+      invocation.check.dc.checks.skillIds.length +
+        invocation.check.dc.checks.abilityDefinitionIds.length ===
+        0
+    )
+      unsupported('D&D contest check action must list the checks its target may roll.')
+    relationshipPlan(action)
+    return { kind: 'CONTEST_RELATIONSHIP' }
+  }
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
@@ -6577,6 +6603,11 @@ function compileDnd5eEffectAction({
       })
     })
   }
+  if (outcome.kind === 'CONTEST_RELATIONSHIP')
+    return bindMovementInterruptionOutput({
+      action,
+      published: createDnd5eContestGraph(action.effectId)
+    })
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   if (outcome.kind === 'FORCED_MOVEMENT')
