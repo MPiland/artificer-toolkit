@@ -693,15 +693,16 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
                 (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
                   ? false
-                  : application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-                  ? trace.outputs.conditionId === application.conditionId
-                  : application.kind === 'STABILIZE' || application.kind === 'DEPART'
-                    ? true
-                    : application.kind === 'SCALAR_REDUCTION'
-                      ? trace.outputs.amount === application.reductionAmount
-                      : trace.outputs.amount === application.requestedAmount &&
-                        (application.kind !== 'DAMAGE' ||
-                          trace.outputs.damageTypeId === application.damageTypeId))
+                  : application.kind === 'CONDITION_APPLY' ||
+                      application.kind === 'CONDITION_REMOVE'
+                    ? trace.outputs.conditionId === application.conditionId
+                    : application.kind === 'STABILIZE' || application.kind === 'DEPART'
+                      ? true
+                      : application.kind === 'SCALAR_REDUCTION'
+                        ? trace.outputs.amount === application.reductionAmount
+                        : trace.outputs.amount === application.requestedAmount &&
+                          (application.kind !== 'DAMAGE' ||
+                            trace.outputs.damageTypeId === application.damageTypeId))
             )
             if (
               matches.length !== 1 ||

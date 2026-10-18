@@ -1181,8 +1181,15 @@ function compileSequentialComposition(
   if (!cast) unsupported('D&D sequential composition has no cast entry.')
   const castAction = singleEntryAction(action, cast)
   const { requiresConcentration: _concentration, ...instantEffect } = castAction.compiledEffect
+  const { invocation } = instantEffect
+  // The composition's grant is what lets the cast ask for a willing target (Enhance Ability); the
+  // instant entry is compiled alone only for its graph, so it keeps the grant's allowance.
+  const instantInvocation =
+    grant && invocation.kind === 'ACTION' && invocation.targeting?.dispositionKind === 'WILLING'
+      ? { ...invocation, targeting: { ...invocation.targeting, dispositionKind: 'ANY' as const } }
+      : invocation
   const published = compileDnd5eEffectAction({
-    action: { ...castAction, compiledEffect: instantEffect }
+    action: { ...castAction, compiledEffect: { ...instantEffect, invocation: instantInvocation } }
   })
   if (recurring?.outcome.effectKind !== 'HEAL' || (recurring.outcome.bonuses?.length ?? 0) === 0)
     return published

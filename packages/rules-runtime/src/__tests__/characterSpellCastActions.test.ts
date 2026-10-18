@@ -875,7 +875,6 @@ describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', ()
   })
 })
 
-const abilityId = (code: string) => SRD_ABILITIES.find((entry) => entry.code === code)?.id
 /** A touch cast on one creature with `paths`, written out in core options alone (the parity proof). */
 function touchSpellFromCoreOptions(
   base: SpellAuthored,
@@ -1020,7 +1019,7 @@ const REGENERATE_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(REGENERATE, 0x330
 const ENHANCE_ABILITY_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(
   ENHANCE_ABILITY,
   0x3400,
-  'ANY',
+  'WILLING',
   [
     {
       id: testUuid(0x3410),
@@ -1039,7 +1038,7 @@ const ENHANCE_ABILITY_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(
             resultKind: 'SEQUENCE',
             duration: { id: testUuid(0x3422), durationKind: 'HOUR', amount: 1 },
             outcomes: [
-              advantageOn(0x3423, abilityId('CONSTITUTION')!),
+              advantageOn(0x3423, 'CONSTITUTION'),
               {
                 id: testUuid(0x3425),
                 effectKind: 'HEAL',
@@ -1059,7 +1058,7 @@ const ENHANCE_ABILITY_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(
             id: testUuid(0x3431),
             resultKind: 'SINGLE',
             duration: { id: testUuid(0x3432), durationKind: 'HOUR', amount: 1 },
-            outcomes: [advantageOn(0x3433, abilityId('STRENGTH')!)]
+            outcomes: [advantageOn(0x3433, 'STRENGTH')]
           }
         }
       ]
@@ -1126,7 +1125,7 @@ describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t
       maintenance: null
     })
     expect(compiled?.activeEffectPlan?.ownsTemporaryHitPoints).toBeUndefined()
-    expect(compiled?.activeEffectPlan?.modifierGrantContribution).toBeUndefined()
+    expect(compiled?.activeEffectPlan?.modifierGrantContribution).toBeNull()
     expect(
       compiled?.activeEffectPlan?.frozenGraph.definition.nodes.map(({ inputs }) => inputs.amount)
     ).toEqual([{ kind: 'LITERAL', value: 1 }])
@@ -1156,7 +1155,7 @@ describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t
             {
               valueDomainCode: 'ABILITY_CHECK',
               modifierKind: 'ADVANTAGE',
-              domain: { ability: abilityId(code) }
+              domain: { ability: code }
             }
           ]
         },

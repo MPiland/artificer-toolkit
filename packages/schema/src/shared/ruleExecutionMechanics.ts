@@ -281,7 +281,9 @@ export const ENDED_EFFECT_RELEASE_OPERATION_KEY = 'active-effect.ended'
 export function isEndedEffectRelease<T extends { kind: string }>(
   application: T
 ): application is Extract<T, { kind: 'CONDITION_REMOVE' | 'TEMPORARY_HIT_POINTS_RELEASE' }> {
-  return application.kind === 'CONDITION_REMOVE' || application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+  return (
+    application.kind === 'CONDITION_REMOVE' || application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+  )
 }
 
 /**

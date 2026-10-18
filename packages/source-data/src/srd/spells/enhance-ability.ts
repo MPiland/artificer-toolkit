@@ -101,7 +101,7 @@ export const enhanceAbility: SpellAuthored = {
                 ]
               }
             }
-            const resultBlockId = `${spellChildId(SPELL_IDS.ENHANCE_ABILITY, 0x221, option)}__result`
+            const resultBlockId = spellChildId(SPELL_IDS.ENHANCE_ABILITY, 0x221, option)
             return {
               id: spellChildId(SPELL_IDS.ENHANCE_ABILITY, 0x220, option),
               order: option,

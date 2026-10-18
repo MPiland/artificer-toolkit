@@ -84,7 +84,7 @@ export const regenerate: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.REGENERATE, 0x215, 1) + '__result',
+            id: spellChildId(SPELL_IDS.REGENERATE, 0x217, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.REGENERATE, 0x216, 1),

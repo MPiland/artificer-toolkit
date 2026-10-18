@@ -86,8 +86,8 @@ export type MovementTarget<
   state: {
     current: number
     temporary: number
-    /** The active effect whose temporary hit points these are; absent or null when none (D156). */
-    temporarySourceEffectId?: string | null
+    /** The active effect whose temporary hit points these are; absent when none (D156). */
+    temporarySourceEffectId?: string
     conditions: readonly string[]
     /** A Character's death saves; null for an actor that is simply defeated at 0 (D63). */
     deathSaves: CharacterDeathSaves | null
@@ -367,15 +367,18 @@ export function buildMovementTarget<
           ? {
               current: characterFacts.character.state.hitpoints.current,
               temporary: characterFacts.character.state.hitpoints.temp,
-              temporarySourceEffectId:
-                characterFacts.character.state.hitpoints.tempSourceEffectId ?? null,
+              ...(characterFacts.character.state.hitpoints.tempSourceEffectId && {
+                temporarySourceEffectId: characterFacts.character.state.hitpoints.tempSourceEffectId
+              }),
               conditions: conditionIds,
               deathSaves: characterFacts.character.state.hitpoints.deathSaves
             }
           : {
               current: form.currentHitPoints,
               temporary: form.tempHitPoints,
-              temporarySourceEffectId: form.tempHitPointsSourceEffectId ?? null,
+              ...(form.tempHitPointsSourceEffectId && {
+                temporarySourceEffectId: form.tempHitPointsSourceEffectId
+              }),
               conditions: conditionIds,
               deathSaves: null
             },
@@ -494,7 +497,9 @@ export function buildMovementTarget<
     state: {
       current: actor.currentHitPoints,
       temporary: actor.tempHitPoints,
-      temporarySourceEffectId: actor.tempHitPointsSourceEffectId ?? null,
+      ...(actor.tempHitPointsSourceEffectId && {
+        temporarySourceEffectId: actor.tempHitPointsSourceEffectId
+      }),
       conditions: conditions.ids,
       deathSaves: null
     },

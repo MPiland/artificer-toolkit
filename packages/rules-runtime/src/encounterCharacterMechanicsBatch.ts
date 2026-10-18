@@ -441,7 +441,10 @@ export function foldCharacterMechanicsApplications<
     } else if (application.kind === 'TEMPORARY_HIT_POINTS') {
       const granted = temporaryHitPointsAfterGrant(
         { amount: temporary, sourceEffectId: temporarySource },
-        { amount: application.resolvedAmount, sourceEffectId: application.sourceActiveEffectId ?? null }
+        {
+          amount: application.resolvedAmount,
+          sourceEffectId: application.sourceActiveEffectId ?? null
+        }
       )
       const afterTemporaryHitPoints = granted.amount
       temporarySource = granted.sourceEffectId

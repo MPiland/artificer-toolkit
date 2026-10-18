@@ -47,7 +47,10 @@ import {
   turnZoneEffectsEvidenceFields
 } from './ruleExecutionTurnPhaseEvidence.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
-import { ENDED_EFFECT_RELEASE_OPERATION_KEY, isEndedEffectRelease } from './ruleExecutionMechanics.js'
+import {
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  isEndedEffectRelease
+} from './ruleExecutionMechanics.js'
 
 const MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS = MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2
 const completedTurnLifecyclePhaseEvidenceDtoSchema = lazySchema(() =>
