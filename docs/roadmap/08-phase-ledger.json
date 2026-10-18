@@ -11500,9 +11500,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2a5"]
               },
-              "text": "A: self teleports (Balor, Marilith, Teleport), Giant Frog Bite, Darkmantle Attach (5 kinds; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "A: self teleports (Balor, Marilith), Giant Frog Bite, Darkmantle Attach (4 kinds; the Teleport spell stays with SPELLS-4.T2a5; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
