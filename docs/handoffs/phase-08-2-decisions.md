@@ -979,6 +979,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Spike Growth (T1h):** it needs a new generic option, damage per distance moved inside a zone. The session sends the option design for a ruling before coding. Its hidden camouflage stays with MOVE-3.4.
   - **Wall of Thorns (T1i):** its entry and turn-end damage and its movement cost get a room journey; this is test-only.
 
+* **D157** (2026-10-18) Chosen forced-movement destinations (ATTACK-7.T5, AC 7.7; [slice-attack-7.md](slice-attack-7.md)). Orchestrator ruling; amends D105 and D139.
+  - **Authored contract:** a forced-movement direction is AWAY_FROM_SOURCE, TOWARD_SOURCE, ASIDE or ANY (CHOICE is removed), and its distance is EXACT {amount}, UP_TO {amount} or UP_TO_SPEED. The Air Elemental's Whirlwind becomes ANY UP_TO 20 ft.
+  - **Transport:** a push that needs a choice pauses after its outcomes on a new pending decision, FORCED_MOVEMENT_DESTINATION. It holds one target at a time, farthest first, with the server-derived legal positions, and is answered by a FORCED_MOVEMENT resolution `{requestId, position}` from the source's controllers or the GM, on the pause and resume path CONTEST_CHECK uses. When the last target is answered, the action commits with every move in its own transaction, as D139 requires. EXACT AWAY_FROM_SOURCE or TOWARD_SOURCE never prompts, and neither does a target with one legal square or none.
+  - **Web (amended 2026-10-18, user):** the choice is made on the Scene board, not in a drawer. The board highlights the legal squares and clicking one answers the decision; the prompt is a short board-level instruction naming the creature, not a new drawer panel. The highlighted squares are keyboard-focusable with accessible names giving direction and distance, so the board pick is itself the accessible path. The board already aims areas this way (`vttAreaAimGesture`: point areas picked on a press, cones and lines dragged from the caster, walls and rings drawn by press and drag per D154), so T5 reuses that gesture's point pick, limited to the legal squares, instead of adding a second pick mode.
+  - **Rejected:** choosing up front on the action or cast command, because the player would pick before knowing whether the push happens, and area picks conflict while farther creatures land first.
+  - **Deferred:** Whirlwind's random direction is chosen by its controller, not rolled.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

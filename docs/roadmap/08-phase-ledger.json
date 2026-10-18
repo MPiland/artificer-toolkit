@@ -6170,7 +6170,7 @@
             },
             {
               "id": "ATTACK-7.T5",
-              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a.",
+              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a. D157: chosen destinations pause on FORCED_MOVEMENT_DESTINATION; the web picks on the Scene board with keyboard-focusable highlighted squares (generic square-pick mode), no drawer list. Browser test of the board pick.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.7"],
               "activeWorkbook": "docs/handoffs/slice-attack-7.md"
