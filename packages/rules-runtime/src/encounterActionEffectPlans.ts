@@ -6,6 +6,7 @@ import {
   type ServerCompletedRuleExecutionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
 import {
@@ -42,19 +43,6 @@ export function compileEffectGraph(
 type EffectPlan = {
   definition: ReturnType<typeof activeRuleEffectDefinitionDtoSchema.parse>
   lifecycle: ReturnType<typeof activeRuleEffectLifecycleDtoSchema.parse>
-}
-
-const sizeRank: Record<string, number> = {
-  FINE: 0,
-  DIMUNITIVE: 1,
-  TINY: 2,
-  SMALL: 3,
-  MEDIUM: 4,
-  LARGE: 5,
-  HUGE: 6,
-  GARGANTUAN: 7,
-  GIANT: 8,
-  COLOSSAL: 9
 }
 
 /** Builds immutable effect definitions from one already-completed Encounter action. */
@@ -295,13 +283,9 @@ function prepareRecurringActiveEffect(
     const maximum = relationshipContribution.modules.find(
       (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
     )
-    if (
-      maximum &&
-      (input.target.effectiveSize === null ||
-        sizeRank[input.target.effectiveSize] === undefined ||
-        sizeRank[maximum.sizeCode] === undefined ||
-        sizeRank[input.target.effectiveSize] > sizeRank[maximum.sizeCode])
-    )
+    const targetRank = sizeRank(input.target.effectiveSize)
+    const maximumRank = maximum ? sizeRank(maximum.sizeCode) : null
+    if (maximum && (targetRank === null || maximumRank === null || targetRank > maximumRank))
       return null
     const sameSourceRelationships = [...input.activeEffectsByActorId.entries()].flatMap(
       ([actorId, effects]) =>

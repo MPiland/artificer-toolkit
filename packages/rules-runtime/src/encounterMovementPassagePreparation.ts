@@ -12,6 +12,7 @@ import {
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { sizeRank } from '@artificer-toolkit/shared/core'
 import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type {
   EncounterRunActorState,
@@ -46,8 +47,6 @@ type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
     target: MovementTarget<TCharacterFacts>
   }) => Promise<EncounterActionEconomyConsumption | null>
 }
-
-const sizeRankTable = { TINY: 0, SMALL: 1, MEDIUM: 2, LARGE: 3, HUGE: 4, GARGANTUAN: 5 } as const
 
 export type ContestFacts = {
   controllerCharacterId: string | null
@@ -294,8 +293,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     option.ruleKind === 'OVERRUN'
       ? prepareDnd5eOverrunContest({
           ...common,
-          initiatorSizeRank: sizeRankTable[sourceSize as keyof typeof sizeRankTable] ?? null,
-          targetSizeRank: sizeRankTable[blockerSize as keyof typeof sizeRankTable] ?? null,
+          initiatorSizeRank: sizeRank(sourceSize),
+          targetSizeRank: sizeRank(blockerSize),
           qualifiedInitiatorContributors: []
         })
       : prepareDnd5eTumbleContest(common)
@@ -324,8 +323,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
           ruleKind: 'OVERRUN' as const,
           result: prepareDnd5eOverrunContest({
             ...common,
-            initiatorSizeRank: sizeRankTable[initiator.size as keyof typeof sizeRankTable] ?? null,
-            targetSizeRank: sizeRankTable[defender.size as keyof typeof sizeRankTable] ?? null,
+            initiatorSizeRank: sizeRank(initiator.size),
+            targetSizeRank: sizeRank(defender.size),
             qualifiedInitiatorContributors: initiator.contributors.map((contributor) => ({
               id: contributor.sourceId,
               influence: contributor.influence,

@@ -7,7 +7,11 @@ import {
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
+import {
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  sizeRank
+} from '@artificer-toolkit/shared/core'
 import {
   checksumRuleDocument,
   compareCanonicalD20Contributors,
@@ -21,21 +25,6 @@ import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
 
 type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
 type D20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
-
-const DND5E_SIZE_RANK = {
-  TINY: 0,
-  SMALL: 1,
-  MEDIUM: 2,
-  LARGE: 3,
-  HUGE: 4,
-  GARGANTUAN: 5
-} as const
-
-function dnd5eSizeRank(size: string | null): number | null {
-  return size !== null && size in DND5E_SIZE_RANK
-    ? DND5E_SIZE_RANK[size as keyof typeof DND5E_SIZE_RANK]
-    : null
-}
 
 interface Dnd5eOptionalActionPin {
   readonly definitionChecksum: string
@@ -220,8 +209,8 @@ export function prepareDnd5eDisarmContest(
   if (!definition) return { kind: 'INERT' }
   const parameters = definition.document.parameters
   if (parameters.kind !== 'DISARM') return { kind: 'INERT' }
-  const attackerSizeRank = dnd5eSizeRank(input.attackerSize)
-  const targetSizeRank = dnd5eSizeRank(input.targetSize)
+  const attackerSizeRank = sizeRank(input.attackerSize)
+  const targetSizeRank = sizeRank(input.targetSize)
   if (
     !exactUuid(input.attackerActorId) ||
     !exactUuid(input.targetActorId) ||
