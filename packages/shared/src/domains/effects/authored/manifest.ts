@@ -140,6 +140,19 @@ export type ManifestInteractionKind =
   | 'START_OF_ATTACHED_TARGET_TURN'
   | 'END_OF_ATTACHED_TARGET_NEXT_TURN'
 
+/**
+ * A continuous bonus to every saving throw of an occupant the filter matches (D155); a source ability
+ * modifier is resolved when the zone is placed and pinned.
+ */
+export type ManifestOccupantSaveBonusAuthored = {
+  id: string
+  domain: 'EVERY_SAVING_THROW'
+  dispositionFilter: 'ALLIES_AND_SOURCE'
+} & (
+  | { amountKind: 'FIXED'; amount: number }
+  | { amountKind: 'SOURCE_ABILITY_MODIFIER'; ability: AbilityCode; minimum?: number }
+)
+
 export type ManifestComponentAuthored = {
   id: string
   order: number
@@ -151,6 +164,7 @@ export type ManifestComponentAuthored = {
   requiresFullyWithin?: boolean
   /** A target immune to this damage type succeeds on the component's save unrolled. */
   automaticSaveSuccessImmunityDamageTypeId?: string
+  occupantSaveBonus?: ManifestOccupantSaveBonusAuthored
   requiresIgnition?: boolean
   maxApplicationsPerTurn?: number
   maxApplicationsTotal?: number

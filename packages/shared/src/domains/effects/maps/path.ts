@@ -15,6 +15,7 @@ import type {
   ManifestCreatureFormFilterAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
+  ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
   EffectPathAuthored,
@@ -110,6 +111,7 @@ type FollowUpSaveBranchNode = AllUnionFields<FollowUpSaveBranchAuthored>
 type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
 type ManifestDestructionCriterionNode = AllUnionFields<ManifestDestructionCriterionAuthored>
 type ManifestProximityRuleNode = ManifestProximityRuleAuthored
+type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
@@ -224,6 +226,7 @@ const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthor
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
+const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
 const choiceOption = buildNodeMap<PathChoiceOptionAuthored>()
@@ -900,10 +903,77 @@ const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.de
   }
 )
 
+const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNode> =
+  manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond }) => {
+    const { text, number, selectSingle } = nodes
+    const local = cond.local()
+    const isAbilityModifier = local.field(['amountKind']).eq('SOURCE_ABILITY_MODIFIER')
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'domain',
+        selectSingle(
+          ['domain'],
+          'Applies To',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [{ code: 'EVERY_SAVING_THROW', label: 'Every Saving Throw' }]
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'amountKind',
+        selectSingle(
+          ['amountKind'],
+          'Amount',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'FIXED', label: 'Fixed' },
+              { code: 'SOURCE_ABILITY_MODIFIER', label: 'Source Ability Modifier' }
+            ]
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'amount',
+        number(['amount'], 'Bonus', {
+          requiredIf: true,
+          showIf: local.field(['amountKind']).eq('FIXED'),
+          constraints: { minimum: 1 }
+        })
+      )
+      .set(
+        'ability',
+        selectSingle(
+          ['ability'],
+          'Ability',
+          { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+          { requiredIf: true, showIf: isAbilityModifier }
+        )
+      )
+      .set('minimum', number(['minimum'], 'Minimum Bonus', { showIf: isAbilityModifier }))
+      .set(
+        'dispositionFilter',
+        selectSingle(
+          ['dispositionFilter'],
+          'Benefits',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [{ code: 'ALLIES_AND_SOURCE', label: 'Source and Its Allies' }]
+          },
+          { requiredIf: true }
+        )
+      )
+  })
+
 const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifestComponent.define(
   'manifestComponent',
   ({ map, nodes, data }) => {
-    const { text, number, selectSingle, selectMulti, toggle, groupArray } = nodes
+    const { text, number, selectSingle, selectMulti, toggle, groupArray, groupObject } = nodes
     const { table } = data
 
     map
@@ -951,6 +1021,17 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
             relationship: table('damage_types', {
               selectColumns: ['id', 'label', 'description']
             })
+          }
+        )
+      )
+      .set(
+        'occupantSaveBonus',
+        groupObject(
+          ['occupantSaveBonus'],
+          'Occupant Save Bonus',
+          () => MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP,
+          {
+            presentation: 'inline'
           }
         )
       )

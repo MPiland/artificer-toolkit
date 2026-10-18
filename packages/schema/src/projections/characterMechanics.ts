@@ -8,6 +8,7 @@ import {
 import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
+import { abilityCodeSchema } from '../shared/enums.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
@@ -368,6 +369,27 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     failedSaveLosesAction: z.optional(z.boolean()),
     /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
     heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
+    /**
+     * The continuous bonus the zone adds to every saving throw of an occupant its filter matches
+     * (D155); absent for none. A source ability modifier is resolved and pinned at placement.
+     */
+    occupantSaveBonus: z.optional(
+      z.strictObject({
+        domain: z.literal('EVERY_SAVING_THROW'),
+        dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
+        amount: z.discriminatedUnion('kind', [
+          z.strictObject({
+            kind: z.literal('FIXED'),
+            value: z.number().check(z.int()).check(z.positive()).check(z.maximum(30))
+          }),
+          z.strictObject({
+            kind: z.literal('SOURCE_ABILITY_MODIFIER'),
+            ability: abilityCodeSchema,
+            minimum: z.nullable(z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30)))
+          })
+        ])
+      })
+    ),
     /** What a creature the zone triggers on is put through (its authored save and outcomes). */
     entry: compiledActionActiveEffectPlanSchema,
     /** The grant a creature that fails the entry keeps; null when nothing lingers. */

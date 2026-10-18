@@ -249,6 +249,16 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `nativeRoomMeleeRetaliation.test.ts` (room): a Wolf whose opportunity Bite hits a mover holding a warm Fire Shield takes 2d8 fire, recorded on the reaction.
   - `nativeRoomLegendary.test.ts` (room): a dragon whose Legendary Tail hits a shielded Wolf takes 2d8 fire; the second dragon's declined window replays the first window and the burn is not applied twice.
 
+### T5a (occupant save-bonus aura contracts, D155)
+
+- Contract: a zone component may author `occupantSaveBonus` (schema, shared type, component node map): `domain: 'EVERY_SAVING_THROW'`, `dispositionFilter: 'ALLIES_AND_SOURCE'`, and either a `FIXED` amount or a `SOURCE_ABILITY_MODIFIER` with an optional `minimum`. A component with the bonus authors no behavior (`placedSpaceZone` returns `behavior: null`).
+- Compiled: `occupantSaveBonus` on `compiledActionZonePlacementSchema`, amount `{kind: 'FIXED', value}` or `{kind: 'SOURCE_ABILITY_MODIFIER', ability, minimum | null}`. The placement has no trigger mode, turn trigger or grant; its entry is a lasting one-node graph (`durationPublishedGraph`) keyed by the zone entry id, so the spatial definition keeps one shape. The compiler refuses the bonus on a zone not centered on its source, beside any trigger, movement cost, blocking rule or other component rule, and refuses any scaled size except a radius scaled by class level.
+- Placement (transitional): `planEncounterPlacedZone` refuses a zone with the bonus or a class-level radius, since placement does not yet resolve them against the source. T5b resolves both, places Character passive zones and applies the bonus at save time; the bound save fact records the bonus (orchestrator requirement).
+- Data: the Paladin's Aura of Protection is a PASSIVE source zone: a 10-foot sphere scaling to 30 feet at paladin level 18, lending the Charisma modifier (minimum 1) to the paladin and its allies. CLOSED_RULE `CLASS_PALADIN_AURA_OF_PROTECTION` is deleted.
+- Proofs:
+  - `encounterOccupantSaveBonusCompilation.test.ts`: the SRD aura compiles to an untriggered source zone with the Charisma bonus and the scaled radius; it equals a core-options aura (ADR 0038); a fixed bonus compiles as authored; a trigger, a movement cost or a cast-level radius beside the bonus is unavailable; a point-placed zone with it goes manual; placement refuses it.
+  - `classAuraAuthoringParity.test.ts`: the SRD aura and a fixed +2, 15-foot variant pass the class node map unchanged.
+
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.
