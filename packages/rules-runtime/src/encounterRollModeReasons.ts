@@ -1,10 +1,20 @@
+import {
+  ROLL_MODE_RULE_SOURCE_IDS,
+  type D20Contributor,
+  type RollModeContributorSource
+} from '@artificer-toolkit/shared/rules/contributors'
+
 import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 
 /** One recorded d20 contributor, as the evidence policies store it. */
-export type EncounterD20Contributor = {
-  sourceId: string
-  domainKey: string | null
-  influence: 'ADVANTAGE' | 'DISADVANTAGE'
+export type EncounterD20Contributor = Pick<
+  D20Contributor,
+  'sourceId' | 'domainKey' | 'influence' | 'source'
+>
+
+/** The key a reason label is stored under: the contributor's typed source, never its opaque ids. */
+export function rollModeSourceKey(source: RollModeContributorSource): string {
+  return `${source.kind}\u0000${source.id}`
 }
 
 /**
@@ -17,19 +27,26 @@ export type EncounterRollModeReasons = (input: {
 }) => string[]
 
 /** A ranged attack beyond its normal range (D62): a rules-owned contributor with no authored source. */
-export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = 'rule:long-range'
+export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE}`
 
 /** An attacker its target cannot see (SRD): advantage on the attack roll. */
-export const ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID = 'rule:unseen-attacker'
+export const ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER}`
 
 /** A target its attacker cannot see (SRD): disadvantage on the attack roll. */
-export const ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID = 'rule:unseen-target'
+export const ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET}`
+
+/** The typed source of a rules-owned contributor. */
+export function encounterRuleContributorSource(
+  id: (typeof ROLL_MODE_RULE_SOURCE_IDS)[keyof typeof ROLL_MODE_RULE_SOURCE_IDS]
+): RollModeContributorSource {
+  return { kind: 'RULE', id, holderActorId: null }
+}
 
 /** The reason labels of rules-owned contributors, which no authored source names. */
 const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
-  [ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID, 'Long range'],
-  [ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID, 'Unseen attacker'],
-  [ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID, 'Unseen target']
+  [ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE, 'Long range'],
+  [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER, 'Unseen attacker'],
+  [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET, 'Unseen target']
 ])
 
 /** The reason a viewer reads for a contributor that comes from an actor hidden from them (D62). */
@@ -56,9 +73,10 @@ export function collectEncounterRollModeContributors(
 }
 
 /**
- * Labels the mode's contributors by source, or by their rules-owned label; unlabeled sources are
- * left out, duplicates merged. A contributor from an actor hidden from the viewer keeps its place
- * under the generic unseen-source reason, never its own label.
+ * Labels the mode's contributors by their typed source (`labels` is keyed by `rollModeSourceKey`),
+ * or by their rules-owned label; unlabeled sources are left out, duplicates merged. A contributor
+ * from an actor hidden from the viewer keeps its place under the generic unseen-source reason,
+ * never its own label.
  */
 export function labelEncounterRollModeReasons(
   labels: ReadonlyMap<string, string>,
@@ -69,7 +87,9 @@ export function labelEncounterRollModeReasons(
       modeContributors(input).flatMap((contributor) => {
         const label = hidden(contributor)
           ? ENCOUNTER_UNSEEN_SOURCE_REASON
-          : (labels.get(contributor.sourceId) ?? RULE_CONTRIBUTOR_LABELS.get(contributor.sourceId))
+          : contributor.source.kind === 'RULE'
+            ? RULE_CONTRIBUTOR_LABELS.get(contributor.source.id)
+            : labels.get(rollModeSourceKey(contributor.source))
         return label ? [label] : []
       })
     )

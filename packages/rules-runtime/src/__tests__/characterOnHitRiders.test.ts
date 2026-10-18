@@ -158,7 +158,8 @@ async function longswordHit(input: {
                       sourceId: testUuid(0xc4),
                       grantId: testUuid(0xc5),
                       domainKey: 'attacks.melee',
-                      influence: input.influence
+                      influence: input.influence,
+                      source: { kind: 'AUTHORED', id: testUuid(0xc6), holderActorId: null }
                     }
                   ]
                 }

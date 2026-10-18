@@ -7,8 +7,8 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 | Task | ACs                           | Status      |
 | ---- | ----------------------------- | ----------- |
 | T1a  | 6.1, 6.3, 6.15                | merged      |
-| T1b  | 6.16                          | in progress |
-| T1c  | 6.9                           | next        |
+| T1b  | 6.16                          | CI          |
+| T1c  | 6.9                           | in progress |
 | T2   | 6.12, 6.14, 6.17, 6.18        | todo        |
 | T3   | 6.4, 6.10, 6.11, 6.19         | todo        |
 | T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | todo        |
@@ -60,7 +60,16 @@ CI branch `ci/reliability-6-t1b`. Rebased from local `r6-t1b` (571c6a5f3) onto t
 
 ## T1c: typed roll-mode contributor source (6.9)
 
-Held until T1b merges. Work in progress is on local branch `r6-t1c`. Needs a development-data migration, a regenerated `encounterStoreConformance` snapshot, and possibly a decision number for the typed source shape.
+CI branch `ci/reliability-6-t1c` (stacked on T1b). Rebased from local `r6-t1c` (22932bdbe); earlier red: `ci/reliability-6-red-69` Tests 38891936885 on 7264b2819.
+
+| AC  | Proof                                                                                                                                                                                                                                                                               | Status |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.9 | `packages/rules-runtime/src/__tests__/rollModeContributorSource.test.ts` (label by typed source, not by `sourceId`; RULE label by rule id); `encounterActiveGrants.test.ts` (one source id and reason key for Creature and Character holders); contributor fixtures assert `source` | coded  |
+
+- `RollModeContributorSource {kind, id, holderActorId}` (shared `contributors.ts`; zod `rollModeContributorSourceDtoSchema`) is a required field of `D20Contributor` and of every receipt, belief, pending-context and concentration contributor schema; the checksum covers it.
+- `labelEncounterRollModeReasons` and encounter-persistence `rollModeReasons` look labels up by `rollModeSourceKey(source)`; the `sourceId`/`domainKey` parsing is gone. The three active-effect spellings collapse to `createCharacterMechanicSourceKey`.
+- Behaviour: Disarm and Overrun size-relation contributors are labelled from the rule definition (AUTHORED, definition id); Flanking is sourced to AUTHORED with the flanking definition id.
+- Development data: contributor evidence lives only in encounter receipts and pending state, which are disposable dev data; per the standing Phase 8.2 local-reset approval the local backend is reset and reseeded (no compatibility shim). The `encounterStoreConformance` snapshot is regenerated from the CI artifact.
 
 ## Proposed ledger edits
 

@@ -596,14 +596,15 @@ describe('saving throw roll mode derivation', () => {
   const steelWillAdvantage = steelWill.filter(
     (definition) => definition.abilityDefinitionId === wisdomId && 'conditionTypeId' in definition
   )
-  /** The reasons a sealed d20 records: each contributor's identity and influence. */
+  /** The reasons a sealed d20 records: each contributor's identity, influence and typed source. */
   const evidenceContributors = (definitions: typeof steelWillAdvantage) =>
     definitions.flatMap((definition) =>
-      definition.contributors.map(({ sourceId, grantId, domainKey, influence }) => ({
+      definition.contributors.map(({ sourceId, grantId, domainKey, influence, source }) => ({
         sourceId,
         grantId,
         domainKey,
-        influence
+        influence,
+        source
       }))
     )
   /** The same condition-scoped save rewritten as a disadvantage (no SRD feature grants one). */

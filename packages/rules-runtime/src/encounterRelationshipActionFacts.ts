@@ -1,14 +1,13 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
+import {
+  compareCanonicalD20Contributors,
+  type D20Contributor
+} from '@artificer-toolkit/shared/rules'
 
 import { EncounterValidationError } from './encounterErrors.js'
 
-export interface EncounterRelationshipD20Contributor {
-  readonly sourceId: string
-  readonly grantId: string | null
-  readonly domainKey: string | null
-  readonly influence: 'ADVANTAGE' | 'DISADVANTAGE'
-}
+export type EncounterRelationshipD20Contributor = Readonly<D20Contributor>
 
 type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
   string,
@@ -52,10 +51,14 @@ export function lockedRelationshipActionFacts(input: {
             relationshipTargetActorId === input.targetActorId
           ) {
             contributors.push({
-              sourceId: `active-effect:${effect.id}`,
+              sourceId: createCharacterMechanicSourceKey({
+                kind: 'ACTIVE_EFFECT',
+                activeEffectId: effect.id
+              }),
               grantId: null,
               domainKey: `actor-relationship:${contribution.relationshipOutcomeId}`,
-              influence: module.influence
+              influence: module.influence,
+              source: { kind: 'ACTIVE_EFFECT', id: effect.id, holderActorId: input.sourceActorId }
             })
           }
         }
