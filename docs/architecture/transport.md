@@ -358,7 +358,7 @@ Contest outcomes (D105, ATTACK-7.6): a basic action whose win is a picked outcom
 without a pick, or with one the action does not offer, is rejected. The `CONTESTED_ACTION` output's `stateTransition`
 records a win's outcome as `CONDITIONS_APPLIED` (`appliedConditionIds`, the conditions newly applied) or
 `FORCED_MOVEMENT` (`direction`, `feet`, `upTo`); `SCENE_TOKEN_MOVED` is removed. The room's contest commit
-(`LiveSessionEncounterDisarmCommitInput`) carries the planned `conditionApplications` and `forcedMovements`; the commit
+(`LiveSessionEncounterContestCommitInput`) carries the planned `conditionApplications` and `forcedMovements`; the commit
 lands the push on the Scene through the same `applyRoomForcedMovements` path as an action's push.
 
 Forced-movement destinations (D157): an action whose push has two or more legal squares pauses on a

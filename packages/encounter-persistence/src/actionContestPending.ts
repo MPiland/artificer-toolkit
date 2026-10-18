@@ -8,7 +8,7 @@ import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
 /** Identifies the sealed participant, independently of the user who started the action. */
-export async function readNativeDisarmPending(
+export async function readNativeContestPending(
   ctx: EncounterReadContext,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
 ) {
@@ -65,14 +65,14 @@ export async function readNativeDisarmPending(
 }
 
 /** Shared by the pending query and the response guard so their audience cannot diverge. */
-export async function projectNativeDisarmPendingForMember(
+export async function projectNativeContestPendingForMember(
   ctx: EncounterReadTransaction,
   run: EncounterDocument<'encounterRuns'>,
   campaign: EncounterDocument<'campaigns'>,
   membership: EncounterDocument<'campaignMemberships'>,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
 ) {
-  const pending = await readNativeDisarmPending(ctx, occurrence)
+  const pending = await readNativeContestPending(ctx, occurrence)
   const project = () =>
     withEncounterRollModeReasons(ctx, run, membership, (reasons) =>
       projectNativeActionPending(occurrence, pending, membership.role === 'OWNER', reasons)
