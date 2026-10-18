@@ -113822,7 +113822,7 @@ export declare const api: {
             actionCost: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
             activeEffectId: string;
             checks: Array<{ checkDefinitionId: string; label: string }>;
-            dc: number;
+            dc: number | null;
             label: string;
             warnings: Array<{
               code:
