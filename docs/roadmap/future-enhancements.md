@@ -270,6 +270,10 @@ Melee-hit retaliation dice are system-rolled even when the zone source rolls by 
 
 A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
 
+### Undo for contested actions (D105)
+
+Undo refuses every CONTESTED_ACTION root: Grapple, Shove, Disarm and the contested escape. A generic contest revert would restore the spent attack, the applied conditions, the forced movement and the grapple hold, the same way for every contest.
+
 ### Disarm defender picks its check (D152)
 
 Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
