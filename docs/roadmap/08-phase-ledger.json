@@ -9460,15 +9460,28 @@
         {
           "id": "SPELLS-20",
           "title": "Auras that move with their source",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomSourceAura.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "An aura (Spirit Guardians, a paladin's Aura of Protection, a creature's damaging aura) is an authored spatial effect centered on its source that moves with it and applies its authored outcome to the creatures inside it; the encounter projection carries each aura's radius and label to the viewers allowed to see its source, so the map can draw it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomSourceAura.test.ts › Spirit Guardians as a source aura (SPELLS-20 T1b)",
+                "apps/session-worker/test/nativeRoomSourceAura.test.ts › Spirit Guardians halves an affected creature’s speed in the aura (SPELLS-20 T4d, D156)",
+                "apps/session-worker/test/nativeRoomSourceAura.test.ts › Spirit Guardians designated unaffected creatures (SPELLS-20 T4c)",
+                "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts › a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)",
+                "packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts › placing a Character’s passive zones (SPELLS-20 T5b, D155)",
+                "packages/rules-runtime/src/__tests__/encounterOccupantSaveAuras.test.ts › a save inside a save-bonus aura (SPELLS-20 T5c, D155)",
+                "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts › a save inside a paladin’s Aura of Protection (SPELLS-20 T5c, D155)",
+                "packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts › placing a Creature’s passive zones (SPELLS-20 T6b, D144)",
+                "packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts › a passive zone whose source is defeated (SPELLS-20 T6b, D144)",
+                "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts › the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)",
+                "apps/apis/convex/rules/sessionAuras.test.ts › readSessionAuras",
+                "docs/handoffs/slice-spells-20.md"
+              ],
               "origin": [],
               "note": "Registered 2026-10-12 from lane 3 (VTT_UI-3.1): auras exist only as closed rule kinds, with no geometry any client receives, so the aura preview is blocked on this PBI. Builds on the production spatial-effect creator from SPELLS-17.",
               "id": "SPELLS-20.1"
