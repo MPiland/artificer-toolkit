@@ -9,6 +9,7 @@ type AuthoringDefaultKind =
   | 'check'
   | 'checkChoice'
   | 'checkDc'
+  | 'heldEscapeDc'
   | 'chargeLevelScaling'
   | 'charges'
   | 'classDetail'
@@ -90,6 +91,7 @@ type AuthoringDefaultKind =
   | 'pathChoiceOption'
   | 'pathLifecycle'
   | 'pathLifecycleEndTrigger'
+  | 'pathLifecycleEscape'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
@@ -141,6 +143,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   check: ['check'],
   checkChoice: ['checkChoice'],
   checkDc: ['checkDc', 'escapeDc'],
+  heldEscapeDc: ['heldEscapeDc'],
   chargeLevelScaling: ['levels'],
   charges: ['charges'],
   classDetail: [
@@ -231,6 +234,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
+  pathLifecycleEscape: ['pathLifecycleEscape'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],

@@ -73,6 +73,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { skillIds: [], abilityDefinitionIds: [] }
     case 'checkDc':
       return { kind: 'FIXED', value: 10 }
+    case 'heldEscapeDc':
+      return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
     case 'chargeBonus':
@@ -517,6 +519,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return {}
     case 'pathLifecycleEndTrigger':
       return { event: 'DAMAGE_TAKEN', by: 'ANYONE' }
+    case 'pathLifecycleEscape':
+      return {
+        activation: { code: 'ACTION', amount: 1 },
+        checks: { skillIds: [], abilityDefinitionIds: [] },
+        dc: { kind: 'SOURCE_SAVE_DC' }
+      }
     case 'pathLifecycleHolderEnd':
       return { activation: 'BONUS_ACTION' }
     case 'pathLifecycleTurnAnchor':
