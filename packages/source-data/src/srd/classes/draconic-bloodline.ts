@@ -181,19 +181,7 @@ export const draconicBloodlineOrigin: ClassAuthored = {
             )
           }
         ]
-      },
-      effects: [
-        closedRuleEffect({
-          id: classRowId(S, 20, 2),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(S, 21, 2), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_DRACONIC_BLOODLINE_DRACONIC_RESILIENCE
-        })
-      ]
+      }
     },
     {
       id: classRowId(S, 11, 3),
