@@ -985,7 +985,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
 - **Pushes and pulls (ATTACK-7.T5a, D139).** A `FORCED_MOVEMENT` outcome with `AWAY_FROM_SOURCE` or `TOWARD_SOURCE` and an exact
-  `FIXED_DISTANCE` compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
+  `EXACT` compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
   which the single-target and area room planners pass to the commit as `forcedMovements`. In the action's transaction the room's
   `applyRoomForcedMovements` moves each target along the straight square-grid ray from the source's token
@@ -1281,7 +1281,8 @@ miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Ea
 one evidence stage; resource use, mutations and receipts wait for the terminal phase.
 `diceGraphDefinition` is the only place that doubles critical dice.
 
-**On-hit riders (D119).** A passive Feature's trigger-matched `ON_HIT` `DAMAGE` outcomes merge into the
+**On-hit riders (D119).** A passive Feature's trigger-matched direct `ON_HIT` outcomes (damage, and since
+ATTACK-7.T5 any other outcome, such as a forced movement) merge into the
 weapon action's compiled effect when `buildCharacterActionRuleFacts` builds the action
 (`character/characterOnHitRiders`), so the rider is one more part of the same hit: resistance and critical
 doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes the damage type of the attack's
@@ -1289,6 +1290,9 @@ first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow wit
 rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
 `exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
 other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+A path restriction's `DAMAGE_TYPE` check on the `EQUIPMENT` subject ("an attack that deals bludgeoning
+damage") is settled with the weapon checks in `reduceEffectRestrictions`, against the types of the hit's
+`ON_HIT` damage that no restriction, use limit or player choice withholds.
 `ADD_BONUS_DIE` stays non-executable.
 
 **Optional on-hit riders (D123, current).** A rider authored with `optionalOnHit: { kind: 'SPELL_SLOT' }` on a

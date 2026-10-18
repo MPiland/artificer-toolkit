@@ -12,6 +12,8 @@ import {
   type Dnd5eAttackCircumstances
 } from '../systems/dnd5e/attackRestrictions.js'
 import type { Dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
+import { mergeOnHitRiders, collectOnHitRiders } from '../character/characterOnHitRiders.js'
+import { dealsDamageTypeGate } from '../testing/crusher.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   oncePerTurnSneakAttack,
@@ -20,7 +22,10 @@ import {
 } from '../testing/unconditionalSneakAttack.js'
 
 const ADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' } as const
-const NOT_DISADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' } as const
+const NOT_DISADVANTAGE = {
+  predicateCode: 'ATTACK_ROLL_MODE',
+  rollMode: 'NOT_DISADVANTAGE'
+} as const
 const ENEMY_WITHIN_5 = { predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 } as const
 const FINESSE = { predicateCode: 'EQUIPMENT_PROPERTY', properties: ['FINESSE'] } as const
 
@@ -218,7 +223,9 @@ describe('circumstance checks of reduced restrictions', () => {
     ['NORMAL', true],
     ['DISADVANTAGE', false]
   ] as const)('requires no disadvantage: %s -> %s', (rollMode, expected) => {
-    expect(attackRestrictionsMet(reducedOf([NOT_DISADVANTAGE]), circumstances(rollMode))).toBe(expected)
+    expect(attackRestrictionsMet(reducedOf([NOT_DISADVANTAGE]), circumstances(rollMode))).toBe(
+      expected
+    )
   })
 
   it('needs every check of a group, not any', () => {
@@ -247,10 +254,7 @@ describe('circumstance checks of reduced restrictions', () => {
       [30, false]
     ])('requires an able enemy within 5 ft: nearest at %s ft -> %s', (nearestFeet, expected) => {
       expect(
-        attackRestrictionsMet(
-          reducedOf([ENEMY_WITHIN_5]),
-          circumstances('NORMAL', { nearestFeet })
-        )
+        attackRestrictionsMet(reducedOf([ENEMY_WITHIN_5]), circumstances('NORMAL', { nearestFeet }))
       ).toBe(expected)
     })
 
@@ -270,9 +274,9 @@ describe('circumstance checks of reduced restrictions', () => {
 
     it('inverts an excluded check once the Scene measured', () => {
       const restrictions = reducedOf([{ ...ENEMY_WITHIN_5, constraint: 'EXCLUDE' }])
-      expect(
-        attackRestrictionsMet(restrictions, circumstances('NORMAL', { nearestFeet: 5 }))
-      ).toBe(false)
+      expect(attackRestrictionsMet(restrictions, circumstances('NORMAL', { nearestFeet: 5 }))).toBe(
+        false
+      )
       expect(
         attackRestrictionsMet(restrictions, circumstances('NORMAL', { nearestFeet: null }))
       ).toBe(true)
@@ -315,14 +319,18 @@ describe('once-per-turn paths of a compiled attack Effect', () => {
 
   it('keys a limited entry by its own Effect', () => {
     const effect = limited()
-    expect(new Set(effect.entries.map((entry) => oncePerTurnUsageKey(entry, effect.id)))).toEqual(new Set([effect.id]))
+    expect(new Set(effect.entries.map((entry) => oncePerTurnUsageKey(entry, effect.id)))).toEqual(
+      new Set([effect.id])
+    )
     expect(oncePerTurnUsageKey(restrictedEffect(undefined).entries[0]!, effect.id)).toBeNull()
   })
 
   it('keys a rider merged from a Feature by that Feature, so its Effects share one use', () => {
     const effect = limited()
     const merged = effect.entries.map((entry) => ({ ...entry, usageKey: 'feature-1' }))
-    expect(new Set(merged.map((entry) => oncePerTurnUsageKey(entry, effect.id)))).toEqual(new Set(['feature-1']))
+    expect(new Set(merged.map((entry) => oncePerTurnUsageKey(entry, effect.id)))).toEqual(
+      new Set(['feature-1'])
+    )
   })
 
   it('spends a use only for an entry the attack dealt', () => {
@@ -419,6 +427,74 @@ describe('target creature-type checks of reduced restrictions', () => {
   it('settles the weapon check first and leaves only the target check', () => {
     const gate = creatureTypeGate('INCLUDE', FINESSE)
     expect(restrictionsOf(reduceEffectRestrictions(restrictedEffect(gate), longsword))).toEqual([])
-    expect(attackRestrictionsMet(reducedOf(gate, rapier), circumstances('NORMAL', null, FIEND))).toBe(true)
+    expect(
+      attackRestrictionsMet(reducedOf(gate, rapier), circumstances('NORMAL', null, FIEND))
+    ).toBe(true)
+  })
+})
+
+describe('damage-type checks of reduced restrictions', () => {
+  const BLUDGEONING = testUuid(0xe01)
+  const SLASHING = testUuid(0xe02)
+
+  /** A melee weapon hit dealing the given types, ridden by the restricted rider. */
+  const riddenHit = (gate: FacetAuthored, damageTypeIds: readonly string[]) => {
+    const weapon = compileEffect({
+      id: testUuid(0xe10),
+      order: 1,
+      invocation: {
+        triggerCode: 'MELEE_WEAPON_ATTACK',
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: testUuid(0xe11), rangeKind: 'SELF' }
+      },
+      paths: [
+        {
+          id: testUuid(0xe12),
+          order: 1,
+          pathCode: 'ON_HIT',
+          groupType: 'SINGLE',
+          originKind: 'SOURCE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: testUuid(0xe13),
+            resultKind: 'SINGLE',
+            outcomes: damageTypeIds.map((damageTypeId, index) => ({
+              id: testUuid(0xe20 + index),
+              effectKind: 'DAMAGE' as const,
+              damageTypeId,
+              valueKind: 'FIXED' as const,
+              scalingKind: 'NONE' as const,
+              amount: 1
+            }))
+          }
+        }
+      ]
+    })
+    return reduceEffectRestrictions(
+      mergeOnHitRiders(weapon, collectOnHitRiders([restrictedEffect(gate)], testUuid(0xe30))),
+      longsword
+    )
+  }
+
+  it('owes the entry when the hit deals the type, and lifts the check', () => {
+    const effect = riddenHit(dealsDamageTypeGate(BLUDGEONING), [BLUDGEONING])
+    expect(effect.entries).toHaveLength(2)
+    expect(restrictionsOf(effect)).toEqual([undefined, undefined])
+  })
+
+  it('owes the entry when any of the hit’s damage is of the type', () => {
+    expect(
+      riddenHit(dealsDamageTypeGate(BLUDGEONING), [SLASHING, BLUDGEONING]).entries
+    ).toHaveLength(3)
+  })
+
+  it('removes the entry when the hit deals no damage of the type', () => {
+    expect(riddenHit(dealsDamageTypeGate(BLUDGEONING), [SLASHING]).entries).toHaveLength(1)
+  })
+
+  it('inverts an excluded damage type', () => {
+    const excluded = dealsDamageTypeGate(BLUDGEONING, 'EXCLUDE')
+    expect(riddenHit(excluded, [BLUDGEONING]).entries).toHaveLength(1)
+    expect(riddenHit(excluded, [SLASHING]).entries).toHaveLength(2)
   })
 })

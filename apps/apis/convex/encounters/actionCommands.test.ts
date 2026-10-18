@@ -372,7 +372,7 @@ function nativeCreature(
                                       effectKind: 'FORCED_MOVEMENT' as const,
                                       direction: 'TOWARD_SOURCE' as const,
                                       actionEconomy: 'NONE' as const,
-                                      distanceMode: 'FIXED_DISTANCE' as const,
+                                      distanceMode: 'EXACT' as const,
                                       amount: 25,
                                       unit: 'FEET' as const
                                     }

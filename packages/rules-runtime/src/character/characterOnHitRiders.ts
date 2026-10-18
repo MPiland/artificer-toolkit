@@ -4,26 +4,27 @@ import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
 type DamageEntry = CompiledEffectEntry & { outcome: { effectKind: 'DAMAGE' } }
 
-/** A passive Feature's `ON_HIT` damage, owed to every attack its trigger names. */
+/** A passive Feature's `ON_HIT` outcomes, owed to every attack its trigger names. */
 export type OnHitRider = {
   riderId: string
   triggerCode: CompiledEffectGroup['invocation']['triggerCode']
   /** Present when the player chooses whether the rider applies (D123); absent when it always does. */
   optionalOnHit?: OptionalOnHitAuthored
-  entries: readonly DamageEntry[]
+  entries: readonly CompiledEffectEntry[]
+}
+
+function isOnHitOutcome(
+  entry: CompiledEffectGroup['entries'][number]
+): entry is CompiledEffectEntry {
+  return 'outcome' in entry && entry.pathCode === 'ON_HIT' && entry.resolutionKind === 'DIRECT'
 }
 
 function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is DamageEntry {
-  return (
-    'outcome' in entry &&
-    entry.pathCode === 'ON_HIT' &&
-    entry.resolutionKind === 'DIRECT' &&
-    entry.outcome.effectKind === 'DAMAGE'
-  )
+  return isOnHitOutcome(entry) && entry.outcome.effectKind === 'DAMAGE'
 }
 
 /**
- * The `ON_HIT` damage of each passive Effect: it rides on the attack its trigger names. A rider
+ * The `ON_HIT` outcomes of each passive Effect: they ride on the attack its trigger names. A rider
  * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
  * every Effect of that owner shares one.
  */
@@ -33,7 +34,7 @@ export function collectOnHitRiders(
 ): OnHitRider[] {
   return (effects ?? []).flatMap((effect) => {
     const entries = effect.entries
-      .filter(isOnHitDamage)
+      .filter(isOnHitOutcome)
       .map((entry) => (entry.usage ? { ...entry, usageKey: ownerId } : entry))
     return effect.invocation.kind === 'PASSIVE' && entries.length > 0
       ? [
@@ -51,7 +52,7 @@ export function collectOnHitRiders(
 }
 
 /**
- * Merges the riders whose trigger the attack shares into its own `ON_HIT` damage, so one hit
+ * Merges the riders whose trigger the attack shares into its own `ON_HIT` outcomes, so one hit
  * resolves one outcome (an optional rider's entries are marked, and resolve only when chosen): resistance, critical doubling and the dice rows treat a rider exactly as
  * the weapon's own damage. A rider that names the triggering weapon's damage type takes the type
  * of the attack's first `ON_HIT` damage. An attack with no `ON_HIT` damage takes no rider.
@@ -94,10 +95,10 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
 }
 
 function withWeaponDamageType(
-  outcome: DamageEntry['outcome'],
+  outcome: CompiledEffectEntry['outcome'],
   weaponDamageTypeId: string
-): DamageEntry['outcome'] {
-  if (!outcome.usesTriggeringWeaponDamageType) return outcome
+): CompiledEffectEntry['outcome'] {
+  if (outcome.effectKind !== 'DAMAGE' || !outcome.usesTriggeringWeaponDamageType) return outcome
   const { usesTriggeringWeaponDamageType: _riderChoice, ...named } = outcome
   return { ...named, damageTypeId: weaponDamageTypeId }
 }

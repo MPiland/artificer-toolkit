@@ -258,7 +258,7 @@ export const dragonTurtle: CreatureAuthored = {
                           effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
                           direction: 'AWAY_FROM_SOURCE',
                           actionEconomy: 'NONE',
-                          distanceMode: 'FIXED_DISTANCE',
+                          distanceMode: 'EXACT',
                           amount: 10,
                           unit: 'FEET'
                         },

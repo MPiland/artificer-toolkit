@@ -8,7 +8,7 @@ import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredL
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
 import {
   collectSpatialMovementCandidates,
-  deriveSquareGridForcedMovementDestination,
+  deriveSquareGridForcedMovementDestinations,
   feetInSceneUnit,
   measureSceneDistance
 } from '@artificer-toolkit/shared/vtt'
@@ -106,14 +106,17 @@ export async function applyRoomForcedMovements(input: {
   for (const target of ordered) {
     const { scene, baseOrdinals } = await readRoomSceneState(transaction, sceneId)
     const token = tokenOf(scene, target.tokenId)
-    const destination = deriveSquareGridForcedMovementDestination({
-      direction: target.direction,
-      distance: feetInSceneUnit(target.feet, scene.grid.unit),
-      source,
-      target: token,
-      occupants: scene.tokens.filter(({ id }) => id !== token.id),
-      state: scene
-    })
+    const [destination] =
+      deriveSquareGridForcedMovementDestinations({
+        direction: target.direction,
+        distance: feetInSceneUnit(target.feet, scene.grid.unit),
+        upTo: false,
+        sourceReach: null,
+        source,
+        target: token,
+        occupants: scene.tokens.filter(({ id }) => id !== token.id),
+        state: scene
+      }) ?? []
     if (!destination) throw new Error('A forced movement needs a square grid its tokens fill.')
     if (destination.x === token.position.x && destination.y === token.position.y) continue
     const path = [token.position, destination]
