@@ -10,7 +10,7 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 | T1b  | 6.16                          | merging     |
 | T1c  | 6.9                           | green       |
 | T2   | 6.12, 6.14, 6.17, 6.18        | D150 fix    |
-| T3   | 6.4, 6.10, 6.11, 6.19         | in progress |
+| T3   | 6.4, 6.10, 6.11, 6.19         | CI          |
 | T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | todo        |
 
 ## T1a: hit-die source kind, System skill abilities, shared initiative reader
