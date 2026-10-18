@@ -11375,7 +11375,7 @@
             },
             {
               "id": "SPELLS-32.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -11385,7 +11385,7 @@
                 "after": ["SPELLS-32.T1"]
               },
               "text": "A: Halfling Brave as a saving throw advantage (Steel Will pattern) (1 kind). Dwarven Resilience moved to T4j.. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
+              "note": "Merged m137 (2edf56e4c)."
             },
             {
               "id": "SPELLS-32.T4j",
