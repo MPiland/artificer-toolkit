@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
@@ -55,6 +56,7 @@ const HEALING_WORD = spell('Healing Word')
 const MAGE_ARMOR = spell('Mage Armor')
 const GUIDING_BOLT = spell('Guiding Bolt')
 const PASS_WITHOUT_TRACE = spell('Pass without Trace')
+const MIND_BLANK = spell('Mind Blank')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
@@ -1533,8 +1535,8 @@ function withRulingsAsGrants(authored: SpellAuthored): SpellAuthored {
   }
 }
 
-/** Pass without Trace with its list capped at three creatures, as a bounded list authors it. */
-const CAPPED_PASS_WITHOUT_TRACE: SpellAuthored = {
+/** Pass without Trace with its list of chosen creatures allowed to name a creature more than once. */
+const REPEATING_PASS_WITHOUT_TRACE: SpellAuthored = {
   ...PASS_WITHOUT_TRACE,
   effects: PASS_WITHOUT_TRACE.effects?.map((effect) =>
     effect.invocation.kind === 'ACTION' &&
@@ -1543,7 +1545,7 @@ const CAPPED_PASS_WITHOUT_TRACE: SpellAuthored = {
           ...effect,
           invocation: {
             ...effect.invocation,
-            targeting: { ...effect.invocation.targeting, maxTargets: 3 }
+            targeting: { ...effect.invocation.targeting, allowRepeatedTargets: true }
           }
         }
       : effect
@@ -1552,11 +1554,11 @@ const CAPPED_PASS_WITHOUT_TRACE: SpellAuthored = {
 
 describe('a grant beside GM rulings, on a list of chosen creatures (SPELLS-4.T2a3, D156)', () => {
   it('compiles the grant for each chosen creature, with its ruling as a manual-adjudication node', () => {
-    const entry = compiledCastEntry(CAPPED_PASS_WITHOUT_TRACE)
-    expect(entry?.targetPolicy.targeting).toMatchObject({
-      selectionKind: 'CHOSEN_CREATURES',
-      maxTargets: 3
-    })
+    const entry = compiledCastEntry(PASS_WITHOUT_TRACE)
+    // "Each creature you choose" names no cap, so the list is offered without one.
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, null, entry?.compilation.choice)
+    ).toEqual({ kind: 'ACTORS', area: null })
     expect(entry?.compilation.activeEffectPlan).toMatchObject({
       initialRemaining: 600,
       modifierGrantContribution: {
@@ -1580,6 +1582,62 @@ describe('a grant beside GM rulings, on a list of chosen creatures (SPELLS-4.T2a
   })
 
   it('refuses a sequence with two executable outcomes', () => {
-    expect(compiledCast(withRulingsAsGrants(CAPPED_PASS_WITHOUT_TRACE))).toBeNull()
+    expect(compiledCast(withRulingsAsGrants(PASS_WITHOUT_TRACE))).toBeNull()
+  })
+
+  it('refuses a list with no cap that names a creature more than once', () => {
+    expect(compiledCast(REPEATING_PASS_WITHOUT_TRACE)).toBeNull()
+  })
+})
+
+/** Mind Blank lasting `rounds` rounds instead of 24 hours. */
+const mindBlankForRounds = (rounds: number): SpellAuthored => ({
+  ...MIND_BLANK,
+  effects: MIND_BLANK.effects?.map((effect) => ({
+    ...effect,
+    paths: effect.paths.map((path) =>
+      path.resultBlock.duration
+        ? {
+            ...path,
+            resultBlock: {
+              ...path.resultBlock,
+              duration: {
+                ...path.resultBlock.duration,
+                durationKind: 'ROUND' as const,
+                amount: rounds
+              }
+            }
+          }
+        : path
+    )
+  }))
+})
+
+describe('a day-long grant (SPELLS-4.T2a3, D156)', () => {
+  it('compiles Mind Blank’s 24 hours as 14,400 turns, beside its ruling', () => {
+    const entry = compiledCastEntry(MIND_BLANK)
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: MAX_ACTIVE_EFFECT_TURNS,
+      modifierGrantContribution: {
+        modifiers: [
+          { valueDomainCode: 'DAMAGE_IMMUNITY' },
+          { valueDomainCode: 'CONDITION_IMMUNITY' }
+        ]
+      }
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    expect(plan.published.definition.nodes.map((node) => node.operation.key)).toEqual([
+      'dnd5e.modifier-grant-proposal',
+      'dnd5e.manual-adjudication-proposal'
+    ])
+  })
+
+  it('compiles a grant of 14,400 turns and refuses one of 14,401', () => {
+    expect(MAX_ACTIVE_EFFECT_TURNS).toBe(14_400)
+    expect(
+      compiledCastEntry(mindBlankForRounds(14_400))?.compilation.activeEffectPlan
+    ).toMatchObject({ initialRemaining: 14_400 })
+    expect(compiledCast(mindBlankForRounds(14_401))).toBeNull()
   })
 })

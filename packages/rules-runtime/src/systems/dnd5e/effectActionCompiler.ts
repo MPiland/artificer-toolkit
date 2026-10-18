@@ -1,3 +1,4 @@
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -77,8 +78,8 @@ import {
 } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
-  chosenCreaturesCapIsAuthored,
-  chosenCreaturesMaxTargets,
+  chosenCreaturesCap,
+  chosenCreaturesListResolves,
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored,
   resolveChosenCreaturesTargeting,
@@ -167,8 +168,6 @@ const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
 const DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY = 'dnd5e.actor-relationship-state'
 const DND5E_CONDITION_DURATION_OPERATION_KEY = 'dnd5e.condition-duration'
 const DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION = 1
-/** The most target turns an Encounter active effect counts (its persisted tick bound). */
-const MAX_ACTIVE_EFFECT_TURNS = 10_000
 export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
 const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
 const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
@@ -761,7 +760,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
   const { targeting } = invocation
   if (targeting?.selectionKind === 'AREA_CONTENTS')
     return isSupportedArea(invocation, action.zoneAppearSave)
-  // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
+  // A resolved list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
   // creature, and it has no area.
@@ -771,7 +770,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
       targeting.dispositionKind !== 'ANY' ||
       (!attacks &&
         (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
-      !chosenCreaturesCapIsAuthored(targeting) ||
+      !chosenCreaturesListResolves(targeting) ||
       (invocation.shape !== undefined &&
         (attacks ||
           !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
@@ -1979,9 +1978,7 @@ function modifierGrantEntryPlan(input: {
     grants.proficiencies?.length ||
     (untilEndEvent
       ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
-      : initialRemaining === null ||
-        // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
-        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS) ||
+      : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
@@ -3665,10 +3662,11 @@ function supported(
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' &&
         (grantPlan !== null || conditionPlan !== null || checkAction)))
-  // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
-  // (Mass Cure Wounds), resolves the one outcome on each; only a heal or dice damage that needs no
-  // test (Magic Missile), or a plan that holds one active effect per chosen creature (Pass without
-  // Trace), is supported, checked below once the outcome is read.
+  // A resolved list of chosen creatures, capped (Mass Healing Word) or naming each creature once
+  // (Pass without Trace), inside a round area when it names one (Mass Cure Wounds), resolves the one
+  // outcome on each; only a heal or dice damage that needs no test (Magic Missile), or a plan that
+  // holds one active effect per chosen creature (Pass without Trace), is supported, checked below
+  // once the outcome is read.
   const supportsChosenCreatures =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
@@ -3676,8 +3674,7 @@ function supported(
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' &&
         (grantPlan !== null || linkPlan !== null || formPlan !== null))) &&
-    chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(invocation.targeting, action)) !==
-      null &&
+    chosenCreaturesCap(resolveChosenCreaturesTargeting(invocation.targeting, action)) !== null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A hit-point pool area (Sleep) rolls one pool for the cast and puts the creatures it reaches under

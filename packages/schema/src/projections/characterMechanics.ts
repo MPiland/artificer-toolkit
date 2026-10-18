@@ -50,6 +50,7 @@ import {
   activeGrantHolderEndSchema
 } from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
+import { MAX_ACTIVE_EFFECT_TURNS } from '../shared/activeRuleEffectLifecycle.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
@@ -171,7 +172,9 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     frozenGraph: serverPublishedRuleDefinitionDtoSchema,
     capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
     recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-    initialRemaining: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000))),
+    initialRemaining: z.nullable(
+      z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+    ),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
