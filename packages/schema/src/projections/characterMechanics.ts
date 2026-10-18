@@ -78,6 +78,8 @@ const compiledActionCompilerSourceSchema = lazySchema(() =>
       compiledEffect: jsonValueSchema,
       compiledEffectChecksum: projectionChecksumSchema,
       capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
+      /** The test is the save made over the zone the action places as it appears (D154). */
+      zoneAppearSave: z.optional(z.literal(true)),
       compilerSourceChecksum: projectionChecksumSchema
     })
     .check(
@@ -634,7 +636,10 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         kind: z.literal('COMPILED'),
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
-        /** Set for an action that places a zone; its `executionPlan` is then never run. */
+        /**
+         * Set for an action that places a zone; its `executionPlan` then runs only as the save each
+         * creature in the zone's area makes as it appears (a TEST_OUTCOME, D154), else never.
+         */
         zonePlacement: z.nullable(
           z.union([compiledActionZonePlacementSchema, compiledActionZoneChoiceSchema])
         ),

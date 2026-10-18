@@ -618,6 +618,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'compiledEffect'
   | 'spellCastLevel'
   | 'characterLevel'
+  | 'zoneAppearSave'
 >
 interface TestPlan {
   kind: TestKind
@@ -687,7 +688,8 @@ function isSupportedTestActivation(
  * per-creature test plan a single target does.
  */
 function isSupportedArea(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+  overZone = false
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { shape, targeting, range } = invocation
@@ -705,7 +707,12 @@ function isSupportedArea(
     invocation.activation.amount !== 1
   )
     return false
-  if (encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null) return false
+  // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
+  if (
+    !(overZone && shape.shapeKind === 'WALL') &&
+    encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
+  )
+    return false
   if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED') {
     if (
       range.rangeKind !== 'DISTANCE' ||
@@ -718,7 +725,7 @@ function isSupportedArea(
   const size =
     shape.shapeKind === 'CUBE'
       ? shape.edgeLength
-      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE'
+      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE' || shape.shapeKind === 'WALL'
         ? shape.length
         : shape.shapeKind === 'SPHERE' ||
             shape.shapeKind === 'CYLINDER' ||
@@ -747,12 +754,12 @@ function isBoundedDice(value: string): boolean {
   }
 }
 
-function isSupportedTestTargetPolicy(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
-): boolean {
+function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): boolean {
+  const { invocation } = action.compiledEffect
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
-  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedArea(invocation)
+  if (targeting?.selectionKind === 'AREA_CONTENTS')
+    return isSupportedArea(invocation, action.zoneAppearSave)
   // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
@@ -2262,6 +2269,7 @@ function zonePlacementPlan(
   const zone = placedSpaceZone(action.compiledEffect)
   if (!zone) return null
   const [first, ...later] = zone.components
+  const { appearSave } = zone
   if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
   // A radius scaled by class level is resolved at placement (D155); any other scaled size is not.
   if (
@@ -2288,8 +2296,24 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
-  if (!first!.behavior) return occupantBonusZonePlacementPlan(action, zone, first!.component)
-  const primary = zoneComponentPlan(action, zone, first!)
+  // A zone no creature interacts with is placed with no triggers; its appear save is its provenance
+  // and names the condition it holds (Entangle's restraint). A zone with components holds only theirs.
+  if (
+    first &&
+    appearSave?.entries.some((entry) => 'lifecycle' in entry && entry.lifecycle?.heldBySource)
+  )
+    unsupported(
+      'Only a zone no creature interacts with holds the condition its appear save applies.'
+    )
+  if (first && !first.behavior) return occupantBonusZonePlacementPlan(action, zone, first.component)
+  const primary = first
+    ? zoneComponentPlan(action, zone, first)
+    : zoneComponentPlan(
+        action,
+        zone,
+        { component: { id: appearSave!.id, order: 1, label: zone.label }, behavior: appearSave! },
+        { triggerModes: [] }
+      )
   // Each band is a record of its own, sparing whom the zone spares.
   const regionComponents = later.map((planned) => {
     const { region, choosesUnaffected, label } = planned.component
@@ -2388,10 +2412,10 @@ function occupantBonusZonePlacementPlan(
 function zoneComponentPlan(
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone,
-  { component, behavior }: PlacedSpaceZone['components'][number]
+  { component, behavior }: PlacedSpaceZone['components'][number],
+  triggers = zoneTriggers(component)
 ): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
   if (!behavior) unsupported('Only a zone’s own component lends an occupant save bonus.')
-  const triggers = zoneTriggers(component)
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const pinnedDc = pinnedSaveDc(savingThrow)
@@ -3460,7 +3484,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(action) ||
     entries.length < 1
   )
     unsupported(
@@ -5038,7 +5062,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(action) ||
     action.compiledEffect.entries.length < 1
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')
@@ -8233,7 +8257,8 @@ export function dndSourceFromCompilerSource(
     effectId: source.effectId,
     conditionDefinitionIds: source.conditionDefinitionIds,
     savingThrowAbilityDefinitionId: source.savingThrowAbilityDefinitionId,
-    compiledEffect: source.compiledEffect as Dnd5eCompiledEffectActionSource['compiledEffect']
+    compiledEffect: source.compiledEffect as Dnd5eCompiledEffectActionSource['compiledEffect'],
+    ...(source.zoneAppearSave ? { zoneAppearSave: true as const } : {})
   }
 }
 

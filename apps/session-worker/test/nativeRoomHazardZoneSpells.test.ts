@@ -6,6 +6,7 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
+import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
 import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
@@ -22,7 +23,7 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CreatureAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -133,17 +134,19 @@ const SPELLS = [
 ] as const
 
 /**
- * The Character casts the action labelled `castLabel`; the Wolf stands at `wolfAt`. `rolls` are the
- * first dice draws (a face less one), before every die shows its lowest face.
+ * The Character casts the action labelled `castLabel`; the Wolf, or `creature` in its place, stands
+ * at `wolfAt`. `rolls` are the first dice draws (a face less one), before every die shows its lowest
+ * face.
  */
 function zoneRoom(
   { spell, slotSpell }: { spell: SpellAuthored; slotSpell?: SpellAuthored },
   castLabel: string,
   wolfAt: { x: number; y: number },
-  rolls: readonly number[] = []
+  rolls: readonly number[] = [],
+  creature: CreatureAuthored = plainWolf
 ) {
   return actionRoom({
-    actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+    actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature })],
     positions: { [WOLF_ID]: wolfAt },
     characterSpellcasting: {
       spells: slotSpell ? [spell, slotSpell] : [spell],
@@ -244,7 +247,9 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
   })
 
   it(`makes a creature in the area save at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'} and take the damage`, async () => {
-    const room = await zoneRoom(subject, firstCast.label, ZONE_CENTER)
+    // A creature in the area as it appears also saves then (SPELLS-4.T1g): the Brown Bear has the
+    // hit points to take both.
+    const room = await zoneRoom(subject, firstCast.label, ZONE_CENTER, [], brownBear)
     const zone = await castAtTheCenter(room)
     const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
 
@@ -292,7 +297,9 @@ const CONDITION_ZONES = [
     perTurnLimit: undefined,
     center: ZONE_CENTER,
     outside: OUTSIDE_THE_ZONE,
-    inside: ZONE_CENTER
+    inside: ZONE_CENTER,
+    // The save a creature in the area makes as it appears (SPELLS-4.T1g) shows a 20.
+    appearRolls: [19]
   },
   {
     spell: sleetStorm,
@@ -301,13 +308,16 @@ const CONDITION_ZONES = [
     perTurnLimit: 1,
     center: { x: 950, y: 950 },
     outside: { x: 100, y: 950 },
-    inside: { x: 450, y: 950 }
+    inside: { x: 450, y: 950 },
+    appearRolls: []
   }
 ] as const
 
 describe.each(CONDITION_ZONES)('the SRD $spell.label zone (SPELLS-4.T1d)', (subject) => {
-  const { spell, castLabel, turnTrigger, perTurnLimit, center, outside, inside } = subject
-  const room = (wolfAt: { x: number; y: number }) => zoneRoom({ spell }, castLabel, wolfAt)
+  const { spell, castLabel, turnTrigger, perTurnLimit, center, outside, inside, appearRolls } =
+    subject
+  const room = (wolfAt: { x: number; y: number }, rolls?: readonly number[]) =>
+    zoneRoom({ spell }, castLabel, wolfAt, rolls)
 
   it('is placed at the chosen point with a Dexterity save at the caster’s DC', async () => {
     const zone = await castAtTheCenter(await room(outside), center)
@@ -344,8 +354,9 @@ describe.each(CONDITION_ZONES)('the SRD $spell.label zone (SPELLS-4.T1d)', (subj
   })
 
   it(`knocks prone a creature in the area at its ${turnTrigger === 'START_OF_TURN' ? 'turn start' : 'turn end'}`, async () => {
-    const zoneRoomed = await room(inside)
+    const zoneRoomed = await room(inside, appearRolls)
     const zone = await castAtTheCenter(zoneRoomed, center)
+    expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([])
 
     const wolfStarts = await advanceTurn(zoneRoomed)
     expect(wolfStarts.outgoing).toBeUndefined()

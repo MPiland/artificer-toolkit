@@ -551,6 +551,17 @@ no band must not (`evaluateEncounterZoneTarget`: `SIDE_REQUIRED`, `SIDE_NOT_OFFE
 band as its own FIXED record (`planEncounterZoneBands`, geometry from `wallSideBandGeometry`: the wall plus the
 distance on that side), so every record a cast places is named on its root, removed by undo and ended with its
 Concentration together.
+A zone-placing cast may also author an ON_USE `SAVING_THROW` behavior beside the zone manifest (D154 amendment,
+SPELLS-4.T1g): the save each creature in the area makes once as the zone appears. The entry-point compiler runs it
+as the cast's `TEST_OUTCOME` plan against the zone's aimed area (the wall or ring itself, never its band; its compiler
+source carries `zoneAppearSave`, the only test whose area may be a `WALL`), and the
+Worker catches the area's creatures as for any area save, so answers, D100 perception, GM removal, Legendary
+Resistance, settlement and undo are the area occurrence's own (`prepareCasterSource` sets `appearSave`; the pending
+snapshot's `zoneAppearSave` keeps the catch on refresh). A zone with no component is placed with no triggers, one no
+creature interacts with (Wind Wall). Its appear save may hold its failed condition (`heldBySource`, Entangle): the
+zone carries the `heldCondition`, the cast's own timed condition plan is dropped, and `prepareNativeActionEffectsPlan`
+plans the hold (`planSpatialHeldCondition`) under the zone's Concentration; a zone with components cannot, and an
+appear save that holds its condition may contribute nothing else.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and

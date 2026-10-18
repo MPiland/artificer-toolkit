@@ -26,6 +26,11 @@ export interface EffectActionCapabilityDescriptor {
   spellCastLevel?: number
   /** The Character's level, which selects a cap scaled by it (Eldritch Blast's beams). */
   characterLevel?: number
+  /**
+   * Set when the action's test is the save made over the zone it places as it appears (D154): its
+   * area is the zone's, so it may be a wall.
+   */
+  zoneAppearSave?: true
 }
 
 export interface CharacterActionCapabilityDescriptor extends EffectActionCapabilityDescriptor {

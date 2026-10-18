@@ -29,11 +29,14 @@ import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from
 
 const FIVE_FEET = { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
 
-/** The slashing damage: 7d8 at the 6th level, and 1d8 more for each slot level above it. */
-const thornDamage = (kind: number, half: boolean) => ({
+/**
+ * The thorns' damage, slashing where a creature moves through them and piercing when the wall
+ * appears: 7d8 at the 6th level, and 1d8 more for each slot level above it.
+ */
+const thornDamage = (kind: number, half: boolean, damageType: 'SLASHING' | 'PIERCING') => ({
   id: spellChildId(SPELL_IDS.WALL_OF_THORNS, kind, 1),
   effectKind: EFFECT_KIND.DAMAGE,
-  damageTypeId: damageTypeId('SLASHING'),
+  damageTypeId: damageTypeId(damageType),
   valueKind: DAMAGE_VALUE_KIND.DICE,
   scalingKind: SCALING.PER_LEVEL,
   scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
@@ -100,7 +103,7 @@ const createThornManifest = (
               resultBlock: {
                 id: `${spellChildId(SPELL_IDS.WALL_OF_THORNS, scope + 0x13, 1)}__result`,
                 resultKind: 'SINGLE',
-                outcomes: [thornDamage(scope + 0x14, false)]
+                outcomes: [thornDamage(scope + 0x14, false, 'SLASHING')]
               }
             },
             {
@@ -113,7 +116,7 @@ const createThornManifest = (
               resultBlock: {
                 id: `${spellChildId(SPELL_IDS.WALL_OF_THORNS, scope + 0x15, 1)}__result`,
                 resultKind: 'SINGLE',
-                outcomes: [thornDamage(scope + 0x16, true)]
+                outcomes: [thornDamage(scope + 0x16, true, 'SLASHING')]
               }
             }
           ]
@@ -145,7 +148,13 @@ export const wallOfThorns: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION',
-        triggerCode: TRIGGER.ACTIVATED,
+        // The save each creature within the wall makes when it appears, against piercing thorns.
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x230, 1),
+          dcMethod: 'SOURCE_SAVE_DC' as const,
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
+        },
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: {
           id: spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x211, 1),
@@ -220,6 +229,32 @@ export const wallOfThorns: SpellAuthored = {
               }
             }
           ]
+        },
+        {
+          id: spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x231, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x231, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [thornDamage(0x232, false, 'PIERCING')]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x233, 1),
+          order: 3,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x233, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [thornDamage(0x234, true, 'PIERCING')]
+          }
         }
       ]
     }

@@ -58,7 +58,13 @@ export const insectPlague: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        // The save each creature in the area makes when it appears; the swarm's own is on entry.
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x230, 1),
+          dcMethod: 'SOURCE_SAVE_DC' as const,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -173,6 +179,32 @@ export const insectPlague: SpellAuthored = {
                 ]
               }
             ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x231, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x231, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [zoneDamage(0x232)]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x233, 1),
+          order: 3,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x233, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [{ ...zoneDamage(0x234), amountKind: SCALING_AMOUNT_KIND.HALF }]
           }
         }
       ]

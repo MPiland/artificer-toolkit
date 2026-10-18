@@ -16,7 +16,8 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const entangle: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ENTANGLE,
@@ -35,7 +36,14 @@ export const entangle: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        // The save each creature in the area makes when the plants sprout: its only save,
+        // restrained until the spell ends or it breaks free.
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.ENTANGLE, 0x230, 1),
+          dcMethod: 'SOURCE_SAVE_DC' as const,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.STRENGTH
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -80,7 +88,43 @@ export const entangle: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.ENTANGLE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Entangle',
+                shape: {
+                  id: spellChildId(SPELL_IDS.ENTANGLE, 0x220, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.ENTANGLE, 0x231, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.ENTANGLE, 0x231, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            lifecycle: {
+              heldBySource: true,
+              escape: {
+                activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+                checks: {
+                  skillIds: [],
+                  abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH]
+                },
+                dc: { kind: 'SOURCE_SAVE_DC' as const }
+              }
+            },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ENTANGLE, 0x232, 1),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('RESTRAINED')
               }
             ]
           }
