@@ -732,3 +732,76 @@ describe('a Creature’s passive zone in the room (SPELLS-20 T6b, D144)', () => 
     })
   })
 })
+
+describe('the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)', () => {
+  const BALOR_ID = testUuid(0x2248)
+  const balor = srdByLabel(SRD.creatures, 'Balor')
+
+  it('burns the Wolf beside the Balor for 3d6 fire at the start of the Balor’s turn', async () => {
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: BALOR_ID, creature: balor }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: creatureFeature(balor, 'Longsword').id,
+      status: 'PREPARED',
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+    const start = {
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    }
+    const answer = await room.send(start)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // Both have Dexterity 15 and roll the same die, so the GM settles the tie with the Balor first;
+    // the turn the settled START opens is recorded on the START's receipt.
+    const tie =
+      answer.type === 'COMMAND_COMMITTED' && answer.delta?.scope === 'ENCOUNTER'
+        ? answer.delta.result.occurrence?.pending
+        : undefined
+    if (tie?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected the initiative tie.')
+    const settled = await room.send({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: tie.encounterVersion,
+      occurrenceId: tie.occurrenceId,
+      expectedOccurrenceVersion: tie.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'INITIATIVE_ENTITY', requestId: tie.requestId, entityId: BALOR_ID }
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect(await runStateOf(room)).toMatchObject({ status: 'ACTIVE', currentActorId: BALOR_ID })
+
+    const [zone, ...others] = (await readZones(room)).map(readSpatialEffect)
+    expect(others).toEqual([])
+    expect(zone).toMatchObject({
+      maintainedEffectStateId: null,
+      definition: { origin: { kind: 'ENCOUNTER', sourceActorId: BALOR_ID } },
+      placement: { anchorKind: 'TOKEN', turnTriggers: ['START_OF_SOURCE_TURN'] }
+    })
+    const { incoming } = await storedZonePhases(room, start.commandId)
+    expect(incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: {
+            candidate: {
+              effectId: zone!.id,
+              sourceActorId: BALOR_ID,
+              targetActorId: WOLF_ID,
+              trigger: 'START_OF_SOURCE_TURN'
+            },
+            d20Policy: null
+          },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 3 * (DIE + 1) })]
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - 3 * (DIE + 1))
+  })
+})
