@@ -1,6 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
@@ -137,67 +136,12 @@ export const bane: SpellAuthored = {
                       id: spellChildId(SPELL_IDS.BANE, 0x215, 5),
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: { ability: ABILITY_CODE.STRENGTH },
+                      domain: {},
                       modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.SUBTRACT },
                       order: 5
-                    },
-                    {
-                      id: spellChildId(SPELL_IDS.BANE, 0x215, 6),
-                      grantKind: GRANT_KIND.MODIFIER_GRANT,
-                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: { ability: ABILITY_CODE.DEXTERITY },
-                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
-                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.SUBTRACT },
-                      order: 6
-                    },
-                    {
-                      id: spellChildId(SPELL_IDS.BANE, 0x215, 7),
-                      grantKind: GRANT_KIND.MODIFIER_GRANT,
-                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: { ability: ABILITY_CODE.CONSTITUTION },
-                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
-                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.SUBTRACT },
-                      order: 7
-                    },
-                    {
-                      id: spellChildId(SPELL_IDS.BANE, 0x215, 8),
-                      grantKind: GRANT_KIND.MODIFIER_GRANT,
-                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: { ability: ABILITY_CODE.INTELLIGENCE },
-                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
-                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.SUBTRACT },
-                      order: 8
-                    },
-                    {
-                      id: spellChildId(SPELL_IDS.BANE, 0x215, 9),
-                      grantKind: GRANT_KIND.MODIFIER_GRANT,
-                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: { ability: ABILITY_CODE.WISDOM },
-                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
-                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.SUBTRACT },
-                      order: 9
-                    },
-                    {
-                      id: spellChildId(SPELL_IDS.BANE, 0x215, 10),
-                      grantKind: GRANT_KIND.MODIFIER_GRANT,
-                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: { ability: ABILITY_CODE.CHARISMA },
-                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
-                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.SUBTRACT },
-                      order: 10
                     }
                   ]
                 }

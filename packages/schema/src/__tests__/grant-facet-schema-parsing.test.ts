@@ -247,6 +247,8 @@ describe('grant and facet schema parsing', () => {
     expect(
       rolledDie('SAVING_THROW_MODIFIER', { ability: 'WISDOM' }, { ...d4, sign: 'SUBTRACT' })
     ).toBe(true)
+    // A rolled die naming no ability covers every saving throw, death saves included (D156).
+    expect(rolledDie('SAVING_THROW_MODIFIER', {}, d4)).toBe(true)
     expect(rolledDie('DAMAGE', { attackDomain: 'MELEE' }, d4)).toBe(false)
     expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { ...d4, faces: 20 })).toBe(false)
     expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { ...d4, count: 0 })).toBe(false)

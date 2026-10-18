@@ -115,8 +115,11 @@ export function foldCharacterMechanicsApplications<
    */
   layers?: { ownConditionIds: readonly string[]; campaignConditionIds: readonly string[] }
   applications: readonly CharacterRuleActionApplication[]
-  /** A dying Character's turn-start death save (D96), applied after the applications. */
-  deathSaveRoll?: { rawDie: number }
+  /**
+   * A dying Character's turn-start death save (D96), applied after the applications: its kept d20
+   * and the signed total of its added dice (D156).
+   */
+  deathSaveRoll?: { rawDie: number; addedTotal: number }
   /** The actor's absence from the Run's play (D128); only a Run actor can depart, so others omit it. */
   absence?: EncounterActorAbsenceDto | null
 }): {
@@ -437,7 +440,11 @@ export function foldCharacterMechanicsApplications<
   if (input.deathSaveRoll) {
     if (deathSaves === null || !isCharacterDying(deathSaves, current))
       throw new EncounterValidationError('Only a dying Character makes a death save.')
-    const roll = deathSavesAfterRoll(deathSaves, input.deathSaveRoll.rawDie)
+    const roll = deathSavesAfterRoll(
+      deathSaves,
+      input.deathSaveRoll.rawDie,
+      input.deathSaveRoll.addedTotal
+    )
     deathSaves = roll.deathSaves
     if (roll.regainsHitPoint) current = Math.min(1, maximum)
   }

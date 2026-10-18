@@ -53,7 +53,8 @@ const abilityParamDtoSchema = lazySchema(() =>
   })
 )
 
-const abilityCheckParamDtoSchema = lazySchema(() =>
+/** One ability's tests, or every ability's when absent (a rolled die on every save covers death saves). */
+const optionalAbilityParamDtoSchema = lazySchema(() =>
   z.object({
     ability: z.optional(abilityCodeSchema)
   })
@@ -450,8 +451,8 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema),
     buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
-    buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', abilityCheckParamDtoSchema),
-    buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', abilityCheckParamDtoSchema),
+    buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
     buildModifierGrantVariant(
       'SAVE_DC',
       'BONUS',
@@ -482,7 +483,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'SAVING_THROW_MODIFIER',
       'ADD_BONUS_DIE',
-      abilityParamDtoSchema,
+      optionalAbilityParamDtoSchema,
       rolledDiePayloadDtoSchema
     ),
     buildModifierGrantVariant(

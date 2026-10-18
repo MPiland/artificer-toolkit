@@ -5,6 +5,10 @@ import type {
   concentrationCheckApplicationOutputDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import {
+  d20AddedDiceTotal,
+  type D20RolledAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 const ruleCheckRollNamespace = '6b1f0c7e-3d2a-4f5b-9c8e-1a2b3c4d5e6f'
@@ -16,6 +20,36 @@ export function ruleCheckRollId(
   scope = 'rule-check-roll'
 ) {
   return uuidv5(`${occurrenceId}:${checkIndex}:${scope}`, ruleCheckRollNamespace)
+}
+
+/**
+ * A d20 roll's evaluation with the test's added dice (D156) appended as further terms, in the
+ * receipt's order: an added die adds its faces, a subtracted one (Bane) is marked and subtracts.
+ */
+export function withAddedDiceTerms(
+  evaluated: ReturnType<typeof evaluateRollExpression>,
+  addedDice: readonly D20RolledAddedDieDto[] | undefined
+): ReturnType<typeof evaluateRollExpression> {
+  if (!addedDice?.length) return evaluated
+  const added = d20AddedDiceTotal(addedDice)
+  const terms = addedDice.map(({ count, faces, sign, rolledFaces }) => {
+    const sum = rolledFaces.reduce((total, face) => total + face, 0)
+    return sign === 'ADD'
+      ? { count, die: faces, rolls: [...rolledFaces], subtotal: sum }
+      : { count, die: faces, rolls: [...rolledFaces], subtotal: -sum, subtracted: true as const }
+  })
+  const expression = addedDice
+    .map(({ count, faces, sign }) => ` ${sign === 'ADD' ? '+' : '-'} ${count}d${faces}`)
+    .join('')
+  return {
+    normalizedExpression: `${evaluated.normalizedExpression}${expression}`,
+    evidence: {
+      ...evaluated.evidence,
+      terms: [...evaluated.evidence.terms, ...terms],
+      subtotal: evaluated.evidence.subtotal + added,
+      total: evaluated.evidence.total + added
+    }
+  }
 }
 
 /**
@@ -34,10 +68,13 @@ export function concentrationCheckRollRecord(input: {
   const modifier =
     d20.modifier === 0 ? '' : d20.modifier > 0 ? `+${d20.modifier}` : `${d20.modifier}`
   // The recorded faces replay through the shared evaluator, so the evidence matches the check.
-  const evaluated = evaluateRollExpression(
-    parseRollExpression(`1d20${modifier}`),
-    { nextInt: () => faces.shift()! - 1 },
-    d20.rollMode
+  const evaluated = withAddedDiceTerms(
+    evaluateRollExpression(
+      parseRollExpression(`1d20${modifier}`),
+      { nextInt: () => faces.shift()! - 1 },
+      d20.rollMode
+    ),
+    d20.addedDice
   )
   if (evaluated.evidence.total !== d20.total)
     throw new Error('The Concentration roll record does not match its check.')
@@ -90,10 +127,13 @@ export function actionD20RollRecord(input: {
   const faces = [...d20.rawFaces]
   const modifier =
     d20.modifier === 0 ? '' : d20.modifier > 0 ? `+${d20.modifier}` : `${d20.modifier}`
-  const evaluated = evaluateRollExpression(
-    parseRollExpression(`1d20${modifier}`),
-    { nextInt: () => faces.shift()! - 1 },
-    d20.rollMode
+  const evaluated = withAddedDiceTerms(
+    evaluateRollExpression(
+      parseRollExpression(`1d20${modifier}`),
+      { nextInt: () => faces.shift()! - 1 },
+      d20.rollMode
+    ),
+    d20.addedDice
   )
   if (evaluated.evidence.total !== d20.total)
     throw new Error('The action roll record does not match its evidence.')
@@ -150,22 +190,26 @@ export function actionD20RollRecord(input: {
 }
 
 /**
- * The roll-log record of a dying Character's death save: one d20, no modifiers (D96). The
- * Encounter turn-start save is the actor's (no Character id); a Sheet save names its Character and
- * keys the record by its command.
+ * The roll-log record of a dying Character's death save: one d20, no modifier (D96), plus the
+ * Encounter save's added dice (D156). The Encounter turn-start save is the actor's (no Character
+ * id); a Sheet save names its Character and keys the record by its command.
  */
 export function deathSaveRollRecord(input: {
   occurrenceId: string
   rawDie: number
+  addedDice?: readonly D20RolledAddedDieDto[]
   characterId?: string
   rollerLabel: string
   ruleset: RollRecordDto['ruleset']
   createdAt: string
 }): RollRecordDto {
-  const evaluated = evaluateRollExpression(
-    parseRollExpression('1d20'),
-    { nextInt: () => input.rawDie - 1 },
-    'NORMAL'
+  const evaluated = withAddedDiceTerms(
+    evaluateRollExpression(
+      parseRollExpression('1d20'),
+      { nextInt: () => input.rawDie - 1 },
+      'NORMAL'
+    ),
+    input.addedDice
   )
   return rollRecordDtoSchema.parse({
     id: ruleCheckRollId(input.occurrenceId, 0),

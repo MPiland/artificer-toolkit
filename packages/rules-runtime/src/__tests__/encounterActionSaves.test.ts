@@ -12,7 +12,7 @@ import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creature
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
-import { antitoxinEffect } from './antitoxinEffectFixture.js'
+import { antitoxinEffect, baneEffect, blessEffect } from './antitoxinEffectFixture.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
@@ -30,6 +30,8 @@ import {
 const SOURCE_ID = '00000000-0000-4000-8000-0000000d0001'
 const TARGET_ID = '00000000-0000-4000-8000-0000000d0002'
 const ANTITOXIN_EFFECT_ID = '00000000-0000-4000-8000-0000000d0007'
+const BLESS_EFFECT_ID = '00000000-0000-4000-8000-0000000d0008'
+const BANE_EFFECT_ID = '00000000-0000-4000-8000-0000000d0009'
 const FEATURE_ID = '00000000-0000-4000-8000-0000000d0003'
 const FRIGHTENED = srdConditionId('FRIGHTENED')
 
@@ -741,5 +743,62 @@ describe('saving throws against poison under an active Antitoxin grant', () => {
     })
     expect(result.d20).toMatchObject({ rollMode: 'NORMAL', rawFaces: [4], contributors: [] })
     expect(result.hitPoints).toBe(5)
+  })
+})
+
+describe('saving throws under rolled-die grants (D156)', () => {
+  it("adds Bless's d4 after the d20: a natural 10 + WIS 1 + 3 = 14 saves against DC 13", async () => {
+    const result = await resolve({
+      feature: acidBurst(),
+      rolls: [9, 2],
+      targetActiveEffects: [blessEffect({ id: BLESS_EFFECT_ID, holderActorId: TARGET_ID })]
+    })
+    expect(result.d20).toMatchObject({
+      rawFaces: [10],
+      total: 14,
+      resultPath: 'ON_SAVE_SUCCESS',
+      addedDice: [{ label: 'Bless', count: 1, faces: 4, sign: 'ADD', rolledFaces: [3] }]
+    })
+    expect(result.hitPoints).toBe(11)
+  })
+
+  it("subtracts Bane's d4: a natural 12 + WIS 1 - 2 = 11 fails DC 13", async () => {
+    const result = await resolve({
+      feature: acidBurst(),
+      rolls: [11, 1],
+      targetActiveEffects: [baneEffect({ id: BANE_EFFECT_ID, holderActorId: TARGET_ID })]
+    })
+    expect(result.d20).toMatchObject({
+      rawFaces: [12],
+      total: 11,
+      resultPath: 'ON_SAVE_FAIL',
+      addedDice: [{ label: 'Bane', sign: 'SUBTRACT', rolledFaces: [2] }]
+    })
+    expect(result.hitPoints).toBe(5)
+    expect(result.conditionIds).toEqual([FRIGHTENED])
+  })
+
+  it('adds the die after advantage keeps one d20', async () => {
+    // Natural 4 and 15 keep 15: 15 + CON 1 + 2 = 18; one d4 follows the two d20s.
+    const result = await resolve({
+      feature: saveFeature({
+        ability: 'CONSTITUTION',
+        dc: 13,
+        damageType: 'POISON',
+        paths: [{ pathCode: PATH_CODE.ON_SAVE_FAIL, outcome: { kind: 'DAMAGE', amount: 6 } }]
+      }),
+      rolls: [3, 14, 1],
+      targetActiveEffects: [
+        antitoxinEffect({ id: ANTITOXIN_EFFECT_ID, holderActorId: TARGET_ID }),
+        blessEffect({ id: BLESS_EFFECT_ID, holderActorId: TARGET_ID })
+      ]
+    })
+    expect(result.d20).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      rawFaces: [4, 15],
+      selectedNatural: 15,
+      total: 18,
+      addedDice: [{ label: 'Bless', rolledFaces: [2] }]
+    })
   })
 })

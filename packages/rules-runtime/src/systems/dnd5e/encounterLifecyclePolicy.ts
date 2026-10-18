@@ -25,6 +25,7 @@ import type {
 import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilityStateService.js'
 import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from './reactionEligibilityPolicy.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
+import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
 
 const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000e1'
@@ -282,9 +283,29 @@ function plainD20Definition(id: string) {
   })
 }
 
-/** A death save is a d20 with no modifiers (SRD 5.1); the die is the graph's one evidence request. */
+/**
+ * A death save is a d20 with no modifier (SRD 5.1), plus the dice a Character's effects add to its
+ * saves (D156): the d20 request, then the added-dice request when the save rolls any.
+ */
 export function createDnd5eDeathSaveDefinition() {
-  return plainD20Definition(DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID)
+  return published({
+    schemaVersion: 1,
+    id: DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+    nodes: [
+      {
+        id: 'd20',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+      },
+      dnd5eAddedDiceNode('d20')
+    ],
+    outputs: {
+      rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+      addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' }
+    }
+  })
 }
 
 /**

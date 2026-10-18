@@ -18,7 +18,8 @@ import {
   withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
   withCreatureActiveGrantProtection,
-  withCreatureActiveGrantSaves
+  withCreatureActiveGrantSaves,
+  encounterSavingThrowAddedDice
 } from './encounterActiveGrants.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
@@ -440,6 +441,7 @@ export function buildMovementTarget<
         ...effectiveRulePolicyOutput,
         // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
+        savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
@@ -508,6 +510,7 @@ export function buildMovementTarget<
         actor.id,
         activeEffects
       ),
+      savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,

@@ -24,7 +24,9 @@ import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleR
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,
+  encounterAttackAddedDice,
   encounterGrantsEnabledDomain,
+  encounterSavingThrowAddedDice,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
   withCreatureActiveGrantSkillTotal
@@ -96,6 +98,8 @@ describe('rolled dice from active grants (D156)', () => {
       expect(activeAttackRollDice([bless()], attackDomain, 'STRENGTH')).toEqual([blessDie])
     for (const ability of Object.keys(SRD_ABILITY_DEFINITION_IDS))
       expect(activeSavingThrowDice([bless()], ability)).toEqual([blessDie])
+    // Bless covers every save, so an ability-less death save takes its die too.
+    expect(activeSavingThrowDice([bless()], null)).toEqual([blessDie])
     expect(activeAttackRollDice([], 'MELEE', null)).toEqual([])
     expect(activeSavingThrowDice([], 'WISDOM')).toEqual([])
   })
@@ -119,12 +123,28 @@ describe('rolled dice from active grants (D156)', () => {
     const definition = {
       ...hidden.definition,
       stateContributions: hidden.definition.stateContributions.map((contribution) =>
-        contribution.kind === 'MODIFIER_GRANT' ? { ...contribution, sourceHidden: true } : contribution
+        contribution.kind === 'MODIFIER_GRANT'
+          ? { ...contribution, sourceHidden: true }
+          : contribution
       )
     }
     expect(activeSavingThrowDice([{ ...hidden, definition }], 'WISDOM')).toEqual([
       { ...blessDie, label: 'Unseen source' }
     ])
+  })
+
+  it('keys the Encounter facts by attack domain and by ability definition id', () => {
+    expect(encounterAttackAddedDice([bane(), bless()], 'STRENGTH')).toEqual({
+      MELEE: [baneDie, blessDie],
+      RANGED: [baneDie, blessDie],
+      SPELL: [baneDie, blessDie],
+      UNARMED: [baneDie, blessDie]
+    })
+    expect(encounterSavingThrowAddedDice([bless()])).toEqual(
+      Object.fromEntries(Object.values(SRD_ABILITY_DEFINITION_IDS).map((id) => [id, [blessDie]]))
+    )
+    expect(encounterAttackAddedDice([], null)).toEqual({})
+    expect(encounterSavingThrowAddedDice([])).toEqual({})
   })
 
   it('ignores fixed bonuses and roll modes on the same domains', () => {

@@ -152,15 +152,19 @@ export function activeAttackRollDice(
   )
 }
 
-/** The dice a holder's active grants add to its saving throws with one ability ("WISDOM"). */
+/**
+ * The dice a holder's active grants add to its saving throws with one ability ("WISDOM"), or to an
+ * ability-less save (a death save) when `abilityCode` is null. A grant naming no ability covers
+ * every save; one naming an ability covers only that ability's saves.
+ */
 export function activeSavingThrowDice(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  abilityCode: string
+  abilityCode: string | null
 ): D20AddedDieDto[] {
   return activeRolledDice(
     effects,
     'SAVING_THROW_MODIFIER',
-    (domain) => domain.ability === abilityCode
+    (domain) => domain.ability === undefined || domain.ability === abilityCode
   )
 }
 

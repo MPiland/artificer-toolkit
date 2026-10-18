@@ -8,7 +8,8 @@ import type {
   ValueDomainCode,
   CoreMeta,
   LengthUnitCode,
-  ValueDomainOptionPayloadByDomain
+  ValueDomainOptionPayloadByDomain,
+  ValueDomainParam
 } from '#core'
 import { valuesOf } from '#utils'
 
@@ -469,6 +470,19 @@ export type ModifierRolledDieAuthored = {
   faces: (typeof ROLLED_DIE_FACES)[number]
   sign: RolledDieSign
 }
+
+/**
+ * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
+ * one grant covers every save, death saves included (D156).
+ */
+export type ModifierDomainFor<
+  V extends ValueDomainCode,
+  K extends ModifierKind
+> = V extends 'SAVING_THROW_MODIFIER'
+  ? K extends 'ADD_BONUS_DIE'
+    ? { ability?: AbilityCode }
+    : ValueDomainParam<V>
+  : ValueDomainParam<V>
 
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }

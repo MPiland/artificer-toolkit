@@ -1,3 +1,4 @@
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   CharacterGrantFoldModifier,
@@ -608,6 +609,8 @@ export interface CharacterRuleActionSystemAdapter {
       contributorChecksum: string
       modifier: number
       defenseOrDc: number
+      /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
+      addedDice: readonly D20AddedDieDto[]
     }
   }
   /**
