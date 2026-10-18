@@ -293,7 +293,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
  * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
  * known; everything else is compiled from the authored manifest.
  */
-const compiledActionZonePlacementSchema = lazySchema(() =>
+export const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
     attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,
@@ -358,6 +358,29 @@ const compiledActionZoneChoiceSchema = lazySchema(() =>
 )
 
 export type CompiledActionZoneChoice = z.infer<typeof compiledActionZoneChoiceSchema>
+
+/**
+ * The plans an action runs when its caster picks one option of its CHOICE path at cast (D148):
+ * each option's active-effect and execution plans, compiled from the action narrowed to that option.
+ * The options share the test and the Concentration the cast opens.
+ */
+const compiledActionChoiceSchema = lazySchema(() =>
+  z.strictObject({
+    options: z
+      .array(
+        z.strictObject({
+          optionId: serverUuidIdentityDtoSchema,
+          label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+          activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
+          executionPlan: compiledActionExecutionPlanSchema
+        })
+      )
+      .check(z.minLength(2))
+      .check(z.maxLength(20))
+  })
+)
+
+export type CompiledActionChoice = z.infer<typeof compiledActionChoiceSchema>
 
 const compiledActionTemplateIdentitySchema = ruleGraphSourceIdentityDtoSchema
 
@@ -518,6 +541,11 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         zonePlacement: z.nullable(
           z.union([compiledActionZonePlacementSchema, compiledActionZoneChoiceSchema])
         ),
+        /**
+         * Set for an action whose caster picks an option at cast; the top-level plans hold its first
+         * option and are never run unswapped. Null when `zonePlacement` is set.
+         */
+        choice: z.nullable(compiledActionChoiceSchema),
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),
@@ -733,23 +761,41 @@ export const characterMechanicsProjectionSchema = lazySchema(() =>
           })
         }
         seenActionIds.add(entry.actionId)
+        const graphOf = (plan: z.infer<typeof compiledActionExecutionPlanSchema>) =>
+          plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
         const published =
           entry.compilation.kind !== 'COMPILED'
-            ? null
+            ? []
             : entry.schemaVersion === 4
-              ? entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
-                ? entry.compilation.executionPlan.published
-                : entry.compilation.executionPlan.test.published
-              : entry.compilation.published
+              ? [
+                  graphOf(entry.compilation.executionPlan),
+                  ...(entry.compilation.choice?.options.map((option) =>
+                    graphOf(option.executionPlan)
+                  ) ?? [])
+                ]
+              : [entry.compilation.published]
         if (
-          published &&
-          (published.id !== entry.effectId ||
-            published.gameSystemId !== projection.commandState.systemId)
+          published.some(
+            (graph) =>
+              graph.id !== entry.effectId || graph.gameSystemId !== projection.commandState.systemId
+          )
         ) {
           ctx.addIssue({
             code: 'custom',
             message: 'Compiled action graph identity must match its Effect and Character System.',
             path: ['compiledActionEntryPoints', index, 'compilation']
+          })
+        }
+        if (
+          entry.schemaVersion === 4 &&
+          entry.compilation.kind === 'COMPILED' &&
+          entry.compilation.choice !== null &&
+          entry.compilation.zonePlacement !== null
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'A compiled action picks its option or its zone at cast, never both.',
+            path: ['compiledActionEntryPoints', index, 'compilation', 'choice']
           })
         }
         if (entry.schemaVersion === 2 && entry.compilation.kind === 'COMPILED') {

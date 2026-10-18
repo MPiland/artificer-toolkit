@@ -1016,12 +1016,13 @@ async function findCharacterCollision(
     lookup.findCharacter({ characterId: subjectId }),
     lookup.findCharacterDraft({ characterId: subjectId, userId })
   ])
-  if (!active && !draft) return undefined
+  const existing = draft ?? active
+  if (!existing) return undefined
   const owned = !active || active.userId === userId
   return {
     subjectKind: 'CHARACTER',
     subjectId,
-    label: draft?.label ?? active?.label ?? 'Imported character',
+    label: existing.label,
     hasExistingDraft: Boolean(draft),
     allowedChoices: owned ? ['COPY', 'UPDATE_DRAFT'] : ['COPY'],
     defaultChoice: 'COPY'
@@ -1038,13 +1039,14 @@ async function findAuthoredCollision(
     lookup.findActiveAuthored({ subjectKind, subjectId }),
     lookup.findAuthoredDraft({ subjectKind, subjectId, userId })
   ])
-  if (!active && !draft) return undefined
+  const existing = draft ?? active
+  if (!existing) return undefined
   const owned =
     (!active || (!active.isMaster && active.ownerUserId === userId)) && Boolean(draft || active)
   return {
     subjectKind,
     subjectId,
-    label: draft?.label ?? active?.label ?? `Imported ${subjectKind.toLowerCase()}`,
+    label: existing.label,
     hasExistingDraft: Boolean(draft),
     allowedChoices: owned ? ['COPY', 'UPDATE_DRAFT'] : ['COPY'],
     defaultChoice: 'COPY'

@@ -1,6 +1,8 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
+import { planEncounterPassiveZones } from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
+import { plannedSpatialEffectRecord } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { discoverTurnLegendaryWindows } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryDiscovery'
@@ -131,17 +133,44 @@ export function createNativeLiveTurnStages(
             )
           )
             throw new Error('Turn zone token bindings are unavailable.')
+          const effects = await readNativeLiveSpatialEffects({
+            encounterId: state.id,
+            sceneId: loaded.id,
+            sceneVersion: loaded.version,
+            capture
+          })
+          const actorIdByTokenId = new Map(
+            bindings.bindings.map((binding) => [binding.tokenId, binding.actorId])
+          )
+          // The Encounter's start places the Creatures' passive zones before its first turn (D144).
+          const placing =
+            stage.root.commandType === 'START'
+              ? planEncounterPassiveZones({
+                  state,
+                  occurrenceId: stage.occurrenceId,
+                  rootCommandId: stage.root.rootCommandId,
+                  actors: turn.actors,
+                  system,
+                  sceneGrid: loaded.scene.grid,
+                  tokens: loaded.scene.tokens,
+                  actorIdByTokenId
+                }).filter((zone) => !effects.some((effect) => effect.id === zone.id))
+              : []
+          const lastOrdinal = Math.max(0, ...effects.map((effect) => effect.createdOrdinal))
           return {
-            effects: await readNativeLiveSpatialEffects({
-              encounterId: state.id,
-              sceneId: loaded.id,
-              sceneVersion: loaded.version,
-              capture
-            }),
+            effects: [
+              ...effects,
+              ...placing.map((zone, index) =>
+                plannedSpatialEffectRecord(zone, {
+                  encounterId: state.id,
+                  sceneId: loaded.id,
+                  createdOrdinal: lastOrdinal + index + 1,
+                  createdAt: state.updatedAt
+                })
+              )
+            ],
             tokens: loaded.scene.tokens,
-            actorIdByTokenId: new Map(
-              bindings.bindings.map((binding) => [binding.tokenId, binding.actorId])
-            )
+            actorIdByTokenId
           }
         },
         loadTarget,

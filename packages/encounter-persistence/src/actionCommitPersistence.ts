@@ -434,7 +434,7 @@ export async function persistEncounterActionCommit(
     gameSystemId: state.gameSystemId,
     rollScope: execution.occurrenceId,
     batch,
-    actionLabel: (await ctx.ports.readContentLabel(input.initialDefinitionId)) ?? 'Action',
+    actionLabel: input.label,
     source,
     target,
     initiatorUserId,

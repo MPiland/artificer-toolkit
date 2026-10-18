@@ -1,4 +1,5 @@
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
+import { labelCharacterConditions } from '@artificer-toolkit/rules-runtime/character/characterConditionLabels'
 import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import type {
   EncounterProjectionCharacterState,
@@ -44,15 +45,7 @@ export function characterProjectionState(
     maximum: maximumHitPoints,
     deathSaves: hitpoints.deathSaves,
     dead: isCharacterDead(hitpoints.deathSaves),
-    conditions: conditions.map((condition) => {
-      const definition = conditionTypes.find((entry) => entry.id === condition.conditionTypeId)
-      return {
-        conditionTypeId: condition.conditionTypeId,
-        label: definition?.label ?? 'Unknown condition',
-        ...(definition?.description ? { description: definition.description } : {}),
-        ...(condition.notes ? { notes: condition.notes } : {})
-      }
-    })
+    conditions: labelCharacterConditions(conditions, conditionTypes)
   }
 }
 

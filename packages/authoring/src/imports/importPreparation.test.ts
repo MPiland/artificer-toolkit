@@ -221,6 +221,7 @@ describe('import preparation', () => {
         name: 'Character ' + characterId,
         classes: [],
         inventory: Array.from({ length: relationshipCount }, (_, index) => ({
+          quantity: 1,
           definition: { name: 'Item ' + index }
         }))
       }

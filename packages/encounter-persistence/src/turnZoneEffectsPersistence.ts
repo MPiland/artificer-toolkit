@@ -20,7 +20,7 @@ import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
-import { readRunActor } from './documents.js'
+import { readRunActor, readRunActors } from './documents.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -84,6 +84,7 @@ export async function persistEncounterTurnZoneEffects(
     binding && scope
       ? selectTurnZoneContacts({
           state,
+          actors: await readRunActors(ctx, state),
           commandType: input.commandType,
           boundary,
           actorId,

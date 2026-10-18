@@ -429,6 +429,16 @@ persistence path, and the stored zone phase holds one chained mechanics batch pe
 `readEncounterActorTokenBindings` (the `ACTOR_TOKEN_BINDINGS` capture on the Worker) and settles caught creatures
 in the order a spatial prefix does (`orderSpatialSettlementActors`: Characters by source id, then creatures by id). `collectSpatialTurnCandidates` (shared/vtt) is the
 containment seam for turn triggers: it applies `spatialEffectAffects` and the per-turn limit, as movement does.
+A Creature's passive zone (D144, SPELLS-20 T6b) is a PASSIVE feature Effect manifesting one zone that acts at its
+source's turn; discovery returns it in `passiveZones`, never as an action. `planEncounterPassiveZones` plans one
+TOKEN-anchored zone per such feature of each Creature bound to a token, with no maintained state and an id fixed by
+the Encounter, actor and feature Effect. One persistence helper, `placeEncounterPassiveZones`, creates them: at the
+START terminal before the incoming zone phase, and at a GM token bind in a PREPARED or ACTIVE Run (D147); the room's
+turn preparation plans the same START records (`plannedSpatialEffectRecord`). Removing the Creature, or unbinding or
+rebinding its token, deletes them first. While the source is defeated its passive zones stay stored and drawn but are
+`suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
+candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
+placement.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's
@@ -479,7 +489,17 @@ attachment, shape, spared-creature choice, Concentration and any save at the cas
 (`zoneChoicePlan`); the action's facts read that shared save from every option (`zoneEntrySavingThrow`). The
 choice DTO lists them as `choiceOptions` on the `POINT` / `CASTER_CENTERED` target, the cast command names one as
 `choiceOptionId`, and the Worker places that option's zone (`chosenZonePlacement`), refusing a missing or unknown
-pick; later triggers run the stored definition. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
+pick; later triggers run the stored definition. A `CHOICE` path whose options place no zone (Protection from
+Energy's damage type, Blindness/Deafness's condition, SPELLS-30, D148) compiles to `compilation.choice =
+{ options: [{ optionId, label, activeEffectPlan, executionPlan }] }`, exclusive with `zonePlacement`. Both pickers
+narrow the action to one option with `castChoiceOptions`, which restores each option's own result kind from the
+compiled entry's `optionGroupKind`. The options must share their test and maintenance graphs, or the action goes
+manual. The top-level plans hold the first option. The choice DTO lists the options as `choiceOptions` on the
+`ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
+kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
+modifiers) passes `readsSharedTest` and reads the top-level option.
+`prepareEncounterActionSource` is the one place the picked option's plans replace the top-level ones. It refuses
+a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that

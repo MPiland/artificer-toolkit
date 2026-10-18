@@ -1,4 +1,12 @@
-import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
+import {
+  compiledActionZonePlacementSchema,
+  type CompiledActionZonePlacement
+} from '@artificer-toolkit/schema/projections/characterMechanics'
+
+import {
+  CharacterRuleActionUnsupportedCompilationError,
+  type CharacterRuleActionSystemAdapter
+} from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { compileEncounterFeatureActionPlan } from './encounterActionEntryPointCompiler.js'
 import {
@@ -12,22 +20,34 @@ const registry = createEncounterFeatureActionCapabilityDiscoveryRegistry([
   dnd5eEncounterFeatureActionCapabilityAdapter
 ])
 
+/** A zone a Creature's passive feature keeps around it while it is in the Encounter (D144). */
+export interface EncounterPassiveZone {
+  capability: EncounterFeatureActionCapabilityDescriptor
+  zone: CompiledActionZonePlacement
+}
+
 /**
- * Every action of a Creature: the ones it can take, and the unavailable ones with their reason. An
- * action whose shape its System cannot execute is unavailable too, so no caller offers it.
+ * Every action of a Creature: the ones it can take, and the unavailable ones with their reason,
+ * with the zones its passive features keep around it. An action or passive zone whose shape its
+ * System cannot execute is unavailable too, so no caller offers or places it.
  */
 export function discoverEncounterFeatureActions(
   input: Parameters<typeof registry.discover>[0]
-): EncounterFeatureActionDiscovery {
+): Omit<EncounterFeatureActionDiscovery, 'passiveZoneCapabilities'> & {
+  passiveZones: readonly EncounterPassiveZone[]
+} {
   const discovered = registry.discover(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
+  const passiveZones: EncounterPassiveZone[] = []
   const unavailable = [...discovered.unavailable]
-  for (const capability of discovered.available) {
+  const compiles = (
+    capability: EncounterFeatureActionCapabilityDescriptor,
+    compile: (adapter: CharacterRuleActionSystemAdapter) => void
+  ) => {
     const adapter = characterRuleActionSystemAdapterRegistry.get(capability.gameSystemId)
     if (!adapter) throw new Error('The Creature Game System cannot execute this action.')
     try {
-      compileEncounterFeatureActionPlan(adapter, capability)
-      available.push(capability)
+      compile(adapter)
     } catch (error) {
       if (!(error instanceof CharacterRuleActionUnsupportedCompilationError)) throw error
       unavailable.push({
@@ -38,7 +58,21 @@ export function discoverEncounterFeatureActions(
       })
     }
   }
-  return { available, unavailable }
+  for (const capability of discovered.available)
+    compiles(capability, (adapter) => {
+      compileEncounterFeatureActionPlan(adapter, capability)
+      available.push(capability)
+    })
+  for (const capability of discovered.passiveZoneCapabilities)
+    compiles(capability, (adapter) => {
+      const zone = adapter.compileZonePlacement?.({ action: capability })
+      if (!zone || 'options' in zone)
+        throw new CharacterRuleActionUnsupportedCompilationError(
+          'A passive zone is one zone, with no cast-time choice.'
+        )
+      passiveZones.push({ capability, zone: compiledActionZonePlacementSchema.parse(zone) })
+    })
+  return { available, unavailable, passiveZones }
 }
 
 /** The System bindings of one compiled Effect, shared by every action source; null without an adapter. */

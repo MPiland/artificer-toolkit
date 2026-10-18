@@ -203,7 +203,7 @@ function options(source: InitiativeDeclarationSource) {
     choices.push({
       kind: 'CHARACTER_ACTION',
       optionId: candidate.actionId,
-      label: candidate.label ?? (activationCode === 'BONUS_ACTION' ? 'Bonus action' : 'Action'),
+      label: candidate.label,
       selectionContract: checksumRuleDocument({
         kind: 'CHARACTER_ACTION',
         optionId: candidate.actionId,

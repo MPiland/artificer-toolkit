@@ -19,7 +19,7 @@ import {
   withSourceSightSave
 } from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
-import { StaleCharacterActionError } from './encounterErrors.js'
+import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
 import {
   encounterAttackSightContributors,
   type EncounterAttackPerception,
@@ -124,6 +124,13 @@ export async function prepareEncounterActionSource<
   actionId: string
   sourceFacts: MovementTarget<TCharacterFacts>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
+  /** The option the caster picked of an action that offers a pick at cast (D140, D148). */
+  choiceOptionId?: string
+  /**
+   * A read of the action's test alone, before any pick: every option shares it (options that test
+   * differently compile MANUAL), so the top-level option serves and no pick is asked for.
+   */
+  readsSharedTest?: boolean
 }) {
   const { state, actor, actionId, sourceFacts } = input
   const characterAction = sourceFacts.characterReactionSource
@@ -149,17 +156,40 @@ export async function prepareEncounterActionSource<
           value.compilation.kind === 'COMPILED'
       )
     : undefined
+  // The one place a cast's pick swaps its option's plans in, before anything runs (D148). A zone
+  // action places the zone its caster picked instead.
+  const compilation = entry?.schemaVersion === 4 ? entry.compilation : null
+  const picked = compilation?.choice?.options.find(
+    ({ optionId }) => optionId === input.choiceOptionId
+  )
+  if (
+    compilation?.choice
+      ? !picked && !input.readsSharedTest
+      : input.choiceOptionId !== undefined && !compilation?.zonePlacement
+  )
+    throw new CastChoiceUnavailableError()
+  const castEntry =
+    entry?.schemaVersion === 4 && picked
+      ? {
+          ...entry,
+          compilation: {
+            ...entry.compilation,
+            activeEffectPlan: picked.activeEffectPlan,
+            executionPlan: picked.executionPlan
+          }
+        }
+      : entry
   const source = await input.loadSource({
     actor,
     actionId,
     gameSystemId: state.gameSystemId,
-    ...(characterAction && candidate && entry && sourceFacts.effectiveRulePolicyOutput
+    ...(characterAction && candidate && castEntry && sourceFacts.effectiveRulePolicyOutput
       ? {
           characterSource: {
             id: characterAction.id,
             streamVersion: characterAction.streamVersion,
             candidate,
-            entry,
+            entry: castEntry,
             // A cast is decided by the spell decisions, which the Sheet's own actions never carry.
             effectivePolicyOutput:
               candidate.mechanicsOwner.kind === 'SPELL' && spellCast
@@ -200,6 +230,10 @@ export async function prepareEncounterActionMechanics<
   target: EncounterRunActorState
   actors: readonly EncounterRunActorState[]
   actionId: string
+  /** The option the caster picked at cast, as `prepareEncounterActionSource` takes it. */
+  choiceOptionId?: string
+  /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
+  readsSharedTest?: boolean
   wieldConflictAcceptance: EncounterWieldConflictAcceptance
   /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
   overridable: boolean
@@ -294,7 +328,9 @@ export async function prepareEncounterActionMechanics<
     actor,
     actionId,
     sourceFacts,
-    loadSource: input.loadSource
+    loadSource: input.loadSource,
+    choiceOptionId: input.choiceOptionId,
+    readsSharedTest: input.readsSharedTest
   })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =

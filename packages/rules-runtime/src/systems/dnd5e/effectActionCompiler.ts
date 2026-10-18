@@ -19,7 +19,8 @@ import {
   compileModifierGrant,
   type CompiledDamageEffect,
   type CompiledDuration,
-  type CompiledEffectGroup
+  type CompiledEffectGroup,
+  type CompiledManifestComponent
 } from '@artificer-toolkit/shared/compilers'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import { abilityModifier } from './abilityModifier.js'
@@ -80,7 +81,8 @@ import {
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
-import { placedSpaceZone, zoneChoiceOptions, zoneTriggers } from '../../encounterZonePlacement.js'
+import { castChoiceOptions } from '../../encounterCastChoice.js'
+import { placedSpaceZone, zoneTriggers } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
@@ -2172,7 +2174,7 @@ function durationPublishedGraph(input: {
 function zoneChoicePlan(
   action: Dnd5eCompiledEffectActionSource
 ): CharacterRuleActionZoneChoicePlan | null {
-  const choices = zoneChoiceOptions(action.compiledEffect)
+  const choices = castChoiceOptions(action.compiledEffect)
   if (!choices) return null
   const options = choices.flatMap(({ optionId, label, compiledEffect }) => {
     const zone = zonePlacementPlan({ ...action, compiledEffect })
@@ -2232,7 +2234,8 @@ function zonePlacementPlan(
     zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
-  const placement = triggers && {
+  if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  const placement = {
     attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
@@ -2244,10 +2247,9 @@ function zonePlacementPlan(
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {})
   }
-  if (placement && invocation.triggerCode !== 'SAVING_THROW')
+  if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
-    !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     !savingThrow ||
     !pinnedDc ||
@@ -2390,12 +2392,12 @@ function zonePlacementPlan(
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
   return {
-    ...placement!,
+    ...placement,
     // A creature leaving the area is released there: the exit ends its holder effect, never a save.
     ...(heldCondition?.endsOnLeavingArea
       ? {
           triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter(
-            (trigger) => trigger === 'EXIT' || placement!.triggerModes.includes(trigger)
+            (trigger) => trigger === 'EXIT' || placement.triggerModes.includes(trigger)
           )
         }
       : {}),
@@ -2455,7 +2457,7 @@ function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
   placement: Omit<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'>,
   entries: readonly CompiledEffectGroup['entries'][number][],
-  successImmunity: unknown
+  successImmunity: CompiledManifestComponent['automaticSaveSuccessImmunityDamageTypeId']
 ): CharacterRuleActionZonePlacementPlan {
   if (placement.triggerModes.length > 0)
     unsupported('A zone outcome with no save acts only at turn boundaries.')

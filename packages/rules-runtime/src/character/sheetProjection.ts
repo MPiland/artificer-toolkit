@@ -39,6 +39,7 @@ import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
+import { labelCharacterConditions } from './characterConditionLabels.js'
 import { effectiveHitPointMaximum } from './activeEffectGrantTotals.js'
 import {
   CHARACTER_ABILITY_ALIASES,
@@ -878,7 +879,6 @@ export function projectCharacterSheetBundle(
     label: condition.label,
     ...(condition.description ? { description: condition.description } : {})
   }))
-  const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(
     resolution.registry.equipment.map((equipment) => [equipment.id, equipment])
   )
@@ -1482,15 +1482,10 @@ export function projectCharacterSheetBundle(
         maximumLevel: ruleEvaluation.output.rest.maximumExhaustion,
         ...(character.state.exhaustion?.notes ? { notes: character.state.exhaustion.notes } : {})
       },
-      conditions: [
-        ...(character.state.conditions ?? []),
-        ...(params.additionalConditions ?? [])
-      ].map((condition) => ({
-        conditionTypeId: condition.conditionTypeId,
-        label: conditionsById.get(condition.conditionTypeId)?.label ?? 'Unknown condition',
-        description: conditionsById.get(condition.conditionTypeId)?.description,
-        notes: condition.notes
-      })),
+      conditions: labelCharacterConditions(
+        [...(character.state.conditions ?? []), ...(params.additionalConditions ?? [])],
+        conditionOptions
+      ),
       hitDice: character.state.hitpoints.hitDice.map((die) => ({
         die: die.die,
         total: die.total,

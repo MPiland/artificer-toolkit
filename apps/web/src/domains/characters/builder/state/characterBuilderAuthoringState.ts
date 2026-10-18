@@ -5,12 +5,7 @@ import type {
   AuthoringStepProgressStatus,
   AuthoringStepStatusMap
 } from '#forms/validation/authoringProgress'
-import {
-  characterBuilderSteps,
-  getCharacterBuilderIssueStepId,
-  getCharacterBuilderValidationStepId,
-  type CharacterBuilderStepId
-} from '../core/stepNavigation'
+import { characterBuilderSteps, type CharacterBuilderStepId } from '../core/stepNavigation'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { getAssignedAbilityCodes } from '../steps/abilities/abilityGeneration'
 import { isHitpointProgressionComplete } from '../steps/abilities/characterAbilities'
@@ -58,13 +53,13 @@ export function getCharacterBuilderProgressState(
   }
 
   for (const issue of payload.resolution.outstandingChoices) {
-    setStepStatus(stepStatuses, getCharacterBuilderIssueStepId(issue), 'incomplete')
+    setStepStatus(stepStatuses, issue.sectionId, 'incomplete')
   }
 
   for (const validation of payload.resolution.validations) {
     setStepStatus(
       stepStatuses,
-      getCharacterBuilderValidationStepId(validation),
+      validation.sectionId,
       validation.severity === 'blocking' ? 'error' : 'warning'
     )
   }

@@ -1,5 +1,8 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
   StoredRuleExecutionResultDto
@@ -39,7 +42,7 @@ import {
   spatialCandidateEvidence,
   spatialExecutionInput,
   spatialExecutionOutcome,
-  toSpatialInstance,
+  toSpatialInstances,
   type SpatialD20Roll,
   type SpatialMovementTarget,
   type SpatialTargetState
@@ -70,7 +73,7 @@ type SpatialMovementEncounter = Pick<
   EncounterRunState,
   'id' | 'version' | 'automationMode' | 'turnSequence' | 'zoneApplications'
 > & {
-  actors: readonly { id: string }[]
+  actors: readonly EncounterRunActorState[]
 }
 
 export type SpatialMovementRuleRoot = {
@@ -323,7 +326,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   const collect = (effects: readonly EncounterSpatialRuleEffectRecord[]) =>
     collectSpatialMovementCandidates({
       actorIdByTokenId: input.actorIdByTokenId,
-      effects: effects.map(toSpatialInstance),
+      effects: toSpatialInstances(effects, input.encounter.actors),
       movementKind: root.movementKind,
       path: root.originalPath,
       tokens: input.sceneTokens,
@@ -343,7 +346,10 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   const exitDistances = new Map(
     collectSpatialMovementCandidates({
       actorIdByTokenId: input.actorIdByTokenId,
-      effects: snapshotEffects.filter(({ id }) => releasingZoneIds.has(id)).map(toSpatialInstance),
+      effects: toSpatialInstances(
+        snapshotEffects.filter(({ id }) => releasingZoneIds.has(id)),
+        input.encounter.actors
+      ),
       movementKind: root.movementKind,
       path: root.originalPath,
       tokens: input.sceneTokens,
@@ -371,7 +377,10 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       const zone = snapshotEffects.find(({ id }) => id === hold.zoneEffectId)
       const geometry =
         zone && releasingZoneIds.has(zone.id)
-          ? effectiveSpatialGeometry(toSpatialInstance(zone), input.sceneTokens)
+          ? effectiveSpatialGeometry(
+              toSpatialInstances([zone], input.encounter.actors)[0]!,
+              input.sceneTokens
+            )
           : null
       if (
         hold.actorId !== moverActorId ||

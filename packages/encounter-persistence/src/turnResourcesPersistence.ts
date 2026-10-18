@@ -395,7 +395,7 @@ export async function persistEncounterTurnResources(
       gameSystemId: state.gameSystemId,
       rollScope: `${occurrenceId}:legendary:${ordinal}`,
       batch: application,
-      actionLabel: (await ctx.ports.readContentLabel(option.actionId)) ?? 'Legendary Action',
+      actionLabel: option.label,
       source: ownerMechanics?.updatedActor ?? owner,
       target,
       initiatorUserId: root.initiatorUserId,

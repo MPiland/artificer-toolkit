@@ -937,6 +937,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rule (T4):** the relationship contribution persists `sealedReachFeet`. A free `RELEASE_RELATIONSHIP` command can be issued only by the source. An after-commit sweep ends a grapple when the grappler can't act or the held creature is outside the sealed reach. The receipt lists `relationshipEnds`.
   - **Rule (drawing with full hands):** drawing a weapon while every hand is held is refused by the existing hand check; the grappler releases first. A release-on-draw prompt is deferred, because AC 7.1 doesn't name it.
   - **Rejected:** a second contest context beside the optional-combat one (two homes for one rule).
+  - **Amended (2026-10-17):** grant restrictions are folded before the holder is known and stored in active-effect definitions, so the restriction condition kind gains two additive kinds, `HOLDER_KIND` (CHARACTER or CREATURE) and `CREATURE_TYPE` (creature type ids). The Character fold decides them as constants, so fold outputs do not change. Encounter evaluators read the holder's `kind` and `creatureTypeIds` from its holder state, and item-action requirements always see a Character. Rejected: gating only where the holder is already known, which would leave stored grant restrictions ungated.
 
 ## Approved implementation decisions
 
