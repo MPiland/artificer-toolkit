@@ -49,7 +49,8 @@ describe('a contest whose win is a picked outcome, through the effect node map (
     const win = effects[0]?.paths[0]
     if (win?.selectionKind !== 'CHOICE') throw new Error('Shove must author its pick.')
     const push = win.options[1]?.resultBlock.outcomes[0]
-    if (push?.effectKind !== 'FORCED_MOVEMENT') throw new Error('Shove must author its push.')
+    if (push?.effectKind !== 'FORCED_MOVEMENT' || push.distanceMode !== 'EXACT')
+      throw new Error('Shove must author its push.')
     push.amount = 10
     await expectKept(effects)
   })
