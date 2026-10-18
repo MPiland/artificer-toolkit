@@ -15,6 +15,7 @@ import { readCampaignRunState } from './documents.js'
 import { halfSpeedFieldsOf } from './halfSpeedFields.js'
 import { readSceneSpatialRows } from './sceneSpatialRows.js'
 import { readSessionAuras } from './sessionAuras.js'
+import { readSessionMovementCostZones } from './sessionMovementCostZones.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
 import { readEncounterProjectionViewer } from './playerViewer.js'
@@ -120,7 +121,8 @@ export async function readEncounterSessionState(
       waitingOn: null,
       turnMovement: [],
       halfSpeedFields: [],
-      auras: []
+      auras: [],
+      movementCostZones: []
     }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
   const encounter = await presentEncounterRun(ctx, row, campaign, membership)
@@ -135,6 +137,11 @@ export async function readEncounterSessionState(
       encounterId: row.id,
       rows: spatialRows,
       seenActorIds: new Set(encounter.actors.map((actor) => actor.id))
+    }),
+    movementCostZones: await readSessionMovementCostZones(ctx, {
+      encounterId: row.id,
+      rows: spatialRows,
+      actors: encounter.actors
     })
   }
 }

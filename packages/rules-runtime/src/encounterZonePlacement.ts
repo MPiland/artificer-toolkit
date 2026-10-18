@@ -159,6 +159,14 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
         )
       return { component, behavior: null }
     }
+    // A component that only changes the cost of moving through it (Entangle's difficult terrain)
+    // is met by no creature, so it authors no behavior either (SPELLS-20 T4d).
+    if (
+      component.movementCostMultiplier !== undefined &&
+      !component.interactionKinds?.length &&
+      !component.behaviors?.length
+    )
+      return { component, behavior: null }
     if (component.behaviors?.length !== 1 || !behavior)
       throw new CharacterRuleActionUnsupportedCompilationError(
         'A placed zone component needs exactly one behavior.'

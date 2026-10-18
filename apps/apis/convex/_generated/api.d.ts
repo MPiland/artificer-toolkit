@@ -116219,6 +116219,29 @@ export declare const api: {
                 }
               | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
           }>;
+          movementCostZones: Array<{
+            anchorKind: "FIXED" | "TOKEN";
+            geometry: {
+              frame: "SCENE_ABSOLUTE" | "TOKEN_LOCAL";
+              shape:
+                | {
+                    center: { x: number; y: number };
+                    kind: "CIRCLE";
+                    radius: number;
+                  }
+                | {
+                    center: { x: number; y: number };
+                    innerRadius: number;
+                    kind: "RING";
+                    outerRadius: number;
+                  }
+                | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
+            };
+            id: string;
+            multiplier: number;
+            sourceTokenId: string | null;
+            unaffectedActorIds: Array<string>;
+          }>;
           pending:
             | {
                 allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
@@ -116350,6 +116373,17 @@ export declare const api: {
                   riderId: string;
                   slotLevel: number;
                 }>;
+              }
+            | {
+                allowedResponses: Array<"FORCED_MOVEMENT">;
+                encounterVersion: number;
+                kind: "FORCED_MOVEMENT_DESTINATION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                positions: Array<{ x: number; y: number }>;
+                requestId: string;
+                sourceActorId: string;
+                targetActorId: string;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
@@ -116679,6 +116713,17 @@ export declare const api: {
                     riderId: string;
                     slotLevel: number;
                   }>;
+                }
+              | {
+                  allowedResponses: Array<"FORCED_MOVEMENT">;
+                  encounterVersion: number;
+                  kind: "FORCED_MOVEMENT_DESTINATION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  positions: Array<{ x: number; y: number }>;
+                  requestId: string;
+                  sourceActorId: string;
+                  targetActorId: string;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
@@ -117526,6 +117571,17 @@ export declare const api: {
             }>;
           }
         | {
+            allowedResponses: Array<"FORCED_MOVEMENT">;
+            encounterVersion: number;
+            kind: "FORCED_MOVEMENT_DESTINATION";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            positions: Array<{ x: number; y: number }>;
+            requestId: string;
+            sourceActorId: string;
+            targetActorId: string;
+          }
+        | {
             allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
             encounterVersion: number;
             kind: "LEGENDARY_ACTION_CHOICE";
@@ -118368,6 +118424,17 @@ export declare const api: {
                   riderId: string;
                   slotLevel: number;
                 }>;
+              }
+            | {
+                allowedResponses: Array<"FORCED_MOVEMENT">;
+                encounterVersion: number;
+                kind: "FORCED_MOVEMENT_DESTINATION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                positions: Array<{ x: number; y: number }>;
+                requestId: string;
+                sourceActorId: string;
+                targetActorId: string;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;

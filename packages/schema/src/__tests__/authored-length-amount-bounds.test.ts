@@ -155,7 +155,7 @@ const parsers: Record<string, (amount: number) => boolean> = {
       effectKind: 'FORCED_MOVEMENT',
       direction: 'AWAY_FROM_SOURCE',
       actionEconomy: 'NONE',
-      distanceMode: 'FIXED_DISTANCE',
+      distanceMode: 'EXACT',
       ...measurement(amount)
     }).success,
   'move manifest amount': (amount) =>

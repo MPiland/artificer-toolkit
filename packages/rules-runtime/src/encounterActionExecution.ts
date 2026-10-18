@@ -53,6 +53,7 @@ import {
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type { z } from 'zod'
 import {
   encounterOnHitOptions,
@@ -88,6 +89,8 @@ export async function executeNativeActionGraphs(input: {
   phaseReceipts: z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema> | undefined
   d20: ServerRuleExecutionD20EvidenceDto | null
   nestedD20: ServerRuleExecutionNestedD20EvidenceDto | null
+  /** The OUTCOME phase with the decisions it was sealed against, which a later hold retains. */
+  outcomePhase: NativeOutcomePhase | null
   applications: readonly CharacterRuleActionApplication[]
 }> {
   const random = input.random ?? nextRollInt
@@ -229,6 +232,8 @@ export async function executeNativeActionGraphs(input: {
     phaseReceipts: phaseReceipts.length ? phaseReceipts : undefined,
     d20,
     nestedD20,
+    // A graph run from its start holds no OUTCOME phase a later choice retains.
+    outcomePhase: null,
     applications: input.adapter.interpret({
       execution: terminal.execution,
       occurrenceId: input.occurrenceId,
@@ -245,6 +250,7 @@ export async function executeNativeActionGraphs(input: {
 
 type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
 type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
+type NativeOutcomePhase = Extract<NativeTwoPhase, { phase: 'OUTCOME' }>
 
 /** A paused request resumed by its answer; whose roll it was no longer matters. */
 export type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
@@ -273,6 +279,8 @@ export type PendingNativeActionGraphs = {
   reactionChoice?: EncounterReactionOfferDto
   /** Set while a hit waits on its attacker's choice to add an optional on-hit rider; `continuation` is that choice. */
   onHitChoice?: EncounterOnHitOfferDto
+  /** Set while a settled action waits on its source's forced-movement destination; `continuation` is that choice. */
+  forcedMovementDestination?: EncounterForcedMovementOfferDto
 }
 
 type NativeActionTestBoundary = {
@@ -304,6 +312,8 @@ function actionComplete(input: {
   phaseReceipts: NativePhaseReceipts
   d20: ServerRuleExecutionD20EvidenceDto | null
   nestedD20: ServerRuleExecutionNestedD20EvidenceDto | null
+  /** The OUTCOME phase with the decisions it was sealed against, which a later hold retains. */
+  outcomePhase?: NativeOutcomePhase | null
 }): CompleteNativeActionGraphs {
   return {
     kind: 'COMPLETE',
@@ -314,6 +324,7 @@ function actionComplete(input: {
     phaseReceipts: input.phaseReceipts.length ? input.phaseReceipts : undefined,
     d20: input.d20,
     nestedD20: input.nestedD20,
+    outcomePhase: input.outcomePhase ?? null,
     applications: input.adapter.interpret({
       execution: input.execution,
       occurrenceId: input.occurrenceId,
@@ -1146,7 +1157,8 @@ export async function continueNativeActionAfterTest(
     initialFactsChecksum: current.factsChecksum,
     phaseReceipts,
     d20: input.boundary.d20,
-    nestedD20
+    nestedD20,
+    outcomePhase: twoPhase
   })
 }
 
@@ -1663,6 +1675,36 @@ export async function advanceNativeActionGraphs(input: {
     initialFactsChecksum,
     phaseReceipts,
     d20: testD20,
-    nestedD20
+    nestedD20,
+    outcomePhase: twoPhase?.phase === 'OUTCOME' ? twoPhase : null
+  })
+}
+
+/**
+ * The settled action a forced-movement destination pick held (D157), restored from its sealed
+ * completion without running a graph again; its applications are derived from it as at completion.
+ */
+export function restoreHeldNativeActionCompletion(input: {
+  adapter: CharacterRuleActionSystemAdapter
+  binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
+  occurrenceId: string
+  offer: EncounterForcedMovementOfferDto
+  outcomePhase: NativeTwoPhase | null
+}): CompleteNativeActionGraphs {
+  const { completion } = input.offer
+  if (input.outcomePhase?.phase === 'TEST')
+    throw new Error('A held action completion follows its OUTCOME.')
+  return actionComplete({
+    adapter: input.adapter,
+    binding: input.binding,
+    occurrenceId: input.occurrenceId,
+    execution: completion.execution,
+    published: completion.published,
+    initialPublished: completion.initialPublished,
+    initialFactsChecksum: completion.initialFactsChecksum,
+    phaseReceipts: completion.phaseReceipts ?? [],
+    d20: completion.d20,
+    nestedD20: completion.nestedD20,
+    outcomePhase: input.outcomePhase
   })
 }

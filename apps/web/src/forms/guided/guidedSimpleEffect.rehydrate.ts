@@ -66,7 +66,7 @@ export function rehydrateGuidedSpell(
         : 'AWAY_FROM_SOURCE'
       : 'AWAY_FROM_SOURCE'
   const movementAmount =
-    outcome.effectKind === 'FORCED_MOVEMENT' && outcome.distanceMode === 'FIXED_DISTANCE'
+    outcome.effectKind === 'FORCED_MOVEMENT' && outcome.distanceMode === 'EXACT'
       ? outcome.amount
       : 5
   const ids = {
@@ -261,7 +261,7 @@ function hasSupportedGuidedOutcome(outcome: OutcomeAuthored): boolean {
         ]) &&
         (outcome.direction === 'AWAY_FROM_SOURCE' || outcome.direction === 'TOWARD_SOURCE') &&
         outcome.actionEconomy === 'NONE' &&
-        outcome.distanceMode === 'FIXED_DISTANCE' &&
+        outcome.distanceMode === 'EXACT' &&
         outcome.unit === 'FEET' &&
         Number.isFinite(outcome.amount) &&
         outcome.amount > 0

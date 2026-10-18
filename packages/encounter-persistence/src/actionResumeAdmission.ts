@@ -207,9 +207,10 @@ export async function readNativeEncounterActionResponseAdmission(
     resolution.kind !== 'SYSTEM_ROLL' &&
     resolution.kind !== 'AREA_LEGENDARY_RESISTANCE' &&
     resolution.kind !== 'DECLINE' &&
-    resolution.kind !== 'OPTION'
+    resolution.kind !== 'OPTION' &&
+    resolution.kind !== 'FORCED_MOVEMENT'
   )
-    throw new Error('The action requires dice, integer or Legendary Resistance evidence.')
+    throw new Error('The action requires dice, integer, a decision or a destination.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {
     occurrence,
     initiatorUserId: initiator

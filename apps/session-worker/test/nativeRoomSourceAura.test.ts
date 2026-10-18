@@ -1,3 +1,4 @@
+import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
@@ -8,6 +9,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -333,6 +335,55 @@ describe('Spirit Guardians designated unaffected creatures (SPELLS-20 T4c)', () 
 
     expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
     expect(await readZones(room)).toEqual([])
+  })
+})
+
+describe('Spirit Guardians halves an affected creature’s speed in the aura (SPELLS-20 T4d, D156)', () => {
+  /** The feet the actor's movements this Encounter used, as the room recorded them. */
+  async function feetMoved(room: Room, actorId: string) {
+    const movements = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage).documents('encounterTurnMovements')
+    )
+    return movements
+      .filter((movement) => movement.actorId === actorId)
+      .reduce((total, { usedFeet }) => total + usedFeet, 0)
+  }
+
+  const DEEPER_IN_THE_AURA = { x: 150, y: 350 }
+
+  /** The Wolf's feet for one step that stays inside the aura, cast with these designations or not at all. */
+  async function wolfStepFeet(cast: { unaffectedActorIds?: string[] } | null) {
+    const room = await auraRoom(INSIDE_THE_AURA)
+    if (cast) await castAura(room, cast.unaffectedActorIds)
+    await room.advanceTurn()
+    await walkerMoves(room, [INSIDE_THE_AURA, DEEPER_IN_THE_AURA])
+    return feetMoved(room, WOLF_ID)
+  }
+
+  it('charges a creature it affects double for movement inside it', async () => {
+    const plainFeet = await wolfStepFeet(null)
+
+    expect(plainFeet).toBeGreaterThan(0)
+    expect(await wolfStepFeet({})).toBe(2 * plainFeet)
+  })
+
+  it('charges a creature the caster designated unaffected only the plain cost', async () => {
+    expect(await wolfStepFeet({ unaffectedActorIds: [WOLF_ID] })).toBe(await wolfStepFeet(null))
+  })
+
+  it('never slows the caster it is anchored to', async () => {
+    const step = [
+      { x: 150, y: 150 },
+      { x: 250, y: 150 }
+    ]
+    const plain = await auraRoom(FAR_EAST)
+    await walkerMoves(plain, step, false, 0)
+
+    const room = await auraRoom(FAR_EAST)
+    await castAura(room)
+    await walkerMoves(room, step, false, 0)
+
+    expect(await feetMoved(room, CASTER_ACTOR_ID)).toBe(await feetMoved(plain, CASTER_ACTOR_ID))
   })
 })
 

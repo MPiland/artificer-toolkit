@@ -12,6 +12,7 @@ import {
 } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
+  type EncounterHolderState,
   type EncounterSourceSightSave,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
@@ -101,6 +102,8 @@ export type MovementTarget<
   /** The Senses the actor perceives with: a Character's pinned Senses or a Creature's authored ones. */
   perceptionSenses: readonly { senseDefinitionId: string; range: SenseRangeDto }[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
+  /** The save-bonus aura amount (D155) its save rows include, which a rebuilt turn target keeps. */
+  occupantSaveBonus?: number
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
@@ -120,6 +123,11 @@ export type MovementTarget<
    */
   sourceSightSaves: readonly EncounterSourceSightSave[]
   /**
+   * What the actor could do when `withEncounterHolderDefense` applied its grants, which a rebuilt
+   * turn target re-applies them with; absent when it had none.
+   */
+  holderState?: EncounterHolderState
+  /**
    * The actor's pinned condition definitions (D94), loaded by `withEncounterConditionMechanics`
    * and carried across rebuilds so `applyEncounterConditionMechanics` can re-derive its mechanics;
    * empty until a flow loads them.
@@ -127,6 +135,18 @@ export type MovementTarget<
   conditionDefinitions: readonly PinnedConditionRuleStateDefinitionDto[]
   /** The mechanics the actor's current conditions apply, derived from `conditionDefinitions`. */
   conditionMechanics: readonly EncounterConditionMechanic[]
+}
+
+/** The Character's current condition ids: its play state's and its Campaign context's, unique. */
+export function characterConditionIds(characterFacts: CharacterMovementFacts): string[] {
+  return [
+    ...new Set([
+      ...(characterFacts.character.state.conditions ?? []).map(
+        (condition) => condition.conditionTypeId
+      ),
+      ...characterFacts.campaignContext.conditions.map((condition) => condition.conditionTypeId)
+    ])
+  ]
 }
 
 /** The sum of a Character's class levels. */
@@ -216,12 +236,7 @@ export function buildMovementTarget<
       'Encounter Character source is unavailable.'
     )
     const conditions = characterFacts.character.state.conditions ?? []
-    const conditionIds = [
-      ...new Set([
-        ...conditions.map((condition) => condition.conditionTypeId),
-        ...characterFacts.campaignContext.conditions.map((condition) => condition.conditionTypeId)
-      ])
-    ]
+    const conditionIds = characterConditionIds(characterFacts)
     const systemConditions = new Set(
       (characterFacts.prepared.context.registry.system?.conditionTypes ?? []).map(
         (condition) => condition.id

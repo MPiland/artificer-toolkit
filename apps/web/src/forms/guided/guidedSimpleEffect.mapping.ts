@@ -104,7 +104,7 @@ function createOutcome(draft: GuidedSpellDraft, id: string): OutcomeAuthored {
         effectKind: 'FORCED_MOVEMENT' as const,
         direction: draft.movementDirection,
         actionEconomy: 'NONE' as const,
-        distanceMode: 'FIXED_DISTANCE' as const,
+        distanceMode: 'EXACT' as const,
         amount: draft.movementAmount,
         unit: 'FEET' as const
       }

@@ -223,6 +223,7 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Removing a reinstated caster from the Run leaves the Concentration standing (SPELLS-5.T12, D151):** an actor removal ends no maintained state, so the relinked grants keep their link until the Run completes, when they detach and carry over again. An action-made Concentration behaves the same today.
 - **Undo cannot restore a relinked carried grant (SPELLS-5.T12):** an effect restore derives `sourceEncounterId` from the definition's origin, which names the earlier Run, so restoring a relinked grant would fail its read check. Rare: it needs an undo of a command that ended one relinked grant alone.
 - **A reinstated Concentration emptied by its own dependents does not record the caster (SPELLS-5.T12):** when the last relinked grant expires or is consumed, `TERMINATE_WHEN_EMPTY` deletes the state without appending the caster to `concentrationCasterCharacterIds`, so stamped grants on Characters outside the Run stay until the caster's next Concentration or the clock ends them.
+- **Crusher's move is not optional (ATTACK-7.T5):** the homebrew Crusher fixture moves its target on every qualifying hit, because an on-hit rider's only player choice is a paid one (`optionalOnHit: SPELL_SLOT`, D123). Candidate: a free optional rider kind, so "you can move it" spends the once-per-turn use only when chosen.
 
 ### Code-quality refactors (deferred from Phase 8.2, 2026-10-17)
 
@@ -274,6 +275,10 @@ Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectil
 ### Web obscures and burns (D156)
 
 Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d. Its light obscurement and its burning (a 10-ft cube burns away in a round, dealing 2d4 fire to a creature that starts its turn in the fire) are not modeled yet.
+
+### Day-scale durations on the Campaign clock (D156)
+
+Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
 
 ### Shared live cursors (Q19)
 

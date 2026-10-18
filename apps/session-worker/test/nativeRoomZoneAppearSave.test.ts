@@ -245,6 +245,8 @@ describe('the SRD Entangle as it appears (SPELLS-4.T1g)', () => {
 
     const [zone] = await readZones(entangled)
     expect(zone?.placement.triggerModes).toEqual([])
+    // Its area is difficult terrain (SPELLS-20 T4d).
+    expect(zone?.placement.movementCostMultiplier).toBe(2)
     expect(await conditionsOf(entangled, WOLF_ID)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
     const [held, ...others] = await heldEffectsOf(entangled)
     expect(others).toEqual([])

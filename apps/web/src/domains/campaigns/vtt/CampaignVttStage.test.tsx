@@ -87,7 +87,8 @@ describe('CampaignVttStage Convex reads (ADR 0035 A28)', () => {
         waitingOn: null,
         turnMovement: [],
         halfSpeedFields: [],
-        auras: []
+        auras: [],
+        movementCostZones: []
       },
       preparedPending: [],
       actorSides: null,

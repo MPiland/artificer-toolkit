@@ -1,3 +1,5 @@
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { spatialRuleEffectPlacementDtoSchema } from '@artificer-toolkit/schema/shared/spatial'
 import { describe, expect, it } from 'vitest'
 
@@ -6,8 +8,34 @@ import {
   preparedMovementSceneDelta,
   preparedMovementSegment
 } from '../encounterMovementPublication.js'
+import { toSpatialInstances } from '../encounterSpatialCandidateExecution.js'
 
 const tokenId = '00000000-0000-4000-8000-000000000001'
+const actorId = '00000000-0000-4000-8000-000000000011'
+const casterActorId = '00000000-0000-4000-8000-000000000012'
+
+/**
+ * The zones as the movement cost reads them, from records reduced to the fields it uses, cast by
+ * `casterActorId`. A record with no maintained state is a passive zone.
+ */
+function spatialInstances(
+  effects: readonly (Pick<EncounterSpatialRuleEffectRecord, 'placement' | 'spatialState'> &
+    Partial<Pick<EncounterSpatialRuleEffectRecord, 'maintainedEffectStateId'>>)[],
+  actors: readonly EncounterRunActorState[] = []
+) {
+  return toSpatialInstances(
+    effects.map(
+      (effect, index) =>
+        ({
+          id: `00000000-0000-4000-8000-0000000001${index}0`,
+          maintainedEffectStateId: '00000000-0000-4000-8000-000000000200',
+          definition: { origin: { kind: 'ENCOUNTER', sourceActorId: casterActorId } },
+          ...effect
+        }) as unknown as EncounterSpatialRuleEffectRecord
+    ),
+    actors
+  )
+}
 const path = [
   { x: 0, y: 0 },
   { x: 100, y: 0 },
@@ -93,8 +121,9 @@ describe('prepared movement publication', () => {
       revealed = true
     ) => ({
       tokenId,
+      actorId,
       tokens,
-      effects: [field(flagged, visibility, revealed)],
+      effects: spatialInstances([field(flagged, visibility, revealed)]),
       carefully: true
     })
     const plain = preparedMovementCost(walk)
@@ -118,8 +147,9 @@ describe('prepared movement publication', () => {
     })
     const mover = (effect: ReturnType<typeof costly>, carefully: boolean) => ({
       tokenId,
+      actorId,
       tokens,
-      effects: [effect],
+      effects: spatialInstances([effect]),
       carefully
     })
     expect(preparedMovementCost({ ...walk, mover: mover(costly(4), false) })).toBeCloseTo(10 + 40)
@@ -138,6 +168,83 @@ describe('prepared movement publication', () => {
     }
     // Terrain 3 on the whole segment outranks the careful doubling; nothing multiplies.
     expect(preparedMovementCost({ ...walk, scene: terrain, mover: careful(true) })).toBeCloseTo(60)
+  })
+
+  it('charges a zone’s movement cost only to the movers it catches (SPELLS-20 T4d)', () => {
+    const grid = {
+      kind: 'SQUARE' as const,
+      origin: { x: 0, y: 0 },
+      cellSize: 100,
+      distancePerCell: 5,
+      diagonalPolicy: 'EQUAL' as const,
+      unit: 'FEET' as const
+    }
+    const casterTokenId = '00000000-0000-4000-8000-000000000002'
+    const walk = {
+      grid,
+      scene: { barriers: [] },
+      path: [
+        { x: 0, y: 0 },
+        { x: 400, y: 0 }
+      ],
+      startDistance: 0,
+      outcome: null
+    }
+    const moverToken = { id: tokenId, position: { x: 0, y: 0 }, width: 100, height: 100 }
+    const casterToken = { id: casterTokenId, position: { x: 200, y: 0 }, width: 100, height: 100 }
+    const zone = (anchor: 'TOKEN' | 'FIXED', unaffectedActorIds?: string[]) => ({
+      spatialState: { schemaVersion: 1 as const, revealed: true },
+      placement: spatialRuleEffectPlacementDtoSchema.parse({
+        schemaVersion: 1,
+        anchorKind: anchor,
+        sourceTokenId: anchor === 'TOKEN' ? casterTokenId : null,
+        geometry: {
+          frame: anchor === 'TOKEN' ? 'TOKEN_LOCAL' : 'SCENE_ABSOLUTE',
+          shape: {
+            kind: 'CIRCLE',
+            center: anchor === 'TOKEN' ? { x: 0, y: 0 } : { x: 200, y: 0 },
+            radius: 50
+          }
+        },
+        triggerModes: ['ENTER'],
+        movementKinds: ['VOLUNTARY'],
+        activation: 'REPEATABLE',
+        visibility: 'PUBLIC',
+        revealOnTrigger: false,
+        movementCostMultiplier: 2,
+        ...(unaffectedActorIds ? { unaffectedActorIds } : {})
+      })
+    })
+    const cost = (
+      effects: Parameters<typeof spatialInstances>[0],
+      mover: { tokenId: string; actorId: string } = { tokenId, actorId },
+      actors: readonly EncounterRunActorState[] = []
+    ) =>
+      preparedMovementCost({
+        ...walk,
+        mover: {
+          ...mover,
+          tokens: [
+            { ...moverToken, id: mover.tokenId },
+            ...(mover.tokenId === casterTokenId ? [] : [casterToken])
+          ],
+          effects: spatialInstances(effects, actors),
+          carefully: false
+        }
+      })
+    // The footprint overlaps the caster's 50-radius aura for half the 400-unit walk.
+    expect(cost([zone('TOKEN')])).toBeCloseTo(30)
+    expect(cost([zone('TOKEN', [actorId])])).toBe(20)
+    // The aura moves with its caster's token, so it never slows the caster.
+    expect(cost([zone('TOKEN')], { tokenId: casterTokenId, actorId: casterActorId })).toBe(20)
+    // A zone the caster placed still slows the caster.
+    expect(cost([zone('FIXED')], { tokenId, actorId: casterActorId })).toBeCloseTo(30)
+    // A passive aura rests while its Creature source is defeated.
+    const passive = { ...zone('TOKEN'), maintainedEffectStateId: null }
+    const caster = (defeated: boolean) =>
+      [{ id: casterActorId, kind: 'CREATURE', defeated }] as unknown as EncounterRunActorState[]
+    expect(cost([passive], undefined, caster(false))).toBeCloseTo(30)
+    expect(cost([passive], undefined, caster(true))).toBe(20)
   })
 
   it('walks the whole remaining path when no rules interrupt it', () => {

@@ -788,6 +788,18 @@
               },
               "text": "Raised 2026-10-17 by SPELLS-20.T4b2b2. Root-cause and fix the nativeRoomAdmission lease-renewal test flake, and check the two suspected lazy-schema violations (encounterRuleCommands.ts:121, followUpSave.ts:16); fix them if they break the lazySchema rule, with a regression test that fails first.",
               "note": "CI ci/platform-13-t11 6e67a265e (Tests 39043876311, Live 39043876272); merged 993732fa3 via ci/merge-m76. Root cause: room() in nativeRoomAdmission.test.ts never called trackRoom, so a running room answered a later test's fetch mock. Both module-level schemas wrapped in lazySchema; lazy-schema-lint.test.ts runs the D59 check in CI. Workbook docs/handoffs/slice-platform-13-t11.md."
+            },
+            {
+              "id": "PLATFORM-13.T12",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139."
             }
           ]
         },
@@ -1468,7 +1480,7 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": [],
           "journeyStatus": "none",
@@ -1499,7 +1511,7 @@
           "tasks": [
             {
               "id": "PLATFORM-25.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-25.1"],
               "wsjf": {
                 "bv": 3,
@@ -6229,19 +6241,19 @@
             {
               "id": "ATTACK-7.T5",
               "text": "Slice E, split 2026-10-18 (D157): the authored forced-movement contract (AWAY_FROM_SOURCE, TOWARD_SOURCE, ASIDE, ANY; EXACT, UP_TO, UP_TO_SPEED), legal-square derivation, on-hit riders carrying any ON_HIT outcome, DAMAGE_TYPE restriction checks and the homebrew Crusher fixture. AWAY/TOWARD + EXACT are delivered by T5a.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.7"],
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md",
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "Green: ci/attack-7 2b1d4dd26 Tests 39138280423, Live 39138280508; batch ci/merge-m115 d416a7ebf green; phase merge 817469d85."
             },
             {
               "id": "ATTACK-7.T5b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6250,11 +6262,12 @@
                 "size": 8,
                 "after": ["ATTACK-7.T5"]
               },
-              "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server."
+              "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server.",
+              "note": "Green: ci/attack-7-t5b 491704dfd Tests 39142195686, Live 39142195716; batch ci/merge-m120 ff8c82210 green (Tests 39145244320, Live 39145244344); phase merge 4aa391dea."
             },
             {
               "id": "ATTACK-7.T5c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6263,7 +6276,21 @@
                 "size": 5,
                 "after": ["ATTACK-7.T5b"]
               },
-              "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user."
+              "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user.",
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+            },
+            {
+              "id": "ATTACK-7.T5d",
+              "status": "TODO",
+              "closes": ["ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["ATTACK-7.T5b"]
+              },
+              "text": "Found in T5b (2026-10-18): an area action whose push needs a destination pick (ASIDE, ANY or UP_TO) fails at commit. Per D157, hold one target at a time, farthest first, each offer derived after the farther creatures landed, and commit after the last answer; room journey with two pushed creatures."
             },
             {
               "id": "ATTACK-7.T6",
@@ -7860,17 +7887,31 @@
               "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a1",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): AWAKEN, COLOR_SPRAY, COMPULSION, CONTACT_OTHER_PLANE, CONTAGION. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+              "text": "Convert closed rules (D156 T2 split; T2a1 rulings): hitPointPoolIgnoredConditionIds on AREA_CONTENTS (Sleep [UNCONSCIOUS] with a regression room test that fails before the change, Color Spray [UNCONSCIOUS, BLINDED]); condition-owning effects take the SOURCE turn anchor so Color Spray blinds until the end of the caster's next turn; AWAKEN converts as class C (MANUAL_ADJUDICATION quoting its description). Parity proof per spell; each kind deleted. CONTACT_OTHER_PLANE moved to T2a1b, COMPULSION to T2l, CONTAGION to T2m.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2a1b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2a1"]
+              },
+              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted."
             },
             {
               "status": "TODO",
@@ -7925,7 +7966,7 @@
               "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2b",
               "wsjf": {
@@ -7935,7 +7976,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert the 34 description-only closed rules (D156 T2 split, class C): remove each CLOSED_RULE outcome and kind, keep the description; a corpus test proves none remains and every description is intact."
+              "text": "Convert the 34 description-only closed rules (D156 T2 split, class C): remove each CLOSED_RULE outcome and kind, keep the description; a corpus test proves none remains and every description is intact.",
+              "note": "Green: ci/spells-4-t2b 0a13ed651 Tests 39140950973, Live 39140950907; batch ci/merge-m120 ff8c82210 green; phase merge 4aa391dea."
             },
             {
               "status": "TODO",
@@ -8062,10 +8104,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, COMPULSION (compelled move on the target's own turn, shared with Confusion; T2a1 ruling), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -8075,10 +8117,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
-                "after": ["SPELLS-4.T1"]
+                "size": 8,
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, CONTAGION (Encounter compiler runs THRESHOLDS repeat saves; Slimy Doom stunned when damaged; Mindfire reuses T2l; T2a1 ruling), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -9685,7 +9727,7 @@
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-20.T5c",
               "wsjf": {
                 "bv": 5,
@@ -9695,7 +9737,20 @@
                 "after": ["SPELLS-20.T5b"]
               },
               "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5b d3776625a Tests 39139543744, Live 39139443840; batch ci/merge-m116 42f9a6e2a green; phase merge 25e8e5bcc."
+            },
+            {
+              "id": "SPELLS-20.T5d",
+              "status": "DONE",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bug (found in SPELLS-20.T5c, 2026-10-18; first registered as ATTACK-18.T9z): rebuildEncounterTurnTarget rebuilds a turn stage's target from raw facts and drops the holder's defense (withEncounterHolderDefense, e.g. Dodge), so a Dodging creature's turn-boundary saves (zone start or end of turn, recurring effects) lose Dodge's advantage on Dexterity saves. Carry the holder defense on MovementTarget as T5c did for occupantSaveBonus, with a regression room test that fails before the fix.",
+              "note": "Green: ci/spells-20-t5d da3ee7b2d Tests 39143763721, Live 39143722167; fast-path phase merge 1c01a30f4 (m119 backstop)."
             },
             {
               "id": "SPELLS-20.T6a",

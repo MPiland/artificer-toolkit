@@ -75,8 +75,11 @@ export const gentleRepose: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GENTLE_REPOSE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GENTLE_REPOSE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Preserve the Remains',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  "You touch a corpse or other remains. For the duration, the target is protected from decay and can't become undead."
               }
             ]
           }
