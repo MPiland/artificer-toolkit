@@ -516,3 +516,27 @@ describe('movement-triggered Concentration held by a Creature', () => {
     })
   })
 })
+
+describe('a spatial hazard that drops a walker to 0 hit points (D156)', () => {
+  it('ends the voluntary move at that contact, before any later hazard', async () => {
+    const room = await movementRoom({
+      actors: [characterActor({ id: MOVER_ID, characterId: CHARACTER_ID })],
+      moverActorId: MOVER_ID,
+      positions: { [MOVER_ID]: MOVER_START },
+      autoRoll: 'PLAYER',
+      characterPlay: { currentHitPoints: 1 },
+      spatialEffects: [
+        { center: { x: 350, y: 150 }, radius: 50 },
+        { center: { x: 500, y: 150 }, radius: 20, variant: 1 }
+      ]
+    })
+
+    await room.move([MOVER_START, { x: 650, y: 150 }])
+
+    const move = (await room.receipts()).find((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')
+    if (!move) throw new Error('The move left no receipt.')
+    // The token's half-cell edge meets the first hazard's rim (x 300) with its center at x 250.
+    expect(move.result).toMatchObject({ terminalPosition: { x: 250, y: 150 } })
+    expect((move.result as { executions: object[] }).executions).toHaveLength(1)
+  })
+})

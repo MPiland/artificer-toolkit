@@ -103,12 +103,13 @@ export async function createSpatialPreparationFixture() {
 }
 
 /**
- * The GM's UPDATE_ACTOR `controllerUserIds` grant, written in place so the fixture's sealed
- * Encounter version stays current. Encounter-bound tokens move for their actor's controllers.
+ * The GM's UPDATE_ACTOR `controllerUserIds` grant (and, with `hitPoints`, its hit points), written
+ * in place so the fixture's sealed Encounter version stays current. Encounter-bound tokens move for
+ * their actor's controllers.
  */
 export async function grantFixtureActorControl(
   ctx: MutationCtx,
-  input: { encounterId: string; actorId: string; controllerUserIds: string[] }
+  input: { encounterId: string; actorId: string; controllerUserIds: string[]; hitPoints?: number }
 ) {
   const actorRow = await ctx.db
     .query('encounterRunActors')
@@ -119,14 +120,22 @@ export async function grantFixtureActorControl(
   if (!actorRow) throw new Error('Fixture Run actor missing')
   const actor = encounterRunActorStateSchema.parse({
     ...(await readTestActor(ctx, actorRow)),
-    controllerUserIds: input.controllerUserIds
+    controllerUserIds: input.controllerUserIds,
+    ...(input.hitPoints === undefined
+      ? {}
+      : { currentHitPoints: input.hitPoints, maxHitPoints: input.hitPoints })
   })
   await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, actor)
 }
 
-/** Seeds a bound move over one spatial hazard in an Assisted Run, not yet sent to any room. */
+/**
+ * Seeds a bound move over one spatial hazard in an Assisted Run, not yet sent to any room. The
+ * bound actor has 1 hit point unless `hitPoints` gives it more, so the hazard's 1 damage need not
+ * drop it to 0 (which ends a voluntary move, D156).
+ */
 export async function seedSpatialTerminalFixture(
-  path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
+  path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path'],
+  hitPoints?: number
 ) {
   const fixture = await createSpatialPreparationFixture()
   const { base, tokenId } = fixture
@@ -157,7 +166,8 @@ export async function seedSpatialTerminalFixture(
     await grantFixtureActorControl(ctx, {
       encounterId: base.run.id,
       actorId: base.run.actors[0]!.id,
-      controllerUserIds: [base.owner.userId]
+      controllerUserIds: [base.owner.userId],
+      ...(hitPoints === undefined ? {} : { hitPoints })
     })
     for (const token of sceneTokens) {
       const row = await ctx.db
