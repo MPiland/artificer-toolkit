@@ -246,6 +246,18 @@ Drawing a weapon while every hand holds a weapon or a grappled creature is refus
 
 The Balor's "touches the balor" clause needs a touch event, which the rules runtime does not model. Heated Body (Azer, Remorhaz, Salamander) is data on D153's `MELEE_HIT_ON_SOURCE` zone option and can be authored once T6d lands.
 
+### Hand-rolled retaliation dice (D153)
+
+Melee-hit retaliation dice are system-rolled even when the zone source rolls by hand. Offering the hand roll would pause the attack for the defender, as turn zones pause today.
+
+### Zones that block vision (D154)
+
+A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
+
+### Disarm defender picks its check (D152)
+
+Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.

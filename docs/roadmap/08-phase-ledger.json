@@ -6139,6 +6139,19 @@
               "closes": ["ATTACK-7.4"]
             },
             {
+              "id": "ATTACK-7.T4b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["ATTACK-7.T4"]
+              },
+              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control."
+            },
+            {
               "id": "ATTACK-7.T5a",
               "status": "DONE",
               "closes": ["ATTACK-7.7"],
@@ -7627,6 +7640,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
+              "id": "SPELLS-4.T1b2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-4.T1b"]
+              },
+              "text": "Wall of Fire's damaging side (D154): a cast-time choice of the wall's damaging side and a one-sided 10 ft band geometry; a creature ending its turn in the band, or entering it, takes the fire damage. Proved on Wall of Fire with a room journey."
+            },
+            {
               "id": "SPELLS-4.T1c",
               "status": "DONE",
               "closes": ["SPELLS-4.2", "SPELLS-4.1"],
@@ -7693,7 +7719,7 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1e"]
               },
-              "text": "Cast-time area save on a zone-placing cast: each creature in the area when the zone appears makes the save once (Insect Plague, Grease, Entangle), from core options. For Entangle it is the only save, with the T1e restrained condition and escape. Proved on all three."
+              "text": "Cast-time area save on a zone-placing cast: each creature in the area when the zone appears makes the save once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each."
             },
             {
               "id": "SPELLS-4.T2",
@@ -9263,7 +9289,7 @@
             },
             {
               "id": "SPELLS-20.T6d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9273,10 +9299,24 @@
                 "after": ["SPELLS-20.T6c"]
               },
               "text": "Melee-hit retaliation authoring (D153): the SOURCE zone interaction kind MELEE_HIT_ON_SOURCE and its compiled placement, the Balor Fire Aura retaliation component and Fire Shield as a 5 ft SOURCE zone with a warm/chill cast choice and a 10-minute lifetime, each with an ADR 0038 parity proof. FIRE_SHIELD stays until T6d2.",
+              "note": "MELEE_HIT_ON_SOURCE authored on Fire Shield and the Balor with parity proofs: packages/authoring/src/nodeRuntime/creatureZoneAuthoringParity.test.ts, packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts, packages/rules-runtime/src/__tests__/encounterZoneChoiceCompilation.test.ts. Green: ci/spells-20-t6d1 0080b0370 Tests 39103745714, Live 39103745695; phase merge c3f6c3b97 (backstop ci/merge-m100b)."
+            },
+            {
+              "id": "SPELLS-20.T6d2a",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T6c"]
+              },
+              "text": "Melee-hit retaliation on ordinary actions (D153): one shared pure retaliation step after the attack mechanics plan, wired into the ordinary action commit and its receipt; persisted placement carries retaliatesMeleeHits and sourceGrant applies at placement; retaliation dice are system-rolled and recorded. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD.",
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
-              "id": "SPELLS-20.T6d2",
+              "id": "SPELLS-20.T6d2b",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
@@ -9286,7 +9326,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6c"]
               },
-              "text": "Melee-hit retaliation runtime (D153): one seam after an attack outcome across ordinary, opportunity and Legendary Action attacks runs the target's containing MELEE_HIT_ON_SOURCE zones against the attacker in the same terminal commit and records them on the attack receipt. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD."
+              "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths."
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"
