@@ -28,7 +28,7 @@ import {
   assertRoomEncounterReadFence,
   assertRoomEncounterRulesRevisions
 } from './roomEncounterTurns.js'
-import { persistRoomEncounterContest } from './roomEncounterDisarm.js'
+import { persistRoomEncounterContest } from './roomEncounterContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'

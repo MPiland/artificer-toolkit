@@ -3,9 +3,9 @@ import {
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import type {
-  LiveSessionEncounterDisarmCommitInput,
-  LiveSessionEncounterDisarmPendingInput
-} from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
+  LiveSessionEncounterContestCommitInput,
+  LiveSessionEncounterContestPendingInput
+} from '@artificer-toolkit/schema/api/liveSessionEncounterContest'
 import {
   actionTargetActorId,
   type ActionSceneRequestDto
@@ -40,10 +40,10 @@ import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { readNativeDisarmPending } from './actionDisarmPending.js'
-import { settleDisarm } from './disarmSettlement.js'
+import { readNativeContestPending } from './actionContestPending.js'
+import { settleContest } from './contestSettlement.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
-import { readDisarmAdmission } from './disarmAdmission.js'
+import { readContestAdmission } from './contestAdmission.js'
 import { changedFields, readRunActors } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -53,7 +53,7 @@ import { encounterReplayReceipt } from './replayReceipts.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
-type DisarmCallbacks = {
+type ContestCallbacks = {
   applyMechanics(
     batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
   ): Promise<EncounterMechanicsBatchResult>
@@ -70,14 +70,14 @@ type DisarmCallbacks = {
   applyForcedMovements: ApplyEncounterForcedMovements
 }
 
-type ReadyDisarm = Extract<Awaited<ReturnType<typeof readDisarmAdmission>>, { kind: 'READY' }>
+type ReadyContest = Extract<Awaited<ReturnType<typeof readContestAdmission>>, { kind: 'READY' }>
 
 /** The fences every contest write shares: current Character revisions and the action's Scene. */
-async function requireCurrentDisarmInputs(
+async function requireCurrentContestInputs(
   ctx: EncounterCharacterWriteTransaction,
-  admission: ReadyDisarm,
+  admission: ReadyContest,
   revisions: LiveSessionRulesRevisions,
-  callbacks: DisarmCallbacks
+  callbacks: ContestCallbacks
 ) {
   const { state, root, membership } = admission
   const actors = await readRunActors(ctx, state)
@@ -100,13 +100,13 @@ async function requireCurrentDisarmInputs(
   return actors
 }
 
-/** Stores a sealed paused Disarm contest in the caller's transaction. */
-export async function persistEncounterDisarmPending(
+/** Stores a sealed paused contest in the caller's transaction. */
+export async function persistEncounterContestPending(
   ctx: EncounterCharacterWriteTransaction,
-  input: LiveSessionEncounterDisarmPendingInput,
-  callbacks: DisarmCallbacks
+  input: LiveSessionEncounterContestPendingInput,
+  callbacks: ContestCallbacks
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readDisarmAdmission(ctx, input)
+  const admission = await readContestAdmission(ctx, input)
   // A lost acknowledgement replays before checking inputs its commit consumed.
   if (admission.kind === 'REPLAY') return admission.result
   const { run, state, campaign, membership, root, response, fingerprint, occurrence } = admission
@@ -122,8 +122,8 @@ export async function persistEncounterDisarmPending(
     snapshot.graph.source.gameSystemId !== state.gameSystemId ||
     (occurrence && snapshot.occurrenceId !== occurrence.id)
   )
-    throw new Error('Live Session pending Disarm mismatch.')
-  await requireCurrentDisarmInputs(ctx, admission, input.revisions, callbacks)
+    throw new Error('Live Session pending contest mismatch.')
+  await requireCurrentContestInputs(ctx, admission, input.revisions, callbacks)
   if (!occurrence) await requireUnusedOccurrenceId(ctx, snapshot.occurrenceId)
   const updatedAt = new Date().toISOString()
   const occurrenceVersion = occurrence ? occurrence.version + 1 : 0
@@ -147,9 +147,9 @@ export async function persistEncounterDisarmPending(
   const id = occurrence?._id ?? (await ctx.db.insert('encounterRuleOccurrences', value))
   if (occurrence) await ctx.db.patch(id, changedFields(occurrence, value))
   const stored = await ctx.db.get(id)
-  if (!stored) throw new Error('The pending Disarm was not stored.')
+  if (!stored) throw new Error('The pending contest was not stored.')
   // The sealed contest must name its root and the participant it now waits on.
-  const { policy, participant, contest } = await readNativeDisarmPending(ctx, stored)
+  const { policy, participant, contest } = await readNativeContestPending(ctx, stored)
   const result = await presentEncounterResultForMember(ctx, {
     campaign,
     membership,
@@ -179,13 +179,13 @@ export async function persistEncounterDisarmPending(
   return result
 }
 
-/** Re-applies settled Disarm item and ACTION changes and records their receipts atomically. */
-export async function persistEncounterDisarmCommit(
+/** Re-applies a settled contest's changes and ACTION use and records their receipts atomically. */
+export async function persistEncounterContestCommit(
   ctx: EncounterCharacterWriteTransaction,
-  input: LiveSessionEncounterDisarmCommitInput,
-  callbacks: DisarmCallbacks
+  input: LiveSessionEncounterContestCommitInput,
+  callbacks: ContestCallbacks
 ): Promise<EncounterCommandResultDto> {
-  const admission = await readDisarmAdmission(ctx, input)
+  const admission = await readContestAdmission(ctx, input)
   if (admission.kind === 'REPLAY') return admission.result
   const { run, state, campaign, membership, root, response, fingerprint, occurrence, prior } =
     admission
@@ -237,8 +237,8 @@ export async function persistEncounterDisarmCommit(
           checksumRuleDocument(prior.contest.rollEvidence.initiator) !==
             checksumRuleDocument(contest.rollEvidence.initiator))))
   )
-    throw new Error('Live Session Disarm result scope mismatch.')
-  const actors = await requireCurrentDisarmInputs(ctx, admission, input.revisions, callbacks)
+    throw new Error('Live Session contest result scope mismatch.')
+  const actors = await requireCurrentContestInputs(ctx, admission, input.revisions, callbacks)
   const source = actors.find((actor) => actor.id === root.actorId)
   const target = actors.find((actor) => actor.id === targetActorId)
   const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
@@ -248,7 +248,7 @@ export async function persistEncounterDisarmCommit(
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((actor) => !ruleActors.some((current) => current.id === actor.actorId))
   )
-    throw new Error('Live Session Disarm actor scope mismatch.')
+    throw new Error('Live Session contest actor scope mismatch.')
   if (!occurrence) await requireUnusedOccurrenceId(ctx, execution.occurrenceId)
   // The initiator's attack roll ends effects it held (Invisibility); the conditions only they held
   // are released in the initiator's own batch, which the receipt must match.
@@ -266,7 +266,7 @@ export async function persistEncounterDisarmCommit(
     })
   })
   if (endedGrants.some((grant) => !input.consumedGrants.some(({ id }) => id === grant.id)))
-    throw new Error('Live Session Disarm initiator grants changed before settlement.')
+    throw new Error('Live Session contest initiator grants changed before settlement.')
   const sourceMechanics = sourceReleases.length
     ? await callbacks.applyMechanics({
         encounterId: state.id,
@@ -290,7 +290,7 @@ export async function persistEncounterDisarmCommit(
         forceVersionAdvance: false
       })
     : null
-  const settled = await settleDisarm(ctx, {
+  const settled = await settleContest(ctx, {
     state,
     actors,
     actor: sourceMechanics?.updatedActor ?? source,
@@ -311,7 +311,7 @@ export async function persistEncounterDisarmCommit(
     occurredAt
   })
   if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
-    throw new Error('Live Session Disarm settlement mismatch.')
+    throw new Error('Live Session contest settlement mismatch.')
   // A won Shove's push moves its target's token on the Scene in this commit (D157).
   const forcedMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
@@ -448,7 +448,7 @@ export async function persistEncounterDisarmCommit(
     result
   })
   const completedOccurrence = await ctx.db.get(completedId)
-  if (!completedOccurrence) throw new Error('The completed Disarm was not stored.')
+  if (!completedOccurrence) throw new Error('The completed contest was not stored.')
   if (response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence: completedOccurrence,

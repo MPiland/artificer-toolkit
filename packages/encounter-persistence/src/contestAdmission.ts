@@ -14,10 +14,10 @@ import { readEncounterActorDefeated } from './characterStates.js'
 import { rejectDomain } from './domainRejections.js'
 import { readEncounterAutoRollByActorId, requireEncounterActorControl } from './actorController.js'
 import {
-  projectNativeDisarmPendingForMember,
-  readNativeDisarmPending
-} from './actionDisarmPending.js'
-import { readNativeDisarmEvidenceReplay, readNativeDisarmReplay } from './actionDisarmReplay.js'
+  projectNativeContestPendingForMember,
+  readNativeContestPending
+} from './actionContestPending.js'
+import { readNativeContestEvidenceReplay, readNativeContestReplay } from './actionContestReplay.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
@@ -30,7 +30,7 @@ import type { EncounterReadTransaction } from './ports.js'
 
 /** A contest's root: the contested action, or an escape its holder contests (D152). */
 export type ContestRootCommand = ResolveEncounterActionInputDto | EscapeRelationshipInputDto
-type DisarmCommand = ContestRootCommand | ResolveRuleOccurrenceInputDto
+type ContestCommand = ContestRootCommand | ResolveRuleOccurrenceInputDto
 
 function normalizeRoot(command: ContestRootCommand): ContestRootCommand {
   // An escape normalizes exactly as its own admission does, so both seal one fingerprint.
@@ -42,7 +42,7 @@ function normalizeRoot(command: ContestRootCommand): ContestRootCommand {
       actorId: command.actorId.toLowerCase()
     }
   const { target } = command
-  // Disarm takes one creature; a point-origin area has no Disarm.
+  // A contest takes one creature; a point-origin area has no contest.
   if (target.kind !== 'ACTOR')
     rejectDomain('TARGET_UNAVAILABLE', 'Area actions are not available yet.')
   return {
@@ -73,13 +73,13 @@ function normalizeResponse(response: ResolveRuleOccurrenceInputDto): ResolveRule
 }
 
 /**
- * Admits a Disarm, or a participant's d20 for one, for the room: current control and versions,
+ * Admits a contest, or a participant's d20 for one, for the room: current control and versions,
  * the one pending contest, and a stored result replaying before any currentness check. It reads
  * no rules inputs and writes nothing.
  */
-export async function readDisarmAdmission(
+export async function readContestAdmission(
   ctx: EncounterReadTransaction,
-  input: Omit<LiveSessionEncounterRulesInput, 'request'> & { command: DisarmCommand }
+  input: Omit<LiveSessionEncounterRulesInput, 'request'> & { command: ContestCommand }
 ) {
   const { userId } = await ctx.ports.requireIdentity()
   if (
@@ -87,7 +87,7 @@ export async function readDisarmAdmission(
     input.command.encounterId.toLowerCase() !== input.encounterId ||
     input.command.expectedVersion !== input.expectedVersion
   )
-    throw new Error('Live Session Disarm scope mismatch.')
+    throw new Error('Live Session contest scope mismatch.')
   await ctx.ports.requireActiveLiveAuthority({
     campaignId: input.campaignId,
     epoch: input.authorityEpoch
@@ -103,7 +103,7 @@ export async function readDisarmAdmission(
     userId
   )
   if (campaign.id !== input.campaignId || membership.role !== input.expectedRole)
-    throw new Error('Live Session Disarm scope mismatch.')
+    throw new Error('Live Session contest scope mismatch.')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
@@ -127,7 +127,7 @@ export async function readDisarmAdmission(
       .unique()
     if (!occurrence) throw new Error('Rule occurrence is unavailable.')
     if (occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
-      throw new Error('The Disarm occurrence scope is invalid.')
+      throw new Error('The contest occurrence scope is invalid.')
     const rootReceipt = await ctx.db
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
@@ -135,11 +135,11 @@ export async function readDisarmAdmission(
       )
       .unique()
     const pending =
-      occurrence.state === 'PENDING' ? await readNativeDisarmPending(ctx, occurrence) : null
+      occurrence.state === 'PENDING' ? await readNativeContestPending(ctx, occurrence) : null
     if (pending) root = pending.command
     else {
       if (rootReceipt?.commandType !== 'RESOLVE_ACTION' && rootReceipt?.commandType !== 'ESCAPE')
-        throw new Error('Stored Disarm action root is missing.')
+        throw new Error('Stored contest action root is missing.')
       const parsed = encounterExecuteInputSchema.parse({
         command: JSON.parse(rootReceipt.commandJson)
       }).command
@@ -147,12 +147,12 @@ export async function readDisarmAdmission(
         (parsed.type !== 'RESOLVE_ACTION' && parsed.type !== 'ESCAPE') ||
         parsed.type !== rootReceipt.commandType
       )
-        throw new Error('Stored Disarm action root is invalid.')
+        throw new Error('Stored contest action root is invalid.')
       root = parsed
     }
     const initiatorUserId = pending?.context.initiatorUserId ?? rootReceipt!.actorUserId
     const rootReplay = rootReceipt
-      ? await readNativeDisarmReplay(ctx, { run, command: root, receipt: rootReceipt })
+      ? await readNativeContestReplay(ctx, { run, command: root, receipt: rootReceipt })
       : null
     const receipt = await ctx.db
       .query('encounterRuleReceipts')
@@ -161,7 +161,7 @@ export async function readDisarmAdmission(
       )
       .unique()
     if (receipt) {
-      const evidence = readNativeDisarmEvidenceReplay({
+      const evidence = readNativeContestEvidenceReplay({
         receipt,
         occurrence,
         response,
@@ -170,13 +170,13 @@ export async function readDisarmAdmission(
         userId
       })
       if (receipt.encounterVersion > run.version)
-        throw new Error('Stored Disarm evidence aggregate mismatch.')
+        throw new Error('Stored contest evidence aggregate mismatch.')
       if (
         evidence.payload.status === 'COMPLETE' &&
         (!rootReplay ||
           checksumRuleDocument(evidence.payload) !== checksumRuleDocument(rootReplay.payload))
       )
-        throw new Error('Stored Disarm terminal evidence receipt mismatch.')
+        throw new Error('Stored contest terminal evidence receipt mismatch.')
       return replay(await replayEncounterCommandResult(ctx, state, evidence.replayReceipt))
     }
     if (
@@ -185,7 +185,7 @@ export async function readDisarmAdmission(
       run.version !== response.expectedVersion ||
       occurrence.expectedEncounterVersion !== run.version
     )
-      rejectDomain('VERSION_STALE', 'The Disarm occurrence version is stale.')
+      rejectDomain('VERSION_STALE', 'The contest occurrence version is stale.')
     if (response.commandId === root.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
     const [usedCommand, usedRoot] = await Promise.all([
       ctx.db
@@ -215,7 +215,7 @@ export async function readDisarmAdmission(
     .unique()
   if (rootReceipt) {
     if (response || rootReceipt.actorUserId !== userId) rejectDomain('COMMAND_ID_REUSED')
-    const { receipt } = await readNativeDisarmReplay(ctx, {
+    const { receipt } = await readNativeContestReplay(ctx, {
       run,
       command: root,
       receipt: rootReceipt
@@ -230,7 +230,7 @@ export async function readDisarmAdmission(
     if (root.type === 'RESOLVE_ACTION') {
       const target = await readRunActor(ctx, state, actionTargetActorId(root.target))
       await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
-      // A defeated creature can't contest a Disarm (D63).
+      // A defeated creature can't take part in a contest (D63).
       if (await readEncounterActorDefeated(ctx, target))
         rejectDomain('TARGET_UNAVAILABLE', 'The target is defeated.')
     }
@@ -245,7 +245,7 @@ export async function readDisarmAdmission(
     throw new Error('Stored Encounter occurrence state is invalid.')
   const occurrence = pendingOccurrences[0] ?? null
   if (occurrence && occurrence.rootCommandId !== root.commandId) rejectDomain('PENDING_DECISION')
-  const prior = occurrence ? await readNativeDisarmPending(ctx, occurrence) : null
+  const prior = occurrence ? await readNativeContestPending(ctx, occurrence) : null
   const initiatorUserId = prior?.context.initiatorUserId ?? userId
   if (prior && prior.context.commandFingerprint !== fingerprint) rejectDomain('COMMAND_ID_REUSED')
   if (!response && prior) {
@@ -266,9 +266,9 @@ export async function readDisarmAdmission(
       !('requestId' in response.resolution) ||
       response.resolution.requestId !== prior.snapshot.request.requestId
     )
-      rejectDomain('VERSION_STALE', 'The Disarm occurrence version or evidence request is stale.')
-    if (!(await projectNativeDisarmPendingForMember(ctx, run, campaign, membership, occurrence)))
-      throw new Error('The current Disarm participant must supply this evidence.')
+      rejectDomain('VERSION_STALE', 'The contest occurrence version or evidence request is stale.')
+    if (!(await projectNativeContestPendingForMember(ctx, run, campaign, membership, occurrence)))
+      throw new Error('The current contest participant must supply this evidence.')
   }
   const usedRoot = await ctx.db
     .query('encounterRuleOccurrences')
