@@ -5,7 +5,10 @@ import {
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import type { CreatureAuthored, EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CreatureAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
@@ -165,9 +168,15 @@ const FIRE = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'FIRE')!.
 /**
  * A Creature feature authored from core options (D144): a passive zone of `radiusFeet` around the
  * Creature dealing `diceConfig` fire damage, with no save, to each other creature in it at the
- * start of the Creature's turn.
+ * start of the Creature's turn, or on each of `interactionKinds`.
  */
-export function creatureAuraFeature(diceConfig = '1d6', radiusFeet = 5): CreatureFeature {
+export function creatureAuraFeature(
+  diceConfig = '1d6',
+  radiusFeet = 5,
+  interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']> = [
+    'START_OF_SOURCE_TURN'
+  ]
+): CreatureFeature {
   const self = (offset: number) => ({ id: auraId(offset), rangeKind: 'SELF' as const })
   const shape = (offset: number) => ({
     id: auraId(offset),
@@ -177,7 +186,8 @@ export function creatureAuraFeature(diceConfig = '1d6', radiusFeet = 5): Creatur
   return {
     id: auraId(1),
     label: 'Searing Aura',
-    description: 'Searing Aura. At the start of its turn, each creature within 5 feet of it takes fire damage.',
+    description:
+      'Searing Aura. At the start of its turn, each creature within 5 feet of it takes fire damage.',
     order: 99,
     effects: [
       {
@@ -214,12 +224,16 @@ export function creatureAuraFeature(diceConfig = '1d6', radiusFeet = 5): Creatur
                       id: auraId(8),
                       order: 1,
                       label: 'Searing heat',
-                      interactionKinds: ['START_OF_SOURCE_TURN'],
+                      interactionKinds,
                       behaviors: [
                         {
                           id: auraId(9),
                           order: 1,
-                          invocation: { kind: 'PASSIVE', triggerCode: 'ACTIVATED', range: self(10) },
+                          invocation: {
+                            kind: 'PASSIVE',
+                            triggerCode: 'ACTIVATED',
+                            range: self(10)
+                          },
                           paths: [
                             {
                               id: auraId(11),
@@ -259,6 +273,9 @@ export function creatureAuraFeature(diceConfig = '1d6', radiusFeet = 5): Creatur
 }
 
 /** An SRD Creature record given one more feature, as a homebrew copy of it would be. */
-export function withFeature(creature: CreatureAuthored, feature: CreatureFeature): CreatureAuthored {
+export function withFeature(
+  creature: CreatureAuthored,
+  feature: CreatureFeature
+): CreatureAuthored {
   return { ...creature, features: [...(creature.features ?? []), feature] }
 }

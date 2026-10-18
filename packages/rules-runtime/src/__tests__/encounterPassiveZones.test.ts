@@ -112,12 +112,15 @@ describe('placing a Creature’s passive zones (SPELLS-20 T6b, D144)', () => {
     expect(plan([searing()], new Map([[GOBLIN_TOKEN_ID, GOBLIN_ID]]))).toEqual([])
   })
 
-  it('places the SRD Balor’s Fire Aura as the same zone a core-options aura of 3d6 fire is (T6c, ADR 0038)', () => {
+  it('places the SRD Balor’s Fire Aura as the same zone a core-options aura of 3d6 fire answering melee hits is (T6c, T6d2a, ADR 0038)', () => {
     const atSource = (creature: CreatureAuthored) =>
       plan([srdCreatureActor({ id: SOURCE_ID, creature })])
     const [balorAura, ...others] = atSource(srdByLabel(SRD.creatures, 'Balor'))
     const [homebrewAura] = atSource(
-      withFeature(srdByLabel(SRD.creatures, 'Goblin'), creatureAuraFeature('3d6'))
+      withFeature(
+        srdByLabel(SRD.creatures, 'Goblin'),
+        creatureAuraFeature('3d6', 5, ['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'])
+      )
     )
     expect(others).toEqual([])
     expect(balorAura!.placement).toMatchObject({ label: 'Fire Aura' })
