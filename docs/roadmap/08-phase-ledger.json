@@ -9276,7 +9276,7 @@
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
-              "id": "SPELLS-20.T6d2",
+              "id": "SPELLS-20.T6d2a",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
@@ -9286,7 +9286,20 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6c"]
               },
-              "text": "Melee-hit retaliation runtime (D153): one seam after an attack outcome across ordinary, opportunity and Legendary Action attacks runs the target's containing MELEE_HIT_ON_SOURCE zones against the attacker in the same terminal commit and records them on the attack receipt. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD."
+              "text": "Melee-hit retaliation on ordinary actions (D153): one shared pure retaliation step after the attack mechanics plan, wired into the ordinary action commit and its receipt; persisted placement carries retaliatesMeleeHits and sourceGrant applies at placement; retaliation dice are system-rolled and recorded. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD."
+            },
+            {
+              "id": "SPELLS-20.T6d2b",
+              "status": "TODO",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T6c"]
+              },
+              "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths."
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"
