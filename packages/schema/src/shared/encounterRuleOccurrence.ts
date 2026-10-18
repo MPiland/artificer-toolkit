@@ -532,3 +532,21 @@ export type PendingEncounterRuleOccurrenceSummaryDto = z.infer<
 export type EncounterRuleOccurrenceSummaryDto = z.infer<
   typeof encounterRuleOccurrenceSummaryDtoSchema
 >
+type ContestCheckPendingDto = Extract<
+  PendingEncounterRuleOccurrenceSummaryDto,
+  { kind: 'CONTEST_CHECK' }
+>
+
+/** The one d20 a contest defender rolls for the check it picked, in that check's mode (D152). */
+export function contestCheckD20Request(
+  pending: ContestCheckPendingDto,
+  check: ContestCheckPendingDto['checks'][number]
+): z.infer<typeof d20EvidenceRequestDtoSchema> {
+  return {
+    requestId: pending.requestId,
+    min: 1,
+    max: 20,
+    rollMode: check.rollMode,
+    derivedRollModeReasons: check.derivedRollModeReasons
+  }
+}

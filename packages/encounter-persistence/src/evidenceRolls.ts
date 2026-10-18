@@ -11,6 +11,7 @@ import type {
   ResolveRuleOccurrenceInputDto,
   RollRuleEvidenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { contestCheckD20Request } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterStoredEvidenceRollSchema,
@@ -88,18 +89,7 @@ function pendingEvidenceRequests(pending: PendingEncounterRuleOccurrenceSummaryD
   if (pending.kind === 'CONTEST_CHECK') {
     const [check] = pending.checks
     return check
-      ? [
-          {
-            request: {
-              requestId: pending.requestId,
-              min: 1 as const,
-              max: 20 as const,
-              rollMode: check.rollMode,
-              derivedRollModeReasons: check.derivedRollModeReasons
-            },
-            rollerActorId: pending.rollerActorId
-          }
-        ]
+      ? [{ request: contestCheckD20Request(pending, check), rollerActorId: pending.rollerActorId }]
       : []
   }
   return 'request' in pending

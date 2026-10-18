@@ -1,4 +1,7 @@
-import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import {
+  contestCheckD20Request,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -83,13 +86,7 @@ export function contestCheckEvidence(
     occurrenceVersion: pending.occurrenceVersion,
     encounterVersion: pending.encounterVersion,
     rollerActorId: pending.rollerActorId,
-    request: {
-      requestId: pending.requestId,
-      min: 1,
-      max: 20,
-      rollMode: check.rollMode,
-      derivedRollModeReasons: check.derivedRollModeReasons
-    },
+    request: contestCheckD20Request(pending, check),
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   }
 }
