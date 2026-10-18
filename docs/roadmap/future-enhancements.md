@@ -233,6 +233,10 @@ The failure-margin rider is wired only on follow-up saves. Direct-save actions t
 
 Drawing a weapon while every hand holds a weapon or a grappled creature is refused today, so the grappler releases first. D107's prompt to release a grapple as part of the draw would save that step.
 
+### Touch and Heated Body retaliation (D153)
+
+The Balor's "touches the balor" clause needs a touch event, which the rules runtime does not model. Heated Body (Azer, Remorhaz, Salamander) is data on D153's `MELEE_HIT_ON_SOURCE` zone option and can be authored once T6d lands.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.

@@ -9244,7 +9244,21 @@
               "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
-              "id": "SPELLS-20.T6d",
+              "id": "SPELLS-20.T6d1",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-20.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-20.T6c"]
+              },
+              "text": "Melee-hit retaliation authoring (D153): the SOURCE zone interaction kind MELEE_HIT_ON_SOURCE and its compiled placement, the Balor Fire Aura retaliation component and Fire Shield as a 5 ft SOURCE zone with a warm/chill cast choice and a 10-minute lifetime, each with an ADR 0038 parity proof. FIRE_SHIELD stays until T6d2.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "SPELLS-20.T6d2",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
@@ -9254,7 +9268,7 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6c"]
               },
-              "text": "Melee-hit retaliation rider (D144): when a creature within an authored range hits the holder with a melee attack, the attacker takes authored damage, from core options. Proved on the Balor's Fire Aura and the Fire Shield spell (both CLOSED_RULE today; delete each closed rule it replaces)."
+              "text": "Melee-hit retaliation runtime (D153): one seam after an attack outcome across ordinary, opportunity and Legendary Action attacks runs the target's containing MELEE_HIT_ON_SOURCE zones against the attacker in the same terminal commit and records them on the attack receipt. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD."
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"
