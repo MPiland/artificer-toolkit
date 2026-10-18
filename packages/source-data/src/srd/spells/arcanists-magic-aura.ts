@@ -66,8 +66,11 @@ export const arcanistsMagicAura: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ARCANISTS_MAGIC_AURA, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ARCANISTS_MAGIC_AURA' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Mask the Aura',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'You place an illusion on a creature or an object you touch so that divination spells reveal false information about it.'
               }
             ]
           }

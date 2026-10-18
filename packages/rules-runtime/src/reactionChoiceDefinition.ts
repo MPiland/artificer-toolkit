@@ -71,15 +71,16 @@ export async function startReactionChoice(input: {
   occurrenceId: string
   published: ServerPublishedRuleDefinitionDto
   optionCount: number
+  /** The most options the caller's offer may hold. */
+  maxOptionCount?: number
 }): Promise<ServerRuleExecutionContinuationDto> {
+  const maxOptionCount = input.maxOptionCount ?? RULE_GRAPH_LIMITS.NODES
   if (
     !Number.isInteger(input.optionCount) ||
     input.optionCount < 1 ||
-    input.optionCount > RULE_GRAPH_LIMITS.NODES
+    input.optionCount > maxOptionCount
   ) {
-    throw new Error(
-      `Movement reaction choices require between 1 and ${RULE_GRAPH_LIMITS.NODES} options.`
-    )
+    throw new Error(`Bounded choices require between 1 and ${maxOptionCount} options.`)
   }
   const execution = await input.runtime.executeResolved({
     command: {

@@ -67,7 +67,8 @@ export async function readEncounterWaitingOn(
         ? decision.actorId
         : decision.kind === 'MOVEMENT_REACTION'
           ? decision.choice.reactorActorId
-          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE'
+          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
+              decision.kind === 'FORCED_MOVEMENT_DESTINATION'
             ? decision.sourceActorId
             : decision.kind === 'LEGENDARY_ACTION_CHOICE'
               ? decision.ownerActorId

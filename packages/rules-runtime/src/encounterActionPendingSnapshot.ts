@@ -41,6 +41,9 @@ export function restoreEncounterActionPending(
     ...(context.legendaryResistance ? { legendaryResistance: context.legendaryResistance } : {}),
     ...(context.reactionChoice ? { reactionChoice: context.reactionChoice } : {}),
     ...(context.onHitChoice ? { onHitChoice: context.onHitChoice } : {}),
+    ...(context.forcedMovementDestination
+      ? { forcedMovementDestination: context.forcedMovementDestination }
+      : {}),
     ...(phaseReceipts ? { phaseReceipts } : {})
   }
 }
@@ -82,6 +85,9 @@ export function buildEncounterActionPendingSnapshot(input: {
         : {}),
       ...(execution.reactionChoice ? { reactionChoice: execution.reactionChoice } : {}),
       ...(execution.onHitChoice ? { onHitChoice: execution.onHitChoice } : {}),
+      ...(execution.forcedMovementDestination
+        ? { forcedMovementDestination: execution.forcedMovementDestination }
+        : {}),
       ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})

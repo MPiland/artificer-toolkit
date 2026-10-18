@@ -41,7 +41,10 @@ import {
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
-import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
+import {
+  applyRoomForcedMovements,
+  readRoomForcedMovementDestinations
+} from './roomActionForcedMovement.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -85,7 +88,9 @@ export async function executeRoomEncounterAction(input: {
           gameSystemId,
           creatureId
         })
-    }
+    },
+    forcedMovementDestinations: (movement) =>
+      readRoomForcedMovementDestinations({ ctx, transaction, ...movement })
   })
   if (plan.kind === 'REPLAY') return plan.result
   // A basic action contested by its target (Grapple) settles through the one contest commit (D152).

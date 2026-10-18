@@ -69,8 +69,11 @@ export const meldIntoStone: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MELD_INTO_STONE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MELD_INTO_STONE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Meld Into Stone',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'You step into a stone object or surface large enough to fully contain your body, melding yourself and all the equipment you carry with the stone for the duration.'
               }
             ]
           }

@@ -65,8 +65,11 @@ export const mislead: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MISLEAD, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MISLEAD' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Create the Illusory Double',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'You become invisible at the same time that an illusory double of you appears where you are standing.'
               }
             ]
           }

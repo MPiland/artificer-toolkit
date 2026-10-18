@@ -67,8 +67,11 @@ export const nondetection: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.NONDETECTION, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'NONDETECTION' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Hide From Divination',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'For the duration, you hide a target that you touch from divination magic.'
               }
             ]
           }

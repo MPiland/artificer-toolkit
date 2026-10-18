@@ -116375,6 +116375,17 @@ export declare const api: {
                 }>;
               }
             | {
+                allowedResponses: Array<"FORCED_MOVEMENT">;
+                encounterVersion: number;
+                kind: "FORCED_MOVEMENT_DESTINATION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                positions: Array<{ x: number; y: number }>;
+                requestId: string;
+                sourceActorId: string;
+                targetActorId: string;
+              }
+            | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
                 encounterVersion: number;
                 kind: "LEGENDARY_ACTION_CHOICE";
@@ -116702,6 +116713,17 @@ export declare const api: {
                     riderId: string;
                     slotLevel: number;
                   }>;
+                }
+              | {
+                  allowedResponses: Array<"FORCED_MOVEMENT">;
+                  encounterVersion: number;
+                  kind: "FORCED_MOVEMENT_DESTINATION";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  positions: Array<{ x: number; y: number }>;
+                  requestId: string;
+                  sourceActorId: string;
+                  targetActorId: string;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
@@ -117549,6 +117571,17 @@ export declare const api: {
             }>;
           }
         | {
+            allowedResponses: Array<"FORCED_MOVEMENT">;
+            encounterVersion: number;
+            kind: "FORCED_MOVEMENT_DESTINATION";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            positions: Array<{ x: number; y: number }>;
+            requestId: string;
+            sourceActorId: string;
+            targetActorId: string;
+          }
+        | {
             allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;
             encounterVersion: number;
             kind: "LEGENDARY_ACTION_CHOICE";
@@ -118391,6 +118424,17 @@ export declare const api: {
                   riderId: string;
                   slotLevel: number;
                 }>;
+              }
+            | {
+                allowedResponses: Array<"FORCED_MOVEMENT">;
+                encounterVersion: number;
+                kind: "FORCED_MOVEMENT_DESTINATION";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                positions: Array<{ x: number; y: number }>;
+                requestId: string;
+                sourceActorId: string;
+                targetActorId: string;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "LEGENDARY_OPTION">;

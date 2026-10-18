@@ -5,6 +5,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
+import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
 
 const uuidSchema = lazySchema(() =>
   z.pipe(
@@ -363,6 +364,21 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.minLength(1))
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
+      /** A push whose source chooses the square it leaves one creature on, from the legal ones (D157). */
+      z.strictObject({
+        kind: z.literal('FORCED_MOVEMENT_DESTINATION'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        sourceActorId: uuidSchema,
+        targetActorId: uuidSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        positions: z
+          .array(spatialPointDtoSchema)
+          .check(z.minLength(2))
+          .check(z.maxLength(MAX_FORCED_MOVEMENT_DESTINATIONS)),
+        allowedResponses: z.tuple([z.literal('FORCED_MOVEMENT')])
       }),
       z.strictObject({
         kind: z.literal('LEGENDARY_ACTION_CHOICE'),
