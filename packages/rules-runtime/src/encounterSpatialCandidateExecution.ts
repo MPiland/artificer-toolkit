@@ -244,13 +244,6 @@ export function spatialExecutionRecordedFaces(recorded: {
   ]
 }
 
-export function requireSupportedD20Policy(
-  policy: TargetBoundActiveRuleEffectExecutionPaused['evidencePolicy']
-): NonNullable<TargetBoundActiveRuleEffectExecutionPaused['evidencePolicy']> {
-  if (!policy) throw new EncounterConflictError('Spatial execution requested unsupported evidence.')
-  return policy
-}
-
 /**
  * Answers a paused candidate's evidence for the rollers who auto-roll: the contacted creature's
  * save, then the zone source's damage dice, each by its own roller's preference. Stops at the first

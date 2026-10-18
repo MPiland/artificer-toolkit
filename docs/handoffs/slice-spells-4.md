@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1 (audit) is done: the zone table is in [slice-spells-20.md](slice-spells-20.md#zone-table-srd-zones-with-turn-startend-text-static-audit-2026-10-17).
-- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. Next: T1b (wall geometry).
+- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. T1b (wall geometry: Wall of Fire, Wall of Thorns) is on `ci/spells-4-t1b`. Next: T1b2 (Wall of Fire's one-side band) and T1g (the save when a wall appears); Blade Barrier's re-authoring is SPELLS-30.T2.
 
 ## Scope
 
@@ -153,3 +153,15 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - A creature that a zone stops on entering stands touching the area's edge, which spatial geometry counts as outside it. So a Black Tentacles creature restrained on entry is not "in" the area at its next turn start and does not save again there. Pre-existing stop geometry (T1a), not changed here.
   - Reverting the move or turn that restrained a creature may leave the holder effect in place. The entry-grant effect has the same behavior. Not yet confirmed by a test.
   - Black Tentacles: a creature it already restrains that starts its turn there saves again. A failure deals damage, and the condition is not held twice.
+
+### T1b (wall geometry: Wall of Fire, Wall of Thorns)
+
+- Contract (D154, amending D140):
+  - Targets `WALL` (two ends, up to the option's `maxLength`, `thickness` centered on the segment, stored as a `POLYGON`) and `RING` (center and an outer radius up to `maxOuterRadius`; inner = outer − thickness, stored as a `RING`).
+  - Every zone cast choice is a `ZONE_OPTIONS` target: the client picks an option, then aims it. The zone `choiceOptions` on `POINT` and `CASTER_CENTERED` are gone; the non-zone `ACTOR`/`ACTORS` choiceOptions (D148) stay. Options agree on attachment, designated-unaffected, Concentration and the cast save DC; each may have its own area.
+  - The Worker refuses a kind that does not match the option, a wall or ring over its maximum, and a ring no wider than its thickness (`prepareCasterSource`, `evaluateEncounterZoneTarget`).
+  - Unsaved dice run on `ENTER` and the creature's own `END_TURN`, rolled by the caster. `movementCostMultiplier` applies to every mover and the highest wins. `blockingRules` are projected, plus `BLOCKS_SIGHT`; cover is SPELLS-14.
+- Shared geometry: `wallOutline`, `undirectedAreaGeometry`, `wallAreaBoundsInSceneCoordinates`. Web: `drawnAreaAim` and the area-aim gesture draw a wall end to end or a ring out from its center; the action drawer picks the option first.
+- Authoring: Wall of Fire (5d8 fire, no save on enter or turn end, `BLOCKS_SIGHT`) and Wall of Thorns (7d8 piercing, Dexterity save for half, ×4 movement cost), each with a straight wall and a ring option.
+- Proofs: `nativeRoomWallZoneSpells.test.ts` (real casts: polygon and ring placement, damage on crossing, turn end and leaving the ring, the five refusals), `characterSpellCastActions.test.ts`, `vtt-spatial.test.ts`, `vttAreaAimGesture.test.ts`, `vttSceneRenderer.model.test.ts`, `CampaignTabletopActionDrawer.test.tsx`, `zoneInteractionKinds.test.ts`, `sourceZoneAuthoringParity.test.ts`. Two `encounterZoneChoiceCompilation.test.ts` tests changed by the ruling (zone choices moved to `ZONE_OPTIONS`). `saveForHalfDamage.test.ts` drops Wall of Thorns from the unauthored list.
+- Not here: Wall of Fire's 10-foot one-side band (T1b2), the save when a wall appears (T1g), Blade Barrier (SPELLS-30.T2).

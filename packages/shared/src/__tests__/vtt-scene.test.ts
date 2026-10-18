@@ -1616,19 +1616,32 @@ describe('VTT scene geometry', () => {
     expect(sceneLengthInFeet(3, { ...grid, unit: 'SQUARES' })).toBe(15)
   })
 
-  it('doubles the cost of the share of a segment a caller marks', () => {
-    const grid = definition().grid
+  it('charges a segment the multiplier a caller sets from its terrain one (D154)', () => {
+    const grid = { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' } as const
+    const terrain = {
+      barriers: [
+        {
+          a: { x: 40, y: -10 },
+          b: { x: 40, y: 10 },
+          id: ids.command1,
+          kind: 'TERRAIN',
+          movementCostMultiplier: 3
+        }
+      ]
+    } as const
     const path = [
       { x: 0, y: 0 },
       { x: 100, y: 0 }
     ]
-    const plain = measureScenePathMovementCost(grid, { barriers: [] }, path)
-    expect(measureScenePathMovementCost(grid, { barriers: [] }, path, () => 0.4)).toBeCloseTo(
-      plain * 1.4
-    )
-    expect(measureScenePathMovementCost(grid, { barriers: [] }, path, () => 1)).toBeCloseTo(
-      plain * 2
-    )
+    const terrains: number[] = []
+    expect(
+      measureScenePathMovementCost(grid, terrain, path, (_from, _to, multiplier) => {
+        terrains.push(multiplier)
+        return Math.max(multiplier, 2)
+      })
+    ).toBe(30)
+    expect(terrains).toEqual([3])
+    expect(measureScenePathMovementCost(grid, { barriers: [] }, path, () => 1.4)).toBeCloseTo(14)
   })
 
   it('keeps alternating diagonals across walked segments', () => {

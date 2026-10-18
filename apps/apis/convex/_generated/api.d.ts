@@ -112667,7 +112667,6 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
-                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "POINT";
                 }
@@ -112733,9 +112732,745 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   };
-                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
+                }
+              | {
+                  area: {
+                    maxLength: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                    thickness: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  };
+                  choosesUnaffected?: true;
+                  kind: "WALL";
+                }
+              | {
+                  area: {
+                    maxOuterRadius: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                    thickness: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  };
+                  choosesUnaffected?: true;
+                  kind: "RING";
+                }
+              | {
+                  choosesUnaffected?: true;
+                  kind: "ZONE_OPTIONS";
+                  options: Array<{
+                    id: string;
+                    label: string;
+                    target:
+                      | {
+                          area:
+                            | {
+                                kind: "RADIUS";
+                                radius: {
+                                  amount: number;
+                                  scaling?:
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CHARACTER_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        classId: string;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "PARENT_CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "SPELL_CAST_LEVEL";
+                                      };
+                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                };
+                              }
+                            | {
+                                edgeLength: {
+                                  amount: number;
+                                  scaling?:
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CHARACTER_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        classId: string;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "PARENT_CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "SPELL_CAST_LEVEL";
+                                      };
+                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                };
+                                kind: "CUBE";
+                              };
+                          kind: "POINT";
+                        }
+                      | {
+                          area: {
+                            kind: "RADIUS";
+                            radius: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          };
+                          kind: "CASTER_CENTERED";
+                        }
+                      | {
+                          area: {
+                            maxLength: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                            thickness: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          };
+                          kind: "WALL";
+                        }
+                      | {
+                          area: {
+                            maxOuterRadius: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                            thickness: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          };
+                          kind: "RING";
+                        };
+                  }>;
                 }
               | {
                   area:
@@ -113407,7 +114142,6 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
-                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "POINT";
                 }
@@ -113473,9 +114207,745 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   };
-                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
+                }
+              | {
+                  area: {
+                    maxLength: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                    thickness: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  };
+                  choosesUnaffected?: true;
+                  kind: "WALL";
+                }
+              | {
+                  area: {
+                    maxOuterRadius: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                    thickness: {
+                      amount: number;
+                      scaling?:
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CHARACTER_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            classId: string;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "PARENT_CLASS_LEVEL";
+                          }
+                        | {
+                            breakpoints: Array<{
+                              id: string;
+                              level: number;
+                              order: number;
+                              value: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            scalingKind: "BREAKPOINTS";
+                            scalingSource: "SPELL_CAST_LEVEL";
+                          };
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    };
+                  };
+                  choosesUnaffected?: true;
+                  kind: "RING";
+                }
+              | {
+                  choosesUnaffected?: true;
+                  kind: "ZONE_OPTIONS";
+                  options: Array<{
+                    id: string;
+                    label: string;
+                    target:
+                      | {
+                          area:
+                            | {
+                                kind: "RADIUS";
+                                radius: {
+                                  amount: number;
+                                  scaling?:
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CHARACTER_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        classId: string;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "PARENT_CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "SPELL_CAST_LEVEL";
+                                      };
+                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                };
+                              }
+                            | {
+                                edgeLength: {
+                                  amount: number;
+                                  scaling?:
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CHARACTER_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        classId: string;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "PARENT_CLASS_LEVEL";
+                                      }
+                                    | {
+                                        breakpoints: Array<{
+                                          id: string;
+                                          level: number;
+                                          order: number;
+                                          value: {
+                                            amount: number;
+                                            unit:
+                                              | "INCHES"
+                                              | "FEET"
+                                              | "YARDS"
+                                              | "MILES";
+                                          };
+                                        }>;
+                                        scalingKind: "BREAKPOINTS";
+                                        scalingSource: "SPELL_CAST_LEVEL";
+                                      };
+                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                };
+                                kind: "CUBE";
+                              };
+                          kind: "POINT";
+                        }
+                      | {
+                          area: {
+                            kind: "RADIUS";
+                            radius: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          };
+                          kind: "CASTER_CENTERED";
+                        }
+                      | {
+                          area: {
+                            maxLength: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                            thickness: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          };
+                          kind: "WALL";
+                        }
+                      | {
+                          area: {
+                            maxOuterRadius: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                            thickness: {
+                              amount: number;
+                              scaling?:
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CHARACTER_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    classId: string;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "PARENT_CLASS_LEVEL";
+                                  }
+                                | {
+                                    breakpoints: Array<{
+                                      id: string;
+                                      level: number;
+                                      order: number;
+                                      value: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }>;
+                                    scalingKind: "BREAKPOINTS";
+                                    scalingSource: "SPELL_CAST_LEVEL";
+                                  };
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          };
+                          kind: "RING";
+                        };
+                  }>;
                 }
               | {
                   area:
@@ -114166,6 +115636,12 @@ export declare const api: {
                   center: { x: number; y: number };
                   kind: "CIRCLE";
                   radius: number;
+                }
+              | {
+                  center: { x: number; y: number };
+                  innerRadius: number;
+                  kind: "RING";
+                  outerRadius: number;
                 }
               | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
           }>;

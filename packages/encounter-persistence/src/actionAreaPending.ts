@@ -56,7 +56,8 @@ export function areaActionPendingContext(snapshot: ServerRuleExecutionPendingSna
 }
 
 /**
- * Whether the sealed area is the one the command aimed: the same origin and, if directed, direction.
+ * Whether the sealed area is the one the command aimed: the same origin and, if directed, direction,
+ * a wall's other endpoint or a ring's outer radius.
  * A caster-centered command aims nothing; its origin is the caster's token, checked against the Scene.
  */
 export function areaMatchesTarget(
@@ -65,13 +66,18 @@ export function areaMatchesTarget(
 ) {
   if (target.kind === 'CASTER_CENTERED') return area.shape.kind === 'RADIUS'
   const origin = areaActionTargetOrigin(target)
+  const { shape } = area
   return (
     area.origin.x === origin.x &&
     area.origin.y === origin.y &&
-    (target.kind !== 'DIRECTED' ||
-      ('toward' in area.shape &&
-        area.shape.toward.x === target.toward.x &&
-        area.shape.toward.y === target.toward.y))
+    (target.kind === 'DIRECTED'
+      ? 'toward' in shape &&
+        shape.toward.x === target.toward.x &&
+        shape.toward.y === target.toward.y
+      : target.kind === 'WALL'
+        ? shape.kind === 'WALL' && shape.to.x === target.to.x && shape.to.y === target.to.y
+        : target.kind !== 'RING' ||
+          (shape.kind === 'RING' && shape.outerRadius === target.outerRadius))
   )
 }
 

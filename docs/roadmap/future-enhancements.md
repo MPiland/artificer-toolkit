@@ -88,6 +88,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **A reactor dropped by melee retaliation keeps its Concentration until the next check (SPELLS-20.T6d2b, D153, D95).** When a Fire Shield or similar zone drops an opportunity attacker to 0 hit points, the movement's D95 end pass still looks only at the mover, so the reactor's Concentration is not ended in that settlement. Needs a holder that is both shielded and the target of a concentrating reactor; fix by running the D95 end over every damaged actor of the settlement.
+- **Flaky lease-renewal test.** `apps/session-worker/test/nativeRoomAdmission.test.ts` ("renews the authorization lease with one read per half-lease...") once made 4 authorization reads instead of 3 (Tests 39111148417, attempt 1) and passed on rerun. Likely a timer-boundary race in the test clock. Fix if it recurs.
 
 - **Fire Shield past 100 rounds or recast (D153):** the zone lasts the Run while its resistance expires after 100 turns, and recasting while it is up stacks a second zone; dismissing it early is not offered. A timed zone lifetime would close all three.
 

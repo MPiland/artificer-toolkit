@@ -8,10 +8,11 @@ import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/s
 import { spatialRuleEffectPlacementDtoSchema } from '@artificer-toolkit/schema/shared/spatial'
 import {
   isDirectedAreaShape,
-  pointCubeOutline,
+  undirectedAreaGeometry,
   type ScenePoint,
   type SpatialAreaShape,
-  type SpatialPointAreaShape
+  type SpatialPointAreaShape,
+  type SpatialWallAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
@@ -114,6 +115,10 @@ export function planEncounterPlacedZone(input: {
         ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+      ...(zone.movementCostMultiplier
+        ? { movementCostMultiplier: zone.movementCostMultiplier }
+        : {}),
+      ...(zone.blockingRules ? { blockingRules: zone.blockingRules } : {}),
       ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
       ...(zone.retaliatesMeleeHits ? { retaliatesMeleeHits: true } : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
@@ -179,22 +184,19 @@ function castSaveDc(saveDc: number | null): number {
 /** Where a zone sits: fixed at the picked point, or on its user's token and moving with it. */
 function zoneAnchor(
   attachment: CompiledActionZonePlacement['attachment'],
-  area: SpatialPointAreaShape,
+  area: SpatialPointAreaShape | SpatialWallAreaShape,
   point: ScenePoint,
   sourceToken: { tokenId: string; width: number } | null
 ) {
-  if (attachment === 'PLACED_SPACE')
+  if (attachment === 'PLACED_SPACE') {
+    const shape = undirectedAreaGeometry(point, area)
+    if (!shape) throw new Error('A placed zone covers some of the Scene.')
     return {
       anchorKind: 'FIXED' as const,
       sourceTokenId: null,
-      geometry: {
-        frame: 'SCENE_ABSOLUTE' as const,
-        shape:
-          area.kind === 'CUBE'
-            ? { kind: 'POLYGON' as const, points: pointCubeOutline(point, area.edgeLength) }
-            : { kind: 'CIRCLE' as const, center: point, radius: area.radius }
-      }
+      geometry: { frame: 'SCENE_ABSOLUTE' as const, shape }
     }
+  }
   if (area.kind !== 'RADIUS' || !sourceToken)
     throw new Error('A source zone is a circle around its user’s token.')
   return {

@@ -171,6 +171,28 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       unaffectedActorIds: unaffectedActorIdsSchema,
       /** The zone the caster picks at cast, for an action that offers several (D140). */
       choiceOptionId: z.optional(postgresUuidSchema)
+    }),
+    /** A straight wall from one endpoint to the other (D154). */
+    z.strictObject({
+      kind: z.literal('WALL'),
+      sceneId: uuidSchema,
+      expectedSceneVersion: versionSchema,
+      from: spatialPointDtoSchema,
+      to: spatialPointDtoSchema,
+      unaffectedActorIds: unaffectedActorIdsSchema,
+      /** The zone the caster picks at cast, for an action that offers several (D140). */
+      choiceOptionId: z.optional(postgresUuidSchema)
+    }),
+    /** A ring around `center`, `outerRadius` in Scene coordinates (D154). */
+    z.strictObject({
+      kind: z.literal('RING'),
+      sceneId: uuidSchema,
+      expectedSceneVersion: versionSchema,
+      center: spatialPointDtoSchema,
+      outerRadius: z.number().check(z.positive()),
+      unaffectedActorIds: unaffectedActorIdsSchema,
+      /** The zone the caster picks at cast, for an action that offers several (D140). */
+      choiceOptionId: z.optional(postgresUuidSchema)
     })
   ])
 )
@@ -194,13 +216,23 @@ export function actionTargetActorId(target: ResolveEncounterActionTargetDto): st
 }
 
 /**
- * Where an aimed area action's area starts: the picked point, or the directed area's origin. A
- * caster-centered area has none in its command (it starts at the caster's token), so it is not accepted.
+ * Where an aimed area action's area starts: the picked point, the directed area's origin, a wall's
+ * first endpoint or a ring's center. A caster-centered area has none in its command (it starts at
+ * the caster's token), so it is not accepted.
  */
 export function areaActionTargetOrigin(
   target: Exclude<AreaActionTargetDto, { kind: 'CASTER_CENTERED' }>
 ): SpatialPointDto {
-  return target.kind === 'POINT' ? target.point : target.origin
+  switch (target.kind) {
+    case 'POINT':
+      return target.point
+    case 'DIRECTED':
+      return target.origin
+    case 'WALL':
+      return target.from
+    case 'RING':
+      return target.center
+  }
 }
 
 export const resolveEncounterActionInputDtoSchema = lazySchema(() =>

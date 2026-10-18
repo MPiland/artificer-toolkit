@@ -94,19 +94,50 @@ describe('prepared movement publication', () => {
     ) => ({
       tokenId,
       tokens,
-      effects: [field(flagged, visibility, revealed)]
+      effects: [field(flagged, visibility, revealed)],
+      carefully: true
     })
     const plain = preparedMovementCost(walk)
     expect(plain).toBe(20)
-    expect(preparedMovementCost({ ...walk, careful: careful(false) })).toBe(plain)
-    // A hidden field the mover has not seen cannot be crossed carefully: no doubled cost.
-    expect(preparedMovementCost({ ...walk, careful: careful(true, 'HIDDEN', false) })).toBe(plain)
-    expect(preparedMovementCost({ ...walk, careful: careful(true, 'HIDDEN', true) })).toBeCloseTo(
-      30
+    expect(preparedMovementCost({ ...walk, mover: careful(false) })).toBe(plain)
+    expect(preparedMovementCost({ ...walk, mover: { ...careful(true), carefully: false } })).toBe(
+      plain
     )
+    // A hidden field the mover has not seen cannot be crossed carefully: no doubled cost.
+    expect(preparedMovementCost({ ...walk, mover: careful(true, 'HIDDEN', false) })).toBe(plain)
+    expect(preparedMovementCost({ ...walk, mover: careful(true, 'HIDDEN', true) })).toBeCloseTo(30)
     // The 100-wide footprint overlaps the field while its centre is between x=50 and x=250: half
     // of the 400-unit walk, so that half costs double.
-    expect(preparedMovementCost({ ...walk, careful: careful(true) })).toBeCloseTo(30)
+    expect(preparedMovementCost({ ...walk, mover: careful(true) })).toBeCloseTo(30)
+
+    // SPELLS-4.T1b (D154): a zone's movement cost applies to every mover for the stretch inside it,
+    // and the highest of the terrain, zone and careful multipliers applies, never their product.
+    const costly = (movementCostMultiplier: number) => ({
+      ...field(true),
+      placement: { ...field(true).placement, movementCostMultiplier }
+    })
+    const mover = (effect: ReturnType<typeof costly>, carefully: boolean) => ({
+      tokenId,
+      tokens,
+      effects: [effect],
+      carefully
+    })
+    expect(preparedMovementCost({ ...walk, mover: mover(costly(4), false) })).toBeCloseTo(10 + 40)
+    expect(preparedMovementCost({ ...walk, mover: mover(costly(4), true) })).toBeCloseTo(10 + 40)
+    expect(preparedMovementCost({ ...walk, mover: mover(costly(1.5), true) })).toBeCloseTo(30)
+    const terrain = {
+      barriers: [
+        {
+          a: { x: 150, y: -100 },
+          b: { x: 150, y: 100 },
+          id: '00000000-0000-4000-8000-000000000002',
+          kind: 'TERRAIN' as const,
+          movementCostMultiplier: 3
+        }
+      ]
+    }
+    // Terrain 3 on the whole segment outranks the careful doubling; nothing multiplies.
+    expect(preparedMovementCost({ ...walk, scene: terrain, mover: careful(true) })).toBeCloseTo(60)
   })
 
   it('walks the whole remaining path when no rules interrupt it', () => {

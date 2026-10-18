@@ -937,6 +937,63 @@ describe('a zone outcome with no save, at the start of its source’s turn (D144
   })
 })
 
+describe('a zone outcome with no save that a mover enters (D154)', () => {
+  const authored = variantEquipment((parts) => {
+    diceDamage('2d6')(parts)
+    noSave(['ENTER_SPACE', 'END_TURN_IN_SPACE'])(parts)
+  })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+  })
+
+  it('maps the interactions to an ENTER trigger and the creature’s own turn end, dealing dice with no save', () => {
+    const zone = zonePlacementOf(authored)
+    expect(zone).toMatchObject({
+      triggerModes: ['ENTER'],
+      turnTriggers: ['END_OF_TURN'],
+      grant: null
+    })
+    expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual([
+      'die-1',
+      'die-2',
+      'sum-1',
+      'proposal-on_use'
+    ])
+  })
+})
+
+describe('a zone’s movement cost and blocking rules (D154)', () => {
+  const authored = (movementCostMultiplier: number) =>
+    variantEquipment(({ component }) => {
+      Object.assign(component, {
+        movementCostMultiplier,
+        blockingRules: ['BLOCKS_SIGHT', 'NONMAGICAL_RANGED_ATTACKS']
+      })
+    })
+
+  it('passes the equipment publication contract', () => {
+    expect(equipmentAuthoredDtoSchema.safeParse(authored(4)).success).toBe(true)
+  })
+
+  it('carries the authored movement cost and blocking rules onto the placed zone', () => {
+    expect(zonePlacementOf(authored(4))).toMatchObject({
+      movementCostMultiplier: 4,
+      blockingRules: ['BLOCKS_SIGHT', 'NONMAGICAL_RANGED_ATTACKS']
+    })
+  })
+
+  it.each([0.5, 1, 101])(
+    'refuses a movement cost multiplier of %s instead of partly honoring it',
+    (multiplier) => {
+      expect(compileItemEntry(authored(multiplier)).compilation).toMatchObject({
+        kind: 'MANUAL',
+        reasonCode: 'NOT_NORMALIZED'
+      })
+    }
+  )
+})
+
 describe('a creature’s passive zone (D144)', () => {
   const aura = creatureAuraFeature('2d6', 10)
   const discover = (feature = aura) =>
@@ -971,7 +1028,11 @@ describe('a creature’s passive zone (D144)', () => {
     const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
     if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
       throw new Error('The aura is a manifest zone.')
-    outcome.components![0]!.interactionKinds = ['ENTER_SPACE']
+    // A fully-within rule on a zone a mover enters, which acts only at turn boundaries.
+    Object.assign(outcome.components![0]!, {
+      interactionKinds: ['ENTER_SPACE'],
+      requiresFullyWithin: true
+    })
     const discovery = discover(mover)
     expect(discovery.passiveZones).toEqual([])
     expect(discovery.unavailable).toContainEqual(
@@ -1118,13 +1179,6 @@ describe('a zone the System cannot honor in full stays manual', () => {
       'a cone, which is aimed rather than placed at a point',
       ({ zone }) => {
         zone.shape = { id: extraId(5), shapeKind: 'CONE', length: { amount: 15, unit: 'FEET' } }
-      }
-    ],
-    [
-      'a zone outcome with no save that a mover enters',
-      (parts) => {
-        diceDamage('2d6')(parts)
-        noSave(['ENTER_SPACE', 'START_OF_SOURCE_TURN'])(parts)
       }
     ],
     [

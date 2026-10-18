@@ -30,6 +30,13 @@ export type SpatialGeometry =
       readonly center: ScenePoint
       readonly radius: number
     }
+  /** A hollow circle (D154): a creature is in it when it overlaps the outer circle and is not wholly inside the inner one. */
+  | {
+      readonly kind: 'RING'
+      readonly center: ScenePoint
+      readonly outerRadius: number
+      readonly innerRadius: number
+    }
   | { readonly kind: 'POLYGON'; readonly points: readonly ScenePoint[] }
 
 export interface SpatialPersistedGeometry {
@@ -193,6 +200,13 @@ function nonAdjacentPolygonEdgesIntersect(points: readonly ScenePoint[]): boolea
 function validSpatialGeometry(geometry: SpatialGeometry): boolean {
   if (geometry.kind === 'CIRCLE')
     return isAbsolutePoint(geometry.center) && isBoundedDistance(geometry.radius)
+  if (geometry.kind === 'RING')
+    return (
+      isAbsolutePoint(geometry.center) &&
+      isBoundedDistance(geometry.innerRadius) &&
+      isBoundedDistance(geometry.outerRadius) &&
+      geometry.innerRadius < geometry.outerRadius
+    )
   if (
     geometry.points.length < 3 ||
     geometry.points.some((point) => !isAbsolutePoint(point)) ||
@@ -243,14 +257,13 @@ function sceneTokenAnchor(token: Pick<SceneToken, 'position'>): ScenePoint {
 }
 
 function translateSpatialGeometry(geometry: SpatialGeometry, origin: ScenePoint): SpatialGeometry {
-  return geometry.kind === 'CIRCLE'
+  return geometry.kind !== 'POLYGON'
     ? {
-        kind: 'CIRCLE',
+        ...geometry,
         center: {
           x: geometry.center.x + origin.x,
           y: geometry.center.y + origin.y
-        },
-        radius: geometry.radius
+        }
       }
     : {
         kind: 'POLYGON',
@@ -377,25 +390,40 @@ function polygonFootprintOverlapArea(points: readonly ScenePoint[], value: Footp
  * simple polygon, convex or concave.
  */
 function footprintOverlapsSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
-  return geometry.kind === 'CIRCLE'
-    ? distanceFromFootprint(value, geometry.center) < geometry.radius - EPSILON
-    : polygonFootprintOverlapArea(geometry.points, value) > EPSILON
+  if (geometry.kind === 'CIRCLE')
+    return distanceFromFootprint(value, geometry.center) < geometry.radius - EPSILON
+  if (geometry.kind === 'RING')
+    return (
+      distanceFromFootprint(value, geometry.center) < geometry.outerRadius - EPSILON &&
+      !footprintWithinCircle(value, geometry.center, geometry.innerRadius)
+    )
+  return polygonFootprintOverlapArea(geometry.points, value) > EPSILON
+}
+
+/** A circle is convex, so holding the four corners holds the footprint. */
+function footprintWithinCircle(value: Footprint, center: ScenePoint, radius: number): boolean {
+  return footprintCorners(value).every(
+    (corner) => Math.hypot(corner.x - center.x, corner.y - center.y) <= radius + EPSILON
+  )
 }
 
 /**
  * Whether the footprint lies entirely inside the geometry; its edges may lie on the boundary. A
- * circle is convex, so holding the four corners holds the footprint; a polygon (convex or concave)
- * holds it when their shared area is the whole footprint.
+ * ring holds it inside its outer circle when it shares no area with the inner one; a polygon
+ * (convex or concave) holds it when their shared area is the whole footprint.
  */
 function footprintWithinSpatialGeometry(value: Footprint, geometry: SpatialGeometry): boolean {
-  return geometry.kind === 'CIRCLE'
-    ? footprintCorners(value).every(
-        (corner) =>
-          Math.hypot(corner.x - geometry.center.x, corner.y - geometry.center.y) <=
-          geometry.radius + EPSILON
-      )
-    : polygonFootprintOverlapArea(geometry.points, value) >=
-        4 * value.halfWidth * value.halfHeight - EPSILON
+  if (geometry.kind === 'CIRCLE')
+    return footprintWithinCircle(value, geometry.center, geometry.radius)
+  if (geometry.kind === 'RING')
+    return (
+      footprintWithinCircle(value, geometry.center, geometry.outerRadius) &&
+      distanceFromFootprint(value, geometry.center) >= geometry.innerRadius - EPSILON
+    )
+  return (
+    polygonFootprintOverlapArea(geometry.points, value) >=
+    4 * value.halfWidth * value.halfHeight - EPSILON
+  )
 }
 
 /**
@@ -499,13 +527,104 @@ export type SpatialDirectedAreaSize = SpatialDirectedAreaShape extends infer Sha
     : never
   : never
 
-export type SpatialAreaShape = SpatialPointAreaShape | SpatialDirectedAreaShape
+/**
+ * A zone's wall in Scene units (D154), placed from the area's origin: a straight wall from the
+ * origin to `to`, `thickness` wide and centered on that segment, or a ring around the origin.
+ */
+export type SpatialWallAreaShape =
+  | { readonly kind: 'WALL'; readonly to: ScenePoint; readonly thickness: number }
+  | { readonly kind: 'RING'; readonly outerRadius: number; readonly innerRadius: number }
+
+export type SpatialAreaShape =
+  | SpatialPointAreaShape
+  | SpatialDirectedAreaShape
+  | SpatialWallAreaShape
+
+const DIRECTED_AREA_KINDS: ReadonlySet<string> = new Set<SpatialDirectedAreaShape['kind']>([
+  'CONE',
+  'LINE',
+  'CUBE_FROM_SIDE'
+])
 
 /** Narrows a shape, or a size before it is aimed, to its directed members. */
 export function isDirectedAreaShape<Shape extends SpatialAreaShape | SpatialDirectedAreaSize>(
   shape: Shape
 ): shape is Extract<Shape, { readonly kind: SpatialDirectedAreaShape['kind'] }> {
-  return shape.kind !== 'RADIUS' && shape.kind !== 'CUBE'
+  return DIRECTED_AREA_KINDS.has(shape.kind)
+}
+
+/**
+ * The rectangle a straight wall covers: `thickness` wide, centered on the segment from `from` to
+ * `to`. Null for a wall of no length.
+ */
+export function wallOutline(
+  from: ScenePoint,
+  to: ScenePoint,
+  thickness: number
+): ScenePoint[] | null {
+  const length = Math.hypot(to.x - from.x, to.y - from.y)
+  if (!(length > EPSILON)) return null
+  const half = thickness / 2
+  const normal = { x: (-(to.y - from.y) / length) * half, y: ((to.x - from.x) / length) * half }
+  return [
+    { x: from.x + normal.x, y: from.y + normal.y },
+    { x: to.x + normal.x, y: to.y + normal.y },
+    { x: to.x - normal.x, y: to.y - normal.y },
+    { x: from.x - normal.x, y: from.y - normal.y }
+  ]
+}
+
+/**
+ * The Scene geometry an area that is not directed covers from its origin: a circle, the square of a
+ * cube centered on it, a wall's rectangle or a ring. Null for a wall of no length.
+ */
+export function undirectedAreaGeometry(
+  origin: ScenePoint,
+  shape: SpatialPointAreaShape | SpatialWallAreaShape
+): SpatialGeometry | null {
+  switch (shape.kind) {
+    case 'RADIUS':
+      return { kind: 'CIRCLE', center: origin, radius: shape.radius }
+    case 'CUBE':
+      return { kind: 'POLYGON', points: pointCubeOutline(origin, shape.edgeLength) }
+    case 'RING':
+      return {
+        kind: 'RING',
+        center: origin,
+        outerRadius: shape.outerRadius,
+        innerRadius: shape.innerRadius
+      }
+    case 'WALL': {
+      const points = wallOutline(origin, shape.to, shape.thickness)
+      return points && { kind: 'POLYGON', points }
+    }
+  }
+}
+
+/** A zone's wall as authored (D154): a straight wall's longest length or a ring's widest outer radius, and its thickness. */
+export type AuthoredWallArea =
+  | {
+      readonly kind: 'WALL'
+      readonly maxLength: AuthoredPointAreaLength
+      readonly thickness: AuthoredPointAreaLength
+    }
+  | {
+      readonly kind: 'RING'
+      readonly maxOuterRadius: AuthoredPointAreaLength
+      readonly thickness: AuthoredPointAreaLength
+    }
+
+/** The authored wall's bounds in Scene coordinates: its longest size and its thickness. Null for a size that is scaled or empty. */
+export function wallAreaBoundsInSceneCoordinates(
+  area: AuthoredWallArea,
+  grid: SceneGrid
+): { readonly maximum: number; readonly thickness: number } | null {
+  const maximum = coordinateLength(
+    area.kind === 'WALL' ? area.maxLength : area.maxOuterRadius,
+    grid
+  )
+  const thickness = coordinateLength(area.thickness, grid)
+  return maximum === null || thickness === null ? null : { maximum, thickness }
 }
 
 /** A directed area as authored. A line with no authored width is 5 feet wide (one square). */
@@ -729,11 +848,8 @@ export function spatialTokensInsideArea(input: {
       { kind: 'POLYGON', points: outline }
     )
   }
-  const area: SpatialGeometry =
-    shape.kind === 'RADIUS'
-      ? { kind: 'CIRCLE', center: origin, radius: shape.radius }
-      : { kind: 'POLYGON', points: pointCubeOutline(origin, shape.edgeLength) }
-  return validSpatialGeometry(area) ? catches(input.tokens, area) : []
+  const area = undirectedAreaGeometry(origin, shape)
+  return area && validSpatialGeometry(area) ? catches(input.tokens, area) : []
 }
 
 /**
@@ -831,7 +947,7 @@ function circleIntersectionTimes(
 function candidateTimesForCircle(
   from: ScenePoint,
   to: ScenePoint,
-  shape: Extract<SpatialGeometry, { kind: 'CIRCLE' }>,
+  shape: { readonly center: ScenePoint; readonly radius: number },
   moving: Pick<Footprint, 'halfHeight' | 'halfWidth'>
 ): number[] {
   const times = [0, 1]
@@ -925,7 +1041,34 @@ function candidateTimes(
   const values =
     geometry.kind === 'CIRCLE'
       ? candidateTimesForCircle(from, to, geometry, moving)
-      : candidateTimesForPolygon(from, to, geometry, moving)
+      : geometry.kind === 'RING'
+        ? [
+            ...candidateTimesForCircle(
+              from,
+              to,
+              { center: geometry.center, radius: geometry.outerRadius },
+              moving
+            ),
+            ...candidateTimesForCircle(
+              from,
+              to,
+              { center: geometry.center, radius: geometry.innerRadius },
+              moving
+            ),
+            // The footprint leaves the inner circle wholly when a corner crosses it.
+            ...[-1, 1].flatMap((sx) =>
+              [-1, 1].flatMap((sy) => {
+                const offset = { x: sx * moving.halfWidth, y: sy * moving.halfHeight }
+                return circleIntersectionTimes(
+                  { x: from.x + offset.x, y: from.y + offset.y },
+                  { x: to.x + offset.x, y: to.y + offset.y },
+                  geometry.center,
+                  geometry.innerRadius
+                )
+              })
+            )
+          ]
+        : candidateTimesForPolygon(from, to, geometry, moving)
   return values
     .sort((left, right) => left - right)
     .filter((value, index, all) => index === 0 || Math.abs(value - all[index - 1]!) > EPSILON)
@@ -941,23 +1084,60 @@ export function spatialSegmentShareInside(input: {
   readonly from: ScenePoint
   readonly to: ScenePoint
 }): number {
-  const geometries = input.geometries.filter(validSpatialGeometry)
-  if (!validSpatialToken(input.token)) return 0
+  return segmentSpans({ ...input, zones: input.geometries.map((geometry) => ({ geometry })) })
+    .filter(({ inside }) => inside.length > 0)
+    .reduce((share, span) => share + span.share, 0)
+}
+
+/**
+ * The multiplier a straight segment's movement costs on average (D154): each stretch costs the
+ * highest of `floor` (the terrain multiplier) and the multipliers of the zones the footprint
+ * overlaps there, by the overlap rule that raises an ENTER contact. Multipliers never stack.
+ */
+export function spatialSegmentMovementMultiplier(input: {
+  readonly zones: readonly { readonly geometry: SpatialGeometry; readonly multiplier: number }[]
+  readonly token: SpatialTokenFootprint
+  readonly from: ScenePoint
+  readonly to: ScenePoint
+  readonly floor: number
+}): number {
+  const spans = segmentSpans(input)
+  if (!spans.length) return input.floor
+  return spans.reduce(
+    (total, { share, inside }) =>
+      total + share * Math.max(input.floor, ...inside.map(({ multiplier }) => multiplier)),
+    0
+  )
+}
+
+/**
+ * A straight segment cut where the footprint enters or leaves any zone, each stretch with its share
+ * of the segment and the zones the footprint overlaps there. Empty for an invalid token.
+ */
+function segmentSpans<Zone extends { readonly geometry: SpatialGeometry }>(input: {
+  readonly zones: readonly Zone[]
+  readonly token: SpatialTokenFootprint
+  readonly from: ScenePoint
+  readonly to: ScenePoint
+}): { share: number; inside: Zone[] }[] {
+  const zones = input.zones.filter(({ geometry }) => validSpatialGeometry(geometry))
+  if (!validSpatialToken(input.token)) return []
   const moving = footprint(input.token)
   const times = [
-    ...new Set(
-      geometries.flatMap((geometry) => candidateTimes(input.from, input.to, geometry, moving))
-    )
+    ...new Set([
+      0,
+      1,
+      ...zones.flatMap(({ geometry }) => candidateTimes(input.from, input.to, geometry, moving))
+    ])
   ].sort((left, right) => left - right)
-  let inside = 0
-  for (let index = 1; index < times.length; index += 1) {
-    const start = times[index - 1]!
-    const end = times[index]!
+  return times.slice(1).map((end, index) => {
+    const start = times[index]!
     const midpoint = footprint(input.token, interpolate(input.from, input.to, (start + end) / 2))
-    if (geometries.some((geometry) => footprintOverlapsSpatialGeometry(midpoint, geometry)))
-      inside += end - start
-  }
-  return inside
+    return {
+      share: end - start,
+      inside: zones.filter(({ geometry }) => footprintOverlapsSpatialGeometry(midpoint, geometry))
+    }
+  })
 }
 
 function candidateContact(input: {
