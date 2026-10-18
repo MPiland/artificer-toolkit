@@ -4,7 +4,7 @@ Living handoff for SPELLS-31 (class feature and subclass feature closed rules be
 
 ## Current task
 
-SPELLS-31.T1: classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reusing the SPELLS-4 option groups where they fit, and propose a split into subtasks of size 5 or less for a ruling.
+SPELLS-31.T2, T3a, T3b and T3c (accepted T1 ruling, D156 amendment of 2026-10-18), one `ci/spells-31-<task>` push each, in order.
 
 ## T1 classification (D156)
 
@@ -251,4 +251,6 @@ Open points for the ruling:
 
 ## Status
 
-Started 2026-10-18 from the phase tip. T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
+Started 2026-10-18 from the phase tip. T1 classification and split accepted (D156, SPELLS-31.T1 ruling).
+
+- **T2 (class C), 2026-10-18:** the 28 kinds are gone from `closedRuleKind.ts` and their 29 CLOSED_RULE effects from the class files (Natural Explorer had two, on the feature and its improvement); descriptions are unchanged. `packages/source-data/src/srd/descriptionOnlyClassFeatures.test.ts` proves each feature keeps its description, has no closed rule, and either carries its sibling grant or none (description-only), and that no kind remains. Book of Ancient Secrets, Pact of the Tome and Spell Mastery keep sibling spell grants for their modeled part; their remaining text (transcription, the book, the swap) is downtime.

@@ -665,7 +665,6 @@ export const barbarian: ClassAuthored = {
       label: 'Unarmored Defense',
       description:
         'While you are not wearing any armor, your Armor Class equals 10 + your Dexterity modifier + your Constitution modifier. You can use a shield and still gain this benefit.',
-      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_BARBARIAN_UNARMORED_DEFENSE)],
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -788,7 +787,6 @@ export const barbarian: ClassAuthored = {
       label: 'Feral Instinct',
       description:
         "By 7th level, your instincts are so honed that you have advantage on initiative rolls. Additionally, if you are surprised at the beginning of combat and aren't incapacitated, you can act normally on your first turn, but only if you enter your rage before doing anything else on that turn.",
-      effects: [selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_BARBARIAN_FERAL_INSTINCT)],
       availableAtLevel: 7,
       order: 8,
       grants: {

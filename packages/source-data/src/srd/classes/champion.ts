@@ -205,23 +205,7 @@ export const championMartialArchetype: ClassAuthored = {
               }
             ]
           },
-          order: 2,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 20, 3),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 21, 3), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              pathCode: PATH_CODE.ON_HIT,
-              ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_DUELING
-            })
-          ]
+          order: 2
         },
         {
           id: classRowId(F, 0x22, 4),

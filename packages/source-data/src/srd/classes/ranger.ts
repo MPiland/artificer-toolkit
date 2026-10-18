@@ -639,7 +639,6 @@ export const ranger: ClassAuthored = {
       label: 'Natural Explorer',
       description:
         "You are particularly familiar with one type of natural environment and are adept at traveling and surviving in such regions. Choose one type of favored terrain: arctic, coast, desert, forest, grassland, mountain, or swamp. When you make an Intelligence or Wisdom check related to your favored terrain, your proficiency bonus is doubled if you are using a skill that you're proficient in.\n\nWhile traveling for an hour or more in your favored terrain, you gain the following benefits:\n\n* Difficult terrain doesn't slow your group's travel.\n* Your group can't become lost except by magical means.\n* Even when you are engaged in another activity while traveling (such as foraging, navigating, or tracking), you remain alert to danger.\n* If you are traveling alone, you can move stealthily at a normal pace.\n* When you forage, you find twice as much food as you normally would.\n* While tracking other creatures, you also learn their exact number, their sizes, and how long ago they passed through the area.\n\nYou choose additional favored terrain types at 6th and 10th level.",
-      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_RANGER_NATURAL_EXPLORER)],
       availableAtLevel: 1,
       order: 1
     },
@@ -747,22 +746,6 @@ export const ranger: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 0x60, 0x81),
-              ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FIGHTING_STYLE_DUELING,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(RA, 0x69, 0x81), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            })
-          ],
           order: 2
         },
         {
@@ -867,7 +850,6 @@ export const ranger: ClassAuthored = {
       label: 'Natural Explorer Improvement',
       description:
         "You are particularly familiar with one type of natural environment and are adept at traveling and surviving in such regions. Choose one type of favored terrain: arctic, coast, desert, forest, grassland, mountain, or swamp. When you make an Intelligence or Wisdom check related to your favored terrain, your proficiency bonus is doubled if you are using a skill that you're proficient in.\n\nWhile traveling for an hour or more in your favored terrain, you gain the following benefits:\n\n* Difficult terrain doesn't slow your group's travel.\n* Your group can't become lost except by magical means.\n* Even when you are engaged in another activity while traveling (such as foraging, navigating, or tracking), you remain alert to danger.\n* If you are traveling alone, you can move stealthily at a normal pace.\n* When you forage, you find twice as much food as you normally would.\n* While tracking other creatures, you also learn their exact number, their sizes, and how long ago they passed through the area.\n\nYou choose additional favored terrain types at 6th and 10th level.",
-      effects: [selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_RANGER_NATURAL_EXPLORER)],
       availableAtLevel: 6,
       order: 9
     },

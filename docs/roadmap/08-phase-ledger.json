@@ -10743,7 +10743,7 @@
             },
             {
               "id": "SPELLS-31.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10753,7 +10753,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "Class C: delete the 28 description-only or sibling-expressed kinds (Natural Explorer and Divine Health included) and their CLOSED_RULE outcomes, keeping descriptions; snapshot and parity checks. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Green: ci/spells-31-t2 fa8897c8d Tests 39158892030, Live 39158892115; fast-path merge 52c320549 (m130 backstop)."
             },
             {
               "id": "SPELLS-31.T3a",
@@ -10766,7 +10766,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "Class A: Fast Movement, Divine Strike, Purity of Body, Magical Secrets, with parity proofs; plus the Fighter Extra Attack 11th- and 20th-level steps as an authored-data fix with its own test. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Stunning Strike moved to T5r.",
+              "text": "Class A: Fast Movement, Divine Strike, Purity of Body, Magical Secrets, with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Stunning Strike moved to T5r. (Fighter Extra Attack 11th/20th steps were already authored; T1 misread them.)",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
