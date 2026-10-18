@@ -230,12 +230,14 @@ describe('native Campaign membership departure effects', () => {
             ...character.state.currency,
             {
               id: crypto.randomUUID(),
-              currencies: [{
-                currencyId: denominationId,
-                kind: 'CAMPAIGN',
-                campaignCurrencySystemId: system.id,
-                amount: 5
-              }]
+              currencies: [
+                {
+                  currencyId: denominationId,
+                  kind: 'CAMPAIGN',
+                  campaignCurrencySystemId: system.id,
+                  amount: 5
+                }
+              ]
             }
           ]
         }
