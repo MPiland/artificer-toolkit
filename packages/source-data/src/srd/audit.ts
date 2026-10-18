@@ -5,6 +5,7 @@ import { SRD_SENSE_DEFINITIONS } from './senses.js'
 import {
   SRD_BLINDSIGHT_SENSE_ID,
   SRD_DARKVISION_SENSE_ID,
+  SRD_SEE_INVISIBILITY_SENSE_ID,
   SRD_SYSTEM_ID,
   SRD_TREMORSENSE_SENSE_ID,
   SRD_TRUESIGHT_SENSE_ID
@@ -24,7 +25,8 @@ export function auditSrdSourceSemantics(): SrdSourceAuditIssue[] {
     SRD_DARKVISION_SENSE_ID,
     SRD_BLINDSIGHT_SENSE_ID,
     SRD_TREMORSENSE_SENSE_ID,
-    SRD_TRUESIGHT_SENSE_ID
+    SRD_TRUESIGHT_SENSE_ID,
+    SRD_SEE_INVISIBILITY_SENSE_ID
   ]
   const actualSenseDefinitionIds = SRD_SENSE_DEFINITIONS.map((definition) => definition.id)
   if (

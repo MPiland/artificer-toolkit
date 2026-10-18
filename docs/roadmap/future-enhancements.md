@@ -88,6 +88,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
+- **A Creature's sense grants in Encounter perception (SPELLS-4.T2a4):** A Creature perceives only with its stat-block Senses; a sense an Active Effect grants it (a Creature casting See Invisibility or Darkvision on itself) is not folded in, unlike a Character's. Fold Creature sense grants into `perceptionSenses` and Scene vision if a Creature caster needs it.
+- **See Invisibility in darkness (D156, SPELLS-4.T2a4):** See Invisibility grants ordinary sight that perceives invisible creatures. Each of a creature's senses is checked on its own, so a caster who also has Darkvision still cannot see an Invisible creature standing in darkness: Darkvision reaches the darkness but not the invisibility, and this sense reaches the invisibility but not the darkness. Fix by combining a creature's visual senses into one check if players hit this.
 - **Random fling direction (D157).** The Air Elemental's Whirlwind flings a creature in a random direction; its controller picks the square instead. Add a rolled direction if GMs ask for it.
 
 - **Triggered Character auras while the source is down (D155).** A Character-sourced passive zone with an ENTER or turn trigger would still catch while its source is unconscious, because the spatial readers do not read Character play state. No SRD Character has such a zone. Thread an unconscious-source input through the spatial readers if homebrew content needs one.

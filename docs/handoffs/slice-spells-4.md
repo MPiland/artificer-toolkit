@@ -14,6 +14,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2a4 (closed rules with existing options, D156 T2 class A)
+
+- See Invisibility grants its caster a new SRD sense, See Invisibility, for 1 hour. The grant has unlimited range, the way Darkvision grants its own sense. The sense is ordinary sight that perceives invisible creatures. Seeing into the Ethereal Plane stays description-only. Darkvision combined with this sense in darkness is a deferred edge case. `SEE_INVISIBILITY` leaves `CLOSED_RULE_KIND`.
+- Proof: `packages/authoring/src/nodeRuntime/senseGrantAuthoringParity.test.ts` (the spell and an author-built equivalent normalize unchanged) and `apps/session-worker/test/nativeRoomSeeInvisibility.test.ts` (a real cast in the room; the caster's Club attack on an Invisible Wolf changes from disadvantage to a normal roll).
+- Bug fix (orchestrator-approved): a Character's attack, save and turn-effect perception read its pinned Senses (`encounterMovementTargets.ts`), not its effective policy Senses, so no Active Effect sense grant (the Darkvision spell included) reached Encounter perception. `perceptionSenses` now reads `effectiveRulePolicyOutput.senses`; every perception reader takes that one field, and Scene vision already folded grants. A Creature's sense grants stay unfolded (deferred edge case). The room test was red before the fix.
+- Rulings: Plant Growth is in this slice (a generic terrain-only zone relaxation); Produce Flame moves to T2v, Regenerate to T2t; Sequester follows once T2a3 lands.
+
 ### T2b (description-only closed rules, D156 T2 class C)
 
 - The 34 class C spells drop their `CLOSED_RULE` outcome, and their kinds leave `CLOSED_RULE_KIND`: Arcane Lock, Arcanist's Magic Aura, Astral Projection, Clone, Comprehend Languages, Demiplane, Detect Thoughts, Disguise Self, Dream, Feather Fall, Gentle Repose, Guards and Wards, Meld into Stone, Mislead, Nondetection, Passwall, Prestidigitation, Private Sanctum, Programmed Illusion, Purify Food and Drink, Rope Trick, Seeming, Sending, Speak with Animals, Speak with Dead, Speak with Plants, Stone Shape, Suggestion, Thaumaturgy, Tongues, Water Breathing, Water Walk, Wish, Zone of Truth.
