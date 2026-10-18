@@ -125903,7 +125903,8 @@ export declare const internal: {
                 } | null;
                 kind: "DEFINITIONS";
               }
-            | { kind: "SYSTEM"; part: "SYSTEM" | "VOCABULARY" };
+            | { kind: "SYSTEM"; part: "SYSTEM" | "VOCABULARY" }
+            | { kind: "CAMPAIGN_CLOCK" };
         },
         any
       >;
