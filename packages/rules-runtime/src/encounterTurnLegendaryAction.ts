@@ -31,7 +31,7 @@ import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  targetEndedEffects
 } from './encounterEndedEffectRelease.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import {
@@ -347,11 +347,12 @@ export async function prepareTurnLegendaryActions<
         dispositions
       })
     })
-    const damageEnded = damageTakenEndedEffects({
+    const damageEnded = targetEndedEffects({
       holderActorId: target.id,
       held: prepared.targetFacts.activeEffects.filter(
         ({ id }) => !ownerEnded.consumedGrants.some((ended) => ended.id === id)
       ),
+      attacked: makesAttackRoll,
       applications: result.applications,
       damagerActorId: actor.id,
       dispositions

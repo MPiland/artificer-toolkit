@@ -1,6 +1,8 @@
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import {
   SRD_BLINDSIGHT_SENSE_ID,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_DEVILS_SIGHT_SENSE_ID,
   SRD_TRUESIGHT_SENSE_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -631,17 +633,50 @@ describe('encounter attack perception: sight of a point', () => {
     blocksMovement: false
   })
 
+  /** Magical darkness over the whole Scene, as a Darkness spell's zone records it. */
+  const magicalDarkness = {
+    id: testUuid(0xb3),
+    mechanicalIllumination: 'MAGICAL_DARKNESS' as const,
+    mechanicalObscurement: null,
+    opacity: 0.5,
+    polygon: {
+      points: [
+        { x: -1000, y: -1000 },
+        { x: 2000, y: -1000 },
+        { x: 2000, y: 1000 },
+        { x: -1000, y: 1000 }
+      ]
+    }
+  }
+
   async function sightOf(input: {
     conditionIds?: readonly string[]
+    /** Senses the observer has, each at `feet`. */
+    senses?: { ids: readonly string[]; feet: number }
     scene?: Partial<{
       ambientIllumination: 'BRIGHT' | 'DIM' | 'ORDINARY_DARKNESS'
       barriers: ReturnType<typeof wall>[]
+      darknessZones: (typeof magicalDarkness)[]
     }> | null
   }) {
     const prepared = await volleyAt({ attackerConditionIds: input.conditionIds ?? [] })
+    const senses = input.senses
     return resolveEncounterPointSight({
       gameSystemId: prepared.state.gameSystemId,
-      observer: prepared.sourceFacts,
+      observer: senses
+        ? {
+            ...prepared.sourceFacts,
+            perceptionSenses: senses.ids.map((senseDefinitionId) => ({
+              senseDefinitionId,
+              range: {
+                id: `${senseDefinitionId}:range`,
+                rangeKind: 'DISTANCE' as const,
+                amount: senses.feet,
+                unit: 'FEET' as const
+              }
+            }))
+          }
+        : prepared.sourceFacts,
       point: POINT,
       placement: input.scene
         ? {
@@ -660,8 +695,9 @@ describe('encounter attack perception: sight of a point', () => {
             spatialEffects: []
           }
         : null,
-      loadDefinition: async () => null,
-      loadSystem: async () => srdSystemRecord
+      ...(senses
+        ? srdSenseLoaders(prepared.state.gameSystemId)
+        : { loadDefinition: async () => null, loadSystem: async () => srdSystemRecord })
     })
   }
 
@@ -682,5 +718,32 @@ describe('encounter attack perception: sight of a point', () => {
   it('does not see anything while Blinded, with or without a Scene', async () => {
     expect(await sightOf({ scene: {}, conditionIds: [BLINDED] })).toBe('UNSEEN')
     expect(await sightOf({ scene: null, conditionIds: [BLINDED] })).toBe('UNSEEN')
+  })
+
+  // SPELLS-31.T3b (D156): Devil's Sight is its own Sense, not darkvision (VTT_UI-3.5).
+  it("sees a point in magical darkness through Devil's Sight, which darkvision does not", async () => {
+    const dark = { darknessZones: [magicalDarkness] }
+    const devilsSight = { ids: [SRD_DEVILS_SIGHT_SENSE_ID], feet: 120 }
+    expect(await sightOf({ scene: dark, senses: devilsSight })).toBe('SEES')
+    expect(
+      await sightOf({ scene: dark, senses: { ids: [SRD_DARKVISION_SENSE_ID], feet: 120 } })
+    ).toBe('UNSEEN')
+    expect(
+      await sightOf({ scene: { ambientIllumination: 'ORDINARY_DARKNESS' }, senses: devilsSight })
+    ).toBe('SEES')
+  })
+
+  it("does not see past Devil's Sight's range, nor while Blinded", async () => {
+    const dark = { darknessZones: [magicalDarkness] }
+    expect(
+      await sightOf({ scene: dark, senses: { ids: [SRD_DEVILS_SIGHT_SENSE_ID], feet: 20 } })
+    ).toBe('UNSEEN')
+    expect(
+      await sightOf({
+        scene: dark,
+        senses: { ids: [SRD_DEVILS_SIGHT_SENSE_ID], feet: 120 },
+        conditionIds: [BLINDED]
+      })
+    ).toBe('UNSEEN')
   })
 })

@@ -171,42 +171,49 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         choiceOptions: choiceOptionsSchema
       }),
       /**
-       * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word);
+       * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word), or
+       * any number of them, each once, when `maxTargets` is absent (Pass without Trace);
        * `area` is the sphere the picks must stand in, centered on a point the user also picks,
        * null when the spell names creatures without a shape. With `allowRepeatedTargets` each pick
        * is one projectile (Magic Missile's dart), so the same creature may be picked up to
-       * `maxTargets` times.
+       * `maxTargets` times, which a repeating list always names.
        */
-      z.strictObject({
-        kind: z.literal('ACTORS'),
-        maxTargets: z.number().check(z.int()).check(z.positive()),
-        area: z.nullable(
-          z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+      z
+        .strictObject({
+          kind: z.literal('ACTORS'),
+          maxTargets: z.optional(z.number().check(z.int()).check(z.positive())),
+          area: z.nullable(
+            z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+          ),
+          allowRepeatedTargets: z.optional(z.literal(true)),
+          /**
+           * The forms the creatures may take (Giant Insect); the user picks one and each caps the
+           * picks at its own `maxTargets`. Absent for an action that authors none.
+           */
+          forms: z.optional(
+            z
+              .array(
+                z.strictObject({
+                  id: postgresUuidSchema,
+                  label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+                  maxTargets: z.number().check(z.int()).check(z.positive())
+                })
+              )
+              .check(z.minLength(1))
+          ),
+          /**
+           * The action lets the user name any Creature as the form (Polymorph); the Worker checks it
+           * against the action's filter at cast.
+           */
+          choosesCreatureForm: z.optional(z.literal(true)),
+          /** The options the caster picks one of at cast (D148); absent for an action with none. */
+          choiceOptions: choiceOptionsSchema
+        })
+        .check(
+          z.refine((target) => !target.allowRepeatedTargets || target.maxTargets !== undefined, {
+            message: 'A list that repeats creatures names its cap.'
+          })
         ),
-        allowRepeatedTargets: z.optional(z.literal(true)),
-        /**
-         * The forms the creatures may take (Giant Insect); the user picks one and each caps the
-         * picks at its own `maxTargets`. Absent for an action that authors none.
-         */
-        forms: z.optional(
-          z
-            .array(
-              z.strictObject({
-                id: postgresUuidSchema,
-                label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
-                maxTargets: z.number().check(z.int()).check(z.positive())
-              })
-            )
-            .check(z.minLength(1))
-        ),
-        /**
-         * The action lets the user name any Creature as the form (Polymorph); the Worker checks it
-         * against the action's filter at cast.
-         */
-        choosesCreatureForm: z.optional(z.literal(true)),
-        /** The options the caster picks one of at cast (D148); absent for an action with none. */
-        choiceOptions: choiceOptionsSchema
-      }),
       z.extend(pointTargetSchema, choosesUnaffectedShape()),
       z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
       z.extend(wallTargetSchema, choosesUnaffectedShape()),

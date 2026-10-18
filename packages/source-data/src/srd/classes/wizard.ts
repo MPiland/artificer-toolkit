@@ -789,13 +789,23 @@ export const wizard: ClassAuthored = {
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: wizardSpellIdsAtLevel(3),
-            attributes: [SPELL_GRANT_ATTRIBUTE.PREPARED, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            attributes: [
+              SPELL_GRANT_ATTRIBUTE.PREPARED,
+              SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
+              SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+            ],
             castAtLevel: 3,
+            charges: {
+              id: classRowId(WZ, 0x51, 3),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'SHORT_REST',
+              amount: 1
+            },
             order: 0
           }
         ]
       },
-      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_WIZARD_SIGNATURE_SPELLS)],
       availableAtLevel: 20,
       order: 12
     }

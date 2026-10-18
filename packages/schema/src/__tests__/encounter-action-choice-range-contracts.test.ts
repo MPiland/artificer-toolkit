@@ -46,3 +46,26 @@ describe('encounter action choice range', () => {
       expect(encounterActionChoiceDtoSchema.safeParse({ ...choice, range }).success).toBe(false)
   })
 })
+
+describe('encounter action chosen creatures (SPELLS-4.T2a3)', () => {
+  const actors = { kind: 'ACTORS' as const, area: null }
+
+  it('parses a list with no cap', () => {
+    expect(encounterActionChoiceDtoSchema.parse({ ...choice, target: actors }).target).toEqual(
+      actors
+    )
+  })
+
+  it('requires the cap of a list that repeats creatures', () => {
+    const repeating = { ...actors, allowRepeatedTargets: true }
+    expect(encounterActionChoiceDtoSchema.safeParse({ ...choice, target: repeating }).success).toBe(
+      false
+    )
+    expect(
+      encounterActionChoiceDtoSchema.safeParse({
+        ...choice,
+        target: { ...repeating, maxTargets: 3 }
+      }).success
+    ).toBe(true)
+  })
+})

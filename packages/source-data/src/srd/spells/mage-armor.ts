@@ -1,18 +1,26 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  EQUIPMENT_CATEGORY_CODE,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SUBJECT,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
+import { equippedCategoryRestriction } from '../classes/mechanics.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const mageArmor: SpellAuthored = {
@@ -66,8 +74,28 @@ export const mageArmor: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MAGE_ARMOR, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MAGE_ARMOR' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.MAGE_ARMOR, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.SET_VALUE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { amount: 13, abilities: [ABILITY_CODE.DEXTERITY] },
+                      order: 1,
+                      // A base armor class formula that applies only while the target wears no armor.
+                      restrictions: equippedCategoryRestriction(
+                        (entry) => spellChildId(SPELL_IDS.MAGE_ARMOR, 0x215, entry + 1),
+                        'EXCLUDE',
+                        [EQUIPMENT_CATEGORY_CODE.ARMOR]
+                      )
+                    }
+                  ]
+                }
               }
             ]
           }
