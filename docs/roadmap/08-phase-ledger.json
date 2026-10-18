@@ -11271,7 +11271,7 @@
             },
             {
               "id": "SPELLS-32.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -11280,11 +11280,12 @@
                 "size": 1,
                 "after": ["SPELLS-32.T1"]
               },
-              "text": "C: delete the description-only kinds and their CLOSED_RULE outcomes; keep descriptions (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
+              "text": "C: delete the description-only kinds and their CLOSED_RULE outcomes; keep descriptions (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
             },
             {
               "id": "SPELLS-32.T3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -11293,7 +11294,8 @@
                 "size": 1,
                 "after": ["SPELLS-32.T1"]
               },
-              "text": "A: Halfling Brave as a saving throw advantage (Steel Will pattern) (1 kind). Dwarven Resilience moved to T4j.. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
+              "text": "A: Halfling Brave as a saving throw advantage (Steel Will pattern) (1 kind). Dwarven Resilience moved to T4j.. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
             },
             {
               "id": "SPELLS-32.T4j",
@@ -11373,7 +11375,7 @@
             },
             {
               "id": "SPELLS-33.T2a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11382,11 +11384,12 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "C: delete the 13 unreferenced kinds, the leftover ON_HIT_POISON_SAVE rule, and the innate and slot spellcasting kinds whose spells are already SPELL_GRANT entries (35 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "C: delete the 13 unreferenced kinds, the leftover ON_HIT_POISON_SAVE rule, and the innate and slot spellcasting kinds whose spells are already SPELL_GRANT entries (35 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11395,11 +11398,12 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "C: delete the remaining description-only kinds; keep descriptions; snapshot and parity checks (44 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "C: delete the remaining description-only kinds; keep descriptions; snapshot and parity checks (44 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11408,11 +11412,12 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, Draining Kiss, damage-or-grapple choices, self teleports, attach and grapple riders, Cloaker Moan filter (15 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, Draining Kiss, damage-or-grapple choices, self teleports, attach and grapple riders, Cloaker Moan filter (15 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11421,7 +11426,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4c",
