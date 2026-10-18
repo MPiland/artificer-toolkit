@@ -40,6 +40,12 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
   )
 )
 
+/** Temporary hit points and the active effect that gave them, absent when none did (D156). */
+const encounterTemporaryHitPointsShape = lazySchemaParts(() => ({
+  tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+  tempHitPointsSourceEffectId: z.optional(postgresUuidSchema)
+}))
+
 /**
  * The Character's projected health and conditions when the Run stopped reading it: when the Run
  * completed, or when the Character left the Campaign while the Run was open. Null while the Run
@@ -117,7 +123,7 @@ const encounterCharacterFormSchema = lazySchema(() =>
       snapshot: jsonValueSchema,
       currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
       maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-      tempHitPoints: z.number().check(z.int()).check(z.nonnegative())
+      ...encounterTemporaryHitPointsShape()
     })
   )
 )
@@ -126,7 +132,7 @@ const encounterCharacterFormSchema = lazySchema(() =>
 const encounterRunActorHealthShape = lazySchemaParts(() => ({
   currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
   maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-  tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
+  ...encounterTemporaryHitPointsShape(),
   conditions: jsonValueSchema,
   /** Set in the commit whose damage reduces the actor to 0 hit points; cleared by regaining any. */
   defeated: z.boolean()

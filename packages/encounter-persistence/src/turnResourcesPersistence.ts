@@ -33,7 +33,8 @@ import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/chara
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  damageTakenEndedEffects,
+  endedEffectReleaseKey
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
@@ -261,10 +262,10 @@ export async function persistEncounterTurnResources(
         (release) =>
           !application.applications.some(
             (planned) =>
-              planned.kind === 'CONDITION_REMOVE' &&
+              (planned.kind === 'CONDITION_REMOVE' ||
+                planned.kind === 'TEMPORARY_HIT_POINTS_RELEASE') &&
               planned.sourceOperationKey === release.sourceOperationKey &&
-              planned.sourceActiveEffectId === release.sourceActiveEffectId &&
-              planned.conditionId === release.conditionId
+              endedEffectReleaseKey(planned) === endedEffectReleaseKey(release)
           )
       )
     )

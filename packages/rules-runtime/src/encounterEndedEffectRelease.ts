@@ -1,8 +1,8 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type {
-  CharacterConditionRemoveOutcomeApplication,
+  CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
@@ -10,22 +10,24 @@ import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 
 /**
- * The conditions an event-ended effect alone held, released from its holder. A condition stays when
- * the holder had it before the effect or another effect on the holder still owns it. The holder's
+ * What event-ended effects release from their holder: the conditions they alone held, then the
+ * temporary hit points each owning effect gave (D156). A condition stays when the holder had it
+ * before the effect or another effect on the holder still owns it; temporary hit points leave only
+ * while the ended effect is still the pool's source, which the holder's fold decides. The holder's
  * mechanics batch applies these in the same transaction as the effects' deletion.
  */
-export function endedEffectConditionReleases(input: {
+export function endedEffectReleases(input: {
   holderActorId: string
   /** Every effect the holder carries before the event. */
   held: readonly ActiveRuleEffectRecord[]
   ended: readonly ActiveRuleEffectRecord[]
-}): CharacterConditionRemoveOutcomeApplication[] {
+}): CharacterEndedEffectReleaseApplication[] {
   const endedIds = new Set(input.ended.map(({ id }) => id))
   const released = endedMaintenanceConditions(
     input.ended,
     input.held.filter(({ id }) => !endedIds.has(id))
   )
-  return [...released].sort().map((conditionId) => {
+  const conditionReleases = [...released].sort().map((conditionId) => {
     const owner = input.ended.find(
       ({ definition }) =>
         definition.schemaVersion === 2 &&
@@ -36,16 +38,55 @@ export function endedEffectConditionReleases(input: {
     )
     if (!owner) throw new Error('An ended effect released a condition it does not own.')
     return {
-      kind: 'CONDITION_REMOVE',
+      kind: 'CONDITION_REMOVE' as const,
       conditionId,
       sourceActiveEffectId: owner.id,
       targetActorId: input.holderActorId,
       sourceNodeId: owner.definition.frozenGraphNodeId,
-      sourceOperationKey: ENDED_EFFECT_CONDITION_OPERATION_KEY,
+      sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
       authoredPath: null,
       resolvedPath: null
     }
   })
+  const temporaryReleases = input.ended
+    .filter(
+      ({ definition }) =>
+        definition.schemaVersion === 2 &&
+        definition.stateContributions.some(
+          (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
+        )
+    )
+    .map((owner) => ({
+      kind: 'TEMPORARY_HIT_POINTS_RELEASE' as const,
+      sourceActiveEffectId: owner.id,
+      targetActorId: input.holderActorId,
+      sourceNodeId: owner.definition.frozenGraphNodeId,
+      sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
+      authoredPath: null,
+      resolvedPath: null
+    }))
+  return [...conditionReleases, ...temporaryReleases]
+}
+
+/**
+ * What an effect's own expiry at a turn boundary releases from its holder: the temporary hit points
+ * it gave (D156). Its conditions follow the turn's retained-condition rule instead.
+ */
+export function expiredEffectReleases(effect: ActiveRuleEffectRecord, holderActorId: string) {
+  return endedEffectReleases({ holderActorId, held: [effect], ended: [effect] }).filter(
+    (release) => release.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+  )
+}
+
+/** Names one ended-effect release, so a persisted plan can be checked against the releases it owes. */
+export function endedEffectReleaseKey(
+  release:
+    | { kind: 'CONDITION_REMOVE'; sourceActiveEffectId?: string; conditionId: string }
+    | { kind: 'TEMPORARY_HIT_POINTS_RELEASE'; sourceActiveEffectId: string }
+) {
+  return release.kind === 'CONDITION_REMOVE'
+    ? `${release.sourceActiveEffectId}:${release.conditionId}`
+    : `${release.sourceActiveEffectId}:temporary-hit-points`
 }
 
 /**
@@ -98,7 +139,7 @@ export function damageTakenEndedEffects(input: {
     : []
   return {
     endedEffects,
-    releases: endedEffectConditionReleases({
+    releases: endedEffectReleases({
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
@@ -131,7 +172,7 @@ export function actionUsedOnHolderEndedEffects(input: {
         )
   return {
     endedEffects,
-    releases: endedEffectConditionReleases({
+    releases: endedEffectReleases({
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
@@ -192,7 +233,7 @@ export function actionEndedEffects(input: {
   const consumedGrants = input.held.filter(({ id }) => ended.has(id))
   return {
     consumedGrants,
-    sourceReleases: endedEffectConditionReleases({
+    sourceReleases: endedEffectReleases({
       holderActorId: input.holderActorId,
       held: input.held,
       ended: consumedGrants

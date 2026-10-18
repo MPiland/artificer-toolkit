@@ -7169,6 +7169,7 @@ function testApplications(
       if (
         application.kind === 'CONDITION_APPLY' ||
         application.kind === 'CONDITION_REMOVE' ||
+        application.kind === 'TEMPORARY_HIT_POINTS_RELEASE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
@@ -7884,6 +7885,7 @@ function interpretDirect(
       if (
         application.kind === 'CONDITION_APPLY' ||
         application.kind === 'CONDITION_REMOVE' ||
+        application.kind === 'TEMPORARY_HIT_POINTS_RELEASE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||

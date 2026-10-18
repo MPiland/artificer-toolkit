@@ -167,7 +167,9 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
     expect(endedIds({ makesAttackRoll: false })).toEqual([])
     // The attack also releases the Invisible condition the trait alone held.
     expect(
-      ended({ makesAttackRoll: true }).sourceReleases.map(({ conditionId }) => conditionId)
+      ended({ makesAttackRoll: true }).sourceReleases.map((release) =>
+        release.kind === 'CONDITION_REMOVE' ? release.conditionId : release.kind
+      )
     ).toEqual([INVISIBLE])
   })
 

@@ -279,8 +279,11 @@ interface CharacterHitPointOutcomeApplicationBase {
 }
 
 export type CharacterHitPointOutcomeApplication =
+  | (CharacterHitPointOutcomeApplicationBase & { kind: 'HEAL' })
   | (CharacterHitPointOutcomeApplicationBase & {
-      kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'
+      kind: 'TEMPORARY_HIT_POINTS'
+      /** The active effect the temporary hit points belong to, absent when none (D156). */
+      sourceActiveEffectId?: string
     })
   | (CharacterHitPointOutcomeApplicationBase & {
       kind: 'DAMAGE'
@@ -311,6 +314,22 @@ export interface CharacterConditionRemoveOutcomeApplication {
   sourceActiveEffectId: string
   targetActorId: string
 }
+
+/** An ended effect's temporary hit points leave its holder while it is still their source (D156). */
+export interface CharacterTemporaryHitPointsReleaseApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'TEMPORARY_HIT_POINTS_RELEASE'
+  sourceActiveEffectId: string
+  targetActorId: string
+}
+
+/** The holder's state an ended effect releases: its sole-owned conditions and its temporary hit points. */
+export type CharacterEndedEffectReleaseApplication =
+  | CharacterConditionRemoveOutcomeApplication
+  | CharacterTemporaryHitPointsReleaseApplication
 
 /** A System-authorized stabilize: a dying Character becomes stable, anything else is unchanged. */
 export interface CharacterStabilizeOutcomeApplication {
@@ -373,6 +392,7 @@ export type CharacterRuleActionApplication =
   | CharacterHitPointOutcomeApplication
   | CharacterConditionApplyOutcomeApplication
   | CharacterConditionRemoveOutcomeApplication
+  | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication

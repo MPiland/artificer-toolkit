@@ -15,6 +15,12 @@ import {
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
+import {
+  temporaryHitPointsAfterGrant,
+  temporaryHitPointsAfterLoss,
+  temporaryHitPointsAfterRelease,
+  type TemporaryHitPointsPool
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { z } from 'zod'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -62,15 +68,35 @@ export type TargetState<
   deathSaves: TDeathSaves
   currentHitPoints: number
   temporaryHitPoints: number
+  /** The active effect whose temporary hit points these are; absent when none (D156). */
+  temporaryHitPointsSourceEffectId?: string
   maximumHitPoints: number
   conditionIds: string[]
   scalarValues: Record<string, number>
 }
 
-/** The checksum binds the interpreted target facts, which exclude death saves (D96). */
+/** The checksum binds the interpreted target facts, which exclude death saves (D96) and the temporary hit point source (D156). */
 export function targetTransitionChecksum(actorId: string, before: TargetState): string {
-  const { deathSaves: _deathSaves, ...interpretedFacts } = before
+  const {
+    deathSaves: _deathSaves,
+    temporaryHitPointsSourceEffectId: _temporaryHitPointsSourceEffectId,
+    ...interpretedFacts
+  } = before
   return checksumRuleDocument({ targetActorId: actorId, ...interpretedFacts })
+}
+
+/** The source joins the target facts only when an effect holds the pool, so sourceless facts stay as they were. */
+function temporarySourceFact(sourceEffectId: string | null) {
+  return sourceEffectId === null ? {} : { temporaryHitPointsSourceEffectId: sourceEffectId }
+}
+
+export function targetTemporaryHitPoints(
+  state: Pick<TargetState, 'temporaryHitPoints' | 'temporaryHitPointsSourceEffectId'>
+): TemporaryHitPointsPool {
+  return {
+    amount: state.temporaryHitPoints,
+    sourceEffectId: state.temporaryHitPointsSourceEffectId ?? null
+  }
 }
 
 export function readEncounterActorConditionState(input: unknown): {
@@ -101,6 +127,8 @@ export function foldCharacterMechanicsApplications<
   targetActorId: string
   currentHitPoints: number
   temporaryHitPoints: number
+  /** The active effect whose temporary hit points these are, null or absent when none (D156). */
+  temporaryHitPointsSourceEffectId?: string | null
   maximumHitPoints: number
   /** A Character's death saves; null for an actor that is simply defeated at 0 (D63). */
   deathSaves: TDeathSaves
@@ -164,12 +192,14 @@ export function foldCharacterMechanicsApplications<
     deathSaves: input.deathSaves,
     currentHitPoints: input.currentHitPoints,
     temporaryHitPoints: input.temporaryHitPoints,
+    ...temporarySourceFact(input.temporaryHitPointsSourceEffectId ?? null),
     maximumHitPoints: input.maximumHitPoints,
     conditionIds: [...input.conditionIds],
     scalarValues: { ...(input.scalarValues ?? {}) }
   }
   let current = before.currentHitPoints
   let temporary = before.temporaryHitPoints
+  let temporarySource = before.temporaryHitPointsSourceEffectId ?? null
   let maximum = before.maximumHitPoints
   let deathSaves: CharacterDeathSaves | null = before.deathSaves
   const conditions = new Set(before.conditionIds)
@@ -229,6 +259,27 @@ export function foldCharacterMechanicsApplications<
           resolvedPath: application.resolvedPath
         })
       }
+      continue
+    }
+    if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
+      const beforeTemporaryHitPoints = temporary
+      const applied = temporarySource === application.sourceActiveEffectId
+      ;({ amount: temporary, sourceEffectId: temporarySource } = temporaryHitPointsAfterRelease(
+        { amount: temporary, sourceEffectId: temporarySource },
+        application.sourceActiveEffectId
+      ))
+      receipt.push({
+        ordinal,
+        kind: 'TEMPORARY_HIT_POINTS_RELEASE',
+        sourceActiveEffectId: application.sourceActiveEffectId,
+        beforeTemporaryHitPoints,
+        afterTemporaryHitPoints: temporary,
+        applied,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
       continue
     }
     if (application.kind === 'STABILIZE') {
@@ -388,7 +439,12 @@ export function foldCharacterMechanicsApplications<
       )
         throw new EncounterValidationError('The Character heal application is invalid.')
     } else if (application.kind === 'TEMPORARY_HIT_POINTS') {
-      const afterTemporaryHitPoints = Math.max(temporary, application.resolvedAmount)
+      const granted = temporaryHitPointsAfterGrant(
+        { amount: temporary, sourceEffectId: temporarySource },
+        { amount: application.resolvedAmount, sourceEffectId: application.sourceActiveEffectId ?? null }
+      )
+      const afterTemporaryHitPoints = granted.amount
+      temporarySource = granted.sourceEffectId
       if (
         application.resolvedAmount !== application.requestedAmount ||
         application.appliedAmount !== afterTemporaryHitPoints - temporary ||
@@ -404,6 +460,10 @@ export function foldCharacterMechanicsApplications<
         application.requestedAmount
       )
       const temporaryLost = Math.min(temporary, resolvedAmount)
+      temporarySource = temporaryHitPointsAfterLoss(
+        { amount: temporary, sourceEffectId: temporarySource },
+        temporaryLost
+      ).sourceEffectId
       const currentLost = Math.min(current, resolvedAmount - temporaryLost)
       if (
         application.resolvedAmount !== resolvedAmount ||
@@ -446,6 +506,7 @@ export function foldCharacterMechanicsApplications<
     deathSaves: deathSaves as TDeathSaves,
     currentHitPoints: current,
     temporaryHitPoints: temporary,
+    ...temporarySourceFact(temporarySource),
     maximumHitPoints: maximum,
     conditionIds: [...conditions],
     scalarValues
@@ -459,6 +520,7 @@ export function foldCharacterMechanicsApplications<
     stateChanged:
       before.currentHitPoints !== after.currentHitPoints ||
       before.temporaryHitPoints !== after.temporaryHitPoints ||
+      before.temporaryHitPointsSourceEffectId !== after.temporaryHitPointsSourceEffectId ||
       before.maximumHitPoints !== after.maximumHitPoints ||
       JSON.stringify(before.deathSaves) !== JSON.stringify(after.deathSaves) ||
       before.conditionIds.length !== after.conditionIds.length ||

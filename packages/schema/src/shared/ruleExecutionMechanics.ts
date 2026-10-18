@@ -28,6 +28,18 @@ const characterMechanicsApplicationTraceDtoSchema = lazySchema(() =>
     resolvedPath: z.nullable(identifierSchema)
   })
 )
+const characterMechanicsHitPointAmountsDtoSchema = lazySchema(() =>
+  z.strictObject({
+    requestedAmount: integerSchema.check(z.gte(1)),
+    resolvedAmount: integerSchema.check(z.gte(0)),
+    appliedAmount: integerSchema.check(z.gte(0)),
+    beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+    afterCurrentHitPoints: integerSchema.check(z.gte(0)),
+    beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
+    afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
+    maximumHitPoints: integerSchema.check(z.gte(0))
+  })
+)
 export const damageDispositionDtoSchema = lazySchema(() =>
   z.enum(['NORMAL', 'IMMUNE', 'RESISTANT', 'VULNERABLE', 'RESISTANT_AND_VULNERABLE'])
 )
@@ -55,15 +67,26 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       ordinal: receiptOrdinalSchema,
-      kind: z.enum(['HEAL', 'TEMPORARY_HIT_POINTS']),
-      requestedAmount: integerSchema.check(z.gte(1)),
-      resolvedAmount: integerSchema.check(z.gte(0)),
-      appliedAmount: integerSchema.check(z.gte(0)),
-      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
-      afterCurrentHitPoints: integerSchema.check(z.gte(0)),
+      kind: z.literal('HEAL'),
+      ...characterMechanicsHitPointAmountsDtoSchema.shape,
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('TEMPORARY_HIT_POINTS'),
+      ...characterMechanicsHitPointAmountsDtoSchema.shape,
+      /** The active effect the temporary hit points belong to, absent when none (D156). */
+      sourceActiveEffectId: z.optional(uuidSchema),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('TEMPORARY_HIT_POINTS_RELEASE'),
+      /** The ended effect; the pool is lost only while that effect is still its source (D156). */
+      sourceActiveEffectId: uuidSchema,
       beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
       afterTemporaryHitPoints: integerSchema.check(z.gte(0)),
-      maximumHitPoints: integerSchema.check(z.gte(0)),
+      applied: z.boolean(),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({
@@ -162,6 +185,8 @@ export const characterMechanicsTargetStateDtoSchema = lazySchema(() =>
     .strictObject({
       currentHitPoints: integerSchema.check(z.gte(0)),
       temporaryHitPoints: integerSchema.check(z.gte(0)),
+      /** The active effect whose temporary hit points these are, absent when none (D156). */
+      temporaryHitPointsSourceEffectId: z.optional(uuidSchema),
       maximumHitPoints: integerSchema.check(z.gte(0)),
       scalarValues: z._default(z.record(uuidSchema, integerSchema.check(z.gte(0))), {}),
       conditionIds: z.array(uuidSchema).check(z.maxLength(200)),
@@ -249,25 +274,31 @@ export const encounterActorActiveEffectCreateReceiptDtoSchema = lazySchema(() =>
     maintainedEffectStateId: z.optional(z.nullable(uuidSchema))
   })
 )
-/** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
-/** Names a condition an ended effect released, in the receipt (there is no graph node to cite). */
-export const ENDED_EFFECT_CONDITION_OPERATION_KEY = 'active-effect.ended'
+/** Names what an ended effect released, in the receipt (there is no graph node to cite). */
+export const ENDED_EFFECT_RELEASE_OPERATION_KEY = 'active-effect.ended'
+
+/** An ended effect releases its sole-owned conditions and its temporary hit points (D156). */
+export function isEndedEffectRelease<T extends { kind: string }>(
+  application: T
+): application is Extract<T, { kind: 'CONDITION_REMOVE' | 'TEMPORARY_HIT_POINTS_RELEASE' }> {
+  return application.kind === 'CONDITION_REMOVE' || application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+}
 
 /**
  * What the acting source's own state changed with its action, apart from the target's outcome: the
- * conditions an effect that ended on the event held alone (SPELLS-27.T2, D125). Only releases are
- * receipted, because undo restores exactly those.
+ * conditions an effect that ended on the event held alone and that effect's temporary hit points
+ * (SPELLS-27.T2, D125, D156). Only releases are receipted, because undo restores exactly those.
  */
 export const sourceApplicationsDtoSchema = lazySchema(() =>
   z.array(characterMechanicsApplicationDtoSchema).check(
     z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER),
     z.superRefine((applications, context) => {
       for (const [index, application] of applications.entries())
-        if (application.kind !== 'CONDITION_REMOVE' || application.ordinal !== index)
+        if (!isEndedEffectRelease(application) || application.ordinal !== index)
           context.addIssue({
             code: 'custom',
             path: [index],
-            message: 'Source applications are contiguous condition releases.'
+            message: 'Source applications are contiguous ended-effect releases.'
           })
     })
   )
@@ -284,7 +315,10 @@ export function sourceApplicationsChangeState(
   return (
     sourceCharacterId !== null &&
     applications.some(
-      (application) => application.kind === 'CONDITION_REMOVE' && application.applied
+      (application) =>
+        (application.kind === 'CONDITION_REMOVE' ||
+          application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') &&
+        application.applied
     )
   )
 }

@@ -3,7 +3,7 @@ import type { EncounterCharacterMechanicsEventPhase } from './encounterCharacter
 import { featureChargeUsed, withFeatureChargeUsed } from './encounterActorState.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
-  CharacterConditionRemoveOutcomeApplication,
+  CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
@@ -38,22 +38,22 @@ export type NativeEncounterActionMechanicsInput = {
   applications: readonly CharacterRuleActionApplication[]
   /**
    * The conditions the source's effects that ended on this action's event held alone
-   * (`endedEffectConditionReleases`), applied to the source in the same transaction as the
+   * (`endedEffectReleases`), applied to the source in the same transaction as the
    * effects' deletion. An action that targets its own source applies them first on that one batch,
    * so the condition it releases is gone before the outcome adds its own.
    */
-  sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  sourceReleases?: readonly CharacterEndedEffectReleaseApplication[]
   /**
    * The conditions released for a reacting Character that is this action's target (a Shield cast
    * against the attack on its caster), applied first on the target's batch.
    */
-  targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  targetReleases?: readonly CharacterEndedEffectReleaseApplication[]
   /**
    * The conditions the target's effects that this action's damage ended held alone
    * (`damageTakenEndedEffects`), applied to the target after the outcome in the same transaction as
    * the effects' deletion.
    */
-  damageReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  damageReleases?: readonly CharacterEndedEffectReleaseApplication[]
   forceTargetVersionAdvance?: boolean
   /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
   enterForm?: EncounterMechanicsBatchInput['enterForm']

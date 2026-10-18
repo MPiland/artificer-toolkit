@@ -1,5 +1,9 @@
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
 import {
+  temporaryHitPointsSet,
+  withCharacterTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+import {
   clampCharacterCurrentHitPoints,
   formatCharacterHitDiceRollExpression,
   resolveCharacterEffectiveMaximumHitPoints,
@@ -422,7 +426,10 @@ export function applyCompletedCharacterRest(params: {
       params.restPolicy.hitDiceRecoveredAfterLongRest
     )
     next.state.hitpoints.current = preview.hitPoints.maximum
-    next.state.hitpoints.temp = 0
+    next.state.hitpoints = withCharacterTemporaryHitPoints(
+      next.state.hitpoints,
+      temporaryHitPointsSet(0)
+    )
     next.state.hitpoints.hitDice = characterHitDice.hitDice
     next.state.spellSlots = undefined
     recoveredHitDice = characterHitDice.recovered

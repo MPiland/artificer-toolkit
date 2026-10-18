@@ -284,7 +284,9 @@ const refineSpatialExecutionEvidence = (
         trace.outputs.targetActorId === value.candidate.candidate.targetActorId &&
         (trace.outputs.authoredPath ?? null) === application.authoredPath &&
         (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-        (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
+        (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+          ? false
+          : application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
           ? trace.outputs.conditionId === application.conditionId
           : application.kind === 'STABILIZE' || application.kind === 'DEPART'
             ? true
