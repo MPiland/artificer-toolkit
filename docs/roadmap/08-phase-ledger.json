@@ -6010,36 +6010,37 @@
           "id": "ATTACK-7",
           "title": "Grapple and shove",
           "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/encounters/srdCreatureHitRiders.test.ts"],
+          "journeyTests": [
+            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
+            "apps/session-worker/test/nativeRoomGrappleContest.test.ts",
+            "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts"
+          ],
           "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
               "text": "The Grapple basic action is offered only to a Character, or a Creature of a hand-bearing type, with a free hand. It replaces one attack of the Attack action against a creature within reach and no more than one size larger: the grappler's Athletics is contested by the target's choice of Athletics or Acrobatics (rolled by its controller), and a win applies Grappled owned by the grappler, with at most 2 creatures held at once through this action. With both hands holding weapons, the actor is prompted to stow one for free; a held shield cannot be stowed this way. Each creature held occupies a hand until the grapple ends.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomGrappleContest.test.ts"],
               "origin": [],
               "note": "D105 slice C, D106 and D107. Refined 2026-10-10 into 7.1 and 7.3-7.8 (rul-9-rules-audit.md slice 2); the Grapple Limit stat was dropped 2026-10-10 for per-outcome held-at-once counts.",
               "id": "ATTACK-7.1"
             },
             {
               "text": "A grappled creature can use its Action to escape with one of the grapple's authored checks, against its fixed escape DC or contested by the grappler's authored check; success ends the grapple.",
-              "status": "IN_PROGRESS",
-              "proof": [
-                "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
-                "apps/session-worker/test/nativeRoomEscapeAction.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts",
-                "packages/encounter-persistence/src/__tests__/escapeEffectVerification.test.ts",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx"
-              ],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomGrappleContest.test.ts"],
               "origin": [],
               "note": "D105 slice B (fixed DC) done 2026-10-11: the Giant Toad journey offers the DC 13 escape, a d20 20 frees the Character (Grappled and Restrained removed) and a 1 keeps it; the room, Convex re-verification and drawer tests cover the rest. The contested escape is slice C.",
               "id": "ATTACK-7.3"
             },
             {
               "text": "The grappler can release a grapple at any time with no action; a grapple ends when the grappler can't act, or when any movement leaves the grappled creature outside the grappler's reach.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterRelationshipEnds.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice D.",
               "id": "ATTACK-7.4"
@@ -6116,31 +6117,33 @@
             {
               "id": "ATTACK-7.T3m",
               "text": "D152: move Disarm and the movement-passage contests (Overrun, Tumble, Shove Aside) onto the one ENCOUNTER_CONTEST_CHECK context with a discriminated source; own commit and green run before the grapple contest uses it.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 8,
                 "size": 3
-              }
+              },
+              "note": "Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T3",
               "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.1", "ATTACK-7.3"],
-              "note": "D152 contracts approved 2026-10-17; T4 follows in the same session."
+              "note": "D152 contracts approved 2026-10-17; T4 follows in the same session. Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T4",
               "text": "Slice D: release with no action, and the end sweeps (grappler can't act; movement leaves the sealed reach).",
-              "status": "TODO",
-              "closes": ["ATTACK-7.4"]
+              "status": "DONE",
+              "closes": ["ATTACK-7.4"],
+              "note": "Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-7.4"],
               "wsjf": {
                 "bv": 2,
@@ -6149,7 +6152,8 @@
                 "size": 3,
                 "after": ["ATTACK-7.T4"]
               },
-              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control."
+              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control.",
+              "note": "Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T5a",
@@ -6166,9 +6170,10 @@
             },
             {
               "id": "ATTACK-7.T5",
-              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.7"]
+              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a. D157: chosen destinations pause on FORCED_MOVEMENT_DESTINATION; the web picks on the Scene board with keyboard-focusable highlighted squares (generic square-pick mode), no drawer list. Browser test of the board pick.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.7"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T6",
@@ -7711,7 +7716,7 @@
             },
             {
               "id": "SPELLS-4.T1g",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7721,20 +7726,334 @@
                 "after": ["SPELLS-4.T1e"]
               },
               "text": "Cast-time area save on a zone-placing cast (D154 T1g amendment): the spell authors an ON_USE save path beside its zone manifest, run as the cast's area occurrence against the creatures in the aimed area, once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns, Wind Wall and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each.",
+              "note": "Appear saves authored as ON_USE area saves beside the zone (D154 T1g amendment) on Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns, Incendiary Cloud and Wind Wall; trigger-less zones persist. Proofs: apps/session-worker/test/nativeRoomZoneAppearSave.test.ts, apps/session-worker/test/nativeRoomHazardZoneSpells.test.ts. Green: ci/spells-4-t1g ad5c0c473 Tests 39128570110, Live 39128570123; phase merge 95d18999f (fast path; backstop ci/merge-m110)."
+            },
+            {
+              "id": "SPELLS-4.T1h",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1g"]
+              },
+              "text": "Spike Growth from core options (D156 T1h amendment): a zone component option perDistanceMoved emits one movement candidate per whole 5 ft moved inside the area, each running the compiled 2d4 behavior at the step where it completes; Spike Growth authors it with a ×2 movement cost; CLOSED_RULE SPIKE_GROWTH deleted. Room journey, including forced movement. Its camouflage stays with MOVE-3.4.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "id": "SPELLS-4.T2",
-              "text": "Convert the remaining closed rules to core options and delete their kinds and resolvers.",
+              "id": "SPELLS-4.T1i",
+              "status": "DONE",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-4.T1g"]
+              },
+              "text": "Wall of Thorns room journey (D156): its entry and turn-end damage (7d8 slashing, Dex for half) and its ×4 movement cost, proved in an Encounter. Test-only.",
+              "note": "Proof: apps/session-worker/test/nativeRoomWallZoneSpells.test.ts (Wall of Thorns: placed wall, full and half damage passing through, turn-end damage, ×4 movement cost). Green: ci/spells-4-t1i 61847825d Tests 39131091086; phase merge 993cdf6a7 (fast path)."
+            },
+            {
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a1",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 13,
+                "size": 3,
                 "after": ["SPELLS-4.T1"]
-              }
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): AWAKEN, COLOR_SPRAY, COMPULSION, CONTACT_OTHER_PLANE, CONTAGION. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a2",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): ENHANCE_ABILITY, FAITHFUL_HOUND, FEEBLEMIND, FLAME_BLADE, FORESIGHT. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a3",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a4",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): PLANT_GROWTH, PRODUCE_FLAME, REGENERATE, SEE_INVISIBILITY, SEQUESTER. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a5",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2b",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert the 34 description-only closed rules (D156 T2 split, class C): remove each CLOSED_RULE outcome and kind, keep the description; a corpus test proves none remains and every description is intact."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2c",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: A rolled die added to or subtracted from d20 tests, optionally consumed on use. Converts BLESS, BANE, GUIDANCE, RESISTANCE, GLIBNESS, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2d",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: An executable typed extra damage die, optionally consumed on hit or limited to a marked target. Converts DIVINE_FAVOR, BRANDING_SMITE, HUNTERS_MARK, ENLARGE_REDUCE, BESTOW_CURSE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2e",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: A weapon-scoped modifier on a chosen held weapon. Converts SHILLELAGH, MAGIC_WEAPON, HEAT_METAL, EQUIPMENT_MAGIC_AMMUNITION, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2f",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Ending active effects or conditions by type, level or check. Converts DISPEL_MAGIC, LESSER_RESTORATION, GREATER_RESTORATION, REMOVE_CURSE, PROTECTION_FROM_POISON, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2g",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Reviving a dead creature, with a decaying d20 penalty. Converts REVIVIFY, RAISE_DEAD, RESURRECTION, TRUE_RESURRECTION, REINCARNATE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2h",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Removed-from-play state that returns at a boundary. Converts BANISHMENT, BLINK, ETHEREALNESS, MAZE, IMPRISONMENT, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2i",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Hit point threshold gates and outcomes. Converts POWER_WORD_KILL, POWER_WORD_STUN, DIVINE_WORD, DEATH_WARD, FINGER_OF_DEATH_ZOMBIE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2j",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Attacker or source qualifiers on grants. Converts PROTECTION_FROM_EVIL_AND_GOOD, HOLY_AURA, DISPEL_EVIL_AND_GOOD, STONESKIN, WIND_WALK, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2k",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Incoming-attack gates and decoys. Converts SANCTUARY, BLUR, TRUE_STRIKE, MIRROR_IMAGE, ENTHRALL, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2l",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2m",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2n",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Derived or modified healing. Converts BEACON_OF_HOPE, VAMPIRIC_TOUCH, WARDING_BOND, GOODBERRY, HEROES_FEAST, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2o",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2p",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2q",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2r",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Zone and aura miscellany. Converts GUARDIAN_OF_FAITH, ANTIPATHY_SYMPATHY, CONTINGENCY, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2s",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted."
             }
           ]
         },
@@ -9225,7 +9544,7 @@
               "id": "SPELLS-20.T4d",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
-              "text": "Half speed inside a zone, on SPELLS-4.T1b's zone movementCostMultiplier (D154): Spirit Guardians authors multiplier 2 for affected creatures only (the movement cost honors unaffected actors, the source and suppression), zone movement costs are projected in the session state, and the web movement preview uses them. Proved on Spirit Guardians.",
+              "text": "Half speed inside a zone, on SPELLS-4.T1b's zone movementCostMultiplier (D154): Spirit Guardians authors multiplier 2 for affected creatures only (the movement cost honors unaffected actors, the source and suppression), zone movement costs are projected in the session state, and the web movement preview uses them. Proved on Spirit Guardians. The same zone movement-cost path authors the difficult terrain of Web, Black Tentacles, Sleet Storm and Entangle (D156).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
@@ -10139,6 +10458,114 @@
                 "after": ["SPELLS-30.T1", "SPELLS-4.T1b"]
               },
               "text": "Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey."
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-31",
+          "title": "Class feature closed rules become core authoring options",
+          "status": "TODO",
+          "origin": ["Q25 answered A (user, 2026-10-18)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "SPELLS-31.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds.",
+              "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-31.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
+              },
+              "text": "Classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-32",
+          "title": "Racial trait closed rules become core authoring options",
+          "status": "TODO",
+          "origin": ["Q25 answered A (user, 2026-10-18)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 3
+          },
+          "acs": [
+            {
+              "id": "SPELLS-32.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: 14 racial trait closed-rule kinds.",
+              "text": "Every racial trait CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-32.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
+              },
+              "text": "Classify the racial trait closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-33",
+          "title": "Creature trait and action closed rules become core authoring options",
+          "status": "TODO",
+          "origin": ["Q25 answered A (user, 2026-10-18)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 2,
+            "rr": 3,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "SPELLS-33.1",
+              "status": "TODO",
+              "origin": [],
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds.",
+              "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-33.T1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
+              },
+              "text": "Classify the creature trait, action and reaction closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
             }
           ]
         }

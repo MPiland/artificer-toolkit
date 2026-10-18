@@ -271,7 +271,7 @@ Actions, Disarm and movement call preparation with `overridable: false` and keep
 inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), charges,
 the action allowance, created effects and maintained states). It refuses, naming the kind, removed
 conditions, replaced maintained effects, lost Concentration, Cleaving damage to a Character, Disarm and
-other contested actions; a second undo is refused. Its implementation is
+other contested actions (a contested `ESCAPE` too); a second undo is refused. Its implementation is
 `packages/encounter-persistence/src/actionRevert.ts`.
 
 ### Point-area actions (current, D103)
@@ -559,6 +559,17 @@ no band must not (`evaluateEncounterZoneTarget`: `SIDE_REQUIRED`, `SIDE_NOT_OFFE
 band as its own FIXED record (`planEncounterZoneBands`, geometry from `wallSideBandGeometry`: the wall plus the
 distance on that side), so every record a cast places is named on its root, removed by undo and ended with its
 Concentration together.
+A zone-placing cast may also author an ON_USE `SAVING_THROW` behavior beside the zone manifest (D154 amendment,
+SPELLS-4.T1g): the save each creature in the area makes once as the zone appears. The entry-point compiler runs it
+as the cast's `TEST_OUTCOME` plan against the zone's aimed area (the wall or ring itself, never its band; its compiler
+source carries `zoneAppearSave`, the only test whose area may be a `WALL`), and the
+Worker catches the area's creatures as for any area save, so answers, D100 perception, GM removal, Legendary
+Resistance, settlement and undo are the area occurrence's own (`prepareCasterSource` sets `appearSave`; the pending
+snapshot's `zoneAppearSave` keeps the catch on refresh). A zone with no component is placed with no triggers, one no
+creature interacts with (Wind Wall). Its appear save may hold its failed condition (`heldBySource`, Entangle): the
+zone carries the `heldCondition`, the cast's own timed condition plan is dropped, and `prepareNativeActionEffectsPlan`
+plans the hold (`planSpatialHeldCondition`) under the zone's Concentration; a zone with components cannot, and an
+appear save that holds its condition may contribute nothing else.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and
@@ -951,7 +962,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   feature and `BASIC_ACTION` sources), and the timeline entry returns it.
 - **Dodge** is an `APPLY_GRANT` until the start of the holder's next turn with an `ATTACKS_AGAINST` disadvantage modifier
   (`requiresHolderSeesAttacker`) and a Dexterity `SAVING_THROW_MODIFIER` advantage, both under the facet predicates `CAN_ACT` and
-  `SPEED_ABOVE_ZERO` (unknown contexts fail closed). `withEncounterHolderDefense` (`encounterHolderDefense.ts`) applies the grants
+  `SPEED_ABOVE_ZERO`, authored as one CHARACTER group and one CREATURE group (unknown contexts fail closed). `withEncounterHolderDefense` (`encounterHolderDefense.ts`) applies the grants
   to the target facts for attack and save resolution; the D100 sight rule drops the attack contributor only when the holder
   definitively can't see the attacker (`UNSEEN`). GM undo removes the grant and refunds the Action like any authored action.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
@@ -1040,9 +1051,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   restriction means every actor, Characters and Creatures alike. The check is `encounterBasicActionRestrictionsHold`
   (`encounterBasicActionRestrictions.ts`): it normalizes the facet with the grant-fold restriction normalizer and decides the holder-state
   predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
-  decision grant restrictions use; any other predicate fails closed. `FREE_HAND` is true while either hand is empty and reads
-  `resolveHandOccupancy` (D107): a Creature's hands come from its equipment loadout snapshot, a Character's from the `handFacts` rule
-  input (`characterHandRuleFacts.ts`, built from the equipped slots and the TWO_HANDED property). The capability descriptor carries the
+  decision grant restrictions use; any other predicate fails closed. Each CHARACTER or CREATURE context also normalizes to a
+  `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
+  Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
+  holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true
+  while more hands are empty than creatures the holder holds with a `SOURCE_OCCUPIES_HAND` relationship (`encounterSourceHandHolds`,
+  read from every Run actor's active effects) and reads `resolveHandOccupancy` (D107): a Creature's hands come from its equipment
+  loadout snapshot, a Character's from the `handFacts` rule input (`characterHandRuleFacts.ts`, built from the equipped slots and the
+  TWO_HANDED property). The capability descriptor carries the
   document's `restrictions`. The choices read (`actionChoiceReads.ts`) drops actions whose restrictions do not hold, and the Session Worker
   (`refuseUnmetBasicActionRestrictions`, after `prepareEncounterActionMechanics`) refuses an unmet one as `SOURCE_REQUIREMENTS_NOT_MET`
   before anything is planned. A homebrew copy of the catalogue keeps its `restrictions`, since they are part of the document.
@@ -1523,8 +1539,17 @@ effect (`endEncounterEscapedEffect` reconciles the maintenance owners on the Cha
 commit re-derives the escape from the holder's stored effect (`escapeEffectVerification.ts`) and refuses a
 plan whose DC, check, module or spent allowance the effect does not carry. A failure only spends the
 activation.
-`CONTEST` DCs, rescuers and release sweeps belong to later ATTACK-7 slices. A Help on the escaper applies to the
-escape check and is used up with it.
+A Help on the escaper applies to the escape check and is used up with it.
+
+**Contested escape (D152, ATTACK-7.3).** A holder effect whose `ESCAPE_CHECK` has `dc.kind === 'CONTEST'`
+(`findEncounterHolderContestEscape`) is offered as an escape with `dc: null`. The `ESCAPE` command then runs
+the one contest path (`prepareEncounterEscapeContest`, `planNativeLiveEscapeContest`): the escaper is the
+initiator with its picked check, the effect's source is the defender with the contest's authored checks, the
+origin is `ESCAPE` (`activeEffectId`, `initiatorCheckDefinitionId`, `actionLabel`) and the source is
+`HELD_EFFECT`. It commits the one `CONTESTED_ACTION` output with `policy: null`. `settleContestEscape` spends
+the activation; an escaper win ends the held effect through `endEncounterEscapedEffect` and records
+`RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
+applies. Undo refuses a contested escape like other contests.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

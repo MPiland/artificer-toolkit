@@ -51,7 +51,11 @@ type EncounterAttackActionEvaluation = {
 }
 
 export async function evaluateEncounterAttackAction(
-  input: ActionEconomyInput & { triggerCode: string }
+  input: ActionEconomyInput & {
+    triggerCode: string
+    /** The action takes the place of one attack of the Attack action (D152). */
+    replacesAttack?: boolean
+  }
 ): Promise<EncounterAttackActionEvaluation> {
   const { actor, state } = input
   const tracked =
@@ -60,7 +64,8 @@ export async function evaluateEncounterAttackAction(
       gameSystemId: state.gameSystemId,
       activationKind: input.activation.code,
       activationAmount: input.activation.amount,
-      triggerCode: input.triggerCode
+      triggerCode: input.triggerCode,
+      replacesAttack: input.replacesAttack ?? false
     })
   if (!tracked)
     return {

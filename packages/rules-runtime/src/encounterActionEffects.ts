@@ -7,9 +7,12 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
+import { encounterRelationshipReachFeet } from './encounterActionTargetPolicy.js'
+import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 type CharacterActionMovementFacts = CharacterMovementFacts & {
@@ -32,7 +35,7 @@ function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
           (condition) => condition.conditionTypeId
         )
       : target.state.conditions,
-    effectiveSize: effectiveSize(target),
+    effectiveSize: encounterActorEffectiveSize(target),
     lifetimeScope: target.actor.kind === 'CHARACTER' ? ('OWNER' as const) : ('ENCOUNTER' as const),
     activeEffects: target.activeEffects
   }
@@ -90,7 +93,10 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function effectiveSize(target: MovementTarget<CharacterActionMovementFacts>): string | null {
+/** An actor's size now: a Creature's snapshot size, or a Character's effective size from its facts. */
+export function encounterActorEffectiveSize(
+  target: MovementTarget<CharacterActionMovementFacts>
+): string | null {
   if (target.actor.kind !== 'CHARACTER') {
     const snapshot = target.actor.snapshot
     const payload =
@@ -116,7 +122,8 @@ export function prepareNativeActionEffectsPlan<
   TCharacterFacts extends CharacterActionMovementFacts
 >(input: {
   prepared: PreparedMechanics<TCharacterFacts>
-  execution: CompleteExecution
+  /** The settled graph run; a contest win supplies its own d20 and no applications. */
+  execution: Pick<CompleteExecution, 'published' | 'execution' | 'd20' | 'applications'>
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
@@ -125,6 +132,14 @@ export function prepareNativeActionEffectsPlan<
   form?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['form']
   /** What triggered a reaction, which its effect may bind. */
   trigger?: { damageTypeIds: readonly string[] }
+  /**
+   * The zone the action places when it holds the condition the action's failed save applies
+   * (D146): the hold is the creature's effect, under the Concentration the zone depends on.
+   */
+  holdingZone?: {
+    record: Parameters<typeof planSpatialHeldCondition>[0]['zone']
+    maintenance: CompiledActionZonePlacement['maintenance']
+  }
 }) {
   const { prepared, execution } = input
   const plan: CharacterRuleActionActiveEffectPlan | null = encounterActiveEffectPlan(
@@ -145,6 +160,9 @@ export function prepareNativeActionEffectsPlan<
     target: effectTarget(target),
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
+    sealedReachFeet: plan?.actorRelationshipContribution
+      ? encounterRelationshipReachFeet(prepared.targetPolicy)
+      : undefined,
     concealment: input.concealment,
     link: input.link,
     form: input.form,
@@ -201,10 +219,28 @@ export function prepareNativeActionEffectsPlan<
   )
     ? effects.riderEffect
     : null
+  const { holdingZone } = input
+  if (holdingZone && plan) throw new Error('A zone holds its condition alone.')
+  const hold =
+    holdingZone &&
+    planSpatialHeldCondition({
+      zone: holdingZone.record,
+      holder: effectTarget(target),
+      applications: execution.applications,
+      encounterId: prepared.state.id,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.commandId,
+      targetActorId: prepared.target.id
+    })
   return {
     ...effects,
-    recurringEffect,
+    recurringEffect:
+      recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null),
     riderEffect,
-    maintenance: recurringEffect ? (plan?.maintenance ?? null) : null
+    maintenance: recurringEffect
+      ? (plan?.maintenance ?? null)
+      : hold
+        ? holdingZone.maintenance
+        : null
   }
 }

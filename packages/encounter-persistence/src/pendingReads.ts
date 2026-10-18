@@ -9,6 +9,7 @@ import { projectNativeAreaActionPending, readNativeAreaActionPending } from './a
 import { projectNativeDisarmPendingForMember } from './actionDisarmPending.js'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
+import { contestCheckMovementContinuation } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import {
   projectNativeTurnPending,
   projectNativeLegendaryPending,
@@ -173,13 +174,13 @@ export async function readPendingRunDecision(
     context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
     context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
     context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-    (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation)
+    (context.kind === 'ENCOUNTER_CONTEST_CHECK' && contestCheckMovementContinuation(context))
   ) {
     const root =
       context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
         ? context.movement.root
-        : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
-          ? context.movementContinuation?.root
+        : context.kind === 'ENCOUNTER_CONTEST_CHECK'
+          ? contestCheckMovementContinuation(context)?.root
           : context.root
     if (!root || root.encounterId !== row.id || root.commandId !== occurrence.rootCommandId)
       throw new Error('Stored Encounter occurrence root is invalid.')

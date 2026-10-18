@@ -14,7 +14,7 @@ function facts(
     occurrence: { id: 'occurrence-1', rootCommandId: 'root-1' },
     context,
     rootCommandType: null,
-    completedDisarm: false,
+    completedContest: false,
     ...overrides
   }
 }
@@ -23,8 +23,31 @@ describe('classifyNativeEncounterOccurrence', () => {
   it('assigns every pending context kind to its native coordinator', () => {
     const cases: Array<[NativeEncounterOccurrenceFacts, string]> = [
       [facts({ kind: 'ENCOUNTER_ACTION' }), 'ACTION'],
-      [facts({ kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'DISARM' } }), 'DISARM'],
-      [facts({ kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'SHOVE' } }), 'ACTION'],
+      [
+        facts({
+          kind: 'ENCOUNTER_ACTION',
+          contest: { origin: { kind: 'OPTIONAL_COMBAT', actionKind: 'DISARM' } }
+        }),
+        'CONTEST'
+      ],
+      [
+        facts({
+          kind: 'ENCOUNTER_ACTION',
+          contest: { origin: { kind: 'OPTIONAL_COMBAT', actionKind: 'SHOVE' } }
+        }),
+        'ACTION'
+      ],
+      [
+        facts({ kind: 'ENCOUNTER_ACTION', contest: { origin: { kind: 'BASIC_ACTION' } } }),
+        'CONTEST'
+      ],
+      [
+        facts(
+          { kind: 'ENCOUNTER_ACTION', contest: { origin: { kind: 'ESCAPE' } } },
+          { rootCommandType: 'ESCAPE' }
+        ),
+        'CONTEST'
+      ],
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
       [facts({ kind: 'ENCOUNTER_BASIC_ACTION_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],
@@ -39,8 +62,14 @@ describe('classifyNativeEncounterOccurrence', () => {
       [facts({ kind: 'ENCOUNTER_SPATIAL_MOVEMENT' }), 'MOVEMENT'],
       [facts({ kind: 'ENCOUNTER_MOVEMENT_REACTION' }), 'MOVEMENT'],
       [facts({ kind: 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' }), 'MOVEMENT'],
-      [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST', movementContinuation: {} }), 'MOVEMENT'],
-      [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' }), 'OTHER'],
+      [
+        facts({
+          kind: 'ENCOUNTER_CONTEST_CHECK',
+          origin: { kind: 'OPTIONAL_COMBAT', movementContinuation: {} }
+        }),
+        'MOVEMENT'
+      ],
+      [facts({ kind: 'ENCOUNTER_CONTEST_CHECK' }), 'OTHER'],
       [facts({ kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' }), 'OTHER'],
       [facts(null), 'OTHER']
     ]
@@ -70,18 +99,23 @@ describe('classifyNativeEncounterOccurrence', () => {
     expect(
       classifyNativeEncounterOccurrence(
         facts(
-          { kind: 'ENCOUNTER_ACTION', contest: { actionKind: 'DISARM' } },
+          {
+            kind: 'ENCOUNTER_ACTION',
+            contest: { origin: { kind: 'OPTIONAL_COMBAT', actionKind: 'DISARM' } }
+          },
           {
             occurrence: concentrationRoot
           }
         )
       )
-    ).toBe('DISARM')
+    ).toBe('CONTEST')
     expect(
       classifyNativeEncounterOccurrence(
         facts({ kind: 'ENCOUNTER_TURN_RECHARGE' }, { rootCommandType: 'RESOLVE_ACTION' })
       )
     ).toBe('ACTION')
-    expect(classifyNativeEncounterOccurrence(facts(null, { completedDisarm: true }))).toBe('DISARM')
+    expect(classifyNativeEncounterOccurrence(facts(null, { completedContest: true }))).toBe(
+      'CONTEST'
+    )
   })
 })

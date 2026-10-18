@@ -22,6 +22,11 @@ export type EncounterWieldConflictAcceptance =
   | { kind: 'PROMPTED'; accepted: EncounterAcceptedWieldConflictDto | null }
   | { kind: 'UNPROMPTED' }
 
+/** The item an accepted wield conflict stows: the shield, or the held weapon (D152). */
+export function encounterStowedItemInstanceId(stow: EncounterAcceptedWieldConflictDto): string {
+  return stow.kind === 'STOW_SHIELD' ? stow.shieldItemInstanceId : stow.itemInstanceId
+}
+
 /**
  * Whether attacking with the chosen action forces the Character to stow its active shield,
  * shared by the action choices query and action preparation. A carried weapon is treated as

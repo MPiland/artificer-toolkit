@@ -9,10 +9,55 @@ import { EncounterValidationError } from './encounterErrors.js'
 
 export type EncounterRelationshipD20Contributor = Readonly<D20Contributor>
 
-type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
+export type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
   string,
   readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 >
+
+/**
+ * Every actor relationship an actor of the Run applied, each with that source and the actor holding the effect (the
+ * related creature), read from the Run's active effects in actor-id order.
+ */
+export function encounterRelationships(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
+) {
+  return [...activeEffectsByActorId]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([actorId, effects]) =>
+      effects.flatMap((effect) => {
+        const { definition } = effect
+        if (definition.schemaVersion !== 2 || definition.origin.kind !== 'ENCOUNTER') return []
+        const { sourceActorId } = definition.origin
+        // A relationship no actor applied has no source to hold it.
+        if (!sourceActorId) return []
+        return definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP'
+            ? [{ sourceActorId, actorId, effect, contribution }]
+            : []
+        )
+      })
+    )
+}
+
+/** The actor relationships `sourceActorId` applied, in actor-id order. */
+export function encounterSourceRelationships(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
+  sourceActorId: string
+) {
+  return encounterRelationships(activeEffectsByActorId).filter(
+    (relationship) => relationship.sourceActorId === sourceActorId
+  )
+}
+
+/** How many of the source's hands the creatures it holds fill (`SOURCE_OCCUPIES_HAND`, D152). */
+export function encounterSourceHandHolds(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
+  sourceActorId: string
+) {
+  return encounterSourceRelationships(activeEffectsByActorId, sourceActorId).filter(
+    ({ contribution }) => contribution.modules.some(({ kind }) => kind === 'SOURCE_OCCUPIES_HAND')
+  ).length
+}
 
 /** Reads target-specific action facts from an authoritative active-effect set. */
 export function lockedRelationshipActionFacts(input: {
@@ -22,46 +67,39 @@ export function lockedRelationshipActionFacts(input: {
   targets: { readonly activeEffectsByActorId?: EncounterRelationshipActiveEffectsByActorId }
 }): readonly EncounterRelationshipD20Contributor[] {
   const contributors: EncounterRelationshipD20Contributor[] = []
-  for (const [relationshipTargetActorId, effects] of [
-    ...(input.targets.activeEffectsByActorId ?? new Map())
-  ].sort(([left], [right]) => left.localeCompare(right))) {
-    for (const effect of effects) {
+  for (const {
+    actorId: relationshipTargetActorId,
+    effect,
+    contribution
+  } of encounterSourceRelationships(
+    input.targets.activeEffectsByActorId ?? new Map(),
+    input.sourceActorId
+  )) {
+    for (const module of contribution.modules) {
       if (
-        effect.definition.schemaVersion !== 2 ||
-        effect.definition.origin.kind !== 'ENCOUNTER' ||
-        effect.definition.origin.sourceActorId !== input.sourceActorId
+        module.kind === 'SOURCE_ACTION_TARGET_RESTRICTION' &&
+        module.actionEffectIds.includes(input.actionEffectId) &&
+        relationshipTargetActorId !== input.targetActorId
       ) {
-        continue
+        throw new EncounterValidationError(
+          'The selected action target is restricted by an active relationship.'
+        )
       }
-      for (const contribution of effect.definition.stateContributions) {
-        if (contribution.kind !== 'ACTOR_RELATIONSHIP') continue
-        for (const module of contribution.modules) {
-          if (
-            module.kind === 'SOURCE_ACTION_TARGET_RESTRICTION' &&
-            module.actionEffectIds.includes(input.actionEffectId) &&
-            relationshipTargetActorId !== input.targetActorId
-          ) {
-            throw new EncounterValidationError(
-              'The selected action target is restricted by an active relationship.'
-            )
-          }
-          if (
-            module.kind === 'SOURCE_ATTACK_ROLL_INFLUENCE' &&
-            module.actionEffectIds.includes(input.actionEffectId) &&
-            relationshipTargetActorId === input.targetActorId
-          ) {
-            contributors.push({
-              sourceId: createCharacterMechanicSourceKey({
-                kind: 'ACTIVE_EFFECT',
-                activeEffectId: effect.id
-              }),
-              grantId: null,
-              domainKey: `actor-relationship:${contribution.relationshipOutcomeId}`,
-              influence: module.influence,
-              source: { kind: 'ACTIVE_EFFECT', id: effect.id, holderActorId: input.sourceActorId }
-            })
-          }
-        }
+      if (
+        module.kind === 'SOURCE_ATTACK_ROLL_INFLUENCE' &&
+        module.actionEffectIds.includes(input.actionEffectId) &&
+        relationshipTargetActorId === input.targetActorId
+      ) {
+        contributors.push({
+          sourceId: createCharacterMechanicSourceKey({
+            kind: 'ACTIVE_EFFECT',
+            activeEffectId: effect.id
+          }),
+          grantId: null,
+          domainKey: `actor-relationship:${contribution.relationshipOutcomeId}`,
+          influence: module.influence,
+          source: { kind: 'ACTIVE_EFFECT', id: effect.id, holderActorId: input.sourceActorId }
+        })
       }
     }
   }

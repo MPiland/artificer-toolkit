@@ -301,6 +301,7 @@ describe('native action economy', () => {
             {
               kind: 'ACTOR_RELATIONSHIP',
               relationshipOutcomeId: crypto.randomUUID(),
+              sealedReachFeet: 5,
               modules: [{ id: crypto.randomUUID(), order: 0, kind: 'SOURCE_FOLLOWS_TARGET' }],
               conditionIds: [],
               capabilitySuppressions: [

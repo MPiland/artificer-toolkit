@@ -1,4 +1,5 @@
 import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { contestDefenderPolicy } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import { projectNativeActionPending, readNativeActionPending } from './actionPending.js'
@@ -14,15 +15,24 @@ export async function readNativeDisarmPending(
   const pending = await readNativeActionPending(ctx, occurrence)
   const { snapshot, context, command } = pending
   const contest = context.contest
+  const origin = contest?.origin
   if (
     !contest ||
-    contest.actionKind !== 'DISARM' ||
-    contest.selection.kind !== 'DISARM' ||
-    contest.actionId !== command.actionId ||
+    // A Disarm seals its optional combat pin; a basic action contest is the action itself, and a
+    // contested escape names the held effect and the escaper's check (D152).
+    (command.type === 'ESCAPE'
+      ? origin?.kind !== 'ESCAPE' ||
+        origin.activeEffectId !== command.activeEffectId ||
+        origin.initiatorCheckDefinitionId !== command.checkDefinitionId
+      : (origin?.kind === 'OPTIONAL_COMBAT'
+          ? origin.actionKind !== 'DISARM' ||
+            origin.selection.kind !== 'DISARM' ||
+            origin.pin.definitionId !== command.optionalCombatIntent?.definitionId ||
+            origin.pin.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum
+          : origin?.kind !== 'BASIC_ACTION' || command.optionalCombatIntent != null) ||
+        contest.actionId !== command.actionId ||
+        contest.targetActorId !== actionTargetActorId(command.target)) ||
     contest.sourceActorId !== command.actorId ||
-    contest.targetActorId !== actionTargetActorId(command.target) ||
-    contest.optionalCombat.definitionId !== command.optionalCombatIntent?.definitionId ||
-    contest.optionalCombat.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum ||
     snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
     snapshot.graph.source.checksum !== contest.contestGraph.checksum ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
@@ -34,7 +44,7 @@ export async function readNativeDisarmPending(
     context.twoPhase !== null ||
     snapshot.phaseReceipts !== undefined
   )
-    throw new Error('Stored Disarm context is invalid.')
+    throw new Error('Stored action contest context is invalid.')
   const participant =
     snapshot.request.nodeId === 'initiator_d20'
       ? 'INITIATOR'
@@ -48,8 +58,9 @@ export async function readNativeDisarmPending(
       ? contest.rollEvidence.initiator !== null
       : contest.rollEvidence.initiator === null)
   )
-    throw new Error('Stored Disarm participant evidence is invalid.')
-  const policy = participant === 'INITIATOR' ? contest.initiator : contest.defender
+    throw new Error('Stored action contest participant evidence is invalid.')
+  const policy =
+    participant === 'INITIATOR' ? contest.initiator : contestDefenderPolicy(contest.defender, null)
   return { ...pending, contest, participant, policy }
 }
 

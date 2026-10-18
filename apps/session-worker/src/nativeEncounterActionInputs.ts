@@ -1,10 +1,11 @@
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import type { EncounterAcceptedWieldConflictDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { encounterBasicActionRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
+import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -52,24 +53,44 @@ export function refuseActionOutsideItsWindow(prepared: Pick<Prepared, 'actor' | 
     })
 }
 
-/** An authored basic action is taken only by an actor that meets its facet restrictions. */
+/**
+ * An authored basic action is taken only by an actor that meets its facet restrictions, or that
+ * accepted the free held-weapon stow that meets them (D152); an accepted stow it doesn't need is
+ * refused.
+ */
 export async function refuseUnmetBasicActionRestrictions(
-  prepared: Pick<Prepared, 'source'>,
+  action: {
+    source: Prepared['source']
+    acceptedWieldConflict: EncounterAcceptedWieldConflictDto | null
+  },
   holder: Parameters<typeof encounterHolderState>[0]
 ) {
-  if (
-    prepared.source.kind === 'BASIC_ACTION' &&
-    prepared.source.capability.restrictions &&
-    !encounterBasicActionRestrictionsHold(
-      prepared.source.capability.restrictions,
-      await encounterHolderState(holder)
-    )
-  )
+  const { source } = action
+  if (source.kind !== 'BASIC_ACTION') return
+  const admission = source.capability.restrictions
+    ? encounterBasicActionAdmission(
+        source.capability.restrictions,
+        await encounterHolderState(holder)
+      )
+    : ({ kind: 'MET' } as const)
+  if (admission.kind === 'UNMET')
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'SOURCE_REQUIREMENTS_NOT_MET',
       message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
     })
+  const accepted = action.acceptedWieldConflict
+  if (
+    admission.kind === 'STOW_HELD_WEAPON'
+      ? accepted?.kind !== 'STOW_HELD_WEAPON' ||
+        accepted.itemInstanceId !== admission.itemInstanceId
+      : accepted !== null
+  )
+    throw new Error(
+      admission.kind === 'STOW_HELD_WEAPON'
+        ? 'This action would stow a held weapon; confirm it first.'
+        : 'This action stows nothing.'
+    )
 }
 
 /** An item action with authored requirements is taken only once they hold (an off-hand attack). */

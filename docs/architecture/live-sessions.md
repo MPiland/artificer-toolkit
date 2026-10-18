@@ -363,7 +363,7 @@ settlement, timeline }`:
 The four version-keyed turn reads (`actionChoices.get`, `actionChoices.optional`,
 `evidenceRolls.latest`, `sceneBindings.get`), the Scene's actor token bindings and the target modifiers are
 not in the frame; they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union
-over the six reads with the Convex query's arguments less `expectedVersion`
+over the seven reads with the Convex query's arguments less `expectedVersion`
 ([encounterRead.ts](../../packages/schema/src/api/encounterRead.ts)). The room answers at its own current
 version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result }`, or
 `ENCOUNTER_READ_REJECTED { requestId, code, reason, message }` (the rejection codes of `COMMAND_REJECTED`).
@@ -379,6 +379,12 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   the room; the web view (`CampaignVttStage`) reads this while routed and re-asks when the viewer's token
   set changes. It keeps the Convex action for an unrouted read. A Scene the room does not present is
   `UNAVAILABLE`.
+- `HELD_RELATIONSHIPS { encounterId }` is room-only, like the release it offers: the holds whose source
+  the reader controls (every hold for the GM), each `{ sourceActorId, heldActorId, activeEffectId, label }`
+  with the held creature's name hidden from a player unless it is public
+  (`readEncounterHeldRelationships`). It reads on any turn, and the turn-order drawer lists them under
+  Holding with a Release that sends `RELEASE_RELATIONSHIP` for the hold's source (D152). The current actor's
+  action choices carry the same holds as `releases`.
 - `ACTION_TARGET_MODIFIERS { encounterId, actorId, actionId, scene }` answers ATTACK-17.2's hover readout
   ([encounterActionTargetModifiers.ts](../../packages/schema/src/api/encounterActionTargetModifiers.ts),
   [actionTargetModifierReads.ts](../../packages/encounter-persistence/src/actionTargetModifierReads.ts)). For
@@ -469,6 +475,18 @@ skips such an actor, and a frozen one, so a departure never fails activation: it
 would read a departed actor's Character (its ACTOR/EFFECTS rules capture, or moving its token) refuse with
 the domain rejection `TARGET_UNAVAILABLE` ("That Character has left the Campaign.") rather than an
 internal error.
+
+**Hold ends (D152).** The same post-commit task then runs the relationship end sweep
+([roomRelationshipEnds.ts](../../apps/session-worker/src/roomRelationshipEnds.ts)) on the journal head. For
+each ACTIVE Run, an actor relationship ends when its source can't act (DEFEATED or INCAPACITATED, as
+Concentration reads it) or when the held creature's bound token stands beyond the reach the relationship
+sealed (`encounterEndedRelationships`). A first read outside any transaction finds nothing to end in the
+usual case and journals nothing. Otherwise one `RoomEncounterStore` transaction (a journal entry,
+`delta: null`) ends each broken relationship as the Campaign owner and records one `RELATIONSHIPS_ENDED`
+command per Run ("Hold ended", receipt `relationshipEnds`)
+([relationshipEndSweep.ts](../../packages/encounter-persistence/src/relationshipEndSweep.ts)), and the
+receipt goes to the admitted sockets. An ended hold is not restored by undo. A failed sweep is logged, and
+the next commit retries it. The source releases a hold itself with the free `RELEASE_RELATIONSHIP`.
 
 Known gap: a Character actor already frozen whose account is deleted later is removed only at release,
 because a frozen actor names no departure for the room to reconcile.

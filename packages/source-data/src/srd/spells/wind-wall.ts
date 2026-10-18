@@ -3,11 +3,14 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
   SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -18,7 +21,18 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+/** The wind's bludgeoning damage when the wall appears. */
+const windDamage = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.WIND_WALL, kind, 1),
+  effectKind: EFFECT_KIND.DAMAGE,
+  damageTypeId: damageTypeId('BLUDGEONING'),
+  valueKind: DAMAGE_VALUE_KIND.DICE,
+  scalingKind: SCALING.NONE,
+  diceConfig: '3d8'
+})
 export const windWall: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.WIND_WALL,
@@ -38,7 +52,13 @@ export const windWall: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        // The save each creature within the wall makes when it appears.
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.WIND_WALL, 0x230, 1),
+          dcMethod: 'SOURCE_SAVE_DC' as const,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.STRENGTH
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -76,6 +96,7 @@ export const windWall: SpellAuthored = {
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
                 attachmentKind: 'PLACED_SPACE',
+                label: 'Wind Wall',
                 shape: {
                   id: spellChildId(SPELL_IDS.WIND_WALL, 0x214, 1),
                   shapeKind: SHAPE_KIND.WALL,
@@ -94,6 +115,32 @@ export const windWall: SpellAuthored = {
                 }
               }
             ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.WIND_WALL, 0x231, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.WIND_WALL, 0x231, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [windDamage(0x232)]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.WIND_WALL, 0x233, 1),
+          order: 3,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.WIND_WALL, 0x233, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [{ ...windDamage(0x234), amountKind: SCALING_AMOUNT_KIND.HALF }]
           }
         }
       ]

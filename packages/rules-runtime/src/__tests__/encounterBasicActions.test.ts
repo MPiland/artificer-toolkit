@@ -207,7 +207,8 @@ describe('basic action mechanics (Q11)', () => {
       target: target(fighter, { activeEffects: [dodge] }),
       gameSystemId: SYSTEM_ID,
       definitions,
-      speedDefinitions: SRD_SPEEDS
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map()
     })
     const sourceId = createCharacterMechanicSourceKey({
       kind: 'ACTIVE_EFFECT',
@@ -256,7 +257,8 @@ describe('basic action mechanics (Q11)', () => {
         target: target(fighter),
         gameSystemId: SYSTEM_ID,
         definitions,
-        speedDefinitions: SRD_SPEEDS
+        speedDefinitions: SRD_SPEEDS,
+        runEffectsByActorId: new Map()
       })
     ).toEqual(target(fighter))
   })
@@ -289,7 +291,8 @@ describe('basic action mechanics (Q11)', () => {
         target: suspended,
         gameSystemId: SYSTEM_ID,
         definitions,
-        speedDefinitions: SRD_SPEEDS
+        speedDefinitions: SRD_SPEEDS,
+        runEffectsByActorId: new Map()
       })
       expect(defended.attackAgainstContributors).toEqual([])
       expect(defended.targetDerivedFacts).toEqual(suspended.targetDerivedFacts)
@@ -302,7 +305,8 @@ describe('basic action mechanics (Q11)', () => {
       target: target(fighter, { activeEffects: [effect] }),
       gameSystemId: SYSTEM_ID,
       definitions,
-      speedDefinitions: SRD_SPEEDS
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map()
     })
     expect(defended.targetDerivedFacts).toEqual(target(fighter).targetDerivedFacts)
     expect(defended.sourceSightSaves).toEqual([
@@ -343,7 +347,8 @@ describe('basic action mechanics (Q11)', () => {
       }),
       gameSystemId: SYSTEM_ID,
       definitions,
-      speedDefinitions: SRD_SPEEDS
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map()
     })
     expect(defended.sourceSightSaves).toEqual([])
   })

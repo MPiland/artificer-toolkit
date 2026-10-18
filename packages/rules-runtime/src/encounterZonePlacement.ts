@@ -25,9 +25,12 @@ export interface PlacedSpaceZone {
   /**
    * Its components in authored order, each with the one behavior its entry runs: the first covers
    * the zone's shape, each later one the region it authors (D154). A component that only lends an
-   * occupant save bonus runs no behavior (D155).
+   * occupant save bonus runs no behavior (D155). Empty for a zone no creature interacts with, which
+   * only its appear save acts through.
    */
   components: Array<{ component: CompiledManifestComponent; behavior: CompiledEffectGroup | null }>
+  /** The save each creature in the area makes when the zone appears; null for none. */
+  appearSave: CompiledEffectGroup | null
   /** The zone's compiled entry: its manifest outcome. */
   entry: CompiledEffectGroup['entries'][number]
   /** The one APPLY_GRANT entry authored beside the zone, which its placer holds; null for none. */
@@ -109,6 +112,16 @@ function singlePlacedSpaceManifest(
 }
 
 /**
+ * The save each creature in the area makes when the zone an action places appears (D154
+ * amendment): the action narrowed to its save outcome entries, run as its area occurrence. Null
+ * when the action authors none beside its zone.
+ */
+export function zoneAppearSave(compiledEffect: CompiledEffectGroup): CompiledEffectGroup | null {
+  const entries = compiledEffect.entries.filter((entry) => entry.pathCode !== 'ON_USE')
+  return entries.length ? { ...compiledEffect, entries } : null
+}
+
+/**
  * The placed zone of an action together with the one behavior its entry runs, or null when the
  * action places none. A zone that models more than a single entering behavior is refused (never
  * partly honored).
@@ -123,9 +136,10 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     )
   const components = [...(manifest.components ?? [])].sort((a, b) => a.order - b.order)
   const { label, shape } = manifest
-  if (!components.length || !shape || !label)
+  const appearSave = zoneAppearSave(compiledEffect)
+  if ((!components.length && !appearSave) || !shape || !label)
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone needs a label, a shape and a component.'
+      'A placed zone needs a label, a shape and a component or a save when it appears.'
     )
   if (components[0]?.region || components.slice(1).some((component) => !component.region))
     throw new CharacterRuleActionUnsupportedCompilationError(
@@ -162,6 +176,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     shape,
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     components: planned,
+    appearSave,
     entry,
     sourceGrantEntry
   }

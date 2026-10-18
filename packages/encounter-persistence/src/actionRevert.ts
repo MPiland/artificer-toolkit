@@ -196,8 +196,16 @@ export async function revertLastEncounterAction(
       throw new Error('Stored Encounter command scan is invalid.')
   }
   if (root?.commandType === 'ESCAPE') {
+    const outputs = await readCheckReceiptOutputs(ctx, {
+      state,
+      root,
+      occurrenceId: root.receipt.checkOccurrenceId
+    })
+    // A contested escape settles through the one contest path, which undo leaves to the GM.
+    if (outputs.kind === 'CONTESTED_ACTION')
+      unavailable("Undo can't restore a contested escape; adjust manually.")
     requireCheckAnswerScan(root.receipt.checkOccurrenceId)
-    return revertEscape(ctx, { ...scope, root })
+    return revertEscape(ctx, { ...scope, root, outputs })
   }
   if (root?.commandType === 'SET_CONCEALMENT_OBSERVERS') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
@@ -939,15 +947,13 @@ function returnSpentActionEconomy(
  */
 async function revertEscape(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'ESCAPE' }> }
+  input: RevertScope & {
+    root: Extract<StoredCommand, { commandType: 'ESCAPE' }>
+    outputs: Awaited<ReturnType<typeof readCheckReceiptOutputs>>
+  }
 ): Promise<EncounterCommandResultDto> {
-  const { state, root } = input
+  const { state, root, outputs } = input
   const { receipt } = root
-  const outputs = await readCheckReceiptOutputs(ctx, {
-    state,
-    root,
-    occurrenceId: receipt.checkOccurrenceId
-  })
   if (outputs.kind !== 'ESCAPE_CHECK') throw new Error('Stored escape check receipt is invalid.')
   if (outputs.outcome === 'ESCAPED')
     unavailable("Undo can't restore an escaped grapple; adjust manually.")

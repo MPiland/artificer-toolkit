@@ -1,8 +1,5 @@
 import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import type {
-  ResolveEncounterActionInputDto,
-  ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema
@@ -12,6 +9,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createDnd5eOptionalCombatContestGraph } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestGraph'
+import type { ContestRootCommand } from './disarmAdmission.js'
 import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
@@ -21,15 +19,26 @@ export async function readNativeDisarmReplay(
   ctx: EncounterReadContext,
   input: {
     run: EncounterDocument<'encounterRuns'>
-    command: ResolveEncounterActionInputDto
+    command: ContestRootCommand
     receipt: EncounterDocument<'encounterRunCommands'>
   }
 ) {
   const { run, command, receipt } = input
   presentTimelineEntry(receipt)
+  // An action records its contest as its root occurrence; an escape records it as its check.
+  const rooted =
+    receipt.commandType === 'RESOLVE_ACTION' && receipt.root.kind === 'RULE_OCCURRENCE'
+      ? receipt.root
+      : receipt.commandType === 'ESCAPE'
+        ? {
+            ruleOccurrenceId: receipt.receipt.checkOccurrenceId,
+            ruleResultChecksum: null,
+            optionalCombatSnapshotChecksum: null
+          }
+        : null
   if (
-    receipt.commandType !== 'RESOLVE_ACTION' ||
-    receipt.root.kind !== 'RULE_OCCURRENCE' ||
+    !rooted ||
+    receipt.commandType !== command.type ||
     receipt.encounterId !== run.id ||
     receipt.campaignId !== run.campaignId ||
     receipt.commandFingerprint !== checksumCanonicalJson(command) ||
@@ -38,7 +47,7 @@ export async function readNativeDisarmReplay(
     receipt.version > run.version
   )
     throw new Error('Stored Disarm command receipt mismatch.')
-  const { ruleOccurrenceId, ruleResultChecksum, optionalCombatSnapshotChecksum } = receipt.root
+  const { ruleOccurrenceId, ruleResultChecksum, optionalCombatSnapshotChecksum } = rooted
   const replayReceipt = readEncounterReplayReceipt(receipt)
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
@@ -66,7 +75,14 @@ export async function readNativeDisarmReplay(
   )
     throw new Error('Stored Disarm rule receipt mismatch.')
   const application = payload.applicationOutputs
-  const graph = createDnd5eOptionalCombatContestGraph(application.policy)
+  const { policy } = application
+  // An optional combat contest rebuilds its System graph from the pin; a basic action contest runs
+  // its capability's own graph, which the stored receipts bind.
+  const optionalCombat = policy ? createDnd5eOptionalCombatContestGraph(policy) : null
+  const graph = optionalCombat?.published ?? {
+    id: application.contestGraph.definitionId,
+    checksum: application.contestGraph.checksum
+  }
   if (
     occurrence.state !== 'COMPLETED' ||
     occurrence.encounterId !== run.id ||
@@ -77,32 +93,40 @@ export async function readNativeDisarmReplay(
     ruleReceipt.campaignId !== run.campaignId ||
     ruleReceipt.occurrenceId !== occurrence.id ||
     ruleReceipt.commandId !== command.commandId ||
-    ruleReceipt.commandType !== 'RESOLVE_ACTION' ||
+    ruleReceipt.commandType !== command.type ||
     ruleReceipt.commandFingerprint !== receipt.commandFingerprint ||
     ruleReceipt.actorUserId !== receipt.actorUserId ||
     ruleReceipt.correlationId !== null ||
     ruleReceipt.encounterVersion !== receipt.version ||
     ruleReceipt.resultChecksum !== checksumRuleDocument(payload) ||
-    ruleReceipt.resultChecksum !== ruleResultChecksum ||
+    (ruleResultChecksum !== null && ruleReceipt.resultChecksum !== ruleResultChecksum) ||
     payload.occurrenceId !== occurrence.id ||
     payload.occurrenceVersion !== occurrence.version ||
     application.occurrenceId !== occurrence.id ||
     application.sourceActorId !== command.actorId ||
-    application.targetActorId !== actionTargetActorId(command.target) ||
-    application.policy.definitionId !== command.optionalCombatIntent?.definitionId ||
-    application.contestGraph.definitionId !== graph.published.id ||
-    application.contestGraph.checksum !== graph.published.checksum ||
-    application.contestGraph.identityChecksum !== graph.identityChecksum ||
-    payload.evidence.source.definitionId !== graph.published.id ||
-    payload.evidence.source.checksum !== graph.published.checksum ||
+    (command.type === 'ESCAPE'
+      ? policy !== null ||
+        (receipt.commandType === 'ESCAPE' &&
+          (receipt.receipt.actorId !== command.actorId ||
+            checksumCanonicalJson(receipt.receipt.actionEconomy) !==
+              checksumCanonicalJson(application.actionEconomyTransition)))
+      : application.targetActorId !== actionTargetActorId(command.target) ||
+        (policy?.definitionId ?? null) !== (command.optionalCombatIntent?.definitionId ?? null)) ||
+    application.contestGraph.definitionId !== graph.id ||
+    application.contestGraph.checksum !== graph.checksum ||
+    (optionalCombat &&
+      application.contestGraph.identityChecksum !== optionalCombat.identityChecksum) ||
+    payload.evidence.source.definitionId !== graph.id ||
+    payload.evidence.source.checksum !== graph.checksum ||
     payload.outputs.initiatorNaturalD20 !== application.sourceRoll.selectedNatural ||
     payload.outputs.targetNaturalD20 !== application.targetRoll.selectedNatural ||
     payload.outputs.initiatorTotal !== application.sourceRoll.total ||
     payload.outputs.targetTotal !== application.targetRoll.total ||
-    metadata.definitionId !== graph.published.id ||
+    metadata.definitionId !== graph.id ||
     metadata.expectedAggregateVersion !== command.expectedVersion ||
     metadata.factsChecksum !== checksumRuleDocument(payload.evidence.facts) ||
-    metadata.optionalCombatSnapshotChecksum !== optionalCombatSnapshotChecksum ||
+    (optionalCombatSnapshotChecksum !== null &&
+      metadata.optionalCombatSnapshotChecksum !== optionalCombatSnapshotChecksum) ||
     replayReceipt.occurrence?.occurrenceId !== occurrence.id ||
     replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
     replayReceipt.occurrence.status !== 'COMPLETE' ||
@@ -118,7 +142,7 @@ export function readNativeDisarmEvidenceReplay(input: {
   receipt: EncounterDocument<'encounterRuleReceipts'>
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
   response: ResolveRuleOccurrenceInputDto
-  rootCommand: ResolveEncounterActionInputDto
+  rootCommand: ContestRootCommand
   initiatorUserId: string
   userId: string
 }) {
@@ -170,10 +194,13 @@ export function readNativeDisarmEvidenceReplay(input: {
     payload.status === 'COMPLETE'
       ? pending !== null
       : pending !== null &&
-        (pending.kind !== 'D20_EVIDENCE' ||
-          pending.request.requestId !== payload.request.requestId ||
-          payload.pending?.kind !== 'D20_EVIDENCE' ||
-          pending.request.rollMode !== payload.pending.rollMode)
+        // A defender who picks its check answers a CONTEST_CHECK prompt with no sealed roll mode.
+        (pending.kind === 'CONTEST_CHECK'
+          ? pending.requestId !== payload.request.requestId || payload.pending != null
+          : pending.kind !== 'D20_EVIDENCE' ||
+            pending.request.requestId !== payload.request.requestId ||
+            payload.pending?.kind !== 'D20_EVIDENCE' ||
+            pending.request.rollMode !== payload.pending.rollMode)
   )
     throw new Error('Stored Disarm evidence response mismatch.')
   return { replayReceipt: metadata.replayReceipt, payload }

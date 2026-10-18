@@ -119,7 +119,10 @@ import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationId
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
 import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
-import { dnd5eOptionalCombatContestCapabilityContribution } from './optionalCombatContestGraph.js'
+import {
+  createDnd5eContestGraph,
+  dnd5eOptionalCombatContestCapabilityContribution
+} from './optionalCombatContestGraph.js'
 import { dnd5eReactionEligibilityCapabilityContribution } from './reactionEligibilityPolicy.js'
 import {
   resolveDnd5eFlankingContributor,
@@ -615,6 +618,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'compiledEffect'
   | 'spellCastLevel'
   | 'characterLevel'
+  | 'zoneAppearSave'
 >
 interface TestPlan {
   kind: TestKind
@@ -684,7 +688,8 @@ function isSupportedTestActivation(
  * per-creature test plan a single target does.
  */
 function isSupportedArea(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+  overZone = false
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { shape, targeting, range } = invocation
@@ -702,7 +707,12 @@ function isSupportedArea(
     invocation.activation.amount !== 1
   )
     return false
-  if (encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null) return false
+  // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
+  if (
+    !(overZone && shape.shapeKind === 'WALL') &&
+    encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
+  )
+    return false
   if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED') {
     if (
       range.rangeKind !== 'DISTANCE' ||
@@ -715,7 +725,7 @@ function isSupportedArea(
   const size =
     shape.shapeKind === 'CUBE'
       ? shape.edgeLength
-      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE'
+      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE' || shape.shapeKind === 'WALL'
         ? shape.length
         : shape.shapeKind === 'SPHERE' ||
             shape.shapeKind === 'CYLINDER' ||
@@ -744,12 +754,12 @@ function isBoundedDice(value: string): boolean {
   }
 }
 
-function isSupportedTestTargetPolicy(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
-): boolean {
+function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): boolean {
+  const { invocation } = action.compiledEffect
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
-  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedArea(invocation)
+  if (targeting?.selectionKind === 'AREA_CONTENTS')
+    return isSupportedArea(invocation, action.zoneAppearSave)
   // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
@@ -977,15 +987,20 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   if (entries.length !== 1) unsupported('D&D action has more than one relationship outcome.')
   const entry = entries[0]!
   const relationship = entry.outcome
+  // An attack holds its target on a hit; a contest (Grapple) on the initiator's win.
+  const invocation = action.compiledEffect.invocation
+  const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
   if (
-    action.compiledEffect.invocation.kind !== 'ACTION' ||
-    testPhaseKindOrNull(action) !== 'ATTACK' ||
+    invocation.kind !== 'ACTION' ||
     entry.resolutionKind !== 'DIRECT' ||
     (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
-    (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT') ||
+    (contest
+      ? entry.pathCode !== 'ON_CHECK_SUCCESS'
+      : testPhaseKindOrNull(action) !== 'ATTACK' ||
+        (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT')) ||
     !UUID.test(relationship.id)
   ) {
-    unsupported('D&D relationship outcomes require one bounded attack-hit result.')
+    unsupported('D&D relationship outcomes require one bounded attack-hit or contest-win result.')
   }
   const orderedModules = [...relationship.modules].sort(
     (left, right) => left.order - right.order || left.id.localeCompare(right.id)
@@ -2254,6 +2269,7 @@ function zonePlacementPlan(
   const zone = placedSpaceZone(action.compiledEffect)
   if (!zone) return null
   const [first, ...later] = zone.components
+  const { appearSave } = zone
   if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
   // A passive zone's radius scaled by class level is resolved when it is placed on its source's
   // token (D155); a cast's area is aimed before any source resolves it, and no other size scales.
@@ -2282,8 +2298,24 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
-  if (!first!.behavior) return occupantBonusZonePlacementPlan(action, zone, first!.component)
-  const primary = zoneComponentPlan(action, zone, first!)
+  // A zone no creature interacts with is placed with no triggers; its appear save is its provenance
+  // and names the condition it holds (Entangle's restraint). A zone with components holds only theirs.
+  if (
+    first &&
+    appearSave?.entries.some((entry) => 'lifecycle' in entry && entry.lifecycle?.heldBySource)
+  )
+    unsupported(
+      'Only a zone no creature interacts with holds the condition its appear save applies.'
+    )
+  if (first && !first.behavior) return occupantBonusZonePlacementPlan(action, zone, first.component)
+  const primary = first
+    ? zoneComponentPlan(action, zone, first)
+    : zoneComponentPlan(
+        action,
+        zone,
+        { component: { id: appearSave!.id, order: 1, label: zone.label }, behavior: appearSave! },
+        { triggerModes: [] }
+      )
   // Each band is a record of its own, sparing whom the zone spares.
   const regionComponents = later.map((planned) => {
     const { region, choosesUnaffected, label } = planned.component
@@ -2385,10 +2417,10 @@ function occupantBonusZonePlacementPlan(
 function zoneComponentPlan(
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone,
-  { component, behavior }: PlacedSpaceZone['components'][number]
+  { component, behavior }: PlacedSpaceZone['components'][number],
+  triggers = zoneTriggers(component)
 ): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
   if (!behavior) unsupported('Only a zone’s own component lends an occupant save bonus.')
-  const triggers = zoneTriggers(component)
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const pinnedDc = pinnedSaveDc(savingThrow)
@@ -3457,7 +3489,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(action) ||
     entries.length < 1
   )
     unsupported(
@@ -3518,16 +3550,21 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   return { kind, branches }
 }
 
-function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome {
+// A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
+// to the contest graph alone; its relationship is the action's active-effect plan.
+function supported(
+  action: Dnd5eCompiledEffectActionSource
+): SpecializedOutcome | { kind: 'CONTEST_RELATIONSHIP' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
   const conditionPlan = timedConditionPlan(action)
   const linkPlan = actorLinkPlan(action)
   const formPlan = creatureFormPlan(action)
-  // A CHECK action rolls its authored check against a fixed DC, each observer's passive score or
-  // the concealments that hide creatures from the checker; a contest waits for ATTACK-7.
+  // A CHECK action rolls its authored check against a fixed DC, each observer's passive score, the
+  // concealments that hide creatures from the checker, or the target's own check in a contest.
   const checkAction = invocation.triggerCode === 'CHECK'
+  const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
@@ -3607,8 +3644,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
         invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
-    (invocation.triggerCode !== 'ACTIVATED' &&
-      !(invocation.triggerCode === 'CHECK' && invocation.check.dc.kind !== 'CONTEST')) ||
+    (invocation.triggerCode !== 'ACTIVATED' && invocation.triggerCode !== 'CHECK') ||
     !supportedActivation ||
     (!supportsSelf &&
       !selfTeleport &&
@@ -3655,8 +3691,11 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   const outcome = entry.outcome
   if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
+  if (contestAction && outcome.effectKind !== 'ACTOR_RELATIONSHIP')
+    unsupported('D&D contest check action outcome must be an actor relationship.')
   if (
     checkAction &&
+    !contestAction &&
     outcome.effectKind !== 'STABILIZE' &&
     outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS' &&
     outcome.effectKind !== 'DETECT_CONCEALED'
@@ -3701,6 +3740,17 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       1
   )
     unsupported('D&D check action must list exactly one check.')
+  if (contestAction) {
+    if (
+      invocation.check.dc.kind !== 'CONTEST' ||
+      invocation.check.dc.checks.skillIds.length +
+        invocation.check.dc.checks.abilityDefinitionIds.length ===
+        0
+    )
+      unsupported('D&D contest check action must list the checks its target may roll.')
+    relationshipPlan(action)
+    return { kind: 'CONTEST_RELATIONSHIP' }
+  }
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
@@ -5017,7 +5067,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(action) ||
     action.compiledEffect.entries.length < 1
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')
@@ -6558,6 +6608,11 @@ function compileDnd5eEffectAction({
       })
     })
   }
+  if (outcome.kind === 'CONTEST_RELATIONSHIP')
+    return bindMovementInterruptionOutput({
+      action,
+      published: createDnd5eContestGraph(action.effectId)
+    })
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   if (outcome.kind === 'FORCED_MOVEMENT')
@@ -8207,7 +8262,8 @@ export function dndSourceFromCompilerSource(
     effectId: source.effectId,
     conditionDefinitionIds: source.conditionDefinitionIds,
     savingThrowAbilityDefinitionId: source.savingThrowAbilityDefinitionId,
-    compiledEffect: source.compiledEffect as Dnd5eCompiledEffectActionSource['compiledEffect']
+    compiledEffect: source.compiledEffect as Dnd5eCompiledEffectActionSource['compiledEffect'],
+    ...(source.zoneAppearSave ? { zoneAppearSave: true as const } : {})
   }
 }
 

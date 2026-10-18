@@ -20,6 +20,8 @@ export interface EncounterBasicActionCapabilityDescriptor extends EffectActionCa
   label: string
   /** Who may take it: the document's facet restrictions, decided live from the actor's state. */
   restrictions: EncounterBasicActionEntry['document']['restrictions']
+  /** The document's cost; ATTACK takes the place of one attack of the Attack action (D152). */
+  actionCost: EncounterBasicActionEntry['document']['actionCost']
   authoredEffectChecksum: string
   compiledEffectChecksum: string
 }
@@ -95,7 +97,7 @@ export async function readEncounterBasicActionEntries(input: {
 /**
  * The authored basic actions an actor can take: every ACTION-invoked Effect of the catalogue's
  * authored entries, compiled like a Feature's. Each carries its document's restrictions; deciding
- * whether the actor meets them is `encounterBasicActionRestrictionsHold`, applied by the offering
+ * whether the actor meets them is `encounterBasicActionAdmission`, applied by the offering
  * and the resolution, not here.
  */
 export function discoverEncounterBasicActions(input: {
@@ -130,6 +132,7 @@ export function discoverEncounterBasicActions(input: {
           sourceId: definition.id,
           label: definition.label,
           restrictions: document.restrictions,
+          actionCost: document.actionCost,
           mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
           conditionDefinitionIds: normalized.conditionDefinitionIds ?? input.conditionDefinitionIds,
           savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,

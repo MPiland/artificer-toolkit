@@ -86,7 +86,7 @@ describe('GM void decision table', () => {
       'ENCOUNTER_TURN_ACTIVE_EFFECTS',
       'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE',
       'ENCOUNTER_SPATIAL_MOVEMENT',
-      'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+      'ENCOUNTER_CONTEST_CHECK'
     ] as const)
       expect(classifyRuleOccurrenceVoid({ kind }).kind).toBe('REFUSE')
   })

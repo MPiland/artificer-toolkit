@@ -44,7 +44,13 @@ export const grease: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        // The save each creature standing in the grease makes when it appears; its own is on entry.
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.GREASE, 0x230, 1),
+          dcMethod: 'SOURCE_SAVE_DC' as const,
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -147,6 +153,25 @@ export const grease: SpellAuthored = {
                     ]
                   }
                 ]
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.GREASE, 0x231, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.GREASE, 0x231, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.GREASE, 0x232, 1),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('PRONE')
               }
             ]
           }

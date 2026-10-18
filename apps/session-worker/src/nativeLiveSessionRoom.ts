@@ -133,6 +133,7 @@ import {
   RoomRateLimitedError,
   type AccountBucketKind
 } from './roomRateLimits.js'
+import { endRoomBrokenRelationships, roomHasBrokenRelationships } from './roomRelationshipEnds.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
 import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
@@ -2827,7 +2828,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               command.type === 'VOID_RULE_OCCURRENCE' ||
               command.type === 'REMOVE_AREA_TARGET' ||
               command.type === 'ESCAPE' ||
-              command.type === 'END_HELD_GRANT'
+              command.type === 'END_HELD_GRANT' ||
+              command.type === 'RELEASE_RELATIONSHIP'
                 ? {
                     turnExecution: { runtime: this.#liveRulesRuntime() }
                   }
@@ -3705,6 +3707,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       } catch (error) {
         console.error('Live Session actor reconcile failed.', error)
       }
+      try {
+        // The departures may have journaled, so the sweep reads the head afresh.
+        const head = this.#journal.readCurrent()
+        if (head?.status === 'ACTIVE') await this.#endBrokenRelationships(head)
+      } catch (error) {
+        console.error('Live Session relationship end sweep failed.', error)
+      }
       if (
         this.#sheetFeed.size === 0 &&
         this.#encounterFeed.size === 0 &&
@@ -3817,6 +3826,74 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
       return
     }
+    for (const recipient of this.ctx.getWebSockets()) {
+      const member = this.#liveAdmission(recipient)
+      if (member && admitsRoomMember(authorization, member)) send(recipient, receipt)
+    }
+  }
+
+  /**
+   * One journaled transaction, only when an ACTIVE Run holds a relationship whose hold broke on its
+   * own (D152): its source can't act, or a movement left the held creature beyond the sealed reach.
+   */
+  async #endBrokenRelationships(
+    current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>
+  ): Promise<void> {
+    const authorization = this.#authorization.current(current.authorityEpoch)
+    if (!authorization) return
+    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
+    const campaignId = this.#roomCampaignId()
+    if (!campaignId) throw new Error('Live Session Campaign is unavailable.')
+    const scope = {
+      store: this.#roomStore,
+      inputs: this.#roomInputs,
+      authorization,
+      campaignId,
+      epoch: current.authorityEpoch
+    }
+    if (!(await roomHasBrokenRelationships(scope))) return
+    const commandId = crypto.randomUUID()
+    const sequence = current.sequence + 1
+    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
+      type: 'COMMAND_COMMITTED',
+      commandId,
+      delta: null,
+      sequence
+    })
+    this.#roomStore.assertAuthorityHead({
+      epoch: current.authorityEpoch,
+      sequence: current.sequence,
+      checksum: current.stateChecksum
+    })
+    await this.#roomStore.transact(
+      (transaction) =>
+        endRoomBrokenRelationships({
+          ...scope,
+          transaction,
+          commandId,
+          occurredAt: new Date().toISOString()
+        }),
+      (entry) => {
+        if (this.#authorization.current(current.authorityEpoch) !== authorization)
+          throw new Error('Room relationship end authorization changed before commit.')
+        if (entry.sequence !== sequence)
+          throw new Error('Room relationship end sequence does not match its authority.')
+        const committed = this.#journal.commitInTransaction({
+          actorId: current.authorityEpoch,
+          authorityEpoch: current.authorityEpoch,
+          commandId,
+          fingerprint: checksumCanonicalJson({ type: 'RELATIONSHIPS_ENDED', sequence }),
+          expectedSequence: current.sequence,
+          expectedStateChecksum: current.stateChecksum,
+          nextStateChecksum: entry.chainChecksum,
+          nextStateJson: current.stateJson,
+          receiptJson: JSON.stringify(receipt),
+          checkpointBeforeAcknowledgement: false
+        })
+        if (committed.kind !== 'COMMITTED')
+          throw new Error('Room relationship end unexpectedly replayed inside its transaction.')
+      }
+    )
     for (const recipient of this.ctx.getWebSockets()) {
       const member = this.#liveAdmission(recipient)
       if (member && admitsRoomMember(authorization, member)) send(recipient, receipt)

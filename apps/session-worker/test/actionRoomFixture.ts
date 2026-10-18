@@ -458,11 +458,11 @@ export async function actionRoom(config: ActionRoomConfig) {
     if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
     return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
   }
-  /** The actions the room offers the acting actor. */
-  async function actionChoices() {
+  /** The actions the room offers the acting actor, or `actorId` on its own turn, as the GM reads them. */
+  async function actionChoices(actorId = source.id) {
     const choices = await readRoom({
       kind: 'ACTION_CHOICES',
-      input: { encounterId: room.encounterId, actorId: source.id }
+      input: { encounterId: room.encounterId, actorId }
     })
     if (!choices) throw new Error('The room offers no action choices.')
     return choices
@@ -539,6 +539,13 @@ export async function actionRoom(config: ActionRoomConfig) {
       )
       if (!choices) throw new Error('The room offers the player no action choices.')
       return choices
+    },
+    /** The holds the room offers to release on any turn, as the GM or, with `asPlayer`, a player reads them. */
+    async heldRelationships(asPlayer = false) {
+      return readRoom(
+        { kind: 'HELD_RELATIONSHIPS', input: { encounterId: room.encounterId } },
+        asPlayer ? await connectPlayer(room.base) : room.base
+      )
     },
     /** The Scene context of the acting actor's token and the token of the actor at `targetIndex`. */
     sceneContext(targetIndex = 1) {
@@ -778,7 +785,15 @@ export async function actionRoom(config: ActionRoomConfig) {
       decision: NonNullable<Awaited<ReturnType<typeof readPendingActionDecision>>>,
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' | null = null
     ) {
-      if (!('request' in decision.pending)) throw new Error('The decision holds no roll request.')
+      const { pending } = decision
+      // A contest check is one d20 request whichever check the roller picks.
+      const requestId =
+        pending.kind === 'CONTEST_CHECK'
+          ? pending.requestId
+          : 'request' in pending
+            ? pending.request.requestId
+            : null
+      if (requestId === null) throw new Error('The decision holds no roll request.')
       return send({
         type: 'ROLL_RULE_EVIDENCE',
         encounterId: room.encounterId,
@@ -786,7 +801,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         expectedVersion: decision.encounterVersion,
         occurrenceId: decision.occurrence.id,
         expectedOccurrenceVersion: decision.occurrence.version,
-        requestId: decision.pending.request.requestId,
+        requestId,
         rollMode
       })
     },

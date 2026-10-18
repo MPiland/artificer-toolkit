@@ -35,7 +35,10 @@ import { readRunActors, readRunState } from './documents.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readSpatialPreparation } from './sceneGeometryDocuments.js'
-import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
+import {
+  contestCheckMovementContinuation,
+  readEncounterMovementPendingContext
+} from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 
 type SceneSpatialPrepareInput = ReturnType<typeof sceneGeometryFinishInputSchema.parse>
 type SpatialPendingSaveContext = {
@@ -81,15 +84,18 @@ function withCurrentSceneVersion(
   const applicationContext =
     context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
       ? { ...context, movement: { ...context.movement, root: nextRoot } }
-      : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+      : context.kind === 'ENCOUNTER_CONTEST_CHECK'
         ? {
             ...context,
             sceneContext: context.sceneContext
               ? { ...context.sceneContext, sceneVersion: currentSceneVersion }
               : context.sceneContext,
-            movementContinuation: { ...context.movementContinuation, root: nextRoot },
+            origin: {
+              ...context.origin,
+              movementContinuation: { ...context.origin.movementContinuation, root: nextRoot }
+            },
             positionalDependencyChecksum: checksumCanonicalJson({
-              ...context.movementContinuation,
+              ...context.origin.movementContinuation,
               root: nextRoot
             })
           }
@@ -111,7 +117,7 @@ function pendingChecksums(
   const movement =
     context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
       ? context.movement
-      : context.movementContinuation
+      : context.origin.movementContinuation
   return {
     selectionChecksum: movement.spatialSelectionChecksum,
     currentnessChecksum: movement.spatialCurrentnessChecksum
@@ -123,7 +129,7 @@ function movementHistory(
 ) {
   if (context.kind === 'ENCOUNTER_MOVEMENT_REACTION') return context
   if (context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE') return context.movement
-  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST') return context.movementContinuation
+  if (context.kind === 'ENCOUNTER_CONTEST_CHECK') return context.origin.movementContinuation
   return null
 }
 
@@ -231,14 +237,17 @@ export async function publishSpatialPending<TSettlement, TGeometry extends Spati
                 })
               }
             }
-          : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+          : context.kind === 'ENCOUNTER_CONTEST_CHECK'
             ? {
-                movementContinuation: {
-                  ...context.movementContinuation,
-                  spatialCurrentnessChecksum: checksumSpatialCurrentness({
-                    encounter: { id: state.id, version: expectedPublicationVersion },
-                    candidates: context.movementContinuation.remainingSpatialCandidates
-                  })
+                origin: {
+                  ...context.origin,
+                  movementContinuation: {
+                    ...context.origin.movementContinuation,
+                    spatialCurrentnessChecksum: checksumSpatialCurrentness({
+                      encounter: { id: state.id, version: expectedPublicationVersion },
+                      candidates: context.origin.movementContinuation.remainingSpatialCandidates
+                    })
+                  }
                 }
               }
             : {
@@ -397,9 +406,8 @@ export async function publishSpatialPending<TSettlement, TGeometry extends Spati
       const currentRoot =
         currentContext.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
           ? currentContext.movement.root
-          : currentContext.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' &&
-              currentContext.movementContinuation
-            ? currentContext.movementContinuation.root
+          : currentContext.kind === 'ENCOUNTER_CONTEST_CHECK'
+            ? contestCheckMovementContinuation(currentContext)?.root
             : currentContext.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
                 currentContext.kind === 'ENCOUNTER_MOVEMENT_REACTION'
               ? currentContext.root

@@ -67,6 +67,7 @@ import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
 } from './nativeAttackPerception.js'
+import { planNativeLiveContestRolls } from './nativeDisarm.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -112,7 +113,10 @@ import {
 import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
-import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  encounterActorEffectiveSize,
+  prepareNativeActionEffectsPlan
+} from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
@@ -164,6 +168,7 @@ import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { readNativeLiveSpatialEffects } from './nativeTurnEffectPerception.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -578,12 +583,16 @@ export async function planNativeLiveEncounterAction(
   refuseActionOutsideItsWindow(prepared)
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
-  await refuseUnmetBasicActionRestrictions(prepared, {
-    target: actorTarget,
-    gameSystemId: state.gameSystemId,
-    definitions,
-    speedDefinitions: system.speeds
-  })
+  await refuseUnmetBasicActionRestrictions(
+    { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
+    {
+      target: actorTarget,
+      gameSystemId: state.gameSystemId,
+      definitions,
+      speedDefinitions: system.speeds,
+      runEffectsByActorId: activeEffectsByActorId
+    }
+  )
   refuseUnmetItemActionRequirements(prepared, state)
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
@@ -610,6 +619,7 @@ export async function planNativeLiveEncounterAction(
         outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
     )
   })
+  const targetMovement = movementTargets.get(prepared.target.id)
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: [
       ...prepared.ruleWarnings,
@@ -624,6 +634,8 @@ export async function planNativeLiveEncounterAction(
       sceneContext
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
+    actorSize: encounterActorEffectiveSize(actorTarget),
+    targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
     targetDefeated: isEncounterActorDefeated(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
@@ -632,7 +644,7 @@ export async function planNativeLiveEncounterAction(
       (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE'
     )
       ? {
-          targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id))
+          targetDying: isEncounterTargetDying(targetMovement)
         }
       : null,
     actionEconomy: economy,
@@ -662,6 +674,49 @@ export async function planNativeLiveEncounterAction(
     if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
       throw new Error('Only a basic action can make a check.')
     const { capability } = prepared.source
+    // A check its target contests (Grapple) rolls both participants' d20s as one contest (D152).
+    if (authoredCheckOf(capability).dc.kind === 'CONTEST') {
+      const contestInput = {
+        state,
+        actor: prepared.actor,
+        target: prepared.target,
+        command,
+        prepared,
+        sceneContext
+      }
+      return {
+        kind: 'CONTEST' as const,
+        plan: await planNativeLiveContestRolls({
+          ...contestInput,
+          scope,
+          root: command,
+          ready: {
+            fingerprint: admission.fingerprint,
+            initiatorUserId: scope.expectedUserId,
+            autoRollByActorId,
+            appRoll: null,
+            snapshot: null,
+            occurrenceVersion: null
+          },
+          priorContext: null,
+          actors,
+          settlement: { kind: 'ACTION', prepared },
+          actorRules: prepared.actorRules,
+          activeEffectsByActorId,
+          preparation: prepareEncounterBasicActionContest({
+            ...contestInput,
+            system,
+            actionEconomy
+          }),
+          actionEconomy,
+          runtime: executionOptions.runtime,
+          random: executionOptions.random ?? nextRollInt,
+          revisions
+        }),
+        dependencies,
+        revisions
+      }
+    }
     // A concealment check compares its roller with every actor in the Run; load them all before the
     // revisions the plan depends on are read.
     const concealmentTargets =

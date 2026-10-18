@@ -1,7 +1,14 @@
-import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  escapeRelationshipInputDtoSchema,
+  resolveEncounterActionInputDtoSchema
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  contestDefenderPicksCheck,
+  contestDefenderPolicy
+} from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import {
   noEncounterRollModeReasons,
@@ -29,9 +36,13 @@ export async function readNativeActionPending(
   )
     throw new Error('Stored Encounter action pending snapshot mismatch.')
   const context = snapshot.applicationContext
-  const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
+  // A contested escape's root is the escape itself (D152).
+  const command = (
+    context.contest?.origin.kind === 'ESCAPE'
+      ? escapeRelationshipInputDtoSchema
+      : resolveEncounterActionInputDtoSchema
+  ).parse(JSON.parse(context.commandJson))
   if (
-    command.type !== 'RESOLVE_ACTION' ||
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
     command.expectedVersion !== occurrence.expectedEncounterVersion ||
@@ -303,11 +314,33 @@ export function projectNativeActionPending(
     encounterVersion: occurrence.expectedEncounterVersion,
     rollerActorId: context.rollerActorId
   }
+  const { contest } = context
+  // A basic action or escape contest's defender picks one of its sealed checks and rolls it (D152).
+  if (contest && snapshot.request.nodeId === 'target_d20' && contestDefenderPicksCheck(contest)) {
+    if (contest.origin.kind === 'OPTIONAL_COMBAT')
+      throw new Error('Stored contest check origin is invalid.')
+    return {
+      ...common,
+      kind: 'CONTEST_CHECK',
+      rollerActorId: contest.defender.actorId,
+      actionLabel: contest.origin.actionLabel,
+      requestId: snapshot.request.requestId,
+      checks: contest.defender.checks.map(
+        ({ checkDefinitionId, label, rollMode, contributors }) => ({
+          checkDefinitionId,
+          label,
+          rollMode,
+          derivedRollModeReasons: reasons({ rollMode, contributors })
+        })
+      ),
+      allowedResponses: ['CONTEST_CHECK']
+    }
+  }
   const d20Policy = context.contest
     ? snapshot.request.nodeId === 'initiator_d20'
       ? context.contest.initiator
       : snapshot.request.nodeId === 'target_d20'
-        ? context.contest.defender
+        ? contestDefenderPolicy(context.contest.defender, null)
         : null
     : (context.d20Policy ?? castCheck?.d20 ?? null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))

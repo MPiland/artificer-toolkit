@@ -7,7 +7,9 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
 import { EncounterConflictError } from './encounterErrors.js'
+import { contestCheckMovementContinuation } from './encounterMovementPendingContext.js'
 import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
+import { contestDefenderPolicy } from './encounterOptionalContestActionExecution.js'
 import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
@@ -103,7 +105,7 @@ export function projectEncounterSpatialOccurrenceSummary(
         : null
     }
   }
-  if (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation) {
+  if (context.kind === 'ENCOUNTER_CONTEST_CHECK' && contestCheckMovementContinuation(context)) {
     const initiator = pendingSnapshot.request.nodeId === context.initiator.requestNodeId
     const defender = pendingSnapshot.request.nodeId === context.defender.requestNodeId
     if (!initiator && !defender)
@@ -111,6 +113,7 @@ export function projectEncounterSpatialOccurrenceSummary(
         'The optional-combat contest has an invalid evidence request.'
       )
     const canView = controls(initiator ? context.sourceActorId : context.targetActorId)
+    const policy = initiator ? context.initiator : contestDefenderPolicy(context.defender, null)
     if (!canView) {
       return {
         occurrenceId: occurrence.id,
@@ -133,10 +136,10 @@ export function projectEncounterSpatialOccurrenceSummary(
           requestId: pendingSnapshot.request.requestId,
           min: 1,
           max: 20,
-          rollMode: (initiator ? context.initiator : context.defender).rollMode,
+          rollMode: policy.rollMode,
           derivedRollModeReasons: reasons({
-            rollMode: (initiator ? context.initiator : context.defender).rollMode,
-            contributors: (initiator ? context.initiator : context.defender).contributors
+            rollMode: policy.rollMode,
+            contributors: policy.contributors
           })
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']

@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import {
   encounterActionChoicesResponseDtoSchema,
+  encounterHeldRelationshipDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
   getEncounterActionChoicesInputDtoSchema,
   getEncounterOptionalActionChoicesInputDtoSchema
@@ -9,6 +10,7 @@ import {
   encounterActionTargetModifiersDtoSchema,
   getEncounterActionTargetModifiersInputDtoSchema
 } from './encounterActionTargetModifiers.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { encounterEvidenceRollDtoSchema, getEncounterInputDtoSchema } from './encounterData.js'
 import { sceneEncounterBindingInputSchema, sceneEncounterBindingSchema } from './sceneRecipient.js'
 import { encounterSceneActorTokenBindingDtoSchema } from './vttScenes.js'
@@ -32,6 +34,7 @@ export const encounterReadDtoSchema = lazySchema(() =>
       input: z.omit(getEncounterActionTargetModifiersInputDtoSchema, { expectedVersion: true })
     }),
     z.strictObject({ kind: z.literal('LATEST_EVIDENCE_ROLLS'), input: getEncounterInputDtoSchema }),
+    z.strictObject({ kind: z.literal('HELD_RELATIONSHIPS'), input: getEncounterInputDtoSchema }),
     z.strictObject({ kind: z.literal('SCENE_BINDING'), input: sceneEncounterBindingInputSchema }),
     z.strictObject({
       kind: z.literal('ACTOR_TOKEN_BINDINGS'),
@@ -58,6 +61,11 @@ export const encounterReadResultDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('LATEST_EVIDENCE_ROLLS'),
       result: z.array(encounterEvidenceRollDtoSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('HELD_RELATIONSHIPS'),
+      /** The holds the requester's creatures source; every hold for the GM. */
+      result: z.array(encounterHeldRelationshipDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     }),
     z.strictObject({
       kind: z.literal('SCENE_BINDING'),

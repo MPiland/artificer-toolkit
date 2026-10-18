@@ -148,10 +148,11 @@ async function setupPassageScene(
     return run.version
   }
   if (helper)
-    await base.t.mutation(importDefinitions, {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: SRD_BASIC_ACTION_DEFINITIONS
-    })
+    for (const definitions of sourceImportBatches(SRD_BASIC_ACTION_DEFINITIONS))
+      await base.t.mutation(importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions
+      })
   await attachFixtureRoom(base.t, base.campaign.id)
   // The room holds the Run from its first command, so its version comes from each answer.
   let version = await runVersion()

@@ -116,6 +116,7 @@ type AuthoringDefaultKind =
   | 'senseGrantLevel'
   | 'senseGrantProgression'
   | 'shape'
+  | 'sizeLimit'
   | 'speed'
   | 'spellGrant'
   | 'spellGrantLevel'
@@ -269,6 +270,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   senseGrantLevel: ['senseGrantLevel'],
   senseGrantProgression: ['senseGrantProgression'],
   shape: ['shape'],
+  sizeLimit: ['sizeLimit'],
   speed: ['speed'],
   spellGrant: ['spellGrant'],
   spellGrantLevel: ['spellGrantLevel'],

@@ -18,17 +18,26 @@ export type EncounterAppRollAnswer = Extract<ApiResolution, { kind: 'SYSTEM_ROLL
 
 /** A response as the rules consume it: the command's answer, with an app roll's recorded faces. */
 export type EncounterResponseAnswer =
-  | Exclude<ApiResolution, { kind: 'SYSTEM_ROLL' }>
+  | Exclude<ApiResolution, { kind: 'SYSTEM_ROLL' | 'CONTEST_CHECK' }>
   | EncounterAppRollAnswer
+  | (Omit<Extract<ApiResolution, { kind: 'CONTEST_CHECK' }>, 'roll'> & {
+      roll: Extract<ApiResolution, { kind: 'ENTER_DICE' }> | EncounterAppRollAnswer
+    })
 
 /**
- * Binds a response to the app roll the server read for it: a `SYSTEM_ROLL` answer needs exactly
- * that roll, and any other answer takes none.
+ * Binds a response to the app roll the server read for it: a `SYSTEM_ROLL` answer, or a contest
+ * check rolled in the app, needs exactly that roll, and any other answer takes none.
  */
 export function withEncounterAppRoll(
   resolution: ApiResolution,
   appRoll: EncounterSettledAppRollDto | null
 ): EncounterResponseAnswer {
+  if (resolution.kind === 'CONTEST_CHECK') {
+    const roll = withEncounterAppRoll(resolution.roll, appRoll)
+    if (roll.kind !== 'ENTER_DICE' && roll.kind !== 'SYSTEM_ROLL')
+      throw new EncounterValidationError('A contest check is rolled with d20 dice.')
+    return { ...resolution, roll }
+  }
   if (resolution.kind !== 'SYSTEM_ROLL') {
     if (appRoll) throw new EncounterValidationError('Only an app-roll answer takes an app roll.')
     return resolution

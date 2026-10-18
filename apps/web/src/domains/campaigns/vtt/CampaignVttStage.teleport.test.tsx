@@ -132,7 +132,7 @@ const destination: ScenePoint = { x: ember.position.x + 100, y: ember.position.y
 /** A drag of Ember's token that wanders before it ends at `destination`. */
 async function dragEmber() {
   await waitFor(() => expect(mocks.onTokenCommit).not.toBeNull())
-  await waitFor(() => expect(mocks.readEncounter).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(mocks.readEncounter).toHaveBeenCalledTimes(3))
   await act(async () => {
     await Promise.resolve()
   })
@@ -162,7 +162,9 @@ describe('CampaignVttStage in-Scene teleport (SPELLS-28.T1b)', () => {
         result:
           kind === 'SCENE_BINDING'
             ? { kind, result: { ...binding, encounterVersion: tabletopGmEncounter.version } }
-            : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
+            : kind === 'HELD_RELATIONSHIPS'
+              ? { kind, result: [] }
+              : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
       })
     )
   })

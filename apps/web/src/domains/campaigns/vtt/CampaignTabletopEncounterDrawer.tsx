@@ -12,10 +12,13 @@ import {
 import { useDisclosure, useWindowEvent } from '@mantine/hooks'
 import { ListOrdered } from 'lucide-react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { EncounterHeldRelationshipDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandInputDto,
+  EncounterCommandResultDto,
   EncounterGmProjectionDto,
-  EncounterPlayerProjectionDto
+  EncounterPlayerProjectionDto,
+  ReleaseRelationshipInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   CampaignSceneStateDto,
@@ -23,6 +26,7 @@ import type {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { ActiveGrantList } from '../../../components/activeGrants/ActiveGrantList'
 import { CampaignTabletopConcealmentObservers } from './CampaignTabletopConcealmentObservers'
+import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
@@ -46,19 +50,23 @@ export function CampaignTabletopEncounterDrawer({
   connected,
   currentActorMine,
   encounter,
+  holds,
   memberships,
   pending,
   role,
   scene,
   targeting = null,
   onCommand,
-  onEndCharacterConcentration
+  onEndCharacterConcentration,
+  onRelease
 }: {
   actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
   /** The viewer controls the actor whose turn it is (always true for the GM). */
   currentActorMine: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+  /** The holds the viewer's creatures source, which each may release on any turn (D152). */
+  holds: EncounterHeldRelationshipDto[]
   memberships: CampaignDetailDto['memberships']
   pending: boolean
   role: 'OWNER' | 'PLAYER'
@@ -76,6 +84,7 @@ export function CampaignTabletopEncounterDrawer({
   onCommand: (command: LiveEncounterCommand) => void
   /** A Character ends its Concentration with its Sheet command, not an Encounter command. */
   onEndCharacterConcentration: (characterId: string) => void
+  onRelease: (command: ReleaseRelationshipInputDto) => Promise<EncounterCommandResultDto>
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   // Escape ends targeting only once every drawer's capture-phase Escape listener has seen the key:
@@ -168,6 +177,16 @@ export function CampaignTabletopEncounterDrawer({
             <Alert color='yellow' mb='md'>
               Turn controls will return when live play reconnects.
             </Alert>
+          ) : null}
+
+          {holds.length && !targeting ? (
+            <CampaignTabletopReleases
+              disabled={controlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              releases={holds}
+              onRelease={onRelease}
+            />
           ) : null}
 
           <div className={styles.actorList} aria-label='Encounter turn order'>

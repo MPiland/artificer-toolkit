@@ -52,7 +52,7 @@ async function attackOgre(attacker: CreatureAuthored, feature: string, rolls: re
     conditionIds: readEncounterActorConditionState(target.conditions).ids,
     effects: prepareNativeActionEffectsPlan({
       prepared,
-      execution: { kind: 'COMPLETE', ...execution },
+      execution,
       occurrenceId: testUuid(0x2202),
       commandId: testUuid(0x2203),
       activeEffectsByActorId: new Map()

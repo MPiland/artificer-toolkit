@@ -63,19 +63,6 @@ export function encounterBasicActionStabilizeApplication(
   }
 }
 
-/** The check's name as the roller reads it: "Strength" or "Wisdom (Medicine)". */
-export function encounterBasicActionCheckLabel(
-  system: SystemAuthoredDto,
-  checkDefinitionId: string
-): string {
-  const abilityCheck = system.abilities.find((entry) => entry.id === checkDefinitionId)
-  if (abilityCheck) return abilityCheck.label
-  const skill = system.skills.find((entry) => entry.id === checkDefinitionId)
-  if (!skill) throw new EncounterValidationError('The basic action check is not in the System.')
-  const ability = system.abilities.find((entry) => entry.id === skill.governingAbilityDefinitionId)
-  return ability ? `${ability.label} (${skill.label})` : skill.label
-}
-
 export function encounterBasicActionCheckTrigger(
   context: Pick<EncounterBasicActionCheckPendingContextDto, 'actionLabel' | 'check'>
 ): Extract<EncounterRuleRollTriggerDto, { kind: 'BASIC_ACTION_CHECK' }> {

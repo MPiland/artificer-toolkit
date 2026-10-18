@@ -77,6 +77,24 @@ export const SIZE_REGISTRY: Record<SizeCode, SizeOption> = {
   }
 } as const
 
+const SIZE_RANK: Record<SizeCode, number> = {
+  FINE: 0,
+  DIMUNITIVE: 1,
+  TINY: 2,
+  SMALL: 3,
+  MEDIUM: 4,
+  LARGE: 5,
+  HUGE: 6,
+  GARGANTUAN: 7,
+  GIANT: 8,
+  COLOSSAL: 9
+}
+
+/** One size step per rank, smallest first; null for a missing or unknown size. */
+export function sizeRank(size: string | null | undefined): number | null {
+  return size != null && Object.hasOwn(SIZE_RANK, size) ? SIZE_RANK[size as SizeCode] : null
+}
+
 export type SizeRegistryValue = (typeof SIZE_REGISTRY)[keyof typeof SIZE_REGISTRY]
 
 export const SIZE_OPTIONS = valuesOf(SIZE_REGISTRY) as readonly SizeRegistryValue[]
