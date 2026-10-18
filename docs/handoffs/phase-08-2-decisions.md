@@ -1525,5 +1525,9 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - All 38 Multiattack kinds are deleted by ATTACK-11.2 (D93), and SPELLS-33.1 closes only after it.
     - Clay and Flesh Golem Berserk, Elemental Demise, Vampire Forbiddance and Stake to the Heart are class C, with the GM-run behavior kept in the description.
     - Ghost and Night Hag Etherealness are class B in T4gh, using whatever the SPELLS-4.T2g and T2h groups build; they add no separate plane model.
+    - **Amended 2026-10-18 (SPELLS-33.T3a ruling):** three kinds classed A have no option path yet.
+      - Nothing folds a creature feature's passive saving throw or skill modifier grants into the creature's rule facts. Creature saves read only ability scores, proficiencies and active-effect records. A new SPELLS-33.T3a2 folds those grants through the same option Characters use, then converts Dark Devotion (cultist and cult fanatic), Death Dog Two-Headed and Knight Brave. SPELLS-33.T4j depends on it.
+      - Mimic Grappler moves to SPELLS-33.T4s3, beside the Pseudopod Adhesive grapple it needs.
+      - The compiler refuses an AREA_CONTENTS save that excludes creature types. A new SPELLS-33.T3a3 lifts that refusal generically and converts Cloaker Moan as a 60-foot self-centered sphere excluding aberrations. "That can hear" stays in the description, and the Moan's after-save immunity stays in T7a.
     - Flyby joins the opportunity-attack qualifier from SPELLS-31.T4k2.
     - As in SPELLS-31, each authoring gap is fixed with a regression test in the subtask that owns it, and each new T6 group needs an option-design ruling at its start.

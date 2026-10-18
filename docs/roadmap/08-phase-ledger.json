@@ -11474,8 +11474,34 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, Draining Kiss, damage-or-grapple choices, self teleports, attach and grapple riders, Cloaker Moan filter (15 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, Draining Kiss, damage-or-grapple choices, self teleports, attach riders (9 kinds; Dark Devotion x2, Two-Headed and Brave moved to T3a2, Mimic Grappler to T4s3, Cloaker Moan to T3a3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T3a2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use, then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T3a3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "Lift the compiler refusal of AREA_CONTENTS saves with excluded creature types generically, then convert Cloaker Moan as a 60-foot self-centered sphere excluding aberrations; its after-save immunity stays in T7a (1 kind). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T3b",
@@ -11552,7 +11578,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2j"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2j", "SPELLS-33.T3a2"]
               },
               "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
@@ -11684,7 +11710,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
-              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T4w",
