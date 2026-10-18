@@ -979,6 +979,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    * authority once the room has had no admitted socket for the idle window.
    */
   async alarm(): Promise<void> {
+    console.warn('T13DEBUG alarm', this.ctx.id.toString(), (globalThis as { t13torn?: Set<string> }).t13torn?.has(this.ctx.id.toString()))
     this.#meter.request('ALARM')
     this.#reauthenticateExpiringAdmissions()
     if (await this.#recoverStorageIfNeeded()) {
@@ -1069,6 +1070,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (fogExpiresAt !== null) deadlines.push(fogExpiresAt)
     if (deadlines.length === 0) await this.ctx.storage.deleteAlarm()
     else await this.ctx.storage.setAlarm(Math.min(...deadlines))
+    if ((globalThis as { t13torn?: Set<string> }).t13torn?.has(this.ctx.id.toString()))
+      console.warn('T13DEBUG late-arm', this.ctx.id.toString(), deadlines.length, open.length, new Error('arm').stack)
   }
 
   #idleReleaseAt(): number | null {

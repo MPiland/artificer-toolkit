@@ -33,5 +33,7 @@ export async function clearRoomAlarms(): Promise<void> {
       { timeout: SOCKET_DETACH_MS }
     )
     await runInDurableObject(stub, (_room, state) => state.storage.deleteAlarm())
+    const torn = ((globalThis as { t13torn?: Set<string> }).t13torn ??= new Set())
+    torn.add(stub.id.toString())
   }
 }
