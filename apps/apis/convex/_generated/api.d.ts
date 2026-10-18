@@ -113436,11 +113436,14 @@ export declare const api: {
                 | "TARGET_TOO_LARGE";
               message: string;
             }>;
-            wieldConflict: {
-              armorClassDelta: number;
-              kind: "STOW_SHIELD";
-              shieldItemInstanceId: string;
-            } | null;
+            wieldConflict:
+              | {
+                  armorClassDelta: number;
+                  kind: "STOW_SHIELD";
+                  shieldItemInstanceId: string;
+                }
+              | { itemInstanceId: string; kind: "STOW_HELD_WEAPON" }
+              | null;
           }>;
           actorId: string;
           basicActionChoices: Array<{
@@ -114172,11 +114175,14 @@ export declare const api: {
                 | "TARGET_TOO_LARGE";
               message: string;
             }>;
-            wieldConflict: {
-              armorClassDelta: number;
-              kind: "STOW_SHIELD";
-              shieldItemInstanceId: string;
-            } | null;
+            wieldConflict:
+              | {
+                  armorClassDelta: number;
+                  kind: "STOW_SHIELD";
+                  shieldItemInstanceId: string;
+                }
+              | { itemInstanceId: string; kind: "STOW_HELD_WEAPON" }
+              | null;
           }>;
           encounterId: string;
           encounterVersion: number;
