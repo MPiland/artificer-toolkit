@@ -2,6 +2,7 @@ import type {
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
+import { SPATIAL_TURN_TRIGGERS } from '@artificer-toolkit/schema/shared/spatial'
 import type {
   CompiledEffectGroup,
   CompiledManifest,
@@ -66,7 +67,8 @@ const ZONE_TURN_TRIGGERS: Readonly<
   >
 > = {
   START_TURN_IN_SPACE: 'START_OF_TURN',
-  END_TURN_IN_SPACE: 'END_OF_TURN'
+  END_TURN_IN_SPACE: 'END_OF_TURN',
+  START_OF_SOURCE_TURN: 'START_OF_SOURCE_TURN'
 }
 
 function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean {
@@ -188,7 +190,7 @@ export function zoneTriggers(
     movements?.forEach((trigger) => movement.add(trigger))
     if (boundary) turn.add(boundary)
   }
-  const turnTriggers = (['START_OF_TURN', 'END_OF_TURN'] as const).filter((t) => turn.has(t))
+  const turnTriggers = SPATIAL_TURN_TRIGGERS.filter((t) => turn.has(t))
   return {
     triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter((t) => movement.has(t)),
     ...(turnTriggers.length ? { turnTriggers } : {})

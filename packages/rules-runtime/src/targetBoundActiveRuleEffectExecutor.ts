@@ -378,10 +378,11 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
 type D20Roll = { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
 
 /**
- * Whether the pause asks for one die of the frozen graph's own damage: an optional integer range
- * from 1 that the graph enables only for the authored result (a placed zone's failed entry save).
- * The frozen d20 policy's own request node is the d20 evidence, never a damage die, though a gated
- * d20 is an optional range too.
+ * Whether the pause asks for one die of the frozen graph's own damage: an integer range from 1,
+ * optional when the graph enables it only for the authored result (a placed zone's failed entry
+ * save) and plain when the effect rolls damage with no save (a zone outcome with no saving throw,
+ * D144). The frozen d20 policy's own request node is the d20 evidence, never a damage die, though a
+ * gated d20 is an optional range too.
  */
 export function isDamageDieRequest(
   continuation: ServerRuleExecutionContinuationDto,
@@ -393,7 +394,8 @@ export function isDamageDieRequest(
     request.kind === 'INTEGER_RANGE' &&
     request.nodeId !== policy?.requestNodeId &&
     request.min === 1 &&
-    node?.operation.key === 'evidence.optional-integer-range' &&
+    (node?.operation.key === 'evidence.optional-integer-range' ||
+      node?.operation.key === 'evidence.integer-range') &&
     node.inputs.min?.kind === 'LITERAL' &&
     node.inputs.min.value === 1 &&
     node.inputs.max?.kind === 'LITERAL' &&
@@ -560,7 +562,7 @@ function validatePreparedContinuation(input: {
   prepared: ReturnType<typeof prepare>
   continuation: ServerRuleExecutionContinuationDto
   expectedEvidencePolicy?: ServerRuleExecutionD20PolicyDto | null
-}): NonNullable<ReturnType<typeof prepare>['evidencePolicy']> {
+}): ReturnType<typeof prepare>['evidencePolicy'] {
   if (
     input.continuation.occurrenceId !== input.prepared.occurrenceId ||
     checksumRuleDocument(input.continuation.graph) !==
@@ -579,7 +581,8 @@ function validatePreparedContinuation(input: {
       'The active-effect evidence policy no longer matches the sealed pending context.'
     )
   const policy = input.prepared.evidencePolicy
-  if (!policy)
+  // With no d20 policy, the only evidence an effect may wait on is its own damage dice.
+  if (!policy && !isDamageDieRequest(input.continuation, null))
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect continuation has no normalized d20 evidence policy.'
     )
@@ -649,18 +652,19 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     continuation: ServerRuleExecutionContinuationDto
     /**
      * The d20 faces and the mode the roller rolled them with, or one die of the graph's damage with
-     * the d20 roll already resolved (the completed evidence needs it).
+     * the d20 roll already resolved (the completed evidence needs it); null when the effect has no
+     * d20 policy.
      */
     resolution:
       | { requestId: string; rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
-      | { requestId: string; value: number; d20: D20Roll }
+      | { requestId: string; value: number; d20: D20Roll | null }
     expectedEvidencePolicy?: ServerRuleExecutionD20PolicyDto | null
   }
 ): Promise<
   TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
 > {
   const prepared = prepare(input)
-  validatePreparedContinuation({
+  const policy = validatePreparedContinuation({
     prepared,
     continuation: input.continuation,
     expectedEvidencePolicy: input.expectedEvidencePolicy
@@ -673,7 +677,8 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
   const die = 'value' in resolution
   if (
     resolution.requestId !== input.continuation.request.requestId ||
-    die !== isDamageDieRequest(input.continuation, input.expectedEvidencePolicy)
+    die !== isDamageDieRequest(input.continuation, policy) ||
+    (die && (resolution.d20 === null) !== (policy === null))
   )
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect resolution does not answer its pending request.'
@@ -682,8 +687,9 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     ? resolution.d20
     : { rawFaces: [...resolution.rawFaces], rollMode: resolution.rollMode }
   if (
-    roll.rawFaces.length !== (roll.rollMode === 'NORMAL' ? 1 : 2) ||
-    roll.rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20) ||
+    (roll &&
+      (roll.rawFaces.length !== (roll.rollMode === 'NORMAL' ? 1 : 2) ||
+        roll.rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20))) ||
     (die && !Number.isSafeInteger(resolution.value))
   )
     throw new CharacterActiveRuleEffectExecutionError(
@@ -693,7 +699,9 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     continuation: input.continuation,
     response: serverRuleEvidenceResponseDtoSchema.parse({
       requestId: resolution.requestId,
-      value: die ? resolution.value : selectEncounterActionD20Natural(roll.rollMode, roll.rawFaces)
+      value: die
+        ? resolution.value
+        : selectEncounterActionD20Natural(roll!.rollMode, roll!.rawFaces)
     })
   })
   if (resumed.result.status !== 'COMPLETE') {
@@ -708,40 +716,42 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     prepared,
     execution: resumed.result,
     graph: resumed.graph,
-    roll
+    ...(roll ? { roll } : {})
   })
 }
 
 /**
  * Resume a paused effect with the player's answer to its pending request: the frozen d20 policy's
- * save, or the one die of the graph's own damage that follows a save (answered with the save's
- * d20, which the caller kept as `diceStage`). A stale request or answer throws a conflict.
+ * save, or one die of the graph's own damage, which follows a save (answered with the save's d20,
+ * which the caller kept as `diceStage`) unless the effect has no d20 policy. A stale request or
+ * answer throws a conflict.
  */
 export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
   effectInput: TargetBoundActiveRuleEffectExecutionInput
   continuation: ServerRuleExecutionContinuationDto
-  policy: ServerRuleExecutionD20PolicyDto
-  /** The resolved d20 when the pending request is the damage die; null when it is the d20. */
+  /** Null when the effect rolls its damage with no save. */
+  policy: ServerRuleExecutionD20PolicyDto | null
+  /** The resolved d20 when the pending request is the damage die of a save; null otherwise. */
   diceStage: { rollMode: EncounterD20RollMode; rawFaces: readonly number[] } | null
   answer: EncounterEvidenceAnswer
   random: (maxExclusive: number) => number
 }): Promise<{
   result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
-  d20: { rollMode: EncounterD20RollMode; rawFaces: number[] }
+  d20: { rollMode: EncounterD20RollMode; rawFaces: number[] } | null
 }> {
   const { effectInput, continuation, policy, diceStage, answer } = input
   const { request } = continuation
   if (request.requestId !== answer.requestId || request.kind !== 'INTEGER_RANGE')
     throw new EncounterConflictError('The evidence request is stale.')
   if (isDamageDieRequest(continuation, policy)) {
-    if (!diceStage) throw new EncounterConflictError('The evidence request is stale.')
+    if (!diceStage !== !policy) throw new EncounterConflictError('The evidence request is stale.')
     const value = resolveEncounterIntegerAnswer({
       min: request.min,
       max: request.max,
       answer,
       random: input.random
     })
-    const d20 = { rollMode: diceStage.rollMode, rawFaces: [...diceStage.rawFaces] }
+    const d20 = diceStage && { rollMode: diceStage.rollMode, rawFaces: [...diceStage.rawFaces] }
     return {
       d20,
       result: await resumeTargetBoundActiveRuleEffectWithPause({
@@ -753,6 +763,7 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
     }
   }
   if (
+    !policy ||
     diceStage ||
     request.min !== 1 ||
     request.max !== 20 ||

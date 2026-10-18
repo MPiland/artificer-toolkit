@@ -2,8 +2,8 @@ import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/proj
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterReadContext } from './store.js'
 
-/** Reads only current Encounter actor-token identities for Cleaving preparation. */
-export async function readEncounterCleavingBindings(
+/** Reads the current Encounter actor-token identities, optionally pinned to one Scene. */
+export async function readEncounterActorTokenBindings(
   ctx: EncounterReadContext,
   state: EncounterRunState,
   expectedSceneId?: string
@@ -13,7 +13,7 @@ export async function readEncounterCleavingBindings(
     .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', state.id))
     .take(state.actorIds.length + 1)
   if (rows.length > state.actorIds.length)
-    throw new Error('Cleaving Scene token binding is unavailable.')
+    throw new Error('Encounter actor token binding is unavailable.')
   const actorIds = new Set<string>()
   const tokenIds = new Set<string>()
   return rows.map((row) => {
@@ -26,7 +26,7 @@ export async function readEncounterCleavingBindings(
       actorIds.has(binding.actorId) ||
       tokenIds.has(binding.tokenId)
     )
-      throw new Error('Cleaving Scene token binding is unavailable.')
+      throw new Error('Encounter actor token binding is unavailable.')
     actorIds.add(binding.actorId)
     tokenIds.add(binding.tokenId)
     return { actorId: binding.actorId, tokenId: binding.tokenId }

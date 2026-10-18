@@ -1361,13 +1361,13 @@ function zoneDamageRow(
 }
 
 /**
- * A placed zone's damage on one save result: fixed, or one unmodified dice roll that the entry graph
- * rolls itself (D133). The failed save deals the roll in full; the made save may deal half of it.
- * Bonuses and other multipliers belong to the zone turn trigger.
+ * A placed zone's damage on one result: fixed, or one unmodified dice roll that the entry graph
+ * rolls itself (D133). The failed save, or an outcome with no save, deals the roll in full; the made
+ * save may deal half of it. Bonuses and other multipliers belong to the zone turn trigger.
  */
 function zoneDamageOutcome(
   entry: CompiledEffectGroup['entries'][number],
-  pathCode: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+  pathCode: 'ON_USE' | 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
 ): Outcome | EntryDiceDamageOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const { outcome } = entry
@@ -1382,7 +1382,7 @@ function zoneDamageOutcome(
     boundedDiceTerm(outcome.dice).modifier !== 0
   )
     unsupported(
-      'A placed zone dice damage is one unmodified roll: in full on a failed save, halved on a made one.'
+      'A placed zone dice damage is one unmodified roll: in full with no save or a failed one, halved on a made one.'
     )
   uuid(outcome.damageTypeId, 'D&D damage type identity')
   return {
@@ -2195,8 +2195,9 @@ function zoneChoicePlan(
 /**
  * The zone a PLACED_SPACE or SOURCE manifest action places. Its one entering behavior is a saving
  * throw against a fixed DC or the caster's save DC (stored when the zone is placed) whose failure
- * stops the mover, deals damage and may leave a grant that lasts until its authored end event.
- * Anything else the behavior authors is refused rather than partly honored.
+ * stops the mover, deals damage and may leave a grant that lasts until its authored end event; or,
+ * for a zone that acts only at turn boundaries, damage dealt with no save (D144). Anything else the
+ * behavior authors is refused rather than partly honored.
  */
 function zonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -2227,6 +2228,20 @@ function zonePlacementPlan(
     zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
+  const placement = triggers && {
+    attachment: zone.attachment,
+    label: zone.label,
+    shape: zone.shape,
+    ...triggers,
+    bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
+    ...(zone.component.choosesUnaffected ? { choosesUnaffected: true } : {}),
+    ...(zone.component.maxApplicationsPerTurn
+      ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
+      : {}),
+    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {})
+  }
+  if (placement && invocation.triggerCode !== 'SAVING_THROW')
+    return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
     !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
@@ -2355,16 +2370,7 @@ function zonePlacementPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   return {
-    attachment: zone.attachment,
-    label: zone.label,
-    shape: zone.shape,
-    ...triggers,
-    bypassAtHalfSpeed: zone.component.bypassAtHalfSpeed === true,
-    ...(zone.component.choosesUnaffected ? { choosesUnaffected: true } : {}),
-    ...(zone.component.maxApplicationsPerTurn
-      ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
-      : {}),
-    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...placement!,
     ...(lostAction ? { failedSaveLosesAction: true } : {}),
     entry: {
       ...entryPlan,
@@ -2379,6 +2385,69 @@ function zonePlacementPlan(
         }
       : null,
     maintenance: maintenancePlan(action, primary)
+  }
+}
+
+/**
+ * A zone whose outcome needs no save (D144): it rolls one unmodified damage dice row and deals it in
+ * full, with no test node, so it acts only at turn boundaries, where its source rolls the dice.
+ */
+function unsavedZonePlacementPlan(
+  action: Dnd5eCompiledEffectActionSource,
+  placement: Omit<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'>,
+  entries: readonly CompiledEffectGroup['entries'][number][],
+  successImmunity: unknown
+): CharacterRuleActionZonePlacementPlan {
+  if (placement.triggerModes.length > 0)
+    unsupported('A zone outcome with no save acts only at turn boundaries.')
+  if (
+    successImmunity ||
+    entries.length === 0 ||
+    entries.some(
+      (entry) =>
+        entry.resolutionKind !== 'DIRECT' ||
+        entry.pathCode !== 'ON_USE' ||
+        entry.rangeOverride ||
+        entry.targetingOverride
+    )
+  )
+    unsupported('A zone outcome with no save is direct damage on use.')
+  const row = zoneDamageRow(entries, action.spellCastLevel)
+  const outcome = zoneDamageOutcome(row, 'ON_USE')
+  if (outcome.kind !== 'ENTRY_DICE_DAMAGE' || !UUID.test(row.entryId))
+    unsupported('A zone outcome with no save rolls one damage dice row.')
+  const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
+    authoredEffectId: action.effectId,
+    compiledEntryId: row.entryId,
+    frozenGraphNodeId: 'proposal-on_use',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'NONE',
+    initialRemaining: null,
+    adapterFacts: {},
+    castSaveDcFactKey: null,
+    perceptionContributions: [],
+    maintenance: null
+  }
+  const definition = diceGraphDefinition({
+    action,
+    entry: row,
+    diceConfig: outcome.diceConfig,
+    recurring: entryPlan
+  })
+  return {
+    ...placement,
+    entry: {
+      ...entryPlan,
+      frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
+        id: definition.id,
+        gameSystemId: definition.gameSystemId,
+        definitionFamilyKey: definition.definitionFamilyKey,
+        checksum: checksumRuleDocument(definition),
+        definition
+      })
+    },
+    grant: null,
+    maintenance: maintenancePlan(action, row)
   }
 }
 

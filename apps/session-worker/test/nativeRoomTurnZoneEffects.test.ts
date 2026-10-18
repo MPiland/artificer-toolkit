@@ -1,6 +1,11 @@
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
-import { zonePlacementOf } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
+import {
+  diceDamage,
+  noSave,
+  variantEquipment,
+  zonePlacementOf
+} from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
 import {
   characterActor,
   creatureFeature,
@@ -43,6 +48,7 @@ const WOLF_ID = testUuid(0x2242)
 const DIE = 1
 const AURA_DAMAGE = 3 * (DIE + 1)
 const CALTROPS_DAMAGE = 1
+const FIELD_DIE_DAMAGE = DIE + 1
 
 /** The caster stands at (150, 150); a token is 100 px and the aura reaches 300 px past its edge. */
 const INSIDE_THE_AURA = { x: 150, y: 450 }
@@ -99,9 +105,14 @@ function endOfTurnCaltrops(): EquipmentAuthored {
   return equipment
 }
 
-/** The Character spreads the caltrops under the Wolf; `autoRoll` is off when a test answers the dice. */
-function fieldRoom(autoRoll?: Parameters<typeof actionRoom>[0]['autoRoll']) {
-  const caltrops = endOfTurnCaltrops()
+/**
+ * The Character spreads the caltrops (by default acting at the end of a creature's turn) under the
+ * Wolf; `autoRoll` is off when a test answers the dice.
+ */
+function fieldRoom(
+  autoRoll?: Parameters<typeof actionRoom>[0]['autoRoll'],
+  caltrops = endOfTurnCaltrops()
+) {
   return actionRoom({
     actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
     positions: { [WOLF_ID]: FIELD_POINT },
@@ -241,6 +252,63 @@ describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)
     const held = await readRoomHistory(room.room.base.stub)
     const dice = room.room.diceDrawn()
     expect(await wolfsTurn.send()).toEqual(answer)
+    expect(room.room.diceDrawn()).toBe(dice)
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(held)
+  })
+
+  it('deals a zone outcome with no save to the creatures in it at the start of its source’s turn (SPELLS-20 T6a, D144)', async () => {
+    // A 1d4 field authored from core options to act at its source's turn start, with no save.
+    const field = variantEquipment((parts) => {
+      diceDamage('1d4')(parts)
+      noSave()(parts)
+    })
+    const room = await fieldRoom('EVERYONE', field)
+    const zone = await castOnFirstTurn(room, () => room.startAreaAction(FIELD_POINT))
+    expect(zone.placement).toMatchObject({
+      triggerModes: [],
+      turnTriggers: ['START_OF_SOURCE_TURN']
+    })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    // The Wolf's own turn starts in the field, which acts only at its source's turn start.
+    const wolfsTurn = await advanceCommand(room)
+    expect((await wolfsTurn.send()).type).toBe('COMMAND_COMMITTED')
+    const first = await storedZonePhases(room, wolfsTurn.commandId)
+    expect(first.outgoing).toBeUndefined()
+    expect(first.incoming).toBeUndefined()
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+
+    // The caster's turn starts: the Wolf takes the rolled damage, with no save.
+    const castersTurn = await advanceCommand(room)
+    const answer = await castersTurn.send()
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const second = await storedZonePhases(room, castersTurn.commandId)
+    expect(second.incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          ordinal: 0,
+          candidate: {
+            candidate: {
+              effectId: zone.id,
+              sourceActorId: CASTER_ACTOR_ID,
+              targetActorId: WOLF_ID,
+              trigger: 'START_OF_SOURCE_TURN'
+            },
+            d20Policy: null
+          },
+          applications: [
+            expect.objectContaining({ kind: 'DAMAGE', appliedAmount: FIELD_DIE_DAMAGE })
+          ]
+        }
+      ],
+      encounterActorTransitions: [{ targetActorId: WOLF_ID }]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - FIELD_DIE_DAMAGE)
+
+    const held = await readRoomHistory(room.room.base.stub)
+    const dice = room.room.diceDrawn()
+    expect(await castersTurn.send()).toEqual(answer)
     expect(room.room.diceDrawn()).toBe(dice)
     expect(await readRoomHistory(room.room.base.stub)).toEqual(held)
   })

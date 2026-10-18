@@ -9146,8 +9146,7 @@
             },
             {
               "id": "SPELLS-20.T6a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9156,11 +9155,12 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4b2b2"]
               },
-              "text": "Source-turn zone outcome with no save (D144): a START_OF_SOURCE_TURN zone interaction kind mapped to a placement turn trigger. At the source actor's turn boundary the turn zone stage gives every creature in the zone its own execution, ordered by actorId, through the existing candidate, execution and persistence path. A zone plan with no saving throw applies its damage directly with no test node. Proved on a core-options zone."
+              "text": "Source-turn zone outcome with no save (D144): a START_OF_SOURCE_TURN zone interaction kind mapped to a placement turn trigger. At the source actor's turn boundary the turn zone stage gives every creature in the zone its own execution, ordered by actorId, through the existing candidate, execution and persistence path. A zone plan with no saving throw applies its damage directly with no test node. Proved on a core-options zone.",
+              "note": "CI ci/spells-20-t6a 3f854c233 (Tests 39078976902, Live 39078976921); phase merge bc68ead1f (fast path; backstop ci/merge-m86). Workbook docs/handoffs/slice-spells-20.md. START_OF_SOURCE_TURN interaction kind and turn trigger; a no-save ON_USE damage zone compiles to a direct dice graph acting only at turn boundaries; the turn stage catches every other creature in the zone at the source START, one execution each by actorId; proved with a core-options zone room journey."
             },
             {
               "id": "SPELLS-20.T6b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9169,7 +9169,8 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6a"]
               },
-              "text": "A creature's passive zones (D144): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, with no maintained state. It is deleted when its actor is removed or the Encounter finishes, suppressed while its source is defeated (candidates skip it; a revived source has it again), and GM undo of START or REINFORCE removes it. Second consumer: the Pit Fiend's Fear Aura (save at the start of its own turn)."
+              "text": "A creature's passive zones (D144, D147): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, and when the GM binds a token to an actor in a PREPARED or ACTIVE Run, with no maintained state. It is deleted when its token is unbound, its actor is removed or the Encounter finishes, and suppressed while its source is defeated (candidates skip it; a revived source has it again). Proved on a core-options creature zone; the Balor (T6c) is the SRD consumer.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6c",

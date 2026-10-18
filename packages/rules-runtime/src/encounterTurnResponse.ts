@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionTurnCommands'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { EncounterInitiativeOccurrenceRoot } from './encounterInitiativeOccurrence.js'
+import { awaitsSpatialDamageDice } from './encounterSpatialPendingRoller.js'
 import { turnPendingActorId } from './encounterTurnPending.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
@@ -235,7 +236,10 @@ export function prepareEncounterTurnResponse(input: {
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
     } else if (context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS') {
       // A zone pauses on the contacted creature's d20, then on one of its source's damage dice.
-      if (resolution.kind === (context.currentCandidate.diceStage ? 'ENTER_DICE' : 'ENTER_INTEGER'))
+      if (
+        resolution.kind ===
+        (awaitsSpatialDamageDice(context.currentCandidate) ? 'ENTER_DICE' : 'ENTER_INTEGER')
+      )
         throw new Error('Turn zone evidence of this kind is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
     } else {

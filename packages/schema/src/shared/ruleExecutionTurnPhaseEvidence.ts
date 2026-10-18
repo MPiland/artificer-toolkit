@@ -6,6 +6,7 @@ import {
   turnEffectEncounterActorTransitionDtoSchema
 } from './ruleExecutionEffectEvidence.js'
 import { ruleExecutionChecksumSchema as checksumSchema } from './ruleExecutionPrimitives.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
 
 /**
@@ -24,7 +25,8 @@ export const stagedTurnPlanDtoSchema = <Execution extends z.ZodMiniType>(
 /** A turn phase's terminal evidence: its executions and the owner transitions they produced. */
 export const executedTurnPhaseEvidenceDtoSchema = <Execution extends z.ZodMiniType>(
   execution: Execution,
-  maxExecutions: number
+  maxExecutions: number,
+  maxTransitions = 2
 ) =>
   z.strictObject({
     kind: z.literal('EXECUTED'),
@@ -32,11 +34,11 @@ export const executedTurnPhaseEvidenceDtoSchema = <Execution extends z.ZodMiniTy
     characterTransitions: z
       .array(turnEffectCharacterTransitionDtoSchema)
       .check(z.minLength(0))
-      .check(z.maxLength(2)),
+      .check(z.maxLength(maxTransitions)),
     encounterActorTransitions: z
       .array(turnEffectEncounterActorTransitionDtoSchema)
       .check(z.minLength(0))
-      .check(z.maxLength(2))
+      .check(z.maxLength(maxTransitions))
   })
 
 export const stagedTurnZonePlanDtoSchema = lazySchema(() =>
@@ -44,7 +46,11 @@ export const stagedTurnZonePlanDtoSchema = lazySchema(() =>
 )
 
 export const executedTurnZonePhaseEvidenceDtoSchema = lazySchema(() =>
-  executedTurnPhaseEvidenceDtoSchema(spatialTurnExecutionDtoSchema, MAX_SPATIAL_CANDIDATES)
+  executedTurnPhaseEvidenceDtoSchema(
+    spatialTurnExecutionDtoSchema,
+    MAX_SPATIAL_CANDIDATES,
+    MAX_ENCOUNTER_ACTORS
+  )
 )
 
 export type StagedTurnZonePlanDto = z.infer<typeof stagedTurnZonePlanDtoSchema>
@@ -60,40 +66,61 @@ export const turnZoneEffectsEvidenceFields = lazySchemaParts(() => ({
 
 type ZonePhase = z.infer<typeof executedTurnZonePhaseEvidenceDtoSchema>
 
-/** A zone phase is one mechanics batch against the creature whose boundary it is, chained in order. */
+/**
+ * Whether a zone turn candidate follows another in canonical order: by the creature caught, then by
+ * zone (D144). A creature's own boundary catches only it; a source's turn start catches many.
+ */
+export const followsInZoneTurnOrder = (
+  previous: { targetActorId: string; effectId: string },
+  next: { targetActorId: string; effectId: string }
+) =>
+  previous.targetActorId < next.targetActorId ||
+  (previous.targetActorId === next.targetActorId && previous.effectId < next.effectId)
+
+/** A zone phase is one mechanics batch per creature it caught, each chained in canonical order. */
 const refineZonePhase = (phase: ZonePhase, context: z.core.$RefinementCtx, path: string) => {
   // An empty list is already an issue of the executions field; the chain has nothing to check.
   const [firstExecution] = phase.executions
   if (!firstExecution) return
-  const targetActorId = firstExecution.candidate.candidate.targetActorId
-  const transitions = [...phase.characterTransitions, ...phase.encounterActorTransitions]
-  const first = firstExecution.targetTransition.before
-  const last = phase.executions.at(-1)!.targetTransition.after
-  let boundary = firstExecution.candidate.boundaryOrdinal
+  const spans = new Map<
+    string,
+    {
+      first: (typeof firstExecution)['targetTransition']['before']
+      last: (typeof firstExecution)['targetTransition']['after']
+    }
+  >()
   let chained = true
-  let priorEffectId = ''
   for (const [index, execution] of phase.executions.entries()) {
     const previous = phase.executions[index - 1]
+    const { candidate } = execution.candidate
+    const span = spans.get(candidate.targetActorId)
     if (
       execution.ordinal !== index ||
       execution.candidate.ordinal !== index ||
-      execution.candidate.candidate.targetActorId !== targetActorId ||
-      execution.candidate.boundaryOrdinal !== boundary ||
-      execution.candidate.candidate.effectId <= priorEffectId ||
-      (previous &&
-        JSON.stringify(previous.targetTransition.after) !==
-          JSON.stringify(execution.targetTransition.before))
+      execution.candidate.boundaryOrdinal !== firstExecution.candidate.boundaryOrdinal ||
+      (previous && !followsInZoneTurnOrder(previous.candidate.candidate, candidate)) ||
+      (span && JSON.stringify(span.last) !== JSON.stringify(execution.targetTransition.before))
     )
       chained = false
-    priorEffectId = execution.candidate.candidate.effectId
-    boundary = execution.candidate.boundaryOrdinal
+    spans.set(candidate.targetActorId, {
+      first: span?.first ?? execution.targetTransition.before,
+      last: execution.targetTransition.after
+    })
   }
+  const transitions = [...phase.characterTransitions, ...phase.encounterActorTransitions]
   if (
     !chained ||
-    transitions.length !== 1 ||
-    transitions[0]!.targetActorId !== targetActorId ||
-    JSON.stringify(transitions[0]!.before) !== JSON.stringify(first) ||
-    JSON.stringify(transitions[0]!.after) !== JSON.stringify(last) ||
+    transitions.length !== spans.size ||
+    transitions.some((transition) => {
+      const span = spans.get(transition.targetActorId)
+      return (
+        !span ||
+        JSON.stringify(transition.before) !== JSON.stringify(span.first) ||
+        JSON.stringify(transition.after) !== JSON.stringify(span.last)
+      )
+    }) ||
+    new Set(transitions.map((transition) => transition.targetActorId)).size !==
+      transitions.length ||
     phase.characterTransitions.some(
       (entry) => entry.afterStreamVersion !== entry.beforeStreamVersion + 1
     )
@@ -102,7 +129,7 @@ const refineZonePhase = (phase: ZonePhase, context: z.core.$RefinementCtx, path:
       code: 'custom',
       path: [path],
       message:
-        'A zone turn phase must be one chained mechanics batch against its boundary creature.'
+        'A zone turn phase must be one chained mechanics batch per creature it caught, in canonical order.'
     })
 }
 

@@ -10,7 +10,11 @@ import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { shapeDtoSchema } from '../shared/shape.js'
-import { spatialTriggerDtoSchema, spatialTurnTriggerDtoSchema } from '../shared/spatialFacts.js'
+import {
+  SPATIAL_TURN_TRIGGERS,
+  spatialTriggerDtoSchema,
+  spatialTurnTriggerDtoSchema
+} from '../shared/spatialFacts.js'
 import { spatialZoneLabelSchema } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -297,7 +301,10 @@ const compiledActionZonePlacementSchema = lazySchema(() =>
     triggerModes: z.array(spatialTriggerDtoSchema).check(z.maxLength(3)),
     /** Turn boundaries at which a creature standing in the zone is caught; absent for none. */
     turnTriggers: z.optional(
-      z.array(spatialTurnTriggerDtoSchema).check(z.minLength(1)).check(z.maxLength(2))
+      z
+        .array(spatialTurnTriggerDtoSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
     ),
     /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
     bypassAtHalfSpeed: z.optional(z.boolean()),
