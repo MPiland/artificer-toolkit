@@ -9,7 +9,7 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import { shapeDtoSchema } from '../shared/shape.js'
+import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
   spatialTriggerDtoSchema,
@@ -336,6 +336,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,
     shape: shapeDtoSchema,
+    /**
+     * A hollow round zone's wall thickness (D154): the zone is a ring whose inner radius is its
+     * outer radius less this. Absent for a filled zone.
+     */
+    ringThickness: z.optional(z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })),
     triggerModes: z.array(spatialTriggerDtoSchema).check(z.maxLength(3)),
     /** Turn boundaries at which a creature standing in the zone is caught; absent for none. */
     turnTriggers: z.optional(
@@ -386,8 +391,9 @@ export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlace
 
 /**
  * The zones an action places when its caster picks one at cast (D140): one plan per option of its
- * ON_USE CHOICE path. The options share what is settled before the pick: the area, whether the
- * caster spares creatures, and the Concentration the cast opens.
+ * ON_USE CHOICE path. The options share what is settled before the pick: where the zone is anchored,
+ * whether the caster spares creatures, the Concentration the cast opens and the save DC; each may
+ * have its own area (D154).
  */
 const compiledActionZoneChoiceSchema = lazySchema(() =>
   z.strictObject({

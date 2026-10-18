@@ -67,9 +67,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterActionTargetKind,
+  encounterZoneChoiceTarget,
   evaluateEncounterAreaTargetPolicy,
   evaluateEncounterCasterCenteredAreaTarget,
-  evaluateEncounterDirectedAreaTarget
+  evaluateEncounterDirectedAreaTarget,
+  evaluateEncounterZoneTarget
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
   buildEncounterAreaPendingSnapshot,
@@ -229,28 +231,31 @@ type ReachPlanInput = AreaPlanBase & { command: ReachCommand }
 /** Why an area is refused, as the player is told. */
 const AREA_REFUSALS = {
   UNSUPPORTED_AREA: "This action's area size is not supported.",
-  ORIGIN_OFF_CASTER: 'This area cannot extend from there.'
+  ORIGIN_OFF_CASTER: 'This area cannot extend from there.',
+  AREA_TOO_LARGE: 'This area is larger than the action allows.',
+  AREA_TOO_SMALL: 'This area is too small to place.'
 } as const
 
 /** What a command that names the wrong kind of target is told, by the target the action takes. */
-const WRONG_TARGET_MESSAGES: Partial<
-  Record<NonNullable<ReturnType<typeof encounterActionTargetKind>>, string>
-> = {
+const WRONG_TARGET_MESSAGES: Partial<Record<ResolveEncounterActionTargetDto['kind'], string>> = {
   POINT: 'This action must be aimed at a point on the map.',
   DIRECTED: 'This action must be aimed in a direction from the caster.',
-  CASTER_CENTERED: 'This action is centered on the caster and takes no aim.'
+  CASTER_CENTERED: 'This action is centered on the caster and takes no aim.',
+  WALL: 'This action must be drawn as a wall between two points.',
+  RING: 'This action must be drawn as a ring around a point.'
 }
 
 /**
  * The caster and the compiled source of a multi-creature action. The action takes the target its
- * policy names (a point, a direction from the caster, a list of chosen creatures); a command that
- * names another kind is refused, saying what the action takes.
+ * policy names (a point, a direction from the caster, a list of chosen creatures), or for an action
+ * that places a zone the target of the zone the caster picked (D154); a command that names another
+ * kind is refused, saying what the action takes.
  */
 export async function prepareCasterSource(
   input: AreaPlanBase & {
     command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId' | 'target'>
   },
-  targetKind: ReturnType<typeof encounterActionTargetKind>
+  targetKind: ResolveEncounterActionTargetDto['kind']
 ) {
   const { command, state, actors } = input
   const caster = actors.find((actor) => actor.id === command.actorId)
@@ -265,14 +270,31 @@ export async function prepareCasterSource(
     sourceFacts: casterFacts,
     loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
   }).catch(refuseStaleCharacterAction)
-  const takes = encounterActionTargetKind(targetPolicy)
+  // An action that places a zone leaves it where it is aimed instead of putting anyone through it;
+  // a cast-time pick places the zone the caster chose (D140).
+  const zonePlacement =
+    source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
+      ? source.entry.compilation.zonePlacement
+      : null
+  const zone = zonePlacement
+    ? chosenZonePlacement(zonePlacement, castChoiceOptionId(command.target))
+    : null
+  if (zonePlacement && !zone)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Pick one of the zones this action offers.'
+    })
+  const takes = zone
+    ? (encounterZoneChoiceTarget(zone, targetPolicy.range.rangeKind)?.kind ?? null)
+    : encounterActionTargetKind(targetPolicy)
   if (takes !== targetKind)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
       reason: 'TARGET_UNAVAILABLE',
       message: (takes && WRONG_TARGET_MESSAGES[takes]) ?? 'This action does not take that target.'
     })
-  return { caster, casterFacts, movementTargets, source, targetPolicy }
+  return { caster, casterFacts, movementTargets, source, targetPolicy, zone }
 }
 
 /**
@@ -285,7 +307,7 @@ export async function prepareAreaScene(
   prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
 ) {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, source, targetPolicy } =
+  const { caster, casterFacts, movementTargets, targetPolicy, zone } =
     prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
@@ -302,32 +324,52 @@ export async function prepareAreaScene(
     sceneGrid: scene.sceneGrid
   })
   const { target } = command
+  const seen = async (point: ScenePoint) =>
+    (await readNativeLivePointSight({
+      state,
+      system: input.system,
+      observer: casterFacts,
+      point,
+      sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
+      capture
+    })) === 'SEES'
+  const aimedPoints =
+    target.kind === 'POINT'
+      ? [target.point]
+      : target.kind === 'WALL'
+        ? [target.from, target.to]
+        : target.kind === 'RING'
+          ? [target.center]
+          : []
   const area =
-    target.kind === 'CASTER_CENTERED'
-      ? evaluateEncounterCasterCenteredAreaTarget({ targetPolicy, grid })
-      : target.kind === 'DIRECTED'
-        ? evaluateEncounterDirectedAreaTarget({
-            targetPolicy,
-            origin: target.origin,
-            toward: target.toward,
-            grid,
-            sourceToken: scene.sourceToken
-          })
-        : evaluateEncounterAreaTargetPolicy({
-            targetPolicy,
-            point: target.point,
-            grid,
-            sourceToken: scene.sourceToken,
-            pointSeen:
-              (await readNativeLivePointSight({
-                state,
-                system: input.system,
-                observer: casterFacts,
+    zone && target.kind !== 'DIRECTED'
+      ? evaluateEncounterZoneTarget({
+          zone,
+          range: targetPolicy.range,
+          target,
+          grid,
+          sourceToken: scene.sourceToken,
+          aimSeen: (await Promise.all(aimedPoints.map(seen))).every(Boolean)
+        })
+      : target.kind === 'CASTER_CENTERED'
+        ? evaluateEncounterCasterCenteredAreaTarget({ targetPolicy, grid })
+        : target.kind === 'DIRECTED'
+          ? evaluateEncounterDirectedAreaTarget({
+              targetPolicy,
+              origin: target.origin,
+              toward: target.toward,
+              grid,
+              sourceToken: scene.sourceToken
+            })
+          : target.kind === 'POINT'
+            ? evaluateEncounterAreaTargetPolicy({
+                targetPolicy,
                 point: target.point,
-                sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
-                capture
-              })) === 'SEES'
-          })
+                grid,
+                sourceToken: scene.sourceToken,
+                pointSeen: await seen(target.point)
+              })
+            : { refusal: 'UNSUPPORTED_AREA' as const }
   if (!area) throw new Error('The selected action area is not supported.')
   if ('refusal' in area)
     throw new LiveSessionDomainRejectionError(422, {
@@ -337,21 +379,7 @@ export async function prepareAreaScene(
     })
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
-  // An action that places a zone leaves it at the picked point instead of putting anyone through it.
-  const zonePlacement =
-    source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
-      ? source.entry.compilation.zonePlacement
-      : null
-  const zoneTarget = target.kind === 'POINT' || target.kind === 'CASTER_CENTERED' ? target : null
-  // A cast-time pick places the zone the caster chose (D140).
-  const zone = zonePlacement ? chosenZonePlacement(zonePlacement, zoneTarget?.choiceOptionId) : null
-  if ((zonePlacement || zoneTarget?.choiceOptionId !== undefined) && !zone)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'Pick one of the zones this action offers.'
-    })
-  const unaffectedActorIds = zoneTarget?.unaffectedActorIds ?? []
+  const unaffectedActorIds = ('unaffectedActorIds' in target && target.unaffectedActorIds) || []
   if (
     unaffectedActorIds.length &&
     (!zone?.choosesUnaffected ||

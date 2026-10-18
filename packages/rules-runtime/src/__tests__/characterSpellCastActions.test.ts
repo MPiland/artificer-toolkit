@@ -24,6 +24,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget } from '../encounterAreaAction.js'
+import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
@@ -57,6 +58,8 @@ const HYPNOTIC_PATTERN = spell('Hypnotic Pattern')
 const FEAR = spell('Fear')
 const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
 const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
+const WALL_OF_FIRE = spell('Wall of Fire')
+const WALL_OF_THORNS = spell('Wall of Thorns')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -314,6 +317,8 @@ const PROTECTION_FROM_ENERGY_ON_SELF = {
 const authoredById = new Map(
   [
     SLEEP,
+    WALL_OF_FIRE,
+    WALL_OF_THORNS,
     HYPNOTIC_PATTERN,
     HYPNOTIC_PATTERN_FROM_CORE_OPTIONS,
     SCORCHED_INVISIBILITY,
@@ -928,6 +933,94 @@ describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', (
   it('stays manual when its pick has no chosen creature to travel with', () => {
     expect(compiledCastEntry(PROTECTION_FROM_ENERGY)?.compilation.choice).not.toBeNull()
     expect(compiledCastEntry(PROTECTION_FROM_ENERGY_ON_SELF)).toBeNull()
+  })
+})
+
+describe('a wall cast as a straight wall or a ring (SPELLS-4.T1b, D154)', () => {
+  const feet = (amount: number) => ({ amount, unit: 'FEET' })
+  const zoneOptions = (authored: SpellAuthored, castLevel = authored.level) => {
+    const entry = compiledCastEntry(authored, castLevel)
+    const placement = entry?.compilation.zonePlacement
+    if (!placement || !('options' in placement)) throw new Error('The wall must offer two zones.')
+    return { entry, options: placement.options }
+  }
+  /** The damage dice a zone's entry rolls, by their size; a save's d20 is not one. */
+  const entryDice = (zone: ReturnType<typeof zoneOptions>['options'][number]['zone']) =>
+    zone.entry.frozenGraph.definition.nodes
+      .filter(
+        (node) =>
+          node.id !== 'd20' &&
+          ['evidence.integer-range', 'evidence.optional-integer-range'].includes(node.operation.key)
+      )
+      .map((node) => node.inputs.max)
+
+  it('offers Wall of Fire as a straight wall or a ring to pick, then aim', () => {
+    const { entry, options } = zoneOptions(WALL_OF_FIRE)
+
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, entry?.compilation.zonePlacement)
+    ).toEqual({
+      kind: 'ZONE_OPTIONS',
+      options: [
+        {
+          id: options[0]!.optionId,
+          label: 'Straight Wall',
+          target: { kind: 'WALL', area: { maxLength: feet(60), thickness: feet(1) } }
+        },
+        {
+          id: options[1]!.optionId,
+          label: 'Ringed Wall',
+          target: { kind: 'RING', area: { maxOuterRadius: feet(10), thickness: feet(1) } }
+        }
+      ]
+    })
+  })
+
+  it('burns, with no save, a creature entering or crossing Wall of Fire once a turn and at the end of its turn there, through its Concentration', () => {
+    const { options } = zoneOptions(WALL_OF_FIRE)
+    for (const { zone } of options)
+      expect(zone).toMatchObject({
+        attachment: 'PLACED_SPACE',
+        triggerModes: ['ENTER', 'CROSS'],
+        turnTriggers: ['END_OF_TURN'],
+        maxApplicationsPerTurn: 1,
+        blockingRules: ['BLOCKS_SIGHT'],
+        maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+      })
+    expect(options[0]?.zone.entry.castSaveDcFactKey).toBeNull()
+    expect(options[0]?.zone).not.toHaveProperty('ringThickness')
+    expect(options[1]?.zone.ringThickness).toEqual(feet(1))
+    expect(entryDice(options[0]!.zone)).toEqual(Array(5).fill({ kind: 'LITERAL', value: 8 }))
+    expect(entryDice(zoneOptions(WALL_OF_FIRE, 6).options[1]!.zone)).toEqual(
+      Array(7).fill({ kind: 'LITERAL', value: 8 })
+    )
+  })
+
+  it('makes a creature spend four times the movement through Wall of Thorns and save against its thorns', () => {
+    const { entry, options } = zoneOptions(WALL_OF_THORNS)
+
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, entry?.compilation.zonePlacement)
+    ).toMatchObject({
+      kind: 'ZONE_OPTIONS',
+      options: [
+        { label: 'Straight Wall', target: { kind: 'WALL', area: { maxLength: feet(60) } } },
+        { label: 'Circle', target: { kind: 'RING', area: { maxOuterRadius: feet(10) } } }
+      ]
+    })
+    for (const { zone } of options) {
+      expect(zone).toMatchObject({
+        triggerModes: ['ENTER', 'CROSS'],
+        turnTriggers: ['END_OF_TURN'],
+        movementCostMultiplier: 4,
+        maxApplicationsPerTurn: 1,
+        blockingRules: ['BLOCKS_SIGHT']
+      })
+      expect(zone.entry.castSaveDcFactKey).toBe(DND5E_SAVE_DC_FACT_KEY)
+      // 7d8 on a failed save and 7d8, halved, on a success: each path rolls its own.
+      expect(entryDice(zone)).toEqual(Array(14).fill({ kind: 'LITERAL', value: 8 }))
+    }
+    expect(options[1]?.zone.ringThickness).toEqual(feet(5))
   })
 })
 

@@ -25,6 +25,8 @@ export interface PlacedSpaceZone {
   attachment: CompiledActionZonePlacement['attachment']
   label: string
   shape: NonNullable<PlacedSpaceManifest['shape']>
+  /** A hollow zone's wall thickness: it is a ring (D154). Absent for a filled zone. */
+  ringThickness?: CompiledActionZonePlacement['ringThickness']
   component: CompiledManifestComponent
   behavior: CompiledEffectGroup
   /** The one APPLY_GRANT entry authored beside the zone, which its placer holds; null for none. */
@@ -39,6 +41,8 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'attachmentKind',
   'label',
   'shape',
+  'hollow',
+  'wallThickness',
   'components'
 ])
 const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
@@ -157,10 +161,16 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone component needs exactly one behavior.'
     )
+  const { hollow, wallThickness } = manifest
+  if (Boolean(hollow) !== (wallThickness !== undefined))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A hollow zone has a wall thickness, and only a hollow zone has one.'
+    )
   return {
     attachment: manifest.attachmentKind === 'SOURCE' ? 'SOURCE' : 'PLACED_SPACE',
     label,
     shape,
+    ...(wallThickness ? { ringThickness: wallThickness } : {}),
     component,
     behavior,
     sourceGrantEntry
@@ -198,7 +208,10 @@ export function zoneTriggers(
   }
 }
 
-/** What every zone an action may place shares: its only zone, or its first option's (D140). */
+/**
+ * What every zone an action may place shares (whether it spares creatures, its Concentration): its
+ * only zone, or its first option's (D140). The options' areas may differ (D154).
+ */
 export function sharedZonePlacement(
   placement: CompiledActionZonePlacement | CompiledActionZoneChoice
 ): CompiledActionZonePlacement {

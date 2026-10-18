@@ -631,9 +631,21 @@ export async function actionRoom(config: ActionRoomConfig) {
       target:
         | { kind: 'POINT'; point: { x: number; y: number }; unaffectedActorIds?: string[] }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
-        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[]; choiceOptionId?: string },
-      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
-      sender: 'GM' | 'PLAYER'
+        | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[]; choiceOptionId?: string }
+        | {
+            kind: 'WALL'
+            from: { x: number; y: number }
+            to: { x: number; y: number }
+            choiceOptionId?: string
+          }
+        | {
+            kind: 'RING'
+            center: { x: number; y: number }
+            outerRadius: number
+            choiceOptionId?: string
+          },
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
+      sender: 'GM' | 'PLAYER' = 'GM'
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',

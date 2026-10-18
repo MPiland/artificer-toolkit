@@ -85,32 +85,42 @@ describe('a cast-time pick between zones (SPELLS-20 T4e, D140)', () => {
     expect(chosenZonePlacement(placement, extraId(0x1ff))).toBeNull()
   })
 
-  it('offers the options by label on the action’s point target', () => {
+  it('offers the options by label, each aimed at a point (D154)', () => {
     const { entry, compilation } = compiledPick(harderSave)
+    const point = {
+      kind: 'POINT',
+      area: { kind: 'CUBE', edgeLength: { amount: 5, unit: 'FEET' } }
+    }
 
     expect(
       encounterActionChoiceTarget(entry.targetPolicy, null, compilation.zonePlacement)
-    ).toMatchObject({
-      kind: 'POINT',
-      choiceOptions: [
-        { id: SHARP_ID, label: 'Sharp' },
-        { id: SHARPER_ID, label: 'Sharper' }
+    ).toEqual({
+      kind: 'ZONE_OPTIONS',
+      options: [
+        { id: SHARP_ID, label: 'Sharp', target: point },
+        { id: SHARPER_ID, label: 'Sharper', target: point }
       ]
     })
   })
 
-  it('goes manual when the zones picked between cover different areas', () => {
-    const entry = compileItemEntry(
-      pickBetween(({ zone }) => {
-        zone.shape = {
-          id: zone.shape!.id,
-          shapeKind: 'CUBE',
-          edgeLength: { amount: 10, unit: 'FEET' }
-        }
-      })
-    )
+  it('aims each option at its own area when the zones cover different areas (D154)', () => {
+    const { entry, compilation } = compiledPick(({ zone }) => {
+      zone.shape = {
+        id: zone.shape!.id,
+        shapeKind: 'CUBE',
+        edgeLength: { amount: 10, unit: 'FEET' }
+      }
+    })
 
-    expect(entry.compilation.kind).toBe('MANUAL')
+    expect(
+      encounterActionChoiceTarget(entry.targetPolicy, null, compilation.zonePlacement)
+    ).toMatchObject({
+      kind: 'ZONE_OPTIONS',
+      options: [
+        { id: SHARP_ID, target: { kind: 'POINT', area: { edgeLength: { amount: 5 } } } },
+        { id: SHARPER_ID, target: { kind: 'POINT', area: { edgeLength: { amount: 10 } } } }
+      ]
+    })
   })
 })
 

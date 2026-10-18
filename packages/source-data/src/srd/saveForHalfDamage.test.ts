@@ -21,9 +21,8 @@ const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Storm of Vengeance': 'CLOSED_RULE',
   Sunbeam: 'CLOSED_RULE',
   Symbol: 'CLOSED_RULE',
-  'Wall of Fire': 'CLOSED_RULE',
+  'Wall of Fire': 'SPELLS-4.T1g: the save when the wall appears is not authored',
   'Wall of Ice': 'ZONE manifest without interactions',
-  'Wall of Thorns': 'CLOSED_RULE',
   'Wind Wall': 'ZONE manifest without interactions'
 }
 

@@ -72,6 +72,39 @@ describe('aiming an area on the map', () => {
     expect(gesture.aimAt({ x: 700, y: 500 })).toEqual({ origin: { x: 700, y: 500 }, toward: null })
   })
 
+  it('commits a wall drawn from the press to the release, pulled in to its longest length', () => {
+    const { gesture, onDirection, onPoint } = gestureFor({
+      kind: 'WALL',
+      maximum: 12 * cell,
+      thickness: 20
+    })
+    expect(gesture.aimAt({ x: 900, y: 300 })).toEqual({ origin: { x: 900, y: 300 }, toward: null })
+    expect(gesture.press({ x: 0, y: 0 })).toBe(true)
+    expect(gesture.aimAt({ x: 300, y: 400 })).toEqual({
+      origin: { x: 0, y: 0 },
+      toward: { x: 300, y: 400 }
+    })
+    expect(gesture.release({ x: 3000, y: 4000 })).toBe(true)
+    expect(onDirection).toHaveBeenCalledExactlyOnceWith({
+      origin: { x: 0, y: 0 },
+      toward: { x: 720, y: 960 }
+    })
+    expect(onPoint).not.toHaveBeenCalled()
+  })
+
+  it('commits a ring around the press out to the release, and nothing for one no wider than its wall', () => {
+    const { gesture, onDirection } = gestureFor({ kind: 'RING', maximum: 2 * cell, thickness: 20 })
+    gesture.press({ x: 500, y: 500 })
+    gesture.release({ x: 510, y: 500 })
+    expect(onDirection).not.toHaveBeenCalled()
+    gesture.press({ x: 500, y: 500 })
+    gesture.release({ x: 650, y: 500 })
+    expect(onDirection).toHaveBeenCalledExactlyOnceWith({
+      origin: { x: 500, y: 500 },
+      toward: { x: 650, y: 500 }
+    })
+  })
+
   it('commits nothing for a release the rules would refuse, and ends the press', () => {
     const { gesture, onDirection } = gestureFor(cone)
     // Pressed on the east edge and released straight along it.

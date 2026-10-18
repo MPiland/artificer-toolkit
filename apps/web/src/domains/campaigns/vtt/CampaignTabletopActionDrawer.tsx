@@ -41,7 +41,8 @@ import {
 import {
   directedAreaSizeInSceneCoordinates,
   pointAreaInSceneCoordinates,
-  spatialTokensInsideArea
+  spatialTokensInsideArea,
+  wallAreaBoundsInSceneCoordinates
 } from '@artificer-toolkit/shared/vtt'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
@@ -61,6 +62,29 @@ import {
 import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
+
+/** How the drawer words each way of aiming an area on the map. */
+const AREA_AIM_COPY = {
+  POINT: { title: 'Area origin', pick: 'Pick on map', clear: 'Clear origin', hint: null },
+  DIRECTED: {
+    title: 'Area direction',
+    pick: 'Aim on map',
+    clear: 'Clear aim',
+    hint: "Drag from your token's edge toward where it points."
+  },
+  WALL: {
+    title: 'Wall',
+    pick: 'Draw on map',
+    clear: 'Clear wall',
+    hint: 'Drag from one end of the wall to the other.'
+  },
+  RING: {
+    title: 'Ring',
+    pick: 'Draw on map',
+    clear: 'Clear ring',
+    hint: "Drag from the ring's center out to its edge."
+  }
+} as const
 
 function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto['attackSlot']>) {
   return `Attack ${number} of ${total}`
@@ -219,32 +243,44 @@ export function CampaignTabletopActionDrawer({
     ...choiceActorsTarget,
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
+  // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
+  // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
+  const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
+  const chosenZoneOption =
+    zoneOptions?.find((option) => option.id === pickedChoiceOptionId) ?? zoneOptions?.[0] ?? null
+  const actionChoiceOptions =
+    choiceTarget && 'choiceOptions' in choiceTarget ? choiceTarget.choiceOptions : undefined
+  const chosenActionOption =
+    actionChoiceOptions?.find((option) => option.id === pickedChoiceOptionId) ??
+    actionChoiceOptions?.[0] ??
+    null
+  const choiceOptions = zoneOptions ?? actionChoiceOptions
+  const chosenOption = chosenZoneOption ?? chosenActionOption
+  const castChoice = chosenOption ? { choiceOptionId: chosenOption.id } : {}
+  const aimedTarget = chosenZoneOption?.target ?? choiceTarget
   const areaTarget =
-    choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'DIRECTED'
-      ? choiceTarget
+    aimedTarget?.kind === 'POINT' || aimedTarget?.kind === 'DIRECTED'
+      ? aimedTarget
       : actorsTarget?.area
         ? { kind: 'POINT' as const, area: actorsTarget.area }
         : null
+  // A wall's endpoints or a ring's center and size are drawn on the map (D154).
+  const drawnTarget =
+    aimedTarget?.kind === 'WALL' || aimedTarget?.kind === 'RING' ? aimedTarget : null
+  const aimKind = areaTarget?.kind ?? drawnTarget?.kind ?? null
   // A caster-centered area takes no aim, so it has no target to pick.
-  const centeredTarget = choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
-  const zoneTarget =
-    choiceTarget?.kind === 'POINT' || choiceTarget?.kind === 'CASTER_CENTERED' ? choiceTarget : null
+  const centeredTarget = aimedTarget?.kind === 'CASTER_CENTERED' ? aimedTarget : null
   // A zone the action places can spare creatures the caster designates at cast.
-  const sparesCreatures = zoneTarget?.choosesUnaffected === true
-  // A cast that picks an option, a zone (D140) or what it does to its targets (D148), sends the
-  // chosen one; the first is preselected.
-  const choiceOptions =
-    choiceTarget && 'choiceOptions' in choiceTarget ? choiceTarget.choiceOptions : undefined
-  const chosenOption =
-    choiceOptions?.find((option) => option.id === pickedChoiceOptionId) ??
-    choiceOptions?.[0] ??
-    null
-  const castChoice = chosenOption ? { choiceOptionId: chosenOption.id } : {}
+  const sparesCreatures =
+    choiceTarget !== undefined &&
+    'choosesUnaffected' in choiceTarget &&
+    choiceTarget.choosesUnaffected === true
   const zoneChoices = {
     ...(sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}),
     ...castChoice
   }
-  const namesNoCreature = areaTarget !== null || centeredTarget !== null || actorsTarget !== null
+  const namesNoCreature =
+    areaTarget !== null || drawnTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none.
   const optionalRuleId = namesNoCreature ? null : pickedOptionalRuleId
   const sceneTokens = scene?.tokens ?? NO_TOKENS
@@ -256,10 +292,20 @@ export function CampaignTabletopActionDrawer({
   const sourceTokenId = sourceToken?.id ?? null
   // A directed area starts on the caster's own token, so it cannot be drawn without one.
   const areaSize = useMemo<VttAreaSize | null>(() => {
-    if (!areaTarget || !sceneGrid) return null
+    if (!sceneGrid) return null
+    if (drawnTarget) {
+      const bounds = wallAreaBoundsInSceneCoordinates(
+        drawnTarget.kind === 'WALL'
+          ? { kind: 'WALL', ...drawnTarget.area }
+          : { kind: 'RING', ...drawnTarget.area },
+        sceneGrid
+      )
+      return bounds && { kind: drawnTarget.kind, ...bounds }
+    }
+    if (!areaTarget) return null
     if (areaTarget.kind === 'POINT') return pointAreaInSceneCoordinates(areaTarget.area, sceneGrid)
     return sourceTokenId ? directedAreaSizeInSceneCoordinates(areaTarget.area, sceneGrid) : null
-  }, [areaTarget, sceneGrid, sourceTokenId])
+  }, [areaTarget, drawnTarget, sceneGrid, sourceTokenId])
   const tokensInArea = useMemo(() => {
     const shape = areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
     if (!areaAim || !shape) return []
@@ -272,6 +318,29 @@ export function CampaignTabletopActionDrawer({
     const inside = new Set(caught)
     return sceneTokens.filter((token) => inside.has(token.id)).map((token) => token.label)
   }, [areaAim, areaSize, sceneTokens, sourceTokenId])
+  const drawnShape = drawnTarget && areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
+  const drawnCommandTarget: ResolveEncounterActionInputDto['target'] | null =
+    !scene || !areaAim || !drawnShape
+      ? null
+      : drawnShape.kind === 'WALL'
+        ? {
+            kind: 'WALL',
+            sceneId: scene.id,
+            expectedSceneVersion: scene.version,
+            from: areaAim.origin,
+            to: drawnShape.to,
+            ...zoneChoices
+          }
+        : drawnShape.kind === 'RING'
+          ? {
+              kind: 'RING',
+              sceneId: scene.id,
+              expectedSceneVersion: scene.version,
+              center: areaAim.origin,
+              outerRadius: drawnShape.outerRadius,
+              ...zoneChoices
+            }
+          : null
   const areaCommandTarget: ResolveEncounterActionInputDto['target'] | null =
     !areaTarget || !scene || !areaAim || !areaSize
       ? null
@@ -312,18 +381,20 @@ export function CampaignTabletopActionDrawer({
       : null
     : areaTarget
       ? areaCommandTarget
-      : centeredTarget
-        ? scene
-          ? {
-              kind: 'CASTER_CENTERED',
-              sceneId: scene.id,
-              expectedSceneVersion: scene.version,
-              ...zoneChoices
-            }
-          : null
-        : targetActorId
-          ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice }
-          : null
+      : drawnTarget
+        ? drawnCommandTarget
+        : centeredTarget
+          ? scene
+            ? {
+                kind: 'CASTER_CENTERED',
+                sceneId: scene.id,
+                expectedSceneVersion: scene.version,
+                ...zoneChoices
+              }
+            : null
+          : targetActorId
+            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice }
+            : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
     const groups = new Map<
@@ -471,10 +542,11 @@ export function CampaignTabletopActionDrawer({
     targetActorId
   ])
 
-  // An origin belongs to the action it was picked for.
+  // An origin belongs to the action, and the zone, it was picked for.
+  const chosenZoneOptionId = chosenZoneOption?.id ?? null
   useEffect(() => {
     onAreaAimChange(null)
-  }, [onAreaAimChange, selectedActionId])
+  }, [onAreaAimChange, selectedActionId, chosenZoneOptionId])
 
   // So do the creatures chosen.
   useEffect(() => {
@@ -551,7 +623,7 @@ export function CampaignTabletopActionDrawer({
             }
           : null
       })
-      if (areaTarget) onAreaAimChange(null)
+      if (aimKind) onAreaAimChange(null)
       if (response.occurrence?.status === 'PENDING') {
         setFeedback('Action paused for a required decision.')
       } else if (response.roll) {
@@ -765,10 +837,10 @@ export function CampaignTabletopActionDrawer({
                   onChange={setUnaffectedActorIds}
                 />
               ) : null}
-              {areaTarget ? (
+              {aimKind ? (
                 <Stack gap='xs'>
                   <Text fw={600} size='sm'>
-                    {areaTarget.kind === 'POINT' ? 'Area origin' : 'Area direction'}
+                    {AREA_AIM_COPY[aimKind].title}
                   </Text>
                   {scene === null ? (
                     <Text c='dimmed' size='sm'>
@@ -786,9 +858,9 @@ export function CampaignTabletopActionDrawer({
                           variant='default'
                           onClick={onPickAreaOrigin}
                         >
-                          {areaTarget.kind === 'POINT' ? 'Pick on map' : 'Aim on map'}
+                          {AREA_AIM_COPY[aimKind].pick}
                         </Button>
-                        {areaTarget.kind === 'POINT' ? (
+                        {aimKind === 'POINT' ? (
                           <Select
                             comboboxProps={{ withinPortal: false }}
                             data={sceneTokens.map((token) => ({
@@ -809,7 +881,7 @@ export function CampaignTabletopActionDrawer({
                           />
                         ) : (
                           <Text c='dimmed' size='sm'>
-                            Drag from your token's edge toward where it points.
+                            {AREA_AIM_COPY[aimKind].hint}
                           </Text>
                         )}
                       </Group>
@@ -824,7 +896,7 @@ export function CampaignTabletopActionDrawer({
                             variant='subtle'
                             onClick={() => onAreaAimChange(null)}
                           >
-                            {areaTarget.kind === 'POINT' ? 'Clear origin' : 'Clear aim'}
+                            {AREA_AIM_COPY[aimKind].clear}
                           </Button>
                         </>
                       ) : null}

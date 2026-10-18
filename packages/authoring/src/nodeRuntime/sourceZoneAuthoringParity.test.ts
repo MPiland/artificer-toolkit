@@ -12,6 +12,8 @@ import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-p
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
+import { wallOfFire } from '@artificer-toolkit/source-data/srd/spells/wall-of-fire.js'
+import { wallOfThorns } from '@artificer-toolkit/source-data/srd/spells/wall-of-thorns.js'
 import { web } from '@artificer-toolkit/source-data/srd/spells/web.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -115,9 +117,11 @@ describe('the source aura through the equipment node map', () => {
     ['Sleet Storm', sleetStorm],
     ['Web', web],
     ['Black Tentacles', blackTentacles],
-    ['Fire Shield', fireShield]
+    ['Fire Shield', fireShield],
+    ['Wall of Fire', wallOfFire],
+    ['Wall of Thorns', wallOfThorns]
   ])(
-    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1c, T1d, T1e; SPELLS-20.T6d1)',
+    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e; SPELLS-20.T6d1)',
     async (_name, spell) => {
       const authored = carrying(spell.effects as EquipmentAuthored['effects'])
       const result = await normalize(authored)

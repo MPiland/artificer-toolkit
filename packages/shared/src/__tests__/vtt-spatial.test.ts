@@ -14,7 +14,10 @@ import {
   spatialTokensInsideArea,
   spatialTokensWithinSpaceRadius,
   type SpatialSceneToken,
-  VTT_SPATIAL_LIMITS
+  undirectedAreaGeometry,
+  VTT_SPATIAL_LIMITS,
+  wallAreaBoundsInSceneCoordinates,
+  wallOutline
 } from '../domains/vtt/spatial.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
@@ -1254,5 +1257,79 @@ describe('ring geometry (SPELLS-4.T1b, D154)', () => {
         token: token(ids.targetToken, 9.5)
       })
     ).toBe(false)
+  })
+})
+
+describe('wall geometry (SPELLS-4.T1b, D154)', () => {
+  const feetGrid: SceneGrid = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  }
+  const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
+
+  it('outlines a straight wall as a rectangle its thickness wide, centered on the segment', () => {
+    expect(wallOutline({ x: 0, y: 0 }, { x: 0, y: 100 }, 20)).toEqual([
+      { x: -10, y: 0 },
+      { x: -10, y: 100 },
+      { x: 10, y: 100 },
+      { x: 10, y: 0 }
+    ])
+    expect(wallOutline({ x: 5, y: 5 }, { x: 5, y: 5 }, 20)).toBeNull()
+  })
+
+  it('places a wall or a ring from the area origin', () => {
+    expect(
+      undirectedAreaGeometry({ x: 0, y: 0 }, { kind: 'WALL', to: { x: 100, y: 0 }, thickness: 10 })
+    ).toEqual({
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 5 },
+        { x: 100, y: 5 },
+        { x: 100, y: -5 },
+        { x: 0, y: -5 }
+      ]
+    })
+    expect(
+      undirectedAreaGeometry({ x: 50, y: 50 }, { kind: 'RING', outerRadius: 200, innerRadius: 180 })
+    ).toEqual({ kind: 'RING', center: { x: 50, y: 50 }, outerRadius: 200, innerRadius: 180 })
+  })
+
+  it('catches a token the wall crosses, not one beside it', () => {
+    const geometry = undirectedAreaGeometry(
+      { x: 0, y: 0 },
+      { kind: 'WALL', to: { x: 100, y: 0 }, thickness: 1 }
+    )
+    if (!geometry) throw new Error('The wall must have an outline.')
+    expect(
+      spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, 50) })
+    ).toBe(true)
+    expect(
+      spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, 200) })
+    ).toBe(false)
+  })
+
+  it('turns an authored wall or ring into its Scene bounds', () => {
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'WALL', maxLength: feet(60), thickness: feet(1) },
+        feetGrid
+      )
+    ).toEqual({ maximum: 1200, thickness: 20 })
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(5) },
+        feetGrid
+      )
+    ).toEqual({ maximum: 200, thickness: 100 })
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(0) },
+        feetGrid
+      )
+    ).toBeNull()
   })
 })

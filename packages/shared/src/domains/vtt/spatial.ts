@@ -523,13 +523,104 @@ export type SpatialDirectedAreaSize = SpatialDirectedAreaShape extends infer Sha
     : never
   : never
 
-export type SpatialAreaShape = SpatialPointAreaShape | SpatialDirectedAreaShape
+/**
+ * A zone's wall in Scene units (D154), placed from the area's origin: a straight wall from the
+ * origin to `to`, `thickness` wide and centered on that segment, or a ring around the origin.
+ */
+export type SpatialWallAreaShape =
+  | { readonly kind: 'WALL'; readonly to: ScenePoint; readonly thickness: number }
+  | { readonly kind: 'RING'; readonly outerRadius: number; readonly innerRadius: number }
+
+export type SpatialAreaShape =
+  | SpatialPointAreaShape
+  | SpatialDirectedAreaShape
+  | SpatialWallAreaShape
+
+const DIRECTED_AREA_KINDS: ReadonlySet<string> = new Set<SpatialDirectedAreaShape['kind']>([
+  'CONE',
+  'LINE',
+  'CUBE_FROM_SIDE'
+])
 
 /** Narrows a shape, or a size before it is aimed, to its directed members. */
 export function isDirectedAreaShape<Shape extends SpatialAreaShape | SpatialDirectedAreaSize>(
   shape: Shape
 ): shape is Extract<Shape, { readonly kind: SpatialDirectedAreaShape['kind'] }> {
-  return shape.kind !== 'RADIUS' && shape.kind !== 'CUBE'
+  return DIRECTED_AREA_KINDS.has(shape.kind)
+}
+
+/**
+ * The rectangle a straight wall covers: `thickness` wide, centered on the segment from `from` to
+ * `to`. Null for a wall of no length.
+ */
+export function wallOutline(
+  from: ScenePoint,
+  to: ScenePoint,
+  thickness: number
+): ScenePoint[] | null {
+  const length = Math.hypot(to.x - from.x, to.y - from.y)
+  if (!(length > EPSILON)) return null
+  const half = thickness / 2
+  const normal = { x: (-(to.y - from.y) / length) * half, y: ((to.x - from.x) / length) * half }
+  return [
+    { x: from.x + normal.x, y: from.y + normal.y },
+    { x: to.x + normal.x, y: to.y + normal.y },
+    { x: to.x - normal.x, y: to.y - normal.y },
+    { x: from.x - normal.x, y: from.y - normal.y }
+  ]
+}
+
+/**
+ * The Scene geometry an area that is not directed covers from its origin: a circle, the square of a
+ * cube centered on it, a wall's rectangle or a ring. Null for a wall of no length.
+ */
+export function undirectedAreaGeometry(
+  origin: ScenePoint,
+  shape: SpatialPointAreaShape | SpatialWallAreaShape
+): SpatialGeometry | null {
+  switch (shape.kind) {
+    case 'RADIUS':
+      return { kind: 'CIRCLE', center: origin, radius: shape.radius }
+    case 'CUBE':
+      return { kind: 'POLYGON', points: pointCubeOutline(origin, shape.edgeLength) }
+    case 'RING':
+      return {
+        kind: 'RING',
+        center: origin,
+        outerRadius: shape.outerRadius,
+        innerRadius: shape.innerRadius
+      }
+    case 'WALL': {
+      const points = wallOutline(origin, shape.to, shape.thickness)
+      return points && { kind: 'POLYGON', points }
+    }
+  }
+}
+
+/** A zone's wall as authored (D154): a straight wall's longest length or a ring's widest outer radius, and its thickness. */
+export type AuthoredWallArea =
+  | {
+      readonly kind: 'WALL'
+      readonly maxLength: AuthoredPointAreaLength
+      readonly thickness: AuthoredPointAreaLength
+    }
+  | {
+      readonly kind: 'RING'
+      readonly maxOuterRadius: AuthoredPointAreaLength
+      readonly thickness: AuthoredPointAreaLength
+    }
+
+/** The authored wall's bounds in Scene coordinates: its longest size and its thickness. Null for a size that is scaled or empty. */
+export function wallAreaBoundsInSceneCoordinates(
+  area: AuthoredWallArea,
+  grid: SceneGrid
+): { readonly maximum: number; readonly thickness: number } | null {
+  const maximum = coordinateLength(
+    area.kind === 'WALL' ? area.maxLength : area.maxOuterRadius,
+    grid
+  )
+  const thickness = coordinateLength(area.thickness, grid)
+  return maximum === null || thickness === null ? null : { maximum, thickness }
 }
 
 /** A directed area as authored. A line with no authored width is 5 feet wide (one square). */
@@ -753,11 +844,8 @@ export function spatialTokensInsideArea(input: {
       { kind: 'POLYGON', points: outline }
     )
   }
-  const area: SpatialGeometry =
-    shape.kind === 'RADIUS'
-      ? { kind: 'CIRCLE', center: origin, radius: shape.radius }
-      : { kind: 'POLYGON', points: pointCubeOutline(origin, shape.edgeLength) }
-  return validSpatialGeometry(area) ? catches(input.tokens, area) : []
+  const area = undirectedAreaGeometry(origin, shape)
+  return area && validSpatialGeometry(area) ? catches(input.tokens, area) : []
 }
 
 /**
