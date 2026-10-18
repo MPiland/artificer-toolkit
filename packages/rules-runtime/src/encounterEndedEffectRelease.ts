@@ -240,3 +240,23 @@ export function actionEndedEffects(input: {
     })
   }
 }
+
+/**
+ * The applications an effect produces, with the temporary hit points it gives marked as its own when
+ * it owns them (D156), so its end releases them while it is still the pool's source.
+ */
+export function withOwnedTemporaryHitPoints<Application extends CharacterRuleActionApplication>(
+  applications: readonly Application[],
+  effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition'>
+): Application[] {
+  const owns =
+    effect.definition.schemaVersion === 2 &&
+    effect.definition.stateContributions.some(
+      (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
+    )
+  return applications.map((application) =>
+    owns && application.kind === 'TEMPORARY_HIT_POINTS'
+      ? { ...application, sourceActiveEffectId: effect.id }
+      : application
+  )
+}

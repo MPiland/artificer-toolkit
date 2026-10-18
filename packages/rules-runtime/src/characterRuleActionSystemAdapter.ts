@@ -162,6 +162,15 @@ export interface CharacterRuleActionActiveEffectPlan {
    * caster's save DC is unknown until then); null when the plan pins its DC itself or needs none.
    */
   castSaveDcFactKey?: null | string
+  /** Cast facts copied into `adapterFacts` when the effect is created (a recurring amount). */
+  castFactKeys?: readonly string[]
+  /**
+   * The recurring graph first runs at the holder's next authored turn boundary, not at cast; the
+   * effect is created even though no immediate outcome of the cast carries it (D156).
+   */
+  recurrenceDeferred?: boolean
+  /** The temporary hit points the cast and its recurrences give leave when the effect ends. */
+  ownsTemporaryHitPoints?: boolean
   /** Exact System-authored perception contributions carried into the frozen effect definition. */
   perceptionContributions: CombatPerceptionContributionsDto
   /** Exact System-authored maintenance policy, or no maintained state. */

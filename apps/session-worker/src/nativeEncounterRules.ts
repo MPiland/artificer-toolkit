@@ -40,7 +40,8 @@ import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  damageTakenEndedEffects,
+  withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -1245,10 +1246,15 @@ export async function planNativeLiveEncounterAction(
   const forcedMovements = interpretedMovements.map((movement) =>
     movement === owedPick?.movement ? { ...movement, position: chosenPosition } : movement
   )
-  const applications = [
-    ...execution.applications,
-    ...preparedEffects.relationshipConditionApplications
-  ]
+  // The temporary hit points the cast gives belong to the lasting effect that owns them (D156).
+  const recurringEffectId = crypto.randomUUID()
+  const castApplications = preparedEffects.recurringEffect
+    ? withOwnedTemporaryHitPoints(execution.applications, {
+        id: recurringEffectId,
+        definition: preparedEffects.recurringEffect.definition
+      })
+    : execution.applications
+  const applications = [...castApplications, ...preparedEffects.relationshipConditionApplications]
   // Damage the target takes ends the effects it holds that end on damage, and releases the
   // conditions only they held in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
@@ -1330,6 +1336,7 @@ export async function planNativeLiveEncounterAction(
     prepared: settledPrepared,
     mechanics,
     effects: preparedEffects,
+    recurringEffectId,
     reactionEffect: reactionUse?.applied.reactionEffect ?? null,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),

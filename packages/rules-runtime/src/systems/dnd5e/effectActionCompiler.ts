@@ -216,6 +216,8 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
 const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
+/** The amount a recurring heal with an ability bonus gives each turn, settled at cast (D156). */
+const DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY = 'dnd5e.recurring-heal-amount'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /**
@@ -973,6 +975,230 @@ function supportedRecurringPlan(
     maintenance,
     marginRider: null
   }
+}
+
+type CompiledOutcomeEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
+
+/**
+ * A cast of SEQUENTIAL entries held in one active effect (D156): at most one grant and at most one
+ * recurring heal, the effect-bearing entries, with at most one immediate heal beside them. They
+ * share the target, the duration and the maintenance, and no test decides them. Null for any other
+ * action.
+ */
+function sequentialComposition(action: Dnd5eCompiledEffectActionSource): null | {
+  grant: CompiledOutcomeEntry | null
+  recurring: CompiledOutcomeEntry | null
+  immediate: CompiledOutcomeEntry | null
+} {
+  const { invocation, entries } = action.compiledEffect
+  if (entries.length < 2 || invocation.kind !== 'ACTION' || invocation.triggerCode !== 'ACTIVATED')
+    return null
+  const composed = entries.filter(
+    (entry): entry is CompiledOutcomeEntry =>
+      'outcome' in entry &&
+      entry.resolutionKind === 'DIRECT' &&
+      entry.groupKind === 'SEQUENTIAL' &&
+      entry.pathCode === 'ON_USE' &&
+      !entry.rangeOverride &&
+      !entry.targetingOverride
+  )
+  const [first] = composed
+  const durationKey = (entry: CompiledOutcomeEntry) =>
+    entry.duration
+      ? JSON.stringify([
+          entry.duration.durationKind,
+          'amount' in entry.duration ? entry.duration.amount : null
+        ])
+      : null
+  if (
+    !first ||
+    composed.length !== entries.length ||
+    composed.some(
+      (entry) =>
+        durationKey(entry) !== durationKey(first) ||
+        entry.maintenanceDefinitionId !== first.maintenanceDefinitionId
+    )
+  )
+    return null
+  const grants = composed.filter(({ outcome }) => outcome.effectKind === 'APPLY_GRANT')
+  const heals = composed.filter(({ outcome }) => outcome.effectKind === 'HEAL')
+  const recurring = heals.filter(({ lifecycle }) => lifecycle?.recurringKind !== undefined)
+  const immediate = heals.filter(({ lifecycle }) => lifecycle === undefined)
+  if (
+    grants.length + recurring.length + immediate.length !== composed.length ||
+    grants.length > 1 ||
+    recurring.length > 1 ||
+    immediate.length > 1 ||
+    grants.length + recurring.length === 0
+  )
+    return null
+  return {
+    grant: grants[0] ?? null,
+    recurring: recurring[0] ?? null,
+    immediate: immediate[0] ?? null
+  }
+}
+
+/** The action narrowed to one of its entries, as a cast of that entry alone would author it. */
+function singleEntryAction(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledOutcomeEntry
+): Dnd5eCompiledEffectActionSource {
+  return {
+    ...action,
+    compiledEffect: { ...action.compiledEffect, entries: [{ ...entry, groupKind: 'SINGLE' }] }
+  }
+}
+
+/**
+ * The one active effect a sequential composition holds (D156). A recurring heal is its graph: it
+ * fires at each authored turn boundary of the holder, never at cast, for a duration in turns (a
+ * minute or an hour counts too), and a fixed amount may add the caster's ability modifier, settled
+ * at cast. A grant rides on it, counted with it; without a recurring heal the grant is the effect.
+ * The effect owns the temporary hit points any of its heals give.
+ */
+function sequentialCompositionPlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionActiveEffectPlan | null {
+  const composition = sequentialComposition(action)
+  if (!composition) return null
+  const { grant, recurring, immediate } = composition
+  const grantPlan = grant
+    ? modifierGrantEntryPlan({ action, entry: grant, attack: false, untilEndEvent: false })
+    : null
+  if (grant && !grantPlan?.modifierGrantContribution)
+    unsupported('D&D composed grant must be a timed modifier grant.')
+  const temporary = [recurring, immediate].some(
+    (entry) => entry?.outcome.effectKind === 'HEAL' && entry.outcome.temporary === true
+  )
+  if (!recurring) {
+    if (!grantPlan) return null
+    return {
+      ...grantPlan,
+      ...(temporary && { ownsTemporaryHitPoints: true }),
+      frozenGraph: durationPublishedGraph({ action, plan: grantPlan })
+    }
+  }
+  const { outcome, lifecycle, duration } = recurring
+  const stage = lifecycle?.recurringKind
+  const turns = duration ? conditionDurationTurns(duration) : null
+  const { recurringKind: _recurringKind, ...otherLifecycle } = lifecycle ?? {}
+  if (
+    outcome.effectKind !== 'HEAL' ||
+    outcome.valueKind !== 'FIXED' ||
+    outcome.scalingKind !== 'NONE' ||
+    !Number.isSafeInteger(outcome.amount) ||
+    outcome.amount < 0 ||
+    (stage !== 'START_OF_TURN' && stage !== 'END_OF_TURN') ||
+    turns === null ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    !UUID.test(recurring.resultBlockId)
+  )
+    unsupported('D&D composed recurring heal must be a fixed timed heal at a turn boundary.')
+  validateHealBonuses(outcome.bonuses)
+  const bonuses = outcome.bonuses ?? []
+  if (bonuses.some((bonus) => bonus.bonusKind !== 'ABILITY_BONUS'))
+    unsupported('D&D composed recurring heal adds only an ability modifier.')
+  if (bonuses.length === 0 && outcome.amount === 0)
+    unsupported('D&D composed recurring heal must give hit points.')
+  const nodeId = activeEffectGraphNodeId(recurring.resultBlockId)
+  const definition: RuleGraphDefinition = {
+    schemaVersion: 1,
+    id: action.effectId,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+    nodes: [
+      {
+        id: nodeId,
+        operation: {
+          key: outcome.temporary
+            ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
+            : DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+          contractVersion: 1
+        },
+        inputs: {
+          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+          targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
+          amount:
+            bonuses.length > 0
+              ? { kind: 'FACT', factKey: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY }
+              : { kind: 'LITERAL', value: outcome.amount }
+        }
+      }
+    ],
+    outputs: {
+      targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
+      amount: { kind: 'NODE_OUTPUT', nodeId, port: 'amount' }
+    },
+    sourceEntryBindings: [{ sourceEntryId: recurring.resultBlockId, nodeId }]
+  }
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: recurring.resultBlockId,
+    frozenGraphNodeId: nodeId,
+    frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
+      id: definition.id,
+      gameSystemId: definition.gameSystemId,
+      definitionFamilyKey: definition.definitionFamilyKey,
+      checksum: checksumRuleDocument(definition),
+      definition
+    }),
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: stage,
+    initialRemaining: turns,
+    ...(grantPlan?.modifierGrantContribution && {
+      modifierGrantContribution: {
+        ...grantPlan.modifierGrantContribution,
+        countedByTurnEffects: true
+      }
+    }),
+    adapterFacts: {},
+    ...(bonuses.length > 0 && { castFactKeys: [DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY] }),
+    recurrenceDeferred: true,
+    ...(temporary && { ownsTemporaryHitPoints: true }),
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, recurring),
+    marginRider: null
+  }
+}
+
+/**
+ * The cast graph of a sequential composition: its immediate heal, else its grant, as that entry
+ * alone compiles. A recurring heal with an ability bonus names its outcome on the graph, so the
+ * cast settles its amount (see `bindFacts`).
+ */
+function compileSequentialComposition(
+  action: Dnd5eCompiledEffectActionSource,
+  composition: NonNullable<ReturnType<typeof sequentialComposition>>
+): ServerPublishedRuleDefinitionDto {
+  const { grant, recurring, immediate } = composition
+  // The composition's plan holds the duration and the maintenance; the immediate heal is instant.
+  const cast = immediate
+    ? (({ duration: _duration, maintenanceDefinitionId: _maintenance, ...instant }) => instant)(
+        immediate
+      )
+    : grant
+  if (!cast) unsupported('D&D sequential composition has no cast entry.')
+  const castAction = singleEntryAction(action, cast)
+  const { requiresConcentration: _concentration, ...instantEffect } = castAction.compiledEffect
+  const published = compileDnd5eEffectAction({
+    action: { ...castAction, compiledEffect: instantEffect }
+  })
+  if (recurring?.outcome.effectKind !== 'HEAL' || (recurring.outcome.bonuses?.length ?? 0) === 0)
+    return published
+  const definition: RuleGraphDefinition = {
+    ...published.definition,
+    outputs: {
+      ...published.definition.outputs,
+      recurringHealOutcomeId: { kind: 'LITERAL', value: recurring.outcome.id },
+      recurringHealAmount: { kind: 'FACT', factKey: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY }
+    }
+  }
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    ...published,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
 }
 
 function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
@@ -6538,6 +6764,7 @@ function bindMovementInterruptionOutput(input: {
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
 function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolean {
   const plan =
+    sequentialCompositionPlan(action) ??
     repeatingDirectFollowUpSavePlan(action) ??
     repeatingImmediateFollowUpSavePlan(action) ??
     timedImmediateConditionPlan(action) ??
@@ -6569,6 +6796,8 @@ function compileDnd5eEffectAction({
     )
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
+  const composition = sequentialComposition(action)
+  if (composition) return compileSequentialComposition(action, composition)
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }
@@ -8491,6 +8720,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   activeEffectPlans: ({ action, published }) => {
     if (published.id !== action.effectId || published.checksum.length !== 64)
       throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
+    const composed = sequentialCompositionPlan(action)
+    if (composed) return [composed]
     const repeatPlan =
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
     const timedPlan = repeatPlan
@@ -8644,18 +8875,43 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
       )
     )
+    const resolvedHealOutcomes = Array.isArray(actionOutcomes)
+      ? actionOutcomes.filter(
+          (outcome): outcome is Record<string, unknown> & { expression: string } =>
+            !!outcome &&
+            typeof outcome === 'object' &&
+            !Array.isArray(outcome) &&
+            (outcome as Record<string, unknown>).kind === 'HEAL' &&
+            typeof (outcome as Record<string, unknown>).expression === 'string'
+        )
+      : []
+    // A composed recurring heal's amount is settled at cast from its resolved row (D156).
+    const recurringHealOutcome = published.definition.outputs.recurringHealOutcomeId
+    const recurringHealOutcomeId =
+      recurringHealOutcome?.kind === 'LITERAL' ? recurringHealOutcome.value : null
+    let recurringHealAmountFacts: Record<string, number> = {}
+    if (recurringHealOutcomeId !== null) {
+      const rows = resolvedHealOutcomes.filter(
+        ({ outcomeId }) => outcomeId === recurringHealOutcomeId
+      )
+      const match = rows.length === 1 ? /^(\d+)(?: ([+-]) (\d+))?$/.exec(rows[0]!.expression) : null
+      if (!match)
+        throw new Dnd5eEffectActionCompilerError(
+          'D&D recurring healing requires one exact resolved fixed amount.'
+        )
+      const bonus = Number(match[3] ?? 0)
+      recurringHealAmountFacts = {
+        [DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY]: Math.max(
+          0,
+          Number(match[1]) + (match[2] === '-' ? -bonus : bonus)
+        )
+      }
+    }
     let resolvedHealModifierFacts: Record<string, number> = {}
     if (requiresHealModifier) {
-      const healingOutcomes = Array.isArray(actionOutcomes)
-        ? actionOutcomes.filter(
-            (outcome): outcome is Record<string, unknown> =>
-              !!outcome &&
-              typeof outcome === 'object' &&
-              !Array.isArray(outcome) &&
-              (outcome as Record<string, unknown>).kind === 'HEAL' &&
-              typeof (outcome as Record<string, unknown>).expression === 'string'
-          )
-        : []
+      const healingOutcomes = resolvedHealOutcomes.filter(
+        ({ outcomeId }) => outcomeId !== recurringHealOutcomeId
+      )
       if (healingOutcomes.length !== 1)
         throw new Dnd5eEffectActionCompilerError(
           'D&D dice healing requires one exact resolved healing expression.'
@@ -8700,6 +8956,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
+      ...recurringHealAmountFacts,
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),

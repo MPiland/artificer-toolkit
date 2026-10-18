@@ -14,6 +14,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2t (effect-owned temporary hit points, D156)
+
+- Rule: temporary hit points an effect gave are lost when it ends. The source id lives on the pool (`tempSourceEffectId` on a Character, `tempHitPointsSourceEffectId` on a Run actor, both optional); one rule home, `schema/shared/temporaryHitPoints`, serves both actor paths. The three existing end paths (event end, turn-boundary expiry, maintenance end) add a `TEMPORARY_HIT_POINTS_RELEASE` beside the owned-condition release. See [rules-runtime.md](../architecture/rules-runtime.md) (Effect-owned temporary hit points).
+- Composition: one cast of SEQUENTIAL entries becomes one active effect. Interpretation of the ruling's "at most one effect-bearing entry": at most one grant plus at most one recurring entry, plus at most one immediate heal (Heroism holds a grant and a recurring entry). Two recurring entries are refused.
+- Converted: Heroism (castable now; frightened immunity plus the caster's spellcasting modifier as temporary hit points at the start of each turn), Enhance Ability (six options, Bear's 2d6 temporary hit points owned by the effect) and Regenerate (4d8 + 15 at cast, 1 hit point each turn for 1 hour; SRD data fixed: no Concentration, a 1-minute cast). `ENHANCE_ABILITY` and `REGENERATE` leave `CLOSED_RULE_KIND`. Limb regrowth stays description-only (future-enhancements).
+- Proofs: `apps/session-worker/test/nativeRoomTemporaryHitPointSpells.test.ts` (Heroism red first: the tick, then the release when Concentration ends; Bear at cast and its release; Regenerate's heal and tick), `packages/schema/src/__tests__/temporary-hit-points.test.ts` (damage keeps the source, a bigger grant replaces and the first effect ending then leaves the pool, a Sheet SET clears), `encounterEndedEffectRelease.test.ts` (event end, expiry, stamping), `sheetCommandReducer.test.ts`, `characterSpellCastActions.test.ts` (plans and core-options parity for all three).
+
 ### T2b (description-only closed rules, D156 T2 class C)
 
 - The 34 class C spells drop their `CLOSED_RULE` outcome, and their kinds leave `CLOSED_RULE_KIND`: Arcane Lock, Arcanist's Magic Aura, Astral Projection, Clone, Comprehend Languages, Demiplane, Detect Thoughts, Disguise Self, Dream, Feather Fall, Gentle Repose, Guards and Wards, Meld into Stone, Mislead, Nondetection, Passwall, Prestidigitation, Private Sanctum, Programmed Illusion, Purify Food and Drink, Rope Trick, Seeming, Sending, Speak with Animals, Speak with Dead, Speak with Plants, Stone Shape, Suggestion, Thaumaturgy, Tongues, Water Breathing, Water Walk, Wish, Zone of Truth.

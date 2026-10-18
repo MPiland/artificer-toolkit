@@ -6,13 +6,15 @@ import {
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
   damageTakenEndedEffects,
-  endedEffectReleases
+  endedEffectReleases,
+  expiredEffectReleases,
+  withOwnedTemporaryHitPoints
 } from '../encounterEndedEffectRelease.js'
+import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
@@ -92,15 +94,15 @@ describe('conditions released with the effects an event ended', () => {
       entry.kind === 'CONDITION_REMOVE' ? entry.conditionId : entry.kind
     expect(released.map(conditionIdOf)).toEqual([INVISIBLE, CHARMED].sort())
     expect(
-      Object.fromEntries(released.map((entry) => [conditionIdOf(entry), entry.sourceActiveEffectId]))
+      Object.fromEntries(
+        released.map((entry) => [conditionIdOf(entry), entry.sourceActiveEffectId])
+      )
     ).toEqual({ [INVISIBLE]: FIRST_ID, [CHARMED]: SECOND_ID })
   })
 
   it('releases nothing when no effect ended or the ended effect owns no condition', () => {
     const held = owning(FIRST_ID, { [INVISIBLE]: false })
-    expect(
-      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [] })
-    ).toEqual([])
+    expect(endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [] })).toEqual([])
     const plain = activeEffect({
       id: SECOND_ID,
       owner,
@@ -121,6 +123,75 @@ describe('conditions released with the effects an event ended', () => {
     expect(
       endedEffectReleases({ holderActorId: HOLDER_ID, held: [plain], ended: [plain] })
     ).toEqual([])
+  })
+})
+
+describe('temporary hit points released with the effects that gave them (D156)', () => {
+  const owningTemporary = (id: string) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      stateContributions: [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' }]
+    })
+  const release = (effect: ReturnType<typeof owningTemporary>) => ({
+    kind: 'TEMPORARY_HIT_POINTS_RELEASE',
+    sourceActiveEffectId: effect.id,
+    targetActorId: HOLDER_ID,
+    sourceNodeId: effect.definition.frozenGraphNodeId,
+    sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
+    authoredPath: null,
+    resolvedPath: null
+  })
+
+  it('releases the temporary hit points of each event-ended effect that owns them, after its conditions', () => {
+    const conditions = owning(FIRST_ID, { [INVISIBLE]: false })
+    const temporary = owningTemporary(SECOND_ID)
+    expect(
+      endedEffectReleases({
+        holderActorId: HOLDER_ID,
+        held: [conditions, temporary],
+        ended: [temporary, conditions]
+      }).map(({ kind, sourceActiveEffectId }) => [kind, sourceActiveEffectId])
+    ).toEqual([
+      ['CONDITION_REMOVE', FIRST_ID],
+      ['TEMPORARY_HIT_POINTS_RELEASE', SECOND_ID]
+    ])
+  })
+
+  it('releases only the temporary hit points of an effect that expires at a turn boundary', () => {
+    const conditions = owning(FIRST_ID, { [INVISIBLE]: false })
+    const temporary = owningTemporary(SECOND_ID)
+    expect(expiredEffectReleases(temporary, HOLDER_ID)).toEqual([release(temporary)])
+    expect(expiredEffectReleases(conditions, HOLDER_ID)).toEqual([])
+  })
+
+  it('marks the temporary hit points an owning effect gives as its own, and no other application', () => {
+    const base = {
+      sourceNodeId: 'entry',
+      sourceOperationKey: 'dnd5e.temporary-hit-points-proposal',
+      authoredPath: null,
+      resolvedPath: null,
+      requestedAmount: 3,
+      resolvedAmount: 3,
+      appliedAmount: 3,
+      beforeCurrentHitPoints: 5,
+      afterCurrentHitPoints: 5,
+      beforeTemporaryHitPoints: 0,
+      afterTemporaryHitPoints: 3,
+      targetActorId: HOLDER_ID
+    }
+    const applications = [
+      { ...base, kind: 'TEMPORARY_HIT_POINTS' },
+      { ...base, kind: 'HEAL' }
+    ] as CharacterRuleActionApplication[]
+    expect(withOwnedTemporaryHitPoints(applications, owningTemporary(SECOND_ID))).toEqual([
+      { ...applications[0], sourceActiveEffectId: SECOND_ID },
+      applications[1]
+    ])
+    expect(
+      withOwnedTemporaryHitPoints(applications, owning(FIRST_ID, { [INVISIBLE]: false }))
+    ).toEqual(applications)
   })
 })
 
