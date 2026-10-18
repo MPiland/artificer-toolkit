@@ -61,6 +61,7 @@ Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci
 
 - **Convex:** 2 Vitest file workers per shard (`convex_workers`, default `2`). 4 workers timed out `campaigns/developmentCustody.test.ts`, so that setting was rejected.
 - **Worker:** 4 file workers (`worker_workers`, default `4`), still `--no-isolate`. The local `test` script stays at one worker.
+- **Web:** the config's `maxWorkers: '50%'` (2 on CI), isolated. `web_workers` overrides it for a trial. 3 workers was no faster and `isolate:false` leaks mocks between files (PLATFORM-13.T15).
 - **Shards:** `apps/apis/vitest.config.ts` uses `DurationSequencer`, which overrides Vitest's path-hash shard. Each file, longest first, goes to the shard with the least recorded time (`scripts/convexShards.mjs`). Each shard then runs its files longest first. A file with no record counts as the median file. Every file lands on exactly one shard, and that holds for an affected-only selection too.
 - **Refresh:** a full run uploads each shard's JSON report as `convex-report-<n>`. When shard times drift apart, refresh the durations:
   ```bash
@@ -68,7 +69,7 @@ Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci
   node scripts/convexShards.mjs local-validation/convex-reports/*/vitest-convex.json
   ```
   This rewrites `apps/apis/tests/convexFileDurations.json`.
-- **Changing a setting:** dispatch `-f full=true -f convex_workers=N` (or `worker_workers=N`) on your own `ci/` branch. Keep a new setting only after three consecutive clean full runs. A timeout rejects the setting, and per-test timeouts are never raised to make one pass.
+- **Changing a setting:** dispatch `-f full=true -f convex_workers=N` (or `worker_workers=N`, `web_workers=N`) on your own `ci/` branch. Keep a new setting only after three consecutive clean full runs. A timeout rejects the setting, and per-test timeouts are never raised to make one pass.
 
 ## Lint
 
