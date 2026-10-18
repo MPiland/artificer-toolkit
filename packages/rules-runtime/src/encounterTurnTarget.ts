@@ -7,10 +7,12 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
+import { withOccupantSaveBonusRows } from './encounterOccupantSaveAuras.js'
 
 /**
  * The turn's target as the next stage observes it: `actor` and `characterFacts` carry what earlier
- * stages staged, `activeEffects` the effects still in force, and `source` the facts that do not change.
+ * stages staged, `activeEffects` the effects still in force, and `source` the facts that do not change,
+ * including the save-bonus aura it was prepared with (D155).
  */
 export function rebuildEncounterTurnTarget<
   TCharacterFacts extends ProjectableCharacterFacts
@@ -21,7 +23,7 @@ export function rebuildEncounterTurnTarget<
   activeEffects: ActiveRuleEffectRecord[]
   state: Pick<EncounterRunState, 'campaignId' | 'gameSystemId'>
 }): MovementTarget<TCharacterFacts> {
-  return applyEncounterConditionMechanics({
+  const rebuilt = applyEncounterConditionMechanics({
     target: {
       ...buildMovementTarget({
         actor: input.actor,
@@ -35,4 +37,7 @@ export function rebuildEncounterTurnTarget<
     },
     gameSystemId: input.state.gameSystemId
   })
+  return input.source.occupantSaveBonus === undefined
+    ? rebuilt
+    : withOccupantSaveBonusRows(rebuilt, input.source.occupantSaveBonus)
 }
