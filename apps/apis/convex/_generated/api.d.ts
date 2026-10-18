@@ -116219,6 +116219,29 @@ export declare const api: {
                 }
               | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
           }>;
+          movementCostZones: Array<{
+            anchorKind: "FIXED" | "TOKEN";
+            geometry: {
+              frame: "SCENE_ABSOLUTE" | "TOKEN_LOCAL";
+              shape:
+                | {
+                    center: { x: number; y: number };
+                    kind: "CIRCLE";
+                    radius: number;
+                  }
+                | {
+                    center: { x: number; y: number };
+                    innerRadius: number;
+                    kind: "RING";
+                    outerRadius: number;
+                  }
+                | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
+            };
+            id: string;
+            multiplier: number;
+            sourceTokenId: string | null;
+            unaffectedActorIds: Array<string>;
+          }>;
           pending:
             | {
                 allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
