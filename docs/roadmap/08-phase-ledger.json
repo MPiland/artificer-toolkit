@@ -1464,6 +1464,64 @@
             }
           ],
           "journeyStatus": "verified"
+        },
+        {
+          "id": "PLATFORM-25",
+          "title": "CI fixes mechanical failures and merges approved slices itself",
+          "status": "IN_PROGRESS",
+          "origin": ["User request 2026-10-18 (cycle-time gains)"],
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "wsjf": {
+            "bv": 3,
+            "tc": 5,
+            "rr": 5,
+            "size": 8
+          },
+          "acs": [
+            {
+              "id": "PLATFORM-25.1",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-18 (cycle-time gains)"],
+              "note": "AC confirmed by the user 2026-10-18.",
+              "text": "When a ci/<slice> Tests run's only failures are formatting (oxfmt) or lint findings lint can fix itself, CI commits the fixes to the same ci/<slice> branch (fast-forward push, an auto-fix trailer, never the phase branch or main, never twice in a row) and reruns Tests and Live on the new commit; watchCi.ps1 follows it, as it does the _generated auto-fix."
+            },
+            {
+              "id": "PLATFORM-25.2",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-18 (cycle-time gains)"],
+              "note": "AC confirmed by the user 2026-10-18. The orchestrator still reviews every slice for band-aids and weakened assertions before approving.",
+              "text": "After the orchestrator approves a reviewed slice tip (a workflow dispatch naming the ci/<slice> branch and tip SHA), a workflow checks that Tests and Live are green on that exact tip and merges it into the phase branch: the fast path (--no-ff, tree check, then the ci/merge-m<N> backstop run) when the tip contains the phase tip, otherwise a ci/merge-m<N> batch run that pushes to the phase branch only when green. A conflict, a red run or a moved tip fails with nothing pushed."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "PLATFORM-25.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-25.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Format and lint auto-fix job in tests.yml on the live-backend auto-fix pattern, with watchCi.ps1 following it."
+            },
+            {
+              "id": "PLATFORM-25.T2",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 5
+              },
+              "text": "merge-slice.yml workflow_dispatch: verify green runs on the tip, fast path or ci/merge-m<N> batch (next N from the existing ci/merge-m* refs), push to the phase branch on green, fail closed otherwise; the CI validation guide documents it."
+            }
+          ]
         }
       ]
     },
@@ -6170,10 +6228,43 @@
             },
             {
               "id": "ATTACK-7.T5",
-              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a. D157: chosen destinations pause on FORCED_MOVEMENT_DESTINATION; the web picks on the Scene board with keyboard-focusable highlighted squares (generic square-pick mode), no drawer list. Browser test of the board pick.",
+              "text": "Slice E, split 2026-10-18 (D157): the authored forced-movement contract (AWAY_FROM_SOURCE, TOWARD_SOURCE, ASIDE, ANY; EXACT, UP_TO, UP_TO_SPEED), legal-square derivation, on-hit riders carrying any ON_HIT outcome, DAMAGE_TYPE restriction checks and the homebrew Crusher fixture. AWAY/TOWARD + EXACT are delivered by T5a.",
+              "status": "DONE",
+              "closes": ["ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5
+              },
+              "note": "Green: ci/attack-7 2b1d4dd26 Tests 39138280423, Live 39138280508; batch ci/merge-m115 d416a7ebf green; phase merge 817469d85."
+            },
+            {
+              "id": "ATTACK-7.T5b",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["ATTACK-7.T5"]
+              },
+              "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server.",
               "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+            },
+            {
+              "id": "ATTACK-7.T5c",
+              "status": "TODO",
+              "closes": ["ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["ATTACK-7.T5b"]
+              },
+              "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user."
             },
             {
               "id": "ATTACK-7.T6",
@@ -7755,6 +7846,19 @@
               },
               "text": "Wall of Thorns room journey (D156): its entry and turn-end damage (7d8 slashing, Dex for half) and its ×4 movement cost, proved in an Encounter. Test-only.",
               "note": "Proof: apps/session-worker/test/nativeRoomWallZoneSpells.test.ts (Wall of Thorns: placed wall, full and half damage passing through, turn-end damage, ×4 movement cost). Green: ci/spells-4-t1i 61847825d Tests 39131091086; phase merge 993cdf6a7 (fast path)."
+            },
+            {
+              "id": "SPELLS-4.T1j",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-4.T1h"]
+              },
+              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18."
             },
             {
               "status": "TODO",
@@ -9568,7 +9672,7 @@
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-20.T5b",
               "wsjf": {
                 "bv": 5,
@@ -9578,11 +9682,11 @@
                 "after": ["SPELLS-20.T5a"]
               },
               "text": "Character passive zones (D155): a Character class-feature PASSIVE zone is discovered and placed at START, REINFORCE and token bind, with its occupant save bonus and class-level radius resolved against the source and pinned, for Character and Creature sources; the transitional placement refusal is removed.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5b e74cd94d6 Tests 39138061143, Live 39138061118; phase merge 34a954c31 (m114)."
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-20.T5c",
               "wsjf": {
                 "bv": 5,
@@ -9591,7 +9695,8 @@
                 "size": 8,
                 "after": ["SPELLS-20.T5b"]
               },
-              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18."
+              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6a",

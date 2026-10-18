@@ -3,6 +3,7 @@ import {
   type CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 
+import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import {
   CharacterRuleActionUnsupportedCompilationError,
   type CharacterRuleActionSystemAdapter
@@ -65,14 +66,25 @@ export function discoverEncounterFeatureActions(
     })
   for (const capability of discovered.passiveZoneCapabilities)
     compiles(capability, (adapter) => {
-      const zone = adapter.compileZonePlacement?.({ action: capability })
-      if (!zone || 'options' in zone)
-        throw new CharacterRuleActionUnsupportedCompilationError(
-          'A passive zone is one zone, with no cast-time choice.'
-        )
-      passiveZones.push({ capability, zone: compiledActionZonePlacementSchema.parse(zone) })
+      passiveZones.push({ capability, zone: compilePassiveZone(adapter, capability) })
     })
   return { available, unavailable, passiveZones }
+}
+
+/**
+ * The one zone a Creature's or Character's passive feature keeps (D144, D155); a feature with no
+ * zone, or one picked at cast time, throws the unsupported-compilation error.
+ */
+export function compilePassiveZone(
+  adapter: CharacterRuleActionSystemAdapter,
+  capability: EffectActionCapabilityDescriptor
+): CompiledActionZonePlacement {
+  const zone = adapter.compileZonePlacement?.({ action: capability })
+  if (!zone || 'options' in zone)
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A passive zone is one zone, with no cast-time choice.'
+    )
+  return compiledActionZonePlacementSchema.parse(zone)
 }
 
 /** The System bindings of one compiled Effect, shared by every action source; null without an adapter. */

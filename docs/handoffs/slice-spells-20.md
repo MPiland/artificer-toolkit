@@ -259,6 +259,16 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterOccupantSaveBonusCompilation.test.ts`: the SRD aura compiles to an untriggered source zone with the Charisma bonus and the scaled radius; it equals a core-options aura (ADR 0038); a fixed bonus compiles as authored; a trigger, a movement cost or a cast-level radius beside the bonus is unavailable; a point-placed zone with it goes manual; placement refuses it.
   - `classAuraAuthoringParity.test.ts`: the SRD aura and a fixed +2, 15-foot variant pass the class node map unchanged.
 
+### T5b (Character passive zones placed and resolved, D155)
+
+- Compile: a source ability-modifier bonus or a class-level radius compiles only on a PASSIVE zone (a cast zone needing one is unavailable); a FIXED bonus stays allowed on cast zones.
+- Character discovery: `buildCharacterActionRuleFacts` routes PASSIVE feature, option and feat Effects that manifest a placed space into `passiveZones` (never policy facts or actions); the rule evaluation carries them as `passiveZoneSources`.
+- Placement: `planEncounterPassiveZones` places Creature and Character zones; a Character's come from its rule evaluation (`characterRules`), compiled through `compilePassiveZone`, the one zone compile Creatures use too. `zoneShapeAtSource` resolves the class-level radius; `planEncounterPlacedZone` pins the bonus from `PlacedZoneSource` and the transitional refusal is gone.
+- Hosts: `placeEncounterPassiveZones` takes `{ readScene, readCharacterRules(campaign, characterId) }`. Convex bind reads `loadCharacterSheetFacts` as the Campaign owner; the room bind and START commit read `readRoomOwnerCharacterRules`; the room START plan reads the turn's loaded targets, so plan and commit agree.
+- Proofs:
+  - `encounterPassiveZones.test.ts`: a paladin 6 with Charisma 16 keeps a 10-foot token zone lending +3; at 18 with Charisma 8 it reaches 30 feet and lends +1; the id is stable; no rules, no token or no acquired aura places nothing.
+  - `encounterOccupantSaveBonusCompilation.test.ts`: placement pins the bonus and the 30-foot reach against its source, and refuses a modifier bonus with no source (replaces T5a's transitional refusal test, a deliberate behavior change).
+
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.
