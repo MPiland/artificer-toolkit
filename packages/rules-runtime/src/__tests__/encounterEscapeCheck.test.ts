@@ -83,6 +83,7 @@ function grappled(owner: string, modules: EscapeModule[] = [escapeModule()]) {
       {
         kind: 'ACTOR_RELATIONSHIP',
         relationshipOutcomeId: OUTCOME_ID,
+        sealedReachFeet: 5,
         modules,
         conditionIds: [],
         capabilitySuppressions: []

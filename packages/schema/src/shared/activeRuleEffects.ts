@@ -273,6 +273,8 @@ const activeRuleEffectActorRelationshipContributionDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('ACTOR_RELATIONSHIP'),
     relationshipOutcomeId: uuidSchema,
+    /** The source's reach when it took hold, in feet; the hold ends once the held creature is beyond it (D152). */
+    sealedReachFeet: z.number().check(z.gte(0)),
     modules: z
       .array(actorRelationshipModuleDtoSchema)
       .check(z.minLength(1))

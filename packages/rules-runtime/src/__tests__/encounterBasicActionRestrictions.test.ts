@@ -144,6 +144,7 @@ function heldBy(index: number, sourceActorId: string, modules: RelationshipModul
           {
             kind: 'ACTOR_RELATIONSHIP',
             relationshipOutcomeId: testUuid(0xe560),
+            sealedReachFeet: 5,
             modules,
             conditionIds: [],
             capabilitySuppressions: []

@@ -1,7 +1,7 @@
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
+import { lengthMeasurementInFeet, type LengthUnitCode } from '@artificer-toolkit/shared/core'
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
   lengthMeasurementInSceneUnits,
@@ -29,6 +29,14 @@ export type EncounterActionSceneContext = {
 
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
 export const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
+
+/** The reach a relationship the action takes hold with seals (D152): Touch's 5 feet or its normal distance. */
+export function encounterRelationshipReachFeet(policy: CompiledActionTargetPolicy): number {
+  const { range } = policy
+  if (range.rangeKind === 'TOUCH') return lengthMeasurementInFeet(TOUCH_RANGE)
+  if (range.rangeKind === 'DISTANCE') return lengthMeasurementInFeet(range)
+  throw new Error('An actor relationship needs an action with a measurable reach.')
+}
 
 /**
  * Whether the action has no effect on a creature of this type: the type is excluded, or the action

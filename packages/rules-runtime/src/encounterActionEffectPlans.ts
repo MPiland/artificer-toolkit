@@ -67,6 +67,8 @@ export function prepareEncounterActionEffectPlans(input: {
   }
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   activeEffectPlan: CharacterRuleActionActiveEffectPlan | null
+  /** The source's reach in feet a relationship plan seals; omitted for every action that plans none. */
+  sealedReachFeet?: number
   /**
    * What a settled concealment check decided: the total it froze and the observers it beats, or
    * null when it beats none. Omitted for every action that plans no concealment.
@@ -233,6 +235,9 @@ function prepareRecurringActiveEffect(
   const conditionContributions = plan.conditionContributions ?? []
   const endLifecycle = plan.lifecycle
   const relationshipContribution = plan.actorRelationshipContribution ?? null
+  const sealedReachFeet = relationshipContribution ? input.sealedReachFeet : 0
+  if (sealedReachFeet === undefined)
+    throw new EncounterActionEffectPlanError('A relationship plan requires the reach it seals.')
   const grantContribution = plan.modifierGrantContribution ?? null
   if (plan.concealmentContribution && input.concealment === undefined)
     throw new EncounterActionEffectPlanError('A concealment plan requires its settled check.')
@@ -501,6 +506,7 @@ function prepareRecurringActiveEffect(
                   {
                     kind: 'ACTOR_RELATIONSHIP' as const,
                     relationshipOutcomeId: relationshipContribution.relationshipOutcomeId,
+                    sealedReachFeet,
                     modules: relationshipContribution.modules,
                     conditionIds: relationshipConditionIds,
                     capabilitySuppressions: [

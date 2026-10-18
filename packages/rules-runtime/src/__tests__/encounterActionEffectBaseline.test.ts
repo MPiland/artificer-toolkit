@@ -263,6 +263,7 @@ function planWith(
     heldAtOnce?: number
     otherHolds?: ReadonlyArray<readonly [string, readonly ActiveRuleEffectRecord[]]>
     fixture?: ReturnType<typeof fixturePlan>
+    sealedReachFeet?: number
   } = {}
 ) {
   const { plan, published } = input.fixture ?? fixturePlan(input.authoredPath, input.heldAtOnce)
@@ -283,6 +284,7 @@ function planWith(
     },
     activeEffectsByActorId: new Map([[ids.target, activeEffects], ...(input.otherHolds ?? [])]),
     activeEffectPlan: plan,
+    sealedReachFeet: 'sealedReachFeet' in input ? input.sealedReachFeet : 5,
     published,
     execution: execution(),
     d20: {
@@ -386,6 +388,28 @@ describe('a contest win holds the target (Grapple, D152)', () => {
         resolvedPath: 'ON_CHECK_SUCCESS'
       })
     ])
+  })
+
+  it("seals the grappler's reach on the hold", () => {
+    const definition = planWith([], [], {
+      fixture: grapplePlan(),
+      resultPath: 'ON_CHECK_SUCCESS',
+      sealedReachFeet: 10
+    }).recurringEffect?.definition
+    if (definition?.schemaVersion !== 2) throw new Error('Expected state contributions.')
+    expect(definition.stateContributions).toContainEqual(
+      expect.objectContaining({ kind: 'ACTOR_RELATIONSHIP', sealedReachFeet: 10 })
+    )
+  })
+
+  it('refuses a hold planned without the reach it seals', () => {
+    expect(() =>
+      planWith([], [], {
+        fixture: grapplePlan(),
+        resultPath: 'ON_CHECK_SUCCESS',
+        sealedReachFeet: undefined
+      })
+    ).toThrow('reach')
   })
 
   it('holds nothing when the initiator loses the contest', () => {
