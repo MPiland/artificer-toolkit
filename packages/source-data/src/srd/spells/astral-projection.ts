@@ -71,8 +71,11 @@ export const astralProjection: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ASTRAL_PROJECTION, 0x214, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ASTRAL_PROJECTION' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Project Into the Astral Plane',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'You and up to eight willing creatures within range project your astral bodies into the Astral Plane (the spell fails and the casting is wasted if you are already on that plane).'
               }
             ]
           }

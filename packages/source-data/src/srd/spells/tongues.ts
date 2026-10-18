@@ -70,8 +70,11 @@ export const tongues: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TONGUES, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TONGUES' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Understand and Be Understood',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'This spell grants the creature you touch the ability to understand any spoken language it hears.'
               }
             ]
           }

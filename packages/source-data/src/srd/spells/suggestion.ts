@@ -68,18 +68,13 @@ export const suggestion: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SUGGESTION, 0x213, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SUGGESTION, 0x214, 1),
               durationKind: DURATION_KIND.HOUR,
               amount: 8
             },
             outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.SUGGESTION, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SUGGESTION' as const
-              },
               {
                 id: spellChildId(SPELL_IDS.SUGGESTION, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
