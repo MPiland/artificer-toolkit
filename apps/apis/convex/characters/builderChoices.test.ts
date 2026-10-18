@@ -378,7 +378,7 @@ describe('native Character Builder choices', () => {
       const firstPreview = await previewCandidate(t, owner, candidate)
       expect(firstPreview.character.status).toBe('ACTIVE')
       expect(firstPreview.character.state.hitpoints.current).toBe(11)
-      expect(firstPreview.character.state.hitpoints.temp).toBeUndefined()
+      expect(firstPreview.character.state.hitpoints.temp).toBe(0)
       expect(firstPreview.character.intent.featureAcquisitions).toEqual(
         character.intent.featureAcquisitions
       )
@@ -483,7 +483,7 @@ describe('native Character Builder choices', () => {
         expect(committed.character.intent.chosenGrantSelections).toEqual(
           character.intent.chosenGrantSelections
         )
-        expect(committed.character.state.hitpoints.temp).toBeUndefined()
+        expect(committed.character.state.hitpoints.temp).toBe(0)
         expect(committed.streamVersion).toBe(1)
         expect(
           await owner.caller.query(api.characters.drafts.get, { id: draft.characterId })

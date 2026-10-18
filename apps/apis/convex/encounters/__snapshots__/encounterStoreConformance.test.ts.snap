@@ -118,6 +118,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
           "damageImmunities": [],
           "damageResistances": [],
           "damageVulnerabilities": [],
+          "details": [],
           "features": [
             {
               "description": "Keen Hearing and Smell. The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell.",
@@ -226,6 +227,8 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
               ],
             },
           ],
+          "qualifiedDamageDefenses": [],
+          "senses": [],
           "size": "MEDIUM",
           "speeds": [
             {
