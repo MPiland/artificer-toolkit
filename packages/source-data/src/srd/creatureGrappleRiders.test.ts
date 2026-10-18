@@ -238,7 +238,8 @@ describe('SRD Creature grapple riders (D105)', () => {
       relationship.modules.some(({ kind }) => kind === 'TARGET_DRAGGED') ? [] : [name]
     )
 
-    expect(grapples).toHaveLength(27)
+    // Every Actor Relationship above but the Cloaker's Bite, which attaches without grappling.
+    expect(grapples).toHaveLength(26)
     expect(undragged).toEqual([])
   })
 
