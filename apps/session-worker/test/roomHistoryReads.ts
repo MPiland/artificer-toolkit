@@ -136,6 +136,20 @@ export function readPendingActionContext(stub: RoomStub) {
   })
 }
 
+/** The stored application context of the Encounter's one PENDING occurrence, whatever its kind. */
+export function readPendingApplicationContext(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) => {
+    const room = new RoomEncounterStore(context.storage)
+    const occurrence = room
+      .documents('encounterRuleOccurrences')
+      .find((candidate) => candidate.state === 'PENDING')
+    if (!occurrence) throw new Error('No decision is pending.')
+    const snapshot = await readPendingSnapshot({ db: room.store }, occurrence)
+    if (!snapshot) throw new Error('The pending occurrence holds no snapshot.')
+    return snapshot.applicationContext
+  })
+}
+
 /**
  * The pending area as one viewer reads it: the GM, or a player who controls `controlledActorIds`.
  * Null when the viewer has nothing in it to answer.

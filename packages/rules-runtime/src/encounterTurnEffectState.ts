@@ -11,7 +11,7 @@ import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ru
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
-import { damageTakenEndedEffects } from './encounterEndedEffectRelease.js'
+import { targetEndedEffects } from './encounterEndedEffectRelease.js'
 
 export type TurnEffectBoundary = {
   ordinal: 0 | 1
@@ -164,9 +164,10 @@ export function turnEffectDamageEnded(input: {
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
   const { origin } = input.effect.definition
-  return damageTakenEndedEffects({
+  return targetEndedEffects({
     holderActorId: input.holderActorId,
     held: input.held.filter(({ id }) => !input.excluded.has(id)),
+    attacked: false,
     applications: input.applications,
     damagerActorId: origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null,
     dispositions: input.dispositions
