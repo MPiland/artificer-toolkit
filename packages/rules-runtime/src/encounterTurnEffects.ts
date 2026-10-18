@@ -155,7 +155,7 @@ function lifecycle(effect: ActiveRuleEffectRecord, terminal: boolean) {
     afterRemainingTicks,
     beforeLifecycleChecksum: effect.lifecycleChecksum,
     afterLifecycleChecksum: checksumRuleDocument({
-      schemaVersion: 1,
+      ...effect.lifecycle,
       remainingTicks: afterRemainingTicks
     })
   }
@@ -204,10 +204,7 @@ function overlayEffects(
       {
         ...effect,
         version: execution.lifecycle.afterVersion,
-        lifecycle: {
-          schemaVersion: 1 as const,
-          remainingTicks: execution.lifecycle.afterRemainingTicks
-        },
+        lifecycle: { ...effect.lifecycle, remainingTicks: execution.lifecycle.afterRemainingTicks },
         lifecycleChecksum: execution.lifecycle.afterLifecycleChecksum
       }
     ]

@@ -192,8 +192,11 @@ export function createConcentrationState(
       schemaVersion: 2,
       maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
       definitionChecksum: maintenanceDefinition.checksum,
-      sourceActionId: crypto.randomUUID(),
-      sourceOccurrenceId: crypto.randomUUID(),
+      provenance: {
+        kind: 'ACTION',
+        sourceActionId: crypto.randomUUID(),
+        sourceOccurrenceId: crypto.randomUUID()
+      },
       sourceActorId: input.ownerActorId,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

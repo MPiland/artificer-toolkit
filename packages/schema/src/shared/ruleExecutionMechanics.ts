@@ -430,9 +430,8 @@ export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
           id: uuidSchema,
           version: aggregateVersionSchema,
           maintenanceDefinitionId: uuidSchema,
+          // The checksum pins the prior descriptor, whatever its provenance (D151).
           descriptorChecksum: checksumSchema,
-          sourceActionId: z.string().check(z.minLength(1)).check(z.maxLength(240)),
-          sourceOccurrenceId: uuidSchema,
           sourceActorId: uuidSchema
         })
       ),

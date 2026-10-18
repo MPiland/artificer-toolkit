@@ -259,7 +259,7 @@ export async function insertSettledCheckReceipt(
     campaignId: string
     state: Pick<EncounterRunState, 'id' | 'version' | 'optionalCombatSnapshotChecksum'>
     nextVersion: number
-    commandType: 'RESOLVE_ACTION' | 'ESCAPE_RELATIONSHIP'
+    commandType: 'RESOLVE_ACTION' | 'ESCAPE'
     commandId: string
     commandFingerprint: string
     execution: StoredRuleExecutionResultDto

@@ -108,3 +108,48 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - `packages/source-data/src/srd/zoneInteractionKinds.test.ts`: a corpus test fails on any authored SRD zone whose text says a creature enters its area and that authors `ENTER_SPACE`; the five components author `ENTER_OR_PASS_THROUGH` beside their turn trigger.
   - `apps/session-worker/test/nativeRoomHazardZoneSpells.test.ts`: for each of the four hazard spells a Wolf that walks through the area and ends its move outside it fails the save and takes the cast's damage.
   - `nativeRoomTurnZoneEffects.test.ts` reads Spirit Guardians' placement with both modes.
+
+### T1e (restrained zones: Web, Black Tentacles)
+
+- Contract (D146):
+  - A failed-save result block opts in with `lifecycle.heldBySource`. It may add `endOnEvents: ['ON_LEAVING_AREA']` and an `escape` (activation, checks, `dc` `FIXED` or `SOURCE_SAVE_DC`).
+  - The compiled zone carries `heldCondition`. The placed zone pins the escape DC (`SOURCE_SAVE_DC` takes the caster's save DC at placement).
+  - Grease and Sleet Storm prone stay unheld.
+- Graph: a condition beside damage gets its own proposal node `proposal-on_save_fail-condition` with its own source-entry binding. `testApplications` applies each path's proposal, then the condition beside it, and skips a condition the creature is immune to. Unheld conditions beside damage now compose too (the T4b3b refusal is gone).
+- Holder effect: when the failed save applied the held condition, entry (`liveMovementSpatialPersistence.ts`) and turn (`turnZoneEffectsPersistence.ts`) settlement create one active effect (`planSpatialHeldCondition`). It holds `CONDITION_OWNERSHIP` with `heldBySpatialEffectId` and, when authored, `CONDITION_ESCAPE`. It carries the zone's `maintainedEffectStateId`, so it ends with Concentration through the existing dependent cleanup. A held condition on a zone without maintenance is refused at compile time.
+- Escape: `ESCAPE_RELATIONSHIP` is renamed `ESCAPE` everywhere (no alias). The escape context carries one `escapeSourceId`, and a zone escape names the zone. The existing escape settlement ends the holder effect and the condition it alone owns.
+- Authoring:
+  - Web: 20-foot cube, `ENTER_OR_PASS_THROUGH` + `START_TURN_IN_SPACE`, Dexterity save at `SOURCE_SAVE_DC`. On a failure: restrained and movement stops. Held, ends on leaving the area, Strength escape at the caster's DC.
+  - Black Tentacles: the same, plus `maxApplicationsPerTurn: 1` and 3d6 bludgeoning on the failure. Strength or Dexterity escape. Does not end on leaving the area: the creature is held until the spell ends or it escapes.
+- Proofs:
+  - `nativeRoomHazardZoneSpells.test.ts` (real casts): an entering Wolf that fails is restrained, stopped and, for Black Tentacles, damaged. Ending Concentration releases it. An escape check that reaches the DC frees it, and a short one keeps it held. A turn start in the area restrains.
+  - `encounterZonePlacementCompilation.test.ts`: two proposal nodes and bindings for damage plus condition. Refusals for a held condition without maintenance, an unheld condition with a lifecycle, a held condition ending on another event, and a held condition with a further lifecycle.
+  - `zoneInteractionKinds.test.ts` and `sourceZoneAuthoringParity.test.ts` cover both spells.
+- Leave-area release (Web): Option A approved (orchestrator, to be added to D146 at merge). The compiler adds `EXIT` to the trigger modes of a held zone that ends on leaving. An exit candidate settles TERMINAL with a release that ends the holder effects that zone holds with `ON_LEAVING_AREA` and removes the conditions they alone owned, through one write path with receipts and replay. A releasing move loses Scene undo like every other settled move. No speed-0 enforcement and no forced-movement changes.
+  - Receipt ruling: option 2 approved (orchestrator). A held condition that ends on leaving settles as an `AREA_DEPARTURE` movement settlement step, following `CONCENTRATION_END`, and the spatial receipt is unchanged.
+    - A held mover is released when its footprint where the move ends lies outside the zone, at its exit distance or, without one, at the start. A creature stopped on entering only touches the area's edge ("touching is not in it"), so its move away has no exit contact.
+    - The evaluator splits release exits from the graph candidates. A move whose only contact is a release is TERMINAL `MOVEMENT_COMPLETE` (Run version +1) and carries `areaDepartures` on the retained preparation outcome, so replay and its checksum cover it.
+    - The room plans one `AREA_DEPARTURE` per departure (departure, ended holder effect, removed conditions). The commit checks each against the retained departures, re-derives the holder effect from current rows, and ends it through the escape end path.
+    - Proof: `nativeRoomHazardZoneSpells.test.ts` "releases a creature that leaves the area, in a settled move" (Web) and "keeps a creature that leaves the area restrained" (Black Tentacles).
+  - Deferred edge cases (rare, recoverable):
+    - A move that leaves the area and then ends on a passage stop is not released; the release needs another move.
+    - Departures settle after every other contact in the move, so a zone entered later in the same move sees the creature still restrained.
+    - A zone's per-turn application limit does not count release exits.
+- Named gaps:
+
+| Spell           | SRD rule                                                           | Authoring option                   | Owner                              |
+| --------------- | ------------------------------------------------------------------ | ---------------------------------- | ---------------------------------- |
+| Web             | Difficult terrain                                                  | component `movementCostMultiplier` | SPELLS-20.T4d (movement cost)      |
+| Web             | Lightly obscured area                                              | `obscurementKind: 'LIGHT'`         | none registered                    |
+| Web             | Webs burn away in fire (2d4 fire)                                  | `destructionCriteria`              | none registered                    |
+| Web             | Unanchored webs collapse                                           | none                               | none registered                    |
+| Web             | Ends when the creature leaves the webs                             | holder `ON_LEAVING_AREA`           | T1e (`AREA_DEPARTURE` settlement)  |
+| Black Tentacles | Difficult terrain                                                  | component `movementCostMultiplier` | SPELLS-20.T4d (movement cost)      |
+| Black Tentacles | 3d6 with no save to a creature it already restrains, at turn start | zone outcome with no save          | check SPELLS-20.T6a once it merges |
+
+- Other findings:
+  - For the orchestrator: restrained makes speed 0, and the server does not enforce speed 0 on later moves, so a restrained creature can still walk.
+  - Forced movement through zones is still refused (unchanged).
+  - A creature that a zone stops on entering stands touching the area's edge, which spatial geometry counts as outside it. So a Black Tentacles creature restrained on entry is not "in" the area at its next turn start and does not save again there. Pre-existing stop geometry (T1a), not changed here.
+  - Reverting the move or turn that restrained a creature may leave the holder effect in place. The entry-grant effect has the same behavior. Not yet confirmed by a test.
+  - Black Tentacles: a creature it already restrains that starts its turn there saves again. A failure deals damage, and the condition is not held twice.

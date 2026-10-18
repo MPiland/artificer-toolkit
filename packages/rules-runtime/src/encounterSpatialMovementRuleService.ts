@@ -17,6 +17,8 @@ import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shar
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import {
   collectSpatialMovementCandidates,
+  effectiveSpatialGeometry,
+  spatialGeometryOverlapsTokenFootprint,
   type ScenePoint,
   type SpatialMovementCandidate,
   type SpatialMovementKind
@@ -136,6 +138,13 @@ export type FrozenMovementReactionRemainder = Pick<
     | null
 }
 
+/** A mover leaving the area of a zone that holds a condition on it until it does (D146). */
+export type MovementAreaDeparture = {
+  zoneEffectId: string
+  holderActorId: string
+  pathDistance: number
+}
+
 export type SpatialMovementIntent = {
   tokenId: string
   position: ScenePoint
@@ -167,6 +176,8 @@ export type SpatialMovementRuleEvaluation =
   | {
       kind: 'TERMINAL'
       result: SpatialMovementTerminalResult
+      /** The held zones the mover left on its way, each ending what that zone held on it (D146). */
+      areaDepartures: readonly MovementAreaDeparture[]
       movementIntent: SpatialMovementIntent | null
       resolutionCommands: readonly MovementRuleResolutionCommand[]
       selectionChecksum: string
@@ -224,6 +235,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   beforeTerminalApply?: () => Promise<void>
   /** Stages, but does not apply, every spatial candidate through this contact. */
   interruptAfterPathDistance?: number
+  /** The zones holding a condition on each actor until it leaves their area (D146). */
+  leavingAreaHolds?: readonly { actorId: string; zoneEffectId: string }[]
   interruptAfterContactToActorIds?: ReadonlySet<string>
 }): Promise<SpatialMovementRuleEvaluation> {
   const root = normalizeRoot(input.root)
@@ -310,19 +323,83 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   )
     throw new EncounterConflictError('The spatial movement Scene is stale.')
   const snapshotEffects = await input.spatialScope.snapshot()
+  const collect = (effects: readonly EncounterSpatialRuleEffectRecord[]) =>
+    collectSpatialMovementCandidates({
+      actorIdByTokenId: input.actorIdByTokenId,
+      effects: toSpatialInstances(effects, input.encounter.actors),
+      movementKind: root.movementKind,
+      path: root.originalPath,
+      tokens: input.sceneTokens,
+      movingTokenId: root.tokenId,
+      carefully: input.carefully,
+      zoneApplications: input.encounter.zoneApplications,
+      turnSequence: input.encounter.turnSequence
+    }).filter((candidate) => !releasesOnExit(candidate))
+  // Leaving a zone that holds a condition until then runs no graph: it ends what the zone held.
+  const releasingZoneIds = new Set(
+    snapshotEffects
+      .filter((effect) => effect.placement.heldCondition?.endsOnLeavingArea)
+      .map(({ id }) => id)
+  )
+  const releasesOnExit = (candidate: SpatialMovementCandidate) =>
+    candidate.trigger === 'EXIT' && releasingZoneIds.has(candidate.effectId)
+  const exitDistances = new Map(
+    collectSpatialMovementCandidates({
+      actorIdByTokenId: input.actorIdByTokenId,
+      effects: toSpatialInstances(
+        snapshotEffects.filter(({ id }) => releasingZoneIds.has(id)),
+        input.encounter.actors
+      ),
+      movementKind: root.movementKind,
+      path: root.originalPath,
+      tokens: input.sceneTokens,
+      movingTokenId: root.tokenId,
+      turnSequence: input.encounter.turnSequence
+    }).flatMap((candidate) =>
+      releasesOnExit(candidate)
+        ? [[`${candidate.effectId}:${candidate.targetActorId}`, candidate.pathDistance] as const]
+        : []
+    )
+  )
+  const moverActorId = input.actorIdByTokenId.get(root.tokenId)
+  /**
+   * The zones the mover leaves by a move that ends at `stopDistance` (or at its end, when null):
+   * its footprint there is outside the area. A creature stopped on entering only touches the edge,
+   * so it leaves without an exit contact, at the move's start.
+   */
+  const departedBy = (stopDistance: number | null): MovementAreaDeparture[] => {
+    const at =
+      stopDistance === null
+        ? root.originalPath.at(-1)
+        : pathPointAtDistance(root.originalPath, stopDistance)
+    if (!at || !moverActorId) return []
+    return (input.leavingAreaHolds ?? []).flatMap((hold) => {
+      const zone = snapshotEffects.find(({ id }) => id === hold.zoneEffectId)
+      const geometry =
+        zone && releasingZoneIds.has(zone.id)
+          ? effectiveSpatialGeometry(
+              toSpatialInstances([zone], input.encounter.actors)[0]!,
+              input.sceneTokens
+            )
+          : null
+      if (
+        hold.actorId !== moverActorId ||
+        !geometry ||
+        spatialGeometryOverlapsTokenFootprint({ geometry, position: at, token: movingToken })
+      )
+        return []
+      return [
+        {
+          zoneEffectId: hold.zoneEffectId,
+          holderActorId: hold.actorId,
+          pathDistance: exitDistances.get(`${hold.zoneEffectId}:${hold.actorId}`) ?? 0
+        }
+      ]
+    })
+  }
   const candidates = frozenReactionRemainder
     ? frozenSpatialCandidates(frozenReactionRemainder, appliedExecutions.length)
-    : collectSpatialMovementCandidates({
-        actorIdByTokenId: input.actorIdByTokenId,
-        effects: toSpatialInstances(snapshotEffects, input.encounter.actors),
-        movementKind: root.movementKind,
-        path: root.originalPath,
-        tokens: input.sceneTokens,
-        movingTokenId: root.tokenId,
-        carefully: input.carefully,
-        zoneApplications: input.encounter.zoneApplications,
-        turnSequence: input.encounter.turnSequence
-      })
+    : collect(snapshotEffects)
   const computedSelectionChecksum = checksumSpatialMovementSelection({
     encounterId: input.encounter.id,
     sceneId: input.sceneId,
@@ -410,7 +487,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         currentnessChecksum
       }
     }
-    if (!frozenReactionRemainder) return { kind: 'NO_CANDIDATES', movementIntent: terminalIntent }
+    const areaDepartures = departedBy(appliedStopDistance)
+    if (!frozenReactionRemainder && !areaDepartures.length)
+      return { kind: 'NO_CANDIDATES', movementIntent: terminalIntent }
     if (appliedPrefix) await input.beforeTerminalApply?.()
     const result = appliedPrefix
       ? await input.applyTerminal({
@@ -426,6 +505,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     return {
       kind: 'TERMINAL',
       result,
+      areaDepartures,
       movementIntent: terminalIntent,
       resolutionCommands,
       selectionChecksum,
@@ -458,17 +538,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   }
   const lockedCandidates = frozenReactionRemainder
     ? candidates
-    : collectSpatialMovementCandidates({
-        actorIdByTokenId: input.actorIdByTokenId,
-        effects: toSpatialInstances([...lockedEffects.values()], input.encounter.actors),
-        movementKind: root.movementKind,
-        path: root.originalPath,
-        tokens: input.sceneTokens,
-        movingTokenId: root.tokenId,
-        carefully: input.carefully,
-        zoneApplications: input.encounter.zoneApplications,
-        turnSequence: input.encounter.turnSequence
-      })
+    : collect([...lockedEffects.values()])
   if (checksumRuleDocument(lockedCandidates) !== checksumRuleDocument(candidates))
     throw new EncounterConflictError('Spatial candidates changed after target locking.')
   // This is deliberately derived only after every spatial root and target
@@ -768,6 +838,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   return {
     kind: 'TERMINAL',
     result,
+    areaDepartures: departedBy(stopAtDistance),
     movementIntent: intent(root.tokenId, input.currentPosition, terminalPosition),
     resolutionCommands,
     selectionChecksum,

@@ -33,14 +33,10 @@ type EndEventCover =
   | {
       /** Needs a mechanic the effect forms do not carry yet; the named task adds it. */
       mechanism: 'REGISTERED_FOLLOW_UP'
-      task: 'T7 Sanctuary' | 'T11 margin-of-failure riders'
+      task: 'T7 Sanctuary'
     }
 
 const GM_ADJUDICATED: EndEventCover = { mechanism: 'GM_ADJUDICATED' }
-const T11: EndEventCover = {
-  mechanism: 'REGISTERED_FOLLOW_UP',
-  task: 'T11 margin-of-failure riders'
-}
 
 const COVERED_END_EVENTS: Record<string, EndEventCover> = {
   'spells/Animal Friendship': GM_ADJUDICATED,
@@ -56,10 +52,7 @@ const COVERED_END_EVENTS: Record<string, EndEventCover> = {
   'spells/Sequester': GM_ADJUDICATED,
   'spells/Suggestion': GM_ADJUDICATED,
   'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': GM_ADJUDICATED,
-  'spells/Sanctuary': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T7 Sanctuary' },
-  'creatures/Drow > Hand Crossbow': T11,
-  'creatures/Pseudodragon > Sting': T11,
-  'creatures/Sprite > Shortbow': T11
+  'spells/Sanctuary': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T7 Sanctuary' }
 }
 
 const END_WORD = /\b(?:ends|wakes|disappears)\b|\bend\b(?! of)|\buntil\b(?! the (?:end|start))/i

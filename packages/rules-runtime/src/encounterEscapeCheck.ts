@@ -23,14 +23,28 @@ import type { CharacterMovementFacts, MovementTarget } from './encounterMovement
 export const ESCAPE_ACTION_LABEL = 'Escape'
 
 type EffectDefinition = Extract<ActiveRuleEffectRecord['definition'], { schemaVersion: 2 }>
-type RelationshipContribution = Extract<
-  EffectDefinition['stateContributions'][number],
-  { kind: 'ACTOR_RELATIONSHIP' }
+type EscapeModule = Extract<
+  Extract<
+    EffectDefinition['stateContributions'][number],
+    { kind: 'ACTOR_RELATIONSHIP' }
+  >['modules'][number],
+  { kind: 'ESCAPE_CHECK' }
 >
-type EscapeModule = Extract<RelationshipContribution['modules'][number], { kind: 'ESCAPE_CHECK' }>
 type EncounterEscapeCheckPendingContextDto = ReturnType<
   typeof encounterEscapeCheckPendingContextDtoSchema.parse
 >
+
+/**
+ * A fixed-DC escape the held creature itself may attempt (D105, D146). `escapeSourceId` is the
+ * relationship's escape module or the zone holding a condition, and `zoneLabel` names that zone.
+ */
+export type EncounterHolderEscape = {
+  escapeSourceId: string
+  activation: EscapeModule['activation']
+  checks: EscapeModule['checks']
+  dc: number
+  zoneLabel: string | null
+}
 
 /**
  * The fixed-DC escape the held creature itself may attempt from an effect, or null: a CONTEST DC
@@ -38,9 +52,23 @@ type EncounterEscapeCheckPendingContextDto = ReturnType<
  */
 export function findEncounterHolderEscape(
   effect: Pick<ActiveRuleEffectRecord, 'definition'>
-): { relationshipOutcomeId: string; module: EscapeModule; dc: number } | null {
+): EncounterHolderEscape | null {
   if (effect.definition.schemaVersion !== 2) return null
-  for (const contribution of effect.definition.stateContributions) {
+  const { stateContributions } = effect.definition
+  const heldBySpatialEffectId = stateContributions.flatMap((held) =>
+    held.kind === 'CONDITION_OWNERSHIP' && held.heldBySpatialEffectId
+      ? [held.heldBySpatialEffectId]
+      : []
+  )[0]
+  for (const contribution of stateContributions) {
+    if (contribution.kind === 'CONDITION_ESCAPE' && heldBySpatialEffectId)
+      return {
+        escapeSourceId: heldBySpatialEffectId,
+        activation: contribution.activation,
+        checks: contribution.checks,
+        dc: contribution.dc,
+        zoneLabel: contribution.label
+      }
     if (contribution.kind !== 'ACTOR_RELATIONSHIP') continue
     for (const module of contribution.modules) {
       if (
@@ -49,9 +77,11 @@ export function findEncounterHolderEscape(
         module.actorKinds.includes('TARGET')
       )
         return {
-          relationshipOutcomeId: contribution.relationshipOutcomeId,
-          module,
-          dc: module.dc.value
+          escapeSourceId: module.id,
+          activation: module.activation,
+          checks: module.checks,
+          dc: module.dc.value,
+          zoneLabel: null
         }
     }
   }
@@ -120,10 +150,9 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
   const escape = findEncounterHolderEscape(effect)
   if (!escape)
     throw new EncounterValidationError('This effect has no fixed-DC escape for the creature.')
-  const { module } = escape
-  const checkKind = module.checks.skillIds.includes(input.checkDefinitionId)
+  const checkKind = escape.checks.skillIds.includes(input.checkDefinitionId)
     ? 'SKILL'
-    : module.checks.abilityDefinitionIds.includes(input.checkDefinitionId)
+    : escape.checks.abilityDefinitionIds.includes(input.checkDefinitionId)
       ? 'ABILITY'
       : null
   if (!checkKind) throw new EncounterValidationError('The escape does not allow that check.')
@@ -145,8 +174,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
     actionLabel: ESCAPE_ACTION_LABEL,
     actorId: holder.actor.id,
     activeEffectId: effect.id,
-    relationshipOutcomeId: escape.relationshipOutcomeId,
-    escapeModuleId: module.id,
+    escapeSourceId: escape.escapeSourceId,
     check: {
       checkDefinitionId: input.checkDefinitionId,
       dc: escape.dc,
@@ -163,7 +191,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
 }
 
 /**
- * The stored result of a settled Escape check. `effectStillHeld` is false when the relationship
+ * The stored result of a settled Escape check. `effectStillHeld` is false when the holding effect
  * ended while a prompted roll waited; `removedConditionIds` are the conditions an escape removed.
  */
 export function completeEncounterEscapeCheckResult(input: {

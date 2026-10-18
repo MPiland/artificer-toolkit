@@ -676,7 +676,7 @@ describe('seeded SRD Creature hit riders in the room', () => {
 
       const prompted = await executeInRoom(base.player.caller, {
         command: {
-          type: 'ESCAPE_RELATIONSHIP',
+          type: 'ESCAPE',
           encounterId: base.run.id,
           commandId: crypto.randomUUID(),
           expectedVersion: version,
@@ -709,7 +709,7 @@ describe('seeded SRD Creature hit riders in the room', () => {
       )
       // The player's answer is the newest entry; the escape it settled sits just before it.
       const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
-      expect(entries[1]).toMatchObject({ commandType: 'ESCAPE_RELATIONSHIP', label: 'Escape' })
+      expect(entries[1]).toMatchObject({ commandType: 'ESCAPE', label: 'Escape' })
       expect(await escapeChoice(base, freed.projection.version)).toEqual([])
     }, 60000)
 
@@ -757,7 +757,7 @@ describe('seeded SRD Creature hit riders in the room', () => {
     function escapeAthletics(base: Fixture, version: number, activeEffectId: string) {
       return {
         command: {
-          type: 'ESCAPE_RELATIONSHIP' as const,
+          type: 'ESCAPE' as const,
           encounterId: base.run.id,
           commandId: crypto.randomUUID(),
           expectedVersion: version,
@@ -844,7 +844,7 @@ describe('seeded SRD Creature hit riders in the room', () => {
       const [hold] = await holds(base)
       const prompted = await executeInRoom(base.player.caller, {
         command: {
-          type: 'ESCAPE_RELATIONSHIP',
+          type: 'ESCAPE',
           encounterId: base.run.id,
           commandId: crypto.randomUUID(),
           expectedVersion: version,

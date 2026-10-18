@@ -30,6 +30,7 @@ import {
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
+import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { SRD_REUSABLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -248,6 +249,8 @@ export interface MovementRoomConfig {
    * START command rolls initiative (d20 + modifier, once at the start) and opens the first turn.
    */
   status?: 'PREPARED'
+  /** The Campaign clock's absolute minute the room reads (D151); null when the Campaign has none. */
+  campaignClockMinute?: number | null
 }
 
 /** A connected socket and the frames the room sent on it: the GM's or a player's. */
@@ -572,7 +575,10 @@ export async function movementRoom(config: MovementRoomConfig) {
                 characterId: characterOfActor.get(row.targetActorId),
                 concentrationCasterCharacterId:
                   row.lifecycle.concentrationCasterCharacterId ?? null,
-                sourceEncounterId: encounterId,
+                sourceEncounterId: sourceEncounterIdForDefinition(
+                  activeRuleEffectDefinitionDtoSchema.parse(JSON.parse(row.definitionJson)),
+                  row.maintainedEffectStateId
+                ),
                 maintainedEffectStateId: row.maintainedEffectStateId,
                 createdOrdinal: row.createdOrdinal,
                 version: row.version,
@@ -679,7 +685,8 @@ export async function movementRoom(config: MovementRoomConfig) {
         members: base.authorization.members,
         assignments,
         characterInputs,
-        definitions
+        definitions,
+        campaignClockMinute: config.campaignClockMinute
       })
     )
   })

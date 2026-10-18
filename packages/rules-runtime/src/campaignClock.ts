@@ -4,6 +4,13 @@ export function absoluteMinute(day: number, minuteOfDay: number): number {
   return (day - 1) * 1440 + minuteOfDay
 }
 
+/** A round is six seconds: ten rounds make a Campaign minute, and a started minute counts in full. */
+export const ROUNDS_PER_CAMPAIGN_MINUTE = 10
+
+export function campaignMinutesForRounds(rounds: number): number {
+  return Math.ceil(rounds / ROUNDS_PER_CAMPAIGN_MINUTE)
+}
+
 export function splitAbsoluteMinute(value: number): { day: number; minuteOfDay: number } {
   return { day: Math.floor(value / 1440) + 1, minuteOfDay: value % 1440 }
 }

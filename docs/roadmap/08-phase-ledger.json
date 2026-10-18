@@ -7614,7 +7614,7 @@
             },
             {
               "id": "SPELLS-4.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7623,7 +7623,8 @@
                 "size": 5,
                 "after": ["SPELLS-20.T4b2b2"]
               },
-              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE)."
+              "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1c",
@@ -7669,7 +7670,7 @@
             },
             {
               "id": "SPELLS-4.T1e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7679,7 +7680,7 @@
                 "after": ["SPELLS-4.T1d", "SPELLS-20.T4b3b"]
               },
               "text": "Restrained hazard zones (D142): a zone-held condition that ends with the zone (and, when authored, when the creature leaves the area), with an optional authored escape reusing the escape check and a caster-save-DC escape DC kind. Black Tentacles combines damage and the condition on one failed save: widen the frozen test graph and testApplications to a second proposal per result path for the zone condition (the composable set from SPELLS-20.T4b3b refuses it until then). Proved on Web and Black Tentacles.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Web and Black Tentacles restrained zones with held conditions and the generic ESCAPE command (D146). Green: ci/spells-4-t1e 26410b01b Tests 39099580716, Live 39099580780; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
             },
             {
               "id": "SPELLS-4.T1g",
@@ -7712,12 +7713,13 @@
         {
           "id": "SPELLS-5",
           "title": "Grants apply through APPLY_GRANT",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
-            "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+            "apps/apis/convex/encounters/antitoxinGrant.test.ts",
+            "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts"
           ],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7880,16 +7882,29 @@
             },
             {
               "text": "A caster whose Concentration carried over to the Campaign clock is still concentrating in a later Encounter: damage stages a Concentration check, and losing it ends every carried grant that depends on it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts (room journey).",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts.",
+                "packages/rules-runtime/src/__tests__/encounterTurnEffectState.test.ts.",
+                "apps/apis/convex/rules/maintainedProvenanceMigration.test.ts (descriptor provenance backfill).",
+                "Green: ci/spells-5 256f30770 Tests 39100454433, Live 39100454389; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
+              ],
               "origin": [],
               "note": "Found 2026-10-09 while planning SPELLS-5.11: a carried-only caster holds no Run slot, so damage in a new Run stages no check. Builds after SPELLS-5.11 and reuses its by-caster grant index.",
               "id": "SPELLS-5.12"
             },
             {
               "text": "A grant carried over to the Campaign clock counts down in rounds while its holder is in a later Encounter and ends there when its time runs out, and completing an Encounter offers the GM to advance the Campaign clock by the Encounter's elapsed rounds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts (room journey).",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts.",
+                "apps/apis/convex/liveSessions/roomInputs.test.ts (CAMPAIGN_CLOCK room input).",
+                "apps/web/src/domains/campaigns/components/CampaignEncounterWorkspace.test.tsx (clock advance offer).",
+                "packages/rules-runtime/src/__tests__/campaignClock.test.ts.",
+                "Green: ci/spells-5 256f30770 Tests 39100454433, Live 39100454389; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
+              ],
               "origin": [],
               "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
               "id": "SPELLS-5.13"
@@ -7928,38 +7943,41 @@
             {
               "id": "SPELLS-5.T10",
               "text": "D151: resume carried timers at START through the CAMPAIGN_CLOCK capture; fix the tick UPDATE that drops optional lifecycle fields (red first); room journey with Fly carried from Run 1 ending in Run 2.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-5.13"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "note": "phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718). D151 amendment: the replacement receipt's priorState carries no action ids."
             },
             {
               "id": "SPELLS-5.T12",
               "text": "D151: reinstate a carried caster's Concentration at START as a real maintained state, with a required descriptor provenance discriminant (migrated); damage check and loss end dependents; room journey.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-5.12"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              }
+              },
+              "note": "phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718). D151 amendment: the replacement receipt's priorState carries no action ids."
             },
             {
               "id": "SPELLS-5.T11",
               "text": "D151: the completed-Encounter view offers to advance the Campaign clock by ceil(rounds / 10) minutes through campaigns.clock.advance; component test and Convex journey.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-5.13"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 2,
                 "size": 1
-              }
+              },
+              "note": "phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718). D151 amendment: the replacement receipt's priorState carries no action ids."
             }
           ]
         },
@@ -9890,7 +9908,7 @@
             {
               "id": "SPELLS-27.T11",
               "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9899,7 +9917,7 @@
                 "size": 3,
                 "after": ["SPELLS-27.T5"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
+              "note": "Margin-of-failure save riders from core options. Proofs: packages/rules-runtime/src/__tests__/creatureFailureMarginRider.test.ts, apps/session-worker/test/nativeRoomFailureMarginRider.test.ts. Green: ci/spells-27-t11 13a099601 Tests 39099290805, Live 39099290761; phase merge b5537673f (batch ci/merge-m99, Tests 39102159866, Live 39102159718)."
             },
             {
               "id": "SPELLS-27.T6",

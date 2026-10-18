@@ -64,6 +64,7 @@ export type MovementCommandTransition =
       result: { characterTransitions: readonly CharacterVersionTransition[] }
     }
   | { kind: 'REACTION'; execution: { characterTransitions: readonly CharacterVersionTransition[] } }
+  | { kind: 'AREA_DEPARTURE'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'CONCENTRATION' | 'CONCENTRATION_END'; execution: ConcentrationChild }
 
 type MovementChangedAggregate = {
@@ -214,6 +215,8 @@ export function movementCommandCharacterAggregateVersions(
     } else if (transition.kind === 'SPATIAL_PREFIX') {
       for (const characterTransition of transition.result.characterTransitions)
         append(characterTransition)
+    } else if (transition.kind === 'AREA_DEPARTURE') {
+      for (const characterTransition of transition.characterTransitions) append(characterTransition)
     } else {
       for (const characterTransition of transition.execution.result.applicationOutputs.cleanup
         ?.characterOwnerTransitions ?? [])

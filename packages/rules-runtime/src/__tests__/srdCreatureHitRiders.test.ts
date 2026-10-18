@@ -254,11 +254,12 @@ describe('SRD one-time saves with a timed condition (D62.2)', () => {
   })
 
   it('poisons the target of the Drow’s Hand Crossbow for 1 hour: 600 of its turns', async () => {
-    // Hand Crossbow, +4: 5 (1d6 + 2) piercing, then DC 13 Constitution or poisoned for 1 hour.
+    // Hand Crossbow, +4: 5 (1d6 + 2) piercing, then DC 13 Constitution or poisoned for 1 hour. The
+    // Ogre's 9 fails by 4, short of the unconscious rider (creatureFailureMarginRider.test.ts).
     const failed = await attackOgre({
       attacker: 'Drow',
       feature: 'Hand Crossbow',
-      rolls: [9, 0, 0]
+      rolls: [9, 0, 5]
     })
     expect(failed.conditionIds).toEqual([srdCondition('Poisoned')])
     expect(failed.effects.recurringEffect?.lifecycle).toEqual({

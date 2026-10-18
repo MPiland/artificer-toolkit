@@ -632,7 +632,7 @@ describe('CampaignTabletopActionDrawer escapes', () => {
     await user.click(await screen.findByRole('button', { name: 'Escape from Giant Toad' }))
     expect(onEscape).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        type: 'ESCAPE_RELATIONSHIP',
+        type: 'ESCAPE',
         encounterId: tabletopGmEncounter.id,
         expectedVersion: tabletopGmEncounter.version,
         actorId: tabletopGmEncounter.currentActorId,

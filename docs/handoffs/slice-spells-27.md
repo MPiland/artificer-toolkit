@@ -243,7 +243,15 @@ The test walks every SRD subject record and splits its description into sentence
 
 ## Resume here (after SPELLS-27.T9, on ci/spells-27-t9)
 
-**Next task: SPELLS-27.T7 and T11; T6 after REACTION-4.T3 merges.** One task per session.
+**Next task: SPELLS-27.T7; T6 after REACTION-4.T3 merges.** One task per session.
+
+### T11 result (failure-margin riders, D149)
+
+- `FOLLOW_UP_SAVE` gains an optional `failureMarginRider { id, failedBy, outcomes, lifecycle { endOnTriggers } }` in all four layers (schema, authored type, node map, compiler). The compiled plan's `marginRider` is required and nullable (`null` on every other plan). The frozen graph adds a `nested-save-margin` threshold and margin-gated condition proposals; the rider gets its own `rider-condition-duration` node, since source-entry bindings are one-to-one.
+- The encounter planner (`prepareEncounterActionEffectPlans`) creates `riderEffect`, a second active effect with the parent's duration and the rider's end triggers, on the settlement, area, opportunity-attack and legendary paths. Receipts' `activeEffectTransitions` allow 2. The rider is not linked to the parent (D149 amended): ending the poison early leaves the sleep for the GM.
+- SRD: the Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the rider with `WAKE_END_TRIGGERS` (`DAMAGE_TAKEN` by ANYONE, Rouse). `CREATURE_PSEUDODRAGON_STING` is deleted; the Pseudodragon's ON_HIT result block takes a UUID id and a 1-hour duration. The three T11 entries are gone from `endEvents.test.ts`.
+- Proofs: `creatureFailureMarginRider.test.ts` (each creature at the margin and one face above, wake by damage and Rouse, core-options parity), `nativeRoomFailureMarginRider.test.ts` (Drow shot, Rouse, damage, GM undo of the shot and of the Rouse).
+- Deferred edges (future-enhancements): margins on direct saves, duration-changing and non-condition margins; automatic save failures.
 
 ### T9 result (Hypnotic Pattern)
 

@@ -203,9 +203,43 @@ describe('Escape check', () => {
   })
 
   it('finds the fixed-DC escape a holder can attempt, and no other', () => {
-    expect(findEncounterHolderEscape(grappled(holder.id))).toMatchObject({
-      relationshipOutcomeId: OUTCOME_ID,
-      module: { id: MODULE_ID, dc: { kind: 'FIXED', value: 13 } }
+    expect(findEncounterHolderEscape(grappled(holder.id))).toEqual({
+      escapeSourceId: MODULE_ID,
+      activation: { code: 'ACTION', amount: 1 },
+      checks: { skillIds: [ATHLETICS], abilityDefinitionIds: [STRENGTH] },
+      dc: 13,
+      zoneLabel: null
+    })
+    const zoneId = testUuid(23)
+    expect(
+      findEncounterHolderEscape(
+        activeEffect({
+          id: EFFECT_ID,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: holder.id },
+          createdOrdinal: 1,
+          stateContributions: [
+            {
+              kind: 'CONDITION_OWNERSHIP',
+              conditionId: testUuid(24),
+              baselinePresent: false,
+              heldBySpatialEffectId: zoneId
+            },
+            {
+              kind: 'CONDITION_ESCAPE',
+              label: 'Web',
+              activation: { code: 'ACTION', amount: 1 },
+              checks: { skillIds: [], abilityDefinitionIds: [STRENGTH] },
+              dc: 15
+            }
+          ]
+        })
+      )
+    ).toEqual({
+      escapeSourceId: zoneId,
+      activation: { code: 'ACTION', amount: 1 },
+      checks: { skillIds: [], abilityDefinitionIds: [STRENGTH] },
+      dc: 15,
+      zoneLabel: 'Web'
     })
     expect(
       findEncounterHolderEscape(
@@ -302,8 +336,7 @@ describe('Escape check', () => {
       actionLabel: 'Escape',
       actorId: holder.id,
       activeEffectId: EFFECT_ID,
-      relationshipOutcomeId: OUTCOME_ID,
-      escapeModuleId: MODULE_ID,
+      escapeSourceId: MODULE_ID,
       check: { checkDefinitionId: ATHLETICS, dc: 13, label: 'Strength (Athletics)' },
       d20: { rollMode: 'NORMAL', modifier: 4 }
     })

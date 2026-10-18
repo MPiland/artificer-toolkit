@@ -15,6 +15,7 @@ import type { DataModel, Doc } from '../_generated/dataModel'
 import type { ReceiptHeaderTable } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
+import { readCampaignClockMinute } from '../campaigns/clockReads'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { readSystemVocabularySnapshot } from '../content/systemVocabulary'
@@ -607,6 +608,11 @@ async function readRoomInputs(
           scope.part === 'VOCABULARY' ? await readSystemVocabularySnapshot(ctx, system) : null
       }
     }
+    case 'CAMPAIGN_CLOCK':
+      return {
+        kind: 'CAMPAIGN_CLOCK',
+        absoluteMinute: await readCampaignClockMinute(ctx.db, campaign.id)
+      }
   }
 }
 

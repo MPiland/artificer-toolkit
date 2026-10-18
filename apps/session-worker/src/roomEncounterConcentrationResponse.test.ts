@@ -272,8 +272,11 @@ it('atomically resolves a failed native Concentration save, retains the private 
       schemaVersion: 2,
       maintenanceDefinitionId: maintenanceDocument.id,
       definitionChecksum: checksumRuleDocument(maintenanceDocument),
-      sourceActionId: uuid(0x110c),
-      sourceOccurrenceId: uuid(0x110d),
+      provenance: {
+        kind: 'ACTION',
+        sourceActionId: uuid(0x110c),
+        sourceOccurrenceId: uuid(0x110d)
+      },
       sourceActorId: actor.id,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

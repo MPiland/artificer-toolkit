@@ -1,3 +1,5 @@
+import type { CheckChoiceAuthored, HeldEscapeDcAuthored } from './check.js'
+import type { ActivationAuthored } from './effect.js'
 import type {
   DurationAuthored,
   FacetAuthored,
@@ -53,6 +55,17 @@ export type PathLifecycleAuthored = {
   endOnConditionIds?: string[]
   /** The holder may end the effect themselves, at the cost of this activation. */
   holderEnd?: { activation: ActivationCode }
+  /**
+   * A zone's failed-save condition is held by the zone (D142, D146): it ends when the zone ends,
+   * on `ON_LEAVING_AREA` when the creature leaves the area, and on a successful `escape`.
+   */
+  heldBySource?: boolean
+  /** The check a creature held by the zone may make to free itself, at the cost of `activation`. */
+  escape?: {
+    activation: ActivationAuthored
+    checks: CheckChoiceAuthored
+    dc: HeldEscapeDcAuthored
+  }
 }
 
 export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> = {

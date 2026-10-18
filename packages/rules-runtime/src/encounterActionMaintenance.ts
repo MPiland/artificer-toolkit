@@ -255,6 +255,9 @@ export function buildEncounterMaintenanceTransition(input: {
   const { maintenance } = input
   const prior = maintenance.prior
   const state = input.createdState
+  const createdProvenance = state.descriptor.provenance
+  if (createdProvenance.kind !== 'ACTION')
+    throw new Error('An action creates its maintained state from that action.')
   const carriedIds = new Set(maintenance.carried.map((effect) => effect.id))
   const removedIdentity = (effect: ActiveRuleEffectRecord) => ({
     activeEffectId: effect.id,
@@ -280,8 +283,6 @@ export function buildEncounterMaintenanceTransition(input: {
           version: prior.version,
           maintenanceDefinitionId: prior.maintenanceDefinitionId,
           descriptorChecksum: prior.descriptorChecksum,
-          sourceActionId: prior.descriptor.sourceActionId,
-          sourceOccurrenceId: prior.descriptor.sourceOccurrenceId,
           sourceActorId: prior.ownerActorId
         }
       : null,
@@ -298,8 +299,8 @@ export function buildEncounterMaintenanceTransition(input: {
       maintenanceDefinitionId: state.maintenanceDefinitionId,
       descriptorChecksum: state.descriptorChecksum,
       definitionChecksum: state.descriptor.definitionChecksum,
-      sourceActionId: state.descriptor.sourceActionId,
-      sourceOccurrenceId: state.descriptor.sourceOccurrenceId,
+      sourceActionId: createdProvenance.sourceActionId,
+      sourceOccurrenceId: createdProvenance.sourceOccurrenceId,
       sourceActorId: state.ownerActorId
     },
     characterOwnerTransitions: maintenance.characterVersions.map((entry) => ({

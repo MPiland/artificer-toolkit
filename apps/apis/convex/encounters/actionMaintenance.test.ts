@@ -445,7 +445,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
     maintenanceDefinitionId: base.maintenanceDefinitionId
   })
   expect(descriptorOf(afterCreated.maintainedStates[0]!)).toMatchObject({
-    sourceActionId: first.actionId,
+    provenance: { kind: 'ACTION', sourceActionId: first.actionId },
     sourceActorId: base.actor.id
   })
   await expect(executeInRoom(base.owner.caller, { command: first })).resolves.toEqual(created)
@@ -556,7 +556,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
     )
   ).toEqual([replacementDependent])
   expect(descriptorOf(afterReplacement.maintainedStates[0]!)).toMatchObject({
-    sourceActionId: replacement.actionId
+    provenance: { kind: 'ACTION', sourceActionId: replacement.actionId }
   })
 
   await closeRoom(base.campaign.id)
@@ -658,7 +658,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   )
   expect(before.maintainedStates).toEqual([])
   expect(descriptorOf(firstComplete.maintainedStates[0]!)).toMatchObject({
-    sourceActionId: root.actionId
+    provenance: { kind: 'ACTION', sourceActionId: root.actionId }
   })
   // The room journal replays each command's own receipt, shown over the current Run.
   await expect(executeInRoom(base.owner.caller, { command: root })).resolves.toEqual({
@@ -745,7 +745,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(sameTargetComplete.campaignCharacterState).toEqual(beforeDmState)
   expect(sameTargetComplete.maintainedStates[0]?.id).not.toBe(firstComplete.maintainedStates[0]?.id)
   expect(descriptorOf(sameTargetComplete.maintainedStates[0]!)).toMatchObject({
-    sourceActionId: sameTargetRoot.actionId
+    provenance: { kind: 'ACTION', sourceActionId: sameTargetRoot.actionId }
   })
   // The root was issued before the room was released (D85/D88), so its replay answers with the
   // occurrence's current state.
@@ -824,7 +824,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     detachedComplete.maintainedStates[0]?.id
   )
   expect(descriptorOf(detachedComplete.maintainedStates[0]!)).toMatchObject({
-    sourceActionId: detachedRoot.actionId
+    provenance: { kind: 'ACTION', sourceActionId: detachedRoot.actionId }
   })
   await expect(executeInRoom(base.owner.caller, { command: detachedRoot })).resolves.toEqual({
     ...detachedIssued,

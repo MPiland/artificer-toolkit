@@ -30,7 +30,13 @@ import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
-import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
+import {
+  SRD_CONCENTRATION_DEFINITIONS,
+  SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+} from '@artificer-toolkit/source-data/srd/concentration.js'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
@@ -51,6 +57,8 @@ import {
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks,
   planIdleTurnCheck,
+  planReinstatedConcentrations,
+  planResumedCarriedEffects,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
@@ -515,6 +523,34 @@ describe('planEncounterGrantTicks', () => {
     })
     const actor = characterActor({ id: TARGET_ID, characterId: CHARACTER_ID })
     expect(plan('END_OF_TURN', TARGET_ID, [{ actor, effects: [foreign] }])).toEqual([])
+  })
+
+  it('counts a source-anchored grant carried in from an earlier Run on its holder’s turns (D151)', () => {
+    const stored = storedGrant({
+      lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
+      currentActorId: null,
+      holderId: CHARACTER_ID,
+      lifetimeScope: 'OWNER'
+    })
+    const carried = prepareActiveRuleEffectRecord({
+      id: testUuid(0xc338),
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      definition: {
+        ...stored.definition,
+        origin: { ...stored.definition.origin, sourceAggregateId: testUuid(0xc3fd) }
+      },
+      lifecycle: { schemaVersion: 1, remainingTicks: 5 },
+      currentEffects: [],
+      occurredAt: TIMESTAMP
+    })
+    const holders = [
+      { actor: characterActor({ id: TARGET_ID, characterId: CHARACTER_ID }), effects: [carried] },
+      { actor: holder(SOURCE_ID).actor, effects: [] }
+    ]
+    expect(plan('START_OF_TURN', TARGET_ID, holders)).toMatchObject([
+      { kind: 'UPDATE', effect: { id: carried.id }, remainingTicks: 4 }
+    ])
+    expect(plan('START_OF_TURN', SOURCE_ID, holders)).toEqual([])
   })
 
   it('orders ticks by creation and skips effects the kernel owns', () => {
@@ -1114,6 +1150,100 @@ describe('planCarriedOverEffects', () => {
   })
 })
 
+describe('planResumedCarriedEffects (SPELLS-5.13, D151)', () => {
+  const carried = (
+    id: number,
+    lifecycle: Omit<ActiveRuleEffectRecord['lifecycle'], 'schemaVersion' | 'remainingTicks'>,
+    rounds = 600
+  ) => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks: 1
+    })
+    const { expiration } = effect.definition.recurrence
+    if (expiration.kind !== 'TICKS') throw new Error('Expected a timed grant.')
+    return {
+      ...effect,
+      definition: {
+        ...effect.definition,
+        recurrence: {
+          ...effect.definition.recurrence,
+          expiration: { ...expiration, initialRemaining: rounds }
+        }
+      },
+      lifecycle: { schemaVersion: 1 as const, remainingTicks: null, ...lifecycle }
+    }
+  }
+
+  it('turns the minutes left before its expiry back into rounds, 10 a minute', () => {
+    const effect = carried(0xc390, { expiresAtCampaignMinute: 2003 })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2001 })).toEqual([
+      { kind: 'UPDATE', effect, lifecycle: { schemaVersion: 1, remainingTicks: 20 } }
+    ])
+  })
+
+  it('never resumes more rounds than the effect first had', () => {
+    const effect = carried(0xc391, { expiresAtCampaignMinute: 2001 }, 4)
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2000 })).toEqual([
+      { kind: 'UPDATE', effect, lifecycle: { schemaVersion: 1, remainingTicks: 4 } }
+    ])
+  })
+
+  it('keeps every other lifecycle field, such as the Concentration caster', () => {
+    const effect = carried(0xc392, {
+      expiresAtCampaignMinute: 2001,
+      concentrationCasterCharacterId: CHARACTER_ID
+    })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2000 })).toEqual([
+      {
+        kind: 'UPDATE',
+        effect,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: 10,
+          concentrationCasterCharacterId: CHARACTER_ID
+        }
+      }
+    ])
+  })
+
+  it.each([2001, 2005])('ends an effect whose expiry the clock has reached: minute %i', (now) => {
+    const effect = carried(0xc393, { expiresAtCampaignMinute: 2001 })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: now })).toEqual([
+      { kind: 'EXPIRE', effect }
+    ])
+  })
+
+  it('leaves an effect carried without a clock, and resumes nothing without one', () => {
+    const untimed = carried(0xc394, { expiresAtCampaignMinute: null })
+    const timed = carried(0xc395, { expiresAtCampaignMinute: 2001 })
+    expect(planResumedCarriedEffects({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+    expect(planResumedCarriedEffects({ effects: [timed], clockMinute: null })).toEqual([])
+  })
+
+  it('leaves an effect that was never carried', () => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc396,
+      holderId: TARGET_ID,
+      remainingTicks: 4
+    })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2000 })).toEqual([])
+  })
+
+  it('round-trips the effect the carry-over planner put on the clock', () => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc397,
+      holderId: TARGET_ID,
+      remainingTicks: 25
+    })
+    const [{ lifecycle }] = planCarriedOverEffects({ effects: [effect], clockMinute: 2000 })
+    expect(
+      planResumedCarriedEffects({ effects: [{ ...effect, lifecycle }], clockMinute: 2001 })
+    ).toMatchObject([{ kind: 'UPDATE', lifecycle: { schemaVersion: 1, remainingTicks: 20 } }])
+  })
+})
+
 describe('a timed condition effect on a Character outlasting its Run (SPELLS-5.14)', () => {
   const PARALYZED_ID = conditionTypeId('PARALYZED')
 
@@ -1223,6 +1353,105 @@ describe('planConcentrationCarriedGrantEnds', () => {
     expect(
       planConcentrationCarriedGrantEnds({ casterCharacterId: CHARACTER_ID, effects: [unstamped] })
     ).toEqual([])
+  })
+})
+
+describe('planReinstatedConcentrations (SPELLS-5.12, D151)', () => {
+  const CASTER_ACTOR_ID = testUuid(0xc3a0)
+  const CASTER_CHARACTER_ID = testUuid(0xc3a1)
+  const [, concentration] = SRD_CONCENTRATION_DEFINITIONS
+  const definition = reusableDefinitionCurrentDtoSchema.parse({
+    ...concentration,
+    gameSystemId: SRD_SYSTEM_ID,
+    contentSourceId: testUuid(0xc3a2),
+    contractVersion: 1,
+    version: 1,
+    publishedAt: TIMESTAMP,
+    publishedBy: testUuid(0xc3a3)
+  })
+  const actors = [
+    characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_CHARACTER_ID }),
+    creatureActor({ id: SOURCE_ID, snapshot: {} })
+  ]
+  const stamped = (
+    id: number,
+    caster: string | null,
+    overrides: Partial<Pick<ActiveRuleEffectRecord, 'owner' | 'maintainedEffectStateId'>> = {}
+  ): ActiveRuleEffectRecord => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks: 4
+    })
+    return {
+      ...effect,
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      lifecycle: { ...effect.lifecycle, concentrationCasterCharacterId: caster },
+      ...overrides
+    }
+  }
+  const plan = (
+    effects: ActiveRuleEffectRecord[],
+    readDefinition: () => Promise<typeof definition | null> = async () => definition
+  ) =>
+    planReinstatedConcentrations({ gameSystemId: SRD_SYSTEM_ID, actors, effects, readDefinition })
+
+  it('gives a caster in the Run one System Concentration for all the grants stamped with them', async () => {
+    const first = stamped(0xc3a4, CASTER_CHARACTER_ID)
+    const second = stamped(0xc3a5, CASTER_CHARACTER_ID, {
+      owner: { kind: 'CHARACTER', characterId: CASTER_CHARACTER_ID }
+    })
+    await expect(plan([first, second])).resolves.toEqual([
+      {
+        casterActorId: CASTER_ACTOR_ID,
+        effects: [first, second],
+        descriptor: {
+          schemaVersion: 2,
+          maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+          definitionChecksum: concentration.checksum,
+          provenance: { kind: 'CARRIED', casterCharacterId: CASTER_CHARACTER_ID },
+          sourceActorId: CASTER_ACTOR_ID,
+          replacementPolicy: 'REPLACE_SAME_DEFINITION',
+          emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+        }
+      }
+    ])
+    const [{ descriptor }] = await plan([first])
+    expect(encounterMaintainedEffectDescriptorDtoSchema.parse(descriptor)).toEqual(descriptor)
+  })
+
+  it('reinstates nothing, and reads no definition, for a caster outside the Run', async () => {
+    let reads = 0
+    const readDefinition = async () => {
+      reads += 1
+      return definition
+    }
+    await expect(plan([stamped(0xc3a6, testUuid(0xc3af))], readDefinition)).resolves.toEqual([])
+    expect(reads).toBe(0)
+  })
+
+  it('skips unstamped, already linked and Encounter-actor effects', async () => {
+    const unstamped = stamped(0xc3a7, null)
+    const linked = stamped(0xc3a8, CASTER_CHARACTER_ID, {
+      maintainedEffectStateId: testUuid(0xc3ae)
+    })
+    const onActor = stamped(0xc3a9, CASTER_CHARACTER_ID, {
+      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: TARGET_ID }
+    })
+    await expect(plan([unstamped, linked, onActor])).resolves.toEqual([])
+  })
+
+  it('refuses a missing definition, or one from another System or family', async () => {
+    const effects = [stamped(0xc3aa, CASTER_CHARACTER_ID)]
+    await expect(plan(effects, async () => null)).rejects.toThrow(
+      'The System Concentration definition is unavailable.'
+    )
+    await expect(
+      plan(effects, async () => ({ ...definition, gameSystemId: testUuid(0xc3ab) }))
+    ).rejects.toThrow('The System Concentration definition is unavailable.')
+    await expect(
+      plan(effects, async () => ({ ...definition, definitionFamilyKey: 'rules-runtime-graph' }))
+    ).rejects.toThrow('The System Concentration definition is unavailable.')
   })
 })
 
