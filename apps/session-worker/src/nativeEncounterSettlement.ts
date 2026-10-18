@@ -144,6 +144,7 @@ export function planNativeLiveEncounterSettlement(input: {
   }
   const stateEffect = create(effects.stateEffect)
   const recurringEffect = create(effects.recurringEffect, maintainedState?.id)
+  const riderEffect = create(effects.riderEffect, maintainedState?.id)
   // The effect of the reaction the target used lands on the target after the attack's own effects.
   const reactionEffect =
     input.reactionEffect && create(input.reactionEffect.plan, undefined, input.reactionEffect.id)
@@ -216,6 +217,7 @@ export function planNativeLiveEncounterSettlement(input: {
   const transitions = projectNativeActionEffectTransitions({
     state: stateEffect,
     recurring: recurringEffect,
+    rider: riderEffect,
     targetActorId: prepared.target.id
   })
   return {

@@ -167,7 +167,7 @@ export async function applyNativeReactionEffect(input: {
     activeEffectsByActorId: input.activeEffectsByActorId,
     trigger: { damageTypeIds: input.reaction.triggerDamageTypeIds }
   })
-  if (effects.stateEffect || !effects.recurringEffect || effects.maintenance)
+  if (effects.stateEffect || !effects.recurringEffect || effects.riderEffect || effects.maintenance)
     throw unsupportedReaction('A reaction must create exactly one effect on its reactor.')
   const reactorId = prepared.target.id
   const held = input.activeEffectsByActorId.get(reactorId) ?? []

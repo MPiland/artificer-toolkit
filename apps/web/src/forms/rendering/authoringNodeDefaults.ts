@@ -472,6 +472,15 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'END' }
     case 'followUpSaveAttempts':
       return { kind: 'ONCE' }
+    case 'followUpSaveFailureMarginRider':
+      return {
+        id: crypto.randomUUID(),
+        failedBy: 5,
+        outcomes: [],
+        lifecycle: { endOnTriggers: [] }
+      }
+    case 'followUpSaveFailureMarginRiderLifecycle':
+      return { endOnTriggers: [] }
     case 'followUpSaveRepeatRollInfluence':
       return {
         influence: 'ADVANTAGE',

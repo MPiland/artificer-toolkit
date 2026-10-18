@@ -148,9 +148,21 @@ export function prepareNativeActionEffectsPlan<
     relationship || grant || appliedCondition || appliedRecurringOutcome
       ? effects.recurringEffect
       : null
+  // A rider's effect exists exactly when the save failed by its margin and applied its conditions.
+  const riderEffect = execution.applications.some(
+    (application) =>
+      application.kind === 'CONDITION_APPLY' &&
+      application.targetActorId === prepared.target.id &&
+      plan?.marginRider?.conditionContributions.some(
+        ({ conditionId }) => application.conditionId === conditionId
+      )
+  )
+    ? effects.riderEffect
+    : null
   return {
     ...effects,
     recurringEffect,
+    riderEffect,
     maintenance: recurringEffect ? (plan?.maintenance ?? null) : null
   }
 }

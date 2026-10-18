@@ -33,6 +33,7 @@ import type {
 import {
   RULE_VALUE_KIND,
   addNumbersRuleOperation,
+  compareThresholdRuleOperation,
   type GameSystemRuleCapabilityContract,
   type ProposalRuleOperationContract,
   type PureRuleOperationContract,
@@ -918,7 +919,8 @@ function supportedRecurringPlan(
       },
       castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
       perceptionContributions: [],
-      maintenance
+      maintenance,
+      marginRider: null
     }
   }
   if (
@@ -947,7 +949,8 @@ function supportedRecurringPlan(
     initialRemaining: recurringAmount,
     adapterFacts: {},
     perceptionContributions: [],
-    maintenance
+    maintenance,
+    marginRider: null
   }
 }
 
@@ -1042,7 +1045,8 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     },
     adapterFacts: { 'dnd5e.relationship-authored-path': entry.pathCode },
     perceptionContributions: [],
-    maintenance: null
+    maintenance: null,
+    marginRider: null
   }
 }
 
@@ -1583,7 +1587,8 @@ function repeatingImmediateFollowUpSavePlan(
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, saveEntry)
+    maintenance: maintenancePlan(action, saveEntry),
+    marginRider: null
   }
 }
 
@@ -1639,11 +1644,14 @@ function timedImmediateConditionPlan(
   const failure = resolved.saveEntry.outcome.onFailure
   const condition = failure.kind === 'OUTCOMES' ? failure.outcomes[0] : undefined
   const initialRemaining = conditionDurationTurns(duration)
+  const rider = resolved.saveEntry.outcome.failureMarginRider
+  const knownConditionIds = action.conditionDefinitionIds ?? []
   if (
     condition?.effectKind !== 'CONDITION' ||
     initialRemaining === null ||
-    !(action.conditionDefinitionIds ?? []).includes(condition.conditionId) ||
-    !UUID.test(resolved.saveEntry.resultBlockId)
+    !knownConditionIds.includes(condition.conditionId) ||
+    !UUID.test(resolved.saveEntry.resultBlockId) ||
+    rider?.outcomes.some(({ conditionId }) => !knownConditionIds.includes(conditionId))
   )
     return null
   return {
@@ -1662,7 +1670,20 @@ function timedImmediateConditionPlan(
     ],
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, resolved.saveEntry)
+    maintenance: maintenancePlan(action, resolved.saveEntry),
+    marginRider: rider
+      ? {
+          compiledEntryId: rider.id,
+          frozenGraphNodeId: 'rider-condition-duration',
+          failedBy: rider.failedBy,
+          conditionContributions: rider.outcomes.map((outcome) => ({
+            conditionId: outcome.conditionId,
+            recordsSource: outcome.recordsSource === true,
+            fleesSource: outcome.fleesSource === true
+          })),
+          lifecycle: { endOnTriggers: canonicalEndTriggers(rider.lifecycle.endOnTriggers ?? []) }
+        }
+      : null
   }
 }
 
@@ -1757,7 +1778,8 @@ function timedConditionPlan(
     },
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
-    maintenance
+    maintenance,
+    marginRider: null
   }
 }
 
@@ -1955,7 +1977,8 @@ function modifierGrantEntryPlan(input: {
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, entry)
+    maintenance: maintenancePlan(action, entry),
+    marginRider: null
   }
 }
 
@@ -1992,7 +2015,8 @@ function actorLinkPlan(
     },
     adapterFacts: {},
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, entry)
+    maintenance: maintenancePlan(action, entry),
+    marginRider: null
   }
 }
 
@@ -2061,7 +2085,8 @@ function creatureFormPlan(
     },
     adapterFacts: savePath ? { 'dnd5e.form-authored-path': 'ON_SAVE_FAIL' } : {},
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, entry)
+    maintenance: maintenancePlan(action, entry),
+    marginRider: null
   }
 }
 
@@ -2100,7 +2125,8 @@ function concealmentPlan(
     },
     adapterFacts: {},
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, entry)
+    maintenance: maintenancePlan(action, entry),
+    marginRider: null
   }
 }
 
@@ -2123,13 +2149,18 @@ function durationPublishedGraph(input: {
     id: input.action.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: input.plan.frozenGraphNodeId,
-        operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
-        inputs: {}
-      }
-    ],
+    nodes: [input.plan.frozenGraphNodeId, input.plan.marginRider?.frozenGraphNodeId].flatMap(
+      (id) =>
+        id
+          ? [
+              {
+                id,
+                operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
+                inputs: {}
+              }
+            ]
+          : []
+    ),
     outputs: conditionContributions?.length
       ? Object.fromEntries(
           conditionContributions.map(({ conditionId }, index) => [
@@ -2150,7 +2181,15 @@ function durationPublishedGraph(input: {
             ? { formOutcomeId: { kind: 'LITERAL', value: creatureFormContribution.formOutcomeId } }
             : {},
     sourceEntryBindings: [
-      { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId }
+      { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId },
+      ...(input.plan.marginRider
+        ? [
+            {
+              sourceEntryId: input.plan.marginRider.compiledEntryId,
+              nodeId: input.plan.marginRider.frozenGraphNodeId
+            }
+          ]
+        : [])
     ]
   }
   return serverPublishedRuleDefinitionDtoSchema.parse({
@@ -2338,7 +2377,8 @@ function zonePlacementPlan(
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
-    maintenance: null
+    maintenance: null,
+    marginRider: null
   }
   const saveGraph = compileTestDefinition(
     action,
@@ -2428,7 +2468,8 @@ function unsavedZonePlacementPlan(
     adapterFacts: {},
     castSaveDcFactKey: null,
     perceptionContributions: [],
-    maintenance: null
+    maintenance: null,
+    marginRider: null
   }
   const definition = diceGraphDefinition({
     action,
@@ -2579,7 +2620,8 @@ function repeatingDirectFollowUpSavePlan(
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
-    maintenance: maintenancePlan(action, leadEntry)
+    maintenance: maintenancePlan(action, leadEntry),
+    marginRider: null
   }
 }
 
@@ -2716,6 +2758,21 @@ function exactImmediateFollowUpSaveShape(
   const commonBoundedSave =
     primaryDiceCount !== null &&
     1 + primaryDiceCount * 2 + 1 <= MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
+  const conditionOnFailure =
+    succeeded.kind === 'END' &&
+    failed.outcomes.length === 1 &&
+    failure?.effectKind === 'CONDITION' &&
+    UUID.test(failure.id) &&
+    UUID.test(failure.conditionId) &&
+    commonBoundedSave
+  // A margin rider is planned only beside one failed-save condition; any other shape fails closed.
+  if (save.failureMarginRider)
+    return conditionOnFailure &&
+      save.attempts.repeatOnFailure !== true &&
+      !save.onDurationComplete &&
+      exactFailureMarginRider(save.failureMarginRider)
+      ? 'CONDITION_ON_FAILURE'
+      : null
   const repeatingCondition =
     failed.outcomes.length === 1 && failed.outcomes[0]?.effectKind === 'CONDITION'
       ? failed.outcomes[0]
@@ -2774,16 +2831,7 @@ function exactImmediateFollowUpSaveShape(
   ) {
     return 'DAMAGE_ON_FAILURE'
   }
-  if (
-    succeeded.kind === 'END' &&
-    failed.outcomes.length === 1 &&
-    failure?.effectKind === 'CONDITION' &&
-    UUID.test(failure.id) &&
-    UUID.test(failure.conditionId) &&
-    commonBoundedSave
-  ) {
-    return 'CONDITION_ON_FAILURE'
-  }
+  if (conditionOnFailure) return 'CONDITION_ON_FAILURE'
   if (
     succeeded.kind === 'END' &&
     failed.outcomes.length === 1 &&
@@ -2854,6 +2902,33 @@ function exactImmediateFollowUpSaveShape(
     return 'FULL_OR_HALF_DAMAGE'
   }
   return null
+}
+
+const NESTED_SAVE_MARGIN_NODE_ID = 'nested-save-margin'
+const nestedSaveRiderConditionNodeId = (index: number) =>
+  index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
+
+/**
+ * A margin rider the nested save can gate: a bounded margin and identified conditions, which share
+ * the failed-save path's immunity facts after the failure's own condition.
+ */
+function exactFailureMarginRider(
+  rider: NonNullable<ImmediateSaveEntry['outcome']['failureMarginRider']>
+): boolean {
+  return (
+    UUID.test(rider.id) &&
+    Number.isSafeInteger(rider.failedBy) &&
+    rider.failedBy >= 1 &&
+    rider.failedBy <= 30 &&
+    rider.outcomes.length > 0 &&
+    rider.outcomes.length < MAX_CONDITIONS_PER_PATH &&
+    rider.outcomes.every(
+      (outcome) =>
+        outcome.effectKind === 'CONDITION' &&
+        UUID.test(outcome.id) &&
+        UUID.test(outcome.conditionId)
+    )
+  )
 }
 
 /**
@@ -4214,11 +4289,13 @@ export const dnd5eMovementInterruptionAuthorizationOperation: PureRuleOperationC
 function testProposalOperation(
   key: string,
   payload: Readonly<Record<string, typeof RULE_VALUE_KIND.NUMBER | typeof RULE_VALUE_KIND.TEXT>>,
-  conditionProtection = false
+  conditionProtection = false,
+  /** Version 2 also reads whether the save cleared a failure margin, and is refused when it did. */
+  marginGated = false
 ): ProposalRuleOperationContract {
   return {
     key,
-    contractVersion: 1,
+    contractVersion: marginGated ? 2 : 1,
     executionKind: 'PROPOSAL',
     inputs: {
       targetActorId: RULE_VALUE_KIND.TEXT,
@@ -4226,6 +4303,7 @@ function testProposalOperation(
       authoredPath: RULE_VALUE_KIND.TEXT,
       targetStateChecksum: RULE_VALUE_KIND.TEXT,
       ...(conditionProtection ? { conditionImmune: RULE_VALUE_KIND.BOOLEAN } : {}),
+      ...(marginGated ? { marginCleared: RULE_VALUE_KIND.BOOLEAN } : {}),
       ...payload
     },
     outputs: {
@@ -4263,6 +4341,9 @@ function testProposalOperation(
       const conditionImmune = inputs.conditionImmune
       if (conditionProtection && typeof conditionImmune !== 'boolean')
         throw new Error('D&D test condition proposal requires normalized target protections.')
+      const marginCleared = inputs.marginCleared
+      if (marginGated && typeof marginCleared !== 'boolean')
+        throw new Error('D&D margin condition proposal requires the evaluated failure margin.')
       return {
         targetActorId,
         resolvedPath,
@@ -4270,7 +4351,8 @@ function testProposalOperation(
         authorized:
           (resolvedPath === authoredPath ||
             (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) &&
-          (!conditionProtection || !conditionImmune),
+          (!conditionProtection || !conditionImmune) &&
+          (!marginGated || !marginCleared),
         applicationCandidate: true,
         targetStateChecksum,
         ...Object.fromEntries(Object.keys(payload).map((port) => [port, inputs[port]!]))
@@ -4294,6 +4376,13 @@ export const dnd5eTestDamageProposalOperation = testProposalOperation(
 export const dnd5eTestConditionProposalOperation = testProposalOperation(
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   { conditionId: RULE_VALUE_KIND.TEXT },
+  true
+)
+/** A failure-margin rider's condition: applied only when the save fails by the rider's margin. */
+export const dnd5eTestMarginConditionProposalOperation = testProposalOperation(
+  DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
+  { conditionId: RULE_VALUE_KIND.TEXT },
+  true,
   true
 )
 export const dnd5eTestScalarReductionProposalOperation = testProposalOperation(
@@ -4448,10 +4537,11 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     .filter((key, index, keys) => keys.indexOf(key) === index)
     .map((key) => ({ key, contractVersion: 1 }))
     .concat(
-      [dnd5eAttackTestOperation, dnd5eSaveTestOperation].map(({ key, contractVersion }) => ({
-        key,
-        contractVersion
-      }))
+      [
+        dnd5eAttackTestOperation,
+        dnd5eSaveTestOperation,
+        dnd5eTestMarginConditionProposalOperation
+      ].map(({ key, contractVersion }) => ({ key, contractVersion }))
     )
 }
 
@@ -5254,6 +5344,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
     typeof failure.dice === 'string'
       ? failure
       : null
+  const rider = shape === 'CONDITION_ON_FAILURE' ? (save.failureMarginRider ?? null) : null
   const failureCondition =
     shape === 'REPEATING_CONDITION' || shape === 'CONDITION_ON_FAILURE'
       ? save.onFailure.outcomes.find(
@@ -5517,6 +5608,50 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
               }
             }
           ]
+        : []),
+      ...(rider
+        ? [
+            {
+              id: NESTED_SAVE_MARGIN_NODE_ID,
+              operation: { key: compareThresholdRuleOperation.key, contractVersion: 1 },
+              inputs: {
+                value: { kind: 'NODE_OUTPUT' as const, nodeId: 'nested-save-test', port: 'total' },
+                // A total at or above this does not fail by the rider's margin.
+                threshold: { kind: 'LITERAL' as const, value: dc - rider.failedBy + 1 }
+              }
+            },
+            ...rider.outcomes.map((outcome, index) => ({
+              id: nestedSaveRiderConditionNodeId(index),
+              operation: {
+                key: DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
+                contractVersion: dnd5eTestMarginConditionProposalOperation.contractVersion
+              },
+              inputs: {
+                targetActorId: { kind: 'FACT' as const, factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+                resolvedPath: {
+                  kind: 'NODE_OUTPUT' as const,
+                  nodeId: 'nested-save-test',
+                  port: 'resultPath'
+                },
+                authoredPath: { kind: 'LITERAL' as const, value: 'ON_SAVE_FAIL' },
+                conditionId: { kind: 'LITERAL' as const, value: outcome.conditionId },
+                // The failure's own condition holds the path's first immunity fact.
+                conditionImmune: {
+                  kind: 'FACT' as const,
+                  factKey: conditionImmuneFactKey('ON_SAVE_FAIL', index + 2)!
+                },
+                marginCleared: {
+                  kind: 'NODE_OUTPUT' as const,
+                  nodeId: NESTED_SAVE_MARGIN_NODE_ID,
+                  port: 'passed'
+                },
+                targetStateChecksum: {
+                  kind: 'FACT' as const,
+                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
+                }
+              }
+            }))
+          ]
         : [])
     ],
     outputs: {
@@ -5572,7 +5707,11 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
               nodeId: 'nested-save-condition'
             }
           ]
-        : [])
+        : []),
+      ...(rider?.outcomes.map((outcome, index) => ({
+        sourceEntryId: outcome.id,
+        nodeId: nestedSaveRiderConditionNodeId(index)
+      })) ?? [])
     ]
   }
 }
@@ -7260,6 +7399,11 @@ function interpretDirect(
     let nestedPaths: { authoredPath: string; resolvedPath: string } | null = null
     const proposalNode = graph.nodes.find((node) => node.id === proposal.nodeId)
     const nestedCondition = proposal.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
+    // A failure-margin rider's condition, gated by the margin its save total is compared against.
+    const riderCondition =
+      nestedCondition &&
+      proposal.operation.contractVersion ===
+        dnd5eTestMarginConditionProposalOperation.contractVersion
     if (nestedCondition || proposal.operation.key === DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY) {
       const saveNode = graph.nodes.find((node) => node.id === 'nested-save-test')
       const save = input.execution.evidence.trace.find((entry) => entry.nodeId === saveNode?.id)
@@ -7267,9 +7411,32 @@ function interpretDirect(
       const path = proposalNode?.inputs.resolvedPath
       const protection = proposalNode?.inputs.conditionImmune
       const conditionFacts = conditionImmunityFacts(graph, input.conditionImmunityIds)
+      const marginNode = riderCondition
+        ? graph.nodes.find((node) => node.id === NESTED_SAVE_MARGIN_NODE_ID)
+        : undefined
+      const margin = input.execution.evidence.trace.find((entry) => entry.nodeId === marginNode?.id)
+      const marginCleared = proposalNode?.inputs.marginCleared
+      const marginTotal = marginNode?.inputs.value
+      const expectedNodeIds = riderCondition
+        ? Array.from({ length: MAX_CONDITIONS_PER_PATH - 1 }, (_, index) =>
+            nestedSaveRiderConditionNodeId(index)
+          )
+        : [nestedCondition ? 'nested-save-condition' : 'nested-save-proposal']
       if (
         !proposalNode ||
-        proposalNode.id !== (nestedCondition ? 'nested-save-condition' : 'nested-save-proposal') ||
+        !expectedNodeIds.includes(proposalNode.id) ||
+        (riderCondition &&
+          (marginNode?.operation.key !== compareThresholdRuleOperation.key ||
+            marginNode.operation.contractVersion !==
+              compareThresholdRuleOperation.contractVersion ||
+            !margin ||
+            marginTotal?.kind !== 'NODE_OUTPUT' ||
+            marginTotal.nodeId !== 'nested-save-test' ||
+            marginTotal.port !== 'total' ||
+            marginNode.inputs.threshold?.kind !== 'LITERAL' ||
+            marginCleared?.kind !== 'NODE_OUTPUT' ||
+            marginCleared.nodeId !== marginNode.id ||
+            marginCleared.port !== 'passed')) ||
         !saveNode ||
         saveNode.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
         !save ||
@@ -7293,14 +7460,26 @@ function interpretDirect(
         throw new Dnd5eEffectActionCompilerError(
           'The committed D&D nested condition binding is invalid.'
         )
-      for (const [node, trace, operation] of [
+      const verified: readonly (readonly [
+        typeof saveNode,
+        typeof save,
+        { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
+      ])[] = [
         [saveNode, save, dnd5eSaveTestOperation],
+        ...(marginNode && margin
+          ? [[marginNode, margin, compareThresholdRuleOperation] as const]
+          : []),
         [
           proposalNode,
           proposal,
-          nestedCondition ? dnd5eTestConditionProposalOperation : dnd5eTestDamageProposalOperation
+          riderCondition
+            ? dnd5eTestMarginConditionProposalOperation
+            : nestedCondition
+              ? dnd5eTestConditionProposalOperation
+              : dnd5eTestDamageProposalOperation
         ]
-      ] as const) {
+      ]
+      for (const [node, trace, operation] of verified) {
         const expectedInputs: Record<string, RuleValue> = {}
         for (const [port, binding] of Object.entries(node.inputs)) {
           const value =

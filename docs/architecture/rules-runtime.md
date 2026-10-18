@@ -836,6 +836,16 @@ sources of the held, sourced, fleeing owners. An Action other than Dash taken by
 read by `readTurnMovementView`) drives the tabletop's "Dash away from the source" prompt. Shown and
 softly enforced, never blocked. SRD Fear authors it.
 
+**Failure-margin rider (SPELLS-27.T11, D149).** An immediate `FOLLOW_UP_SAVE` whose failed outcomes are
+timed conditions may author `failureMarginRider { id, failedBy, outcomes, lifecycle { endOnTriggers } }`:
+one more condition applied when the save fails by `failedBy` or more. The compiler adds a
+`nested-save-margin` threshold node (`dc - failedBy + 1`) and a margin-gated condition proposal, and the
+plan carries `marginRider` (required, nullable) with its own `rider-condition-duration` node. The
+encounter planner then creates a second active effect, the rider's, with the parent's duration and the
+rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
+parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
+the parent: ending the parent early leaves the rider for the GM to end. Only a follow-up save takes a rider. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author it.
+
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
 `PERCEPTION` as `repeatRollInfluence`; the schema refuses the two together). The compiler pins it as adapter

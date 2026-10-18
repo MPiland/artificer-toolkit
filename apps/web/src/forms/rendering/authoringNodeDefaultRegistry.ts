@@ -62,6 +62,8 @@ type AuthoringDefaultKind =
   | 'featGrantProgression'
   | 'followUpSaveAttempts'
   | 'followUpSaveBranch'
+  | 'followUpSaveFailureMarginRider'
+  | 'followUpSaveFailureMarginRiderLifecycle'
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
@@ -203,6 +205,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   featGrantProgression: ['featGrantProgression'],
   followUpSaveAttempts: ['followUpSaveAttempts'],
   followUpSaveBranch: ['followUpSaveBranch'],
+  followUpSaveFailureMarginRider: ['followUpSaveFailureMarginRider'],
+  followUpSaveFailureMarginRiderLifecycle: ['followUpSaveFailureMarginRiderLifecycle'],
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
