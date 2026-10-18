@@ -19,6 +19,7 @@ import { tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import {
   actionPreviewOverlays,
   aimedAreaShape,
+  areaBandOverlay,
   areaOverlay,
   buildVttFogMask,
   canPreserveSceneTokenDrag,
@@ -27,6 +28,7 @@ import {
   darknessZoneStyle,
   dashedPolygonSegments,
   directedAreaAim,
+  drawnAreaAim,
   describeDarknessZone,
   describeSceneLighting,
   formatSceneMeasurement,
@@ -1222,3 +1224,94 @@ function movementScene(): CampaignSceneStateDto {
     version: 1
   })
 }
+
+describe('VTT drawn wall and ring areas (SPELLS-4.T1b, D154)', () => {
+  const wall = { kind: 'WALL', maximum: 1200, thickness: 20 } as const
+  const ring = { kind: 'RING', maximum: 200, thickness: 20 } as const
+
+  it('pulls the far point of a drawn area in to its largest size', () => {
+    const pressedAt = { x: 100, y: 100 }
+    expect(drawnAreaAim({ pointer: { x: 400, y: 500 }, pressedAt, size: wall })).toEqual({
+      origin: pressedAt,
+      toward: { x: 400, y: 500 }
+    })
+    expect(drawnAreaAim({ pointer: { x: 100, y: 1100 }, pressedAt, size: ring })).toEqual({
+      origin: pressedAt,
+      toward: { x: 100, y: 300 }
+    })
+  })
+
+  it('draws nothing for a wall of no length or a ring no wider than its wall', () => {
+    const pressedAt = { x: 100, y: 100 }
+    expect(drawnAreaAim({ pointer: pressedAt, pressedAt, size: wall })).toBeNull()
+    expect(drawnAreaAim({ pointer: { x: 120, y: 100 }, pressedAt, size: ring })).toBeNull()
+  })
+
+  it('places a wall to the aim and a ring out to it, and none before a direction', () => {
+    const origin = { x: 0, y: 0 }
+    expect(aimedAreaShape(wall, { origin, toward: null })).toBeNull()
+    expect(aimedAreaShape(wall, { origin, toward: { x: 300, y: 0 } })).toEqual({
+      kind: 'WALL',
+      to: { x: 300, y: 0 },
+      thickness: 20
+    })
+    expect(aimedAreaShape(ring, { origin, toward: { x: 0, y: 150 } })).toEqual({
+      kind: 'RING',
+      outerRadius: 150,
+      innerRadius: 130
+    })
+  })
+
+  it('draws a wall as its rectangle and a ring by its outer edge', () => {
+    const origin = { x: 0, y: 0 }
+    expect(areaOverlay(wall, { origin, toward: { x: 300, y: 0 } }, null)).toMatchObject({
+      kind: 'POLYGON',
+      purpose: 'TARGET',
+      points: [
+        { x: 0, y: 10 },
+        { x: 300, y: 10 },
+        { x: 300, y: -10 },
+        { x: 0, y: -10 }
+      ]
+    })
+    expect(areaOverlay(ring, { origin, toward: { x: 0, y: 150 } }, null)).toMatchObject({
+      kind: 'CIRCLE',
+      center: origin,
+      radius: 150
+    })
+  })
+  it('previews the band on the picked side: beside a wall, or by a ring band edge away from its wall', () => {
+    const origin = { x: 0, y: 0 }
+    const toward = { x: 300, y: 0 }
+    expect(areaBandOverlay(wall, { origin, toward })).toBeNull()
+    expect(
+      areaBandOverlay({ ...wall, band: { distance: 100, side: 'RIGHT' } }, { origin, toward })
+    ).toMatchObject({
+      id: 'area-band',
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 110 },
+        { x: 300, y: 110 },
+        { x: 300, y: -10 },
+        { x: 0, y: -10 }
+      ]
+    })
+    const ringAim = { origin, toward: { x: 0, y: 150 } }
+    expect(
+      areaBandOverlay({ ...ring, band: { distance: 100, side: 'OUTSIDE' } }, ringAim)
+    ).toMatchObject({ kind: 'CIRCLE', center: origin, radius: 250 })
+    expect(
+      areaBandOverlay({ ...ring, band: { distance: 100, side: 'INSIDE' } }, ringAim)
+    ).toMatchObject({ kind: 'CIRCLE', center: origin, radius: 30 })
+    expect(
+      stageOverlays({
+        actionPreview: null,
+        aimingArea: false,
+        areaAim: { origin, toward },
+        areaSize: { ...wall, band: { distance: 100, side: 'LEFT' } },
+        drawerOpened: true,
+        scene: null
+      })?.map((overlay) => overlay.id)
+    ).toEqual(['area-origin', 'area-band'])
+  })
+})

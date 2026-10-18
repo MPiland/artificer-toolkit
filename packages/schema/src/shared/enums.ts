@@ -31,6 +31,17 @@ export const sizeCodeSchema = lazySchema(() =>
   ])
 )
 
+/** What an authored manifest blocks; a placed zone carries its rules for consumers such as cover (D154). */
+export const manifestBlockingRuleSchema = lazySchema(() =>
+  z.enum([
+    'NONMAGICAL_RANGED_ATTACKS',
+    'MAGICAL_RANGED_ATTACKS',
+    'SPELLS',
+    'THREE_QUARTERS_COVER',
+    'BLOCKS_SIGHT'
+  ])
+)
+
 export const creatureCategoryCodeSchema = lazySchema(() =>
   z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
 )

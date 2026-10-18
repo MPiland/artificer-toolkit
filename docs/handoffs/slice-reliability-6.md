@@ -131,6 +131,24 @@ CI branch `ci/reliability-6-t4`.
 - First CI run (39101740674) caught fixtures still on the retired shapes: the builder fixture and the `ADJUST_CURRENCY` contract fixture now name `kind: 'RULESET'`; `roomInputs` and `playSettingsOptions` insert published definitions with their publication metadata; `publication.test.ts` corrupts publication evidence by removing `publishedAt`, since import now writes complete metadata and setting `contractVersion` no longer corrupts it.
 - After the phase sync, the Worker room fixtures (`test/roomInputsFixture.ts`, `roomEncounterTurns.test.ts`) build a schema-v4 System with `abilities`.
 
+## T5: currency-identity cost labels, SRD price currencies, PBI journey (6.13)
+
+CI branch `ci/reliability-6-t5`.
+
+| AC   | Proof                                                                                                                                                                                                                                         | Status |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.13 | `packages/rules-runtime/src/__tests__/sheetItemCostLabel.test.ts` (an item's `costLabel` comes from its price currency's identity); `packages/source-data/src/srd/currencyPrices.test.ts` (sp, cp and gp prices name Silver, Copper and Gold) | coded  |
+
+Journey tests (real projection code, platform faked only):
+
+- `apps/apis/convex/campaigns/currencyLabels.test.ts`: a Campaign currency system reuses the gold id; holdings are adjusted into the party and transferred to the Character; the party list and the Character's inventory slice label each holding by its identity, and the Club's `costLabel` is its System currency.
+- `apps/web/src/domains/campaigns/components/CampaignCurrencyLabels.test.tsx`: the real Sheet projection of those holdings renders labelled in the Sheet inventory and in the Campaign inventory's Character view.
+
+- The item `costLabel` looked up `currencyLabels` by raw currency id after the map moved to identity keys, so every item lost its price label. It now uses the RULESET identity key.
+- `equipment/shared.ts` hard-coded the sp id as Electrum and the cp id as Silver, so every sp and cp price named the wrong denomination. The ids now come from `SRD_CURRENCIES` by code (orchestrator ruling: fix in T5, nothing else in the corpus). Changed fixture: `apps/session-worker/src/testing/characterPageFixture.ts` (the Club's retained rules JSON carries the corrected sp id and its recomputed checksum).
+- The web never renders item cost or `costLabel`; the Convex journey proves the label on the read contract.
+- The local browser proof was dropped by orchestrator ruling in favour of the CI-run journeys above; no browser runner code was added.
+
 ## Proposed ledger edits
 
 None yet.

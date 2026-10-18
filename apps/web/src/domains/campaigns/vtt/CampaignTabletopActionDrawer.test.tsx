@@ -18,8 +18,10 @@ import {
   type EncounterEscapeChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
+  authoredLengthInSceneCoordinates,
   directedAreaSizeInSceneCoordinates,
-  pointAreaInSceneCoordinates
+  pointAreaInSceneCoordinates,
+  wallAreaBoundsInSceneCoordinates
 } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { validated } from '../../../test/validatedFixture'
@@ -1096,6 +1098,167 @@ describe('CampaignTabletopActionDrawer area origin (D103)', () => {
     await chooseFireball(user)
     expect(screen.getByText(/no Scene/i)).toBeVisible()
     expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopActionDrawer wall or ring (SPELLS-4.T1b, D154)', () => {
+  const STRAIGHT_ID = '00000000-0000-4000-8000-0000000d1541'
+  const RING_ID = '00000000-0000-4000-8000-0000000d1542'
+  const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
+  const wallOfFire = validatedChoice({
+    ...actions[0]!,
+    id: 'spell-wall-of-fire:cast',
+    label: 'Wall of Fire',
+    sourceLabel: 'Spell',
+    rangeLabel: '120 ft',
+    attackBonus: undefined,
+    target: {
+      kind: 'ZONE_OPTIONS' as const,
+      options: [
+        {
+          id: STRAIGHT_ID,
+          label: 'Straight Wall',
+          target: { kind: 'WALL' as const, area: { maxLength: feet(60), thickness: feet(1) } }
+        },
+        {
+          id: RING_ID,
+          label: 'Ringed Wall',
+          target: { kind: 'RING' as const, area: { maxOuterRadius: feet(10), thickness: feet(1) } }
+        }
+      ]
+    }
+  })
+  const from = { x: 100, y: 100 }
+  const to = { x: 500, y: 100 }
+
+  async function chooseWall(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+  }
+
+  it('draws the picked straight wall between its two ends and sends them with the option', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaSizeChange = vi.fn()
+    const options = { choices: [wallOfFire], onAreaSizeChange }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseWall(user)
+    expect(screen.getByText('Wall')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Draw on map' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith({
+      kind: 'WALL',
+      ...wallAreaBoundsInSceneCoordinates(
+        { kind: 'WALL', maxLength: feet(60), thickness: feet(1) },
+        tabletopLiveScene.grid
+      )
+    })
+
+    view.rerender(drawerElement(onResolve, { ...options, areaAim: { origin: from, toward: to } }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: wallOfFire.id,
+        target: {
+          kind: 'WALL',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          from,
+          to,
+          choiceOptionId: STRAIGHT_ID
+        }
+      })
+    )
+  })
+
+  it('draws a ring around its center out to the aim once the ring is picked', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaSizeChange = vi.fn()
+    const options = { choices: [wallOfFire], onAreaSizeChange }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseWall(user)
+    await user.click(screen.getByRole('combobox', { name: 'Option' }))
+    await user.click(screen.getByRole('option', { name: 'Ringed Wall' }))
+    expect(screen.getByText('Ring')).toBeVisible()
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith({
+      kind: 'RING',
+      ...wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(1) },
+        tabletopLiveScene.grid
+      )
+    })
+
+    view.rerender(
+      drawerElement(onResolve, {
+        ...options,
+        areaAim: { origin: from, toward: { x: 100, y: 250 } }
+      })
+    )
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          kind: 'RING',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          center: from,
+          outerRadius: 150,
+          choiceOptionId: RING_ID
+        }
+      })
+    )
+  })
+
+  it('asks for the side its band reaches after aiming, previews it and sends the side (D154 amendment)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaSizeChange = vi.fn()
+    const banded = validatedChoice({
+      ...wallOfFire,
+      target: {
+        kind: 'WALL' as const,
+        area: { maxLength: feet(60), thickness: feet(1) },
+        sideBand: { distance: feet(10) }
+      }
+    })
+    const options = { choices: [banded], onAreaSizeChange }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseWall(user)
+    expect(screen.queryByRole('radio', { name: 'Left as drawn' })).not.toBeInTheDocument()
+    view.rerender(drawerElement(onResolve, { ...options, areaAim: { origin: from, toward: to } }))
+    expect(screen.getByText(/also reaches 10 feet on one side/)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+
+    await user.click(screen.getByRole('radio', { name: 'Right as drawn' }))
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith({
+      kind: 'WALL',
+      ...wallAreaBoundsInSceneCoordinates(
+        { kind: 'WALL', maxLength: feet(60), thickness: feet(1) },
+        tabletopLiveScene.grid
+      ),
+      band: {
+        distance: authoredLengthInSceneCoordinates(feet(10), tabletopLiveScene.grid),
+        side: 'RIGHT'
+      }
+    })
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          kind: 'WALL',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          from,
+          to,
+          side: 'RIGHT'
+        }
+      })
+    )
   })
 })
 

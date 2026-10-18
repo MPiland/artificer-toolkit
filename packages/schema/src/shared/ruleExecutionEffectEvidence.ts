@@ -21,6 +21,7 @@ import {
 } from './ruleExecutionPrimitives.js'
 import {
   spatialEffectCurrentnessPinDtoSchema,
+  spatialMeleeRetaliationCandidateDtoSchema,
   spatialPendingCandidateDtoSchema,
   spatialTurnCandidateDtoSchema
 } from './ruleExecutionSpatial.js'
@@ -355,6 +356,78 @@ export const spatialTurnExecutionDtoSchema = lazySchema(() =>
     })
     .check(z.superRefine(refineSpatialExecutionEvidence))
 )
+
+/** One execution of a zone against the attacker that hit its source with a melee attack (D153). */
+export const spatialMeleeRetaliationExecutionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      ordinal: z
+        .number()
+        .check(z.int())
+        .check(z.gte(0))
+        .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
+      candidate: spatialMeleeRetaliationCandidateDtoSchema,
+      ...spatialExecutionEvidenceFields()
+    })
+    .check(z.superRefine(refineSpatialExecutionEvidence))
+)
+
+/**
+ * The zones a melee hit set off against its attacker, recorded on the attack's receipt: the
+ * selection pin the commit re-derives from the locked Scene and each execution in order.
+ */
+export const meleeRetaliationEvidenceDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      selectionChecksum: checksumSchema,
+      executions: z
+        .array(spatialMeleeRetaliationExecutionDtoSchema)
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        const attackers = new Set(
+          value.executions.map(({ candidate }) => candidate.candidate.targetActorId)
+        )
+        if (
+          attackers.size !== 1 ||
+          value.executions.some((execution, index) => execution.ordinal !== index)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['executions'],
+            message: 'Melee retaliation executions catch one attacker in order.'
+          })
+      })
+    )
+)
+
+export type MeleeRetaliationEvidenceDto = z.infer<typeof meleeRetaliationEvidenceDtoSchema>
+
+/** An attack receipt's retaliation catches its attacker in zones its target holds. */
+export function validateMeleeRetaliation(
+  value: {
+    sourceActorId: string
+    targetActorId: string
+    meleeRetaliation?: MeleeRetaliationEvidenceDto | undefined
+  },
+  context: z.core.$RefinementCtx
+) {
+  if (
+    value.meleeRetaliation?.executions.some(
+      ({ candidate }) =>
+        candidate.candidate.targetActorId !== value.sourceActorId ||
+        candidate.candidate.sourceActorId !== value.targetActorId ||
+        value.sourceActorId === value.targetActorId
+    )
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['meleeRetaliation'],
+      message: 'Melee retaliation catches the attacker in zones its target holds.'
+    })
+}
 
 export const turnEffectExecutionDtoSchema = lazySchema(() =>
   z.strictObject({

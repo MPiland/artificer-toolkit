@@ -1,4 +1,7 @@
-import { prepareEncounterActionEffectPlans } from './encounterActionEffectPlans.js'
+import {
+  prepareEncounterActionEffectPlans,
+  prepareRecurringActiveEffect
+} from './encounterActionEffectPlans.js'
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
@@ -20,6 +23,57 @@ type CompleteExecution = Extract<
   Awaited<ReturnType<typeof advanceNativeActionGraphs>>,
   { kind: 'COMPLETE' }
 >
+
+/** The facts an effect plan reads from the creature that will hold the effect. */
+function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
+  return {
+    actorId: target.actor.id,
+    conditionIds: target.characterFacts
+      ? (target.characterFacts.character.state.conditions ?? []).map(
+          (condition) => condition.conditionTypeId
+        )
+      : target.state.conditions,
+    effectiveSize: encounterActorEffectiveSize(target),
+    lifetimeScope: target.actor.kind === 'CHARACTER' ? ('OWNER' as const) : ('ENCOUNTER' as const),
+    activeEffects: target.activeEffects
+  }
+}
+
+/**
+ * The timed grant a placed zone gives the creature that placed it (D153), as an effect on the acting
+ * creature. It comes from the zone's own plan rather than from an outcome, so no execution binds it.
+ */
+export function prepareNativeZoneSourceGrantEffect<
+  TCharacterFacts extends CharacterActionMovementFacts
+>(input: {
+  prepared: PreparedMechanics<TCharacterFacts>
+  plan: CharacterRuleActionActiveEffectPlan
+  published: CompleteExecution['published']
+  occurrenceId: string
+  commandId: string
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+}) {
+  const { prepared } = input
+  const source = prepared.movementTargets.get(prepared.actor.id)
+  if (!source || checksumCanonicalJson(source.actor) !== checksumCanonicalJson(prepared.actor))
+    throw new Error('Encounter zone placer is stale.')
+  const effect = prepareRecurringActiveEffect({
+    encounterId: prepared.state.id,
+    occurrenceId: input.occurrenceId,
+    commandId: input.commandId,
+    sourceActorId: prepared.actor.id,
+    sourceLabel: encounterActionSourceLabel(prepared.source),
+    sourceHidden: !prepared.actor.public,
+    currentActorId: prepared.state.currentActorId,
+    target: effectTarget(source),
+    activeEffectsByActorId: input.activeEffectsByActorId,
+    activeEffectPlan: input.plan,
+    published: input.published,
+    d20: null
+  })
+  if (!effect) throw new Error('A zone’s placer grant yields no effect.')
+  return effect
+}
 
 /** The active-effect plan an action's capability carries, selected by the definition that ran. */
 export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
@@ -93,17 +147,7 @@ export function prepareNativeActionEffectsPlan<
     sourceLabel: encounterActionSourceLabel(prepared.source),
     sourceHidden: !prepared.actor.public,
     currentActorId: prepared.state.currentActorId,
-    target: {
-      actorId: prepared.target.id,
-      conditionIds: target.characterFacts
-        ? (target.characterFacts.character.state.conditions ?? []).map(
-            (condition) => condition.conditionTypeId
-          )
-        : target.state.conditions,
-      effectiveSize: encounterActorEffectiveSize(target),
-      lifetimeScope: prepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER',
-      activeEffects: target.activeEffects
-    },
+    target: effectTarget(target),
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
     sealedReachFeet: plan?.actorRelationshipContribution

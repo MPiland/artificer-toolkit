@@ -5,7 +5,10 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import {
+  nativeActionDamage,
+  nativeConcentrationDamageApplications
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -45,10 +48,8 @@ export async function persistEncounterActionChildren(
     batch.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
   )
     throw new Error('Live Session action child parent is invalid.')
-  const applications = nativeConcentrationDamageApplications(
-    [{ targetActorId: batch.targetActorId, applications: batch.applications }],
-    true
-  )
+  const damage = nativeActionDamage(batch)
+  const applications = nativeConcentrationDamageApplications(damage, true)
   const { actors } = await callbacks.persistConcentrationChildren({
     state,
     actors: args.actors,
@@ -60,7 +61,7 @@ export async function persistEncounterActionChildren(
     userId: args.userId,
     authorizedCharacterIds: args.authorizedCharacterIds,
     occurredAt: input.occurredAt,
-    damagedActorIds: new Set([batch.targetActorId]),
+    damagedActorIds: new Set(damage.map(({ targetActorId }) => targetActorId)),
     concentration: input.concentration,
     concentrationEnds: input.concentrationEnds,
     endedGrants: input.endedGrants,

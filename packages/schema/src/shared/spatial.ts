@@ -5,6 +5,7 @@ import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { manifestBlockingRuleSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
@@ -105,6 +106,20 @@ export const spatialGeometryDtoSchema = lazySchema(() =>
       center: pointSchema,
       radius: positiveDistanceSchema
     }),
+    /** A hollow circle (D154): the band between the inner and the outer radius. */
+    z
+      .strictObject({
+        kind: z.literal('RING'),
+        center: pointSchema,
+        outerRadius: positiveDistanceSchema,
+        innerRadius: positiveDistanceSchema
+      })
+      .check(
+        z.refine((ring) => ring.innerRadius < ring.outerRadius, {
+          path: ['innerRadius'],
+          message: 'A ring’s inner radius is less than its outer radius.'
+        })
+      ),
     spatialPolygonDtoSchema
   ])
 )
@@ -119,6 +134,25 @@ export const spatialPersistedGeometryDtoSchema = lazySchema(() =>
 /** The authored name of a placed zone, shown wherever the zone is listed or drawn. */
 export const spatialZoneLabelSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+)
+
+/**
+ * What moving through a zone costs every mover, per unit walked inside it (D154); the highest of
+ * the terrain, zone and careful-doubling multipliers applies, never their product.
+ */
+export const zoneMovementCostMultiplierSchema = lazySchema(() =>
+  z.number().check(z.gt(1)).check(z.lte(100))
+)
+
+/** What a zone blocks, projected for consumers such as cover (D154); absent when nothing. */
+export const zoneBlockingRulesSchema = lazySchema(() =>
+  z
+    .array(manifestBlockingRuleSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(manifestBlockingRuleSchema.options.length))
+    .check(
+      z.refine((rules) => new Set(rules).size === rules.length, 'Zone blocking rules are unique.')
+    )
 )
 
 /**
@@ -183,20 +217,34 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
       /** At a turn boundary the zone catches only a creature wholly inside it; absent for overlap. */
       requiresFullyWithin: z.optional(z.boolean()),
+      movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
+      blockingRules: z.optional(zoneBlockingRulesSchema),
       /** A creature failing the zone's save at the start of its turn loses its Action for that turn. */
       failedSaveLosesAction: z.optional(z.boolean()),
       /** The condition the zone holds on a creature failing its save, its escape DC pinned. */
       heldCondition: z.optional(
         spatialHeldConditionDtoSchema(z.number().check(z.int()).check(z.positive()))
-      )
+      ),
+      /** The zone catches a creature inside it that hits its source token with a melee attack (D153). */
+      retaliatesMeleeHits: z.optional(z.literal(true))
     })
     .check(
       z.superRefine((placement, context) => {
-        if (placement.triggerModes.length === 0 && !placement.turnTriggers)
+        if (
+          placement.triggerModes.length === 0 &&
+          !placement.turnTriggers &&
+          !placement.retaliatesMeleeHits
+        )
           context.addIssue({
             code: 'custom',
             path: ['triggerModes'],
-            message: 'A spatial effect needs a movement trigger or a turn trigger.'
+            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
+          })
+        if (placement.retaliatesMeleeHits && placement.anchorKind !== 'TOKEN')
+          context.addIssue({
+            code: 'custom',
+            path: ['retaliatesMeleeHits'],
+            message: 'Only a zone anchored to its source token answers melee hits.'
           })
         if (
           placement.turnTriggers &&
@@ -297,15 +345,16 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
         z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       ),
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
-      requiresFullyWithin: z.optional(z.boolean())
+      requiresFullyWithin: z.optional(z.boolean()),
+      retaliatesMeleeHits: z.optional(z.literal(true))
     })
     .check(
       z.superRefine((effect, context) => {
-        if (effect.triggerModes.length === 0 && !effect.turnTriggers)
+        if (effect.triggerModes.length === 0 && !effect.turnTriggers && !effect.retaliatesMeleeHits)
           context.addIssue({
             code: 'custom',
             path: ['triggerModes'],
-            message: 'A spatial effect needs a movement trigger or a turn trigger.'
+            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
           })
         if (effect.turnTriggers && new Set(effect.turnTriggers).size !== effect.turnTriggers.length)
           context.addIssue({

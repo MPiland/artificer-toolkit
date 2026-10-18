@@ -225,7 +225,8 @@ export async function persistEncounterTurnCommit(
     },
     {
       readDefinition: callbacks.readDefinition,
-      applyMechanics: callbacks.applyMechanics
+      applyMechanics: callbacks.applyMechanics,
+      readSceneTokens: zoneCallbacks.readSceneTokens
     }
   )
   // After the Legendary Actions: the damage they deal at this turn's end counts as taken.

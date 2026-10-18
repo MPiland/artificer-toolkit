@@ -7,19 +7,25 @@ import type {
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { ResolveEncounterActionTargetDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { ShapeDto } from '@artificer-toolkit/schema/shared/shape'
 import {
+  authoredLengthInSceneCoordinates,
   directedAreaInSceneCoordinates,
   isDirectedAreaOriginOnToken,
   lengthMeasurementInSceneUnits,
   measureSceneDistance,
   pointAreaInSceneCoordinates,
   sceneFootprintMeasureHalfExtent,
+  wallAreaBoundsInSceneCoordinates,
   type SceneGrid,
   type ScenePoint,
   type SceneToken,
   type SpatialDirectedAreaShape,
   type SpatialPointAreaShape,
-  type SpatialTokenFootprint
+  type SpatialTokenFootprint,
+  type SpatialWallAreaShape,
+  type SpatialWallSide
 } from '@artificer-toolkit/shared/vtt'
 
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
@@ -183,9 +189,7 @@ export function encounterActionTargetKind(
  * The authored area of a policy that takes a point or is centered on the caster: a sphere, cylinder
  * or circle is a radius and a cube is its edge. Null for an action that takes neither.
  */
-function authoredPointArea(
-  policy: CompiledActionTargetPolicy
-): Extract<EncounterActionChoiceDto['target'], { kind: 'POINT' }>['area'] | null {
+function authoredPointArea(policy: CompiledActionTargetPolicy): PointArea | null {
   const { shape } = policy
   const targetKind = encounterActionTargetKind(policy)
   if (
@@ -193,6 +197,13 @@ function authoredPointArea(
     shape === null
   )
     return null
+  return pointAreaOfShape(shape)
+}
+
+type PointArea = Extract<EncounterActionChoiceDto['target'], { kind: 'POINT' }>['area']
+
+/** A sphere, cylinder or circle as its radius and a cube as its edge; null for any other shape. */
+function pointAreaOfShape(shape: ShapeDto): PointArea | null {
   if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
   if (
     shape.shapeKind === 'SPHERE' ||
@@ -201,6 +212,51 @@ function authoredPointArea(
   )
     return { kind: 'RADIUS', radius: shape.radius }
   return null
+}
+
+type ZoneRegionComponent = NonNullable<CompiledActionZonePlacement['regionComponents']>[number]
+
+/** What the client aims to place one zone, with its authored area. */
+export type EncounterZoneChoiceTarget = Extract<
+  EncounterActionChoiceDto['target'],
+  { kind: 'ZONE_OPTIONS' }
+>['options'][number]['target']
+
+/**
+ * What placing `zone` with an action of `rangeKind` asks the client to aim, as authored (D154): a
+ * straight wall between two endpoints within range, a ring (a hollow round zone) around a point
+ * within range, or the point or caster a filled zone is centered on ({@link encounterAreaTargetKind}).
+ * The zone's own shape decides, never the action's: a cast that offers several zones may offer
+ * several shapes. Null is a zone this path cannot place. The compiler, the action's choice and the
+ * Worker all read it.
+ */
+export function encounterZoneChoiceTarget(
+  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness'> & {
+    regionComponents?: readonly Pick<ZoneRegionComponent, 'region'>[]
+  },
+  rangeKind: string
+): EncounterZoneChoiceTarget | null {
+  const { shape, ringThickness } = zone
+  // A band beside the wall is reached on the side the caster picks once the wall is aimed.
+  const band = zone.regionComponents?.find(({ region }) => region.kind === 'SIDE_BAND')
+  const sideBand = band ? { sideBand: { distance: band.region.distance } } : {}
+  if (shape.shapeKind === 'WALL')
+    return shape.thickness && rangeKind !== 'SELF'
+      ? { kind: 'WALL', area: { maxLength: shape.length, thickness: shape.thickness }, ...sideBand }
+      : null
+  const area = pointAreaOfShape(shape)
+  if (ringThickness)
+    return area?.kind === 'RADIUS' && rangeKind !== 'SELF'
+      ? {
+          kind: 'RING',
+          area: { maxOuterRadius: area.radius, thickness: ringThickness },
+          ...sideBand
+        }
+      : null
+  if (band) return null
+  const kind = encounterAreaTargetKind(rangeKind, shape.shapeKind)
+  if (kind === 'POINT' && area) return { kind, area }
+  return kind === 'CASTER_CENTERED' && area?.kind === 'RADIUS' ? { kind, area } : null
 }
 
 /**
@@ -247,14 +303,9 @@ export function encounterActionChoiceTarget(
     options
       ? { choiceOptions: options.map(({ optionId, label }) => ({ id: optionId, label })) }
       : {}
-  // A zone is picked where it is placed; any other pick on the creatures targeted.
+  const zoneTarget = policy && zonePlacement && zonePlacementChoiceTarget(policy, zonePlacement)
+  if (zoneTarget) return zoneTarget
   const choiceOptions = offered(castChoice?.options)
-  const zoneChoices = {
-    ...(zonePlacement && sharedZonePlacement(zonePlacement).choosesUnaffected
-      ? { choosesUnaffected: true as const }
-      : {}),
-    ...offered(zonePlacement && 'options' in zonePlacement ? zonePlacement.options : undefined)
-  }
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
   const maxTargets =
@@ -278,13 +329,39 @@ export function encounterActionChoiceTarget(
       ...choiceOptions
     }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
-    return { kind: 'CASTER_CENTERED', area, ...zoneChoices }
-  if (area) return { kind: 'POINT', area, ...zoneChoices }
+    return { kind: 'CASTER_CENTERED', area }
+  if (area) return { kind: 'POINT', area }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
   const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
   return { kind: 'ACTOR', self: self ?? 'ALLOWED', ...choiceOptions }
+}
+
+/**
+ * What placing the action's zone asks the client to aim: that zone's own target, or the options a
+ * cast-time pick offers (D140, D154), each aimed as its zone asks. Whether the caster spares
+ * creatures is shared by every option. Null when a zone cannot be placed; resolving it is refused.
+ */
+function zonePlacementChoiceTarget(
+  policy: CompiledActionTargetPolicy,
+  zonePlacement: CompiledActionZonePlacement | CompiledActionZoneChoice
+): EncounterActionChoiceDto['target'] | null {
+  const spares = sharedZonePlacement(zonePlacement).choosesUnaffected
+    ? { choosesUnaffected: true as const }
+    : {}
+  const { rangeKind } = policy.range
+  if (!('options' in zonePlacement)) {
+    const target = encounterZoneChoiceTarget(zonePlacement, rangeKind)
+    return target && { ...target, ...spares }
+  }
+  const options = zonePlacement.options.flatMap(({ optionId, label, zone }) => {
+    const target = encounterZoneChoiceTarget(zone, rangeKind)
+    return target ? [{ id: optionId, label, target }] : []
+  })
+  return options.length === zonePlacement.options.length
+    ? { kind: 'ZONE_OPTIONS', options, ...spares }
+    : null
 }
 
 /**
@@ -367,6 +444,108 @@ export function evaluateEncounterAreaTargetPolicy(input: {
     shape,
     warnings: input.pointSeen ? rangeWarnings : [...rangeWarnings, OUT_OF_SIGHT]
   }
+}
+
+/** A command target that places a zone. */
+type ZoneCommandTarget = Extract<
+  ResolveEncounterActionTargetDto,
+  { kind: 'POINT' | 'CASTER_CENTERED' | 'WALL' | 'RING' }
+>
+
+/** How far past an authored size an aimed size may fall: the client's own rounding, never more. */
+const AREA_SIZE_TOLERANCE = 1e-6
+
+/**
+ * Resolves where a zone is placed from the zone's own target (D154), {@link encounterZoneChoiceTarget}:
+ * the area it covers, and the overridable range and sight warnings for the points it is aimed at (a
+ * wall's two endpoints, a ring's or a point area's center). A refusal is hard and says why: the
+ * command aims another kind of target or the size is unsupported, a wall is longer or a ring wider
+ * than authored, or a wall has no length or a ring no room inside its wall.
+ */
+export function evaluateEncounterZoneTarget(input: {
+  zone: Pick<CompiledActionZonePlacement, 'shape' | 'ringThickness' | 'regionComponents'>
+  range: CompiledActionTargetPolicy['range']
+  target: ZoneCommandTarget
+  grid: SceneGrid
+  /** The caster's token. */
+  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
+  /** Whether the caster sees every point the target is aimed at. */
+  aimSeen: boolean
+}):
+  | {
+      shape: SpatialPointAreaShape | SpatialWallAreaShape
+      /** Each region component's band, in order: the side the caster picked and its reach. */
+      regions: Array<{ side: SpatialWallSide; distance: number }>
+      warnings: EncounterRuleWarningDto[]
+    }
+  | {
+      refusal:
+        | 'UNSUPPORTED_AREA'
+        | 'AREA_TOO_LARGE'
+        | 'AREA_TOO_SMALL'
+        | 'SIDE_REQUIRED'
+        | 'SIDE_NOT_OFFERED'
+    } {
+  const { target, grid } = input
+  const aim = encounterZoneChoiceTarget(input.zone, input.range.rangeKind)
+  const unsupported = { refusal: 'UNSUPPORTED_AREA' } as const
+  // A zone with a band beside its wall takes the side it reaches, and only such a zone does.
+  const side = 'side' in target ? target.side : undefined
+  const bands = input.zone.regionComponents ?? []
+  if (bands.length > 0 && !side) return { refusal: 'SIDE_REQUIRED' }
+  if (bands.length === 0 && side) return { refusal: 'SIDE_NOT_OFFERED' }
+  const regions: Array<{ side: SpatialWallSide; distance: number }> = []
+  for (const { region } of bands) {
+    const distance = authoredLengthInSceneCoordinates(region.distance, grid)
+    if (distance === null || !side) return unsupported
+    regions.push({ side, distance })
+  }
+  const placed = (
+    shape: SpatialPointAreaShape | SpatialWallAreaShape,
+    warnings: EncounterRuleWarningDto[]
+  ) => ({ shape, regions, warnings })
+  if (aim?.kind === 'CASTER_CENTERED' && target.kind === 'CASTER_CENTERED') {
+    const shape = pointAreaInSceneCoordinates(aim.area, grid)
+    return shape ? placed(shape, []) : unsupported
+  }
+  const aimedAt = (points: readonly ScenePoint[]) => {
+    const outOfRange = points.map((point) =>
+      evaluateRangeWarnings({ point, grid, sourceToken: input.sourceToken }, input.range)
+    )
+    if (outOfRange.some((warnings) => warnings === null)) return null
+    return [
+      ...(outOfRange.find((warnings) => warnings!.length > 0) ?? []),
+      ...(input.aimSeen ? [] : [OUT_OF_SIGHT])
+    ]
+  }
+  if (aim?.kind === 'POINT' && target.kind === 'POINT') {
+    const shape = pointAreaInSceneCoordinates(aim.area, grid)
+    const warnings = aimedAt([target.point])
+    return shape && warnings ? placed(shape, warnings) : unsupported
+  }
+  if (aim?.kind === 'WALL' && target.kind === 'WALL') {
+    const bounds = wallAreaBoundsInSceneCoordinates({ kind: 'WALL', ...aim.area }, grid)
+    const warnings = aimedAt([target.from, target.to])
+    if (!bounds || !warnings) return unsupported
+    const length = Math.hypot(target.to.x - target.from.x, target.to.y - target.from.y)
+    if (length > bounds.maximum * (1 + AREA_SIZE_TOLERANCE)) return { refusal: 'AREA_TOO_LARGE' }
+    if (!(length > 0)) return { refusal: 'AREA_TOO_SMALL' }
+    return placed({ kind: 'WALL', to: target.to, thickness: bounds.thickness }, warnings)
+  }
+  if (aim?.kind === 'RING' && target.kind === 'RING') {
+    const bounds = wallAreaBoundsInSceneCoordinates({ kind: 'RING', ...aim.area }, grid)
+    const warnings = aimedAt([target.center])
+    if (!bounds || !warnings) return unsupported
+    const { outerRadius } = target
+    if (outerRadius > bounds.maximum * (1 + AREA_SIZE_TOLERANCE))
+      return { refusal: 'AREA_TOO_LARGE' }
+    if (!(outerRadius > bounds.thickness)) return { refusal: 'AREA_TOO_SMALL' }
+    return placed(
+      { kind: 'RING', outerRadius, innerRadius: outerRadius - bounds.thickness },
+      warnings
+    )
+  }
+  return unsupported
 }
 
 /**

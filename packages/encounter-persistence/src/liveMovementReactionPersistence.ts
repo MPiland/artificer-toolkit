@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -23,6 +24,10 @@ import { listActiveRuleEffects } from './effectStore.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
+import {
+  persistEncounterMeleeRetaliation,
+  readMeleeRetaliationScene
+} from './meleeRetaliationPersistence.js'
 import {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -51,6 +56,7 @@ export async function persistLiveMovementReaction(
       input: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
     readCampaignCharacterState: Parameters<typeof readLiveMovementTargetState>[4]
+    readSceneTokens(sceneId: string): Promise<readonly SpatialSceneToken[]>
   }
 ) {
   const { state, step } = input
@@ -381,5 +387,30 @@ export async function persistLiveMovementReaction(
     throw new Error('Live movement reaction Character transition receipt is incomplete.')
   await deleteGrants(ctx, step.consumedGrants)
   await spendTurnUses(ctx, { state, actorId: source.id, keys: step.turnUses })
-  return actors
+  if (!batch.meleeRetaliation) return actors
+  // The zones the opportunity attack's melee hit set off burn the reactor, with the mover where
+  // the attack caught it (D153).
+  const scene = await readMeleeRetaliationScene(
+    ctx,
+    { state, attackerActorId: source.id, hitActorId: target.id },
+    callbacks.readSceneTokens
+  )
+  const retaliated = await persistEncounterMeleeRetaliation(
+    ctx,
+    {
+      state,
+      initialActors: input.actors,
+      attacker: actors.find((actor) => actor.id === source.id)!,
+      scene: scene && {
+        ...scene,
+        hit: { ...scene.hit, position: receipt.option.candidate.contact }
+      },
+      evidence: batch.meleeRetaliation,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.sourceCommandId,
+      occurredAt: input.occurredAt
+    },
+    { applyMechanics: callbacks.applyMechanics }
+  )
+  return actors.map((actor) => (actor.id === source.id ? retaliated : actor))
 }

@@ -1,4 +1,4 @@
-import { z, lazySchema } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
@@ -26,17 +26,81 @@ export const getEncounterActionChoicesInputDtoSchema = lazySchema(() =>
   })
 )
 
+const choiceOptionLabelSchema = lazySchema(() =>
+  z.string().check(z.minLength(1)).check(z.maxLength(160))
+)
+
 const choiceOptionsSchema = lazySchema(() =>
   z.optional(
     z
-      .array(
-        z.strictObject({
-          id: postgresUuidSchema,
-          label: z.string().check(z.minLength(1)).check(z.maxLength(160))
-        })
-      )
+      .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
       .check(z.minLength(2))
   )
+)
+
+/** The caster designates creatures at cast that the zone it places never affects. */
+const choosesUnaffectedShape = lazySchemaParts(() => ({
+  choosesUnaffected: z.optional(z.literal(true))
+}))
+
+/**
+ * The band a zone also reaches on the side its caster picks after aiming its wall (D154): the wall
+ * plus distance beside it, or inside or outside a ring. Absent when the zone has none.
+ */
+const sideBandShape = lazySchemaParts(() => ({
+  sideBand: z.optional(z.strictObject({ distance: shapeMeasurementDtoSchema }))
+}))
+
+/** An area centered on a point the client picks. */
+const pointTargetSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('POINT'),
+    area: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+      z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
+    ])
+  })
+)
+
+/**
+ * A radius centered on the caster, measured from the edge of their space (a Self sphere, cylinder
+ * or circle): the client asks for no aim and only fences the Scene version.
+ */
+const casterCenteredTargetSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('CASTER_CENTERED'),
+    area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+  })
+)
+
+/**
+ * A straight wall between two endpoints the client picks (D154): at most `maxLength` long, with
+ * `thickness` centered on the segment.
+ */
+const wallTargetSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('WALL'),
+    area: z.strictObject({
+      maxLength: shapeMeasurementDtoSchema,
+      thickness: shapeMeasurementDtoSchema
+    }),
+    ...sideBandShape()
+  })
+)
+
+/**
+ * A ring around a center the client picks (D154): the client picks its outer radius, at most
+ * `maxOuterRadius` and more than `thickness`; the inner radius is the outer one less `thickness`.
+ */
+const ringTargetSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('RING'),
+    area: z.strictObject({
+      maxOuterRadius: shapeMeasurementDtoSchema,
+      thickness: shapeMeasurementDtoSchema
+    }),
+    ...sideBandShape()
+  })
 )
 
 export const encounterActionChoiceDtoSchema = lazySchema(() =>
@@ -92,7 +156,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     warnings: encounterRuleWarningsDtoSchema,
     /**
      * What the client picks before resolving: a creature, the point an area is centered on, the
-     * origin and direction of a directed area, or nothing for an area centered on the caster. The
+     * origin and direction of a directed area, a wall's endpoints, a ring's center and size, one of
+     * several zones, or nothing for an area centered on the caster. The
      * area is as authored; the client converts it to the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
@@ -142,28 +207,31 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         /** The options the caster picks one of at cast (D148); absent for an action with none. */
         choiceOptions: choiceOptionsSchema
       }),
-      z.strictObject({
-        kind: z.literal('POINT'),
-        area: z.discriminatedUnion('kind', [
-          z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
-          z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
-        ]),
-        /** The caster designates creatures at cast that the zone it places never affects. */
-        choosesUnaffected: z.optional(z.literal(true)),
-        /** The zones the caster picks one of at cast (D140); absent for an action with one zone. */
-        choiceOptions: choiceOptionsSchema
-      }),
+      z.extend(pointTargetSchema, choosesUnaffectedShape()),
+      z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
+      z.extend(wallTargetSchema, choosesUnaffectedShape()),
+      z.extend(ringTargetSchema, choosesUnaffectedShape()),
       /**
-       * A radius centered on the caster, measured from the edge of their space (a Self sphere,
-       * cylinder or circle): the client asks for no aim and only fences the Scene version.
+       * The zones the caster picks one of at cast (D140, D154): the client picks an option first,
+       * then aims it as that option's own target asks.
        */
       z.strictObject({
-        kind: z.literal('CASTER_CENTERED'),
-        area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
-        /** The caster designates creatures at cast that the zone it places never affects. */
-        choosesUnaffected: z.optional(z.literal(true)),
-        /** The zones the caster picks one of at cast (D140); absent for an action with one zone. */
-        choiceOptions: choiceOptionsSchema
+        kind: z.literal('ZONE_OPTIONS'),
+        options: z
+          .array(
+            z.strictObject({
+              id: postgresUuidSchema,
+              label: choiceOptionLabelSchema,
+              target: z.discriminatedUnion('kind', [
+                pointTargetSchema,
+                casterCenteredTargetSchema,
+                wallTargetSchema,
+                ringTargetSchema
+              ])
+            })
+          )
+          .check(z.minLength(2)),
+        ...choosesUnaffectedShape()
       }),
       /**
        * An area that starts on the caster's own token and extends toward a direction: a cone, a

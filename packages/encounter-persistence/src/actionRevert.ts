@@ -320,6 +320,16 @@ export async function revertLastEncounterAction(
     if (replacesMaintainedEffect(action.maintenanceTransition ?? null))
       unsupported.add('a replaced maintained effect')
   }
+  // A Creature attacker's burns from the zones its melee hit set off restore with the hit (D153).
+  const retaliation = batch?.meleeRetaliation?.executions ?? []
+  if (
+    retaliation.some(
+      ({ candidate, applications }) =>
+        candidate.target.kind !== 'ENCOUNTER_ACTOR' ||
+        applications.some((application) => application.kind !== 'DAMAGE')
+    )
+  )
+    unsupported.add('a melee attacker’s retaliation damage')
   // A zone-only cast's Concentration rides on the root.
   if (replacesMaintainedEffect(areaRoot?.maintenanceTransition ?? null))
     unsupported.add('a replaced maintained effect')
@@ -406,6 +416,12 @@ export async function revertLastEncounterAction(
       unavailable("Undo can't restore Cleaving damage to a Character.")
     restoreHitPoints(cleaved.id, damage.targetTransition)
   }
+  const [firstRetaliation] = retaliation
+  if (firstRetaliation)
+    restoreHitPoints(firstRetaliation.candidate.candidate.targetActorId, {
+      ...firstRetaliation.targetTransition,
+      after: retaliation.at(-1)!.targetTransition.after
+    })
 
   // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
   const characterInverses = new Map<string, CharacterInverse>()
@@ -589,12 +605,20 @@ export async function revertLastEncounterAction(
   for (const action of targetBatches.toReversed()) await invertTarget(action)
   const rootCreated = areaRoot?.maintenanceTransition?.createdState
   if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
-  // The zone an area action placed leaves the Scene with it, before the state it depends on goes.
-  if (areaRoot?.placedSpatialEffectId)
-    await deletePlacedSpatialEffect(ctx, {
-      encounterId: state.id,
-      id: areaRoot.placedSpatialEffectId
+  // The timed grant the placed zone gave its placer goes with the zone; its version proves it untouched.
+  const sourceGrant = areaRoot?.sourceGrantTransition
+  if (areaRoot && sourceGrant)
+    await store.deleteCas({
+      id: sourceGrant.activeEffectId,
+      owner: areaRoot.sourceCharacterId
+        ? { kind: 'CHARACTER', characterId: areaRoot.sourceCharacterId }
+        : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: areaRoot.sourceActorId },
+      expectedVersion: sourceGrant.afterVersion
     })
+  // Every record an area action placed (a zone's own and its bands) leaves the Scene with it,
+  // before the state they depend on goes.
+  for (const id of areaRoot?.placedSpatialEffectIds ?? [])
+    await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id })
   // Every creature of an area shares the one state, so it goes once, after the last dependent.
   for (const created of createdStates.values())
     await store.deleteMaintainedStateCas({

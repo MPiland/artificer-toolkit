@@ -32,6 +32,7 @@ import {
   type ApplyEncounterForcedMovements
 } from './actionCommitRecords.js'
 import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { executionTeleportAllowance } from '@artificer-toolkit/rules-runtime/systems/dnd5e/teleportAllowance'
@@ -174,7 +175,7 @@ export async function persistEncounterActionCommit(
     characterIds,
     read: (request) => callbacks.readMaintenanceCapture(state, request)
   })
-  await callbacks.readActionSceneInputs(
+  const sceneInputs = await callbacks.readActionSceneInputs(
     state,
     {
       actorId: command.actorId,
@@ -394,6 +395,28 @@ export async function persistEncounterActionCommit(
   })
   // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
+  // The zones the melee hit set off burn the attacker after the hit lands (D153).
+  if (batch.meleeRetaliation) {
+    const retaliated = await persistEncounterMeleeRetaliation(
+      ctx,
+      {
+        state,
+        initialActors: actors,
+        attacker: nextActors.find((actor) => actor.id === source.id)!,
+        scene: sceneInputs && {
+          sceneId: sceneInputs.sceneId,
+          attacker: sceneInputs.sourceToken,
+          hit: sceneInputs.targetToken
+        },
+        evidence: batch.meleeRetaliation,
+        occurrenceId: execution.occurrenceId,
+        sourceCommandId: command.commandId,
+        occurredAt: input.occurredAt
+      },
+      { applyMechanics: callbacks.applyMechanics }
+    )
+    nextActors = nextActors.map((actor) => (actor.id === source.id ? retaliated : actor))
+  }
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
     (source.kind === 'CHARACTER' && source.id !== target.id

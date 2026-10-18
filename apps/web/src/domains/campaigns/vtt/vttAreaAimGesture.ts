@@ -3,12 +3,18 @@ import {
   type ScenePoint,
   type SpatialTokenFootprint
 } from '@artificer-toolkit/shared/vtt'
-import { directedAreaAim, type VttAreaAim, type VttAreaSize } from './vttSceneRenderer.model'
+import {
+  directedAreaAim,
+  drawnAreaAim,
+  isDrawnAreaSize,
+  type VttAreaAim,
+  type VttAreaSize
+} from './vttSceneRenderer.model'
 
 interface VttAreaAimGesture {
   /** A primary press on the map; true when the aim consumed it. */
   press: (point: ScenePoint) => boolean
-  /** A release; true when it ended a press that began a directed aim, even if the rules refuse it. */
+  /** A release; true when it ended a press that began a directed or drawn aim, even if the rules refuse it. */
   release: (point: ScenePoint) => boolean
   /** What the pointer aims at now, for the preview; null when the rules would refuse that aim. */
   aimAt: (pointer: ScenePoint) => VttAreaAim | null
@@ -19,7 +25,8 @@ interface VttAreaAimGesture {
 /**
  * The press, drag and release that aim an area on the map. A point area is picked on the press. A
  * directed area starts at the edge of the caster's footprint nearest the press and extends toward
- * the release, and is committed only when the rules would accept that origin and direction.
+ * the release, and is committed only when the rules would accept that origin and direction. A
+ * wall or ring (D154) is drawn from the press, its first endpoint or center, to the release.
  */
 export function createVttAreaAimGesture(
   /** The area being aimed and its caster's footprint (null when the caster is not on the map). */
@@ -33,6 +40,10 @@ export function createVttAreaAimGesture(
   const aimAt: VttAreaAimGesture['aimAt'] = (pointer) => {
     const aim = aiming()
     if (!aim) return null
+    if (isDrawnAreaSize(aim.size))
+      return pressedAt
+        ? drawnAreaAim({ pointer, pressedAt, size: aim.size })
+        : { origin: pointer, toward: null }
     if (!isDirectedAreaShape(aim.size)) return { origin: pointer, toward: null }
     return aim.caster
       ? directedAreaAim({ caster: aim.caster, pointer, pressedAt, size: aim.size })
@@ -42,7 +53,7 @@ export function createVttAreaAimGesture(
     press(point) {
       const aim = aiming()
       if (!aim) return false
-      if (isDirectedAreaShape(aim.size)) pressedAt = point
+      if (isDrawnAreaSize(aim.size) || isDirectedAreaShape(aim.size)) pressedAt = point
       else callbacks.onPoint?.(point)
       return true
     },

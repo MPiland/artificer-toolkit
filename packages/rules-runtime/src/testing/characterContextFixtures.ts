@@ -7,6 +7,7 @@ import {
   type ContentSnapshotScope
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import {
   characterSheetStateSchema,
@@ -247,6 +248,8 @@ export async function prepareFixtureSheet(input: {
   adjustments?: CharacterSheetState['adjustments']
   movementDisplayPreference?: CharacterSheetState['movementDisplayPreference']
   gameSystem?: SystemAuthoredDto
+  /** The Campaign's currency options, as a Campaign Sheet read adds them. */
+  campaignCurrencyOptions?: readonly CharacterSheetCurrencyOptionDto[]
 }) {
   const { character } = input
   const context = await prepareFixtureContext(character, input.documents, input.gameSystem)
@@ -286,6 +289,7 @@ export async function prepareFixtureSheet(input: {
     resolution: prepared.prepared.resolution,
     streamVersion: input.streamVersion ?? 1,
     adjustments: prepared.adjustments,
+    additionalCurrencyOptions: input.campaignCurrencyOptions,
     creaturesById: prepared.prepared.context.creaturesById,
     vehiclesById: prepared.prepared.context.vehiclesById,
     ruleEvaluation: prepared.ruleEvaluation,

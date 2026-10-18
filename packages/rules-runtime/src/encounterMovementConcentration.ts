@@ -15,7 +15,10 @@ import {
   checksumSpatialCurrentness,
   type FrozenMovementReactionRemainder
 } from './encounterSpatialMovementRuleService.js'
-import { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
+import {
+  nativeActionDamage,
+  nativeConcentrationDamageApplications
+} from './encounterConcentrationDamage.js'
 import {
   createNativeConcentrationContext,
   completeNativeConcentrationResult,
@@ -67,7 +70,7 @@ function movementConcentrationDamageSource(
         ]
       : reactionApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
           reactionApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-        ? [reactionApplication]
+        ? nativeActionDamage(reactionApplication)
         : [],
     true
   )

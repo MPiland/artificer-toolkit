@@ -11,7 +11,10 @@ import { projectSpatialMovementCandidates } from './encounterSpatialMovementCurr
 import { spatialMovementEffectBeforeTransition } from './encounterSpatialMovementEffects.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { projectSpatialMovementResult } from './encounterSpatialMovementResult.js'
-import { toSpatialMovementTarget } from './encounterSpatialCandidateExecution.js'
+import {
+  spatialExecutionRecordedFaces,
+  toSpatialMovementTarget
+} from './encounterSpatialCandidateExecution.js'
 import {
   checksumSpatialCurrentness,
   evaluateEncounterSpatialMovementRuleBatch
@@ -83,15 +86,7 @@ function retainedSpatialReplayFaces(input: SpatialMovementPreparationInput): num
       (boundary !== undefined && execution.candidate.candidate.pathDistance > boundary + 1e-8)
     )
       return []
-    return [
-      ...(execution.d20?.rawFaces ?? []),
-      ...execution.execution.evidence.trace.flatMap((entry) =>
-        entry.operation.key === 'evidence.optional-integer-range' &&
-        entry.evidence?.kind === 'INTEGER_RANGE'
-          ? [entry.evidence.value]
-          : []
-      )
-    ]
+    return spatialExecutionRecordedFaces(execution)
   })
 }
 

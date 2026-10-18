@@ -4,6 +4,7 @@ import {
   pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
   collectSpatialTurnCandidates,
+  collectSpatialMeleeRetaliationCandidates,
   recordZoneApplications,
   zoneApplicationKey,
   collectTokenFootprintPathCrossings,
@@ -14,7 +15,11 @@ import {
   spatialTokensInsideArea,
   spatialTokensWithinSpaceRadius,
   type SpatialSceneToken,
-  VTT_SPATIAL_LIMITS
+  undirectedAreaGeometry,
+  VTT_SPATIAL_LIMITS,
+  wallAreaBoundsInSceneCoordinates,
+  wallOutline,
+  wallSideBandGeometry
 } from '../domains/vtt/spatial.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
@@ -1182,6 +1187,314 @@ describe('spatial turn candidates', () => {
       collectTurn({
         effects: [anchored],
         tokens: [token(ids.targetToken, 0), token(ids.sourceToken, 20)]
+      })
+    ).toEqual([])
+  })
+})
+
+describe('ring geometry (SPELLS-4.T1b, D154)', () => {
+  const ring = (innerRadius = 9) =>
+    ({ kind: 'RING', center: { x: 0, y: 0 }, outerRadius: 10, innerRadius }) as const
+  const inRing = (x: number) =>
+    spatialGeometryOverlapsTokenFootprint({ geometry: ring(), token: token(ids.targetToken, x) })
+
+  it('catches a footprint that overlaps the band, even one reaching into the hollow', () => {
+    expect(inRing(9.5)).toBe(true)
+    expect(inRing(8)).toBe(true)
+  })
+
+  it('does not catch a footprint wholly inside the hollow, or one only touching the outer edge', () => {
+    expect(inRing(0)).toBe(false)
+    expect(inRing(7.9)).toBe(false)
+    expect(inRing(11)).toBe(false)
+  })
+
+  it('raises a crossing where the mover leaves the hollow and the share of a walk in the band', () => {
+    const geometry = { frame: 'SCENE_ABSOLUTE' as const, shape: ring() }
+    const [cross] = collect({
+      effects: [effect({ geometry })],
+      movementKind: 'VOLUNTARY',
+      path: [
+        { x: 0, y: 0 },
+        { x: 20, y: 0 }
+      ]
+    })
+    expect(cross).toMatchObject({ trigger: 'CROSS' })
+    expect(cross?.contact.x).toBeCloseTo(Math.sqrt(80) - 1)
+    expect(
+      spatialSegmentShareInside({
+        geometries: [ring()],
+        token: token(ids.targetToken, -20),
+        from: { x: -20, y: 0 },
+        to: { x: 20, y: 0 }
+      })
+    ).toBeCloseTo((2 * (11 - (Math.sqrt(80) - 1))) / 40)
+  })
+
+  it('holds a creature fully within the band only when it shares no area with the hollow', () => {
+    const fullyWithin = (x: number) =>
+      collectSpatialTurnCandidates({
+        actorIdByTokenId: new Map([[ids.targetToken, ids.targetActor]]),
+        effects: [
+          effect({
+            geometry: { frame: 'SCENE_ABSOLUTE', shape: ring(7) },
+            turnTriggers: ['START_OF_TURN'],
+            requiresFullyWithin: true
+          })
+        ],
+        targetTokenId: ids.targetToken,
+        tokens: [token(ids.targetToken, x)],
+        trigger: 'START_OF_TURN',
+        turnSequence: 1
+      })
+    expect(fullyWithin(8.5)).toHaveLength(1)
+    expect(fullyWithin(8)).toHaveLength(1)
+    expect(fullyWithin(7.5)).toHaveLength(0)
+  })
+
+  it('refuses a ring whose hollow is not inside its outer circle', () => {
+    expect(
+      spatialGeometryOverlapsTokenFootprint({
+        geometry: ring(10),
+        token: token(ids.targetToken, 9.5)
+      })
+    ).toBe(false)
+  })
+})
+
+describe('wall geometry (SPELLS-4.T1b, D154)', () => {
+  const feetGrid: SceneGrid = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  }
+  const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
+
+  it('outlines a straight wall as a rectangle its thickness wide, centered on the segment', () => {
+    expect(wallOutline({ x: 0, y: 0 }, { x: 0, y: 100 }, 20)).toEqual([
+      { x: -10, y: 0 },
+      { x: -10, y: 100 },
+      { x: 10, y: 100 },
+      { x: 10, y: 0 }
+    ])
+    expect(wallOutline({ x: 5, y: 5 }, { x: 5, y: 5 }, 20)).toBeNull()
+  })
+
+  it('places a wall or a ring from the area origin', () => {
+    expect(
+      undirectedAreaGeometry({ x: 0, y: 0 }, { kind: 'WALL', to: { x: 100, y: 0 }, thickness: 10 })
+    ).toEqual({
+      kind: 'POLYGON',
+      points: [
+        { x: 0, y: 5 },
+        { x: 100, y: 5 },
+        { x: 100, y: -5 },
+        { x: 0, y: -5 }
+      ]
+    })
+    expect(
+      undirectedAreaGeometry({ x: 50, y: 50 }, { kind: 'RING', outerRadius: 200, innerRadius: 180 })
+    ).toEqual({ kind: 'RING', center: { x: 50, y: 50 }, outerRadius: 200, innerRadius: 180 })
+  })
+
+  it('catches a token the wall crosses, not one beside it', () => {
+    const geometry = undirectedAreaGeometry(
+      { x: 0, y: 0 },
+      { kind: 'WALL', to: { x: 100, y: 0 }, thickness: 1 }
+    )
+    if (!geometry) throw new Error('The wall must have an outline.')
+    expect(
+      spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, 50) })
+    ).toBe(true)
+    expect(
+      spatialGeometryOverlapsTokenFootprint({ geometry, token: token(ids.targetToken, 200) })
+    ).toBe(false)
+  })
+
+  it('turns an authored wall or ring into its Scene bounds', () => {
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'WALL', maxLength: feet(60), thickness: feet(1) },
+        feetGrid
+      )
+    ).toEqual({ maximum: 1200, thickness: 20 })
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(5) },
+        feetGrid
+      )
+    ).toEqual({ maximum: 200, thickness: 100 })
+    expect(
+      wallAreaBoundsInSceneCoordinates(
+        { kind: 'RING', maxOuterRadius: feet(10), thickness: feet(0) },
+        feetGrid
+      )
+    ).toBeNull()
+  })
+
+  describe('the band a zone reaches beside its wall (D154 amendment)', () => {
+    const wall = { kind: 'WALL', to: { x: 0, y: 100 }, thickness: 20 } as const
+    const ring = { kind: 'RING', outerRadius: 200, innerRadius: 180 } as const
+    const center = { x: 50, y: 50 }
+
+    it('widens a straight wall by the distance on the side of travel picked', () => {
+      // Travelling down the Scene (y grows downward), the right is toward smaller x.
+      expect(wallSideBandGeometry({ x: 0, y: 0 }, wall, 'RIGHT', 200)).toEqual({
+        kind: 'POLYGON',
+        points: [
+          { x: -210, y: 0 },
+          { x: -210, y: 100 },
+          { x: 10, y: 100 },
+          { x: 10, y: 0 }
+        ]
+      })
+      expect(wallSideBandGeometry({ x: 0, y: 0 }, wall, 'LEFT', 200)).toEqual({
+        kind: 'POLYGON',
+        points: [
+          { x: -10, y: 0 },
+          { x: -10, y: 100 },
+          { x: 210, y: 100 },
+          { x: 210, y: 0 }
+        ]
+      })
+    })
+
+    it('widens a ring outward, or inward until it fills to the center', () => {
+      expect(wallSideBandGeometry(center, ring, 'OUTSIDE', 200)).toEqual({
+        kind: 'RING',
+        center,
+        outerRadius: 400,
+        innerRadius: 180
+      })
+      expect(wallSideBandGeometry(center, ring, 'INSIDE', 100)).toEqual({
+        kind: 'RING',
+        center,
+        outerRadius: 200,
+        innerRadius: 80
+      })
+      expect(wallSideBandGeometry(center, ring, 'INSIDE', 200)).toEqual({
+        kind: 'CIRCLE',
+        center,
+        radius: 200
+      })
+    })
+
+    it('has no band on a side the wall does not have, or beside a wall of no length', () => {
+      expect(wallSideBandGeometry(center, ring, 'LEFT', 200)).toBeNull()
+      expect(wallSideBandGeometry({ x: 0, y: 0 }, wall, 'OUTSIDE', 200)).toBeNull()
+      expect(
+        wallSideBandGeometry({ x: 0, y: 100 }, { ...wall, to: { x: 0, y: 100 } }, 'LEFT', 200)
+      ).toBeNull()
+    })
+
+    it('catches a token on the side picked and spares one on the other', () => {
+      const band = wallSideBandGeometry(
+        { x: 0, y: 0 },
+        { ...wall, to: { x: 0, y: 400 } },
+        'RIGHT',
+        200
+      )
+      if (!band) throw new Error('The band must have an outline.')
+      expect(
+        spatialGeometryOverlapsTokenFootprint({
+          geometry: band,
+          token: token(ids.targetToken, -150, 200)
+        })
+      ).toBe(true)
+      expect(
+        spatialGeometryOverlapsTokenFootprint({
+          geometry: band,
+          token: token(ids.targetToken, 150, 200)
+        })
+      ).toBe(false)
+    })
+  })
+})
+
+describe('spatial melee retaliation candidates (D153)', () => {
+  const sourceZone = (overrides: Partial<SpatialEffectInstance> = {}) =>
+    effect({
+      anchorKind: 'TOKEN',
+      sourceTokenId: ids.sourceToken,
+      geometry: {
+        frame: 'TOKEN_LOCAL',
+        shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 3 }
+      },
+      triggerModes: [],
+      retaliatesMeleeHits: true,
+      ...overrides
+    })
+  const collect = (
+    input: Partial<Parameters<typeof collectSpatialMeleeRetaliationCandidates>[0]> & {
+      readonly attackerAt?: number
+    } = {}
+  ) =>
+    collectSpatialMeleeRetaliationCandidates({
+      actorIdByTokenId: new Map([
+        [ids.sourceToken, ids.sourceActor],
+        [ids.targetToken, ids.targetActor]
+      ]),
+      effects: [sourceZone()],
+      attackerTokenId: ids.targetToken,
+      hitTokenId: ids.sourceToken,
+      tokens: [token(ids.sourceToken, 0), token(ids.targetToken, input.attackerAt ?? 3)],
+      ...input
+    })
+
+  it('catches the attacker inside the hit creature’s retaliating zone, the zone’s source its source', () => {
+    expect(collect()).toEqual([
+      { effectId: ids.effect, sourceActorId: ids.sourceActor, targetActorId: ids.targetActor }
+    ])
+  })
+
+  it.each([
+    ['an attacker outside the zone', { attackerAt: 10 }],
+    ['a zone that does not retaliate', { effects: [sourceZone({ retaliatesMeleeHits: false })] }],
+    [
+      'a zone anchored to another token',
+      { effects: [sourceZone({ sourceTokenId: ids.targetToken, sourceActorId: ids.targetActor })] }
+    ],
+    ['a suppressed zone', { effects: [sourceZone({ suppressed: true })] }],
+    [
+      'an attacker the zone never catches',
+      { effects: [sourceZone({ unaffectedActorIds: [ids.targetActor] })] }
+    ],
+    ['an attacker hitting itself', { hitTokenId: ids.targetToken }]
+  ])('catches no one for %s', (_name, input) => {
+    expect(collect(input)).toEqual([])
+  })
+
+  it('raises no movement or turn candidate for a zone that only retaliates', () => {
+    const tokens = [token(ids.sourceToken, 0), token(ids.targetToken, 3)]
+    const actorIdByTokenId = new Map([
+      [ids.sourceToken, ids.sourceActor],
+      [ids.targetToken, ids.targetActor]
+    ])
+    expect(
+      collectSpatialMovementCandidates({
+        actorIdByTokenId,
+        effects: [sourceZone()],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 10, y: 0 },
+          { x: 3, y: 0 }
+        ],
+        tokens,
+        movingTokenId: ids.targetToken,
+        turnSequence: 1
+      })
+    ).toEqual([])
+    expect(
+      collectSpatialTurnCandidates({
+        actorIdByTokenId,
+        effects: [sourceZone()],
+        targetTokenId: ids.targetToken,
+        tokens,
+        trigger: 'START_OF_TURN',
+        turnSequence: 1
       })
     ).toEqual([])
   })

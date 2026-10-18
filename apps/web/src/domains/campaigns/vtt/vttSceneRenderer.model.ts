@@ -20,7 +20,10 @@ import {
   type SpatialAreaShape,
   type SpatialDirectedAreaSize,
   type SpatialPointAreaShape,
-  type SpatialTokenFootprint
+  type SpatialTokenFootprint,
+  type SpatialWallSide,
+  wallOutline,
+  wallSideBandGeometry
 } from '@artificer-toolkit/shared/vtt'
 
 const unexploredOpacity = 224
@@ -135,6 +138,7 @@ export type VttScenePresentationOverlay =
     }
 
 const pointAreaColor = 0xe8590c
+const areaBandColor = 0xfab005
 
 /**
  * Where the caster aimed an area: a point area's center, or a directed area's origin on their
@@ -145,13 +149,61 @@ export interface VttAreaAim {
   toward: ScenePoint | null
 }
 
-/** The selected action's area in Scene coordinates, before it is aimed. */
-export type VttAreaSize = SpatialPointAreaShape | SpatialDirectedAreaSize
+/**
+ * A zone's wall the caster draws (D154): a straight wall from one endpoint to the other, at most
+ * `maximum` long, or a ring around its center whose outer radius is at most `maximum` and more than
+ * `thickness`.
+ */
+export interface VttDrawnAreaSize {
+  kind: 'WALL' | 'RING'
+  maximum: number
+  thickness: number
+  /** The band beside the wall the zone also reaches (D154), once the caster picks its side. */
+  band?: { distance: number; side: SpatialWallSide }
+}
 
-/** The area `aim` places: null for a directed area that has no direction yet. */
+/** The selected action's area in Scene coordinates, before it is aimed. */
+export type VttAreaSize = SpatialPointAreaShape | SpatialDirectedAreaSize | VttDrawnAreaSize
+
+export function isDrawnAreaSize(size: VttAreaSize): size is VttDrawnAreaSize {
+  return size.kind === 'WALL' || size.kind === 'RING'
+}
+
+/** The area `aim` places: null for a directed or drawn area that has no direction yet. */
 export function aimedAreaShape(size: VttAreaSize, aim: VttAreaAim): SpatialAreaShape | null {
+  if (isDrawnAreaSize(size)) {
+    if (!aim.toward) return null
+    if (size.kind === 'WALL') return { kind: 'WALL', to: aim.toward, thickness: size.thickness }
+    const outerRadius = Math.hypot(aim.toward.x - aim.origin.x, aim.toward.y - aim.origin.y)
+    return { kind: 'RING', outerRadius, innerRadius: outerRadius - size.thickness }
+  }
   if (!isDirectedAreaShape(size)) return size
   return aim.toward ? { ...size, toward: aim.toward } : null
+}
+
+/**
+ * The wall or ring drawn from the press toward the pointer, its far point pulled in to the largest
+ * size the rules accept. Null for a wall of no length or a ring no wider than its thickness.
+ */
+export function drawnAreaAim({
+  pointer,
+  pressedAt,
+  size
+}: {
+  pointer: ScenePoint
+  pressedAt: ScenePoint
+  size: VttDrawnAreaSize
+}): { origin: ScenePoint; toward: ScenePoint } | null {
+  const length = Math.hypot(pointer.x - pressedAt.x, pointer.y - pressedAt.y)
+  if (length === 0 || (size.kind === 'RING' && length <= size.thickness)) return null
+  const scale = Math.min(1, size.maximum / length)
+  return {
+    origin: pressedAt,
+    toward: {
+      x: pressedAt.x + (pointer.x - pressedAt.x) * scale,
+      y: pressedAt.y + (pointer.y - pressedAt.y) * scale
+    }
+  }
 }
 
 /**
@@ -166,7 +218,8 @@ export function areaOverlay(
 ): VttScenePresentationOverlay | null {
   const shape = aimedAreaShape(size, aim)
   if (!shape) return null
-  if (shape.kind === 'RADIUS') {
+  // A ring is drawn by its outer edge.
+  if (shape.kind === 'RADIUS' || shape.kind === 'RING') {
     return {
       center: aim.origin,
       color: pointAreaColor,
@@ -174,13 +227,15 @@ export function areaOverlay(
       kind: 'CIRCLE',
       label: 'Area origin',
       purpose: 'TARGET',
-      radius: shape.radius
+      radius: shape.kind === 'RADIUS' ? shape.radius : shape.outerRadius
     }
   }
   const points =
     shape.kind === 'CUBE'
       ? pointCubeOutline(aim.origin, shape.edgeLength)
-      : caster && directedAreaOutline(aim.origin, shape, caster)
+      : shape.kind === 'WALL'
+        ? wallOutline(aim.origin, shape.to, shape.thickness)
+        : caster && directedAreaOutline(aim.origin, shape, caster)
   return points
     ? {
         color: pointAreaColor,
@@ -191,6 +246,35 @@ export function areaOverlay(
         purpose: 'TARGET'
       }
     : null
+}
+
+/**
+ * The band a drawn zone also reaches on the side the caster picked: the polygon beside a wall, or a
+ * ring's band drawn by its edge away from the wall. Null before a side is picked.
+ */
+export function areaBandOverlay(
+  size: VttAreaSize,
+  aim: VttAreaAim
+): VttScenePresentationOverlay | null {
+  if (!isDrawnAreaSize(size) || !size.band) return null
+  const shape = aimedAreaShape(size, aim)
+  if (shape?.kind !== 'WALL' && shape?.kind !== 'RING') return null
+  const band = wallSideBandGeometry(aim.origin, shape, size.band.side, size.band.distance)
+  if (!band) return null
+  const overlay = {
+    color: areaBandColor,
+    id: 'area-band',
+    label: 'Area band',
+    purpose: 'TARGET' as const
+  }
+  if (band.kind === 'POLYGON') return { ...overlay, kind: 'POLYGON', points: [...band.points] }
+  const radius =
+    band.kind === 'CIRCLE'
+      ? band.radius
+      : size.band.side === 'OUTSIDE'
+        ? band.outerRadius
+        : band.innerRadius
+  return { ...overlay, kind: 'CIRCLE', center: band.center, radius }
 }
 
 /**
@@ -340,9 +424,11 @@ export function stageOverlays({
   // A directed area is drawn from the token the action is previewed for.
   const caster = scene?.tokens.find((token) => token.id === actionPreview?.sourceTokenId) ?? null
   const picked = areaSize && areaAim && !aimingArea ? areaOverlay(areaSize, areaAim, caster) : null
+  const band = picked && areaSize && areaAim ? areaBandOverlay(areaSize, areaAim) : null
   const overlays = [
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
-    ...(picked ? [picked] : [])
+    ...(picked ? [picked] : []),
+    ...(band ? [band] : [])
   ]
   return overlays.length > 0 ? overlays : undefined
 }

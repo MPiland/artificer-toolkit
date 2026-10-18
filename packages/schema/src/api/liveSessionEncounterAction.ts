@@ -335,8 +335,13 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
-  /** The zone this action places at the picked point, which its undo deletes; null for none. */
-  placedZone: LiveSessionPlacedSpatialEffect | null
+  /**
+   * The records this action places where it was aimed, which its undo deletes: a zone's own, then one
+   * per band beside its wall (D154). Empty for none.
+   */
+  placedZones: LiveSessionPlacedSpatialEffect[]
+  /** The timed grant the placed zone gives its placer (D153); null for none. */
+  zoneSourceGrant: z.infer<typeof activeRuleEffectRecordSchema> | null
 }
 
 export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
@@ -362,7 +367,8 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       rollsPerTarget: z.boolean(),
       area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
       removal: z.nullable(removeAreaTargetInputDtoSchema),
-      placedZone: z.nullable(liveSessionPlacedSpatialEffectSchema),
+      placedZones: z.array(liveSessionPlacedSpatialEffectSchema).check(z.maxLength(5)),
+      zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),
       rules: encounterActorRuleOutputSchema,
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),

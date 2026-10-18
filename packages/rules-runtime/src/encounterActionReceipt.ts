@@ -6,6 +6,7 @@ import {
   type EncounterCounterCheckEvidenceDto,
   type EncounterFailedCounterDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -72,6 +73,8 @@ export function buildEncounterActionStoredExecution(input: {
   reactionEffectTransitions?: ReturnType<
     typeof projectNativeActionEffectTransitions
   >['activeEffectTransitions']
+  /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
+  meleeRetaliation?: MeleeRetaliationEvidenceDto | null
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -159,7 +162,8 @@ export function buildEncounterActionStoredExecution(input: {
             nestedD20: execution.nestedD20,
             targetTransition: mechanics.targetTransition,
             applications: mechanics.receiptApplications,
-            sourceApplications: settled.sourceApplications
+            sourceApplications: settled.sourceApplications,
+            ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {})
           }
         : {
             kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
@@ -196,7 +200,8 @@ export function buildEncounterActionStoredExecution(input: {
             nestedD20: execution.nestedD20,
             targetTransition: mechanics.targetTransition,
             applications: mechanics.receiptApplications,
-            sourceApplications: settled.sourceApplications
+            sourceApplications: settled.sourceApplications,
+            ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {})
           }
   })
 }
@@ -213,10 +218,14 @@ export function buildEncounterAreaStoredExecution(input: {
   caughtChecksum: string
   removedActorIds: readonly string[]
   targetOccurrenceIds: readonly string[]
-  /** The Scene spatial effect this action placed; its undo deletes it. */
-  placedSpatialEffectId: string | null
+  /** The Scene spatial effects this action placed (a zone's own and its bands); undo deletes them. */
+  placedSpatialEffectIds: readonly string[]
   /** The Concentration a zone-only cast opens; null when a creature outcome carries it or none opens. */
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
+  /** The timed grant the placed zone gave the source; its undo deletes it. */
+  sourceGrantTransition:
+    | ReturnType<typeof projectNativeActionEffectTransitions>['activeEffectTransitions'][number]
+    | null
   damage: ReturnType<typeof nativeConcentrationDamageApplications>
   spend: Pick<
     ReturnType<typeof planNativeEncounterAreaSourceSpend>,
@@ -246,9 +255,12 @@ export function buildEncounterAreaStoredExecution(input: {
       caughtChecksum: input.caughtChecksum,
       removedActorIds: input.removedActorIds,
       targetOccurrenceIds: input.targetOccurrenceIds,
-      placedSpatialEffectId: input.placedSpatialEffectId,
+      placedSpatialEffectIds: input.placedSpatialEffectIds,
       ...(input.maintenanceTransition
         ? { maintenanceTransition: input.maintenanceTransition }
+        : {}),
+      ...(input.sourceGrantTransition
+        ? { sourceGrantTransition: input.sourceGrantTransition }
         : {}),
       damage: input.damage,
       sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,

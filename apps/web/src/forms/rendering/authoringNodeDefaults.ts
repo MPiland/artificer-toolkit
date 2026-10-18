@@ -393,6 +393,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         blockingRules: [],
         destructionCriteria: []
       }
+    case 'manifestComponentRegion':
+      return { kind: 'SIDE_BAND', distance: createMeasurement('FEET') }
     case 'manifestCreatureForm':
       return {
         id: crypto.randomUUID(),
@@ -419,6 +421,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return {
         bright: createMeasurement('FEET'),
         dimAdditional: createMeasurement('FEET')
+      }
+    case 'manifestOccupantSaveBonus':
+      return {
+        id: crypto.randomUUID(),
+        domain: 'EVERY_SAVING_THROW',
+        amountKind: 'FIXED',
+        amount: 1,
+        dispositionFilter: 'ALLIES_AND_SOURCE'
       }
     case 'manifestProximityRule':
       return {

@@ -73,10 +73,12 @@ type AuthoringDefaultKind =
   | 'invocation'
   | 'manifestBehavior'
   | 'manifestComponent'
+  | 'manifestComponentRegion'
   | 'manifestCreatureForm'
   | 'manifestCreatureFormFilter'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
+  | 'manifestOccupantSaveBonus'
   | 'manifestProximityRule'
   | 'measurement'
   | 'measurementScalingBreakpoint'
@@ -219,10 +221,12 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
+  manifestComponentRegion: ['manifestComponentRegion'],
   manifestCreatureForm: ['manifestCreatureForm'],
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
+  manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],
   manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],

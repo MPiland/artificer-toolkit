@@ -1,4 +1,4 @@
-import { z, lazySchema } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
   characterRulePolicyInputSchema,
@@ -9,13 +9,19 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import { shapeDtoSchema } from '../shared/shape.js'
+import { abilityCodeSchema } from '../shared/enums.js'
+import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
   spatialTriggerDtoSchema,
   spatialTurnTriggerDtoSchema
 } from '../shared/spatialFacts.js'
-import { compiledSpatialHeldConditionDtoSchema, spatialZoneLabelSchema } from '../shared/spatial.js'
+import {
+  compiledSpatialHeldConditionDtoSchema,
+  spatialZoneLabelSchema,
+  zoneBlockingRulesSchema,
+  zoneMovementCostMultiplierSchema
+} from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -326,49 +332,110 @@ const compiledActionActiveEffectPlanSchema: z.ZodMiniType<CompiledActionActiveEf
  * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
  * known; everything else is compiled from the authored manifest.
  */
+/**
+ * What one component of a zone does where it reaches (D154): the movements and turn boundaries that
+ * catch a creature there, and the save and outcomes it runs.
+ */
+const zoneComponentShape = lazySchemaParts(() => ({
+  label: spatialZoneLabelSchema,
+  triggerModes: z.array(spatialTriggerDtoSchema).check(z.maxLength(3)),
+  /** Turn boundaries at which a creature standing in the zone is caught; absent for none. */
+  turnTriggers: z.optional(
+    z
+      .array(spatialTurnTriggerDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
+  ),
+  /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
+  bypassAtHalfSpeed: z.optional(z.boolean()),
+  /** How many times the zone may catch one creature in one turn; absent for no limit. */
+  maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
+  /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
+  requiresFullyWithin: z.optional(z.boolean()),
+  movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
+  blockingRules: z.optional(zoneBlockingRulesSchema),
+  /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
+  failedSaveLosesAction: z.optional(z.boolean()),
+  /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
+  heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
+  /** What a creature the zone triggers on is put through (its authored save and outcomes). */
+  entry: compiledActionActiveEffectPlanSchema,
+  /** The grant a creature that fails the entry keeps; null when nothing lingers. */
+  grant: z.nullable(
+    z.strictObject({
+      applyGrantOutcomeId: serverUuidIdentityDtoSchema,
+      modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+      senses: z.array(senseOperationSchema).check(z.maxLength(200)),
+      /** The events whose first occurrence ends the grant (a heal ends a speed penalty). */
+      endOnEvents: activeEffectEndEventsSchema
+    })
+  )
+}))
+
+/**
+ * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
+ * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
+ * known; everything else is compiled from the authored manifest. Its first component covers its own
+ * shape; each region component covers an authored region beside it and is placed as a record of its
+ * own, maintained by the same Concentration (D154).
+ */
 export const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
     attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
-    label: spatialZoneLabelSchema,
     shape: shapeDtoSchema,
-    triggerModes: z.array(spatialTriggerDtoSchema).check(z.maxLength(3)),
-    /** Turn boundaries at which a creature standing in the zone is caught; absent for none. */
-    turnTriggers: z.optional(
-      z
-        .array(spatialTurnTriggerDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
-    ),
+    /**
+     * A hollow round zone's wall thickness (D154): the zone is a ring whose inner radius is its
+     * outer radius less this. Absent for a filled zone.
+     */
+    ringThickness: z.optional(z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })),
+    ...zoneComponentShape(),
     /**
      * Whether an attacker standing in a SOURCE zone who hits its source with a melee attack is
      * caught (D153); absent when not.
      */
     retaliatesMeleeHits: z.optional(z.literal(true)),
-    /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
-    bypassAtHalfSpeed: z.optional(z.boolean()),
     /** Whether the caster designates creatures at cast that the zone never affects. */
     choosesUnaffected: z.optional(z.boolean()),
-    /** How many times the zone may catch one creature in one turn; absent for no limit. */
-    maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
-    /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
-    requiresFullyWithin: z.optional(z.boolean()),
-    /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
-    failedSaveLosesAction: z.optional(z.boolean()),
-    /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
-    heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
-    /** What a creature the zone triggers on is put through (its authored save and outcomes). */
-    entry: compiledActionActiveEffectPlanSchema,
-    /** The grant a creature that fails the entry keeps; null when nothing lingers. */
-    grant: z.nullable(
+    /**
+     * The continuous bonus the zone adds to every saving throw of an occupant its filter matches
+     * (D155); absent for none. A source ability modifier is resolved and pinned at placement.
+     */
+    occupantSaveBonus: z.optional(
       z.strictObject({
-        applyGrantOutcomeId: serverUuidIdentityDtoSchema,
-        modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
-        senses: z.array(senseOperationSchema).check(z.maxLength(200)),
-        /** The events whose first occurrence ends the grant (a heal ends a speed penalty). */
-        endOnEvents: activeEffectEndEventsSchema
+        domain: z.literal('EVERY_SAVING_THROW'),
+        dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
+        amount: z.discriminatedUnion('kind', [
+          z.strictObject({
+            kind: z.literal('FIXED'),
+            value: z.number().check(z.int()).check(z.positive()).check(z.maximum(30))
+          }),
+          z.strictObject({
+            kind: z.literal('SOURCE_ABILITY_MODIFIER'),
+            ability: abilityCodeSchema,
+            minimum: z.nullable(z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30)))
+          })
+        ])
       })
     ),
-    /** The Concentration the placing cast opens; the zone depends on it (D135). */
+    /**
+     * The components that reach a band beside the zone's shape on the side its caster chooses: a
+     * straight wall's left or right, a ring's inside or outside (D154). Absent for none.
+     */
+    regionComponents: z.optional(
+      z
+        .array(
+          z.strictObject({
+            region: z.strictObject({
+              kind: z.literal('SIDE_BAND'),
+              distance: z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })
+            }),
+            ...zoneComponentShape()
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(4))
+    ),
+    /** The Concentration the placing cast opens; every record it places depends on it (D135). */
     maintenance: compiledActionMaintenanceSchema,
     /** The timed grant the zone's placer holds once it is placed (D153); absent for none. */
     sourceGrant: z.optional(compiledActionActiveEffectPlanSchema)
@@ -379,8 +446,9 @@ export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlace
 
 /**
  * The zones an action places when its caster picks one at cast (D140): one plan per option of its
- * ON_USE CHOICE path. The options share what is settled before the pick: the area, whether the
- * caster spares creatures, and the Concentration the cast opens.
+ * ON_USE CHOICE path. The options share what is settled before the pick: where the zone is anchored,
+ * whether the caster spares creatures, the Concentration the cast opens and the save DC; each may
+ * have its own area (D154).
  */
 const compiledActionZoneChoiceSchema = lazySchema(() =>
   z.strictObject({

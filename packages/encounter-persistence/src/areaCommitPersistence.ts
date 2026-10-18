@@ -22,6 +22,8 @@ import {
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -76,6 +78,7 @@ import type {
 import { readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -333,8 +336,9 @@ export async function persistEncounterAreaCommit(
   if (
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== scope.caughtChecksum ||
-    root.placedSpatialEffectId !== (input.placedZone?.id ?? null) ||
-    (scope.zoneSceneId !== null) !== (input.placedZone !== null) ||
+    checksumCanonicalJson(root.placedSpatialEffectIds) !==
+      checksumCanonicalJson(input.placedZones.map(({ id }) => id)) ||
+    (scope.zoneSceneId !== null) !== input.placedZones.length > 0 ||
     checksumCanonicalJson(root.removedActorIds) !== checksumCanonicalJson(scope.removedActorIds) ||
     checksumCanonicalJson(root.targetOccurrenceIds) !==
       checksumCanonicalJson(kept.map(({ occurrenceId }) => occurrenceId)) ||
@@ -431,9 +435,10 @@ export async function persistEncounterAreaCommit(
   if (
     (maintained.length > 0 || rootMaintenance !== null) !== (input.maintainedState !== null) ||
     (maintained.length > 0 && rootMaintenance !== null) ||
-    (input.placedZone &&
-      input.placedZone.maintainedEffectStateId !== null &&
-      input.placedZone.maintainedEffectStateId !== input.maintainedState?.id)
+    input.placedZones.some(
+      ({ maintainedEffectStateId }) =>
+        maintainedEffectStateId !== null && maintainedEffectStateId !== input.maintainedState?.id
+    )
   )
     throw new Error('Live Session area maintenance scope mismatch.')
   const carrier = maintained[0] ?? null
@@ -691,12 +696,52 @@ export async function persistEncounterAreaCommit(
       created: input.maintainedState,
       occurredAt: input.occurredAt
     })
-  if (input.placedZone && scope.zoneSceneId !== null)
-    await createPlacedSpatialEffect(ctx, {
-      encounterId: state.id,
-      sceneId: scope.zoneSceneId,
-      zone: input.placedZone
+  // A zone's own record, then its bands (D154), in the order the cast planned them.
+  if (scope.zoneSceneId !== null)
+    for (const zone of input.placedZones)
+      await createPlacedSpatialEffect(ctx, {
+        encounterId: state.id,
+        sceneId: scope.zoneSceneId,
+        zone
+      })
+  // The placed zone's timed grant lands on its placer (D153), exactly as the root receipted it.
+  const grant = input.zoneSourceGrant
+  const origin = grant?.definition.origin
+  if (
+    checksumCanonicalJson(
+      (grant &&
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: source.id
+        }).activeEffectTransitions[0]) ??
+        null
+    ) !== checksumCanonicalJson(root.sourceGrantTransition ?? null) ||
+    (grant &&
+      (input.placedZones.length === 0 ||
+        checksumCanonicalJson(grant.owner) !==
+          checksumCanonicalJson(turnEffectOwner(source, state.id)) ||
+        grant.maintainedEffectStateId !== null ||
+        origin?.kind !== 'ENCOUNTER' ||
+        origin.sourceAggregateId !== state.id ||
+        origin.sourceActorId !== source.id ||
+        origin.sourceOccurrenceId !== areaOccurrenceId ||
+        origin.rootCommandId !== command.commandId ||
+        grant.definition.frozenGraph.source.gameSystemId !== state.gameSystemId))
+  )
+    throw new Error('Live Session zone source grant mismatch.')
+  if (grant) {
+    const created = await createActiveRuleEffectStore(ctx).create({
+      id: grant.id,
+      owner: grant.owner,
+      definition: grant.definition,
+      lifecycle: grant.lifecycle,
+      maintainedEffectStateId: null,
+      occurredAt: input.occurredAt
     })
+    if (checksumCanonicalJson(created) !== checksumCanonicalJson(grant))
+      throw new Error('Live Session zone source grant changed before settlement.')
+  }
   for (const child of children) {
     const { execution, actor, occurrenceId, createdEffects } = child
     await persistCompletedChild(ctx, {

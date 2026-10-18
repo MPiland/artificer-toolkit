@@ -280,7 +280,7 @@ export function projectEncounterSpatialOccurrenceSummary(
       }
     }
   }
-  if (!spatialCandidate || !spatialCandidate.d20Policy) {
+  if (!spatialCandidate) {
     throw new EncounterConflictError('The spatial occurrence has no resolvable evidence request.')
   }
   const rollerActorId = spatialPendingRollerActorId(spatialCandidate)
@@ -292,7 +292,8 @@ export function projectEncounterSpatialOccurrenceSummary(
       pending: null
     }
   }
-  if (spatialCandidate.diceStage) {
+  // The damage dice of a resolved save's failure, or of an outcome with no save (D154).
+  if (!spatialCandidate.d20Policy || spatialCandidate.diceStage) {
     return {
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,

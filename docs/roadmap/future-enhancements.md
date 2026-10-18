@@ -87,6 +87,13 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Triggered Character auras while the source is down (D155).** A Character-sourced passive zone with an ENTER or turn trigger would still catch while its source is unconscious, because the spatial readers do not read Character play state. No SRD Character has such a zone. Thread an unconscious-source input through the spatial readers if homebrew content needs one.
+
+- **Aura bonus pinned at placement (D155).** An occupant save bonus such as Aura of Protection pins the source's ability modifier when the zone is placed. A mid-Run Charisma change updates it only when the token is rebound.
+
+- **A reactor dropped by melee retaliation keeps its Concentration until the next check (SPELLS-20.T6d2b, D153, D95).** When a Fire Shield or similar zone drops an opportunity attacker to 0 hit points, the movement's D95 end pass still looks only at the mover, so the reactor's Concentration is not ended in that settlement. Needs a holder that is both shielded and the target of a concentrating reactor; fix by running the D95 end over every damaged actor of the settlement.
+- **Flaky lease-renewal test.** `apps/session-worker/test/nativeRoomAdmission.test.ts` ("renews the authorization lease with one read per half-lease...") once made 4 authorization reads instead of 3 (Tests 39111148417, attempt 1) and passed on rerun. Likely a timer-boundary race in the test clock. Fix if it recurs.
+
 - **Fire Shield past 100 rounds or recast (D153):** the zone lasts the Run while its resistance expires after 100 turns, and recasting while it is up stacks a second zone; dismissing it early is not offered. A timed zone lifetime would close all three.
 
 - **A cast-time pick on a movement reaction (SPELLS-30.T1, D148).** A Character reaction whose effect offers a CHOICE pick is still discovered as a movement reaction, then fails to prepare with a raw `CastChoiceUnavailableError` instead of being dropped as stale. No SRD reaction offers a pick; fix by skipping such sources at discovery when one does.
@@ -257,6 +264,10 @@ A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scen
 ### Disarm defender picks its check (D152)
 
 Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
+
+### Wind Wall blocks projectiles and gases (D154)
+
+Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectiles, its block on gases and fog, and its ranged-attack interaction are not modeled yet.
 
 ### Shared live cursors (Q19)
 

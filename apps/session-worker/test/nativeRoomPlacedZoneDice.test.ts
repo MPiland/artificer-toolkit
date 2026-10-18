@@ -1,4 +1,9 @@
 import {
+  diceDamage,
+  noSave,
+  variantEquipment
+} from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
+import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
@@ -60,9 +65,9 @@ function diceRoom(
     Parameters<typeof actionRoom>[0],
     'playerControlledActorIds' | 'otherPlayerControlledActorIds'
   > = {},
-  diceConfig = '1d4'
+  diceConfig = '1d4',
+  diceCaltrops = diceCaltropsOf(diceConfig)
 ) {
-  const diceCaltrops = diceCaltropsOf(diceConfig)
   return actionRoom({
     ...seating,
     actors: [
@@ -293,5 +298,75 @@ describe('a placed zone whose damage dice the source controller rolls (SPELLS-20
 
     expect(refused.type).toBe('COMMAND_REJECTED')
     expect(await room.room.pending()).not.toBeNull()
+  })
+})
+
+describe('a placed zone with no save that a mover enters (SPELLS-4.T1b, D154)', () => {
+  /** The 1d4 field authored from core options to deal its dice, with no save, to a creature entering it. */
+  const enteredField = variantEquipment((parts) => {
+    diceDamage('1d4')(parts)
+    noSave(['ENTER_SPACE'])(parts)
+  })
+
+  it('deals the rolled dice to the entering creature with no save and lets it walk on', async () => {
+    const room = await diceRoom('EVERYONE', {}, '1d4', enteredField)
+    const [zone] = await (async () => {
+      const { answer } = await room.startAreaAction(FIELD_POINT)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      return readZones(room)
+    })()
+    expect(zone?.placement).toMatchObject({ triggerModes: ['ENTER'] })
+    expect(zone?.placement.turnTriggers ?? []).toEqual([])
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WALKER_ID)
+
+    const walk = await walkerMoves(room, WALK_INTO)
+
+    expect(walk.executions).toHaveLength(1)
+    expect(walk.executions[0]).toMatchObject({
+      candidate: { d20Policy: null, diceStage: null },
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: ROLLED_DAMAGE })]
+    })
+    expect(walk.executions[0]?.execution.movementInterruption ?? null).toBeNull()
+    expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - ROLLED_DAMAGE)
+    // The one die drawn is the damage die: no save was rolled.
+    expect(room.room.diceDrawn()).toBe(1)
+  })
+
+  it('asks the source controller for the dice and applies the entered total', async () => {
+    const room = await diceRoom(
+      'GAME_MASTER',
+      { playerControlledActorIds: [SPREADER_ACTOR_ID] },
+      '1d4',
+      enteredField
+    )
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WALKER_ID)
+    const walked = await room.room.move(
+      WALK_INTO,
+      await room.version(),
+      room.room.scene.version,
+      room.room.scene.tokens[1]!.id
+    )
+    expect(walked.type, JSON.stringify(walked)).toBe('COMMAND_COMMITTED')
+
+    const prompt = await room.room.pendingFor(true)
+    expect(prompt).toMatchObject({
+      kind: 'ACTION_OUTCOME_EVIDENCE',
+      rollerActorId: SPREADER_ACTOR_ID,
+      request: { min: 1, max: 4 },
+      allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+    })
+    if (prompt?.kind !== 'ACTION_OUTCOME_EVIDENCE') throw new Error('Expected the damage die.')
+    const answered = await (
+      await room.room.asPlayer()
+    ).respond({ kind: 'ENTER_INTEGER', requestId: prompt.request.requestId, value: 2 })
+
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    expect(await room.room.pending()).toBeNull()
+    expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - 2)
+    expect(room.room.diceDrawn()).toBe(0)
   })
 })

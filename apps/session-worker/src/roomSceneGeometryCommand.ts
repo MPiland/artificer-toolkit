@@ -57,7 +57,7 @@ import {
   stageRoomSceneGeometryFog
 } from './roomSceneGeometryPublication.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
-import { readRoomSceneEntities, readRoomSceneHeader } from './roomSceneRead.js'
+import { readRoomSceneEntities, readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
@@ -331,7 +331,9 @@ export async function executeRoomSceneGeometry(input: {
         persistReaction: (step) =>
           persistLiveMovementReaction(ctx, step, {
             applyMechanics,
-            readCampaignCharacterState
+            readCampaignCharacterState,
+            readSceneTokens: async (sceneId) =>
+              (await readRoomSceneState(transaction, sceneId)).scene.tokens
           }),
         persistConcentration: (step) =>
           persistLiveMovementConcentration(ctx, step, concentrationCallbacks),

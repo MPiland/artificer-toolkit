@@ -44,14 +44,16 @@ export const MANIFEST_BLOCKING_RULE = {
   NONMAGICAL_RANGED_ATTACKS: 'NONMAGICAL_RANGED_ATTACKS',
   MAGICAL_RANGED_ATTACKS: 'MAGICAL_RANGED_ATTACKS',
   SPELLS: 'SPELLS',
-  THREE_QUARTERS_COVER: 'THREE_QUARTERS_COVER'
+  THREE_QUARTERS_COVER: 'THREE_QUARTERS_COVER',
+  BLOCKS_SIGHT: 'BLOCKS_SIGHT'
 } as const
 
 export const MANIFEST_BLOCKING_RULE_OPTIONS = [
   { code: MANIFEST_BLOCKING_RULE.NONMAGICAL_RANGED_ATTACKS, label: 'Nonmagical Ranged Attacks' },
   { code: MANIFEST_BLOCKING_RULE.MAGICAL_RANGED_ATTACKS, label: 'Magical Ranged Attacks' },
   { code: MANIFEST_BLOCKING_RULE.SPELLS, label: 'Spells' },
-  { code: MANIFEST_BLOCKING_RULE.THREE_QUARTERS_COVER, label: 'Three-Quarters Cover' }
+  { code: MANIFEST_BLOCKING_RULE.THREE_QUARTERS_COVER, label: 'Three-Quarters Cover' },
+  { code: MANIFEST_BLOCKING_RULE.BLOCKS_SIGHT, label: 'Blocks Sight' }
 ] as const
 
 export const MANIFEST_SUPPRESSION_IMMUNITY = {
@@ -138,10 +140,28 @@ export type ManifestInteractionKind =
   | 'START_OF_ATTACHED_TARGET_TURN'
   | 'END_OF_ATTACHED_TARGET_NEXT_TURN'
 
+/**
+ * A continuous bonus to every saving throw of an occupant the filter matches (D155); a source ability
+ * modifier is resolved when the zone is placed and pinned.
+ */
+export type ManifestOccupantSaveBonusAuthored = {
+  id: string
+  domain: 'EVERY_SAVING_THROW'
+  dispositionFilter: 'ALLIES_AND_SOURCE'
+} & (
+  | { amountKind: 'FIXED'; amount: number }
+  | { amountKind: 'SOURCE_ABILITY_MODIFIER'; ability: AbilityCode; minimum?: number }
+)
+
 export type ManifestComponentAuthored = {
   id: string
   order: number
   label: string
+  /**
+   * Where the component reaches, when not the manifest's own shape: SIDE_BAND covers the shape
+   * plus `distance` on the side its caster chooses (beside a wall, inside or outside a ring).
+   */
+  region?: { kind: 'SIDE_BAND'; distance: { amount: number; unit: LengthUnitCode } }
   interactionKinds?: ManifestInteractionKind[]
   bypassAtHalfSpeed?: boolean
   choosesUnaffected?: boolean
@@ -149,6 +169,7 @@ export type ManifestComponentAuthored = {
   requiresFullyWithin?: boolean
   /** A target immune to this damage type succeeds on the component's save unrolled. */
   automaticSaveSuccessImmunityDamageTypeId?: string
+  occupantSaveBonus?: ManifestOccupantSaveBonusAuthored
   requiresIgnition?: boolean
   maxApplicationsPerTurn?: number
   maxApplicationsTotal?: number

@@ -51,6 +51,8 @@ import {
   resumeEncounterMovementLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterMovementReactionExecution'
 import { replayEncounterMovementReactionAction } from '@artificer-toolkit/rules-runtime/encounterMovementReactionReplay'
+import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
+import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import {
   planEncounterMovementReactionAction,
   type MovementReactionSettlementInput
@@ -86,6 +88,7 @@ import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
 import { readNativeLiveTurnUses } from './nativeTurnUses.js'
+import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import {
   prepareNativeLiveMovementConcentration,
   readNativeLiveMovementConcentrationState
@@ -313,13 +316,71 @@ export async function prepareNativeLiveMovement(
     })
   }
 
-  function planReaction(
+  async function planReaction(
     plan: MovementReactionSettlementInput<CharacterFacts, CharacterRow>,
-    actorUserId: string
+    actorUserId: string,
+    retainedRetaliation: MeleeRetaliationEvidenceDto | null
   ) {
-    const result = planEncounterMovementReactionAction(plan, actorUserId, (row) =>
+    const reacted = planEncounterMovementReactionAction(plan, actorUserId, (row) =>
       readNativeLiveMaintenanceCharacter(row, state.gameSystemId)
     )
+    // An opportunity attack that hits the mover in melee sets off the zones the mover holds
+    // against the reactor, with the mover where the attack caught it (D153).
+    const { prepared } = plan.prepared
+    const { candidate } = plan.prepared.option
+    const reactor = reacted.projectedTargets.get(candidate.reactorActorId)
+    const reactorToken = scene.tokens.find(({ id }) => id === candidate.reactorTokenId)
+    const retaliation =
+      reactor &&
+      reactorToken &&
+      isMeleeRetaliationHit({
+        gameSystemId: state.gameSystemId,
+        prepared,
+        resultPath: plan.execution.kind === 'COMPLETE' ? plan.execution.d20?.resultPath : undefined
+      })
+        ? await planNativeLiveMeleeRetaliation({
+            state,
+            attackerToken: { ...reactorToken, tokenId: reactorToken.id, actorId: reactor.actor.id },
+            hitToken: {
+              ...captured.token,
+              tokenId: captured.token.id,
+              actorId: candidate.movingActorId,
+              position: candidate.contact
+            },
+            effects: spatialEffects,
+            initialActors: [...finalActors.values()],
+            attacker: reactor,
+            occurrenceId: plan.occurrenceId,
+            sourceCommandId: plan.commandId,
+            occurredAt: plan.occurredAt,
+            userId: actorUserId,
+            runtime,
+            random,
+            ...(retainedRetaliation ? { retained: retainedRetaliation } : {})
+          })
+        : null
+    if (retainedRetaliation && !retaliation)
+      throw new Error('Retained melee retaliation evidence is stale.')
+    const { application } = reacted.reactionExecution
+    const retaliated =
+      retaliation &&
+      (application.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+        ? { ...application, meleeRetaliation: retaliation.evidence }
+        : null
+    if (retaliation && !retaliated)
+      throw new Error('Movement reaction retaliation requires a mechanics batch.')
+    const result =
+      retaliation && retaliated
+        ? {
+            ...reacted,
+            reactionExecution: { ...reacted.reactionExecution, application: retaliated },
+            projectedTargets: new Map(reacted.projectedTargets).set(
+              candidate.reactorActorId,
+              retaliation.projectedAttacker
+            )
+          }
+        : reacted
     for (const target of result.projectedTargets.values())
       finalActors.set(target.actor.id, target.actor)
     reactionSettlements.set(plan, {
