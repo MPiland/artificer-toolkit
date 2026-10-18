@@ -182,12 +182,12 @@ export type AreaActionTargetDto = Exclude<
   { kind: 'ACTOR' | 'ACTORS' }
 >
 
-/** The creature a single-target action aims at; an area or a creature list names none. */
 /** The option or zone the caster picked at cast (D140, D148); a directed area takes none. */
 export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): string | undefined {
   return 'choiceOptionId' in target ? target.choiceOptionId : undefined
 }
 
+/** The creature a single-target action aims at; an area or a creature list names none. */
 export function actionTargetActorId(target: ResolveEncounterActionTargetDto): string {
   if (target.kind !== 'ACTOR') throw new Error('Only a single-target action names one creature.')
   return target.actorId

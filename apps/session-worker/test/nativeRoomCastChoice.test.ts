@@ -51,7 +51,11 @@ function casterRoom(
   return actionRoom({
     ...dice,
     actors: [
-      characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+      {
+        ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        // Initiative reads the Character's frozen identity, which a turn change checks.
+        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+      },
       srdCreatureActor({ id: FIRST_ID, creature: plainWolf }),
       srdCreatureActor({ id: SECOND_ID, creature: plainWolf })
     ],
@@ -99,7 +103,7 @@ describe('room Protection from Energy cast with the damage type picked (SPELLS-3
     const fire = await offeredOptionId(room, 'Fire')
     const { answer } = await room.startAction(
       CHARACTER_ACTOR_ID,
-      [],
+      RANGE_UNCHECKED,
       null,
       null,
       room.actionId,
@@ -114,8 +118,10 @@ describe('room Protection from Energy cast with the damage type picked (SPELLS-3
     const fireOutcome = path.options.find((each) => each.id === fire)?.resultBlock.outcomes[0]
     if (fireOutcome?.effectKind !== 'APPLY_GRANT') throw new Error('Fire grants a modifier.')
     const firePayload = fireOutcome.grants.modifiers?.[0]?.payload
-    expect(history.characterEffects).toHaveLength(1)
-    const { stateContributions } = JSON.parse(history.characterEffects[0]!.definitionJson)
+    const [effect, ...otherEffects] = history.characterEffects
+    if (!effect) throw new Error('The cast held no effect.')
+    expect(otherEffects).toEqual([])
+    const { stateContributions } = JSON.parse(effect.definitionJson)
     expect(
       stateContributions.flatMap(
         ({ modifiers }: { modifiers: { valueDomainCode: string; payload: unknown }[] }) =>
@@ -124,6 +130,14 @@ describe('room Protection from Energy cast with the damage type picked (SPELLS-3
     ).toEqual([{ valueDomainCode: 'DAMAGE_RESISTANCE', payload: firePayload }])
     expect(await readMaintainedStates(room)).toHaveLength(1)
     expect(await readSpellSlots(room)).toEqual([{ slotKey: 'STANDARD:3', used: 1 }])
+  }, 120000)
+
+  it('reads the target modifiers before a pick, from the test every option shares', async () => {
+    const room = await casterRoom(protectionFromEnergy, label)
+    const modifiers = await room.actionTargetModifiers()
+    expect(modifiers.targets).toEqual(
+      [FIRST_ID, SECOND_ID].map((actorId) => ({ actorId, attack: null }))
+    )
   }, 120000)
 
   it.each([

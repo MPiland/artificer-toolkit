@@ -126,6 +126,11 @@ export async function prepareEncounterActionSource<
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   /** The option the caster picked of an action that offers a pick at cast (D140, D148). */
   choiceOptionId?: string
+  /**
+   * A read of the action's test alone, before any pick: every option shares it (options that test
+   * differently compile MANUAL), so the top-level option serves and no pick is asked for.
+   */
+  readsSharedTest?: boolean
 }) {
   const { state, actor, actionId, sourceFacts } = input
   const characterAction = sourceFacts.characterReactionSource
@@ -159,7 +164,7 @@ export async function prepareEncounterActionSource<
   )
   if (
     compilation?.choice
-      ? !picked
+      ? !picked && !input.readsSharedTest
       : input.choiceOptionId !== undefined && !compilation?.zonePlacement
   )
     throw new CastChoiceUnavailableError()
@@ -227,6 +232,8 @@ export async function prepareEncounterActionMechanics<
   actionId: string
   /** The option the caster picked at cast, as `prepareEncounterActionSource` takes it. */
   choiceOptionId?: string
+  /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
+  readsSharedTest?: boolean
   wieldConflictAcceptance: EncounterWieldConflictAcceptance
   /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
   overridable: boolean
@@ -322,7 +329,8 @@ export async function prepareEncounterActionMechanics<
     actionId,
     sourceFacts,
     loadSource: input.loadSource,
-    choiceOptionId: input.choiceOptionId
+    choiceOptionId: input.choiceOptionId,
+    readsSharedTest: input.readsSharedTest
   })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =

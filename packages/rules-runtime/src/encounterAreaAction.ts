@@ -243,16 +243,17 @@ export function encounterActionChoiceTarget(
   castChoice?: CompiledActionChoice | null
 ): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
-  const pickedOptions =
-    zonePlacement && 'options' in zonePlacement ? zonePlacement.options : castChoice?.options
-  const choiceOptions = pickedOptions
-    ? { choiceOptions: pickedOptions.map(({ optionId, label }) => ({ id: optionId, label })) }
-    : {}
+  const offered = (options: readonly { optionId: string; label: string }[] | undefined) =>
+    options
+      ? { choiceOptions: options.map(({ optionId, label }) => ({ id: optionId, label })) }
+      : {}
+  // A zone is picked where it is placed; any other pick on the creatures targeted.
+  const choiceOptions = offered(castChoice?.options)
   const zoneChoices = {
     ...(zonePlacement && sharedZonePlacement(zonePlacement).choosesUnaffected
       ? { choosesUnaffected: true as const }
       : {}),
-    ...choiceOptions
+    ...offered(zonePlacement && 'options' in zonePlacement ? zonePlacement.options : undefined)
   }
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting

@@ -21,6 +21,7 @@ import {
 } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
+  encounterActionChoiceTarget,
   resolveAreaContentsTargeting,
   resolveChosenCreaturesTargeting
 } from './encounterAreaAction.js'
@@ -288,7 +289,15 @@ export function compileCharacterActionEntryPoints(
           label: option.label,
           ...compileActionPlans(adapter, { ...descriptor, compiledEffect: option.compiledEffect })
         }))
-        // The pick is made at cast, after the test and Concentration are settled (D148).
+        // The pick is made at cast on the creatures targeted, after the test and Concentration
+        // are settled (D148); only a creature target carries it.
+        if (
+          options &&
+          !['ACTOR', 'ACTORS'].includes(encounterActionChoiceTarget(exactTargetPolicy).kind)
+        )
+          throw new CharacterRuleActionUnsupportedCompilationError(
+            'Only a cast at chosen creatures carries a pick.'
+          )
         if (
           options &&
           new Set(

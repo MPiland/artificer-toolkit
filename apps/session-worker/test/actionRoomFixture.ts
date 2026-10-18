@@ -745,6 +745,13 @@ export async function actionRoom(config: ActionRoomConfig) {
         }
       })
     },
+    /** What each creature would add to the acting actor's attack with its action, off the Scene. */
+    async actionTargetModifiers() {
+      return readRoom({
+        kind: 'ACTION_TARGET_MODIFIERS',
+        input: { encounterId: room.encounterId, actorId: source.id, actionId, scene: null }
+      })
+    },
     /** The PENDING decision, as the room shows it to the GM; throws when none waits. */
     async pendingDecision() {
       const decision = await readPendingActionDecision(room.base.stub)

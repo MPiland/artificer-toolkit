@@ -297,6 +297,20 @@ const HYPNOTIC_PATTERN_FROM_CORE_OPTIONS = {
   ]
 } as SpellAuthored
 
+/** Protection from Energy cast on its caster alone, so its pick has no chosen creature to go with. */
+const PROTECTION_FROM_ENERGY_ON_SELF = {
+  ...PROTECTION_FROM_ENERGY,
+  id: testUuid(0x3200),
+  effects: PROTECTION_FROM_ENERGY.effects?.map((effect) => ({
+    ...effect,
+    invocation: {
+      ...effect.invocation,
+      range: { ...effect.invocation.range, rangeKind: 'SELF' },
+      targeting: { selectionKind: 'SELF' }
+    }
+  }))
+} as SpellAuthored
+
 const authoredById = new Map(
   [
     SLEEP,
@@ -317,6 +331,7 @@ const authoredById = new Map(
     CHARM_PERSON,
     FEAR,
     PROTECTION_FROM_ENERGY,
+    PROTECTION_FROM_ENERGY_ON_SELF,
     BLINDNESS_DEAFNESS,
     WATCHFUL_MIASMA,
     GAPPED_HEAL,
@@ -908,6 +923,11 @@ describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', (
       maxTargets: 2,
       choiceOptions: [{ label: 'Blindness' }, { label: 'Deafness' }]
     })
+  })
+
+  it('stays manual when its pick has no chosen creature to travel with', () => {
+    expect(compiledCastEntry(PROTECTION_FROM_ENERGY)?.compilation.choice).not.toBeNull()
+    expect(compiledCastEntry(PROTECTION_FROM_ENERGY_ON_SELF)).toBeNull()
   })
 })
 

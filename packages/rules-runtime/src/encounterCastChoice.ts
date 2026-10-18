@@ -9,30 +9,31 @@ export function castChoiceOptions(
   compiledEffect: CompiledEffectGroup
 ): { optionId: string; label: string; compiledEffect: CompiledEffectGroup }[] | null {
   const choiceEntries = compiledEffect.entries.filter((entry) => entry.groupKind === 'CHOICE')
-  const [first] = choiceEntries
+  const picks = choiceEntries.flatMap((entry) =>
+    'outcome' in entry &&
+    entry.resolutionKind === 'DIRECT' &&
+    entry.optionGroupKind !== undefined &&
+    entry.label
+      ? [{ entry, groupKind: entry.optionGroupKind, label: entry.label }]
+      : []
+  )
+  const [first] = picks
   if (
     !first ||
-    !choiceEntries.every(
-      (entry) =>
-        'outcome' in entry &&
-        entry.resolutionKind === 'DIRECT' &&
-        entry.optionGroupKind !== undefined &&
-        entry.pathGroupId === first.pathGroupId &&
-        entry.label !== undefined
-    )
+    picks.length !== choiceEntries.length ||
+    !picks.every(({ entry }) => entry.pathGroupId === first.entry.pathGroupId)
   )
     return null
-  const optionIds = [...new Set(choiceEntries.map(({ entryId }) => entryId))]
-  if (optionIds.length < 2) return null
-  return optionIds.map((optionId) => {
+  const labels = new Map(picks.map(({ entry, label }) => [entry.entryId, label]))
+  if (labels.size < 2) return null
+  return [...labels].map(([optionId, label]) => {
     const entries = compiledEffect.entries.flatMap((entry) => {
       if (entry.groupKind !== 'CHOICE') return [entry]
-      if (entry.entryId !== optionId || !('outcome' in entry) || entry.resolutionKind !== 'DIRECT')
-        return []
-      const { optionGroupKind, ...picked } = entry
-      return [{ ...picked, groupKind: optionGroupKind ?? 'SINGLE' }]
+      const pick = picks.find((each) => each.entry === entry)
+      if (pick?.entry.entryId !== optionId) return []
+      const { optionGroupKind: _kind, ...picked } = pick.entry
+      return [{ ...picked, groupKind: pick.groupKind }]
     })
-    const label = choiceEntries.find((entry) => entry.entryId === optionId)?.label ?? ''
     return { optionId, label, compiledEffect: { ...compiledEffect, entries } }
   })
 }

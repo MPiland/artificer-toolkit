@@ -6,6 +6,7 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   actionTargetActorId,
+  castChoiceOptionId,
   resolveEncounterActionInputDtoSchema,
   type RemoveAreaTargetInputDto,
   type ResolveEncounterActionInputDto,
@@ -456,7 +457,7 @@ export async function planNativeLiveEncounterAction(
     }
   }
   const targetActorId = actionTargetActorId(command.target)
-  const { choiceOptionId } = command.target
+  const choiceOptionId = castChoiceOptionId(command.target)
   const selectedActors = actors.filter(
     (actor) => actor.id === command.actorId || actor.id === targetActorId
   )

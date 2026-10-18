@@ -79,6 +79,8 @@ export async function readEncounterActionTargetModifiers(
         actionId: request.actionId,
         wieldConflictAcceptance: { kind: 'UNPROMPTED' },
         overridable: true,
+        // The pick is made at cast; the attack this read shows is the test every option shares.
+        readsSharedTest: true,
         movementTargets,
         sceneContext,
         // The prompt's belief is what this read shows, so believed sight is both sights here.
