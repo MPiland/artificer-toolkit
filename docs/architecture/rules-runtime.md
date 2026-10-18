@@ -450,6 +450,10 @@ rebinding its token, deletes them first. While the source is defeated its passiv
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
 placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
+source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
+zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. Current:
+`planEncounterPlacedZone` refuses such a zone until placement resolves the amount and radius against the source (T5b).
 `MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
 other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
 authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the

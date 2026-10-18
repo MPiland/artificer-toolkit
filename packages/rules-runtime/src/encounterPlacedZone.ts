@@ -39,6 +39,10 @@ export function planEncounterPlacedZone(
 ): LiveSessionPlacedSpatialEffect {
   const { zone, point, area } = input
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
+  // Transitional (D155): placement does not yet resolve an occupant save bonus or a radius scaled
+  // by class level against the source, so such a zone is refused rather than placed unresolved.
+  if (zone.occupantSaveBonus || ('radius' in zone.shape && zone.shape.radius.scaling))
+    throw new Error('A zone resolved against its source at placement is not placeable yet.')
   return placedZoneRecord(
     input,
     input.id,

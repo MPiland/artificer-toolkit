@@ -9,6 +9,7 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
+import { abilityCodeSchema } from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
@@ -395,6 +396,27 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     retaliatesMeleeHits: z.optional(z.literal(true)),
     /** Whether the caster designates creatures at cast that the zone never affects. */
     choosesUnaffected: z.optional(z.boolean()),
+    /**
+     * The continuous bonus the zone adds to every saving throw of an occupant its filter matches
+     * (D155); absent for none. A source ability modifier is resolved and pinned at placement.
+     */
+    occupantSaveBonus: z.optional(
+      z.strictObject({
+        domain: z.literal('EVERY_SAVING_THROW'),
+        dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
+        amount: z.discriminatedUnion('kind', [
+          z.strictObject({
+            kind: z.literal('FIXED'),
+            value: z.number().check(z.int()).check(z.positive()).check(z.maximum(30))
+          }),
+          z.strictObject({
+            kind: z.literal('SOURCE_ABILITY_MODIFIER'),
+            ability: abilityCodeSchema,
+            minimum: z.nullable(z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30)))
+          })
+        ])
+      })
+    ),
     /**
      * The components that reach a band beside the zone's shape on the side its caster chooses: a
      * straight wall's left or right, a ring's inside or outside (D154). Absent for none.

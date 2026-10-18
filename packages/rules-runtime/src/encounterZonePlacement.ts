@@ -29,9 +29,12 @@ export interface PlacedSpaceZone {
   ringThickness?: CompiledActionZonePlacement['ringThickness']
   /**
    * Its components in authored order, each with the one behavior its entry runs: the first covers
-   * the zone's shape, each later one the region it authors (D154).
+   * the zone's shape, each later one the region it authors (D154). A component that only lends an
+   * occupant save bonus runs no behavior (D155).
    */
-  components: Array<{ component: CompiledManifestComponent; behavior: CompiledEffectGroup }>
+  components: Array<{ component: CompiledManifestComponent; behavior: CompiledEffectGroup | null }>
+  /** The zone's compiled entry: its manifest outcome. */
+  entry: CompiledEffectGroup['entries'][number]
   /** The one APPLY_GRANT entry authored beside the zone, which its placer holds; null for none. */
   sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
 }
@@ -61,6 +64,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'movementCostMultiplier',
   'blockingRules',
   'automaticSaveSuccessImmunityDamageTypeId',
+  'occupantSaveBonus',
   'behaviors'
 ])
 
@@ -115,6 +119,7 @@ function singlePlacedSpaceManifest(
  */
 function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
   manifest: PlacedSpaceManifest
+  entry: CompiledEffectGroup['entries'][number]
   sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
 } | null {
   const zones = compiledEffect.entries.filter(
@@ -134,7 +139,11 @@ function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
     others.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT')
   )
     return null
-  return { manifest: zone.outcome as PlacedSpaceManifest, sourceGrantEntry: others[0] ?? null }
+  return {
+    manifest: zone.outcome as PlacedSpaceManifest,
+    entry: zone,
+    sourceGrantEntry: others[0] ?? null
+  }
 }
 
 /**
@@ -145,7 +154,7 @@ function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
 export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpaceZone | null {
   const entries = placedSpaceEntries(compiledEffect)
   if (!entries) return null
-  const { manifest, sourceGrantEntry } = entries
+  const { manifest, entry, sourceGrantEntry } = entries
   if (hasUnmodeledField(manifest, MODELED_MANIFEST_KEYS))
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone models only its label, shape and entering components.'
@@ -166,6 +175,14 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
         'A placed zone component models only its region, interaction and behavior.'
       )
     const [behavior] = component.behaviors ?? []
+    // A component lending an occupant save bonus acts on no one, so it authors no behavior (D155).
+    if (component.occupantSaveBonus) {
+      if (component.behaviors?.length)
+        throw new CharacterRuleActionUnsupportedCompilationError(
+          'A zone lending an occupant save bonus authors no behavior.'
+        )
+      return { component, behavior: null }
+    }
     if (component.behaviors?.length !== 1 || !behavior)
       throw new CharacterRuleActionUnsupportedCompilationError(
         'A placed zone component needs exactly one behavior.'
@@ -183,6 +200,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     shape,
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     components: planned,
+    entry,
     sourceGrantEntry
   }
 }

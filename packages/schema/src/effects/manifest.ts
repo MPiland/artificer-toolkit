@@ -4,6 +4,7 @@ import { shapeDtoSchema } from '../shared/shape.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
 import {
+  abilityCodeSchema,
   lengthUnitCodeSchema,
   manifestBlockingRuleSchema,
   sizeCodeSchema
@@ -46,6 +47,32 @@ const manifestCreatureFormFilterDtoSchema = lazySchema(() =>
     excludedSpeedIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
   })
 )
+
+/**
+ * A continuous bonus a zone gives the creatures standing in it (D155: Aura of Protection): added to
+ * every saving throw of an occupant its disposition filter matches, while the zone is unsuppressed. A
+ * source ability modifier is resolved against the zone's source when it is placed, then pinned.
+ */
+const manifestOccupantSaveBonusDtoSchema = lazySchema(() => {
+  const shared = {
+    id: authoredIdentifierSchema,
+    domain: z.literal('EVERY_SAVING_THROW'),
+    dispositionFilter: z.literal('ALLIES_AND_SOURCE')
+  }
+  return z.union([
+    z.object({
+      ...shared,
+      amountKind: z.literal('FIXED'),
+      amount: z.number().check(z.int()).check(z.positive())
+    }),
+    z.object({
+      ...shared,
+      amountKind: z.literal('SOURCE_ABILITY_MODIFIER'),
+      ability: abilityCodeSchema,
+      minimum: z.optional(z.number().check(z.int()))
+    })
+  ])
+})
 
 const manifestDestructionCriterionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -211,6 +238,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             movementCostMultiplier: z.optional(z.number().check(z.positive())),
             requiresFullyWithin: z.optional(z.boolean()),
             automaticSaveSuccessImmunityDamageTypeId: z.optional(authoredIdentifierSchema),
+            occupantSaveBonus: z.optional(manifestOccupantSaveBonusDtoSchema),
 
             requiresIgnition: z.optional(z.boolean()),
             maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
