@@ -7641,7 +7641,7 @@
             },
             {
               "id": "SPELLS-4.T1b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7651,7 +7651,7 @@
                 "after": ["SPELLS-4.T1b"]
               },
               "text": "Wall of Fire's damaging side (D154): a cast-time choice of the wall's damaging side and a one-sided 10 ft band geometry; a creature ending its turn in the band, or entering it, takes the fire damage. Proved on Wall of Fire with a room journey.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Wall of Fire's 10 ft side band (D154 T1b2 amendment): multi-component zones, SIDE_BAND regions, the cast target's side, shared Concentration maintenance. Proof: apps/session-worker/test/nativeRoomWallZoneSpells.test.ts. Green: ci/spells-4-t1b2 22dfb3b42 Tests 39119514539, Live 39117864840; batch ci/merge-m106 97b7fcde7 Tests 39120786629, Live 39120786644; phase merge 836a356b0."
             },
             {
               "id": "SPELLS-4.T1c",
@@ -7711,7 +7711,7 @@
             },
             {
               "id": "SPELLS-4.T1g",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7720,7 +7720,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1e"]
               },
-              "text": "Cast-time area save on a zone-placing cast (D154 T1g amendment): the spell authors an ON_USE save path beside its zone manifest, run as the cast's area occurrence against the creatures in the aimed area, once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns, Wind Wall and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each."
+              "text": "Cast-time area save on a zone-placing cast (D154 T1g amendment): the spell authors an ON_USE save path beside its zone manifest, run as the cast's area occurrence against the creatures in the aimed area, once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns, Wind Wall and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2",
