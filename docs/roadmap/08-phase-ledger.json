@@ -7789,6 +7789,19 @@
               "note": "Proof: apps/session-worker/test/nativeRoomWallZoneSpells.test.ts (Wall of Thorns: placed wall, full and half damage passing through, turn-end damage, ×4 movement cost). Green: ci/spells-4-t1i 61847825d Tests 39131091086; phase merge 993cdf6a7 (fast path)."
             },
             {
+              "id": "SPELLS-4.T1j",
+              "status": "TODO",
+              "closes": ["SPELLS-4.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-4.T1h"]
+              },
+              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18."
+            },
+            {
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a1",
