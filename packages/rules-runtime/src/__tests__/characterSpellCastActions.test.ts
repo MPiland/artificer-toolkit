@@ -1596,7 +1596,7 @@ const mindBlankForRounds = (rounds: number): SpellAuthored => ({
   effects: MIND_BLANK.effects?.map((effect) => ({
     ...effect,
     paths: effect.paths.map((path) =>
-      path.resultBlock.duration
+      path.selectionKind === 'FIXED' && path.resultBlock.duration
         ? {
             ...path,
             resultBlock: {
