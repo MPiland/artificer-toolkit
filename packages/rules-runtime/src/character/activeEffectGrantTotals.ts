@@ -3,6 +3,7 @@ import type {
   CharacterGrantFoldSense
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 
 import { modifierLengthFeet } from '../modifierLength.js'
 import {
@@ -18,6 +19,8 @@ type ActiveEffectGrant = {
   effectId: string
   modifiers: readonly CharacterGrantFoldModifier[]
   senses: readonly CharacterGrantFoldSense[]
+  sourceLabel: string
+  sourceHidden: boolean
 }
 
 export function listActiveEffectGrants(
@@ -27,7 +30,15 @@ export function listActiveEffectGrants(
     definition.schemaVersion === 2
       ? definition.stateContributions.flatMap((contribution) =>
           contribution.kind === 'MODIFIER_GRANT'
-            ? [{ effectId: id, modifiers: contribution.modifiers, senses: contribution.senses }]
+            ? [
+                {
+                  effectId: id,
+                  modifiers: contribution.modifiers,
+                  senses: contribution.senses,
+                  sourceLabel: contribution.sourceLabel,
+                  sourceHidden: contribution.sourceHidden
+                }
+              ]
             : []
         )
       : []
@@ -78,6 +89,79 @@ export function activeFixedGrantTotal(
     total += sign * payload.amount
   }
   return total
+}
+
+/**
+ * The dice a holder's active global rolled-die grants add to, or subtract from, one d20 test of a
+ * value domain (D156), for the grants whose domain `applies` accepts. Dice from different sources
+ * stack; one authored grant gives one die however many of its effects the holder carries (two
+ * casters' Bless). A hidden source reads as "Unseen source". Sorted by label, then grant, so every
+ * roll site and replay sees one order.
+ */
+function activeRolledDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER',
+  applies: DomainFilter
+): D20AddedDieDto[] {
+  const dice = new Map<string, D20AddedDieDto>()
+  for (const { modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(effects)) {
+    for (const modifier of modifiers) {
+      const { payload } = modifier
+      if (
+        modifier.valueDomainCode !== valueDomainCode ||
+        modifier.modifierKind !== 'ADD_BONUS_DIE' ||
+        modifier.scope !== 'GLOBAL' ||
+        dice.has(modifier.grantId) ||
+        !applies(modifier.domain)
+      )
+        continue
+      if (payload === undefined || !('count' in payload))
+        throw new Error('An active rolled-die grant must carry its dice.')
+      dice.set(modifier.grantId, {
+        label: sourceHidden ? 'Unseen source' : sourceLabel,
+        count: payload.count,
+        faces: payload.faces,
+        sign: payload.sign
+      })
+    }
+  }
+  return [...dice]
+    .sort(([leftGrant, left], [rightGrant, right]) =>
+      left.label === right.label
+        ? leftGrant.localeCompare(rightGrant)
+        : left.label.localeCompare(right.label)
+    )
+    .map(([, die]) => die)
+}
+
+/**
+ * The dice a holder's active grants add to its attack rolls of one attack domain. A grant naming an
+ * ability covers only attacks made with it (`attackAbility`).
+ */
+export function activeAttackRollDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackDomain: string,
+  attackAbility: string | null
+): D20AddedDieDto[] {
+  return activeRolledDice(
+    effects,
+    'ATTACK_ROLL',
+    (domain) =>
+      domain.attackDomain === attackDomain &&
+      (domain.ability === undefined || domain.ability === attackAbility)
+  )
+}
+
+/** The dice a holder's active grants add to its saving throws with one ability ("WISDOM"). */
+export function activeSavingThrowDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string
+): D20AddedDieDto[] {
+  return activeRolledDice(
+    effects,
+    'SAVING_THROW_MODIFIER',
+    (domain) => domain.ability === abilityCode
+  )
 }
 
 /**

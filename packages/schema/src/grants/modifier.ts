@@ -482,7 +482,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'SAVING_THROW_MODIFIER',
       'ADD_BONUS_DIE',
-      savingThrowParamDtoSchema,
+      abilityParamDtoSchema,
       rolledDiePayloadDtoSchema
     ),
     buildModifierGrantVariant(
@@ -514,7 +514,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'ATTACK_ROLL',
       'ADD_BONUS_DIE',
-      attackDomainParamDtoSchema,
+      attackRollRollModeParamDtoSchema,
       rolledDiePayloadDtoSchema
     ),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),

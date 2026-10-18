@@ -15,7 +15,11 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { effectiveHitPointMaximum } from '../character/activeEffectGrantTotals.js'
+import {
+  activeAttackRollDice,
+  activeSavingThrowDice,
+  effectiveHitPointMaximum
+} from '../character/activeEffectGrantTotals.js'
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
   creatureActiveGrantAttackContributors,
@@ -38,6 +42,8 @@ import { ENCOUNTER_ID, creatureActor, creatureRuleFacts } from '../testing/dnd5e
 import {
   aidEffect,
   antitoxinEffect,
+  baneEffect,
+  blessEffect,
   darkvisionEffect,
   disengageEffect,
   goldWeakeningEffect,
@@ -76,6 +82,59 @@ describe('the Antitoxin active effect', () => {
     expect(definition.schemaVersion === 2 && definition.stateContributions).toMatchObject([
       { kind: 'MODIFIER_GRANT', sourceLabel: 'Antitoxin (vial)', modifiers: expect.any(Array) }
     ])
+  })
+})
+
+describe('rolled dice from active grants (D156)', () => {
+  const bless = () => blessEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+  const bane = () => baneEffect({ id: OTHER_EFFECT_ID, holderActorId: HOLDER_ID })
+  const blessDie = { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
+  const baneDie = { label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' }
+
+  it('adds a d4 to every attack domain and every save under Bless, and nothing without it', () => {
+    for (const attackDomain of ['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
+      expect(activeAttackRollDice([bless()], attackDomain, 'STRENGTH')).toEqual([blessDie])
+    for (const ability of Object.keys(SRD_ABILITY_DEFINITION_IDS))
+      expect(activeSavingThrowDice([bless()], ability)).toEqual([blessDie])
+    expect(activeAttackRollDice([], 'MELEE', null)).toEqual([])
+    expect(activeSavingThrowDice([], 'WISDOM')).toEqual([])
+  })
+
+  it('subtracts a d4 under Bane, and stacks it beside Bless in label order', () => {
+    expect(activeSavingThrowDice([bless(), bane()], 'CHARISMA')).toEqual([baneDie, blessDie])
+    expect(activeAttackRollDice([bane(), bless()], 'RANGED', 'DEXTERITY')).toEqual([
+      baneDie,
+      blessDie
+    ])
+  })
+
+  it('gives one die for two effects of the same spell (two casters of Bless)', () => {
+    const second = blessEffect({ id: THIRD_EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(activeAttackRollDice([bless(), second], 'MELEE', 'STRENGTH')).toEqual([blessDie])
+  })
+
+  it('names a hidden source "Unseen source"', () => {
+    const hidden = bless()
+    if (hidden.definition.schemaVersion !== 2) throw new Error('Bless plans a version 2 effect.')
+    const definition = {
+      ...hidden.definition,
+      stateContributions: hidden.definition.stateContributions.map((contribution) =>
+        contribution.kind === 'MODIFIER_GRANT' ? { ...contribution, sourceHidden: true } : contribution
+      )
+    }
+    expect(activeSavingThrowDice([{ ...hidden, definition }], 'WISDOM')).toEqual([
+      { ...blessDie, label: 'Unseen source' }
+    ])
+  })
+
+  it('ignores fixed bonuses and roll modes on the same domains', () => {
+    expect(
+      activeAttackRollDice(
+        [viciousMockeryEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })],
+        'MELEE',
+        null
+      )
+    ).toEqual([])
   })
 })
 
