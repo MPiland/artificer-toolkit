@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   encounterConcentrationDroppedOutsideInputSchema,
+  encounterRelationshipsEndedInputSchema,
   type encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -29,7 +30,9 @@ function commandTimelineMetadata(command: StoredCommand) {
           ? encounterActorTokenBindingCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
           : command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
             ? encounterConcentrationDroppedOutsideInputSchema.parse(JSON.parse(command.commandJson))
-            : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
+            : command.commandType === 'RELATIONSHIPS_ENDED'
+              ? encounterRelationshipsEndedInputSchema.parse(JSON.parse(command.commandJson))
+              : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
   if (
     input !== null &&
     (input.type !== command.commandType ||
@@ -109,6 +112,7 @@ export function presentTimelineEntry(
       command.commandType === 'ESCAPE_RELATIONSHIP' ||
       command.commandType === 'END_HELD_GRANT' ||
       command.commandType === 'RELEASE_RELATIONSHIP' ||
+      command.commandType === 'RELATIONSHIPS_ENDED' ||
       command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
         ? command.label
         : null,

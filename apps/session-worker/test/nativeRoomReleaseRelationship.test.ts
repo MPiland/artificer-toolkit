@@ -68,7 +68,8 @@ async function releaseState(room: ReleaseRoom) {
   return {
     effectIds: history.activeEffects.map((effect) => effect.id),
     conditions: readActorConditionIds(history, HELD_ID),
-    releases: history.commands.filter((command) => command.commandType === 'RELEASE_RELATIONSHIP')
+    releases: history.commands.filter((command) => command.commandType === 'RELEASE_RELATIONSHIP'),
+    holdEnds: history.commands.filter((command) => command.commandType === 'RELATIONSHIPS_ENDED')
   }
 }
 
@@ -145,5 +146,69 @@ describe('a source releases the creature it holds (D152), in the room', () => {
     })
     expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
     expect((await releaseState(room)).effectIds).toEqual([])
+  })
+})
+
+/** The hold's end the room records once it breaks on its own. */
+const HOLD_ENDED = {
+  label: 'Hold ended',
+  receipt: {
+    relationshipEnds: [
+      { heldActorId: HELD_ID, activeEffectId: EFFECT_ID, removedConditionIds: [GRAPPLED] }
+    ]
+  }
+}
+
+describe('a hold ends on its own once it breaks (D152), in the room', () => {
+  /**
+   * The GM teleports the held Wolf's token, which starts at (150, 150) beside the grappler at
+   * (250, 150); tokens stand on 100px cells of 5 feet. Each move advances the Scene's version.
+   */
+  function heldMover(room: ReleaseRoom) {
+    let from = { x: 150, y: 150 }
+    let sceneVersion = room.room.scene.version
+    return async (to: { x: number; y: number }) => {
+      const answer = await room.room.teleport(
+        [from, to],
+        await room.version(),
+        sceneVersion,
+        room.room.moverTokenId
+      )
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      from = to
+      sceneVersion += 1
+    }
+  }
+
+  it('keeps the hold while the held creature stays within reach, and ends it once a move leaves it beyond', async () => {
+    const room = await releaseRoom()
+    const teleportHeld = heldMover(room)
+    // Below the grappler, and diagonal to it, the Wolf is still adjacent.
+    await teleportHeld({ x: 250, y: 250 })
+    await teleportHeld({ x: 150, y: 250 })
+    expect((await releaseState(room)).effectIds).toEqual([EFFECT_ID])
+
+    await teleportHeld({ x: 550, y: 150 })
+    await vi.waitFor(async () => expect((await releaseState(room)).effectIds).toEqual([]))
+    const state = await releaseState(room)
+    expect(state.conditions).toEqual([])
+    expect(state.holdEnds).toMatchObject([HOLD_ENDED])
+  })
+
+  it('ends the hold once its source can no longer act', async () => {
+    const room = await releaseRoom()
+    const answer = await room.send({
+      type: 'UPDATE_ACTOR',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: GRAPPLER_ID,
+      currentHitPoints: 0
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(async () => expect((await releaseState(room)).effectIds).toEqual([]))
+    const state = await releaseState(room)
+    expect(state.conditions).toEqual([])
+    expect(state.holdEnds).toMatchObject([HOLD_ENDED])
   })
 })

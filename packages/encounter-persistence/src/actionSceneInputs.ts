@@ -162,12 +162,7 @@ export async function readEncounterActionAreaSceneInputs(
   callbacks: EncounterActionSceneReaders
 ) {
   const { header, readToken } = await openActionScene(ctx, state, command, callbacks)
-  const rows = await ctx.db
-    .query('encounterActorTokenBindings')
-    .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', state.id))
-    .take(MAX_ENCOUNTER_ACTORS + 1)
-  if (rows.length > MAX_ENCOUNTER_ACTORS) throw new Error('Action Scene token context is stale.')
-  const tokens = await Promise.all(rows.map((row) => readToken(row.tokenId, row.actorId)))
+  const tokens = await readBoundTokens(ctx, state, readToken)
   const sourceToken = tokens.find((token) => token.actorId === command.actorId)
   if (!sourceToken) throw new Error('Action Scene token context is stale.')
   return {
@@ -177,4 +172,47 @@ export async function readEncounterActionAreaSceneInputs(
     sourceToken,
     tokens
   }
+}
+
+/** Every creature token bound to the Encounter, read through the Scene's checked token reader. */
+async function readBoundTokens(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  readToken: Awaited<ReturnType<typeof openActionScene>>['readToken']
+) {
+  const rows = await ctx.db
+    .query('encounterActorTokenBindings')
+    .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', state.id))
+    .take(MAX_ENCOUNTER_ACTORS + 1)
+  if (rows.length > MAX_ENCOUNTER_ACTORS) throw new Error('Action Scene token context is stale.')
+  return Promise.all(rows.map((row) => readToken(row.tokenId, row.actorId)))
+}
+
+/**
+ * The current grid and every creature token bound to the Encounter on the Scene it is bound to;
+ * null when the Encounter has no Scene or `readScene` cannot read it.
+ */
+export async function readEncounterBoundSceneTokens(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  callbacks: Omit<EncounterActionSceneReaders, 'readScene'> & {
+    readScene(
+      sceneId: string
+    ): Promise<Awaited<ReturnType<EncounterActionSceneReaders['readScene']>> | null>
+  }
+) {
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
+    .unique()
+  if (!binding) return null
+  const scene = await callbacks.readScene(binding.sceneId)
+  if (!scene) return null
+  const { header, readToken } = await openActionScene(
+    ctx,
+    state,
+    { sceneId: binding.sceneId, expectedSceneVersion: scene.header.version },
+    { ...callbacks, readScene: async () => scene }
+  )
+  return { grid: header.grid, tokens: await readBoundTokens(ctx, state, readToken) }
 }

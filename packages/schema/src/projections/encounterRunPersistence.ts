@@ -90,6 +90,19 @@ export const encounterConcentrationDroppedOutsideInputSchema = lazySchema(() =>
 )
 
 /**
+ * The stored input of a Run command the room writes when relationships end on their own (D152): a
+ * source that can't act, or a held creature moved beyond the sealed reach. Never sent by a client,
+ * so it stays outside the Encounter command union.
+ */
+export const encounterRelationshipsEndedInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('RELATIONSHIPS_ENDED'),
+    commandId: postgresUuidSchema,
+    encounterId: postgresUuidSchema
+  })
+)
+
+/**
  * One actor's stored state (`encounterStoredRunActorStateSchema` JSON) with the checksum of its
  * play state: the actor without its source snapshot and without the facts derived from it (ADR 0035
  * Amendment 29). `snapshotChecksum`, `formOriginSnapshotChecksum` and `sourceFactsChecksum` repeat
@@ -460,6 +473,13 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         actorId: postgresUuidSchema,
         relationshipEnds: encounterRelationshipEndsSchema
       })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RELATIONSHIPS_ENDED'),
+      /** The timeline label: plain "Hold ended", which never names a creature a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      /** The holds that broke. An ended relationship is not restored by an undo. */
+      receipt: z.strictObject({ relationshipEnds: encounterRelationshipEndsSchema })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),

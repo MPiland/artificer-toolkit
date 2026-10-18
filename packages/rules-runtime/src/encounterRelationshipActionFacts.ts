@@ -9,32 +9,44 @@ import { EncounterValidationError } from './encounterErrors.js'
 
 export type EncounterRelationshipD20Contributor = Readonly<D20Contributor>
 
-type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
+export type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
   string,
   readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 >
 
 /**
- * The actor relationships `sourceActorId` applied, each with the actor holding the effect (the
+ * Every actor relationship an actor of the Run applied, each with that source and the actor holding the effect (the
  * related creature), read from the Run's active effects in actor-id order.
  */
-export function encounterSourceRelationships(
-  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
-  sourceActorId: string
+export function encounterRelationships(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
 ) {
   return [...activeEffectsByActorId]
     .sort(([left], [right]) => left.localeCompare(right))
     .flatMap(([actorId, effects]) =>
-      effects.flatMap((effect) =>
-        effect.definition.schemaVersion === 2 &&
-        effect.definition.origin.kind === 'ENCOUNTER' &&
-        effect.definition.origin.sourceActorId === sourceActorId
-          ? effect.definition.stateContributions.flatMap((contribution) =>
-              contribution.kind === 'ACTOR_RELATIONSHIP' ? [{ actorId, effect, contribution }] : []
-            )
-          : []
-      )
+      effects.flatMap((effect) => {
+        const { definition } = effect
+        if (definition.schemaVersion !== 2 || definition.origin.kind !== 'ENCOUNTER') return []
+        const { sourceActorId } = definition.origin
+        // A relationship no actor applied has no source to hold it.
+        if (!sourceActorId) return []
+        return definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP'
+            ? [{ sourceActorId, actorId, effect, contribution }]
+            : []
+        )
+      })
     )
+}
+
+/** The actor relationships `sourceActorId` applied, in actor-id order. */
+export function encounterSourceRelationships(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
+  sourceActorId: string
+) {
+  return encounterRelationships(activeEffectsByActorId).filter(
+    (relationship) => relationship.sourceActorId === sourceActorId
+  )
 }
 
 /** How many of the source's hands the creatures it holds fill (`SOURCE_OCCUPIES_HAND`, D152). */
