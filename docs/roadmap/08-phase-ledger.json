@@ -11647,7 +11647,7 @@
             },
             {
               "id": "SPELLS-33.T3a5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11656,7 +11656,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "Fold creature passive ON_HIT riders from other features into creature attacks through the Character collect, merge and reduce path; convert Assassin and Spy Sneak Attack (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Fold creature passive ON_HIT riders from other features into creature attacks through the Character collect, merge and reduce path; convert Assassin and Spy Sneak Attack (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "note": "Merged m143 (6f3847ff4)."
             },
             {
               "id": "SPELLS-33.T3a6",
