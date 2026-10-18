@@ -357,7 +357,9 @@ Forced-movement destinations (D157): an action whose push has two or more legal 
 `FORCED_MOVEMENT_DESTINATION` pending summary (`sourceActorId`, `targetActorId`, `requestId`, and the server-derived
 `positions`, 2 to `MAX_FORCED_MOVEMENT_DESTINATIONS`, staying put first when legal) with `allowedResponses`
 `['FORCED_MOVEMENT']`. The source's controller or the GM answers with a `FORCED_MOVEMENT` resolution (`requestId`,
-`position`); a square the summary did not offer is rejected and the pick stays open. The commit's
+`position`); a square the summary did not offer is rejected and the pick stays open. An area action's pushes surface
+the same summary once every save settled, one creature at a time, farthest first, its `requestId` naming the creature;
+only the GM and the caster's controllers read it. The commit's
 `LiveSessionForcedMovement` carries `upTo`, `sourceReachFeet` (set only for `ASIDE`) and the picked `position`.
 
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag

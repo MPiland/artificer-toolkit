@@ -134,8 +134,7 @@ import {
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import {
   liveSessionEncounterActionPendingInputSchema,
-  liveSessionEncounterActionCommitInputSchema,
-  type LiveSessionForcedMovement
+  liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
@@ -145,8 +144,10 @@ import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
   planNativeLiveEncounterAreaAnswer,
+  planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
-  planNativeLiveEncounterAreaRemoval
+  planNativeLiveEncounterAreaRemoval,
+  type ForcedMovementPick
 } from './nativeEncounterAreaRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
@@ -197,12 +198,11 @@ export async function planNativeLiveEncounterAction(
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
     captures: LiveCaptureReads
-    /** The legal squares the Encounter's Scene offers one forced movement now (D157). */
-    forcedMovementDestinations(input: {
-      encounterId: string
-      sourceActorId: string
-      movement: LiveSessionForcedMovement
-    }): Promise<SpatialPointDto[]>
+    /**
+     * The pick an action's forced movements owe their source next on the Encounter's Scene (D157):
+     * the farthest creature with two or more legal squares, its farther ones already landed.
+     */
+    forcedMovementPick: ForcedMovementPick
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
@@ -257,6 +257,10 @@ export async function planNativeLiveEncounterAction(
     ResolveRuleOccurrenceInputDto['resolution'],
     { kind: 'AREA_LEGENDARY_RESISTANCE' }
   > | null = null
+  let areaLanding: Extract<
+    ResolveRuleOccurrenceInputDto['resolution'],
+    { kind: 'FORCED_MOVEMENT' }
+  > | null = null
   let resistanceAnswer: {
     offer: EncounterLegendaryResistanceOfferDto
     selection: EncounterLegendaryResistanceSelection
@@ -285,6 +289,8 @@ export async function planNativeLiveEncounterAction(
       admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null
     )
     if (resolution.kind === 'AREA_LEGENDARY_RESISTANCE') areaDecision = resolution
+    // An area's push pick is the area's own, never its pushed creature's save (D157).
+    else if (areaSnapshot && resolution.kind === 'FORCED_MOVEMENT') areaLanding = resolution
     else if (snapshot.applicationContext.legendaryResistance) {
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a Legendary Resistance decision.')
@@ -433,6 +439,7 @@ export async function planNativeLiveEncounterAction(
         : undefined
     const areaInput = {
       castResume,
+      forcedMovementPick: executionOptions.forcedMovementPick,
       initial,
       command: { ...command, target },
       fingerprint: admission.fingerprint,
@@ -469,6 +476,17 @@ export async function planNativeLiveEncounterAction(
             response: responseCommand,
             areaSnapshot,
             decision: areaDecision
+          })),
+          dependencies,
+          revisions
+        }
+      if (areaLanding)
+        return {
+          ...(await planNativeLiveEncounterAreaForcedMovement({
+            ...areaInput,
+            response: responseCommand,
+            areaSnapshot,
+            landing: areaLanding
           })),
           dependencies,
           revisions
@@ -1193,22 +1211,11 @@ export async function planNativeLiveEncounterAction(
     targetActorId: prepared.target.id
   })
   // A movement with two or more legal squares waits for its source to pick one (D157).
-  const picks = await Promise.all(
-    interpretedMovements.map(async (movement) => {
-      const positions = await executionOptions.forcedMovementDestinations({
-        encounterId: state.id,
-        sourceActorId: prepared.actor.id,
-        movement
-      })
-      return positions.length > 1 ? { movement, positions } : null
-    })
-  )
-  const owedPicks = picks.filter((pick) => pick !== null)
-  if (owedPicks.length > 1)
-    throw new Error(
-      'An action that moves its target more than one chosen way is not supported yet.'
-    )
-  const [owedPick] = owedPicks
+  const owedPick = await executionOptions.forcedMovementPick({
+    encounterId: state.id,
+    sourceActorId: prepared.actor.id,
+    movements: interpretedMovements
+  })
   if (owedPick && !forcedMovementAnswer)
     return {
       ...preflight(),
@@ -1226,7 +1233,7 @@ export async function planNativeLiveEncounterAction(
           nestedD20: execution.nestedD20
         },
         outcomePhase: execution.outcomePhase,
-        targetActorId: owedPick.movement.targetActorId,
+        targetActorId: owedPick.targetActorId,
         positions: owedPick.positions
       }),
       failedCounters
@@ -1243,7 +1250,9 @@ export async function planNativeLiveEncounterAction(
         })
       : null
   const forcedMovements = interpretedMovements.map((movement) =>
-    movement === owedPick?.movement ? { ...movement, position: chosenPosition } : movement
+    movement.targetActorId === owedPick?.targetActorId
+      ? { ...movement, position: chosenPosition }
+      : movement
   )
   const applications = [
     ...execution.applications,

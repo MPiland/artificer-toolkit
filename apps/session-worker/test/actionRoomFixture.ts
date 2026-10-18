@@ -294,11 +294,15 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
   })
 }
 
-/** `base` with its Bite's failed save moving the target `feet` in `direction` instead of damage. */
+/**
+ * `base` with its Bite's failed save moving the target `feet` (exactly, or up to) in `direction`
+ * instead of damage.
+ */
 export function forceOnFailedSave(
   base: CreatureAuthored,
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE',
-  feet: number
+  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY',
+  feet: number,
+  distanceMode: 'EXACT' | 'UP_TO' = 'EXACT'
 ): CreatureAuthored {
   return creatureAuthoredDtoSchema.parse({
     ...base,
@@ -327,7 +331,7 @@ export function forceOnFailedSave(
                         effectKind: 'FORCED_MOVEMENT' as const,
                         direction,
                         actionEconomy: 'NONE' as const,
-                        distanceMode: 'EXACT' as const,
+                        distanceMode,
                         amount: feet,
                         unit: 'FEET' as const
                       }
