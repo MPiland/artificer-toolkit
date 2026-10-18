@@ -81,7 +81,8 @@ import {
   resolveChosenCreaturesTargeting,
   encounterAreaTargetKind
 } from '../../encounterAreaAction.js'
-import { placedSpaceZone, zoneChoiceOptions, zoneTriggers } from '../../encounterZonePlacement.js'
+import { castChoiceOptions } from '../../encounterCastChoice.js'
+import { placedSpaceZone, zoneTriggers } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
@@ -2169,7 +2170,7 @@ function durationPublishedGraph(input: {
 function zoneChoicePlan(
   action: Dnd5eCompiledEffectActionSource
 ): CharacterRuleActionZoneChoicePlan | null {
-  const choices = zoneChoiceOptions(action.compiledEffect)
+  const choices = castChoiceOptions(action.compiledEffect)
   if (!choices) return null
   const options = choices.flatMap(({ optionId, label, compiledEffect }) => {
     const zone = zonePlacementPlan({ ...action, compiledEffect })

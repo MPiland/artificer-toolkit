@@ -28,6 +28,14 @@ export class StaleCharacterActionError extends EncounterConflictError {
   }
 }
 
+/** A cast names no option, or one its action does not offer, of a pick made at cast (D148). */
+export class CastChoiceUnavailableError extends Error {
+  constructor() {
+    super('Pick one of the options this action offers.')
+    this.name = 'CastChoiceUnavailableError'
+  }
+}
+
 /** A Creature action whose authored mechanics cannot run was chosen; discovery lists it unavailable with the reason. */
 export class UnavailableCreatureActionError extends Error {
   constructor(label: string, reason: string) {
