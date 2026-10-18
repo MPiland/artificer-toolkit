@@ -31,8 +31,9 @@ import {
   getInventoryCurrencyTotals
 } from './characterSheetInventory.utils'
 import {
+  characterCurrencyIdentity,
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import { toNumber } from '../core/characterSheet.utils'
 import { AppSelect } from '#ui/primitives/Select'
@@ -79,18 +80,14 @@ export function CharacterSheetInventory({
   const currencyTotals = getInventoryCurrencyTotals(sheet)
   const currencyRows = getInventoryCurrencyRows(sheet)
   const currentCurrencyOptions = sheet.reference.currencyOptions.map((option) => {
-    const identity = resolveCharacterCurrencyIdentity({ currencyId: option.id }, [option])
+    const identity = currencyOptionIdentity(option)
     return { ...option, identity, key: createCharacterCurrencyIdentityKey(identity) }
   })
   const currentCurrencyByKey = new Map(currentCurrencyOptions.map((option) => [option.key, option]))
   const heldCurrencyOptions = [
     ...new Map(
       sheet.inventory.currencies.map((currency) => {
-        const identity = resolveCharacterCurrencyIdentity(
-          currency,
-          sheet.reference.currencyOptions,
-          'PRESERVE'
-        )
+        const identity = characterCurrencyIdentity(currency)
         return [
           createCharacterCurrencyIdentityKey(identity),
           { identity, key: createCharacterCurrencyIdentityKey(identity), label: currency.label }

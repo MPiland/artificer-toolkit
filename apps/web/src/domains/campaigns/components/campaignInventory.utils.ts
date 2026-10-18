@@ -3,17 +3,14 @@ import type {
   CampaignDetailDto,
   CampaignContentMaturityDto
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type {
-  CharacterSheetCurrencyOptionDto,
-  CharacterSheetResponseDto
-} from '@artificer-toolkit/schema/api/characterSheetData'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type {
   CurrencySystemDto,
   InventoryDto,
   InventoryOwnerRefDto
 } from '@artificer-toolkit/schema/api/campaignInventory'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { resolveCharacterCurrencyIdentity } from '@artificer-toolkit/schema/shared/characterCurrency'
+import { characterCurrencyIdentity } from '@artificer-toolkit/schema/shared/characterCurrency'
 import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 
 type VehicleOption = { id: string; label: string | null }
@@ -90,7 +87,7 @@ export function inventoryCurrencyKey(
   currency: Pick<InventoryCurrency, 'kind' | 'campaignCurrencySystemId' | 'denominationId'>
 ): string {
   return JSON.stringify([
-    currency.kind ?? null,
+    currency.kind,
     currency.campaignCurrencySystemId ?? null,
     currency.denominationId
   ])
@@ -139,19 +136,6 @@ export function getCurrentCurrencyOptions(
   ]
 }
 
-function currentCurrencyReferences(
-  options: ReadonlyArray<InventoryCurrency>
-): CharacterSheetCurrencyOptionDto[] {
-  return options.map((option) => ({
-    id: option.denominationId,
-    label: option.label,
-    kind: option.kind,
-    ...(option.kind === 'CAMPAIGN' && option.campaignCurrencySystemId
-      ? { campaignCurrencySystemId: option.campaignCurrencySystemId }
-      : {})
-  }))
-}
-
 export function getCharacterInventoryCurrencies(
   currencies: CharacterSheetResponseDto['inventory']['currencies'],
   currencyOptions: ReadonlyArray<InventoryCurrency>
@@ -162,32 +146,26 @@ export function getCharacterInventoryCurrencies(
   try {
     const inventoryCurrencies: InventoryDto['currencies'] = []
     for (const currency of currencies) {
-      const identity = resolveCharacterCurrencyIdentity(
-        currency,
-        currentCurrencyReferences(currencyOptions),
-        'PRESERVE'
-      )
-      if (
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identity.currencyId)
-      )
-        return {
-          error: `Character inventory contains legacy non-UUID currency "${identity.currencyId}".`
-        }
+      const identity = characterCurrencyIdentity(currency)
       const option = optionByKey.get(
-        JSON.stringify([
-          identity.kind ?? null,
-          identity.campaignCurrencySystemId ?? null,
-          identity.currencyId
-        ])
+        inventoryCurrencyKey({
+          kind: identity.kind,
+          campaignCurrencySystemId: identity.campaignCurrencySystemId,
+          denominationId: identity.currencyId
+        })
       )
+      if (!option)
+        return {
+          error: `Character inventory holds currency "${identity.currencyId}" that the Campaign does not define.`
+        }
       inventoryCurrencies.push({
         kind: identity.kind,
         ...(identity.kind === 'CAMPAIGN'
           ? { campaignCurrencySystemId: identity.campaignCurrencySystemId }
           : {}),
         denominationId: identity.currencyId,
-        label: option?.label ?? currency.label,
-        abbreviation: option?.abbreviation ?? currency.label,
+        label: option.label,
+        abbreviation: option.abbreviation,
         amount: currency.amount,
         containerId: currency.containerId ?? null
       })

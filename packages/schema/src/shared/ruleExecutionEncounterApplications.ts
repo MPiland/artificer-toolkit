@@ -60,6 +60,10 @@ import {
   ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import {
+  meleeRetaliationEvidenceDtoSchema,
+  validateMeleeRetaliation
+} from './ruleExecutionEffectEvidence.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
 const concentrationCleanupDtoSchema = lazySchema(() =>
@@ -476,10 +480,13 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         .array(characterMechanicsApplicationDtoSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       /** The source's own conditions released by effects its action ended; empty when none. */
-      sourceApplications: sourceApplicationsDtoSchema
+      sourceApplications: sourceApplicationsDtoSchema,
+      /** The zones its target holds that this melee hit set off against the attacker (D153). */
+      meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
+        validateMeleeRetaliation(value, context)
         validateStateEffectTransitions({
           applications: value.applications,
           transitions: value.stateEffectTransitions,
@@ -1159,11 +1166,23 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
        * The Concentration a zone-only cast opens, which no creature outcome carries (D135). Absent
        * when a creature outcome carries it or the cast maintains nothing.
        */
-      maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema))
+      maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
+      /** The timed grant the placed zone gives its placer (D153), which GM undo deletes with it. */
+      sourceGrantTransition: z.optional(encounterActorActiveEffectCreateReceiptDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
         validateSourceSpendReceipts(value, context)
+        if (
+          value.sourceGrantTransition &&
+          (value.placedSpatialEffectId === null ||
+            value.sourceGrantTransition.targetActorId !== value.sourceActorId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceGrantTransition'],
+            message: 'An area root grants only its source, for the zone it placed.'
+          })
         if (new Set(value.targetOccurrenceIds).size !== value.targetOccurrenceIds.length)
           context.addIssue({
             code: 'custom',
@@ -1192,6 +1211,7 @@ export type EncounterAreaActionApplicationOutputDto = SourceSpendReceipts & {
   damage: z.infer<typeof concentrationDamageApplicationDtoSchema>[]
   placedSpatialEffectId: string | null
   maintenanceTransition?: z.infer<typeof maintainedEffectTransitionDtoSchema> | null
+  sourceGrantTransition?: z.infer<typeof encounterActorActiveEffectCreateReceiptDtoSchema>
 }
 
 /**

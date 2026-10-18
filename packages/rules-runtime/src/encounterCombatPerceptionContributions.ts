@@ -118,7 +118,7 @@ export function deriveConditionCombatPerceptionContributions(input: {
   return [...input.conditionDefinitions]
     .sort((left, right) => left.conditionDefinitionId.localeCompare(right.conditionDefinitionId))
     .flatMap((definition) =>
-      (definition.document.perceptionContributions ?? [])
+      definition.document.perceptionContributions
         .filter((contribution) => kinds.has(contribution.kind))
         .map((contribution): CombatPerceptionContributionSource => ({
           instanceId: conditionContributionInstanceId(

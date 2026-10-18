@@ -30,18 +30,13 @@ export async function createSystemSourceReader(
       ...(await authored(table)),
       ...(currentDraftFacts?.rows[table] ?? [])
     ],
-    readReusableDefinitions: () => readDefinitionOptions(ctx, systemId, userId, system.userId)
+    readReusableDefinitions: () => readDefinitionOptions(ctx, systemId, userId)
   })
 }
 
-async function readDefinitionOptions(
-  ctx: QueryCtx,
-  systemId: string,
-  userId: string,
-  systemAuthorUserId: string
-) {
+async function readDefinitionOptions(ctx: QueryCtx, systemId: string, userId: string) {
   const sources = await readAuthoringSources(ctx, systemId, userId)
-  return readCurrentSourceDefinitions(ctx, sources, userId, systemAuthorUserId).catch(() => {
+  return readCurrentSourceDefinitions(ctx, sources, userId).catch(() => {
     throw new Error('Stored authoring definition mismatch.')
   })
 }

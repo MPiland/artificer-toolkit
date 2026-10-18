@@ -4,14 +4,14 @@ Rules: [slice-workbook-rules.md](slice-workbook-rules.md). CI branch `ci/reliabi
 
 Typed identities replace label and string parsing for hit dice, skill abilities, roll-mode sources, initiative reads, and System-owned Concentration and melee classification. The slice is merged as three tasks:
 
-| Task | ACs                           | Status      |
-| ---- | ----------------------------- | ----------- |
-| T1a  | 6.1, 6.3, 6.15                | merged      |
-| T1b  | 6.16                          | merging     |
-| T1c  | 6.9                           | green       |
-| T2   | 6.12, 6.14, 6.17, 6.18        | D150 fix    |
-| T3   | 6.4, 6.10, 6.11, 6.19         | CI          |
-| T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | todo        |
+| Task | ACs                           | Status     |
+| ---- | ----------------------------- | ---------- |
+| T1a  | 6.1, 6.3, 6.15                | merged     |
+| T1b  | 6.16                          | merging    |
+| T1c  | 6.9                           | green      |
+| T2   | 6.12, 6.14, 6.17, 6.18        | done (m95) |
+| T3   | 6.4, 6.10, 6.11, 6.19         | green      |
+| T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | coded      |
 
 ## T1a: hit-die source kind, System skill abilities, shared initiative reader
 
@@ -59,6 +59,7 @@ CI branch `ci/reliability-6-t1b`. Rebased from local `r6-t1b` (571c6a5f3) onto t
 
 - 6.17: `resolveRecommendedCharacterBuilderSection` (rules-runtime `builderPresentation.ts`) still keeps its own issue-code lists per section, and it sends a background's chosen-grant choice to REVIEW. It could read `issue.sectionId` instead. That resolver is outside 6.17, which covers only the web's duplicate routing.
 - Other D&D imports in generic code are outside 6.16 (Concentration and melee only): rules-runtime `encounterConcentration.ts` still imports the D&D Constitution id and concentration DC policy; spell-attack classification (`isDnd5eSpellAttackKind`, `dnd5eAttackKind`) in `encounterActionMechanicsPreparation`, `encounterCastReactionDiscovery`, `encounterFeatureActionCapabilityDiscovery`, `encounterDisarmPreparation`; encounter-persistence `actionCommitPersistence` (add-speed, teleport), `actionDisarmReplay` (contest graph), `initiativeRollCards` (initiative fact keys); Worker `nativeEncounterCastReaction` (cancel triggering event), `nativeAttackEnemyProximity` (type); Convex `creatureLoadoutHands`, `developmentPolicies`.
+- Bug outside T4: rules-runtime `sheetProjection.ts:1282` looks up an item's `costLabel` by the raw `currencyId`, but `currencyLabels` is keyed by `createCharacterCurrencyIdentityKey`, so the label is always undefined. The fix keys the lookup by the RULESET identity of the cost; it needs its own regression test.
 
 ## T1c: typed roll-mode contributor source (6.9)
 
@@ -103,7 +104,50 @@ CI branch `ci/reliability-6-t3`.
 - 6.4: the fold switches are exhaustive over the grant kind. `SAVING_THROW_ABILITY` reached the untyped default, which copied `requiredIds`, `min` and `max` off the record by cast; it is now an explicit case that folds to `UNAVAILABLE` like the skill-score and saving-throw-bonus restrictions (an `UNAVAILABLE` condition reads none of those fields, so the result is the same). The proficiency compiler passes the authored grant through minus `restrictions` and `scalingKind`; an EQUIPMENT grant in ALL mode now keeps `category` and `properties`, and an empty-string category is kept. Fold results do not change: the fold reads `category` only for `EQUIPMENT_PROPERTY`.
 - 6.10: `details`, `features`, `proficiencies`, `senses`, the three damage-defense lists, `qualifiedDamageDefenses` and `conditionImmunities` are required in the schema and in `CreatureAuthored`. All 317 SRD Creature files state them; every `?? []` and `?.` at Creature-typed sites is gone; `blueprintSnapshots` parses without re-defaults. Development data: stored Creature documents without the arrays fail to parse, so the local backend is reset and reseeded at merge.
 - 6.11: `authoredSourceFacts` walks typed Subjects, effects, proficiency grants and features; behaviour is unchanged.
+- Green: tip 986d53cc0 (phase tip merged after m95), Tests 39097232591, Live backend 39097232561. Red proof (job 117586675186): RED for the Convex Character and encounter tests, the Worker area/breath journeys, `encounterAttackPerception`, `srdCreatureAttackSweep`, `characterHitpointsState`, `subject-schema-parsing`; RED-IMPORT `srdBreathWeaponAreas`, `creatureStatBlocks`; the rest are ALREADY-PASSING fixture updates.
+- Test changes that follow from the ACs, not weakened assertions: `builderChoices.test.ts` (two cases) and `commit.test.ts` expect `hitpoints.temp` to be `0` instead of undefined (6.19 makes it required); the encounter projection and store snapshots gain only `details: []`, `qualifiedDamageDefenses: []` and `senses: []` (6.10).
 - 6.19: `temp` is required in the Character hit-points schema and state; the `temp ?? 0` defaults are gone. `addExtra` builds a typed extra and returns early instead of asserting. `RoomInputs.heldOnly()` returns `HeldRoomInputs`, which the turn read ports require. The room store loads documents typed by table. `executeRelationship`, `getChildMapId` and `prepareAreaCaster` pass-throughs are removed.
+
+## T4: retired contract versions and legacy fallbacks (6.2, 6.5, 6.6, 6.7, 6.8, 6.13)
+
+CI branch `ci/reliability-6-t4`.
+
+| AC   | Proof                                                                                                                                                                                                         | Status |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.2  | `packages/rules-runtime/src/__tests__/compiledActionEntryVersions.test.ts` (a real compiled handaxe entry is v4; the same action as a v2 or v3 entry is refused)                                              | coded  |
+| 6.5  | `packages/schema/src/__tests__/character-currency.test.ts` (a holding without its kind is refused); the Convex currency tests name every kind                                                                 | coded  |
+| 6.6  | `apps/apis/convex/authoring/nodeRuntime.test.ts` (an imported definition stores contract version, publish time and the System owner as publisher; a row without that metadata is refused)                     | coded  |
+| 6.7  | `packages/schema/src/__tests__/rules-runtime-contracts.test.ts` (a v1 maintained descriptor without `emptyDependentPolicy` is refused)                                                                        | coded  |
+| 6.8  | `packages/schema/src/__tests__/subject-schema-parsing.test.ts` (v1, v2 and v3 System documents and snapshots are refused); `packages/shared/src/__tests__/skill-subject-aliases.test.ts` (no built-in skills) | coded  |
+| 6.13 | `apps/web/src/domains/campaigns/components/CampaignInventory.test.ts` (a holding is labelled only from the Campaign currency option it names; an undefined currency is refused)                               | coded  |
+
+- 6.2: only COMPILED v4 and MANUAL v1 Character action entries parse. The v2-only refinements never ran on v4 entries; they are deleted with the v2 and v3 variants, and the remaining check (an action picks its option or its zone, never both) is kept on v4.
+- 6.5/6.13: `kind` is required on every currency identity and holding; the `?? 'RULESET'` defaults, the "ambiguous legacy" resolver and the unresolved-UUID holding path are gone. Their retired-behaviour tests in `currencySystems.test.ts`, `CampaignInventory.test.ts` and the kindless "ambiguous" transfer step of `characterCurrencyTransfer.test.ts` are deleted and replaced by the refusal tests above.
+- 6.6: the SRD import never wrote publish metadata, so the "legacy" reader path was the live PLATFORM path. The import now writes `contractVersion`, `publishedAt` and `publishedBy` (the System owner), and the reader refuses a published row without them. The table fields stay optional for version-0 drafts. `nodeRuntime.test.ts`'s USER-source step now strips the metadata to keep testing its absence.
+- 6.7: the maintained-descriptor schema is v2 only, with `emptyDependentPolicy` required; both producers already set it.
+- 6.8: the System schema and seed record are v4 only. `SKILL_ABILITY_MAP` and its fallback are gone, so a Character with no vocabulary snapshot has no skills. `subject-schema-parsing.test.ts`'s v1-snapshot readability test (retired behaviour) is replaced by the refusal test.
+- Development data: stored currency holdings without `kind`, definitions without metadata and pre-v4 Systems fail to parse; the local backend is reset and reseeded at merge.
+- `_generated/api.d.ts` inlines the old optional shapes; the live-backend auto-fix regenerates it on the CI branch.
+- First CI run (39101740674) caught fixtures still on the retired shapes: the builder fixture and the `ADJUST_CURRENCY` contract fixture now name `kind: 'RULESET'`; `roomInputs` and `playSettingsOptions` insert published definitions with their publication metadata; `publication.test.ts` corrupts publication evidence by removing `publishedAt`, since import now writes complete metadata and setting `contractVersion` no longer corrupts it.
+- After the phase sync, the Worker room fixtures (`test/roomInputsFixture.ts`, `roomEncounterTurns.test.ts`) build a schema-v4 System with `abilities`.
+
+## T5: currency-identity cost labels, SRD price currencies, PBI journey (6.13)
+
+CI branch `ci/reliability-6-t5`.
+
+| AC   | Proof                                                                                                                                                                                                                                         | Status |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.13 | `packages/rules-runtime/src/__tests__/sheetItemCostLabel.test.ts` (an item's `costLabel` comes from its price currency's identity); `packages/source-data/src/srd/currencyPrices.test.ts` (sp, cp and gp prices name Silver, Copper and Gold) | coded  |
+
+Journey tests (real projection code, platform faked only):
+
+- `apps/apis/convex/campaigns/currencyLabels.test.ts`: a Campaign currency system reuses the gold id; holdings are adjusted into the party and transferred to the Character; the party list and the Character's inventory slice label each holding by its identity, and the Club's `costLabel` is its System currency.
+- `apps/web/src/domains/campaigns/components/CampaignCurrencyLabels.test.tsx`: the real Sheet projection of those holdings renders labelled in the Sheet inventory and in the Campaign inventory's Character view.
+
+- The item `costLabel` looked up `currencyLabels` by raw currency id after the map moved to identity keys, so every item lost its price label. It now uses the RULESET identity key.
+- `equipment/shared.ts` hard-coded the sp id as Electrum and the cp id as Silver, so every sp and cp price named the wrong denomination. The ids now come from `SRD_CURRENCIES` by code (orchestrator ruling: fix in T5, nothing else in the corpus). Changed fixture: `apps/session-worker/src/testing/characterPageFixture.ts` (the Club's retained rules JSON carries the corrected sp id and its recomputed checksum).
+- The web never renders item cost or `costLabel`; the Convex journey proves the label on the read contract.
+- The local browser proof was dropped by orchestrator ruling in favour of the CI-run journeys above; no browser runner code was added.
 
 ## Proposed ledger edits
 

@@ -61,6 +61,15 @@ export const spatialTurnContactDtoSchema = lazySchema(() =>
   })
 )
 
+/** A zone of the hit creature that answers a melee hit, and the attacker it catches (D153). */
+export const spatialMeleeRetaliationContactDtoSchema = lazySchema(() =>
+  z.strictObject({
+    effectId: postgresUuidSchema,
+    sourceActorId: postgresUuidSchema,
+    targetActorId: postgresUuidSchema
+  })
+)
+
 export type SpatialPointDto = z.infer<typeof spatialPointDtoSchema>
 export type SpatialMovementKindDto = z.infer<typeof spatialMovementKindDtoSchema>
 export type SpatialMovementCandidateDto = z.infer<typeof spatialMovementCandidateDtoSchema>

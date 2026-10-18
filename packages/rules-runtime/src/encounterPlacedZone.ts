@@ -120,6 +120,7 @@ export function planEncounterPlacedZone(input: {
         : {}),
       ...(zone.blockingRules ? { blockingRules: zone.blockingRules } : {}),
       ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
+      ...(zone.retaliatesMeleeHits ? { retaliatesMeleeHits: true } : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
       ...(heldCondition
         ? {

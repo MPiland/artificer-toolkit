@@ -105,11 +105,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
     if (response.kind !== 'MAINTENANCE_STATE' || !response.state)
       throw new Error('Turn maintenance state is unavailable.')
     const maintained = response.state
-    if (
-      maintained.descriptor.schemaVersion !== 1 &&
-      maintained.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY'
-    )
-      continue
+    if (maintained.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY') continue
     const slot = await readNativeLiveMaintenanceSlot({
       encounterId: state.id,
       actorId: maintained.ownerActorId,

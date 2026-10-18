@@ -59,13 +59,7 @@ export function prepareCharacterRuleSources(context: CharacterRuleContext) {
 
 function createAssemblyRegistry(context: CharacterRuleContext): CharacterAssemblyRegistry {
   const { registry } = context
-  const vocabularyDocument = context.vocabularySnapshot?.document
-  const currentVocabulary =
-    vocabularyDocument &&
-    'schemaVersion' in vocabularyDocument &&
-    vocabularyDocument.schemaVersion === 4
-      ? vocabularyDocument
-      : null
+  const vocabulary = context.vocabularySnapshot?.document
   const allFeatures = [
     ...registry.features,
     ...registry.races.flatMap((race) => [
@@ -95,9 +89,8 @@ function createAssemblyRegistry(context: CharacterRuleContext): CharacterAssembl
     spells: {},
     system: registry.system
       ? {
-          schemaVersion: currentVocabulary?.schemaVersion,
-          abilities: currentVocabulary?.abilities ?? [],
-          skills: currentVocabulary?.skills ?? registry.system.skills ?? [],
+          abilities: vocabulary?.abilities ?? [],
+          skills: vocabulary?.skills ?? [],
           speeds: registry.system.speeds ?? []
         }
       : undefined

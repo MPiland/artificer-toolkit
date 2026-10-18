@@ -117,6 +117,8 @@ export interface SpatialEffectInstance {
   readonly requiresFullyWithin?: boolean
   /** Catches no one while it rests, still drawn: a Creature's passive zone whose source is defeated (D144). */
   readonly suppressed?: boolean
+  /** Catches a creature inside it that hits the effect's source with a melee attack (D153). */
+  readonly retaliatesMeleeHits?: boolean
 }
 
 /** The space a token occupies. */
@@ -242,7 +244,9 @@ function validSpatialEffect(effect: SpatialEffectInstance, tokenIds: ReadonlySet
   return (
     anchorValid &&
     validSpatialGeometry(effect.geometry.shape) &&
-    (effect.triggerModes.length > 0 || (effect.turnTriggers?.length ?? 0) > 0) &&
+    (effect.triggerModes.length > 0 ||
+      (effect.turnTriggers?.length ?? 0) > 0 ||
+      effect.retaliatesMeleeHits === true) &&
     effect.movementKinds.length > 0
   )
 }
@@ -1488,6 +1492,61 @@ export function collectSpatialTurnCandidates(input: {
       sourceActorId: effect.sourceActorId,
       targetActorId,
       trigger: input.trigger
+    }))
+    .sort((left, right) => compareText(left.effectId, right.effectId))
+}
+
+export interface SpatialMeleeRetaliationCandidate {
+  readonly effectId: string
+  readonly sourceActorId: string
+  readonly targetActorId: string
+}
+
+/**
+ * The effects that answer a melee hit (D153): those anchored to the hit creature's token that
+ * retaliate, whose area the attacker's footprint shares area with and that do not exempt it. The
+ * attacker is the target of each. Like {@link collectSpatialTurnCandidates} it only reports
+ * contact facts.
+ */
+export function collectSpatialMeleeRetaliationCandidates(input: {
+  readonly actorIdByTokenId: ReadonlyMap<string, string>
+  readonly effects: readonly SpatialEffectInstance[]
+  readonly attackerTokenId: string
+  readonly hitTokenId: string
+  readonly tokens: readonly SpatialSceneToken[]
+}): SpatialMeleeRetaliationCandidate[] {
+  const attacker = input.tokens.find((token) => token.id === input.attackerTokenId)
+  const attackerActorId = input.actorIdByTokenId.get(input.attackerTokenId)
+  const hitActorId = input.actorIdByTokenId.get(input.hitTokenId)
+  if (
+    !attacker ||
+    !attackerActorId ||
+    !hitActorId ||
+    attackerActorId === hitActorId ||
+    input.tokens.some((token) => !validSpatialToken(token))
+  )
+    return []
+  const tokenIds = new Set(input.tokens.map((token) => token.id))
+  return input.effects
+    .filter((effect) => {
+      if (
+        !effect.retaliatesMeleeHits ||
+        effect.anchorKind !== 'TOKEN' ||
+        effect.sourceTokenId !== input.hitTokenId ||
+        effect.sourceActorId !== hitActorId ||
+        !validSpatialEffect(effect, tokenIds) ||
+        !spatialEffectAffects(effect, attackerActorId)
+      )
+        return false
+      const geometry = effectiveSpatialGeometry(effect, input.tokens)
+      return (
+        geometry !== null && spatialGeometryOverlapsTokenFootprint({ geometry, token: attacker })
+      )
+    })
+    .map((effect) => ({
+      effectId: effect.effectId,
+      sourceActorId: hitActorId,
+      targetActorId: attackerActorId
     }))
     .sort((left, right) => compareText(left.effectId, right.effectId))
 }

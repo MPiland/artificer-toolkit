@@ -130,7 +130,7 @@ describe('native Background publication', () => {
         if (!stored) throw new Error('Missing definition fixture')
         await ctx.db.patch(
           stored._id,
-          corruption === 'owner' ? { ownerUserId: first.userId } : { contractVersion: 1 }
+          corruption === 'owner' ? { ownerUserId: first.userId } : { publishedAt: undefined }
         )
       })
       const before = await first.caller.query(api.content.drafts.get, {

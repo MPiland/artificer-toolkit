@@ -1071,8 +1071,8 @@ export const characterSheetFixture = {
       }
     ],
     currencies: [
-      { currencyId: 'gp', label: 'Gold', amount: 12 },
-      { currencyId: 'sp', label: 'Silver', amount: 7 }
+      { currencyId: 'gp', kind: 'RULESET', label: 'Gold', amount: 12 },
+      { currencyId: 'sp', kind: 'RULESET', label: 'Silver', amount: 7 }
     ]
   },
   reference: {
@@ -1152,9 +1152,9 @@ export const characterSheetFixture = {
       }
     ],
     currencyOptions: [
-      { id: 'gp', label: 'Gold' },
-      { id: 'sp', label: 'Silver' },
-      { id: 'cp', label: 'Copper' }
+      { id: 'gp', kind: 'RULESET', label: 'Gold' },
+      { id: 'sp', kind: 'RULESET', label: 'Silver' },
+      { id: 'cp', kind: 'RULESET', label: 'Copper' }
     ]
   },
   notes: {

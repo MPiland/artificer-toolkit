@@ -3006,7 +3006,7 @@ export declare const api: {
                 containerId?: string;
                 currencyId: string;
                 expectedVersion: number;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
                 type: "ADJUST_CURRENCY";
               }
             | {
@@ -3016,7 +3016,7 @@ export declare const api: {
                 currencyId: string;
                 expectedVersion: number;
                 fromContainerId?: string;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
                 toContainerId?: string;
                 type: "MOVE_CURRENCY";
               }
@@ -3432,7 +3432,7 @@ export declare const api: {
                 campaignCurrencySystemId?: string;
                 containerId?: string;
                 currencyId: string;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
                 label: string;
               }>;
               id: string;
@@ -3444,7 +3444,7 @@ export declare const api: {
               campaignCurrencySystemId?: string;
               containerId?: string;
               currencyId: string;
-              kind?: "RULESET" | "CAMPAIGN";
+              kind: "RULESET" | "CAMPAIGN";
               label: string;
             }>;
             items: Array<{
@@ -3703,7 +3703,7 @@ export declare const api: {
               campaignCurrencySystemId?: string;
               description?: string;
               id: string;
-              kind?: "RULESET" | "CAMPAIGN";
+              kind: "RULESET" | "CAMPAIGN";
               label: string;
             }>;
             defenses: Array<{
@@ -9771,7 +9771,7 @@ export declare const api: {
             campaignCurrencySystemId?: string;
             containerId: string | null;
             denominationId: string;
-            kind?: "RULESET" | "CAMPAIGN";
+            kind: "RULESET" | "CAMPAIGN";
             label: string;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -11217,7 +11217,7 @@ export declare const api: {
             campaignCurrencySystemId?: string;
             containerId: string | null;
             denominationId: string;
-            kind?: "RULESET" | "CAMPAIGN";
+            kind: "RULESET" | "CAMPAIGN";
             label: string;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -11714,7 +11714,7 @@ export declare const api: {
                 amount: number;
                 campaignCurrencySystemId?: string;
                 currencyId: string;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
               }>;
               id: string;
             }>;
@@ -12094,7 +12094,7 @@ export declare const api: {
                   amount: number;
                   campaignCurrencySystemId?: string;
                   currencyId: string;
-                  kind?: "RULESET" | "CAMPAIGN";
+                  kind: "RULESET" | "CAMPAIGN";
                 }>;
                 id: string;
               }>;
@@ -12473,7 +12473,7 @@ export declare const api: {
                   amount: number;
                   campaignCurrencySystemId?: string;
                   currencyId: string;
-                  kind?: "RULESET" | "CAMPAIGN";
+                  kind: "RULESET" | "CAMPAIGN";
                 }>;
                 id: string;
               }>;
@@ -13178,7 +13178,7 @@ export declare const api: {
                     amount: number;
                     campaignCurrencySystemId?: string;
                     currencyId: string;
-                    kind?: "RULESET" | "CAMPAIGN";
+                    kind: "RULESET" | "CAMPAIGN";
                   }>;
                   id: string;
                 }>;
@@ -13891,7 +13891,7 @@ export declare const api: {
                     amount: number;
                     campaignCurrencySystemId?: string;
                     currencyId: string;
-                    kind?: "RULESET" | "CAMPAIGN";
+                    kind: "RULESET" | "CAMPAIGN";
                   }>;
                   id: string;
                 }>;
@@ -14616,7 +14616,7 @@ export declare const api: {
                   amount: number;
                   campaignCurrencySystemId?: string;
                   currencyId: string;
-                  kind?: "RULESET" | "CAMPAIGN";
+                  kind: "RULESET" | "CAMPAIGN";
                 }>;
                 id: string;
               }>;
@@ -15315,7 +15315,7 @@ export declare const api: {
                     amount: number;
                     campaignCurrencySystemId?: string;
                     currencyId: string;
-                    kind?: "RULESET" | "CAMPAIGN";
+                    kind: "RULESET" | "CAMPAIGN";
                   }>;
                   id: string;
                 }>;
@@ -18573,7 +18573,7 @@ export declare const api: {
                 campaignCurrencySystemId?: string;
                 containerId?: string;
                 currencyId: string;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
                 label: string;
               }>;
               id: string;
@@ -18585,7 +18585,7 @@ export declare const api: {
               campaignCurrencySystemId?: string;
               containerId?: string;
               currencyId: string;
-              kind?: "RULESET" | "CAMPAIGN";
+              kind: "RULESET" | "CAMPAIGN";
               label: string;
             }>;
             items: Array<{
@@ -18844,7 +18844,7 @@ export declare const api: {
               campaignCurrencySystemId?: string;
               description?: string;
               id: string;
-              kind?: "RULESET" | "CAMPAIGN";
+              kind: "RULESET" | "CAMPAIGN";
               label: string;
             }>;
             defenses: Array<{
@@ -20721,7 +20721,7 @@ export declare const api: {
                 containerId?: string;
                 currencyId: string;
                 expectedVersion: number;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
                 type: "ADJUST_CURRENCY";
               }
             | {
@@ -20731,7 +20731,7 @@ export declare const api: {
                 currencyId: string;
                 expectedVersion: number;
                 fromContainerId?: string;
-                kind?: "RULESET" | "CAMPAIGN";
+                kind: "RULESET" | "CAMPAIGN";
                 toContainerId?: string;
                 type: "MOVE_CURRENCY";
               }
@@ -22113,7 +22113,7 @@ export declare const api: {
                     campaignCurrencySystemId?: string;
                     containerId?: string;
                     currencyId: string;
-                    kind?: "RULESET" | "CAMPAIGN";
+                    kind: "RULESET" | "CAMPAIGN";
                     label: string;
                   }>;
                   id: string;
@@ -22125,7 +22125,7 @@ export declare const api: {
                   campaignCurrencySystemId?: string;
                   containerId?: string;
                   currencyId: string;
-                  kind?: "RULESET" | "CAMPAIGN";
+                  kind: "RULESET" | "CAMPAIGN";
                   label: string;
                 }>;
                 items: Array<{
@@ -22247,7 +22247,7 @@ export declare const api: {
                   campaignCurrencySystemId?: string;
                   description?: string;
                   id: string;
-                  kind?: "RULESET" | "CAMPAIGN";
+                  kind: "RULESET" | "CAMPAIGN";
                   label: string;
                 }>;
                 equipmentOptions: Array<{
@@ -24417,7 +24417,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -34237,7 +34237,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -44066,7 +44066,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -53886,7 +53886,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -63741,7 +63741,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -73561,7 +73561,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -83368,7 +83368,7 @@ export declare const api: {
                       order: number;
                     }
                 >;
-                perceptionContributions?: Array<
+                perceptionContributions: Array<
                   | {
                       definitionChecksum: string;
                       definitionContractVersion: number;
@@ -93073,7 +93073,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -102893,7 +102893,7 @@ export declare const api: {
                         order: number;
                       }
                   >;
-                  perceptionContributions?: Array<
+                  perceptionContributions: Array<
                     | {
                         definitionChecksum: string;
                         definitionContractVersion: number;
@@ -111612,515 +111612,137 @@ export declare const api: {
         "query",
         "public",
         { id: string },
-        | {
-            alignments: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            challengeRatings: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            conditionTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            creatureTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            currencies: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            damageTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
+        {
+          abilities: Array<{
+            code: string;
             description?: string | null;
-            heritages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
             id: string;
             label: string;
-            languages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            lifestyles: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            magicSchools: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            passives: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rarities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rulesetCode: string;
-            rulesetVersion: string;
-            senses: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            skills: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            speeds: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            terrains: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            userId: string;
-          }
-        | {
-            abilities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            alignments: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            challengeRatings: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            conditionTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            creatureTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            currencies: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            damageTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
+            short?: string | null;
+          }>;
+          alignments: Array<{
+            code: string;
             description?: string | null;
-            heritages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
             id: string;
             label: string;
-            languages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            lifestyles: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            magicSchools: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            passives: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rarities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rulesetCode: string;
-            rulesetVersion: string;
-            schemaVersion: 2;
-            senses: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            skills: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            speeds: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            terrains: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            userId: string;
-          }
-        | {
-            abilities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            alignments: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            challengeRatings: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            conditionTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            creatureTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            currencies: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            damageTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
+            short?: string | null;
+          }>;
+          challengeRatings: Array<{
+            code: string;
             description?: string | null;
-            heritages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
             id: string;
-            initiativePolicy: { defaultDefinitionId: string };
             label: string;
-            languages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            lifestyles: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            magicSchools: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            passives: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rarities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rulesetCode: string;
-            rulesetVersion: string;
-            schemaVersion: 3;
-            senses: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            skills: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            speeds: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            terrains: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            userId: string;
-          }
-        | {
-            abilities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            alignments: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            challengeRatings: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            conditionTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            creatureTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            currencies: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            damageTypes: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
+            short?: string | null;
+          }>;
+          conditionTypes: Array<{
+            code: string;
             description?: string | null;
-            heritages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
             id: string;
-            initiativePolicy?: { defaultDefinitionId: string };
             label: string;
-            languages: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            lifestyles: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            magicSchools: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            passives: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-              skillDefinitionId: string | null;
-            }>;
-            rarities: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            rulesetCode: string;
-            rulesetVersion: string;
-            schemaVersion: 4;
-            senses: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            skills: Array<{
-              code: string;
-              description?: string | null;
-              governingAbilityDefinitionId: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            speeds: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            terrains: Array<{
-              code: string;
-              description?: string | null;
-              id: string;
-              label: string;
-              short?: string | null;
-            }>;
-            userId: string;
-          }
-        | null
+            short?: string | null;
+          }>;
+          creatureTypes: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          currencies: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          damageTypes: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          description?: string | null;
+          heritages: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          id: string;
+          initiativePolicy?: { defaultDefinitionId: string };
+          label: string;
+          languages: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          lifestyles: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          magicSchools: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          passives: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+            skillDefinitionId: string | null;
+          }>;
+          rarities: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          rulesetCode: string;
+          rulesetVersion: string;
+          schemaVersion: 4;
+          senses: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          skills: Array<{
+            code: string;
+            description?: string | null;
+            governingAbilityDefinitionId: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          speeds: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          terrains: Array<{
+            code: string;
+            description?: string | null;
+            id: string;
+            label: string;
+            short?: string | null;
+          }>;
+          userId: string;
+        } | null
       >;
       list: FunctionReference<
         "query",
@@ -124156,7 +123778,7 @@ export declare const internal: {
             campaignCurrencySystemId?: string;
             containerId: string | null;
             denominationId: string;
-            kind?: "RULESET" | "CAMPAIGN";
+            kind: "RULESET" | "CAMPAIGN";
             label: string;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -124448,7 +124070,7 @@ export declare const internal: {
             campaignCurrencySystemId?: string;
             containerId: string | null;
             denominationId: string;
-            kind?: "RULESET" | "CAMPAIGN";
+            kind: "RULESET" | "CAMPAIGN";
             label: string;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;

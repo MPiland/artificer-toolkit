@@ -312,6 +312,16 @@ export async function revertLastEncounterAction(
     if (replacesMaintainedEffect(action.maintenanceTransition ?? null))
       unsupported.add('a replaced maintained effect')
   }
+  // A Creature attacker's burns from the zones its melee hit set off restore with the hit (D153).
+  const retaliation = batch?.meleeRetaliation?.executions ?? []
+  if (
+    retaliation.some(
+      ({ candidate, applications }) =>
+        candidate.target.kind !== 'ENCOUNTER_ACTOR' ||
+        applications.some((application) => application.kind !== 'DAMAGE')
+    )
+  )
+    unsupported.add('a melee attacker’s retaliation damage')
   // A zone-only cast's Concentration rides on the root.
   if (replacesMaintainedEffect(areaRoot?.maintenanceTransition ?? null))
     unsupported.add('a replaced maintained effect')
@@ -398,6 +408,12 @@ export async function revertLastEncounterAction(
       unavailable("Undo can't restore Cleaving damage to a Character.")
     restoreHitPoints(cleaved.id, damage.targetTransition)
   }
+  const [firstRetaliation] = retaliation
+  if (firstRetaliation)
+    restoreHitPoints(firstRetaliation.candidate.candidate.targetActorId, {
+      ...firstRetaliation.targetTransition,
+      after: retaliation.at(-1)!.targetTransition.after
+    })
 
   // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
   const characterInverses = new Map<string, CharacterInverse>()
@@ -581,6 +597,16 @@ export async function revertLastEncounterAction(
   for (const action of targetBatches.toReversed()) await invertTarget(action)
   const rootCreated = areaRoot?.maintenanceTransition?.createdState
   if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
+  // The timed grant the placed zone gave its placer goes with the zone; its version proves it untouched.
+  const sourceGrant = areaRoot?.sourceGrantTransition
+  if (areaRoot && sourceGrant)
+    await store.deleteCas({
+      id: sourceGrant.activeEffectId,
+      owner: areaRoot.sourceCharacterId
+        ? { kind: 'CHARACTER', characterId: areaRoot.sourceCharacterId }
+        : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: areaRoot.sourceActorId },
+      expectedVersion: sourceGrant.afterVersion
+    })
   // The zone an area action placed leaves the Scene with it, before the state it depends on goes.
   if (areaRoot?.placedSpatialEffectId)
     await deletePlacedSpatialEffect(ctx, {

@@ -109,6 +109,7 @@ function toSpatialInstance(
     unaffectedActorIds: effect.placement.unaffectedActorIds,
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
     requiresFullyWithin: effect.placement.requiresFullyWithin,
+    retaliatesMeleeHits: effect.placement.retaliatesMeleeHits,
     suppressed:
       isEncounterPassiveZone(effect) &&
       sourceActorId !== null &&

@@ -83,7 +83,8 @@ interface SystemPassiveSeedRecord extends VocabularySeedRecord {
   skillDefinitionId: string | null
 }
 
-interface SystemSeedRecordBase {
+export interface SystemSeedRecord {
+  schemaVersion: 4
   id: string
   label: string
   description?: string | null
@@ -99,47 +100,16 @@ interface SystemSeedRecordBase {
   languages: VocabularySeedRecord[]
   lifestyles: VocabularySeedRecord[]
   magicSchools: VocabularySeedRecord[]
-  passives: VocabularySeedRecord[]
   rarities: VocabularySeedRecord[]
   senses: VocabularySeedRecord[]
-  skills: VocabularySeedRecord[]
   speeds: VocabularySeedRecord[]
   terrains: VocabularySeedRecord[]
   userId: string
-}
-
-/** Historical schema-v1 snapshots remain byte-faithfully readable. */
-interface SystemSeedRecordV1 extends SystemSeedRecordBase {
-  schemaVersion?: never
-  abilities?: never
-  initiativePolicy?: never
-}
-
-interface SystemSeedRecordV2 extends SystemSeedRecordBase {
-  schemaVersion: 2
-  abilities: VocabularySeedRecord[]
-  initiativePolicy?: never
-}
-
-interface SystemSeedRecordV3 extends SystemSeedRecordBase {
-  schemaVersion: 3
-  abilities: VocabularySeedRecord[]
-  initiativePolicy: { defaultDefinitionId: string }
-}
-
-interface SystemSeedRecordV4 extends Omit<SystemSeedRecordBase, 'skills' | 'passives'> {
-  schemaVersion: 4
   abilities: VocabularySeedRecord[]
   skills: SystemCheckSeedRecord[]
   passives: SystemPassiveSeedRecord[]
   initiativePolicy?: { defaultDefinitionId: string }
 }
-
-export type SystemSeedRecord =
-  | SystemSeedRecordV1
-  | SystemSeedRecordV2
-  | SystemSeedRecordV3
-  | SystemSeedRecordV4
 
 /**
  * This is the repo-owned seed/import artifact for SRD baseline content.

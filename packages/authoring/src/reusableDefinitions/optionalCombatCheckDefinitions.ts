@@ -34,11 +34,9 @@ export function optionalCombatCheckDefinitionIds(
   }
 }
 
-function requireCurrentCheckVocabulary(
-  document: unknown
-): Extract<SystemAuthoredDto, { schemaVersion: 4 }> {
+function requireCheckVocabulary(document: unknown): SystemAuthoredDto {
   const parsed = systemAuthoredDtoSchema.safeParse(document)
-  if (!parsed.success || !('schemaVersion' in parsed.data) || parsed.data.schemaVersion !== 4) {
+  if (!parsed.success) {
     throw new OptionalCombatCheckDefinitionError(
       'Optional combat check definitions require a current typed System vocabulary.'
     )
@@ -57,7 +55,7 @@ export function validateOptionalCombatCheckDefinitions(input: {
   const references = optionalCombatCheckDefinitionIds(input.document)
   if (references.length === 0) return
 
-  const vocabulary = requireCurrentCheckVocabulary(input.systemVocabulary)
+  const vocabulary = requireCheckVocabulary(input.systemVocabulary)
   if (vocabulary.id !== input.document.gameSystemId) {
     throw new OptionalCombatCheckDefinitionError(
       'Optional combat check definitions must use the same Game System vocabulary.'

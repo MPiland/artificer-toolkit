@@ -4,6 +4,7 @@ import {
   pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
   collectSpatialTurnCandidates,
+  collectSpatialMeleeRetaliationCandidates,
   recordZoneApplications,
   zoneApplicationKey,
   collectTokenFootprintPathCrossings,
@@ -1331,5 +1332,91 @@ describe('wall geometry (SPELLS-4.T1b, D154)', () => {
         feetGrid
       )
     ).toBeNull()
+  })
+})
+
+describe('spatial melee retaliation candidates (D153)', () => {
+  const sourceZone = (overrides: Partial<SpatialEffectInstance> = {}) =>
+    effect({
+      anchorKind: 'TOKEN',
+      sourceTokenId: ids.sourceToken,
+      geometry: {
+        frame: 'TOKEN_LOCAL',
+        shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 3 }
+      },
+      triggerModes: [],
+      retaliatesMeleeHits: true,
+      ...overrides
+    })
+  const collect = (
+    input: Partial<Parameters<typeof collectSpatialMeleeRetaliationCandidates>[0]> & {
+      readonly attackerAt?: number
+    } = {}
+  ) =>
+    collectSpatialMeleeRetaliationCandidates({
+      actorIdByTokenId: new Map([
+        [ids.sourceToken, ids.sourceActor],
+        [ids.targetToken, ids.targetActor]
+      ]),
+      effects: [sourceZone()],
+      attackerTokenId: ids.targetToken,
+      hitTokenId: ids.sourceToken,
+      tokens: [token(ids.sourceToken, 0), token(ids.targetToken, input.attackerAt ?? 3)],
+      ...input
+    })
+
+  it('catches the attacker inside the hit creature’s retaliating zone, the zone’s source its source', () => {
+    expect(collect()).toEqual([
+      { effectId: ids.effect, sourceActorId: ids.sourceActor, targetActorId: ids.targetActor }
+    ])
+  })
+
+  it.each([
+    ['an attacker outside the zone', { attackerAt: 10 }],
+    ['a zone that does not retaliate', { effects: [sourceZone({ retaliatesMeleeHits: false })] }],
+    [
+      'a zone anchored to another token',
+      { effects: [sourceZone({ sourceTokenId: ids.targetToken, sourceActorId: ids.targetActor })] }
+    ],
+    ['a suppressed zone', { effects: [sourceZone({ suppressed: true })] }],
+    [
+      'an attacker the zone never catches',
+      { effects: [sourceZone({ unaffectedActorIds: [ids.targetActor] })] }
+    ],
+    ['an attacker hitting itself', { hitTokenId: ids.targetToken }]
+  ])('catches no one for %s', (_name, input) => {
+    expect(collect(input)).toEqual([])
+  })
+
+  it('raises no movement or turn candidate for a zone that only retaliates', () => {
+    const tokens = [token(ids.sourceToken, 0), token(ids.targetToken, 3)]
+    const actorIdByTokenId = new Map([
+      [ids.sourceToken, ids.sourceActor],
+      [ids.targetToken, ids.targetActor]
+    ])
+    expect(
+      collectSpatialMovementCandidates({
+        actorIdByTokenId,
+        effects: [sourceZone()],
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 10, y: 0 },
+          { x: 3, y: 0 }
+        ],
+        tokens,
+        movingTokenId: ids.targetToken,
+        turnSequence: 1
+      })
+    ).toEqual([])
+    expect(
+      collectSpatialTurnCandidates({
+        actorIdByTokenId,
+        effects: [sourceZone()],
+        targetTokenId: ids.targetToken,
+        tokens,
+        trigger: 'START_OF_TURN',
+        turnSequence: 1
+      })
+    ).toEqual([])
   })
 })

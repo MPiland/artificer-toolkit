@@ -7,7 +7,7 @@ import type {
   InventoryOwnerRefDto,
   TransferCampaignInventoryInput
 } from '@artificer-toolkit/schema/api/campaignInventory'
-import { resolveCharacterCurrencyIdentity } from '@artificer-toolkit/schema/shared/characterCurrency'
+import { characterCurrencyIdentity } from '@artificer-toolkit/schema/shared/characterCurrency'
 import { decodeCampaignInventoryAuditPage } from '@artificer-toolkit/schema/api/campaignInventoryPages'
 import {
   campaignVehicleLifecyclePayloadSchema,
@@ -523,11 +523,7 @@ export async function verifyCampaignQualifiedCurrencyCustody(
             (currency) => qualifiedKey(currency, currency.currencyId) === namespaceKey(namespace)
           )
           .map((currency) => {
-            const identity = resolveCharacterCurrencyIdentity(
-              currency,
-              next.sheet.reference.currencyOptions,
-              'PRESERVE'
-            )
+            const identity = characterCurrencyIdentity(currency)
             const option = next.sheet.reference.currencyOptions.find(
               (candidate) => qualifiedKey(candidate, candidate.id) === namespaceKey(namespace)
             )

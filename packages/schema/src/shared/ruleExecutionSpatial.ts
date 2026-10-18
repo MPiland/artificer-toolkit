@@ -6,6 +6,7 @@ import {
   MAX_SPATIAL_CANDIDATES,
   MAX_SPATIAL_PATH_POINTS,
   spatialMovementCandidateDtoSchema,
+  spatialMeleeRetaliationContactDtoSchema,
   spatialMovementKindDtoSchema,
   spatialTurnContactDtoSchema,
   spatialPointDtoSchema
@@ -111,6 +112,21 @@ export const spatialTurnCandidateDtoSchema = lazySchema(() =>
         .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
       boundaryOrdinal: integerSchema.check(z.gte(0)).check(z.lte(1)),
       candidate: spatialTurnContactDtoSchema,
+      ...spatialCandidateEvidenceFields()
+    })
+    .check(z.superRefine(refineSpatialCandidateEffect))
+)
+
+/** One zone that answers a melee hit, pinned like a turn contact; its dice are always system-rolled. */
+export const spatialMeleeRetaliationCandidateDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      ordinal: z
+        .number()
+        .check(z.int())
+        .check(z.gte(0))
+        .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
+      candidate: spatialMeleeRetaliationContactDtoSchema,
       ...spatialCandidateEvidenceFields()
     })
     .check(z.superRefine(refineSpatialCandidateEffect))

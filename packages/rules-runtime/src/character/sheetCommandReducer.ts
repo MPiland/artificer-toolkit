@@ -18,8 +18,9 @@ import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/
 import type { CharacterCurrencyIdentityDto } from '@artificer-toolkit/schema/shared/characterCurrency'
 
 import {
+  characterCurrencyIdentity,
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 
 import type {
@@ -288,24 +289,6 @@ type CurrencyBalanceLocation = {
   identity: CharacterCurrencyIdentityDto
 }
 
-function getCharacterCurrencyIdentity(
-  balance: CharacterCurrencyBalance
-): CharacterCurrencyIdentityDto {
-  if (balance.kind === 'CAMPAIGN') {
-    if (!balance.campaignCurrencySystemId)
-      throw new CharacterSheetCommandError(
-        `Campaign currency "${balance.currencyId}" is missing its currency system.`
-      )
-    return {
-      currencyId: balance.currencyId,
-      kind: balance.kind,
-      campaignCurrencySystemId: balance.campaignCurrencySystemId
-    }
-  }
-  if (balance.kind === 'RULESET') return { currencyId: balance.currencyId, kind: balance.kind }
-  return { currencyId: balance.currencyId }
-}
-
 function assertCurrencyAmount(amount: number) {
   if (!Number.isSafeInteger(amount) || amount < 0)
     throw new CharacterSheetCommandError('Currency balances must be nonnegative safe integers.')
@@ -320,8 +303,7 @@ function toCurrencyAmount(value: bigint): number {
 }
 
 function normalizeCharacterCurrencyGroups(
-  groups: readonly CharacterCurrencyGroup[],
-  options: readonly CharacterSheetCurrencyOptionDto[]
+  groups: readonly CharacterCurrencyGroup[]
 ): CharacterCurrencyGroup[] {
   return groups.map((group) => {
     const identities = new Set<string>()
@@ -329,10 +311,7 @@ function normalizeCharacterCurrencyGroups(
       ...group,
       currencies: group.currencies.map((balance) => {
         assertCurrencyAmount(balance.amount)
-        const identity = resolveCharacterCurrencyIdentity(
-          getCharacterCurrencyIdentity(balance),
-          options
-        )
+        const identity = characterCurrencyIdentity(balance)
         const key = createCharacterCurrencyIdentityKey(identity)
         if (identities.has(key))
           throw new CharacterSheetCommandError(
@@ -349,16 +328,16 @@ function findCurrencyBalanceLocations(
   groups: readonly CharacterCurrencyGroup[],
   containerId: string | undefined,
   currencyId: string,
-  identity?: CharacterCurrencyIdentityDto
+  identity: CharacterCurrencyIdentityDto
 ): CurrencyBalanceLocation[] {
-  const identityKey = identity ? createCharacterCurrencyIdentityKey(identity) : undefined
+  const identityKey = createCharacterCurrencyIdentityKey(identity)
   return groups.flatMap((group) => {
     if (group.containerId !== containerId) return []
     return group.currencies.flatMap((balance) => {
-      const balanceIdentity = getCharacterCurrencyIdentity(balance)
+      const balanceIdentity = characterCurrencyIdentity(balance)
       if (
         balance.currencyId !== currencyId ||
-        (identityKey && createCharacterCurrencyIdentityKey(balanceIdentity) !== identityKey)
+        createCharacterCurrencyIdentityKey(balanceIdentity) !== identityKey
       ) {
         return []
       }
@@ -387,9 +366,7 @@ function replaceCurrencyAtPlacement(input: {
     return {
       ...group,
       currencies: group.currencies.flatMap((balance) => {
-        if (
-          createCharacterCurrencyIdentityKey(getCharacterCurrencyIdentity(balance)) !== identityKey
-        )
+        if (createCharacterCurrencyIdentityKey(characterCurrencyIdentity(balance)) !== identityKey)
           return [balance]
         if (replaced || !keepBalance) return []
         replaced = true
@@ -418,36 +395,13 @@ function replaceCurrencyAtPlacement(input: {
   ]
 }
 
-function getCommandCurrencyIdentity(
-  command: Extract<CharacterSheetStateCommand, { type: 'ADJUST_CURRENCY' | 'MOVE_CURRENCY' }>
-): CharacterCurrencyIdentityDto | undefined {
-  if (!command.kind) return undefined
-  if (command.kind === 'CAMPAIGN') {
-    if (!command.campaignCurrencySystemId)
-      throw new CharacterSheetCommandError(
-        `Campaign currency "${command.currencyId}" is missing its currency system.`
-      )
-    return {
-      currencyId: command.currencyId,
-      kind: command.kind,
-      campaignCurrencySystemId: command.campaignCurrencySystemId
-    }
-  }
-  return { currencyId: command.currencyId, kind: command.kind }
-}
-
 function requireAcquirableCurrencyIdentity(
   command: Extract<CharacterSheetStateCommand, { type: 'ADJUST_CURRENCY' }>,
   options: readonly CharacterSheetCurrencyOptionDto[]
 ): CharacterCurrencyIdentityDto {
-  const requested = getCommandCurrencyIdentity(command) ?? {
-    currencyId: command.currencyId,
-    kind: 'RULESET' as const
-  }
-  const requestedKey = createCharacterCurrencyIdentityKey(requested)
+  const requestedKey = createCharacterCurrencyIdentityKey(characterCurrencyIdentity(command))
   for (const option of options) {
-    if (option.id !== command.currencyId) continue
-    const identity = resolveCharacterCurrencyIdentity({ currencyId: option.id }, [option])
+    const identity = currencyOptionIdentity(option)
     if (createCharacterCurrencyIdentityKey(identity) === requestedKey) return identity
   }
   throw new CharacterSheetCommandError(
@@ -1223,9 +1177,8 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
 
     case 'ADJUST_CURRENCY': {
-      const currencyOptions = sheet.reference.currencyOptions
-      next.state.currency = normalizeCharacterCurrencyGroups(next.state.currency, currencyOptions)
-      const identity = requireAcquirableCurrencyIdentity(command, currencyOptions)
+      next.state.currency = normalizeCharacterCurrencyGroups(next.state.currency)
+      const identity = requireAcquirableCurrencyIdentity(command, sheet.reference.currencyOptions)
       ensureContainer(command.containerId)
       const existing = findCurrencyBalanceLocations(
         next.state.currency,
@@ -1250,36 +1203,12 @@ export function applyCharacterSheetCommand(
     }
 
     case 'MOVE_CURRENCY': {
-      const currencyOptions = sheet.reference.currencyOptions
-      next.state.currency = normalizeCharacterCurrencyGroups(next.state.currency, currencyOptions)
+      next.state.currency = normalizeCharacterCurrencyGroups(next.state.currency)
       ensureContainer(command.fromContainerId)
       ensureContainer(command.toContainerId)
       if (command.fromContainerId === command.toContainerId) return clearEmptyStateArrays(next)
 
-      const requestedIdentity = getCommandCurrencyIdentity(command)
-      const sourceCandidates = findCurrencyBalanceLocations(
-        next.state.currency,
-        command.fromContainerId,
-        command.currencyId
-      )
-      const sourceIdentities = new Map<string, CharacterCurrencyIdentityDto>()
-      for (const candidate of sourceCandidates) {
-        sourceIdentities.set(
-          createCharacterCurrencyIdentityKey(candidate.identity),
-          candidate.identity
-        )
-      }
-      if (!requestedIdentity && sourceIdentities.size > 1)
-        throw new CharacterSheetCommandError(
-          `Currency "${command.currencyId}" has multiple identities in the source container.`
-        )
-
-      const identity = requestedIdentity ?? sourceIdentities.values().next().value
-      if (!identity)
-        throw new CharacterSheetCommandError(
-          'There is not enough currency in the source container.'
-        )
-
+      const identity = characterCurrencyIdentity(command)
       const source = findCurrencyBalanceLocations(
         next.state.currency,
         command.fromContainerId,
@@ -1380,41 +1309,13 @@ function findCurrencyLabel(
   command: Extract<CharacterSheetStateCommand, { type: 'ADJUST_CURRENCY' | 'MOVE_CURRENCY' }>
 ): string | undefined {
   if (!sheet) return undefined
-  let identity = getCommandCurrencyIdentity(command)
-  if (!identity && command.type === 'ADJUST_CURRENCY')
-    identity = { currencyId: command.currencyId, kind: 'RULESET' }
-  if (!identity) {
-    const heldIdentities = new Map<string, CharacterCurrencyIdentityDto>()
-    for (const row of sheet.inventory.currencies) {
-      if (
-        row.currencyId !== command.currencyId ||
-        row.containerId !== (command.type === 'MOVE_CURRENCY' ? command.fromContainerId : undefined)
-      )
-        continue
-      const resolved = resolveCharacterCurrencyIdentity(
-        row,
-        sheet.reference.currencyOptions,
-        'PRESERVE'
-      )
-      heldIdentities.set(createCharacterCurrencyIdentityKey(resolved), resolved)
-    }
-    if (heldIdentities.size !== 1) return undefined
-    identity = heldIdentities.values().next().value
-  }
-  if (!identity) return undefined
-  const key = createCharacterCurrencyIdentityKey(identity)
+  const key = createCharacterCurrencyIdentityKey(characterCurrencyIdentity(command))
   return (
     sheet.reference.currencyOptions.find(
-      (option) =>
-        createCharacterCurrencyIdentityKey(
-          resolveCharacterCurrencyIdentity({ currencyId: option.id }, [option], 'PRESERVE')
-        ) === key
+      (option) => createCharacterCurrencyIdentityKey(currencyOptionIdentity(option)) === key
     )?.label ??
     sheet.inventory.currencies.find(
-      (row) =>
-        createCharacterCurrencyIdentityKey(
-          resolveCharacterCurrencyIdentity(row, sheet.reference.currencyOptions, 'PRESERVE')
-        ) === key
+      (row) => createCharacterCurrencyIdentityKey(characterCurrencyIdentity(row)) === key
     )?.label
   )
 }

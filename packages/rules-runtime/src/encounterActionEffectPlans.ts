@@ -275,7 +275,8 @@ function bindTriggerDamageTypes(
   }))
 }
 
-function prepareRecurringActiveEffect(
+/** An action's lasting effect on one creature, from its plan alone; null when the plan yields none. */
+export function prepareRecurringActiveEffect(
   input: Omit<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution' | 'applications'>
 ): EffectPlan | null {
   const plan = input.activeEffectPlan

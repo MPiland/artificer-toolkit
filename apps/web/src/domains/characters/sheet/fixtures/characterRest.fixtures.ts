@@ -259,7 +259,7 @@ export const characterSheetMulticlassFixture = {
         requiresAttunement: false
       }
     ],
-    currencies: [{ currencyId: 'gp', label: 'Gold', amount: 15 }]
+    currencies: [{ currencyId: 'gp', kind: 'RULESET', label: 'Gold', amount: 15 }]
   },
   reference: {
     ...characterSheetFixture.reference,

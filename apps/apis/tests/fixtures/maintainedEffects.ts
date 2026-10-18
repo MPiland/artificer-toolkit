@@ -8,7 +8,7 @@ export const lifecycle: ActiveRuleEffectLifecycleDto = {
   schemaVersion: 1,
   remainingTicks: 3
 }
-export type EmptyPolicy = 'V1' | 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
+export type EmptyPolicy = 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
 
 export function definition(
   encounterId: string,
@@ -74,7 +74,7 @@ export function descriptor(
   sourceActorId: string,
   policy: EmptyPolicy
 ): EncounterMaintainedEffectDescriptorDto {
-  const base = {
+  return {
     maintenanceDefinitionId: crypto.randomUUID(),
     definitionChecksum: 'b'.repeat(64),
     provenance: {
@@ -83,8 +83,8 @@ export function descriptor(
       sourceOccurrenceId: crypto.randomUUID()
     },
     sourceActorId,
-    replacementPolicy: 'REPLACE_SAME_DEFINITION' as const
+    replacementPolicy: 'REPLACE_SAME_DEFINITION',
+    schemaVersion: 2,
+    emptyDependentPolicy: policy
   }
-  if (policy === 'V1') return { ...base, schemaVersion: 1 }
-  return { ...base, schemaVersion: 2, emptyDependentPolicy: policy }
 }

@@ -70,78 +70,8 @@ const systemInitiativePolicyDtoSchema = lazySchema(() =>
   })
 )
 
-/** Historical snapshots omit schemaVersion and remain byte-faithfully readable. */
-const systemAuthoredV1DtoSchema = lazySchema(() => z.strictObject(systemVocabularyFields()))
-
-/** Current System documents use UUID-backed ability vocabulary. */
-const systemAuthoredV2DtoSchema = lazySchema(() =>
-  z.strictObject({
-    ...systemVocabularyFields(),
-    schemaVersion: z.literal(2),
-    abilities: z
-      .array(abilityVocabularyDtoSchema)
-      .check(z.minLength(1))
-      .check(
-        z.superRefine((abilities, context) => {
-          const ids = new Set<string>()
-          const codes = new Set<string>()
-          for (const [index, ability] of abilities.entries()) {
-            if (ids.has(ability.id))
-              context.addIssue({
-                code: 'custom',
-                path: [index, 'id'],
-                message: 'System ability definition IDs must be unique.'
-              })
-            if (codes.has(ability.code))
-              context.addIssue({
-                code: 'custom',
-                path: [index, 'code'],
-                message: 'System ability codes must be unique.'
-              })
-            ids.add(ability.id)
-            codes.add(ability.code)
-          }
-        })
-      )
-  })
-)
-
-/** v3 adds a pinned default initiative-policy definition; v1/v2 remain historical. */
-const systemAuthoredV3DtoSchema = lazySchema(() =>
-  z.strictObject({
-    ...systemVocabularyFields(),
-    schemaVersion: z.literal(3),
-    abilities: z
-      .array(abilityVocabularyDtoSchema)
-      .check(z.minLength(1))
-      .check(
-        z.superRefine((abilities, context) => {
-          const ids = new Set<string>()
-          const codes = new Set<string>()
-          for (const [index, ability] of abilities.entries()) {
-            if (ids.has(ability.id))
-              context.addIssue({
-                code: 'custom',
-                path: [index, 'id'],
-                message: 'System ability definition IDs must be unique.'
-              })
-            if (codes.has(ability.code))
-              context.addIssue({
-                code: 'custom',
-                path: [index, 'code'],
-                message: 'System ability codes must be unique.'
-              })
-            ids.add(ability.id)
-            codes.add(ability.code)
-          }
-        })
-      ),
-    initiativePolicy: systemInitiativePolicyDtoSchema
-  })
-)
-
-/** v4 makes check definitions UUID-backed System semantics; earlier snapshots stay historical. */
-const systemAuthoredV4DtoSchema = lazySchema(() =>
+/** A System document: UUID-backed abilities, check definitions and passives. */
+export const systemAuthoredDtoSchema = lazySchema(() =>
   z
     .strictObject({
       ...systemVocabularyFields(),
@@ -216,15 +146,6 @@ const systemAuthoredV4DtoSchema = lazySchema(() =>
         }
       })
     )
-)
-
-export const systemAuthoredDtoSchema = lazySchema(() =>
-  z.union([
-    systemAuthoredV1DtoSchema,
-    systemAuthoredV2DtoSchema,
-    systemAuthoredV3DtoSchema,
-    systemAuthoredV4DtoSchema
-  ])
 )
 
 export type SystemAuthoredDto = z.infer<typeof systemAuthoredDtoSchema>
