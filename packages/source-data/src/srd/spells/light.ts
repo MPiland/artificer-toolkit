@@ -5,6 +5,8 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -52,12 +54,12 @@ export const light: SpellAuthored = {
           id: spellChildId(SPELL_IDS.LIGHT, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.LIGHT, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.LIGHT, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -66,8 +68,23 @@ export const light: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LIGHT, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'LIGHT' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.OBJECT,
+                label: 'Light',
+                attachmentKind: 'TOUCHED_OBJECT',
+                light: {
+                  bright: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  dimAdditional: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                properties: ['CAN_BE_COVERED_OR_HIDDEN']
+              },
+              {
+                id: spellChildId(SPELL_IDS.LIGHT, 0x214, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Light',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The spell ends if you cast it again or dismiss it as an action. If you target an object held or worn by a hostile creature, that creature must succeed on a Dexterity saving throw to avoid the spell.'
               }
             ]
           }

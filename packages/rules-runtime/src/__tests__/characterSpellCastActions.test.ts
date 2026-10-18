@@ -52,6 +52,7 @@ const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
 const CURE_WOUNDS = spell('Cure Wounds')
 const HEALING_WORD = spell('Healing Word')
+const MAGE_ARMOR = spell('Mage Armor')
 const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
@@ -1448,5 +1449,35 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
     failure.resultBlock.lifecycle = { heldBySource: true }
 
     expect(compiledCast(grease)).toBeNull()
+  })
+})
+
+describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)', () => {
+  it('compiles Mage Armor to an eight-hour 13 + Dexterity armor class formula for an unarmored target', () => {
+    const plan = compiledCast(MAGE_ARMOR)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 4800,
+      maintenance: null,
+      modifierGrantContribution: {
+        modifiers: [
+          {
+            valueDomainCode: 'ARMOR_CLASS',
+            modifierKind: 'SET_VALUE',
+            payload: { amount: 13, abilities: ['DEXTERITY'] },
+            restrictions: [
+              {
+                conditions: expect.arrayContaining([
+                  expect.objectContaining({
+                    kind: 'EQUIPMENT_EQUIPPED',
+                    constraint: 'EXCLUDE',
+                    category: 'ARMOR'
+                  })
+                ])
+              }
+            ]
+          }
+        ]
+      }
+    })
   })
 })
