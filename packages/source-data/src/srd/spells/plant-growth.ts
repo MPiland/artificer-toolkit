@@ -5,7 +5,10 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -41,7 +44,12 @@ export const plantGrowth: SpellAuthored = {
           id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x211, 1),
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 150,
-          unit: 'FEET'
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x214, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
@@ -66,8 +74,26 @@ export const plantGrowth: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PLANT_GROWTH' as const
+                // The overgrowth stays until the GM removes it; the 8-hour enrichment and the
+                // caster's excluded areas are the GM's to rule from the description.
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Plant Growth',
+                shape: {
+                  id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x220, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x221, 1),
+                    order: 1,
+                    label: 'Overgrown plants',
+                    // Each foot of movement through the area costs 4 feet.
+                    movementCostMultiplier: 4
+                  }
+                ]
               }
             ]
           }

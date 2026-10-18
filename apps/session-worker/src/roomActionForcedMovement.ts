@@ -82,38 +82,95 @@ function forcedMovementDestinations(
 }
 
 /**
- * The legal squares the Encounter's Scene offers one forced movement now (D157): a pick is owed only
- * when there are two or more.
+ * Lands each forced movement in turn on a copy of the Scene, the creature farthest from the source
+ * first (ties by actor ID) so a nearer one never blocks it: on the square its source picked (D157),
+ * which must still be legal, or on its one legal square (straight from the acting creature's token,
+ * stopping before the first blocked square). It stops at the first creature with several legal
+ * squares and no pick, and returns those squares as the pick its source owes next.
  */
-export async function readRoomForcedMovementDestinations(input: {
+function landForcedMovements(
+  scene: CampaignSceneState,
+  sourceTokenId: string,
+  tokenIdByActorId: ReadonlyMap<string, string>,
+  movements: readonly LiveSessionForcedMovement[]
+) {
+  const source = tokenOf(scene, sourceTokenId)
+  const ordered = movements
+    .map((movement) => {
+      const tokenId = tokenIdByActorId.get(movement.targetActorId)!
+      return {
+        movement,
+        tokenId,
+        reach: measureSceneDistance(scene.grid, source.position, tokenOf(scene, tokenId).position)
+      }
+    })
+    .sort(
+      (left, right) =>
+        right.reach - left.reach ||
+        (left.movement.targetActorId < right.movement.targetActorId
+          ? -1
+          : left.movement.targetActorId > right.movement.targetActorId
+            ? 1
+            : 0)
+    )
+  const landings: {
+    movement: LiveSessionForcedMovement
+    tokenId: string
+    destination: ScenePoint
+  }[] = []
+  let landed = scene
+  for (const { movement, tokenId } of ordered) {
+    const token = tokenOf(landed, tokenId)
+    const legal = forcedMovementDestinations(landed, source, token, movement)
+    const chosen = movement.position
+    if (!chosen && legal.length > 1) {
+      if (new Set(movements.map(({ targetActorId }) => targetActorId)).size !== movements.length)
+        throw new Error('A creature moved more than one way with a choice is not supported yet.')
+      return { landings, owed: { targetActorId: movement.targetActorId, positions: legal } }
+    }
+    const destination = chosen
+      ? legal.find(({ x, y }) => x === chosen.x && y === chosen.y)
+      : legal[0]
+    if (!destination) throw new Error('The chosen forced-movement destination is no longer free.')
+    landings.push({ movement, tokenId, destination })
+    landed = {
+      ...landed,
+      tokens: landed.tokens.map((entry) =>
+        entry.id === token.id ? { ...entry, position: destination } : entry
+      )
+    }
+  }
+  return { landings, owed: null }
+}
+
+/**
+ * The pick an action's forced movements owe their source next on the Encounter's Scene (D157), with
+ * the farther creatures already on the squares picked for them; null when none is owed.
+ */
+export async function readRoomForcedMovementPick(input: {
   ctx: EncounterReadContext
   transaction: RoomTransaction
   encounterId: string
   sourceActorId: string
-  movement: LiveSessionForcedMovement
-}): Promise<ScenePoint[]> {
+  movements: readonly LiveSessionForcedMovement[]
+}): Promise<{ targetActorId: string; positions: ScenePoint[] } | null> {
+  if (input.movements.length === 0) return null
   const { sceneId, sourceTokenId, tokenIdByActorId } = await readForcedMovementTokens(
     input.ctx,
     input.encounterId,
     input.sourceActorId,
-    [input.movement.targetActorId]
+    input.movements.map(({ targetActorId }) => targetActorId)
   )
   const { scene } = await readRoomSceneState(input.transaction, sceneId)
-  return forcedMovementDestinations(
-    scene,
-    tokenOf(scene, sourceTokenId),
-    tokenOf(scene, tokenIdByActorId.get(input.movement.targetActorId)!),
-    input.movement
-  )
+  return landForcedMovements(scene, sourceTokenId, tokenIdByActorId, input.movements).owed
 }
 
 /**
- * Moves each creature an action moves on the Encounter's Scene, in the action's transaction (D139):
- * to the square its source picked (D157), which must still be legal, or else to its one legal square
- * (straight from the acting creature's token, stopping before the first blocked square), farthest
- * creature first (ties by actor ID) so a nearer one never blocks it. Each move is a FORCED Scene token
- * move, so it provokes no reaction and spends no movement; its Scene command names the action as its
- * origin, so only the action's undo reverts it. A creature that does not move writes no move.
+ * Moves each creature an action moves on the Encounter's Scene, in the action's transaction (D139),
+ * to where `landForcedMovements` lands it; every pick must already be made. Each move is a FORCED
+ * Scene token move, so it provokes no reaction and spends no movement; its Scene command names the
+ * action as its origin, so only the action's undo reverts it. A creature that does not move writes
+ * no move.
  */
 export async function applyRoomForcedMovements(input: {
   ctx: EncounterReadContext
@@ -146,47 +203,18 @@ export async function applyRoomForcedMovements(input: {
     ).map(readSpatialEffect),
     await readRunActors(ctx, state)
   )
-  const initial = (await readRoomSceneState(transaction, sceneId)).scene
-  const source = tokenOf(initial, sourceTokenId)
-  const ordered = movements
-    .map((movement) => {
-      const tokenId = tokenIdByActorId.get(movement.targetActorId)!
-      return {
-        ...movement,
-        tokenId,
-        reach: measureSceneDistance(
-          initial.grid,
-          source.position,
-          tokenOf(initial, tokenId).position
-        )
-      }
-    })
-    .sort(
-      (left, right) =>
-        right.reach - left.reach ||
-        (left.targetActorId < right.targetActorId
-          ? -1
-          : left.targetActorId > right.targetActorId
-            ? 1
-            : 0)
-    )
+  const { landings, owed } = landForcedMovements(
+    (await readRoomSceneState(transaction, sceneId)).scene,
+    sourceTokenId,
+    tokenIdByActorId,
+    movements
+  )
+  if (owed)
+    throw new Error('A forced movement with several destinations needs its source to pick one.')
   const moves: Awaited<ReturnType<ApplyEncounterForcedMovements>> = []
-  for (const target of ordered) {
+  for (const { tokenId, destination } of landings) {
     const { scene, baseOrdinals } = await readRoomSceneState(transaction, sceneId)
-    const token = tokenOf(scene, target.tokenId)
-    const legal = forcedMovementDestinations(scene, source, token, target)
-    const chosen = target.position
-    const destination = chosen
-      ? legal.find(({ x, y }) => x === chosen.x && y === chosen.y)
-      : legal.length === 1
-        ? legal[0]
-        : undefined
-    if (!destination)
-      throw new Error(
-        chosen
-          ? 'The chosen forced-movement destination is no longer free.'
-          : 'A forced movement with several destinations needs its source to pick one.'
-      )
+    const token = tokenOf(scene, tokenId)
     if (destination.x === token.position.x && destination.y === token.position.y) continue
     const path = [token.position, destination]
     if (

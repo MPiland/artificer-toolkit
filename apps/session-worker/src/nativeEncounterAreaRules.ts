@@ -79,6 +79,8 @@ import {
   encounterAreaSettled,
   encounterChosenActorEntries,
   encounterChosenActorsChecksum,
+  holdEncounterAreaForcedMovement,
+  landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
@@ -203,10 +205,21 @@ export type ReachCastResume = {
   failedCounters: readonly EncounterFailedCounterDto[]
 }
 
+/**
+ * The pick a root's forced movements owe their source next on the Encounter's Scene (D157): the
+ * farthest creature with two or more legal squares, the farther ones already landed; null when none is.
+ */
+export type ForcedMovementPick = (input: {
+  encounterId: string
+  sourceActorId: string
+  movements: readonly LiveSessionForcedMovement[]
+}) => Promise<{ targetActorId: string; positions: ScenePoint[] } | null>
+
 /** What every multi-creature plan (a point area, a list of chosen creatures) reads from the room. */
 export type AreaPlanBase = {
   /** Set when the plan replays a cast that paused for another Character's counter. */
   castResume?: ReachCastResume
+  forcedMovementPick: ForcedMovementPick
   initial: LiveSessionEncounterRulesInput
   fingerprint: string
   state: EncounterRunState
@@ -1687,7 +1700,7 @@ export async function planNativeLiveEncounterAreaCommit(
   const resumed = input.response ?? input.removal
   const occurredAt = new Date().toISOString()
   const sealedFailedCounters = context.failedCounters ?? []
-  return completeAreaCommit({
+  const plan = await completeAreaCommit({
     input,
     command,
     caster,
@@ -1720,6 +1733,58 @@ export async function planNativeLiveEncounterAreaCommit(
     occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
     response: input.response,
     removal: input.removal ?? null
+  })
+  // A push whose source picks where its creature lands holds the settled area for that pick, the
+  // farthest creature first, each offer derived with the farther ones landed; it commits after the
+  // last answer (D157).
+  const landed = context.forcedMovement?.landed ?? []
+  const forcedMovements = plan.forcedMovements.map((movement) => ({
+    ...movement,
+    position:
+      landed.find(({ targetActorId }) => targetActorId === movement.targetActorId)?.position ?? null
+  }))
+  const pick = await input.forcedMovementPick({
+    encounterId: input.state.id,
+    sourceActorId: caster.id,
+    movements: forcedMovements
+  })
+  if (!pick) return { ...plan, forcedMovements }
+  if (input.removal)
+    throw new Error('A removal that leaves an area push to pick is not supported yet.')
+  return {
+    kind: 'AREA_PENDING' as const,
+    command,
+    response: input.response,
+    snapshot: holdEncounterAreaForcedMovement(areaSnapshot, pick),
+    prepared: { actors: input.actors },
+    fingerprint: input.fingerprint,
+    initiatorUserId: context.initiatorUserId,
+    occurrenceId: areaOccurrenceId
+  }
+}
+
+/**
+ * Plans the source's answer to a settled area's push pick (D157): the creature lands on a square the
+ * pick offered, and the area holds the next creature's pick, derived with it landed, or commits.
+ */
+export async function planNativeLiveEncounterAreaForcedMovement(
+  input: ReachPlanInput & {
+    response: ResolveRuleOccurrenceInputDto
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+    landing: { requestId: string; position: ScenePoint }
+  }
+) {
+  const { areaSnapshot, landing } = input
+  const context = areaSnapshot.applicationContext
+  if (
+    context.kind !== 'ENCOUNTER_AREA_ACTION' ||
+    areaSnapshot.occurrenceId !== input.response.occurrenceId ||
+    context.commandFingerprint !== input.fingerprint
+  )
+    throw new Error('The pending action evidence is invalid.')
+  return planNativeLiveEncounterAreaCommit({
+    ...input,
+    areaSnapshot: landEncounterAreaForcedMovement(areaSnapshot, landing.requestId, landing.position)
   })
 }
 
@@ -2381,7 +2446,10 @@ export async function completeAreaCommit(args: {
 /** The completed area and its per-creature child contracts the room persists in one transaction. */
 export function buildNativeLiveEncounterAreaCommitInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>> & {
+  plan: Extract<
+    Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>>,
+    { kind: 'AREA_COMMIT' }
+  > & {
     dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]
     revisions: LiveSessionRulesRevisions
   }

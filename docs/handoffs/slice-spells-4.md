@@ -14,6 +14,15 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2a4 (closed rules with existing options, D156 T2 class A)
+
+- See Invisibility grants its caster a new SRD sense, See Invisibility, for 1 hour. The grant has unlimited range, the way Darkvision grants its own sense. The sense is ordinary sight that perceives invisible creatures. Seeing into the Ethereal Plane stays description-only. Darkvision combined with this sense in darkness is a deferred edge case. `SEE_INVISIBILITY` leaves `CLOSED_RULE_KIND`.
+- Proof: `packages/authoring/src/nodeRuntime/senseGrantAuthoringParity.test.ts` (the spell and an author-built equivalent normalize unchanged) and `apps/session-worker/test/nativeRoomSeeInvisibility.test.ts` (a real cast in the room; the caster's Club attack on an Invisible Wolf changes from disadvantage to a normal roll).
+- Bug fix (orchestrator-approved): a Character's attack, save and turn-effect perception read its pinned Senses (`encounterMovementTargets.ts`), not its effective policy Senses, so no Active Effect sense grant (the Darkvision spell included) reached Encounter perception. `perceptionSenses` now reads `effectiveRulePolicyOutput.senses`; every perception reader takes that one field, and Scene vision already folded grants. A Creature's sense grants stay unfolded (deferred edge case). The room test was red before the fix.
+- Plant Growth (ruling (a)) places a 100-foot PLACED_SPACE sphere whose one component costs 4 feet of movement per foot. Generic relaxation in `zonePlacementPlan`: a component that only prices movement no longer needs an appear save; with none it is placed with no triggers on a lasting entry from the zone's manifest entry (`lastingZoneEntry`, shared with the occupant-bonus zone). Zone placement reads no duration, so the Instantaneous zone with no Concentration has no maintenance and stays until the GM removes it. `PLANT_GROWTH` leaves `CLOSED_RULE_KIND`. The excluded areas join the Sequester top-up as a MANUAL_ADJUDICATION beside the zone, on T2a3's SEQUENCE-with-rulings capability; the 8-hour enrichment stays description-only.
+- Proof: `characterSpellCastActions.test.ts` (no triggers, 4x cost, no maintenance), `sourceZoneAuthoringParity.test.ts` (Plant Growth case), `apps/session-worker/test/nativeRoomPlantGrowth.test.ts` (the zone stays unmaintained after four turns; a 5-foot step through it costs four times a plain one).
+- Rulings: Produce Flame moves to T2v, Regenerate to T2t; Sequester follows once T2a3 lands.
+
 ### T2b (description-only closed rules, D156 T2 class C)
 
 - The 34 class C spells drop their `CLOSED_RULE` outcome, and their kinds leave `CLOSED_RULE_KIND`: Arcane Lock, Arcanist's Magic Aura, Astral Projection, Clone, Comprehend Languages, Demiplane, Detect Thoughts, Disguise Self, Dream, Feather Fall, Gentle Repose, Guards and Wards, Meld into Stone, Mislead, Nondetection, Passwall, Prestidigitation, Private Sanctum, Programmed Illusion, Purify Food and Drink, Rope Trick, Seeming, Sending, Speak with Animals, Speak with Dead, Speak with Plants, Stone Shape, Suggestion, Thaumaturgy, Tongues, Water Breathing, Water Walk, Wish, Zone of Truth.
@@ -189,6 +198,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Authoring: Wall of Fire's wall burns on `ENTER_OR_PASS_THROUGH` (once a turn, `BLOCKS_SIGHT`); its "Wall of Fire Burning Side" band burns on `END_TURN_IN_SPACE`.
 - Proofs: `nativeRoomWallZoneSpells.test.ts` (wall and band placed under one Concentration; the band burns a creature ending its turn on the side picked and spares the other side; a wall with no side refused; undo and Concentration end remove both records), `characterSpellCastActions.test.ts` (band compilation, four malformed bands refused, side required and not offered), `vtt-spatial.test.ts`, `vttSceneRenderer.model.test.ts`, `CampaignTabletopActionDrawer.test.tsx`. Two `characterSpellCastActions.test.ts` Wall of Fire tests changed by the ruling (the wall no longer burns at turn end; the band does).
 - Pre-launch data: the area root's `placedSpatialEffectId` became `placedSpatialEffectIds`; stored local executions from before need the local reset.
+
+### T2a2 (Foresight, D156 class A)
+
+- Ruling (D156 amendment): T2a2 is Foresight alone. Enhance Ability moves to T2t (effect-given temporary hit points lost when the effect ends, and a CHOICE option holding a grant beside them); Feeblemind (T2u), Flame Blade with Spiritual Weapon (T2v) and Faithful Hound (T2w) are class B.
+- Authoring: Foresight's closed rule became one 8-hour `APPLY_GRANT` on a willing touched creature, no Concentration: `ADVANTAGE` on `ATTACK_ROLL` (every attack domain), `ABILITY_CHECK` and `SAVING_THROW_MODIFIER` (one per ability), and `DISADVANTAGE` on `ATTACKS_AGAINST` (every attack domain, whether or not the holder sees the attacker). The grants Help and Dodge use. `FORESIGHT` left `CLOSED_RULE_KIND`.
+- Out of scope: "can't be surprised" is description only; Encounters have no surprise step (future-enhancements).
+- Proofs: `nativeRoomForesight.test.ts` (a Wolf's Bite attack against the warded caster rolls with disadvantage, a Bite save it asks rolls with advantage, both plain without the spell), `grantAuthoringParity.test.ts` (Foresight through the node map).
 
 ### T2a1 (hit-point pool conditions, Color Spray, Awaken)
 
