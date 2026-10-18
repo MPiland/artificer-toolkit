@@ -1,5 +1,4 @@
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
-import { env } from 'cloudflare:workers'
 import { expect, it } from 'vitest'
 
 import {
@@ -8,11 +7,10 @@ import {
   MAX_DURABLE_COMMAND_JSON_BYTES,
   MAX_DURABLE_OUTBOX_BATCH_COUNT
 } from '../src/durableCommandJournal.js'
+import { roomStub } from './roomTeardown.js'
 
 function fixture() {
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`journal:${crypto.randomUUID()}`)
-  )
+  const stub = roomStub(`journal:${crypto.randomUUID()}`)
   const authorityEpoch = crypto.randomUUID()
   const actorId = crypto.randomUUID()
   const activate = (journal: DurableCommandJournal) =>

@@ -34,6 +34,8 @@ export type TargetingAuthored =
       /** Hit points of creatures the area affects, lowest first, rolled once per cast (Sleep). */
       hitPointPool?: { diceConfig: string }
       hitPointPoolScaling?: ScalableValueAuthored<{ diceConfig: string }>
+      /** Creatures with any of these conditions are passed over by the pool (Sleep's unconscious). */
+      hitPointPoolIgnoredConditionIds?: string[]
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }

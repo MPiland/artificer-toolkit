@@ -179,6 +179,23 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
         )
       )
       .set(
+        'hitPointPoolIgnoredConditionIds',
+        selectMulti(
+          ['hitPointPoolIgnoredConditionIds'],
+          'Conditions the Pool Ignores',
+          {
+            kind: 'DATA',
+            relationship: table('condition_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            order: 12,
+            showIf: local.field(['selectionKind']).eq('AREA_CONTENTS')
+          }
+        )
+      )
+      .set(
         'allowedCreatureTypeIds',
         selectMulti(
           ['allowedCreatureTypeIds'],

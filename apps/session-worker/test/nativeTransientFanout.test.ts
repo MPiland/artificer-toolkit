@@ -1,5 +1,4 @@
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
-import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
@@ -40,6 +39,7 @@ import {
   roomInputsResponse,
   type RoomSceneFixture
 } from './roomInputsFixture.js'
+import { roomStub } from './roomTeardown.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const campaignId = '00000000-0000-4000-8000-000000000101'
@@ -75,9 +75,7 @@ function controlClock(frozenAt?: number) {
 }
 
 function newRoom() {
-  return env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${crypto.randomUUID()}`)
-  )
+  return roomStub(`${campaignId}:${crypto.randomUUID()}`)
 }
 
 function member(userId: string, role: 'OWNER' | 'PLAYER', epoch = '2026-09-12T00:00:00.000Z') {

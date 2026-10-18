@@ -54,6 +54,9 @@ export const targetingDtoSchema = lazySchema(() =>
       hitPointPoolScaling: z.optional(
         createBreakpointScalingDtoSchema(z.object({ diceConfig: authoredIdentifierSchema }))
       ),
+      hitPointPoolIgnoredConditionIds: z.optional(
+        authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      ),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),
