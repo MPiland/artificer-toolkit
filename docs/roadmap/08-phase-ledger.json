@@ -849,6 +849,23 @@
               "text": "Lint changed-files format check flagged docs/roadmap/08-phase-ledger.json on ci/platform-13-t4, whose own diff touched only tests.yml, and the tests auto-fix reformatted the whole ledger (fa3f5f0bb). Find why formatChanged.mjs or the Lint job sees an unchanged file (merge-base vs tip, or a slice commit that rewrote it), fix the cause, with a regression test. Found 2026-10-18."
             },
             {
+              "id": "PLATFORM-13.T15",
+              "status": "IN_PROGRESS",
+              "closes": [
+                "PLATFORM-13.3"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 5,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "PLATFORM-13.T4"
+                ]
+              },
+              "text": "CI wall below 10 min with no added jobs: web unit project isolate:false (then maxWorkers 3 if clean), slim the two 30 s developmentCustody tests, retry Convex at 3 workers per shard. Gate: three clean full dispatches, no timeout raised, no assertion weakened. Hosting test shards inside typecheck jobs rejected (couples type-error cancel to test failures)."
+            },
+            {
               "id": "PLATFORM-13.T5",
               "text": "Convex-suite speed work from the 2026-10-14 top-20: the corpus-scale journeys (equipmentLimits, developmentLifecycleProof, commitReferencedContext, seed, seedAudit, builderSnapshotParity, equipmentCharacter, catalogueReadBudget, developmentCustody: 970 s of 2808 s), media/* per-test fixture setup (profile first) and module import (688 s across 380 files). Per-file timings only; proofs keep running real code.",
               "status": "DONE",
