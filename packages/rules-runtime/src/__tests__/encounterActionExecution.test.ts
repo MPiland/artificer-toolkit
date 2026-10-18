@@ -19,6 +19,7 @@ import { POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { planeShift } from '@artificer-toolkit/source-data/srd/spells/plane-shift.js'
+import { teleport } from '@artificer-toolkit/source-data/srd/spells/teleport.js'
 import { wordOfRecall } from '@artificer-toolkit/source-data/srd/spells/word-of-recall.js'
 import {
   ACTIVATION_CODE,
@@ -574,7 +575,8 @@ describe('native phased action execution', () => {
 
   it.each([
     ['Word of Recall', wordOfRecall],
-    ['Plane Shift', planeShift]
+    ['Plane Shift', planeShift],
+    ['Teleport', teleport]
   ])(
     'compiles the SRD %s to a depart proposal that applies without an amount',
     async (_name, spell) => {

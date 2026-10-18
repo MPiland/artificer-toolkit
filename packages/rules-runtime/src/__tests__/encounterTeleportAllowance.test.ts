@@ -1,4 +1,6 @@
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { balor } from '@artificer-toolkit/source-data/srd/creatures/balor.js'
+import { marilith } from '@artificer-toolkit/source-data/srd/creatures/marilith.js'
 import { RANGE_KIND } from '@artificer-toolkit/shared/core'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -24,6 +26,12 @@ function authoredEffect(spell: { effects?: readonly object[] }) {
   const [effect] = spell.effects ?? []
   if (!effect) throw new Error('The spell has no effect.')
   return effect
+}
+
+function teleportFeature(creature: { features: readonly { label: string }[] }) {
+  const feature = creature.features.find(({ label }) => label === 'Teleport')
+  if (!feature) throw new Error('The creature has no Teleport feature.')
+  return feature
 }
 
 function plan(effect: object) {
@@ -74,7 +82,9 @@ async function cast(effect: object) {
 describe('the in-Scene teleport allowance', () => {
   it.each([
     ['Misty Step', mistyStep, { maxFeet: 30, destinationKind: 'VISIBLE' }],
-    ['Dimension Door', dimensionDoor, { maxFeet: 500, destinationKind: 'SPECIFIED_POINT' }]
+    ['Dimension Door', dimensionDoor, { maxFeet: 500, destinationKind: 'SPECIFIED_POINT' }],
+    ['Balor Teleport', teleportFeature(balor), { maxFeet: 120, destinationKind: 'VISIBLE' }],
+    ['Marilith Teleport', teleportFeature(marilith), { maxFeet: 120, destinationKind: 'VISIBLE' }]
   ])(
     'compiles the SRD %s to a teleport allowance of its range with no applications',
     async (_name, spell, allowance) => {
