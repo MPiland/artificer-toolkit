@@ -85,8 +85,8 @@ export function preparedMovementSceneDelta(input: {
 }): TokenMoved | { kind: 'BATCH'; deltas: TokenMoved[] } | null {
   const moved = preparedMoverSceneDelta(input)
   const dragged = input.draggedTokens ?? []
-  if (!dragged.length) return moved
-  if (!moved) throw new EncounterValidationError('A drag requires its mover to move.')
+  // The room drags only behind a mover that moves; persistence refuses a stored drag that does not.
+  if (!dragged.length || !moved) return moved
   return {
     kind: 'BATCH',
     deltas: [

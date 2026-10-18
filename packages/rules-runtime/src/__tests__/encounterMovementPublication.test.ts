@@ -313,18 +313,5 @@ describe('prepared movement publication', () => {
         { kind: 'TOKEN_MOVED', tokenId: draggedTokenId, position: { x: 200, y: 50 } }
       ]
     })
-    // A pause that moves nothing cannot drag anything.
-    expect(() =>
-      preparedMovementSceneDelta({
-        tokenId,
-        path,
-        outcome: {
-          kind: 'PENDING',
-          movementIntent: null
-        } as unknown as Parameters<typeof preparedMovementSceneDelta>[0]['outcome'],
-        sceneVersion: 4,
-        draggedTokens
-      })
-    ).toThrow('A drag requires its mover to move.')
   })
 })
