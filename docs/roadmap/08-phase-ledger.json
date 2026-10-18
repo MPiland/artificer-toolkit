@@ -7946,10 +7946,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted. T2a3 rulings: Guiding Bolt adds the generic ON_ATTACKED consume event; the compiler compiles an ON_USE SEQUENCE beside MANUAL_ADJUDICATION outcomes (GM notes on the commit) and CHOSEN_CREATURES grant plans.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
