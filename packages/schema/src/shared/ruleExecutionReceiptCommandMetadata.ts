@@ -41,6 +41,7 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = lazySchema(() 
           'ENTER_DICE',
           'ENTER_INTEGER',
           'SYSTEM_ROLL',
+          'CONTEST_CHECK',
           'AREA_LEGENDARY_RESISTANCE',
           'DECLINE',
           'OPTION'

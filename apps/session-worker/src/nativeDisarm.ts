@@ -9,15 +9,24 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
 import {
   liveSessionEncounterRulesInputSchema,
-  type LiveSessionEncounterRulesInput
+  type LiveSessionEncounterRulesInput,
+  type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterAttackD20Belief } from '@artificer-toolkit/rules-runtime/encounterAttackBelief'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
@@ -34,8 +43,11 @@ import {
   actsAgainstEnemy
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import {
+  contestDefenderPicksCheck,
   contestDefenderPolicy,
   executeEncounterOptionalContestAction
 } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
@@ -46,23 +58,51 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
 } from './nativeAttackPerception.js'
-import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
+import {
+  captureActionEconomyDefinitions,
+  evaluateNativeLiveActionEconomy
+} from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
+import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
+
+type ContestPreparation = {
+  contest: ReturnType<typeof prepareEncounterDisarmContest>['contest']
+  published: ReturnType<typeof prepareEncounterBasicActionContest>['published']
+  currentnessChecksum: string
+}
+type ContestActors = Awaited<ReturnType<typeof readNativeLiveActorsAndEffects>>
+type PreparedContest = Awaited<
+  ReturnType<typeof prepareEncounterActionMechanics<PreparedLiveCharacterSheet>>
+>
+type ContestReady = Omit<
+  NonNullable<Extract<LiveSessionEncounterRulesResponse, { kind: 'DISARM' }>['ready']>,
+  'command'
+>
+type ContestPendingContext = Extract<
+  NonNullable<ContestReady['snapshot']>['applicationContext'],
+  { kind: 'ENCOUNTER_ACTION' }
+> & { contest: ContestPreparation['contest'] }
+type ContestRolls = Extract<
+  Awaited<ReturnType<typeof executeEncounterOptionalContestAction>>,
+  { kind: 'COMPLETE' }
+>
 
 /** The contest with one participant's settled faces recorded as its roll evidence. */
 function withRollEvidence(
-  contest: ReturnType<typeof prepareEncounterDisarmContest>['contest'],
+  contest: ContestPreparation['contest'],
   participant: 'INITIATOR' | 'DEFENDER',
   requestId: string,
-  rawFaces: readonly number[]
+  rawFaces: readonly number[],
+  defenderCheckDefinitionId: string
 ) {
   return {
     ...contest,
@@ -74,16 +114,120 @@ function withRollEvidence(
             defender: {
               requestId,
               rawFaces: [...rawFaces],
-              checkDefinitionId: contestDefenderPolicy(contest.defender, null).checkDefinitionId
+              checkDefinitionId: defenderCheckDefinitionId
             }
           }
   }
 }
 
+/** The pending contest a stored snapshot seals; null before the first d20. */
+function readContestPendingContext(
+  snapshot: ContestReady['snapshot']
+): ContestPendingContext | null {
+  const context = snapshot?.snapshotKind === 'KERNEL_EVIDENCE' ? snapshot.applicationContext : null
+  if (snapshot && (context?.kind !== 'ENCOUNTER_ACTION' || !context.contest))
+    throw new Error('The pending contest is unavailable.')
+  return context?.kind === 'ENCOUNTER_ACTION' && context.contest
+    ? { ...context, contest: context.contest }
+    : null
+}
+
 /**
- * Plans a Disarm, or a participant's d20 for one, in the room: both contest d20s roll here with the
- * room's randomness and each participant's auto-roll preference. Convex stores the paused contest or
- * re-applies the settled item and ACTION changes; it never rolls.
+ * The hold a won basic action contest (Grapple) creates on its target: the action's relationship
+ * effect, from the initiator's winning check against the defender's total, and the conditions it
+ * newly applies (D152). Convex re-derives both from the stored effect at settlement.
+ */
+function planNativeContestHold(input: {
+  prepared: PreparedContest
+  published: ContestPreparation['published']
+  rolls: ContestRolls
+  initiatorRequestId: string
+  occurrenceId: string
+  commandId: string
+  occurredAt: string
+  userId: string
+  activeEffectsByActorId: ContestActors['activeEffectsByActorId']
+}) {
+  const { prepared, rolls, occurrenceId, commandId, occurredAt } = input
+  const { initiator, defender } = rolls
+  const holder = prepared.movementTargets.get(prepared.target.id)
+  if (!holder) throw new Error('The contest target is unavailable.')
+  const effects = prepareNativeActionEffectsPlan({
+    prepared,
+    execution: {
+      published: input.published,
+      execution: rolls.execution,
+      d20: {
+        requestId: input.initiatorRequestId,
+        rollMode: initiator.rollMode,
+        derivedRollMode: initiator.rollMode,
+        rawFaces: [...initiator.rawFaces],
+        selectedNatural: initiator.selectedNatural,
+        contributors: [...initiator.contributors],
+        contributorChecksum: initiator.contributorChecksum,
+        modifier: initiator.modifier,
+        total: initiator.total,
+        defenseOrDc: defender.total,
+        resultPath: 'ON_CHECK_SUCCESS'
+      },
+      applications: []
+    },
+    occurrenceId,
+    commandId,
+    activeEffectsByActorId: input.activeEffectsByActorId
+  })
+  if (!effects.recurringEffect) throw new Error('The contest hold effect is unavailable.')
+  const record = createNativeActiveEffect(effects.recurringEffect, {
+    owner: nativeEffectOwner(prepared.target, prepared.state.id),
+    currentEffects: [...prepared.targetFacts.activeEffects],
+    occurredAt
+  })
+  const applications = effects.relationshipConditionApplications
+  const mechanics = planEncounterMechanicsBatch({
+    batch: {
+      encounterId: prepared.state.id,
+      targetActorId: holder.actor.id,
+      expectedEncounterVersion: prepared.state.version,
+      occurrenceId,
+      sourceCommandId: commandId,
+      commandId: deriveEncounterCharacterMechanicsEventCommandId({
+        occurrenceId,
+        sourceCommandId: commandId,
+        phase: 'DIRECT_ACTION_OUTCOME',
+        ordinal: 0,
+        targetCharacterId: holder.characterFacts?.active.id ?? holder.actor.id
+      }),
+      occurredAt,
+      applications: [...applications],
+      expectedCharacterStreamVersion: holder.characterFacts?.active.play.streamVersion ?? null,
+      effectiveMaximumHitPoints: holder.effectiveMaximumHitPoints,
+      effectiveScalarValues: holder.effectiveScalarValues,
+      forceVersionAdvance: false
+    },
+    actor: holder.actor,
+    userId: input.userId,
+    ...(holder.characterFacts ? { characterFacts: holder.characterFacts } : {})
+  })
+  const [createdEffect] = projectNativeActionEffectTransitions({
+    state: null,
+    recurring: record,
+    targetActorId: prepared.target.id
+  }).activeEffectTransitions
+  return {
+    record,
+    actor: mechanics.updatedActor,
+    stateTransition: {
+      kind: 'ACTOR_RELATIONSHIP' as const,
+      createdEffect: createdEffect!,
+      appliedConditionIds: applications.map(({ conditionId }) => conditionId)
+    }
+  }
+}
+
+/**
+ * Plans a contest (Disarm, Grapple), or a participant's d20 for one, in the room: both contest d20s
+ * roll here with the room's randomness and each participant's auto-roll preference. Convex stores
+ * the paused contest or re-applies the settled changes; it never rolls.
  */
 export async function planNativeLiveDisarm(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
@@ -97,7 +241,7 @@ export async function planNativeLiveDisarm(
   const request = { kind: 'DISARM' as const, command }
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
-    // A player's admitted Disarm lets its follow-up captures read the rules inputs.
+    // A player's admitted contest lets its follow-up captures read the rules inputs.
     ...(scope.expectedRole === 'PLAYER' ? { action: request } : {}),
     request
   })
@@ -105,27 +249,26 @@ export async function planNativeLiveDisarm(
     command.encounterId.toLowerCase() !== initial.encounterId ||
     command.expectedVersion !== initial.expectedVersion
   )
-    throw new Error('Live Disarm scope mismatch.')
+    throw new Error('Live contest scope mismatch.')
   const reads = liveEncounterCaptures(initial, executionOptions.captures)
   const { capture } = reads
   const admission = await capture(request)
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
   const ready = admission.ready
-  if (!ready) throw new Error('The Disarm is unavailable.')
+  if (!ready) throw new Error('The contest is unavailable.')
   const root = ready.command
   const targetActorId = actionTargetActorId(root.target)
   const intent = root.optionalCombatIntent
-  if (!intent) throw new Error('Optional combat Disarm is unavailable.')
   const { state, system } = await capture({ kind: 'INPUTS' })
   if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
-    throw new Error('Disarm Run inputs changed during capture.')
+    throw new Error('Contest Run inputs changed during capture.')
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
     capture
   })
   const actor = actors.find((entry) => entry.id === root.actorId)
   const target = actors.find((entry) => entry.id === targetActorId)
-  if (!actor || !target) throw new Error('Disarm actors are unavailable.')
+  if (!actor || !target) throw new Error('Contest actors are unavailable.')
   const loadTarget = async (entry: (typeof actors)[number]) => {
     const prepared = await prepareNativeLiveMovementTarget({
       scope: initial,
@@ -142,17 +285,19 @@ export async function planNativeLiveDisarm(
       [actor, target].map(async (entry) => [entry.id, await loadTarget(entry)] as const)
     )
   )
-  const definition = requireEncounterDisarmDefinition({
-    state,
-    actors,
-    actor,
-    target,
-    command: {
-      ...root,
-      targetActorId,
-      definitionId: intent.definitionId
-    }
-  })
+  const definition = intent
+    ? requireEncounterDisarmDefinition({
+        state,
+        actors,
+        actor,
+        target,
+        command: {
+          ...root,
+          targetActorId,
+          definitionId: intent.definitionId
+        }
+      })
+    : null
   const scene = root.sceneContext
     ? (
         await capture({
@@ -177,6 +322,7 @@ export async function planNativeLiveDisarm(
         })
       }
     : null
+  const definitions = captureActionEconomyDefinitions(capture)
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor,
@@ -208,7 +354,17 @@ export async function planNativeLiveDisarm(
         sceneContext,
         capture
       }),
-    loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
+    loadSource: async (input) =>
+      resolveEncounterActionSource({
+        ...input,
+        system,
+        basicActions: await readEncounterBasicActionEntries({
+          actorId: input.actor.id,
+          actionId: input.actionId,
+          gameSystemId: input.gameSystemId,
+          definitions
+        })
+      }),
     loadRelationshipFacts: async (input) =>
       lockedRelationshipActionFacts({
         actionEffectId: input.actionEffectId,
@@ -217,53 +373,114 @@ export async function planNativeLiveDisarm(
         targets: { activeEffectsByActorId }
       })
   })
-  const selection = readEncounterDisarmSelection({
+  const priorContext = readContestPendingContext(ready.snapshot)
+  const priorContest = priorContext ? { priorContest: priorContext.contest } : {}
+  const contestInput = { state, actor, target, command: root, prepared, sceneContext, system }
+  let preparation: ContestPreparation
+  let actionEconomy: EncounterActionEconomyConsumption | null
+  if (definition) {
+    const selection = readEncounterDisarmSelection({
+      actor,
+      target,
+      actionId: root.actionId,
+      definition,
+      prepared,
+      sceneContext,
+      rejectTarget: () => {
+        throw new LiveSessionDomainRejectionError(422, {
+          code: 'DOMAIN_REJECTED',
+          reason: 'TARGET_UNAVAILABLE',
+          message: 'Optional combat target is unavailable.'
+        })
+      }
+    })
+    actionEconomy = await prepareEncounterActionEconomy({
+      actor,
+      state,
+      activation: { code: 'ACTION', amount: 1 },
+      target: prepared.sourceFacts,
+      loadTarget: async () => movementTargets.get(actor.id),
+      definitions
+    })
+    const disarm = prepareEncounterDisarmContest({
+      ...contestInput,
+      definition,
+      selection,
+      actionEconomy,
+      ...priorContest
+    })
+    preparation = { ...disarm, published: disarm.graph.published }
+  } else {
+    // A basic action contest (Grapple) spends the allowance its own activation names.
+    const { economy } = await evaluateNativeLiveActionEconomy({
+      prepared,
+      state,
+      actionId: root.actionId,
+      sourceTarget: movementTargets.get(actor.id),
+      targetIds: [target.id],
+      capture
+    })
+    actionEconomy = economy?.consumption ?? null
+    preparation = prepareEncounterBasicActionContest({
+      ...contestInput,
+      actionEconomy,
+      ...priorContest
+    })
+  }
+  return planNativeLiveContestRolls({
+    scope,
+    command,
+    root,
+    ready,
+    priorContext,
+    state,
+    actors,
     actor,
     target,
-    actionId: root.actionId,
-    definition,
     prepared,
     sceneContext,
-    rejectTarget: () => {
-      throw new LiveSessionDomainRejectionError(422, {
-        code: 'DOMAIN_REJECTED',
-        reason: 'TARGET_UNAVAILABLE',
-        message: 'Optional combat target is unavailable.'
-      })
-    }
-  })
-  const actionEconomy = await prepareEncounterActionEconomy({
-    actor,
-    state,
-    activation: { code: 'ACTION', amount: 1 },
-    target: prepared.sourceFacts,
-    loadTarget: async () => movementTargets.get(actor.id),
-    definitions: captureActionEconomyDefinitions(capture)
-  })
-  const pending = ready.snapshot
-  const priorContext =
-    pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
-    pending.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-    pending.applicationContext.contest
-      ? { ...pending.applicationContext, contest: pending.applicationContext.contest }
-      : null
-  if (pending && !priorContext) throw new Error('The pending Disarm contest is unavailable.')
-  const preparation = prepareEncounterDisarmContest({
-    state,
-    actor,
-    target,
-    command: root,
-    definition,
-    prepared,
-    sceneContext,
-    selection,
-    system,
+    activeEffectsByActorId,
+    preparation,
     actionEconomy,
-    ...(priorContext ? { priorContest: priorContext.contest } : {})
+    runtime: executionOptions.runtime,
+    random: executionOptions.random,
+    revisions: reads.revisions()
   })
+}
+
+/**
+ * Rolls a sealed contest's d20s and plans what settling it changes: the paused contest waiting on
+ * a participant, or the settled outcome (the item or the hold), action economy and receipts. The
+ * room's ordinary action planner starts a basic action contest through it too.
+ */
+export async function planNativeLiveContestRolls(input: {
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>
+  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
+  root: ResolveEncounterActionInputDto
+  ready: ContestReady
+  priorContext: ContestPendingContext | null
+  state: EncounterRunState
+  actors: ContestActors['actors']
+  actor: ContestActors['actors'][number]
+  target: ContestActors['actors'][number]
+  prepared: PreparedContest
+  sceneContext: unknown
+  activeEffectsByActorId: ContestActors['activeEffectsByActorId']
+  preparation: ContestPreparation
+  actionEconomy: EncounterActionEconomyConsumption | null
+  runtime: RulesRuntimeService
+  random(maximum: number): number
+  revisions: LiveSessionRulesRevisions
+}) {
+  const { scope, command, root, ready, priorContext, state, actors, actor, target, prepared } =
+    input
+  const { sceneContext, activeEffectsByActorId, preparation, actionEconomy } = input
   if (priorContext && preparation.currentnessChecksum !== priorContext.currentnessChecksum)
-    throw new Error('The pending Disarm source or target changed.')
+    throw new Error('The pending contest source or target changed.')
   let contest = preparation.contest
+  // Only an optional combat initiator makes an attack roll whose mode sight governs.
+  const attackSight = contest.origin.kind === 'OPTIONAL_COMBAT' ? prepared.attackSight : null
+  const pending = ready.snapshot
   const response = command.type === 'RESOLVE_RULE_OCCURRENCE' ? command : null
   const resumed =
     response && pending && priorContext
@@ -272,8 +489,17 @@ export async function planNativeLiveDisarm(
             pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
           // An app roll settles with the faces Convex recorded for it, never client-supplied values.
           const answer = withEncounterAppRoll(response.resolution, ready.appRoll)
-          if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
-            throw new Error('Disarm requires d20 evidence.')
+          // A defender offered several checks picks one and rolls it in one answer (D152).
+          const picksCheck = participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
+          if (picksCheck !== (answer.kind === 'CONTEST_CHECK'))
+            throw new EncounterValidationError(
+              picksCheck
+                ? 'The contest defender picks one of its checks.'
+                : 'A contest participant answers with d20 evidence.'
+            )
+          const resolution = answer.kind === 'CONTEST_CHECK' ? answer.roll : answer
+          if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
+            throw new Error('A contest requires d20 evidence.')
           const {
             snapshotKind: _snapshotKind,
             applicationContext: _applicationContext,
@@ -285,12 +511,14 @@ export async function planNativeLiveDisarm(
           return {
             participant,
             continuation,
-            resolution: answer,
+            resolution,
+            defenderCheckDefinitionId:
+              answer.kind === 'CONTEST_CHECK' ? answer.checkDefinitionId : null,
             // The initiator's dice settle in the true sight mode (ATTACK-10.4, D100).
             initiatorSight:
               participant === 'INITIATOR'
                 ? sightGovernedStageD20({
-                    attackSight: prepared.attackSight,
+                    attackSight,
                     policy: contest.initiator,
                     stored: {
                       d20Belief: priorContext.d20Belief ?? null,
@@ -301,7 +529,22 @@ export async function planNativeLiveDisarm(
           }
         })()
       : null
-  if (response && !resumed) throw new Error('The Disarm answer is unavailable.')
+  if (response && !resumed) throw new Error('The contest answer is unavailable.')
+  const {
+    checkDefinitionId: defenderCheckDefinitionId,
+    label: _label,
+    ...defender
+  } = contestDefenderPolicy(
+    contest.defender,
+    contest.rollEvidence.defender?.checkDefinitionId ?? resumed?.defenderCheckDefinitionId ?? null
+  )
+  const record = (
+    participant: 'INITIATOR' | 'DEFENDER',
+    requestId: string,
+    rawFaces: readonly number[]
+  ) => {
+    contest = withRollEvidence(contest, participant, requestId, rawFaces, defenderCheckDefinitionId)
+  }
   const priorRolls = new Map<'INITIATOR' | 'DEFENDER', readonly number[]>()
   if (contest.rollEvidence.initiator)
     priorRolls.set('INITIATOR', contest.rollEvidence.initiator.rawFaces)
@@ -309,21 +552,16 @@ export async function planNativeLiveDisarm(
     priorRolls.set('DEFENDER', contest.rollEvidence.defender.rawFaces)
   const occurrenceId = pending?.occurrenceId ?? crypto.randomUUID()
   const occurrenceVersion = ready.occurrenceVersion === null ? 0 : ready.occurrenceVersion + 1
-  const {
-    checkDefinitionId: _checkDefinitionId,
-    label: _label,
-    ...defender
-  } = contestDefenderPolicy(contest.defender, null)
   const execution = await executeEncounterOptionalContestAction({
-    runtime: executionOptions.runtime,
+    runtime: input.runtime,
     // Each participant's d20 goes to that actor's controllers; the initiator rolls their own.
     autoRoll: ready.autoRollByActorId,
-    graph: preparation.graph,
+    published: preparation.published,
     initiator: { ...contest.initiator, requestNodeId: 'initiator_d20' },
     defender: { ...defender, requestNodeId: 'target_d20' },
     occurrenceId,
     priorRolls,
-    rollD20: () => executionOptions.random(20) + 1,
+    rollD20: () => input.random(20) + 1,
     ...(resumed
       ? {
           continuation: resumed.continuation,
@@ -332,12 +570,11 @@ export async function planNativeLiveDisarm(
         }
       : {})
   })
-  const planned = { ...scope, command, revisions: reads.revisions() }
+  const planned = { ...scope, command, revisions: input.revisions }
   if (execution.kind === 'PENDING') {
     // The answered participant's settled faces stay with the contest, unless a held die waits for one more.
     if (resumed && !execution.held)
-      contest = withRollEvidence(
-        contest,
+      record(
         resumed.participant,
         resumed.resolution.requestId,
         execution.rolls.get(resumed.participant)!
@@ -345,18 +582,13 @@ export async function planNativeLiveDisarm(
     const initiatorFaces = execution.rolls.get('INITIATOR')
     // An auto-rolled initiator keeps its faces for the defender's prompted answer.
     if (initiatorFaces && !contest.rollEvidence.initiator)
-      contest = withRollEvidence(
-        contest,
-        'INITIATOR',
-        contest.initiator.requestNodeId,
-        initiatorFaces
-      )
+      record('INITIATOR', contest.initiator.requestNodeId, initiatorFaces)
     const d20Belief =
-      execution.participant === 'INITIATOR' && prepared.attackSight
+      execution.participant === 'INITIATOR' && attackSight
         ? encounterAttackD20Belief({
             policy: contest.initiator,
-            trueSight: prepared.attackSight.trueSight,
-            believedSight: prepared.attackSight.believedSight
+            trueSight: attackSight.trueSight,
+            believedSight: attackSight.believedSight
           })
         : null
     return {
@@ -387,8 +619,7 @@ export async function planNativeLiveDisarm(
     }
   }
   if (resumed)
-    contest = withRollEvidence(
-      contest,
+    record(
       resumed.participant,
       resumed.resolution.requestId,
       (resumed.participant === 'INITIATOR' ? execution.initiator : execution.defender).rawFaces
@@ -398,35 +629,51 @@ export async function planNativeLiveDisarm(
       ['INITIATOR', execution.initiator],
       ['DEFENDER', execution.defender]
     ] as const)
-      contest = withRollEvidence(contest, participant, roll.requestNodeId, roll.rawFaces)
+      record(participant, roll.requestNodeId, roll.rawFaces)
+  const occurredAt = new Date().toISOString()
+  const sourceWins = disarmSourceWins(execution)
   const characterFacts = prepared.targetFacts.characterFacts
-  const success = disarmSourceWins(execution)
-    ? planEncounterDisarmSuccess({
-        target,
-        contest,
-        character: characterFacts
-          ? {
-              id: characterFacts.active.id,
-              streamVersion: characterFacts.active.play.streamVersion,
-              document: characterFacts.character
-            }
-          : null
-      })
-    : null
-  const settledTarget = success?.kind === 'CREATURE' ? success.actor : target
-  // The initiator's attack roll uses up its one-roll grants (Vicious Mockery's disadvantage) and
-  // releases the condition an ending effect alone held (Invisibility).
+  const success =
+    sourceWins && contest.origin.kind === 'OPTIONAL_COMBAT'
+      ? planEncounterDisarmSuccess({
+          target,
+          contest,
+          character: characterFacts
+            ? {
+                id: characterFacts.active.id,
+                streamVersion: characterFacts.active.play.streamVersion,
+                document: characterFacts.character
+              }
+            : null
+        })
+      : null
+  const hold =
+    sourceWins && contest.origin.kind === 'BASIC_ACTION'
+      ? planNativeContestHold({
+          prepared,
+          published: preparation.published,
+          rolls: execution,
+          initiatorRequestId: contest.rollEvidence.initiator!.requestId,
+          occurrenceId,
+          commandId: root.commandId,
+          occurredAt,
+          userId: ready.initiatorUserId,
+          activeEffectsByActorId
+        })
+      : null
+  const settledTarget = success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? target)
+  // An optional combat initiator's attack roll uses up its one-roll grants (Vicious Mockery's
+  // disadvantage) and releases the condition an ending effect alone held (Invisibility).
   const { consumedGrants: initiatorGrants, sourceReleases } = actionEndedEffects({
     holderActorId: actor.id,
     held: activeEffectsByActorId.get(actor.id) ?? [],
-    makesAttackRoll: true,
+    makesAttackRoll: contest.origin.kind === 'OPTIONAL_COMBAT',
     againstEnemy: actsAgainstEnemy({
       actorId: actor.id,
       targetActorIds: [target.id],
       dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
     })
   })
-  const occurredAt = new Date().toISOString()
   const sourceRelease = sourceReleases.length
     ? planNativeEncounterAreaSourceSpend(
         {
@@ -469,6 +716,7 @@ export async function planNativeLiveDisarm(
         ...initiatorGrants,
         ...effectsEndedBy(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
       ],
+      createdEffect: hold?.record ?? null,
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,
@@ -479,7 +727,7 @@ export async function planNativeLiveDisarm(
           occurrenceId,
           contest,
           rolls: execution,
-          stateTransition: success?.stateTransition ?? { kind: 'NONE' },
+          stateTransition: success?.stateTransition ?? hold?.stateTransition ?? { kind: 'NONE' },
           actionEconomy,
           sourceApplications: sourceRelease?.sourceResourcePlan?.receiptApplications ?? []
         })

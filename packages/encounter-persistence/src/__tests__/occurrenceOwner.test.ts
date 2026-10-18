@@ -14,7 +14,7 @@ function facts(
     occurrence: { id: 'occurrence-1', rootCommandId: 'root-1' },
     context,
     rootCommandType: null,
-    completedDisarm: false,
+    completedContest: false,
     ...overrides
   }
 }
@@ -28,7 +28,7 @@ describe('classifyNativeEncounterOccurrence', () => {
           kind: 'ENCOUNTER_ACTION',
           contest: { origin: { kind: 'OPTIONAL_COMBAT', actionKind: 'DISARM' } }
         }),
-        'DISARM'
+        'CONTEST'
       ],
       [
         facts({
@@ -36,6 +36,10 @@ describe('classifyNativeEncounterOccurrence', () => {
           contest: { origin: { kind: 'OPTIONAL_COMBAT', actionKind: 'SHOVE' } }
         }),
         'ACTION'
+      ],
+      [
+        facts({ kind: 'ENCOUNTER_ACTION', contest: { origin: { kind: 'BASIC_ACTION' } } }),
+        'CONTEST'
       ],
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
       [facts({ kind: 'ENCOUNTER_BASIC_ACTION_CHECK' }), 'BASIC_ACTION'],
@@ -97,12 +101,14 @@ describe('classifyNativeEncounterOccurrence', () => {
           }
         )
       )
-    ).toBe('DISARM')
+    ).toBe('CONTEST')
     expect(
       classifyNativeEncounterOccurrence(
         facts({ kind: 'ENCOUNTER_TURN_RECHARGE' }, { rootCommandType: 'RESOLVE_ACTION' })
       )
     ).toBe('ACTION')
-    expect(classifyNativeEncounterOccurrence(facts(null, { completedDisarm: true }))).toBe('DISARM')
+    expect(classifyNativeEncounterOccurrence(facts(null, { completedContest: true }))).toBe(
+      'CONTEST'
+    )
   })
 })

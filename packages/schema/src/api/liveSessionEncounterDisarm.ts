@@ -57,6 +57,8 @@ export type LiveSessionEncounterDisarmCommitInput = Omit<
   rules: z.infer<typeof encounterActorRuleOutputSchema>
   /** The one-roll grants the initiator's attack roll and the defender's check used up; the commit deletes them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
+  /** The hold effect a won basic action contest (Grapple) creates on its target; null otherwise. */
+  createdEffect: z.infer<typeof activeRuleEffectRecordSchema> | null
 }
 
 export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSessionEncounterDisarmCommitInput> =
@@ -68,6 +70,7 @@ export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSess
       rules: encounterActorRuleOutputSchema,
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      createdEffect: z.nullable(activeRuleEffectRecordSchema)
     })
   )

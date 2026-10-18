@@ -62,13 +62,18 @@ export async function readNativeDisarmReplay(
   if (
     payload.status !== 'COMPLETE' ||
     payload.applicationOutputs.kind !== 'CONTESTED_ACTION' ||
-    !payload.applicationOutputs.policy ||
     metadata.transition !== 'START'
   )
     throw new Error('Stored Disarm rule receipt mismatch.')
   const application = payload.applicationOutputs
-  const policy = payload.applicationOutputs.policy
-  const graph = createDnd5eOptionalCombatContestGraph(policy)
+  const { policy } = application
+  // An optional combat contest rebuilds its System graph from the pin; a basic action contest runs
+  // its capability's own graph, which the stored receipts bind.
+  const optionalCombat = policy ? createDnd5eOptionalCombatContestGraph(policy) : null
+  const graph = optionalCombat?.published ?? {
+    id: application.contestGraph.definitionId,
+    checksum: application.contestGraph.checksum
+  }
   if (
     occurrence.state !== 'COMPLETED' ||
     occurrence.encounterId !== run.id ||
@@ -91,17 +96,18 @@ export async function readNativeDisarmReplay(
     application.occurrenceId !== occurrence.id ||
     application.sourceActorId !== command.actorId ||
     application.targetActorId !== actionTargetActorId(command.target) ||
-    policy.definitionId !== command.optionalCombatIntent?.definitionId ||
-    application.contestGraph.definitionId !== graph.published.id ||
-    application.contestGraph.checksum !== graph.published.checksum ||
-    application.contestGraph.identityChecksum !== graph.identityChecksum ||
-    payload.evidence.source.definitionId !== graph.published.id ||
-    payload.evidence.source.checksum !== graph.published.checksum ||
+    (policy?.definitionId ?? null) !== (command.optionalCombatIntent?.definitionId ?? null) ||
+    application.contestGraph.definitionId !== graph.id ||
+    application.contestGraph.checksum !== graph.checksum ||
+    (optionalCombat &&
+      application.contestGraph.identityChecksum !== optionalCombat.identityChecksum) ||
+    payload.evidence.source.definitionId !== graph.id ||
+    payload.evidence.source.checksum !== graph.checksum ||
     payload.outputs.initiatorNaturalD20 !== application.sourceRoll.selectedNatural ||
     payload.outputs.targetNaturalD20 !== application.targetRoll.selectedNatural ||
     payload.outputs.initiatorTotal !== application.sourceRoll.total ||
     payload.outputs.targetTotal !== application.targetRoll.total ||
-    metadata.definitionId !== graph.published.id ||
+    metadata.definitionId !== graph.id ||
     metadata.expectedAggregateVersion !== command.expectedVersion ||
     metadata.factsChecksum !== checksumRuleDocument(payload.evidence.facts) ||
     metadata.optionalCombatSnapshotChecksum !== optionalCombatSnapshotChecksum ||
@@ -172,10 +178,13 @@ export function readNativeDisarmEvidenceReplay(input: {
     payload.status === 'COMPLETE'
       ? pending !== null
       : pending !== null &&
-        (pending.kind !== 'D20_EVIDENCE' ||
-          pending.request.requestId !== payload.request.requestId ||
-          payload.pending?.kind !== 'D20_EVIDENCE' ||
-          pending.request.rollMode !== payload.pending.rollMode)
+        // A defender who picks its check answers a CONTEST_CHECK prompt with no sealed roll mode.
+        (pending.kind === 'CONTEST_CHECK'
+          ? pending.requestId !== payload.request.requestId || payload.pending != null
+          : pending.kind !== 'D20_EVIDENCE' ||
+            pending.request.requestId !== payload.request.requestId ||
+            payload.pending?.kind !== 'D20_EVIDENCE' ||
+            pending.request.rollMode !== payload.pending.rollMode)
   )
     throw new Error('Stored Disarm evidence response mismatch.')
   return { replayReceipt: metadata.replayReceipt, payload }

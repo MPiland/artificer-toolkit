@@ -26,6 +26,7 @@ import {
 } from './nativeEncounterRules.js'
 import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncounterCastReaction.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
+import { persistRoomEncounterContest } from './roomEncounterDisarm.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
@@ -87,6 +88,17 @@ export async function executeRoomEncounterAction(input: {
     }
   })
   if (plan.kind === 'REPLAY') return plan.result
+  // A basic action contested by its target (Grapple) settles through the one contest commit (D152).
+  if (plan.kind === 'CONTEST')
+    return persistRoomEncounterContest({
+      ctx,
+      store,
+      transaction,
+      inputs,
+      scope,
+      observed,
+      plan: plan.plan
+    })
   if (plan.kind === 'CHECK')
     return persistRoomEncounterCheckAction({
       ctx,

@@ -624,7 +624,7 @@ export function planEncounterDisarmSuccess(input: {
 /** Each participant's settled d20: a completed execution's rolls, or a stored receipt's. */
 type DisarmRolls = Record<'initiator' | 'defender', { total: number }>
 
-/** The settled Disarm's receipt outputs; the source wins only on a higher total. */
+/** A settled contest's receipt outputs; the source wins only on a higher total. */
 export function disarmApplicationOutputs(input: {
   occurrenceId: string
   contest: DisarmContest
@@ -635,10 +635,8 @@ export function disarmApplicationOutputs(input: {
   sourceApplications: ReceiptApplications
 }) {
   const { contest, rolls } = input
-  if (contest.origin.kind !== 'OPTIONAL_COMBAT')
-    throw new Error('Disarm settlement requires a Disarm contest.')
-  const { definitionId, definitionVersion, definitionChecksum, moduleKey, moduleContractVersion } =
-    contest.origin.pin
+  // Only an optional combat contest has a policy pin; a basic action or escape has none (D152).
+  const pin = contest.origin.kind === 'OPTIONAL_COMBAT' ? contest.origin.pin : null
   return contestedActionApplicationOutputDtoSchema.parse({
     kind: 'CONTESTED_ACTION',
     schemaVersion: 1,
@@ -646,12 +644,12 @@ export function disarmApplicationOutputs(input: {
     sourceActorId: contest.sourceActorId,
     targetActorId: contest.targetActorId,
     sealedContextChecksum: checksumRuleDocument(contest),
-    policy: {
-      definitionId,
-      definitionVersion,
-      definitionChecksum,
-      moduleKey,
-      moduleContractVersion
+    policy: pin && {
+      definitionId: pin.definitionId,
+      definitionVersion: pin.definitionVersion,
+      definitionChecksum: pin.definitionChecksum,
+      moduleKey: pin.moduleKey,
+      moduleContractVersion: pin.moduleContractVersion
     },
     contestGraph: contest.contestGraph,
     sourceRoll: rolls.initiator,

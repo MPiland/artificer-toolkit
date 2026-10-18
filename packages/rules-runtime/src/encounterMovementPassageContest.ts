@@ -93,7 +93,7 @@ export async function executeEncounterMovementPassageContest(input: {
   const result = await executeEncounterOptionalContestAction({
     autoRoll: input.autoRoll,
     ...(input.continuation ? { continuation: input.continuation } : {}),
-    graph,
+    published: graph.published,
     initiator: { ...input.pending.initiator, requestNodeId: 'initiator_d20' },
     defender: {
       ...contestDefenderPolicy(input.pending.defender, null),

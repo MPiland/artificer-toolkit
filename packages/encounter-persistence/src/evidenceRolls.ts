@@ -311,8 +311,9 @@ export async function rollEncounterRuleEvidence(
 }
 
 /**
- * The recorded faces a `SYSTEM_ROLL` answer settles with. The roll must be the responder's latest
- * attempt for this exact request, so a client can neither invent faces nor reuse another roll.
+ * The recorded faces a `SYSTEM_ROLL` answer, or a contest check rolled in the app, settles with. The
+ * roll must be the responder's latest attempt for this exact request, so a client can neither
+ * invent faces nor reuse another roll.
  */
 export async function readEncounterSettledAppRoll(
   ctx: EncounterReadTransaction,
@@ -322,7 +323,10 @@ export async function readEncounterSettledAppRoll(
     userId: string
   }
 ): Promise<EncounterSettledAppRollDto | null> {
-  const { resolution } = input.response
+  const resolution =
+    input.response.resolution.kind === 'CONTEST_CHECK'
+      ? input.response.resolution.roll
+      : input.response.resolution
   if (resolution.kind !== 'SYSTEM_ROLL') return null
   const rollId = resolution.rollId.toLowerCase()
   const row = await ctx.db

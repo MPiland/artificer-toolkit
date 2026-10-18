@@ -488,7 +488,7 @@ export async function executeRoomEncounterCommand(input: {
       throw new Error('Room response execution is unavailable.')
     if (route === 'TURN') return executeTurn(command)
     if (route === 'ACTION') return executeAction(command)
-    if (route === 'DISARM') return executeDisarm(command)
+    if (route === 'CONTEST') return executeDisarm(command)
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     const execute =
       route === 'CLEAVING'

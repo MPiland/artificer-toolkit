@@ -266,9 +266,10 @@ export async function readDisarmAdmission(
   if (
     response &&
     response.resolution.kind !== 'ENTER_DICE' &&
-    response.resolution.kind !== 'SYSTEM_ROLL'
+    response.resolution.kind !== 'SYSTEM_ROLL' &&
+    response.resolution.kind !== 'CONTEST_CHECK'
   )
-    throw new Error('Disarm requires d20 evidence.')
+    throw new Error('A contest participant answers with d20 evidence.')
   return {
     ...scope,
     kind: 'READY' as const,

@@ -376,7 +376,7 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
         .strictObject({
           kind: z.literal('CONTEST_CHECK'),
           requestId: requestIdSchema,
-          checkDefinitionId: uuidSchema,
+          checkDefinitionId: postgresUuidSchema,
           roll: z.discriminatedUnion('kind', [
             enterDiceResolutionDtoSchema,
             systemRollResolutionDtoSchema

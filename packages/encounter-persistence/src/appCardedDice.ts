@@ -67,9 +67,12 @@ export async function actionSystemRollAnswers(
       : []
   })
   const { response } = input
-  if (response?.resolution.kind === 'SYSTEM_ROLL')
+  // A contest defender's check carries its roll inside the answer (D152).
+  const resolution =
+    response?.resolution.kind === 'CONTEST_CHECK' ? response.resolution.roll : response?.resolution
+  if (response && resolution?.kind === 'SYSTEM_ROLL')
     answers.push({
-      requestId: response.resolution.requestId,
+      requestId: resolution.requestId,
       occurrenceVersion: response.expectedOccurrenceVersion,
       userId: input.responderUserId
     })

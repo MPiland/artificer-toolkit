@@ -54,7 +54,7 @@ async function attackOgre(input: {
     execution,
     effects: prepareNativeActionEffectsPlan({
       prepared,
-      execution: { kind: 'COMPLETE', ...execution },
+      execution,
       occurrenceId: testUuid(0xb3),
       commandId: testUuid(0xb4),
       activeEffectsByActorId: new Map()

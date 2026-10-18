@@ -33,6 +33,7 @@ import {
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { contestDefenderPicksCheck } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
@@ -144,7 +145,7 @@ export async function persistEncounterDisarmPending(
   const stored = await ctx.db.get(id)
   if (!stored) throw new Error('The pending Disarm was not stored.')
   // The sealed contest must name its root and the participant it now waits on.
-  const { policy } = await readNativeDisarmPending(ctx, stored)
+  const { policy, participant, contest } = await readNativeDisarmPending(ctx, stored)
   const result = await presentEncounterResultForMember(ctx, {
     campaign,
     membership,
@@ -164,7 +165,11 @@ export async function persistEncounterDisarmPending(
         occurrenceId: stored.id,
         occurrenceVersion,
         request: snapshot.request,
-        pending: { kind: 'D20_EVIDENCE', rollMode: policy.rollMode }
+        // A defender that picks its check is asked for no single d20 (D152).
+        pending:
+          participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
+            ? null
+            : { kind: 'D20_EVIDENCE', rollMode: policy.rollMode }
       })
     })
   return result
@@ -192,13 +197,19 @@ export async function persistEncounterDisarmCommit(
     !outputs ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (occurrence && execution.occurrenceId !== occurrence.id) ||
-    contest.origin.kind !== 'OPTIONAL_COMBAT' ||
-    contest.origin.actionKind !== 'DISARM' ||
+    // A Disarm seals its optional combat pin; a basic action contest is the action itself (D152).
+    // Only a won basic action contest creates its hold effect.
+    (contest.origin.kind === 'OPTIONAL_COMBAT'
+      ? contest.origin.actionKind !== 'DISARM' ||
+        contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||
+        contest.origin.pin.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+        input.createdEffect !== null
+      : contest.origin.kind !== 'BASIC_ACTION' ||
+        root.optionalCombatIntent != null ||
+        (input.createdEffect !== null) !== (outputs.outcome === 'SOURCE_WIN')) ||
     contest.actionId !== root.actionId ||
     contest.sourceActorId !== root.actorId ||
     contest.targetActorId !== targetActorId ||
-    contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||
-    contest.origin.pin.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     outputs.sealedContextChecksum !== checksumRuleDocument(contest) ||
     execution.evidence.source.definitionId !== contest.contestGraph.definitionId ||
     execution.evidence.source.checksum !== contest.contestGraph.checksum ||
@@ -231,7 +242,7 @@ export async function persistEncounterDisarmCommit(
   const { consumedGrants: endedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: source.id,
     held: sourceEffects,
-    makesAttackRoll: true,
+    makesAttackRoll: contest.origin.kind === 'OPTIONAL_COMBAT',
     againstEnemy: actsAgainstEnemy({
       actorId: source.id,
       targetActorIds: [target.id],
@@ -271,6 +282,9 @@ export async function persistEncounterDisarmCommit(
     contest,
     rolls: { initiator: outputs.sourceRoll, defender: outputs.targetRoll },
     actionEconomy: outputs.actionEconomyTransition,
+    createdEffect: input.createdEffect,
+    campaign,
+    applyMechanics: callbacks.applyMechanics,
     occurrenceId: execution.occurrenceId,
     commandId: response?.commandId ?? root.commandId,
     sourceCommandId: root.commandId,
@@ -372,8 +386,8 @@ export async function persistEncounterDisarmCommit(
         ruleResultChecksum,
         optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
       },
-      label: 'Disarm',
-      // Disarm has no "Do it anyway"; its checks stay hard.
+      label: contest.origin.kind === 'BASIC_ACTION' ? contest.origin.actionLabel : 'Disarm',
+      // A contest has no "Do it anyway"; its checks stay hard.
       ruleOverrides: [],
       consumedGrants: input.consumedGrants,
       endedMaintainedStates: [],

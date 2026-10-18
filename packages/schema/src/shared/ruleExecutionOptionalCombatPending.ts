@@ -237,7 +237,12 @@ const contestCheckOriginDtoSchema = lazySchema(() =>
       selection: optionalCombatPassageSelectionDtoSchema,
       movementContinuation: z.optional(z.nullable(optionalCombatPassageContinuationDtoSchema))
     }),
-    z.strictObject({ kind: z.literal('BASIC_ACTION'), initiatorCheckDefinitionId: uuidSchema })
+    z.strictObject({
+      kind: z.literal('BASIC_ACTION'),
+      initiatorCheckDefinitionId: uuidSchema,
+      /** The action's name, which the defender's check prompt and the timeline read. */
+      actionLabel: identifierSchema
+    })
   ])
 )
 

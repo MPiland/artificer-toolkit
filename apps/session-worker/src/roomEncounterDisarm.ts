@@ -11,7 +11,7 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
-import { planNativeLiveDisarm } from './nativeDisarm.js'
+import { planNativeLiveDisarm, type planNativeLiveContestRolls } from './nativeDisarm.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
@@ -55,11 +55,28 @@ export async function executeRoomEncounterDisarm(input: {
     }
   })
   if (plan.kind === 'REPLAY') return plan.result
+  return persistRoomEncounterContest({ ctx, store, transaction, inputs, scope, observed, plan })
+}
+
+/**
+ * Stores a room-planned contest: the paused contest waiting on a participant, or its settled
+ * outcome. A Disarm and a basic action contest the ordinary action planner starts share it.
+ */
+export async function persistRoomEncounterContest(input: {
+  ctx: Parameters<typeof persistEncounterDisarmCommit>[0]
+  store: RoomEncounterStore
+  transaction: RoomTransaction
+  inputs: RoomInputs
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>
+  observed: LiveSessionRulesRevisions
+  plan: Awaited<ReturnType<typeof planNativeLiveContestRolls>>
+}) {
+  const { ctx, store, transaction, inputs, scope, observed, plan } = input
   const run = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (query) => query.eq('id', scope.encounterId))
     .unique()
-  if (!run) throw new Error('Room Disarm Run is unavailable.')
+  if (!run) throw new Error('Room contest Run is unavailable.')
   const ids = new Set(
     (await readRunActors(ctx, readRunState(run))).flatMap((actor) =>
       actor.kind === 'CHARACTER' ? [actor.sourceId] : []

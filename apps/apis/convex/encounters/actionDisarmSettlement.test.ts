@@ -67,7 +67,7 @@ async function settle(
         [preparation.contest.initiator.actorId]: true,
         [preparation.contest.defender.actorId]: true
       },
-      graph: preparation.graph,
+      published: preparation.graph.published,
       initiator: { ...preparation.contest.initiator, requestNodeId: 'initiator_d20' },
       defender: { ...defender, requestNodeId: 'target_d20' },
       occurrenceId,
@@ -94,11 +94,21 @@ async function settle(
         }
       }
     })
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', state.campaignId))
+      .unique()
+    if (!campaign) throw new Error('Missing Disarm Campaign.')
     const settled = await settleDisarm(ctx, {
       state,
+      campaign,
       actor,
       target,
       contest,
+      createdEffect: null,
+      applyMechanics: () => {
+        throw new Error('A Disarm applies no target mechanics.')
+      },
       rolls: execution,
       actionEconomy: preparation.actionEconomy,
       occurrenceId,

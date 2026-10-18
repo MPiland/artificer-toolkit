@@ -54,6 +54,15 @@ export function contestDefenderPolicy(
   return { ...check, actorId: defender.actorId, requestNodeId: defender.requestNodeId }
 }
 
+/**
+ * Whether the defender answers by picking one of its sealed checks (`CONTEST_CHECK`): a basic
+ * action or escape contest offers its listed checks, while an optional combat contest seals one
+ * (D152).
+ */
+export function contestDefenderPicksCheck(contest: { origin: { kind: string } }) {
+  return contest.origin.kind !== 'OPTIONAL_COMBAT'
+}
+
 /** Entered dice, the roller's app roll, or an auto-roll for a contest participant's d20. */
 export type OptionalContestResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
 
@@ -180,7 +189,8 @@ function completeEncounterOptionalContestActionExecution(input: {
 export async function executeEncounterOptionalContestAction(input: {
   autoRoll: EncounterAutoRollByActorId
   continuation?: ServerRuleExecutionContinuationDto
-  graph: Dnd5eOptionalCombatContestGraph
+  /** The two-d20 contest graph: the optional combat contest or a basic action's contest. */
+  published: Dnd5eOptionalCombatContestGraph['published']
   initiator: OptionalContestD20Policy
   defender: OptionalContestD20Policy
   /** How sight governs the initiator's attack d20, or null when it does not. */
@@ -192,7 +202,6 @@ export async function executeEncounterOptionalContestAction(input: {
   priorRolls?: ReadonlyMap<'INITIATOR' | 'DEFENDER', readonly number[]>
 }): Promise<EncounterOptionalContestActionExecution> {
   const rolls = new Map(input.priorRolls)
-  let execution: Awaited<ReturnType<RulesRuntimeService['resume']>>
   if (input.continuation) {
     if (!input.resolution)
       throw new EncounterValidationError('Optional combat contest evidence is required.')
@@ -215,44 +224,40 @@ export async function executeEncounterOptionalContestAction(input: {
         held: heldStageD20(settled.heldFace, sight)
       }
     rolls.set(participant, settled.faces)
-    execution = await input.runtime.resume({
-      continuation: input.continuation,
-      response: {
-        requestId: input.continuation.request.requestId,
-        value: selectEncounterActionD20Natural(policy.rollMode, settled.faces)
-      }
-    })
-  } else {
-    execution = await input.runtime.executeResolved({
-      command: {
-        definitionId: input.graph.published.id,
-        occurrenceId: input.occurrenceId,
-        facts: {
-          [DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY]: input.initiator.modifier,
-          [DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY]: input.defender.modifier
-        }
-      },
-      published: input.graph.published
-    })
   }
+  // The graph replays from its start with every settled d20: request ids are deterministic, and the
+  // defender's modifier binds to the sealed check it answers with (D152 amendment).
+  let execution = await input.runtime.executeResolved({
+    command: {
+      definitionId: input.published.id,
+      occurrenceId: input.occurrenceId,
+      facts: {
+        [DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY]: input.initiator.modifier,
+        [DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY]: input.defender.modifier
+      }
+    },
+    published: input.published
+  })
   while (execution.status === 'PAUSED') {
     const participant = requireRequest(execution.continuation)
     const policy = participant === 'INITIATOR' ? input.initiator : input.defender
+    const requestId = execution.continuation.request.requestId
     // Each contest d20 belongs to its participant; only an auto-rolling roller skips the prompt.
-    if (input.autoRoll[policy.actorId] !== true) break
-    const faces = resolveFaces({
-      policy,
-      resolution: { kind: 'AUTO_ROLL', requestId: execution.continuation.request.requestId },
-      requestId: execution.continuation.request.requestId,
-      rollD20: input.rollD20
-    })
+    const faces =
+      rolls.get(participant) ??
+      (input.autoRoll[policy.actorId] === true
+        ? resolveFaces({
+            policy,
+            resolution: { kind: 'AUTO_ROLL', requestId },
+            requestId,
+            rollD20: input.rollD20
+          })
+        : null)
+    if (!faces) break
     rolls.set(participant, faces)
     execution = await input.runtime.resume({
       continuation: execution.continuation,
-      response: {
-        requestId: execution.continuation.request.requestId,
-        value: selectEncounterActionD20Natural(policy.rollMode, faces)
-      }
+      response: { requestId, value: selectEncounterActionD20Natural(policy.rollMode, faces) }
     })
   }
   if (execution.status === 'PAUSED') {

@@ -67,6 +67,7 @@ import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
 } from './nativeAttackPerception.js'
+import { planNativeLiveContestRolls } from './nativeDisarm.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -164,6 +165,7 @@ import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-ru
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -669,6 +671,47 @@ export async function planNativeLiveEncounterAction(
     if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
       throw new Error('Only a basic action can make a check.')
     const { capability } = prepared.source
+    // A check its target contests (Grapple) rolls both participants' d20s as one contest (D152).
+    if (authoredCheckOf(capability).dc.kind === 'CONTEST') {
+      const contestInput = {
+        state,
+        actor: prepared.actor,
+        target: prepared.target,
+        command,
+        prepared,
+        sceneContext
+      }
+      return {
+        kind: 'CONTEST' as const,
+        plan: await planNativeLiveContestRolls({
+          ...contestInput,
+          scope,
+          root: command,
+          ready: {
+            fingerprint: admission.fingerprint,
+            initiatorUserId: scope.expectedUserId,
+            autoRollByActorId,
+            appRoll: null,
+            snapshot: null,
+            occurrenceVersion: null
+          },
+          priorContext: null,
+          actors,
+          activeEffectsByActorId,
+          preparation: prepareEncounterBasicActionContest({
+            ...contestInput,
+            system,
+            actionEconomy
+          }),
+          actionEconomy,
+          runtime: executionOptions.runtime,
+          random: executionOptions.random ?? nextRollInt,
+          revisions
+        }),
+        dependencies,
+        revisions
+      }
+    }
     // A concealment check compares its roller with every actor in the Run; load them all before the
     // revisions the plan depends on are read.
     const concealmentTargets =

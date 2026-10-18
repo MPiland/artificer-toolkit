@@ -149,47 +149,62 @@ export function prepareEncounterActionEffectPlans(input: {
           }
         })
       : null
-  const relationshipConditionApplications =
-    recurringEffect?.definition.schemaVersion === 2
-      ? (() => {
-          const relationshipContribution = input.activeEffectPlan?.actorRelationshipContribution
-          if (!relationshipContribution) return []
-          const authoredPath =
-            recurringEffect.definition.adapterFacts['dnd5e.relationship-authored-path']
-          if (
-            authoredPath !== 'ON_HIT' &&
-            authoredPath !== 'ON_CRIT' &&
-            authoredPath !== 'ON_CHECK_SUCCESS'
-          )
-            throw new EncounterActionEffectPlanError(
-              'Encounter relationship authored path is unavailable.'
-            )
-          const relationshipConditionIds = recurringEffect.definition.stateContributions.flatMap(
-            (contribution) =>
-              contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
-          )
-          return recurringEffect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' &&
-            relationshipConditionIds.includes(contribution.conditionId) &&
-            !contribution.baselinePresent &&
-            !input.target.conditionIds.includes(contribution.conditionId)
-              ? [
-                  {
-                    kind: 'CONDITION_APPLY' as const,
-                    targetActorId: input.target.actorId,
-                    conditionId: contribution.conditionId,
-                    // The relationship's own active effect receipt binds these conditions.
-                    sourceNodeId: recurringEffect.definition.frozenGraphNodeId,
-                    sourceOperationKey: 'dnd5e.actor-relationship-state',
-                    authoredPath,
-                    resolvedPath: input.d20!.resultPath
-                  }
-                ]
-              : []
-          )
-        })()
+  const relationshipApplications =
+    recurringEffect && input.activeEffectPlan?.actorRelationshipContribution
+      ? relationshipConditionApplications({
+          definition: recurringEffect.definition,
+          target: input.target,
+          resolvedPath: input.d20!.resultPath
+        })
       : []
-  return { stateEffect, recurringEffect, riderEffect, relationshipConditionApplications }
+  return {
+    stateEffect,
+    recurringEffect,
+    riderEffect,
+    relationshipConditionApplications: relationshipApplications
+  }
+}
+
+/**
+ * The conditions a relationship effect (Grapple's hold) newly applies to its target: each one its
+ * relationship names that was absent without it and that the target lacks now. Its own receipt binds
+ * them, so planning and settlement derive the same applications from the stored definition.
+ */
+export function relationshipConditionApplications(input: {
+  definition: ActiveRuleEffectRecord['definition']
+  target: { actorId: string; conditionIds: readonly string[] }
+  resolvedPath: string
+}): Extract<CharacterRuleActionApplication, { kind: 'CONDITION_APPLY' }>[] {
+  const { definition } = input
+  if (definition.schemaVersion !== 2) return []
+  const authoredPath = definition.adapterFacts['dnd5e.relationship-authored-path']
+  if (
+    authoredPath !== 'ON_HIT' &&
+    authoredPath !== 'ON_CRIT' &&
+    authoredPath !== 'ON_CHECK_SUCCESS'
+  )
+    throw new EncounterActionEffectPlanError('Encounter relationship authored path is unavailable.')
+  const relationshipConditionIds = definition.stateContributions.flatMap((contribution) =>
+    contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
+  )
+  return definition.stateContributions.flatMap((contribution) =>
+    contribution.kind === 'CONDITION_OWNERSHIP' &&
+    relationshipConditionIds.includes(contribution.conditionId) &&
+    !contribution.baselinePresent &&
+    !input.target.conditionIds.includes(contribution.conditionId)
+      ? [
+          {
+            kind: 'CONDITION_APPLY' as const,
+            targetActorId: input.target.actorId,
+            conditionId: contribution.conditionId,
+            sourceNodeId: definition.frozenGraphNodeId,
+            sourceOperationKey: 'dnd5e.actor-relationship-state',
+            authoredPath,
+            resolvedPath: input.resolvedPath
+          }
+        ]
+      : []
+  )
 }
 
 /**

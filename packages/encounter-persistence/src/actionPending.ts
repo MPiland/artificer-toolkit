@@ -2,7 +2,10 @@ import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { contestDefenderPolicy } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
+import {
+  contestDefenderPicksCheck,
+  contestDefenderPolicy
+} from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import {
   noEncounterRollModeReasons,
@@ -303,6 +306,28 @@ export function projectNativeActionPending(
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
     rollerActorId: context.rollerActorId
+  }
+  const { contest } = context
+  // A basic action contest's defender picks one of its sealed checks and rolls it (D152).
+  if (contest && snapshot.request.nodeId === 'target_d20' && contestDefenderPicksCheck(contest)) {
+    if (contest.origin.kind !== 'BASIC_ACTION')
+      throw new Error('Stored contest check origin is invalid.')
+    return {
+      ...common,
+      kind: 'CONTEST_CHECK',
+      rollerActorId: contest.defender.actorId,
+      actionLabel: contest.origin.actionLabel,
+      requestId: snapshot.request.requestId,
+      checks: contest.defender.checks.map(
+        ({ checkDefinitionId, label, rollMode, contributors }) => ({
+          checkDefinitionId,
+          label,
+          rollMode,
+          derivedRollModeReasons: reasons({ rollMode, contributors })
+        })
+      ),
+      allowedResponses: ['CONTEST_CHECK']
+    }
   }
   const d20Policy = context.contest
     ? snapshot.request.nodeId === 'initiator_d20'

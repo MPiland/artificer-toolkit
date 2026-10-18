@@ -66,7 +66,8 @@ export function prepareNativeActionEffectsPlan<
   TCharacterFacts extends CharacterActionMovementFacts
 >(input: {
   prepared: PreparedMechanics<TCharacterFacts>
-  execution: CompleteExecution
+  /** The settled graph run; a contest win supplies its own d20 and no applications. */
+  execution: Pick<CompleteExecution, 'published' | 'execution' | 'd20' | 'applications'>
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>

@@ -15,16 +15,19 @@ export async function readNativeDisarmPending(
   const pending = await readNativeActionPending(ctx, occurrence)
   const { snapshot, context, command } = pending
   const contest = context.contest
+  const origin = contest?.origin
   if (
     !contest ||
-    contest.origin.kind !== 'OPTIONAL_COMBAT' ||
-    contest.origin.actionKind !== 'DISARM' ||
-    contest.origin.selection.kind !== 'DISARM' ||
+    // A Disarm seals its optional combat pin; a basic action contest is the action itself (D152).
+    (origin?.kind === 'OPTIONAL_COMBAT'
+      ? origin.actionKind !== 'DISARM' ||
+        origin.selection.kind !== 'DISARM' ||
+        origin.pin.definitionId !== command.optionalCombatIntent?.definitionId ||
+        origin.pin.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum
+      : origin?.kind !== 'BASIC_ACTION' || command.optionalCombatIntent != null) ||
     contest.actionId !== command.actionId ||
     contest.sourceActorId !== command.actorId ||
     contest.targetActorId !== actionTargetActorId(command.target) ||
-    contest.origin.pin.definitionId !== command.optionalCombatIntent?.definitionId ||
-    contest.origin.pin.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum ||
     snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
     snapshot.graph.source.checksum !== contest.contestGraph.checksum ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
@@ -36,7 +39,7 @@ export async function readNativeDisarmPending(
     context.twoPhase !== null ||
     snapshot.phaseReceipts !== undefined
   )
-    throw new Error('Stored Disarm context is invalid.')
+    throw new Error('Stored action contest context is invalid.')
   const participant =
     snapshot.request.nodeId === 'initiator_d20'
       ? 'INITIATOR'
@@ -50,7 +53,7 @@ export async function readNativeDisarmPending(
       ? contest.rollEvidence.initiator !== null
       : contest.rollEvidence.initiator === null)
   )
-    throw new Error('Stored Disarm participant evidence is invalid.')
+    throw new Error('Stored action contest participant evidence is invalid.')
   const policy =
     participant === 'INITIATOR' ? contest.initiator : contestDefenderPolicy(contest.defender, null)
   return { ...pending, contest, participant, policy }
