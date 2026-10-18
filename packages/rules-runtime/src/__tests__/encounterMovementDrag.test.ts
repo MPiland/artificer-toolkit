@@ -77,8 +77,8 @@ const zone = (overrides: Partial<SpatialEffectInstance> = {}): SpatialEffectInst
 })
 
 // The mover stands at x 150 with the creature it holds beside it at x 50.
-const scene = {
-  map: { width: 1000, height: 100 },
+const scene: Parameters<typeof encounterMovementDrag>[0]['scene'] = {
+  map: { assetId: testUuid(0xd760), width: 1000, height: 100, tileManifestAssetId: null },
   tokens: [
     zoneToken(MOVER.tokenId, 'Mover', 150),
     zoneToken(HELD.tokenId, 'Held', 50),
