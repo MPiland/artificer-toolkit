@@ -19,6 +19,7 @@ import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
+  releaseRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -171,6 +172,19 @@ export const liveSessionEncounterEndHeldGrantCommitInputSchema = lazySchema(() =
   })
 )
 
+/**
+ * A room-planned release of a relationship by its source (D152): free, so it spends nothing.
+ * Convex re-reads the effect's source, ends it and the conditions only it held, and records it.
+ */
+export const liveSessionEncounterReleaseRelationshipCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: releaseRelationshipInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
 /** The holder's d20 for a pending Escape check; it settles the check. */
 export const liveSessionEncounterEscapeResponseCommitInputSchema = lazySchema(() =>
   z.extend(basicActionScope, {
@@ -187,6 +201,9 @@ export type LiveSessionEncounterEscapeCommitInput = z.infer<
 >
 export type LiveSessionEncounterEndHeldGrantCommitInput = z.infer<
   typeof liveSessionEncounterEndHeldGrantCommitInputSchema
+>
+export type LiveSessionEncounterReleaseRelationshipCommitInput = z.infer<
+  typeof liveSessionEncounterReleaseRelationshipCommitInputSchema
 >
 export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
   typeof liveSessionEncounterEscapeResponseCommitInputSchema

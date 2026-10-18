@@ -46,6 +46,22 @@ export const encounterStoredRunSchema = lazySchema(() =>
   })
 )
 
+/** The relationships a command ended (D152): each held creature, its effect and the conditions only it held. */
+export const encounterRelationshipEndsSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        heldActorId: postgresUuidSchema,
+        activeEffectId: postgresUuidSchema,
+        removedConditionIds: z
+          .array(postgresUuidSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+)
+export type EncounterRelationshipEnds = z.infer<typeof encounterRelationshipEndsSchema>
+
 /**
  * What a settled command returned besides its projection: the roll and the occurrence summary.
  * Exact replay rebuilds the projection from the Run's records and adds these; the timeline shows
@@ -433,6 +449,16 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       receipt: z.strictObject({
         actorId: postgresUuidSchema,
         actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema)
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RELEASE_RELATIONSHIP'),
+      /** The timeline label: plain "Release", which never names a held creature a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      /** The hold the source let go of. The ended relationship is not restored by an undo. */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        relationshipEnds: encounterRelationshipEndsSchema
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {

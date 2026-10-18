@@ -3,7 +3,8 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import {
   readBasicActionAdmission,
   readEndHeldGrantAdmission,
-  readEscapeAdmission
+  readEscapeAdmission,
+  readReleaseRelationshipAdmission
 } from './basicActionAdmission.js'
 import {
   readBasicActionCheckResponseAdmission,
@@ -14,7 +15,7 @@ import type { EncounterReadTransaction } from './ports.js'
 
 /**
  * Admits whichever command the BASIC_ACTION capture scope carries: a basic action, an Escape, the
- * end of a held grant, or the d20 answer to the check either one pended (told apart by the pending occurrence's context).
+ * end of a held grant, a relationship's release, or the d20 answer to the check either one pended (told apart by the pending occurrence's context).
  */
 export async function readBasicActionScopeAdmission(
   ctx: EncounterReadTransaction,
@@ -27,6 +28,8 @@ export async function readBasicActionScopeAdmission(
   if (command.type === 'ESCAPE_RELATIONSHIP') return readEscapeAdmission(ctx, { ...input, command })
   if (command.type === 'END_HELD_GRANT')
     return readEndHeldGrantAdmission(ctx, { ...input, command })
+  if (command.type === 'RELEASE_RELATIONSHIP')
+    return readReleaseRelationshipAdmission(ctx, { ...input, command })
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', command.occurrenceId.toLowerCase()))

@@ -44,7 +44,8 @@ import {
   executeRoomEncounterBasicActionResponse,
   executeRoomEncounterEscape,
   executeRoomEncounterEndHeldGrant,
-  executeRoomEncounterEscapeResponse
+  executeRoomEncounterEscapeResponse,
+  executeRoomEncounterReleaseRelationship
 } from './roomEncounterBasicActions.js'
 import { removeAreaActionTarget } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
@@ -54,6 +55,7 @@ import {
 import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   RemoveAreaTargetInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -272,10 +274,12 @@ export async function executeRoomEncounterCommand(input: {
                 ? await executeEscape(command)
                 : command.type === 'END_HELD_GRANT'
                   ? await executeEndHeldGrant(command)
-                  : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-                      command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-                    ? await executeTokenBinding(command)
-                    : await recordEncounterCommand(context, command, userId, input.random)
+                  : command.type === 'RELEASE_RELATIONSHIP'
+                    ? await executeReleaseRelationship(command)
+                    : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+                        command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+                      ? await executeTokenBinding(command)
+                      : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const currentRun = await context.db
     .query('encounterRuns')
@@ -428,6 +432,29 @@ export async function executeRoomEncounterCommand(input: {
     if (!input.turnExecution) throw new Error('Room end-grant execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     return executeRoomEncounterEndHeldGrant({
+      ...input.turnExecution,
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      observed,
+      random: input.random,
+      scope: {
+        campaignId,
+        authorityEpoch: epoch,
+        expectedUserId: userId,
+        expectedRole: membership.role,
+        encounterId: command.encounterId.toLowerCase(),
+        expectedVersion: command.expectedVersion
+      },
+      command
+    })
+  }
+
+  async function executeReleaseRelationship(command: ReleaseRelationshipInputDto) {
+    if (!input.turnExecution) throw new Error('Room release execution is unavailable.')
+    const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
+    return executeRoomEncounterReleaseRelationship({
       ...input.turnExecution,
       ctx: context,
       store,

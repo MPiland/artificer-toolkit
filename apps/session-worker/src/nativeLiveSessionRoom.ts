@@ -2833,7 +2833,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               command.type === 'VOID_RULE_OCCURRENCE' ||
               command.type === 'REMOVE_AREA_TARGET' ||
               command.type === 'ESCAPE_RELATIONSHIP' ||
-              command.type === 'END_HELD_GRANT'
+              command.type === 'END_HELD_GRANT' ||
+              command.type === 'RELEASE_RELATIONSHIP'
                 ? {
                     turnExecution: { runtime: this.#liveRulesRuntime() }
                   }

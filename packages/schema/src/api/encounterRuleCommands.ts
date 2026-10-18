@@ -291,6 +291,19 @@ export const endHeldGrantInputDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The source of an Encounter relationship lets go of the creature it holds (D152): free, and
+ * whenever it likes. `activeEffectId` names the relationship effect `heldActorId` carries.
+ */
+export const releaseRelationshipInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('RELEASE_RELATIONSHIP'),
+    actorId: uuidSchema,
+    heldActorId: uuidSchema,
+    activeEffectId: postgresUuidSchema
+  })
+)
+
 const requestIdSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
 )
@@ -437,6 +450,7 @@ export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
+export type ReleaseRelationshipInputDto = z.infer<typeof releaseRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>

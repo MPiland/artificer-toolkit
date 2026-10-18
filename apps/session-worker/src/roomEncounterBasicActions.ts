@@ -6,10 +6,12 @@ import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persis
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { persistEncounterEndHeldGrant } from '@artificer-toolkit/encounter-persistence/endHeldGrantPersistence'
 import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence/escapePersistence'
+import { persistEncounterReleaseRelationship } from '@artificer-toolkit/encounter-persistence/releaseRelationshipPersistence'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterBasicActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
@@ -20,6 +22,7 @@ import { planNativeLiveBasicActionResponse } from './nativeBasicActionResponse.j
 import { planNativeLiveEndHeldGrant } from './nativeEndHeldGrantAction.js'
 import { planNativeLiveEscape } from './nativeEscapeAction.js'
 import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
+import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import {
   assertRoomEncounterReadFence,
@@ -151,6 +154,32 @@ export async function executeRoomEncounterEndHeldGrant(
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
   return persistEncounterEndHeldGrant(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        })
+    }
+  )
+}
+
+/** A source's free release ends the relationship and the conditions it held in one native commit. */
+export async function executeRoomEncounterReleaseRelationship(
+  input: RoomBasicActionInput & { command: ReleaseRelationshipInputDto }
+) {
+  const { ctx, transaction, scope, observed } = input
+  const plan = await planNativeLiveReleaseRelationship(
+    scope,
+    input.command,
+    basicActionExecution(input)
+  )
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterReleaseRelationship(
     ctx,
     { ...plan.input, revisions },
     {
