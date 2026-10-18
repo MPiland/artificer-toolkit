@@ -7725,7 +7725,7 @@
             },
             {
               "id": "SPELLS-4.T1h",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7734,11 +7734,12 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1g"]
               },
-              "text": "Spike Growth from core options (D156): a new generic option for damage per distance moved inside a zone (2d4 piercing for every 5 ft), designed and ruled before coding; CLOSED_RULE SPIKE_GROWTH deleted. Room journey. Its camouflage stays with MOVE-3.4."
+              "text": "Spike Growth from core options (D156 T1h amendment): a zone component option perDistanceMoved applies its behavior floor(distance moved inside / 5 ft) times, pinned on the movement candidate, as one damage outcome with multiplied dice; Spike Growth authors it with a ×2 movement cost; CLOSED_RULE SPIKE_GROWTH deleted. Room journey, including forced movement. Its camouflage stays with MOVE-3.4.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1i",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7747,21 +7748,307 @@
                 "size": 1,
                 "after": ["SPELLS-4.T1g"]
               },
-              "text": "Wall of Thorns room journey (D156): its entry and turn-end damage (7d8 slashing, Dex for half) and its ×4 movement cost, proved in an Encounter. Test-only."
+              "text": "Wall of Thorns room journey (D156): its entry and turn-end damage (7d8 slashing, Dex for half) and its ×4 movement cost, proved in an Encounter. Test-only.",
+              "note": "Proof: apps/session-worker/test/nativeRoomWallZoneSpells.test.ts (Wall of Thorns: placed wall, full and half damage passing through, turn-end damage, ×4 movement cost). Green: ci/spells-4-t1i 61847825d Tests 39131091086; phase merge 993cdf6a7 (fast path)."
             },
             {
-              "id": "SPELLS-4.T2",
-              "text": "Convert the remaining SRD spell and equipment closed rules (148 kinds, D156) to core options or description-only, with parity proofs, and delete their kinds and resolvers. Split into subtasks of size 5 or less once the classification is approved.",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a1",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 13,
+                "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): AWAKEN, COLOR_SPRAY, COMPULSION, CONTACT_OTHER_PLANE, CONTAGION. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a2",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): ENHANCE_ABILITY, FAITHFUL_HOUND, FEEBLEMIND, FLAME_BLADE, FORESIGHT. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a3",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a4",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): PLANT_GROWTH, PRODUCE_FLAME, REGENERATE, SEE_INVISIBILITY, SEQUESTER. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2a5",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2b",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Convert the 34 description-only closed rules (D156 T2 split, class C): remove each CLOSED_RULE outcome and kind, keep the description; a corpus test proves none remains and every description is intact."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2c",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: A rolled die added to or subtracted from d20 tests, optionally consumed on use. Converts BLESS, BANE, GUIDANCE, RESISTANCE, GLIBNESS, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2d",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: An executable typed extra damage die, optionally consumed on hit or limited to a marked target. Converts DIVINE_FAVOR, BRANDING_SMITE, HUNTERS_MARK, ENLARGE_REDUCE, BESTOW_CURSE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2e",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: A weapon-scoped modifier on a chosen held weapon. Converts SHILLELAGH, MAGIC_WEAPON, HEAT_METAL, EQUIPMENT_MAGIC_AMMUNITION, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2f",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Ending active effects or conditions by type, level or check. Converts DISPEL_MAGIC, LESSER_RESTORATION, GREATER_RESTORATION, REMOVE_CURSE, PROTECTION_FROM_POISON, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2g",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Reviving a dead creature, with a decaying d20 penalty. Converts REVIVIFY, RAISE_DEAD, RESURRECTION, TRUE_RESURRECTION, REINCARNATE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2h",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Removed-from-play state that returns at a boundary. Converts BANISHMENT, BLINK, ETHEREALNESS, MAZE, IMPRISONMENT, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2i",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Hit point threshold gates and outcomes. Converts POWER_WORD_KILL, POWER_WORD_STUN, DIVINE_WORD, DEATH_WARD, FINGER_OF_DEATH_ZOMBIE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2j",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Attacker or source qualifiers on grants. Converts PROTECTION_FROM_EVIL_AND_GOOD, HOLY_AURA, DISPEL_EVIL_AND_GOOD, STONESKIN, WIND_WALK, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2k",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Incoming-attack gates and decoys. Converts SANCTUARY, BLUR, TRUE_STRIKE, MIRROR_IMAGE, ENTHRALL, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2l",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2m",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2n",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Derived or modified healing. Converts BEACON_OF_HOPE, VAMPIRIC_TOUCH, WARDING_BOND, GOODBERRY, HEROES_FEAST, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2o",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2p",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2q",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2r",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Zone and aura miscellany. Converts GUARDIAN_OF_FAITH, ANTIPATHY_SYMPATHY, CONTINGENCY, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2s",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted."
             }
           ]
         },

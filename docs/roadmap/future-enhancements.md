@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Spike Growth damage lands after the move (D156).** Damage per distance moved settles once the move is committed, so a creature that the damage would drop partway through still finishes its path. Split the move at the drop if players notice.
+
 - **Triggered Character auras while the source is down (D155).** A Character-sourced passive zone with an ENTER or turn trigger would still catch while its source is unconscious, because the spatial readers do not read Character play state. No SRD Character has such a zone. Thread an unconscious-source input through the spatial readers if homebrew content needs one.
 
 - **Aura bonus pinned at placement (D155).** An occupant save bonus such as Aura of Protection pins the source's ability modifier when the zone is placed. A mid-Run Charisma change updates it only when the token is rebound.
