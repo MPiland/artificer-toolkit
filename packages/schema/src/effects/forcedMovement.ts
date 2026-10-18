@@ -22,8 +22,8 @@ export const forcedMovementDtoSchema = lazySchema(() =>
       }),
       z.object({
         distanceMode: z.enum([
-          forcedMovementDistanceModeSchema._zod.def.entries.FIXED_DISTANCE,
-          forcedMovementDistanceModeSchema._zod.def.entries.UP_TO_DISTANCE
+          forcedMovementDistanceModeSchema._zod.def.entries.EXACT,
+          forcedMovementDistanceModeSchema._zod.def.entries.UP_TO
         ]),
         amount: authoredLengthAmountSchema,
         unit: lengthUnitCodeSchema

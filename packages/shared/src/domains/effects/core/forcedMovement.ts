@@ -44,8 +44,8 @@ export const FORCED_MOVEMENT_DIRECTION_OPTIONS = valuesOf(
 
 export const FORCED_MOVEMENT_DISTANCE_MODE = {
   UP_TO_SPEED: 'UP_TO_SPEED',
-  FIXED_DISTANCE: 'FIXED_DISTANCE',
-  UP_TO_DISTANCE: 'UP_TO_DISTANCE'
+  EXACT: 'EXACT',
+  UP_TO: 'UP_TO'
 } as const
 
 export type ForcedMovementDistanceMode = keyof typeof FORCED_MOVEMENT_DISTANCE_MODE
@@ -61,13 +61,13 @@ export const FORCED_MOVEMENT_DISTANCE_MODE_REGISTRY: Record<
     label: 'Up To Speed',
     description: 'Up to speed.'
   },
-  [FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE]: {
-    code: FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE,
-    label: 'Fixed Distance',
-    description: 'Fixed distance.'
+  [FORCED_MOVEMENT_DISTANCE_MODE.EXACT]: {
+    code: FORCED_MOVEMENT_DISTANCE_MODE.EXACT,
+    label: 'Exact Distance',
+    description: 'Exactly this distance.'
   },
-  [FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_DISTANCE]: {
-    code: FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_DISTANCE,
+  [FORCED_MOVEMENT_DISTANCE_MODE.UP_TO]: {
+    code: FORCED_MOVEMENT_DISTANCE_MODE.UP_TO,
     label: 'Up To Distance',
     description: 'Up to a distance; the mover chooses how far.'
   }
@@ -112,8 +112,8 @@ export type ForcedMovementDistance =
     }
   | {
       distanceMode:
-        | typeof FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE
-        | typeof FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_DISTANCE
+        | typeof FORCED_MOVEMENT_DISTANCE_MODE.EXACT
+        | typeof FORCED_MOVEMENT_DISTANCE_MODE.UP_TO
       amount: number
       unit: LengthUnitCode
     }

@@ -1343,7 +1343,7 @@ function exactForcedMovement(outcome: {
   if (
     (outcome.direction !== 'AWAY_FROM_SOURCE' && outcome.direction !== 'TOWARD_SOURCE') ||
     outcome.actionEconomy !== 'NONE' ||
-    outcome.distanceMode !== 'FIXED_DISTANCE' ||
+    outcome.distanceMode !== 'EXACT' ||
     outcome.unit !== 'FEET' ||
     typeof outcome.amount !== 'number' ||
     !Number.isSafeInteger(outcome.amount) ||

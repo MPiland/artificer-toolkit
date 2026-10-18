@@ -441,7 +441,7 @@ export const balor: CreatureAuthored = {
                           effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
                           direction: 'TOWARD_SOURCE',
                           actionEconomy: 'NONE',
-                          distanceMode: 'FIXED_DISTANCE',
+                          distanceMode: 'EXACT',
                           amount: 25,
                           unit: S.MEASUREMENT_UNIT_CODE.FEET
                         }

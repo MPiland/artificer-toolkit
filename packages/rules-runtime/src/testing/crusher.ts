@@ -81,7 +81,7 @@ export function crusher(bludgeoningDamageTypeId: string): FeatureAuthored {
                   effectKind: 'FORCED_MOVEMENT',
                   direction: 'ANY',
                   actionEconomy: 'NONE',
-                  distanceMode: 'FIXED_DISTANCE',
+                  distanceMode: 'EXACT',
                   amount: 5,
                   unit: 'FEET'
                 }

@@ -327,7 +327,7 @@ export function forceOnFailedSave(
                         effectKind: 'FORCED_MOVEMENT' as const,
                         direction,
                         actionEconomy: 'NONE' as const,
-                        distanceMode: 'FIXED_DISTANCE' as const,
+                        distanceMode: 'EXACT' as const,
                         amount: feet,
                         unit: 'FEET' as const
                       }

@@ -493,7 +493,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
                     effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
                     direction: 'AWAY_FROM_SOURCE',
                     actionEconomy: 'NONE',
-                    distanceMode: 'FIXED_DISTANCE',
+                    distanceMode: 'EXACT',
                     amount: 60,
                     unit: S.MEASUREMENT_UNIT_CODE.FEET
                   }

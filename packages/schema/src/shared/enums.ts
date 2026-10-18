@@ -385,7 +385,7 @@ export const forcedMovementDirectionSchema = lazySchema(() =>
   z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'])
 )
 export const forcedMovementDistanceModeSchema = lazySchema(() =>
-  z.enum(['UP_TO_SPEED', 'FIXED_DISTANCE', 'UP_TO_DISTANCE'])
+  z.enum(['UP_TO_SPEED', 'EXACT', 'UP_TO'])
 )
 export const forcedMovementActionEconomySchema = lazySchema(() => z.enum(['NONE', 'REACTION']))
 

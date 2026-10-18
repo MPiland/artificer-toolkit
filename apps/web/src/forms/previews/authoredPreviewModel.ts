@@ -504,7 +504,7 @@ function createSpellOutcomeFact(
                 : undefined
       const unit = formatEnumLabel(readString(record.unit))?.toLowerCase()
       if (amount === undefined || !direction || !unit) return undefined
-      const upTo = record.distanceMode === 'UP_TO_DISTANCE' ? 'up to ' : ''
+      const upTo = record.distanceMode === 'UP_TO' ? 'up to ' : ''
       return { label: 'Movement', value: `${direction} ${upTo}${formatNumber(amount)} ${unit}` }
     }
     default:

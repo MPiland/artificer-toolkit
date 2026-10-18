@@ -2064,8 +2064,8 @@ function registerOutcomeFields(
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
           or([
-            local.field(['distanceMode']).eq('FIXED_DISTANCE'),
-            local.field(['distanceMode']).eq('UP_TO_DISTANCE')
+            local.field(['distanceMode']).eq('EXACT'),
+            local.field(['distanceMode']).eq('UP_TO')
           ])
         ])
       })
@@ -2085,8 +2085,8 @@ function registerOutcomeFields(
             and([
               local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
               or([
-                local.field(['distanceMode']).eq('FIXED_DISTANCE'),
-                local.field(['distanceMode']).eq('UP_TO_DISTANCE')
+                local.field(['distanceMode']).eq('EXACT'),
+                local.field(['distanceMode']).eq('UP_TO')
               ])
             ]),
             local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST)
