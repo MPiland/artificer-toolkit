@@ -6170,10 +6170,42 @@
             },
             {
               "id": "ATTACK-7.T5",
-              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a. D157: chosen destinations pause on FORCED_MOVEMENT_DESTINATION; the web picks on the Scene board with keyboard-focusable highlighted squares (generic square-pick mode), no drawer list. Browser test of the board pick.",
+              "text": "Slice E, split 2026-10-18 (D157): the authored forced-movement contract (AWAY_FROM_SOURCE, TOWARD_SOURCE, ASIDE, ANY; EXACT, UP_TO, UP_TO_SPEED), legal-square derivation, on-hit riders carrying any ON_HIT outcome, DAMAGE_TYPE restriction checks and the homebrew Crusher fixture. AWAY/TOWARD + EXACT are delivered by T5a.",
               "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.7"],
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md",
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5
+              }
+            },
+            {
+              "id": "ATTACK-7.T5b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["ATTACK-7.T5"]
+              },
+              "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server."
+            },
+            {
+              "id": "ATTACK-7.T5c",
+              "status": "TODO",
+              "closes": ["ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["ATTACK-7.T5b"]
+              },
+              "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user."
             },
             {
               "id": "ATTACK-7.T6",
@@ -9568,7 +9600,7 @@
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-20.T5b",
               "wsjf": {
                 "bv": 5,
@@ -9578,11 +9610,11 @@
                 "after": ["SPELLS-20.T5a"]
               },
               "text": "Character passive zones (D155): a Character class-feature PASSIVE zone is discovered and placed at START, REINFORCE and token bind, with its occupant save bonus and class-level radius resolved against the source and pinned, for Character and Creature sources; the transitional placement refusal is removed.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5b e74cd94d6 Tests 39138061143, Live 39138061118; phase merge 34a954c31 (m114)."
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-20.T5c",
               "wsjf": {
                 "bv": 5,
@@ -9591,7 +9623,8 @@
                 "size": 8,
                 "after": ["SPELLS-20.T5b"]
               },
-              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18."
+              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6a",
