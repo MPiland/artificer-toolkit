@@ -13,6 +13,7 @@ import {
 import {
   MAX_SPATIAL_CANDIDATES,
   MAX_SPATIAL_PATH_POINTS,
+  SPATIAL_TURN_TRIGGERS,
   spatialMovementKindDtoSchema,
   spatialPointDtoSchema,
   spatialPositiveDistanceDtoSchema,
@@ -23,6 +24,7 @@ import {
 export {
   MAX_SPATIAL_CANDIDATES,
   MAX_SPATIAL_PATH_POINTS,
+  SPATIAL_TURN_TRIGGERS,
   spatialMovementCandidateDtoSchema,
   spatialMovementKindDtoSchema,
   spatialPointDtoSchema,
@@ -44,7 +46,6 @@ const MAX_SPATIAL_POINTS = 128
 export const MAX_SPATIAL_RULE_EFFECTS_PER_SCENE = 64
 
 const triggerOrder = ['ENTER', 'EXIT', 'CROSS'] as const
-const turnTriggerOrder = ['START_OF_TURN', 'END_OF_TURN'] as const
 const movementOrder = ['VOLUNTARY', 'FORCED', 'TELEPORT'] as const
 
 function sortedUniqueEnum<T extends string>(values: readonly T[], order: readonly T[]): boolean {
@@ -159,7 +160,10 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       triggerModes: z.array(triggerSchema).check(z.maxLength(triggerOrder.length)),
       /** Turn boundaries at which a creature inside is caught; a zone needs a movement or turn trigger. */
       turnTriggers: z.optional(
-        z.array(turnTriggerSchema).check(z.minLength(1)).check(z.maxLength(turnTriggerOrder.length))
+        z
+          .array(turnTriggerSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
       ),
       movementKinds: z
         .array(movementSchema)
@@ -194,7 +198,10 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
             path: ['triggerModes'],
             message: 'A spatial effect needs a movement trigger or a turn trigger.'
           })
-        if (placement.turnTriggers && !sortedUniqueEnum(placement.turnTriggers, turnTriggerOrder))
+        if (
+          placement.turnTriggers &&
+          !sortedUniqueEnum(placement.turnTriggers, SPATIAL_TURN_TRIGGERS)
+        )
           context.addIssue({
             code: 'custom',
             path: ['turnTriggers'],
@@ -279,7 +286,10 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
       geometry: spatialPersistedGeometryDtoSchema,
       triggerModes: z.array(triggerSchema).check(z.maxLength(3)),
       turnTriggers: z.optional(
-        z.array(turnTriggerSchema).check(z.minLength(1)).check(z.maxLength(turnTriggerOrder.length))
+        z
+          .array(turnTriggerSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
       ),
       movementKinds: z.array(movementSchema).check(z.minLength(1)).check(z.maxLength(3)),
       bypassAtHalfSpeed: z.optional(z.boolean()),

@@ -6116,8 +6116,9 @@
             {
               "id": "ATTACK-7.T3",
               "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.1", "ATTACK-7.3"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.1", "ATTACK-7.3"],
+              "note": "D152 contracts approved 2026-10-17; T4 follows in the same session."
             },
             {
               "id": "ATTACK-7.T4",
@@ -6940,17 +6941,21 @@
         {
           "id": "ATTACK-17",
           "title": "Target creatures from the map or the Encounter list",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/tests/live-backend/encounterDisarm.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Choosing an attack or spell enters targeting mode on the map: a range ring around the actor's token, targetable tokens highlighted, a hover readout of distance and roll modifiers, a click on a token targets it, and Esc cancels.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (targetable flag, distance, bands)",
-                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745"
+                "CI Tests 38865997576 and Live backend 38865997588 on 23250f745",
+                "apps/web/tests/live-backend/encounterDisarm.ts (local browser journey run 8 a171-d8: hover readout, token click, Escape cancels).",
+                "apps/web/src/domains/campaigns/vtt/vttTargeting.model.test.ts (range bands and targetable flag; canvas ring and highlight shown in the journey screenshot).",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx (Escape ends targeting without closing the action drawer; red before the fix).",
+                "Green: ci/attack-17-1 e7da3cae4 Tests 39081653544, Live 39081653583; phase merge 0d72c9f89 (batch ci/merge-m90, Tests 39082446498, Live 39082446456; landed as 7fb45a305)."
               ],
               "origin": [],
               "note": "Open: the browser journey apps/web/tests/live-backend/encounterDisarm.ts (Pick on map, Escape, hover readout, token click, resolve against the picked creature) and the Storybook \"Domains/Campaigns/VTT/Tabletop Turn Order\" Targeting story have not run; neither runs in CI. The main session runs both locally after deploying batch n, then closes this AC.",
@@ -7907,6 +7912,42 @@
                 "rr": 5,
                 "size": 2
               }
+            },
+            {
+              "id": "SPELLS-5.T10",
+              "text": "D151: resume carried timers at START through the CAMPAIGN_CLOCK capture; fix the tick UPDATE that drops optional lifecycle fields (red first); room journey with Fly carried from Run 1 ending in Run 2.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-5.13"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-5.T12",
+              "text": "D151: reinstate a carried caster's Concentration at START as a real maintained state, with a required descriptor provenance discriminant (migrated); damage check and loss end dependents; room journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.12"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-5.T11",
+              "text": "D151: the completed-Encounter view offers to advance the Campaign clock by ceil(rounds / 10) minutes through campaigns.clock.advance; component test and Convex journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.13"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 2,
+                "size": 1
+              }
             }
           ]
         },
@@ -7937,7 +7978,7 @@
         {
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
             "apps/web/tests/live-backend/encounterArea.ts"
@@ -7963,11 +8004,14 @@
             },
             {
               "text": "Every caught creature's save is asked at once, each by the creature's own roller; damage is rolled once and applies in full on a failed save and halved on a success, per target with its own defenses; the action commits once when the last save is in, and GM undo reverts every target.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
                 "apps/session-worker/test/nativeRoomAreaAction.test.ts",
-                "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
+                "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
+                "packages/source-data/src/srd/iceStormIds.test.ts (Ice Storm fail-path ids).",
+                "apps/session-worker/test/nativeRoomSpellCasting.test.ts (Ice Storm upcast in the room).",
+                "Green: ci/spells-7-t2 551bbea82 Tests 39079468045, Live 39079468000; red proof RED on both new tests; phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
               ],
               "origin": [],
               "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5). Built 2026-10-10 (D103): proved by the executor, room and journey tests. 2026-10-17: SPELLS-7.T1 merged (47f6f85cd, m75) proves save-for-half; stays TODO until T2 fixes Ice Storm.",
@@ -8002,14 +8046,15 @@
             {
               "id": "SPELLS-7.T2",
               "text": "Ice Storm: scale the bludgeoning damage with spell slot level when upcast, and give the cold fail path its own save effect id instead of reusing (0x214,1); failing-first tests on the real SRD spell.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-7.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "note": "phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
             }
           ],
           "wsjf": {
@@ -9146,8 +9191,7 @@
             },
             {
               "id": "SPELLS-20.T6a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9156,11 +9200,12 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4b2b2"]
               },
-              "text": "Source-turn zone outcome with no save (D144): a START_OF_SOURCE_TURN zone interaction kind mapped to a placement turn trigger. At the source actor's turn boundary the turn zone stage gives every creature in the zone its own execution, ordered by actorId, through the existing candidate, execution and persistence path. A zone plan with no saving throw applies its damage directly with no test node. Proved on a core-options zone."
+              "text": "Source-turn zone outcome with no save (D144): a START_OF_SOURCE_TURN zone interaction kind mapped to a placement turn trigger. At the source actor's turn boundary the turn zone stage gives every creature in the zone its own execution, ordered by actorId, through the existing candidate, execution and persistence path. A zone plan with no saving throw applies its damage directly with no test node. Proved on a core-options zone.",
+              "note": "CI ci/spells-20-t6a 3f854c233 (Tests 39078976902, Live 39078976921); phase merge bc68ead1f (fast path; backstop ci/merge-m86). Workbook docs/handoffs/slice-spells-20.md. START_OF_SOURCE_TURN interaction kind and turn trigger; a no-save ON_USE damage zone compiles to a direct dice graph acting only at turn boundaries; the turn stage catches every other creature in the zone at the source START, one execution each by actorId; proved with a core-options zone room journey."
             },
             {
               "id": "SPELLS-20.T6b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9169,7 +9214,8 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6a"]
               },
-              "text": "A creature's passive zones (D144): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, with no maintained state. It is deleted when its actor is removed or the Encounter finishes, suppressed while its source is defeated (candidates skip it; a revived source has it again), and GM undo of START or REINFORCE removes it. Second consumer: the Pit Fiend's Fear Aura (save at the start of its own turn)."
+              "text": "A creature's passive zones (D144, D147): a PASSIVE manifest-zone feature on a creature is placed token-anchored at Encounter START for the initial actors and on REINFORCE for added ones, and when the GM binds a token to an actor in a PREPARED or ACTIVE Run, with no maintained state. It is deleted when its token is unbound, its actor is removed or the Encounter finishes, and suppressed while its source is defeated (candidates skip it; a revived source has it again). Proved on a core-options creature zone; the Balor (T6c) is the SRD consumer.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6c",
@@ -9817,7 +9863,7 @@
             {
               "id": "SPELLS-27.T11",
               "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9825,7 +9871,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T6",
@@ -9953,7 +10000,7 @@
           "tasks": [
             {
               "id": "SPELLS-30.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-30.1"],
               "wsjf": {
                 "bv": 3,
@@ -11024,8 +11071,13 @@
             },
             {
               "text": "A roll-mode contributor carries a typed source (its kind, id and holder) so a reason label is a lookup by kind; no consumer parses sourceId or domainKey strings, and the three spellings of an active-effect source collapse to one; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "rollModeContributorSource.test.ts (contributor source names the granting effect).",
+                "encounterActiveGrants.test.ts (active grants carry their source).",
+                "apps/apis/convex/encounters/actionRelationshipFacts.test.ts (persisted relationship facts keep the contributor source).",
+                "Green: slice Tests 39081656178, Live 39081656156; phase merge 7ff0fe727 (batch ci/merge-m91, Tests 39083023029, Live 39083023022; landed as 17d7a01ed)."
+              ],
               "origin": [],
               "note": "encounter-persistence rollModeReasons.ts:32-102 splits sourceId on ':' and takes the first UUID with a label; producers combatPerception.ts:1016 (ACTIVE_EFFECT:), effectActionCompiler.ts:6836 (active-effect-perception:), encounterRelationshipActionFacts.ts:55 (active-effect:).",
               "id": "RELIABILITY-6.9"
@@ -11083,8 +11135,11 @@
             },
             {
               "text": "Generic Worker and encounter-persistence code resolves Concentration maintenance and melee-attack classification through the System module for the Run's gameSystemId, not by importing D&D constants (ADR 0023).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/installedSystemClassification.test.ts (System seam for Concentration maintenance and melee classification).",
+                "Green: ci/reliability-6-t1b b488925fd Tests 39079460729, Live 39075528851 (on 7dea3fc; later changes outside Live paths); red proof RED 4 of 4; phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
+              ],
               "origin": [],
               "note": "DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID in nativeEncounterConcentration.ts:130/137, nativeEncounterMovementConcentration.ts:37/44/97, encounterConcentration.ts:47 and six encounter-persistence concentration modules; dnd5eAttackKind/isDnd5eMeleeAttackKind in nativeEncounterRules.ts:743-751.",
               "id": "RELIABILITY-6.16"
@@ -11136,7 +11191,7 @@
             {
               "id": "RELIABILITY-6.T1b",
               "text": "System-owned Concentration and melee classification through a System seam keyed by gameSystemId; Worker, encounter-persistence and rules-runtime consumers read it instead of hard-coded identities.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.16"],
               "wsjf": {
                 "bv": 3,
@@ -11144,12 +11199,13 @@
                 "rr": 8,
                 "size": 5,
                 "after": ["RELIABILITY-6.T1a"]
-              }
+              },
+              "note": "phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
             },
             {
               "id": "RELIABILITY-6.T1c",
               "text": "Typed roll-mode contributor source in the persisted d20 contributor contract and every producer; the rollModeReasons parser goes; development data migrated in the same change.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.9"],
               "wsjf": {
                 "bv": 3,
@@ -11158,12 +11214,12 @@
                 "size": 8,
                 "after": ["RELIABILITY-6.T1b"]
               },
-              "note": "AC 6.9 red already pushed: ci/reliability-6-red-69 Tests 38891936885 on 7264b2819."
+              "note": "phase merge 7ff0fe727 (batch ci/merge-m91, Tests 39083023029, Live 39083023022; landed as 17d7a01ed)."
             },
             {
               "id": "RELIABILITY-6.T2",
               "text": "Fail loudly and own identities in one place: live-session envelope keys, dangling references, server section ids and import warnings.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "RELIABILITY-6.12",
                 "RELIABILITY-6.14",
@@ -12480,7 +12536,7 @@
         {
           "id": "QUALITY-3",
           "title": "Lint in CI stops double casts and component-file exports returning",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -12491,16 +12547,21 @@
           "acs": [
             {
               "id": "QUALITY-3.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-10-17 from the five-surface code-quality audit; PBIs and ACs confirmed by the user. Narrowed 2026-10-17 by the user (scope cut for time to market): knip, package boundaries, the root-barrel ban and the large-file flag moved post-launch.",
-              "text": "Lint runs as a failing CI job at zero warnings and fails on double casts through unknown outside tests and on non-component exports from component files, with each rule's existing violations fixed."
+              "text": "Lint runs as a failing CI job at zero warnings and fails on double casts through unknown outside tests and on non-component exports from component files, with each rule's existing violations fixed.",
+              "proof": [
+                ".github/workflows/tests.yml lint job (yarn lint: oxlint --deny-warnings, lint:schemas, lint:casts).",
+                "scripts/doubleCasts.test.mjs (double-cast detector and shrink-only allowlist).",
+                "Green: ci/quality-3 e4ac7a36e Tests 39079954816, Live 39079954759; phase merge 70bc4f677 (batch ci/merge-m89, Tests 39082387558, Live 39082387550; landed as 007f00a37)."
+              ]
             }
           ],
           "tasks": [
             {
               "id": "QUALITY-3.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-3.1"],
               "wsjf": {
                 "bv": 3,
@@ -12508,9 +12569,12 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "A lint job in tests.yml running yarn lint (fails the run); fix the 6 no-unused-vars errors on the tip; ban double casts through unknown outside tests (~49 sites fixed by typing them properly) and non-component exports from component files (10 sites, moved to non-component files). Measured 2026-10-17 in slice-quality-3.md."
+              "text": "A lint job in tests.yml running yarn lint (fails the run); fix the 6 no-unused-vars errors on the tip; ban double casts through unknown outside tests (~49 sites fixed by typing them properly) and non-component exports from component files (10 sites, moved to non-component files). Measured 2026-10-17 in slice-quality-3.md.",
+              "note": "phase merge 70bc4f677 (batch ci/merge-m89, Tests 39082387558, Live 39082387550; landed as 007f00a37). Allowlist: 19 double casts in scripts/doubleCasts.mjs, shrink-only."
             }
-          ]
+          ],
+          "journeyTests": ["scripts/doubleCasts.test.mjs"],
+          "journeyStatus": "verified"
         }
       ]
     },

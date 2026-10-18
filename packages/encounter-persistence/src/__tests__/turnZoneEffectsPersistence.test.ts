@@ -17,6 +17,7 @@ import {
   SRD_SYSTEM_ID,
   srdDefinitions,
   srdEncounterState,
+  testUuid,
   TIMESTAMP
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
@@ -44,6 +45,7 @@ import {
   root,
   SCENE_ID,
   source,
+  SOURCE_ID,
   START,
   tokens
 } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
@@ -55,7 +57,8 @@ import {
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   failedSaveOnly,
-  lostActionOutcome
+  lostActionOutcome,
+  noSave
 } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
 import { insertRunActor, readRunActor, readRunActorWithRow, writeRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
@@ -89,8 +92,13 @@ async function seededScene(
   equipment = authoredZone(['START_TURN_IN_SPACE']),
   {
     runActors = actors,
-    liveCharacterStreamVersion = 1
-  }: { runActors?: typeof actors; liveCharacterStreamVersion?: number } = {}
+    liveCharacterStreamVersion = 1,
+    tokenBindings = new Map([[GOBLIN_TOKEN_ID, GOBLIN_ID]])
+  }: {
+    runActors?: typeof actors
+    liveCharacterStreamVersion?: number
+    tokenBindings?: ReadonlyMap<string, string>
+  } = {}
 ) {
   const memory = createMemoryEncounterStore()
   // The only cast: the host ports are the platform, and the wider port surface is unused here.
@@ -138,12 +146,13 @@ async function seededScene(
     commandFingerprint: 'a'.repeat(64),
     createdAt: OCCURRED_AT
   })
-  await memory.store.insert('encounterActorTokenBindings', {
-    actorId: GOBLIN_ID,
-    encounterId: ENCOUNTER_ID,
-    sceneId: SCENE_ID,
-    tokenId: GOBLIN_TOKEN_ID
-  })
+  for (const [tokenId, actorId] of tokenBindings)
+    await memory.store.insert('encounterActorTokenBindings', {
+      actorId,
+      encounterId: ENCOUNTER_ID,
+      sceneId: SCENE_ID,
+      tokenId
+    })
   const scope = await createSpatialRuleEffectStore(ctx).scope({
     encounterId: ENCOUNTER_ID,
     sceneId: SCENE_ID
@@ -163,7 +172,10 @@ async function stagedPlan(
     turnRoot = root,
     boundary = START,
     random = () => 0,
-    loadTarget = async (actorId) => srdCreatureTarget(actors.find((actor) => actor.id === actorId)!)
+    loadTarget = async (actorId) =>
+      srdCreatureTarget(runActors.find((actor) => actor.id === actorId)!),
+    sceneTokens = tokens,
+    sceneBindings = actorIdByTokenId
   }: {
     state?: ReturnType<typeof runState>
     runActors?: typeof actors
@@ -171,6 +183,8 @@ async function stagedPlan(
     boundary?: TurnEffectBoundary
     random?: (maxExclusive: number) => number
     loadTarget?: Parameters<typeof prepareEncounterTurnZoneEffects>[0]['loadTarget']
+    sceneTokens?: typeof tokens
+    sceneBindings?: typeof actorIdByTokenId
   } = {}
 ) {
   const prepared = await prepareEncounterTurnZoneEffects({
@@ -180,7 +194,11 @@ async function stagedPlan(
     occurrenceId: OCCURRENCE_ID,
     actors: runActors,
     boundary,
-    loadScene: async () => ({ effects: await scene.scope.list(), tokens, actorIdByTokenId }),
+    loadScene: async () => ({
+      effects: await scene.scope.list(),
+      tokens: sceneTokens,
+      actorIdByTokenId: sceneBindings
+    }),
     loadTarget,
     createRuntime: async () => runtime,
     definitions: srdDefinitions,
@@ -276,7 +294,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     // The phase reports what the real batch persisted, not what the plan predicted.
     const stored = creature(await readRunActor(scene.ctx, runState(), GOBLIN_ID))
     expect(stored.currentHitPoints).toBeLessThan(creature(goblin).currentHitPoints)
-    expect(settled?.actor).toEqual(stored)
+    expect(settled?.actors).toEqual([stored])
     expect(settled?.phase.encounterActorTransitions).toEqual([
       {
         targetActorId: GOBLIN_ID,
@@ -366,6 +384,60 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     )
   })
 
+  describe('for a zone outcome with no save at its source’s turn (SPELLS-20 T6a, D144)', () => {
+    // A second goblin whose id sorts before the first; both stand in the zone with its source.
+    const OTHER_ID = testUuid(0x300)
+    const OTHER_TOKEN_ID = testUuid(0x30a)
+    const other = encounterRunActorStateSchema.parse({ ...goblin, id: OTHER_ID })
+    const crowd = [goblin, source, other]
+    const crowdTokens = [
+      tokens[0]!,
+      { ...tokens[1]!, position: tokens[0]!.position },
+      { ...tokens[0]!, id: OTHER_TOKEN_ID }
+    ]
+    const crowdBindings = new Map([...actorIdByTokenId, [OTHER_TOKEN_ID, OTHER_ID]])
+    const SOURCE_START = { ...START, actorId: SOURCE_ID }
+
+    it('settles one mechanics batch per creature it caught, ordered by actorId, and returns each', async () => {
+      const state = runState({}, { runActors: crowd })
+      const scene = await seededScene(
+        authoredZone([], undefined, {}, (parts) => noSave()(parts)),
+        { runActors: crowd, tokenBindings: crowdBindings }
+      )
+      const plan = await stagedPlan(scene, {
+        state,
+        runActors: crowd,
+        boundary: SOURCE_START,
+        sceneTokens: crowdTokens,
+        sceneBindings: crowdBindings
+      })
+      const { result, applyMechanics } = persist(scene, {
+        plan,
+        state,
+        boundary: SOURCE_START,
+        readSceneTokens: async () => crowdTokens
+      })
+
+      const settled = await result
+      expect(applyMechanics.mock.calls.map(([batch]) => batch.targetActorId)).toEqual([
+        OTHER_ID,
+        GOBLIN_ID
+      ])
+      const stored = await Promise.all(
+        [OTHER_ID, GOBLIN_ID].map(async (id) => creature(await readRunActor(scene.ctx, state, id)))
+      )
+      for (const actor of stored)
+        expect(actor.currentHitPoints).toBe(creature(goblin).currentHitPoints - 1)
+      expect(settled?.actors).toEqual(stored)
+      expect(
+        settled?.phase.encounterActorTransitions.map(({ targetActorId }) => targetActorId)
+      ).toEqual([OTHER_ID, GOBLIN_ID])
+      expect(creature(await readRunActor(scene.ctx, state, SOURCE_ID)).currentHitPoints).toBe(
+        creature(source).currentHitPoints
+      )
+    })
+  })
+
   describe('for a zone whose failed save costs the Action (SPELLS-20 T4b3b, D141)', () => {
     const lostAction = () =>
       authoredZone(['START_TURN_IN_SPACE'], undefined, {}, failedSaveOnly(lostActionOutcome()))
@@ -378,7 +450,7 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
 
       const stored = await readRunActor(scene.ctx, runState(), GOBLIN_ID)
       expect(encounterRuleUsageUsed(stored, ACTION)).toBe(1)
-      expect(settled?.actor).toEqual(stored)
+      expect(settled?.actors).toEqual([stored])
       expect(settled?.phase.executions[0]?.actionEconomy).toEqual(plan.executions[0]?.actionEconomy)
     })
 

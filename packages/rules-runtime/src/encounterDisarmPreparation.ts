@@ -175,14 +175,7 @@ export function readEncounterDisarmSelection(input: {
         attackAbility: decisions[0].mechanic.attackAbility
       }
       const contributors = (attackKind: 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED') =>
-        dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, actionTarget).map(
-          ({ sourceId, grantId, domainKey, influence }) => ({
-            sourceId,
-            grantId,
-            domainKey,
-            influence
-          })
-        )
+        dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, actionTarget)
       return {
         // A carried weapon used to attack is drawn for the attack unless its action requires equipping.
         equipment:
@@ -426,19 +419,12 @@ export function prepareEncounterDisarmContest(input: {
   // from its policy evidence, a Creature's from its grants directly.
   const defenderGrantContributors =
     target.kind === 'CHARACTER'
-      ? (
-          prepared.targetFacts.effectiveRulePolicyOutput?.rollContributorEvidence.skillChecks[
-            characterCheckSkillId(
-              prepared.targetFacts.characterFacts?.ruleEvaluation.registry,
-              checkDefinitionId
-            ) ?? ''
-          ] ?? []
-        ).map(({ domainKey, grantId, influence, sourceId }) => ({
-          domainKey: domainKey ?? null,
-          grantId: grantId ?? null,
-          influence,
-          sourceId
-        }))
+      ? (prepared.targetFacts.effectiveRulePolicyOutput?.rollContributorEvidence.skillChecks[
+          characterCheckSkillId(
+            prepared.targetFacts.characterFacts?.ruleEvaluation.registry,
+            checkDefinitionId
+          ) ?? ''
+        ] ?? [])
       : creatureActiveGrantCheckContributors(
           target.id,
           checkAbilityCode(input.system, 'SKILL', checkDefinitionId),

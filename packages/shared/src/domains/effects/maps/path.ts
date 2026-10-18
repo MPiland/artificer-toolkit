@@ -912,6 +912,7 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
             { code: 'ENTER_SPACE', label: 'Enter Space' },
             { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
             { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
+            { code: 'START_OF_SOURCE_TURN', label: 'Start of Source Turn' },
             { code: 'SOURCE_HIT', label: 'Source Hits' },
             { code: 'TARGET_TAKES_FIRE_DAMAGE', label: 'Target Takes Fire Damage' },
             { code: 'START_OF_ATTACHED_TARGET_TURN', label: 'Start of Attached Target Turn' },

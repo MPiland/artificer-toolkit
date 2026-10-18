@@ -60,8 +60,9 @@ async function readNativeLiveCleavingCandidates(
   }
 ) {
   const { state, scene } = input
-  const bindings = await input.capture({ kind: 'CLEAVING_BINDINGS' })
-  if (bindings.kind !== 'CLEAVING_BINDINGS') throw new Error('Cleaving bindings are unavailable.')
+  const bindings = await input.capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
+  if (bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
+    throw new Error('Cleaving bindings are unavailable.')
   const eligible = bindings.bindings.filter(
     (binding) =>
       binding.actorId !== input.sourceActorId &&

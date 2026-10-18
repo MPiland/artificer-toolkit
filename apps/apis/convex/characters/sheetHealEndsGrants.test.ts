@@ -80,7 +80,7 @@ describe('Sheet healing and grants that last until hit points are regained', () 
   })
 
   it('ends the grant when the hit points are set higher by hand', async () => {
-    const { sheet, effectIds, untilHealed, lasting } = await fixture()
+    const { sheet, effectIds, lasting } = await fixture()
     await sheet({ type: 'SET_HIT_POINTS', current: 1 })
     await sheet({ type: 'SET_HIT_POINTS', current: 2 })
 

@@ -3,16 +3,14 @@ import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-quer
 import { useEffect, useMemo, useState } from 'react'
 import { getCampaignSession, useCampaignDetail } from '#app/data/campaigns/queries'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
-import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
 import { CampaignSessionCloseoutView } from './components/session-workspace/CampaignSessionCloseoutView'
 import { CampaignSessionHeader } from './components/session-workspace/CampaignSessionHeader'
 import { CampaignSessionPrepareView } from './components/session-workspace/CampaignSessionPrepareView'
 import { CampaignSessionRunView } from './components/session-workspace/CampaignSessionRunView'
+import { getSessionWorkspaceViews, type SessionWorkspaceView } from './campaignAccess'
 import * as styles from './campaigns.css'
-
-type SessionWorkspaceView = 'PREPARE' | 'RUN' | 'CLOSEOUT'
 
 const labels: Record<SessionWorkspaceView, string> = {
   PREPARE: 'Prepare',
@@ -126,13 +124,4 @@ export function CampaignSessionWorkspace({
       ) : null}
     </main>
   )
-}
-
-export function getSessionWorkspaceViews(
-  role: CampaignDetailDto['role'],
-  status: CampaignSessionDto['status']
-): SessionWorkspaceView[] {
-  return role === 'OWNER'
-    ? ['PREPARE', 'RUN', 'CLOSEOUT']
-    : [status === 'OPEN' ? 'RUN' : 'CLOSEOUT']
 }

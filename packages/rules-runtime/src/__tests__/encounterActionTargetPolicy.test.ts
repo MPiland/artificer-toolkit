@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
@@ -12,6 +13,7 @@ import {
 } from '../encounterActionTargetPolicy.js'
 import {
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+  encounterRuleContributorSource,
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
 
@@ -453,7 +455,8 @@ describe('encounter action target range', () => {
       sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
       grantId: null,
       domainKey: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
-      influence: 'DISADVANTAGE' as const
+      influence: 'DISADVANTAGE' as const,
+      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
     }
     expect(contributor(16)).toBeNull()
     expect(contributor(17)).toEqual(longRange)

@@ -417,7 +417,7 @@ describe('Escape check', () => {
     if (!strength) throw new Error('The fixture Character has no Strength.')
     const contributor = {
       sourceId: 'source-help',
-      source: { kind: 'SYSTEM' as const, systemId: 'system' },
+      source: { kind: 'AUTHORED' as const, id: 'system', holderActorId: null },
       grantId: 'grant-help',
       domainKey: 'ability-check',
       influence: 'ADVANTAGE' as const
@@ -468,6 +468,7 @@ describe('Escape check', () => {
         domainKey: contributor.domainKey,
         grantId: contributor.grantId,
         influence: 'ADVANTAGE',
+        source: contributor.source,
         sourceId: contributor.sourceId
       }
     ])

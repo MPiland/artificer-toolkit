@@ -207,7 +207,8 @@ function conditionContributor(
     sourceId: `condition:${conditionDefinitionId}`,
     grantId: null,
     domainKey: `condition:${holderActorId}`,
-    influence
+    influence,
+    source: { kind: 'CONDITION', id: conditionDefinitionId.toLowerCase(), holderActorId }
   }
 }
 
@@ -386,7 +387,8 @@ export function encounterFleeActionWarnings(input: {
     ? [
         {
           code: 'CONDITION_SOURCE_FLEE',
-          message: 'This creature must take the Dash action to move away from the source of a condition.'
+          message:
+            'This creature must take the Dash action to move away from the source of a condition.'
         }
       ]
     : []

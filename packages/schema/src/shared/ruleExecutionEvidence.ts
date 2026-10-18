@@ -1,6 +1,10 @@
 import { z, lazySchema } from '../zod.js'
 
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules/contributors'
+import {
+  compareCanonicalD20Contributors,
+  ROLL_MODE_CONTRIBUTOR_SOURCE_KINDS,
+  type D20Contributor
+} from '@artificer-toolkit/shared/rules/contributors'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
@@ -36,31 +40,32 @@ export const resolvedStartIntentRecordDtoSchema = lazySchema(() =>
 /** One bounded TEST/OUTCOME execution may consume no more than this many server evidence requests. */
 export const MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS = 32
 
+export const rollModeContributorSourceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.enum(ROLL_MODE_CONTRIBUTOR_SOURCE_KINDS),
+    id: identifierSchema,
+    holderActorId: z.nullable(identifierSchema)
+  })
+)
+
+/** One recorded d20 contributor: its canonical identity and the typed source its reason label reads. */
 export const receiptD20ContributorSchema = lazySchema(() =>
   z.strictObject({
     sourceId: identifierSchema,
     grantId: z.nullable(identifierSchema),
     domainKey: z.nullable(identifierSchema),
-    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-  })
-)
-
-const concentrationContributorDtoSchema = lazySchema(() =>
-  z.strictObject({
-    sourceId: identifierSchema,
-    grantId: z.nullable(identifierSchema),
-    domainKey: z.nullable(identifierSchema),
-    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
+    source: rollModeContributorSourceDtoSchema
   })
 )
 
 export const canonicalConcentrationContributorsDtoSchema = lazySchema(() =>
   z
-    .array(concentrationContributorDtoSchema)
+    .array(receiptD20ContributorSchema)
     .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
     .check(
       z.superRefine((contributors, context) => {
-        let prior: z.infer<typeof concentrationContributorDtoSchema> | null = null
+        let prior: z.infer<typeof receiptD20ContributorSchema> | null = null
         for (const [index, contributor] of contributors.entries()) {
           if (prior !== null && compareCanonicalD20Contributors(prior, contributor) >= 0)
             context.addIssue({
@@ -138,12 +143,7 @@ function contributorRollMode(
 // embeds a d20 policy or receipt and overflow the compiler's declaration size (TS7056).
 export type ServerRuleExecutionD20BeliefDto = {
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-  contributors: {
-    sourceId: string
-    grantId: string | null
-    domainKey: string | null
-    influence: 'ADVANTAGE' | 'DISADVANTAGE'
-  }[]
+  contributors: D20Contributor[]
   contributorChecksum: string
 }
 

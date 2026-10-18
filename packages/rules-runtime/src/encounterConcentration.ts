@@ -23,7 +23,7 @@ import {
   dnd5eConcentrationHolderSaves,
   resolveDnd5eConcentrationSaveFacts
 } from './systems/dnd5e/concentrationPolicy.js'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './systems/dnd5e/concentrationIdentity.js'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from './platformRulesRuntime.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 
 export type NativeConcentrationContext = ReturnType<
@@ -44,7 +44,8 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
   if (
     maintained.encounterId !== input.state.id ||
     maintained.ownerActorId !== input.targetActorId ||
-    maintained.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    maintained.maintenanceDefinitionId !==
+      requireInstalledConcentrationMaintenanceDefinitionId(input.state.gameSystemId)
   )
     throw new Error('The concentration state does not match its Encounter owner.')
   const maintenance = await input.readDefinition(maintained.maintenanceDefinitionId)

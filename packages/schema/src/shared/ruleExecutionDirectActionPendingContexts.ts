@@ -20,6 +20,7 @@ import { rangeDtoSchema } from './range.js'
 import {
   canonicalConcentrationContributorsDtoSchema,
   frozenCheckD20DtoSchema,
+  receiptD20ContributorSchema,
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionD20ModeAdjustmentDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema,
@@ -300,14 +301,7 @@ export const encounterCharacterRuleActionPendingContextDtoSchema = lazySchema(()
       z.strictObject({
         rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
         contributors: z
-          .array(
-            z.strictObject({
-              sourceId: identifierSchema,
-              grantId: z.nullable(identifierSchema),
-              domainKey: z.nullable(identifierSchema),
-              influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-            })
-          )
+          .array(receiptD20ContributorSchema)
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
         contributorChecksum: checksumSchema,
         modifier: integerSchema,
@@ -371,14 +365,7 @@ export const encounterActorRuleActionPendingContextDtoSchema = lazySchema(() =>
           z.strictObject({
             rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
             contributors: z
-              .array(
-                z.strictObject({
-                  sourceId: identifierSchema,
-                  grantId: z.nullable(identifierSchema),
-                  domainKey: z.nullable(identifierSchema),
-                  influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-                })
-              )
+              .array(receiptD20ContributorSchema)
               .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
             contributorChecksum: checksumSchema,
             modifier: integerSchema,
@@ -488,14 +475,7 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
           z.strictObject({
             rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
             contributors: z
-              .array(
-                z.strictObject({
-                  sourceId: identifierSchema,
-                  grantId: z.nullable(identifierSchema),
-                  domainKey: z.nullable(identifierSchema),
-                  influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-                })
-              )
+              .array(receiptD20ContributorSchema)
               .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
             contributorChecksum: checksumSchema,
             modifier: integerSchema,

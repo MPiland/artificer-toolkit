@@ -6,6 +6,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
+import { receiptD20ContributorSchema } from './ruleExecutionEvidence.js'
 import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
 import {
   movementPassageStopDtoSchema,
@@ -36,15 +37,6 @@ import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
  * It retains identities and currentness pins only; the executable contest graph
  * is re-created from its sealed System policy pin when the request resumes.
  */
-const optionalCombatContestD20ContributorDtoSchema = lazySchema(() =>
-  z.strictObject({
-    sourceId: identifierSchema,
-    grantId: z.nullable(identifierSchema),
-    domainKey: z.nullable(identifierSchema),
-    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-  })
-)
-
 const optionalCombatContestD20PolicyDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -52,7 +44,7 @@ const optionalCombatContestD20PolicyDtoSchema = lazySchema(() =>
       requestNodeId: localNodeIdSchema,
       rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
       contributors: z
-        .array(optionalCombatContestD20ContributorDtoSchema)
+        .array(receiptD20ContributorSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       contributorChecksum: checksumSchema,
       modifier: integerSchema

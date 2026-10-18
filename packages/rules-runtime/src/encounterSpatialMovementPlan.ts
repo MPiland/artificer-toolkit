@@ -22,6 +22,23 @@ type SpatialExecution = Pick<
   candidate: { candidate: { targetActorId: string } }
 }
 
+/**
+ * The order a spatial prefix settles its creatures in, which fixes each Character's command-id
+ * ordinal: Characters by Character id, then other creatures by actor id.
+ */
+export function orderSpatialSettlementActors<
+  TActor extends { id: string; kind: string; sourceId: string | null }
+>(actors: readonly TActor[]): TActor[] {
+  return [
+    ...actors
+      .filter((actor) => actor.kind === 'CHARACTER')
+      .sort((left, right) => left.sourceId!.localeCompare(right.sourceId!)),
+    ...actors
+      .filter((actor) => actor.kind !== 'CHARACTER')
+      .sort((left, right) => left.id.localeCompare(right.id))
+  ]
+}
+
 type Settlement = {
   batch: EncounterMechanicsBatchInput
   plan: EncounterMechanicsBatchPlan
@@ -80,20 +97,15 @@ export function planNativeSpatialMovementPrefix<
       ? []
       : [[targetActorId, target] as const]
   })
-  const characterTargets = changed
-    .filter(([, target]) => target.actor.kind === 'CHARACTER')
-    .sort(([, left], [, right]) => left.actor.sourceId!.localeCompare(right.actor.sourceId!))
-  const actorTargets = changed
-    .filter(([, target]) => target.actor.kind !== 'CHARACTER')
-    .sort(([left], [right]) => left.localeCompare(right))
   const projectedTargets = new Map(input.targets)
   const settlements: Settlement[] = []
-  for (const [ordinal, [targetActorId, target]] of [
-    ...characterTargets,
-    ...actorTargets
-  ].entries()) {
+  for (const [ordinal, actor] of orderSpatialSettlementActors(
+    changed.map(([, target]) => target.actor)
+  ).entries()) {
+    const targetActorId = actor.id
+    const target = input.targets.get(targetActorId)
     const executions = executionsByTarget.get(targetActorId)
-    if (!executions) throw new Error('Spatial execution target is unavailable.')
+    if (!target || !executions) throw new Error('Spatial execution target is unavailable.')
     const applications = executions.flatMap((execution) =>
       execution.applications.map((application) => ({ ...application, targetActorId }))
     )

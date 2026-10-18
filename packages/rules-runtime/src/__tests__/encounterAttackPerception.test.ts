@@ -1,3 +1,4 @@
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import {
   SRD_BLINDSIGHT_SENSE_ID,
   SRD_TRUESIGHT_SENSE_ID,
@@ -17,6 +18,7 @@ import {
 import {
   ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
+  encounterRuleContributorSource,
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
@@ -43,7 +45,8 @@ const dodge = {
   sourceId: DODGE_SOURCE_ID,
   grantId: null,
   domainKey: DODGE_SOURCE_ID,
-  influence: 'DISADVANTAGE' as const
+  influence: 'DISADVANTAGE' as const,
+  source: { kind: 'AUTHORED' as const, id: DODGE_SOURCE_ID, holderActorId: null }
 }
 
 const dodgeAgainst = {
@@ -96,7 +99,8 @@ describe('encounter attack perception: contributors', () => {
         sourceId: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
         grantId: null,
         domainKey: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-        influence: 'ADVANTAGE'
+        influence: 'ADVANTAGE',
+        source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER)
       }
     ])
     expect(encounterAttackPerceptionContributors(sight({ attackerSeesTarget: 'UNSEEN' }))).toEqual([
@@ -104,7 +108,8 @@ describe('encounter attack perception: contributors', () => {
         sourceId: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
         grantId: null,
         domainKey: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
-        influence: 'DISADVANTAGE'
+        influence: 'DISADVANTAGE',
+        source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET)
       }
     ])
   })
@@ -152,7 +157,8 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
       sourceId: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
       grantId: null,
       domainKey: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-      influence: 'ADVANTAGE'
+      influence: 'ADVANTAGE',
+      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER)
     })
     const { execution } = await settleCreatureAction({ prepared, rolls: [5, 9] })
     expect(execution.d20).toMatchObject({ derivedRollMode: 'ADVANTAGE', selectedNatural: 10 })

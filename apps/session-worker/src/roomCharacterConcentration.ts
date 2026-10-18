@@ -21,7 +21,7 @@ export async function readRoomCharacterConcentration(
     const actor = (await readRunActors(ctx, state)).find(
       (candidate) => candidate.kind === 'CHARACTER' && candidate.sourceId === characterId
     )
-    if (actor) return readActorConcentration(ctx, { encounterId: state.id, actor })
+    if (actor) return readActorConcentration(ctx, { state, actor })
   }
   return carriedConcentration(await listCarriedActiveRuleEffects(ctx, characterId))
 }
