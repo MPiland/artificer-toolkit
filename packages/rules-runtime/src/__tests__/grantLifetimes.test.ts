@@ -51,6 +51,7 @@ import {
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks,
   planIdleTurnCheck,
+  planResumedCarriedEffects,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
@@ -515,6 +516,34 @@ describe('planEncounterGrantTicks', () => {
     })
     const actor = characterActor({ id: TARGET_ID, characterId: CHARACTER_ID })
     expect(plan('END_OF_TURN', TARGET_ID, [{ actor, effects: [foreign] }])).toEqual([])
+  })
+
+  it('counts a source-anchored grant carried in from an earlier Run on its holder’s turns (D151)', () => {
+    const stored = storedGrant({
+      lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
+      currentActorId: null,
+      holderId: CHARACTER_ID,
+      lifetimeScope: 'OWNER'
+    })
+    const carried = prepareActiveRuleEffectRecord({
+      id: testUuid(0xc338),
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      definition: {
+        ...stored.definition,
+        origin: { ...stored.definition.origin, sourceAggregateId: testUuid(0xc3fd) }
+      },
+      lifecycle: { schemaVersion: 1, remainingTicks: 5 },
+      currentEffects: [],
+      occurredAt: TIMESTAMP
+    })
+    const holders = [
+      { actor: characterActor({ id: TARGET_ID, characterId: CHARACTER_ID }), effects: [carried] },
+      { actor: holder(SOURCE_ID).actor, effects: [] }
+    ]
+    expect(plan('START_OF_TURN', TARGET_ID, holders)).toMatchObject([
+      { kind: 'UPDATE', effect: { id: carried.id }, remainingTicks: 4 }
+    ])
+    expect(plan('START_OF_TURN', SOURCE_ID, holders)).toEqual([])
   })
 
   it('orders ticks by creation and skips effects the kernel owns', () => {
@@ -1111,6 +1140,100 @@ describe('planCarriedOverEffects', () => {
     const effect = grant(0xc363, 4)
     const untimed = { ...effect, lifecycle: { schemaVersion: 1 as const, remainingTicks: null } }
     expect(planCarriedOverEffects({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+  })
+})
+
+describe('planResumedCarriedEffects (SPELLS-5.13, D151)', () => {
+  const carried = (
+    id: number,
+    lifecycle: Omit<ActiveRuleEffectRecord['lifecycle'], 'schemaVersion' | 'remainingTicks'>,
+    rounds = 600
+  ) => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks: 1
+    })
+    const { expiration } = effect.definition.recurrence
+    if (expiration.kind !== 'TICKS') throw new Error('Expected a timed grant.')
+    return {
+      ...effect,
+      definition: {
+        ...effect.definition,
+        recurrence: {
+          ...effect.definition.recurrence,
+          expiration: { ...expiration, initialRemaining: rounds }
+        }
+      },
+      lifecycle: { schemaVersion: 1 as const, remainingTicks: null, ...lifecycle }
+    }
+  }
+
+  it('turns the minutes left before its expiry back into rounds, 10 a minute', () => {
+    const effect = carried(0xc390, { expiresAtCampaignMinute: 2003 })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2001 })).toEqual([
+      { kind: 'UPDATE', effect, lifecycle: { schemaVersion: 1, remainingTicks: 20 } }
+    ])
+  })
+
+  it('never resumes more rounds than the effect first had', () => {
+    const effect = carried(0xc391, { expiresAtCampaignMinute: 2001 }, 4)
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2000 })).toEqual([
+      { kind: 'UPDATE', effect, lifecycle: { schemaVersion: 1, remainingTicks: 4 } }
+    ])
+  })
+
+  it('keeps every other lifecycle field, such as the Concentration caster', () => {
+    const effect = carried(0xc392, {
+      expiresAtCampaignMinute: 2001,
+      concentrationCasterCharacterId: CHARACTER_ID
+    })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2000 })).toEqual([
+      {
+        kind: 'UPDATE',
+        effect,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: 10,
+          concentrationCasterCharacterId: CHARACTER_ID
+        }
+      }
+    ])
+  })
+
+  it.each([2001, 2005])('ends an effect whose expiry the clock has reached: minute %i', (now) => {
+    const effect = carried(0xc393, { expiresAtCampaignMinute: 2001 })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: now })).toEqual([
+      { kind: 'EXPIRE', effect }
+    ])
+  })
+
+  it('leaves an effect carried without a clock, and resumes nothing without one', () => {
+    const untimed = carried(0xc394, { expiresAtCampaignMinute: null })
+    const timed = carried(0xc395, { expiresAtCampaignMinute: 2001 })
+    expect(planResumedCarriedEffects({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+    expect(planResumedCarriedEffects({ effects: [timed], clockMinute: null })).toEqual([])
+  })
+
+  it('leaves an effect that was never carried', () => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc396,
+      holderId: TARGET_ID,
+      remainingTicks: 4
+    })
+    expect(planResumedCarriedEffects({ effects: [effect], clockMinute: 2000 })).toEqual([])
+  })
+
+  it('round-trips the effect the carry-over planner put on the clock', () => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc397,
+      holderId: TARGET_ID,
+      remainingTicks: 25
+    })
+    const [{ lifecycle }] = planCarriedOverEffects({ effects: [effect], clockMinute: 2000 })
+    expect(
+      planResumedCarriedEffects({ effects: [{ ...effect, lifecycle }], clockMinute: 2001 })
+    ).toMatchObject([{ kind: 'UPDATE', lifecycle: { schemaVersion: 1, remainingTicks: 20 } }])
   })
 })
 

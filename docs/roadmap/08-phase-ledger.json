@@ -9552,6 +9552,53 @@
                 "rr": 5,
                 "size": 2
               }
+            },
+            {
+              "id": "SPELLS-5.T10",
+              "text": "Carried timers resume at a later Run's START (D151): remaining ticks from expiresAtCampaignMinute and the Campaign clock (CAMPAIGN_CLOCK room input), capped at the authored duration; an expired one ends; a SOURCE anchor from an earlier Run counts on its holder; tick writes keep the lifecycle's optional fields.",
+              "status": "IN_PROGRESS",
+              "closes": [],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-5.md"
+            },
+            {
+              "id": "SPELLS-5.T12",
+              "text": "A carried caster's Concentration is reinstated at a later Run's START as a maintained state from the System Concentration definition, relinking its carried grants; the descriptor gains a required provenance union (ACTION or CARRIED) with stored rows migrated; ending it records the caster (D151).",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-5.12"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 5,
+                "after": [
+                  "SPELLS-5.T10"
+                ]
+              }
+            },
+            {
+              "id": "SPELLS-5.T11",
+              "text": "The GM's completed-Encounter view offers to advance the Campaign clock by ceil(rounds / 10) minutes through campaigns.clock.advance (D151).",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-5.13"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-5.T12"
+                ]
+              }
             }
           ]
         },

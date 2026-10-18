@@ -1,3 +1,4 @@
+import { persistCarriedEffectResumes } from '@artificer-toolkit/encounter-persistence/grantTickPersistence'
 import { persistEncounterTurnPending } from '@artificer-toolkit/encounter-persistence/turnPendingPersistence'
 import { persistEncounterTurnCommit } from '@artificer-toolkit/encounter-persistence/turnCommitPersistence'
 import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
@@ -59,6 +60,12 @@ export async function executeRoomEncounterTurn(input: {
     readSceneEntities: (page: Parameters<typeof readRoomSceneEntities>[1]) =>
       readRoomSceneEntities(transaction, page)
   }
+  if (input.command.type === 'START')
+    await persistCarriedEffectResumes(ctx, {
+      encounterId: scope.encounterId,
+      readClockMinute: () => inputs.campaignClockMinute(),
+      occurredAt: new Date().toISOString()
+    })
   const plan = await planNativeLiveEncounterTurn(scope, input.command, {
     runtime: input.runtime,
     random: input.random,

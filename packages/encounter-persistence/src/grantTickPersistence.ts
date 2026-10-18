@@ -4,7 +4,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   planEncounterGrantTicks,
-  planIdleTurnCheck
+  planIdleTurnCheck,
+  planResumedCarriedEffects
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import {
   turnEffectOwner,
@@ -16,7 +17,7 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readRunActors, replaceRunActor } from './documents.js'
+import { readRunActors, readRunState, replaceRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -61,9 +62,63 @@ export async function persistEncounterGrantTicks(
         id: effect.id,
         owner,
         expectedVersion: effect.version,
-        lifecycle: { schemaVersion: 1, remainingTicks: tick.remainingTicks }
+        lifecycle: { ...effect.lifecycle, remainingTicks: tick.remainingTicks }
       })
   }
+  await reconcileExpiredGrants(ctx, { state, expired, actors, occurredAt: input.occurredAt })
+}
+
+/**
+ * D151, SPELLS-5.13: a Run's START resumes its Characters' carried-over effects from the Campaign
+ * clock, in the START's own transaction and before its turn is planned, so the first turn already
+ * counts them down. Only a PREPARED Run resumes, and the clock is read only when an effect waits on
+ * it. An effect whose expiry the clock has reached ends like an expired grant.
+ */
+export async function persistCarriedEffectResumes(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    encounterId: string
+    readClockMinute(): Promise<number | null>
+    occurredAt: string
+  }
+) {
+  const row = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
+    .unique()
+  if (!row) throw new Error('Encounter Run is unavailable.')
+  const state = readRunState(row)
+  if (state.status !== 'PREPARED') return
+  const store = createActiveRuleEffectStore(ctx)
+  const actors = await readRunActors(ctx, state)
+  const holders = await Promise.all(
+    actors
+      .filter((actor) => actor.kind === 'CHARACTER')
+      .map(async (actor) => {
+        const owner = turnEffectOwner(actor, state.id)
+        return { owner, effects: await store.list(owner) }
+      })
+  )
+  const waiting = holders.some(({ effects }) =>
+    effects.some(({ lifecycle }) => typeof lifecycle.expiresAtCampaignMinute === 'number')
+  )
+  if (!waiting) return
+  const clockMinute = await input.readClockMinute()
+  const expired: ActiveRuleEffectRecord[] = []
+  for (const { owner, effects } of holders)
+    for (const resume of planResumedCarriedEffects({ effects, clockMinute })) {
+      const { effect } = resume
+      if (resume.kind === 'EXPIRE') {
+        await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+        expired.push(effect)
+      } else
+        await store.updateLifecycleCas({
+          id: effect.id,
+          owner,
+          expectedVersion: effect.version,
+          lifecycle: resume.lifecycle
+        })
+    }
   await reconcileExpiredGrants(ctx, { state, expired, actors, occurredAt: input.occurredAt })
 }
 

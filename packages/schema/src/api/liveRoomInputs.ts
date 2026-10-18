@@ -93,7 +93,8 @@ export const liveRoomInputsScopeSchema = lazySchema(() =>
       cursor: roomInputsCursorSchema
     }),
     z.strictObject({ kind: z.literal('DEFINITIONS'), cursor: roomInputsCursorSchema }),
-    z.strictObject({ kind: z.literal('SYSTEM'), part: z.enum(['SYSTEM', 'VOCABULARY']) })
+    z.strictObject({ kind: z.literal('SYSTEM'), part: z.enum(['SYSTEM', 'VOCABULARY']) }),
+    z.strictObject({ kind: z.literal('CAMPAIGN_CLOCK') })
   ])
 )
 
@@ -255,6 +256,14 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
       revisions: liveSessionRulesRevisionsSchema,
       system: z.nullable(systemAuthoredDtoSchema),
       vocabulary: z.nullable(systemVocabularySnapshotSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('CAMPAIGN_CLOCK'),
+      /**
+       * The Campaign clock's absolute minute now, `null` without a clock (D151). Read fresh and never
+       * cached: the clock is not room-owned and moves between Runs.
+       */
+      absoluteMinute: z.nullable(nonNegativeInt)
     })
   ])
 )

@@ -96,7 +96,11 @@ export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   })
 }
 
-/** The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied it. */
+/**
+ * The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied
+ * it. A source-anchored grant carried in from an earlier Run has no source here, so its holder
+ * counts it (D151).
+ */
 function grantAnchorActorId(
   effect: ActiveRuleEffectRecord,
   holderActorId: string,
@@ -104,29 +108,32 @@ function grantAnchorActorId(
 ) {
   const { expiration } = effect.definition.recurrence
   if (expiration.kind !== 'TICKS') return null
-  if (expiration.anchor !== 'SOURCE') return holderActorId
   const { origin } = effect.definition
-  return origin.kind === 'ENCOUNTER' && origin.sourceAggregateId === encounterId
+  return expiration.anchor === 'SOURCE' &&
+    origin.kind === 'ENCOUNTER' &&
+    origin.sourceAggregateId === encounterId
     ? origin.sourceActorId
-    : null
+    : holderActorId
 }
 
 /**
  * Timed grants anchored to an actor that left the Run can no longer count down, so they end with
- * it. Holder-anchored grants keep their own lifetime.
+ * it. Holder-anchored grants, and those carried in from an earlier Run, keep their own lifetime.
  */
 export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
   departedActorId: string
   holders: readonly { actor: GrantHolder['actor']; effects: readonly Effect[] }[]
 }): Effect[] {
-  return input.holders.flatMap(({ actor, effects }) =>
+  return input.holders.flatMap(({ effects }) =>
     effects.filter(
       (effect) =>
         isModifierGrant(effect) &&
         effect.definition.recurrence.expiration.kind === 'TICKS' &&
         effect.definition.recurrence.expiration.anchor === 'SOURCE' &&
-        grantAnchorActorId(effect, actor.id, input.encounterId) === input.departedActorId
+        effect.definition.origin.kind === 'ENCOUNTER' &&
+        effect.definition.origin.sourceAggregateId === input.encounterId &&
+        effect.definition.origin.sourceActorId === input.departedActorId
     )
   )
 }
@@ -250,6 +257,41 @@ export function planCarriedOverEffects(input: {
         input.clockMinute === null ? null : input.clockMinute + Math.ceil(remaining / 10)
     }
     return [{ effect, lifecycle }]
+  })
+}
+
+export type CarriedEffectResume<Effect extends ActiveRuleEffectRecord> =
+  | { kind: 'UPDATE'; effect: Effect; lifecycle: ActiveRuleEffectRecord['lifecycle'] }
+  | { kind: 'EXPIRE'; effect: Effect }
+
+/**
+ * D99, D151, SPELLS-5.13: a later Run's START hands the carried-over effects back from the Campaign
+ * clock to rounds, 10 per minute left before their expiry and never more than they first had. One
+ * whose expiry the clock has reached ends. Without a clock, or with no expiry (carried without a
+ * clock), nothing resumes and the effect lasts until the GM ends it.
+ */
+export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>(input: {
+  effects: readonly Effect[]
+  clockMinute: number | null
+}): CarriedEffectResume<Effect>[] {
+  const { clockMinute } = input
+  if (clockMinute === null) return []
+  return input.effects.flatMap((effect): CarriedEffectResume<Effect>[] => {
+    const { expiration } = effect.definition.recurrence
+    const { expiresAtCampaignMinute, ...lifecycle } = effect.lifecycle
+    if (
+      typeof expiresAtCampaignMinute !== 'number' ||
+      expiration.kind !== 'TICKS' ||
+      !(isModifierGrant(effect) || ownsCondition(effect))
+    )
+      return []
+    const remainingTicks = Math.min(
+      expiration.initialRemaining,
+      (expiresAtCampaignMinute - clockMinute) * 10
+    )
+    return remainingTicks <= 0
+      ? [{ kind: 'EXPIRE', effect }]
+      : [{ kind: 'UPDATE', effect, lifecycle: { ...lifecycle, remainingTicks } }]
   })
 }
 

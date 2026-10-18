@@ -793,6 +793,9 @@ call is one subrequest however many query pages it spans. A page is at most 1024
   and Campaign-owner USER root, including unpublished roots, retained as per-root `ROOM_DEFINITION`
   records and one inventory marker; stale SYSTEM/CAMPAIGN pins reload the whole inventory).
 - `AUTHORITY`: the native Campaign document, memberships of all statuses and assignments.
+- `CAMPAIGN_CLOCK` (D151): the Campaign clock's absolute minute now, or `null` without a clock. It is
+  derived at read time from the running clock, so it carries no revisions and the room never caches it; a
+  Run's START reads it only when a Character holds a carried-over effect.
 - `CHAT_METADATA`: conversations, members and entry headers, excluding text and roll bodies.
 - `SCENE`: the five native Scene families (`sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`,
   `sceneFogSaves`, `sceneFogChunks`) behind immutable definition, presentation and Scene-version pins. A page
