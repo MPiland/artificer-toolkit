@@ -10798,6 +10798,20 @@
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
+              "id": "SPELLS-31.T3d",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-31.T3c"]
+              },
+              "text": "Bug: normalizing the full SRD Cleric through the class node map throws \"Untrusted node runtime table: proficiency_grant_equipment\" (starting-equipment eligibility). Trust the table where the node runtime reads it, add a regression test that normalizes every SRD class record unchanged and fails before the fix, and remove the parity test’s emptied starting-equipment workaround."
+            },
+            {
               "id": "SPELLS-31.T4c",
               "status": "TODO",
               "closes": ["SPELLS-31.1"],
