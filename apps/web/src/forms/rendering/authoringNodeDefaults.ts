@@ -418,6 +418,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         bright: createMeasurement('FEET'),
         dimAdditional: createMeasurement('FEET')
       }
+    case 'manifestOccupantSaveBonus':
+      return {
+        id: crypto.randomUUID(),
+        domain: 'EVERY_SAVING_THROW',
+        amountKind: 'FIXED',
+        amount: 1,
+        dispositionFilter: 'ALLIES_AND_SOURCE'
+      }
     case 'manifestProximityRule':
       return {
         id: crypto.randomUUID(),
