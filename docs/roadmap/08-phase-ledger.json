@@ -10013,7 +10013,7 @@
           "tasks": [
             {
               "id": "SPELLS-30.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-30.1"],
               "wsjf": {
                 "bv": 3,
@@ -10022,7 +10022,8 @@
                 "size": 3,
                 "after": ["SPELLS-20.T4e"]
               },
-              "text": "Per-option execution plan (D140 amendment: added with its first non-zone consumer): the cast choice selects the option's outcome in the compiled execution plan. Protection from Energy grants resistance to the chosen type on the touched willing creature for its Concentration; Blindness/Deafness applies the chosen condition on a failed Constitution save with a repeat save at the end of each of the target's turns and one extra target per slot level above 2nd. Proved on both SRD spells with a room journey."
+              "text": "Per-option execution plan (D140 amendment: added with its first non-zone consumer): the cast choice selects the option's outcome in the compiled execution plan. Protection from Energy grants resistance to the chosen type on the touched willing creature for its Concentration; Blindness/Deafness applies the chosen condition on a failed Constitution save with a repeat save at the end of each of the target's turns and one extra target per slot level above 2nd. Proved on both SRD spells with a room journey.",
+              "note": "Proofs: apps/session-worker/test/nativeRoomCastChoice.test.ts, packages/rules-runtime/src/__tests__/characterSpellCastActions.test.ts. Green: ci/spells-30-t1 Tests 39092705384, Live 39092706566; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767). AC 30.1 stays open for T2 (Blade Barrier)."
             },
             {
               "id": "SPELLS-30.T2",
@@ -11113,8 +11114,11 @@
             },
             {
               "text": "A live-session envelope key is built by one shared function with an explicit owner (a player or the shared party), used by the web client and the Worker alike.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/vtt-scene-stream-key.test.ts.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "liveSessionClient.ts:195 and nativeLiveSessionRoom.ts:295 both build `${kind}:${ownerUserId ?? 'SHARED_PARTY'}`.",
               "id": "RELIABILITY-6.12"
@@ -11129,8 +11133,14 @@
             },
             {
               "text": "A dangling reference fails loudly instead of being labelled: an unknown condition type, an unreadable content label on an action, area or legendary-action commit, and the unreachable null optional-combat checksum no longer fall back to 'Unknown condition', 'Action', 'Legendary Action' or ''; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterConditionLabels.test.ts.",
+                "packages/encounter-persistence/src/__tests__/danglingReferences.test.ts.",
+                "packages/rules-runtime/src/__tests__/encounterCleaving.test.ts.",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "characterStates.ts:51 and sheetProjection.ts:1470; actionCommitPersistence.ts:313, areaCommitPersistence.ts:465, turnResourcesPersistence.ts:314 (readContentLabel ?? literal, persisted into roll cards); nativeEncounterCleaving.ts:188/306 (checksum is non-nullable in encounterRunState.ts:194).",
               "id": "RELIABILITY-6.14"
@@ -11159,16 +11169,23 @@
             },
             {
               "text": "Builder issues and validation errors carry their section id from the server (the existing section enum), so the web routes them without its own code-to-step maps or a silent Review fallback.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterBuilderResolution.test.ts.",
+                "apps/web/src/domains/characters/builder/core/CharacterBuilderRenderer.test.tsx.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "apps/web/src/domains/characters/builder/.../stepNavigation.ts:64-74 (issueStepByCode, validationStepByCode, ?? 'REVIEW'; SPELL_SELECTION_INVALID in both maps).",
               "id": "RELIABILITY-6.17"
             },
             {
               "text": "An imported entry with no name, level or quantity raises an import warning in the preview instead of being stored as 'Imported <kind>' or 1.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/imports/importParsers.test.ts.",
+                "Green: ci/reliability-6-t2 Tests 39094067606, Live 39094067619; phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767)."
+              ],
               "origin": [],
               "note": "packages/authoring/src/imports/importParsers.ts:145-318 (seven 'Imported ...' labels), :171 and :198 (?? 1); importPreparation.ts:1024 unreachable 'Imported character'.",
               "id": "RELIABILITY-6.18"
@@ -11232,7 +11249,7 @@
             {
               "id": "RELIABILITY-6.T2",
               "text": "Fail loudly and own identities in one place: live-session envelope keys, dangling references, server section ids and import warnings.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-6.12",
                 "RELIABILITY-6.14",
@@ -11244,7 +11261,8 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "phase merge 271bd6f48 (batch ci/merge-m95, Tests 39095201782, Live 39095201767). D150 as built: the commit label is required; readContentLabel stays for contributor sources."
             },
             {
               "id": "RELIABILITY-6.T3",
