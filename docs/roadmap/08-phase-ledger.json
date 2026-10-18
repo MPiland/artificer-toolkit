@@ -9822,7 +9822,7 @@
             {
               "id": "SPELLS-27.T11",
               "text": "Margin-of-failure riders from core options: a save that fails by 5 or more applies an extra condition (Drow poison, Pseudodragon and Sprite stings: unconscious until it takes damage or is woken), generic for any save outcome, with GM undo.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-27.2"],
               "wsjf": {
                 "bv": 3,
@@ -9830,7 +9830,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T5"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-27.md"
             },
             {
               "id": "SPELLS-27.T6",
@@ -9958,7 +9959,7 @@
           "tasks": [
             {
               "id": "SPELLS-30.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-30.1"],
               "wsjf": {
                 "bv": 3,
