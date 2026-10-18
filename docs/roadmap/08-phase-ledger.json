@@ -7886,17 +7886,31 @@
               "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a1",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): AWAKEN, COLOR_SPRAY, COMPULSION, CONTACT_OTHER_PLANE, CONTAGION. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+              "text": "Convert closed rules (D156 T2 split; T2a1 rulings): hitPointPoolIgnoredConditionIds on AREA_CONTENTS (Sleep [UNCONSCIOUS] with a regression room test that fails before the change, Color Spray [UNCONSCIOUS, BLINDED]); condition-owning effects take the SOURCE turn anchor so Color Spray blinds until the end of the caster's next turn; AWAKEN converts as class C (MANUAL_ADJUDICATION quoting its description). Parity proof per spell; each kind deleted. CONTACT_OTHER_PLANE moved to T2a1b, COMPULSION to T2l, CONTAGION to T2m.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2a1b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2a1"]
+              },
+              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted."
             },
             {
               "status": "TODO",
@@ -8088,10 +8102,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, COMPULSION (compelled move on the target's own turn, shared with Confusion; T2a1 ruling), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -8101,10 +8115,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
-                "after": ["SPELLS-4.T1"]
+                "size": 8,
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, CONTAGION (Encounter compiler runs THRESHOLDS repeat saves; Slimy Doom stunned when damaged; Mindfire reuses T2l; T2a1 ruling), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -9725,7 +9739,7 @@
             },
             {
               "id": "SPELLS-20.T5d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -9734,7 +9748,7 @@
                 "size": 2
               },
               "text": "Bug (found in SPELLS-20.T5c, 2026-10-18; first registered as ATTACK-18.T9z): rebuildEncounterTurnTarget rebuilds a turn stage's target from raw facts and drops the holder's defense (withEncounterHolderDefense, e.g. Dodge), so a Dodging creature's turn-boundary saves (zone start or end of turn, recurring effects) lose Dodge's advantage on Dexterity saves. Carry the holder defense on MovementTarget as T5c did for occupantSaveBonus, with a regression room test that fails before the fix.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5d da3ee7b2d Tests 39143763721, Live 39143722167; fast-path phase merge 1c01a30f4 (m119 backstop)."
             },
             {
               "id": "SPELLS-20.T6a",

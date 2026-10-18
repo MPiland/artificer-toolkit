@@ -1,5 +1,6 @@
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import {
   creatureAuraFeature,
@@ -17,6 +18,10 @@ import {
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { authoredZone } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -920,6 +925,48 @@ describe('a save inside a paladin’s Aura of Protection (SPELLS-20 T5c, D155)',
 
   it('reaches the same ally 30 feet away at paladin level 18', async () => {
     expect(await wolfSave({ x: 550, y: 150 }, 18)).toEqual({ modifier: 3, boundModifier: 3 })
+  })
+})
+
+describe('a Dodging creature’s turn-boundary zone save (SPELLS-20 T5d)', () => {
+  const dodgeDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+    ({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE
+  )
+  if (dodgeDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Dodge fixture.')
+  const dodgeActionId = encounterBasicActionId(
+    WOLF_ID,
+    SRD_BASIC_ACTION_IDS.DODGE,
+    dodgeDefinition.document.effects[0]!.id
+  )
+
+  it('rolls the Dexterity save of a Wolf that Dodged on its turn with advantage as the turn ends in the caltrops', async () => {
+    const room = await fieldRoom('EVERYONE')
+    await castOnFirstTurn(room, () => room.startAreaAction(FIELD_POINT))
+    expect((await (await advanceCommand(room)).send()).type).toBe('COMMAND_COMMITTED')
+
+    const { answer: dodged } = await room.startAction(
+      WOLF_ID,
+      [],
+      null,
+      null,
+      dodgeActionId,
+      WOLF_ID
+    )
+    expect(dodged.type, JSON.stringify(dodged)).toBe('COMMAND_COMMITTED')
+    const wolfsTurn = await advanceCommand(room)
+    const ended = await wolfsTurn.send()
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+
+    const { outgoing } = await storedZonePhases(room, wolfsTurn.commandId)
+    expect(outgoing).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { targetActorId: WOLF_ID, trigger: 'END_OF_TURN' } },
+          d20: expect.objectContaining({ rollMode: 'ADVANTAGE' })
+        }
+      ]
+    })
   })
 })
 
