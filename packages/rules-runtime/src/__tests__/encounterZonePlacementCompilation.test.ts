@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   SRD_ABILITY_DEFINITION_IDS,
-  SRD_CONDITION_TYPES
+  SRD_CONDITION_TYPES,
+  srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -10,6 +11,7 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { encounterActionTargetKind } from '../encounterAreaAction.js'
+import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
@@ -18,10 +20,17 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
-import { ENCOUNTER_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import {
+  ENCOUNTER_ID,
+  TIMESTAMP,
+  srdCreatureActor,
+  testUuid
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   compileCaltropsEntry,
   compileItemEntry,
+  creatureAuraFeature,
   diceDamage,
   extraId,
   failedSaveOnly,
@@ -29,6 +38,7 @@ import {
   lostActionOutcome,
   noSave,
   variantEquipment,
+  withFeature,
   zonePlacementOf,
   type ZoneParts
 } from '../testing/authoredZoneFixture.js'
@@ -873,6 +883,49 @@ describe('a zone outcome with no save, at the start of its source’s turn (D144
       adapterFacts: {},
       castSaveDcFactKey: null
     })
+  })
+})
+
+describe('a creature’s passive zone (D144)', () => {
+  const aura = creatureAuraFeature('2d6', 10)
+  const discover = (feature = aura) =>
+    discoverEncounterFeatureActions({
+      actor: srdCreatureActor({
+        id: testUuid(0x1950),
+        creature: withFeature(srdByLabel(SRD.creatures, 'Goblin'), feature)
+      }),
+      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+    })
+
+  it('compiles to a source-anchored zone acting at its source’s turn start, never offered as an action', () => {
+    const discovery = discover()
+    expect(discovery.available.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(false)
+    expect(discovery.unavailable.some(({ ownerFeatureId }) => ownerFeatureId === aura.id)).toBe(
+      false
+    )
+    expect(discovery.passiveZones).toHaveLength(1)
+    const [{ capability, zone }] = discovery.passiveZones
+    expect(capability).toMatchObject({ ownerFeatureId: aura.id, effectId: aura.effects![0]!.id })
+    expect(zone).toMatchObject({
+      attachment: 'SOURCE',
+      turnTriggers: ['START_OF_SOURCE_TURN'],
+      triggerModes: []
+    })
+  })
+
+  it('shows a passive zone the System cannot honor as unavailable, with no zone', () => {
+    const mover = structuredClone(aura)
+    const path = mover.effects![0]!.paths[0]!
+    const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+      throw new Error('The aura is a manifest zone.')
+    outcome.components![0]!.interactionKinds = ['ENTER_SPACE']
+    const discovery = discover(mover)
+    expect(discovery.passiveZones).toEqual([])
+    expect(discovery.unavailable).toContainEqual(
+      expect.objectContaining({ ownerFeatureId: aura.id })
+    )
   })
 })
 

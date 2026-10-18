@@ -1,7 +1,8 @@
 import type { ApplyEncounterForcedMovements } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
+import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
-import { toSpatialInstance } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
+import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
@@ -61,14 +62,17 @@ export async function applyRoomForcedMovements(input: {
   const { presentationVersion } = liveSessionCheckpointSceneSourceSchema.parse(
     JSON.parse(sourceRecord.json)
   )
-  const effects = (
-    await ctx.db
-      .query('encounterSpatialRuleEffects')
-      .withIndex('by_encounterId_sceneId_createdOrdinal_id', (q) =>
-        q.eq('encounterId', state.id).eq('sceneId', sceneId)
-      )
-      .take(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
-  ).map((row) => toSpatialInstance(readSpatialEffect(row)))
+  const effects = toSpatialInstances(
+    (
+      await ctx.db
+        .query('encounterSpatialRuleEffects')
+        .withIndex('by_encounterId_sceneId_createdOrdinal_id', (q) =>
+          q.eq('encounterId', state.id).eq('sceneId', sceneId)
+        )
+        .take(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
+    ).map(readSpatialEffect),
+    await readRunActors(ctx, state)
+  )
   const initial = (await readRoomSceneState(transaction, sceneId)).scene
   const tokenOf = (scene: typeof initial, tokenId: string) => {
     const token = scene.tokens.find(({ id }) => id.toLowerCase() === tokenId)

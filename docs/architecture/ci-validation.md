@@ -55,6 +55,10 @@ A changed `__snapshots__/<test>.snap` selects its test. A change outside the sou
 
 The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex spreads any selection over one shard per selected file, up to 4: one Convex file can take as long as a hundred others, so a count budget left 112 heavy files on 2 shards for 18 minutes. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.
 
+## Lint
+
+The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains: `lint:schemas` (`scripts/lazySchemas.mjs`) and `lint:casts` (`scripts/doubleCasts.mjs`). The second fails on any `as unknown as` outside tests and generated modules, except the per-file counts in its `ALLOWED` list, which only shrink. Any finding fails the run.
+
 ## Red proof
 
 The `red` job (PLATFORM-22) runs the slice's added and modified test files against the merge base's production code (`scripts/redProof.mjs`). The selector owns its inputs from the same diff: `merge-base`, `red-files` (every added or modified test file and test helper, which the job checks out from the tip) and `red-suites` (per suite, its config, root and the changed test files it includes, from the same Vitest config resolution). A slice that adds or changes no test file skips the job, and merge batches skip it too. The job runs whatever the selection, so a full run still proves red.

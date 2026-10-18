@@ -14,7 +14,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - D138 cleanup (after the T4b2b2 green): `spatialEffectPin.ts` and its movement-persistence call are removed (a placed zone is fixed at placement). Movement still refuses a deleted zone (`movementSpatialZoneSettlement.test.ts`) and a zone or path that changed since a pause (`encounterSpatialMovementStale.test.ts`: zone gone, path misses, zone version bumped, creature changed). The turn path keeps its selection-checksum and 'settlement differs from its plan' refusals.
 - T4f (START journey, pending-prompt interleaves, spatial resume checks): see the T4f log entry. A Sheet END_CONCENTRATION while a prompt was pending deleted the aura under it; it now refuses with PENDING_DECISION, and REMOVE_ACTOR now refuses with PENDING_DECISION instead of a plain error. The resume harness in `encounterSpatialMovementStale.test.ts` now resumes from the paused position and Scene version, so two older stale tests now assert the guard that actually fires.
 - The `encounterWriteSets` 100-actor read sits at the 250 KiB cap; ROOM-6 owns the trim.
-- T6 is split by D144 into T6a (source-turn zone outcome with no save), T6b (passive creature zones and their lifecycle, Pit Fiend Fear Aura), T6c (Balor data, CLOSED_RULE deletion, ADR 0038 parity, room journey) and T6d (melee-hit retaliation rider). T6a: see its log entry; pushed to `ci/spells-20-t6a`.
+- T6 is split by D144 into T6a (source-turn zone outcome with no save), T6b (passive creature zones and their lifecycle; the Pit Fiend Fear Aura stays CLOSED_RULE and moved to future-enhancements, D147), T6c (Balor data, CLOSED_RULE deletion, ADR 0038 parity, room journey) and T6d (melee-hit retaliation rider). T6a merged as `bc68ead1f`. T6b: see its log entry; on `ci/spells-20-t6b`.
 
 ## Scope
 
@@ -193,6 +193,19 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterTurnZoneEffects.test.ts`: two creatures caught at the source's START in actor-id order, the source spared; quiet at other boundaries; the source answers each die when it does not auto-roll; the stored multi-creature phase accepted, and rejected out of order or missing a transition.
   - `turnZoneEffectsPersistence.test.ts`: one batch per caught creature in settlement order, the source untouched.
   - `nativeRoomTurnZoneEffects.test.ts`: a core-options no-save field damages the Wolf at the caster's turn start, not at the Wolf's own, with an exact replay.
+
+### T6b (a Creature's passive zones, D144)
+
+- Discovery: a PASSIVE feature Effect manifesting one zone that acts at its source's turn compiles to `passiveZones` (never an offered action); the authoring nits from T6a (`...placement!`, `successImmunity`) are folded in.
+- Placement: `planEncounterPassiveZones` (rules-runtime) plans one TOKEN-anchored zone per passive zone feature of each Creature bound to a token, on the Run's effective grid, with no maintained state and an id fixed by Encounter, actor and feature Effect, so placing again is idempotent. `placeEncounterPassiveZones` (encounter-persistence) is the one placement helper (D147): the START terminal calls it before the incoming zone phase, and a GM token bind in a PREPARED or ACTIVE Run calls it for the bound actor. The room's turn preparation plans the same START records (`plannedSpatialEffectRecord`) so the first turn's contacts match the terminal's re-derive. `persistEncounterTurnCommit` now takes `readScene` (grid and tokens) instead of `readSceneTokens`; the token-binding command's `hasToken` callback became `readToken` (room and Convex).
+- REINFORCE: a reinforced Creature joins with no token binding, so there is nothing to place at REINFORCE itself; it gets its zone when the GM binds its token, through the same helper. No REINFORCE call was added, since it would always place nothing.
+- Lifecycle: removing the Creature deletes its passive zones (`deleteActorPassiveZones`, first step of `cleanupRemovedActorEffects`), and so does any token bind or unbind in a PREPARED or ACTIVE Run before a bind re-places them, so a rebind re-anchors them; FINISH deletes every Scene effect (unchanged). A defeated source's zone stays stored and drawn but catches no one: `toSpatialInstances(effects, actors)` derives `SpatialEffectInstance.suppressed` from the Run's defeated actors, and `spatialEffectAffects` honours it, so every candidate seam (turn contacts in the room plan and the terminal, both movement passes, forced movement) shares one derivation and a revived source has the zone again with no new placement. `isEncounterPassiveZone` is the one predicate (TOKEN anchor, no maintained state).
+- Undo: GM undo of START and REINFORCE is refused today (`actionRevert.ts`), so no zone needs reverting. Any future undo of START or REINFORCE must delete the passive zones they placed (D147).
+- Pit Fiend Fear Aura: stays on its CLOSED_RULE; its conversion is in future-enhancements (D147). T6c (Balor Fire Aura) is the first SRD consumer.
+- Proofs:
+  - `encounterZonePlacementCompilation.test.ts`: the aura compiles to a passive zone; a mover-triggered copy does not.
+  - `encounterPassiveZones.test.ts`: one TOKEN zone per bound Creature, the same id from any command, none for an unbound Creature; a defeated source's zone catches no one and acts again once revived.
+  - `nativeRoomTurnZoneEffects.test.ts`: a room START places a core-options aura on the Wolf's token and burns the adjacent Zombie at the Wolf's first turn start, replaying exactly; REMOVE_ACTOR deletes it; unbinding the Wolf's token deletes it and binding the token again places the same zone on it.
 
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 

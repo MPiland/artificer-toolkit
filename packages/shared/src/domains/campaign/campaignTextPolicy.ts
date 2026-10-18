@@ -1,4 +1,4 @@
-import type { NodeMap } from '../../utils/nodeDefinition.js'
+import type { RuntimeNodeMap } from '../../utils/nodeDefinition.js'
 import { profanityMatcher } from '../moderation/profanityMatcher.js'
 
 export type CampaignContentMaturity = 'STANDARD' | 'MATURE'
@@ -49,7 +49,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function maskNodeMapValue(value: unknown, nodeMap: NodeMap<Record<string, unknown>>): unknown {
+function maskNodeMapValue(value: unknown, nodeMap: RuntimeNodeMap): unknown {
   if (!isRecord(value)) return value
   const presented: Record<string, unknown> = { ...value }
 
@@ -63,14 +63,10 @@ function maskNodeMapValue(value: unknown, nodeMap: NodeMap<Record<string, unknow
       continue
     }
 
-    const group = node as unknown as {
-      groupKind: 'ARRAY' | 'OBJECT'
-      nodes: NodeMap<Record<string, unknown>> | (() => NodeMap<Record<string, unknown>>)
-    }
-    const childMap = typeof group.nodes === 'function' ? group.nodes() : group.nodes
-    if (group.groupKind === 'ARRAY' && Array.isArray(current)) {
+    const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+    if (node.groupKind === 'ARRAY' && Array.isArray(current)) {
       presented[key] = current.map((item) => maskNodeMapValue(item, childMap))
-    } else if (group.groupKind === 'OBJECT' && isRecord(current)) {
+    } else if (node.groupKind === 'OBJECT' && isRecord(current)) {
       presented[key] = maskNodeMapValue(current, childMap)
     }
   }
@@ -80,7 +76,7 @@ function maskNodeMapValue(value: unknown, nodeMap: NodeMap<Record<string, unknow
 
 export function presentAuthoredSnapshotText(
   snapshot: unknown,
-  nodeMap: NodeMap<Record<string, unknown>>,
+  nodeMap: RuntimeNodeMap,
   maturity: CampaignContentMaturity
 ): unknown {
   return maturity === 'STANDARD' ? maskNodeMapValue(snapshot, nodeMap) : snapshot

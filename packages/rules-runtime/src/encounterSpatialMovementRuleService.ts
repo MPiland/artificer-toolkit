@@ -1,5 +1,8 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
   StoredRuleExecutionResultDto
@@ -37,7 +40,7 @@ import {
   spatialCandidateEvidence,
   spatialExecutionInput,
   spatialExecutionOutcome,
-  toSpatialInstance,
+  toSpatialInstances,
   type SpatialD20Roll,
   type SpatialMovementTarget,
   type SpatialTargetState
@@ -68,7 +71,7 @@ type SpatialMovementEncounter = Pick<
   EncounterRunState,
   'id' | 'version' | 'automationMode' | 'turnSequence' | 'zoneApplications'
 > & {
-  actors: readonly { id: string }[]
+  actors: readonly EncounterRunActorState[]
 }
 
 export type SpatialMovementRuleRoot = {
@@ -311,7 +314,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     ? frozenSpatialCandidates(frozenReactionRemainder, appliedExecutions.length)
     : collectSpatialMovementCandidates({
         actorIdByTokenId: input.actorIdByTokenId,
-        effects: snapshotEffects.map(toSpatialInstance),
+        effects: toSpatialInstances(snapshotEffects, input.encounter.actors),
         movementKind: root.movementKind,
         path: root.originalPath,
         tokens: input.sceneTokens,
@@ -457,7 +460,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     ? candidates
     : collectSpatialMovementCandidates({
         actorIdByTokenId: input.actorIdByTokenId,
-        effects: [...lockedEffects.values()].map(toSpatialInstance),
+        effects: toSpatialInstances([...lockedEffects.values()], input.encounter.actors),
         movementKind: root.movementKind,
         path: root.originalPath,
         tokens: input.sceneTokens,

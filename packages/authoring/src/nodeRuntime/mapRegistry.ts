@@ -1,4 +1,4 @@
-import type { NodeMap } from '@artificer-toolkit/shared/maps'
+import type { RuntimeNodeMap } from '@artificer-toolkit/shared/maps'
 import {
   BACKGROUND_NODE_MAP,
   CLASS_NODE_MAP,
@@ -12,8 +12,6 @@ import {
   STARTING_EQUIPMENT_NODE_MAP,
   VEHICLE_NODE_MAP
 } from '@artificer-toolkit/shared/maps'
-
-type RuntimeNodeMap = NodeMap<Record<string, unknown>>
 
 const rootMaps = [
   SPELL_NODE_MAP,
@@ -51,7 +49,7 @@ export class NodeRuntimeInputError extends Error {
   }
 }
 
-function buildNodeMapRegistry(maps: readonly unknown[]): Map<string, RuntimeNodeMap> {
+function buildNodeMapRegistry(maps: readonly RuntimeNodeMap[]): Map<string, RuntimeNodeMap> {
   const registry = new Map<string, RuntimeNodeMap>()
 
   for (const nodeMap of maps) {
@@ -61,8 +59,7 @@ function buildNodeMapRegistry(maps: readonly unknown[]): Map<string, RuntimeNode
   return registry
 }
 
-function collectNodeMap(nodeMap: unknown, registry: Map<string, RuntimeNodeMap>) {
-  const runtimeNodeMap = nodeMap as unknown as RuntimeNodeMap
+function collectNodeMap(runtimeNodeMap: RuntimeNodeMap, registry: Map<string, RuntimeNodeMap>) {
   const existing = registry.get(runtimeNodeMap.mapId)
   if (existing) {
     if (nodeMapContractSignature(existing) !== nodeMapContractSignature(runtimeNodeMap)) {

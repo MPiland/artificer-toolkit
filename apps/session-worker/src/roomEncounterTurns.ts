@@ -126,8 +126,7 @@ export async function executeRoomEncounterTurn(input: {
           observed,
           batch
         }),
-      readSceneTokens: async (sceneId) =>
-        (await readRoomSceneState(transaction, sceneId)).scene.tokens,
+      readScene: async (sceneId) => (await readRoomSceneState(transaction, sceneId)).scene,
       readDefinition: async (id, userId) => {
         await ctx.ports.requireCampaignAuthority(scope.campaignId, userId)
         return (await inputs.definition(id, observed, transaction)).definition

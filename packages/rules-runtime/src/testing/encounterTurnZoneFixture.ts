@@ -1,12 +1,8 @@
-import {
-  encounterSpatialRuleEffectRecordSchema,
-  type EncounterSpatialRuleEffectRecord
-} from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
-import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { planEncounterPlacedZone, plannedSpatialEffectRecord } from '../encounterPlacedZone.js'
 import { ENCOUNTER_ID, srdCreatureActor, testUuid, TIMESTAMP } from './dnd5eSrdEncounter.js'
 import {
   diceDamage,
@@ -92,23 +88,11 @@ export function placedZone(
     sourceToken: null,
     saveDc: null
   })
-  return encounterSpatialRuleEffectRecordSchema.parse({
-    id: placed.id,
+  return plannedSpatialEffectRecord(placed, {
     encounterId: ENCOUNTER_ID,
     sceneId: SCENE_ID,
     createdOrdinal,
-    version: 1,
-    maintainedEffectStateId: null,
-    definition: placed.definition,
-    definitionChecksum: checksumCanonicalJson(placed.definition),
-    lifecycle: placed.lifecycle,
-    lifecycleChecksum: checksumCanonicalJson(placed.lifecycle),
-    placement: placed.placement,
-    placementChecksum: checksumCanonicalJson(placed.placement),
-    spatialState: placed.spatialState,
-    spatialStateChecksum: checksumCanonicalJson(placed.spatialState),
-    createdAt: TIMESTAMP,
-    updatedAt: TIMESTAMP
+    createdAt: TIMESTAMP
   })
 }
 

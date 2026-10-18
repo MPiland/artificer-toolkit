@@ -97,12 +97,13 @@ export async function verifyEncounterDisarmBrowser(
       resolveAction: async () => {
         stage = 'select Disarm through actions'
         await ownerPage.getByRole('button', { name: 'Open actions', exact: true }).click()
+        const { attackSlot, label, sourceLabel } = input.action
+        // An Attack action's option also names its slot (D93), e.g. "Bite" over "Attack 1 of 1".
         await select(
           ownerPage,
           'Action',
-          input.action.sourceLabel
-            ? input.action.label + ' · ' + input.action.sourceLabel
-            : input.action.label
+          (sourceLabel ? label + ' · ' + sourceLabel : label) +
+            (attackSlot ? ` Attack ${attackSlot.number} of ${attackSlot.total}` : '')
         )
         stage = 'pick the Disarm target on the map'
         const map = ownerPage.locator('canvas[aria-description]')
@@ -136,6 +137,11 @@ export async function verifyEncounterDisarmBrowser(
         await expect(
           ownerPage.getByRole('status').filter({ hasText: input.targetLabel + ': ' })
         ).toContainText(/\d+(\.\d)? ft · In range/)
+        // The canvas draws the range ring and the highlighted targets; the review evidence shows them.
+        await ownerPage.screenshot({
+          fullPage: true,
+          path: input.evidenceDirectory + '/disarm-owner-targeting.png'
+        })
         await ownerPage.mouse.click(point.x, point.y)
         await expect(targetingTitle).toBeHidden()
         await expect(ownerPage.getByRole('combobox', { name: 'Target', exact: true })).toHaveValue(
