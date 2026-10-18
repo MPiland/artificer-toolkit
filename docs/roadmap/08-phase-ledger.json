@@ -937,7 +937,7 @@
             },
             {
               "id": "PLATFORM-13.T13",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "PLATFORM-13.2"
               ],
@@ -948,7 +948,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test."
+              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test. Also the Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" flake: its console.error spy catches a stray room alarm log (seen on ci/spells-4-t2t twice); fix the leak at its source, not the spy.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             }
           ]
         },
@@ -9666,7 +9667,7 @@
               "note": "Green: ci/spells-4-t2a2 43cd4b1b6 Tests 39150523726, Live 39150523850; batch ci/merge-m127 6d2cf296f green (Tests 39152044303, Live 39152044301); phase merge 9a58b5ee7."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -9681,7 +9682,7 @@
                 ]
               },
               "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted. T2a3 rulings: Guiding Bolt adds the generic ON_ATTACKED consume event; the compiler compiles an ON_USE SEQUENCE beside MANUAL_ADJUDICATION outcomes (GM notes on the commit) and CHOSEN_CREATURES grant plans.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m135 (6b9eaeefc)."
             },
             {
               "status": "IN_PROGRESS",
@@ -13895,7 +13896,7 @@
                   "SPELLS-33.T1"
                 ]
               },
-              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, damage-or-grapple choices, self teleports, attach riders (8 kinds; Draining Kiss moved to T3a4, Dark Devotion x2, Two-Headed and Brave moved to T3a2, Mimic Grappler to T4s3, Cloaker Moan to T3a3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "A: self teleports (Balor, Marilith, Teleport), Giant Frog Bite, Darkmantle Attach (5 kinds; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
@@ -13948,6 +13949,40 @@
                 ]
               },
               "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T3a5",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-33.T1"
+                ]
+              },
+              "text": "Fold creature passive ON_HIT riders from other features into creature attacks through the Character collect, merge and reduce path; convert Assassin and Spy Sneak Attack (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T3a6",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-33.T1"
+                ]
+              },
+              "text": "Creature feature discovery compiles per cast-choice option like the character entry point (pick at use, D148); convert Vampire Spawn Claws and Vampire Unarmed Strike damage-or-grapple (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T3b",

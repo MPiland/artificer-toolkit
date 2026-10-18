@@ -1535,5 +1535,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
       - Mimic Grappler moves to SPELLS-33.T4s3, beside the Pseudopod Adhesive grapple it needs.
       - The compiler refuses an AREA_CONTENTS save that excludes creature types. A new SPELLS-33.T3a3 lifts that refusal generically and converts Cloaker Moan as a 60-foot self-centered sphere excluding aberrations. "That can hear" stays in the description, and the Moan's after-save immunity stays in T7a.
       - The compiler accepts a hit point maximum reduction only as the failure rider of a follow-up save after a hit, the Wight Life Drain shape. A new SPELLS-33.T3a4 adds a generic direct-save shape: damage, then a reduction equal to the damage taken, on a failed save and on a halved success. It converts the Succubus and Incubus Draining Kiss, and Harm later reuses it.
+      - Creature attacks never fold passive ON_HIT riders from the creature's other features. A new SPELLS-33.T3a5 sends those riders through the same collect, merge and reduce path Characters use, then converts the Assassin and Spy Sneak Attack.
+      - Creature feature discovery compiles a whole effect and refuses CHOICE groups. A new SPELLS-33.T3a6 compiles each cast-choice option on its own, as the character entry point does, so the creature picks at use (D148). It then converts the Vampire Spawn Claws and the Vampire Unarmed Strike ("instead of dealing damage, grapple").
+      - T3a closes with 5 kinds.
     - Flyby joins the opportunity-attack qualifier from SPELLS-31.T4k2.
     - As in SPELLS-31, each authoring gap is fixed with a regression test in the subtask that owns it, and each new T6 group needs an option-design ruling at its start.
