@@ -6010,36 +6010,37 @@
           "id": "ATTACK-7",
           "title": "Grapple and shove",
           "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/encounters/srdCreatureHitRiders.test.ts"],
+          "journeyTests": [
+            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
+            "apps/session-worker/test/nativeRoomGrappleContest.test.ts",
+            "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts"
+          ],
           "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
               "text": "The Grapple basic action is offered only to a Character, or a Creature of a hand-bearing type, with a free hand. It replaces one attack of the Attack action against a creature within reach and no more than one size larger: the grappler's Athletics is contested by the target's choice of Athletics or Acrobatics (rolled by its controller), and a win applies Grappled owned by the grappler, with at most 2 creatures held at once through this action. With both hands holding weapons, the actor is prompted to stow one for free; a held shield cannot be stowed this way. Each creature held occupies a hand until the grapple ends.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomGrappleContest.test.ts"],
               "origin": [],
               "note": "D105 slice C, D106 and D107. Refined 2026-10-10 into 7.1 and 7.3-7.8 (rul-9-rules-audit.md slice 2); the Grapple Limit stat was dropped 2026-10-10 for per-outcome held-at-once counts.",
               "id": "ATTACK-7.1"
             },
             {
               "text": "A grappled creature can use its Action to escape with one of the grapple's authored checks, against its fixed escape DC or contested by the grappler's authored check; success ends the grapple.",
-              "status": "IN_PROGRESS",
-              "proof": [
-                "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
-                "apps/session-worker/test/nativeRoomEscapeAction.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts",
-                "packages/encounter-persistence/src/__tests__/escapeEffectVerification.test.ts",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx"
-              ],
+              "status": "DONE",
+              "proof": ["apps/session-worker/test/nativeRoomGrappleContest.test.ts"],
               "origin": [],
               "note": "D105 slice B (fixed DC) done 2026-10-11: the Giant Toad journey offers the DC 13 escape, a d20 20 frees the Character (Grappled and Restrained removed) and a 1 keeps it; the room, Convex re-verification and drawer tests cover the rest. The contested escape is slice C.",
               "id": "ATTACK-7.3"
             },
             {
               "text": "The grappler can release a grapple at any time with no action; a grapple ends when the grappler can't act, or when any movement leaves the grappled creature outside the grappler's reach.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterRelationshipEnds.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice D.",
               "id": "ATTACK-7.4"
@@ -6116,31 +6117,33 @@
             {
               "id": "ATTACK-7.T3m",
               "text": "D152: move Disarm and the movement-passage contests (Overrun, Tumble, Shove Aside) onto the one ENCOUNTER_CONTEST_CHECK context with a discriminated source; own commit and green run before the grapple contest uses it.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 3,
                 "rr": 8,
                 "size": 3
-              }
+              },
+              "note": "Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T3",
               "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.1", "ATTACK-7.3"],
-              "note": "D152 contracts approved 2026-10-17; T4 follows in the same session."
+              "note": "D152 contracts approved 2026-10-17; T4 follows in the same session. Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T4",
               "text": "Slice D: release with no action, and the end sweeps (grappler can't act; movement leaves the sealed reach).",
-              "status": "TODO",
-              "closes": ["ATTACK-7.4"]
+              "status": "DONE",
+              "closes": ["ATTACK-7.4"],
+              "note": "Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-7.4"],
               "wsjf": {
                 "bv": 2,
@@ -6149,7 +6152,8 @@
                 "size": 3,
                 "after": ["ATTACK-7.T4"]
               },
-              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control."
+              "text": "Off-turn release (D152): a per-member read of the relationships whose source the member controls, and a tabletop Release control on any turn that issues RELEASE_RELATIONSHIP. Proved by a room journey releasing a grapple on another creature's turn and a browser test of the control.",
+              "note": "Green: ci/attack-7 98c3f7477 Tests 39132075431, Live 39132075438; batch ci/merge-m113 b3e56d8c2 Tests 39133448395, Live 39133448523; phase merge fd02e3358."
             },
             {
               "id": "ATTACK-7.T5a",
@@ -6167,8 +6171,9 @@
             {
               "id": "ATTACK-7.T5",
               "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof. AWAY/TOWARD + EXACT are delivered by T5a.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.7"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.7"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T6",
