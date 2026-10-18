@@ -8223,10 +8223,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), and REGENERATE (an immediate heal beside a recurring one; fix its SRD data: no Concentration, a 1-minute cast, a 1-hour duration), with parity proofs; each kind deleted.",
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), and REGENERATE (an immediate heal beside a recurring one; fix its SRD data: no Concentration, a 1-minute cast, a 1-hour duration), with parity proofs; each kind deleted. T2t ruling: temporary hit points record their source effect; the compiler accepts SEQUENTIAL entries with one effect-bearing entry; Heroism becomes castable.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
