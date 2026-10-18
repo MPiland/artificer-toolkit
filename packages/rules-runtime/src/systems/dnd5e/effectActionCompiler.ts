@@ -782,7 +782,8 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
   // A resolved list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
-  // creature, and it has no area.
+  // creature; one that names each creature once may be bounded by a round area at a point
+  // (Volley, D156), which a repeating list is not.
   if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
     const attacks = dnd5eAttackKind(invocation.triggerCode) !== null
     if (
@@ -791,7 +792,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
         (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
       !chosenCreaturesListResolves(targeting) ||
       (invocation.shape !== undefined &&
-        (attacks ||
+        (targeting.allowRepeatedTargets === true ||
           !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
     )
       return false

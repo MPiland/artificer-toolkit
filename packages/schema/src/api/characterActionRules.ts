@@ -443,7 +443,15 @@ export const characterActionCandidatesSchema = lazySchema(() =>
         sourceId: identitySchema,
         source: characterMechanicSourceSchema,
         mechanicsOwner: actionMechanicsOwnerSchema,
-        activationSourceKind: z.enum(['ACTIVE_SOURCE', 'ACTIVE_EQUIPMENT']),
+        /**
+         * What must be active to offer the action: its source, its item, or both for a Feature attack
+         * made with a wielded weapon (D156).
+         */
+        activationSourceKind: z.enum([
+          'ACTIVE_SOURCE',
+          'ACTIVE_EQUIPMENT',
+          'ACTIVE_SOURCE_AND_EQUIPMENT'
+        ]),
         equipment: z.nullable(actionEquipmentStateSchema),
         resourceUse: z.nullable(actionResourceUseSchema),
         mechanicFacts: characterActionMechanicFactSchema
@@ -468,10 +476,7 @@ export const characterActionCandidatesSchema = lazySchema(() =>
               path: [index, 'actionId']
             })
           }
-          if (
-            candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' &&
-            candidate.equipment === null
-          ) {
+          if (candidate.activationSourceKind !== 'ACTIVE_SOURCE' && candidate.equipment === null) {
             context.addIssue({
               code: 'custom',
               message: 'Equipment action candidates must include exact equipment state',

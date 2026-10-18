@@ -6,6 +6,7 @@ import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
+import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
@@ -17,9 +18,9 @@ import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
 /**
- * SPELLS-31.T3a-T3c (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets, Divine
- * Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds and Divine Intervention
- * resolve from the
+ * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
+ * Divine Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
+ * Volley and Whirlwind Attack resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options.
  */
@@ -202,10 +203,36 @@ const CASES: ReadonlyArray<{
       charges.amount = 2
       return record
     }
+  },
+  {
+    record: hunterConclave,
+    label: 'Volley',
+    parent: "Hunter's Multiattack",
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      const [effect] = option(record, "Hunter's Multiattack", 'Volley').effects ?? []
+      if (!effect?.weaponAttack) throw new Error('Volley must attack with the wielded weapons.')
+      effect.weaponAttack.requiredPropertyCodes = ['THROWN']
+      return record
+    }
+  },
+  {
+    record: hunterConclave,
+    label: 'Whirlwind Attack',
+    parent: "Hunter's Multiattack",
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      const [effect] = option(record, "Hunter's Multiattack", 'Whirlwind Attack').effects ?? []
+      if (!effect?.weaponAttack || effect.invocation.range.rangeKind !== 'DISTANCE')
+        throw new Error('Whirlwind Attack must attack with the wielded weapons within a distance.')
+      effect.invocation.range.amount = 10
+      effect.weaponAttack.requiredPropertyCodes = ['REACH']
+      return record
+    }
   }
 ]
 
-describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c)', () => {
+describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c, T5s)', () => {
   it.each(CASES)('keeps the SRD $label exactly as authored, with no closed rule', async (entry) => {
     const nodes = caseNodes(entry.record, entry.label, entry.parent)
     expect(nodes.length).toBeGreaterThan(0)
