@@ -15,7 +15,7 @@ import {
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
-import { EncounterValidationError, SpellcastingLockedError } from './encounterErrors.js'
+import { SpellcastingLockedError } from './encounterErrors.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'

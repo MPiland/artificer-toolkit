@@ -42,10 +42,10 @@ export interface SpatialPersistedGeometry {
  * (movement ENTER, EXIT and CROSS today; turn-stage triggers and movement cost must ask it too).
  */
 export function spatialEffectAffects(
-  effect: Pick<SpatialEffectInstance, 'unaffectedActorIds'>,
+  effect: Pick<SpatialEffectInstance, 'unaffectedActorIds' | 'suppressed'>,
   actorId: string
 ): boolean {
-  return !effect.unaffectedActorIds?.includes(actorId)
+  return !effect.suppressed && !effect.unaffectedActorIds?.includes(actorId)
 }
 
 /** How often a zone has caught one creature on one turn; the Run keeps it, keyed by {@link zoneApplicationKey}. */
@@ -108,6 +108,8 @@ export interface SpatialEffectInstance {
   readonly maxApplicationsPerTurn?: number
   /** At a turn boundary, catches only a creature whose whole space is inside the area. */
   readonly requiresFullyWithin?: boolean
+  /** Catches no one while it rests, still drawn: a Creature's passive zone whose source is defeated (D144). */
+  readonly suppressed?: boolean
 }
 
 /** The space a token occupies. */

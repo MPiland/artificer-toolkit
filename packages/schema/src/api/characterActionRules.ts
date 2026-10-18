@@ -438,10 +438,7 @@ export const characterActionCandidatesSchema = lazySchema(() =>
       z.strictObject({
         sequence: integerSchema.check(z.gte(0)).check(z.lte(9_999)),
         actionId: identitySchema,
-        /** Optional display label retained for snapshot compatibility. */
-        label: z.optional(
-          stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
-        ),
+        label: stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
         effectId: postgresUuidSchema,
         sourceId: identitySchema,
         source: characterMechanicSourceSchema,

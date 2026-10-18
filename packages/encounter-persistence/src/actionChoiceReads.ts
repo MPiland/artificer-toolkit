@@ -39,7 +39,6 @@ import {
   readActionHolderState,
   readDisarmSelection
 } from './actionPreparationReads.js'
-import { rejectDomain } from './domainRejections.js'
 import { requireTargetSeenByMember } from './targetVisibility.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'

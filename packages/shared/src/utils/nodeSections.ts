@@ -1,27 +1,31 @@
-import type { NodeEntry, NodeId, NodeMap, NodeSectionSpec, NodeStepSpec } from './nodeDefinition.js'
+import type { NodeId, NodeSectionSpec, NodeStepSpec, RuntimeNodeEntry } from './nodeDefinition.js'
 
 export type ResolvedNodeSection = NodeSectionSpec
 export type ResolvedNodeStep = NodeStepSpec
 
-export type SectionedNodeEntry<NLocal extends object> = {
+/** The node fields sectioning reads; every `NodeEntry` has them. */
+type SectionableNode = { order?: number; section?: NodeSectionSpec }
+
+export type SectionedNodeEntry<TNode extends SectionableNode> = {
   id: NodeId
-  node: NodeEntry<NLocal>
+  node: TNode
   section: ResolvedNodeSection
 }
 
-export type SectionedNodeGroup<NLocal extends object = Record<string, unknown>> =
+export type SectionedNodeGroup<TNode extends SectionableNode = RuntimeNodeEntry> =
   ResolvedNodeSection & {
-    nodes: SectionedNodeEntry<NLocal>[]
+    nodes: SectionedNodeEntry<TNode>[]
   }
 
-export type SteppedNodeGroup<NLocal extends object = Record<string, unknown>> = ResolvedNodeStep & {
-  sections: SectionedNodeGroup<NLocal>[]
-}
+export type SteppedNodeGroup<TNode extends SectionableNode = RuntimeNodeEntry> =
+  ResolvedNodeStep & {
+    sections: SectionedNodeGroup<TNode>[]
+  }
 
-export function resolveNodeMapSteps<NLocal extends object>(
-  nodeMap: NodeMap<NLocal>
-): SteppedNodeGroup<NLocal>[] {
-  const steps = new Map<string, SteppedNodeGroup<NLocal>>()
+export function resolveNodeMapSteps<TNode extends SectionableNode>(nodeMap: {
+  nodes: Record<NodeId, TNode>
+}): SteppedNodeGroup<TNode>[] {
+  const steps = new Map<string, SteppedNodeGroup<TNode>>()
 
   for (const section of resolveNodeMapSections(nodeMap)) {
     const step = upsertStep(steps, section.step ?? sectionToStep(section))
@@ -36,10 +40,10 @@ export function resolveNodeMapSteps<NLocal extends object>(
     }))
 }
 
-export function resolveNodeMapSections<NLocal extends object>(
-  nodeMap: NodeMap<NLocal>
-): SectionedNodeGroup<NLocal>[] {
-  const sections = new Map<string, SectionedNodeGroup<NLocal>>()
+export function resolveNodeMapSections<TNode extends SectionableNode>(nodeMap: {
+  nodes: Record<NodeId, TNode>
+}): SectionedNodeGroup<TNode>[] {
+  const sections = new Map<string, SectionedNodeGroup<TNode>>()
 
   Object.entries(nodeMap.nodes)
     .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0))
@@ -58,33 +62,8 @@ export function resolveNodeMapSections<NLocal extends object>(
     }))
 }
 
-export function resolveNestedNodeSections<NLocal extends object>(
-  nodeMap: NodeMap<NLocal>,
-  inheritedSection?: NodeSectionSpec
-): SectionedNodeEntry<Record<string, unknown>>[] {
-  return Object.entries(nodeMap.nodes)
-    .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0))
-    .flatMap(([id, node]) => {
-      const section = node.section ?? inheritedSection
-      const current = section
-        ? [{ id, node: node as unknown as NodeEntry<Record<string, unknown>>, section }]
-        : []
-
-      if (node.kind !== 'GROUP') return current
-
-      const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
-      return [
-        ...current,
-        ...resolveNestedNodeSections(
-          childMap as unknown as NodeMap<Record<string, unknown>>,
-          section
-        )
-      ]
-    })
-}
-
-function upsertStep<NLocal extends object>(
-  steps: Map<string, SteppedNodeGroup<NLocal>>,
+function upsertStep<TNode extends SectionableNode>(
+  steps: Map<string, SteppedNodeGroup<TNode>>,
   step: NodeStepSpec
 ) {
   const existing = steps.get(step.id)
@@ -92,14 +71,14 @@ function upsertStep<NLocal extends object>(
 
   const next = {
     ...step,
-    sections: [] as SectionedNodeGroup<NLocal>[]
+    sections: [] as SectionedNodeGroup<TNode>[]
   }
   steps.set(step.id, next)
   return next
 }
 
-function upsertSection<NLocal extends object>(
-  sections: Map<string, SectionedNodeGroup<NLocal>>,
+function upsertSection<TNode extends SectionableNode>(
+  sections: Map<string, SectionedNodeGroup<TNode>>,
   section: NodeSectionSpec
 ) {
   const existing = sections.get(section.id)
@@ -107,7 +86,7 @@ function upsertSection<NLocal extends object>(
 
   const next = {
     ...section,
-    nodes: [] as SectionedNodeEntry<NLocal>[]
+    nodes: [] as SectionedNodeEntry<TNode>[]
   }
   sections.set(section.id, next)
   return next

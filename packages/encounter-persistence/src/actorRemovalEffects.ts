@@ -6,6 +6,7 @@ import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { deleteStateZones, listStateZones } from './maintainedStateZones.js'
+import { deleteActorPassiveZones } from './placedSpatialEffects.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterCharacterPlay, type EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -45,6 +46,7 @@ export async function cleanupRemovedActorEffects(
   ctx: EncounterCharacterWriteTransaction,
   input: { state: EncounterRunState; actorId: string; occurredAt: string }
 ): Promise<MaintenanceCleanupResult | null> {
+  await deleteActorPassiveZones(ctx, input)
   const effects = createActiveRuleEffectStore(ctx)
   const ownedStates = await effects.listMaintainedStatesByOwner({
     encounterId: input.state.id,

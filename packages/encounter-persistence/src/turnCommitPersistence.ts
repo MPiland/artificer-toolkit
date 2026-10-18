@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { recordZoneApplications, type SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
+import { recordZoneApplications, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type {
@@ -40,6 +40,7 @@ import {
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
+import { placeEncounterPassiveZones } from './placedSpatialEffects.js'
 import {
   persistEncounterTurnDeathSave,
   persistEncounterTurnResources
@@ -63,7 +64,7 @@ export async function persistEncounterTurnCommit(
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
-    readSceneTokens(sceneId: string): Promise<readonly SpatialSceneToken[]>
+    readScene(sceneId: string): Promise<Pick<CampaignSceneState, 'grid' | 'tokens'>>
     readDefinition(id: string, userId: string): Promise<ReusableDefinitionCurrentDto | null>
     bindConcentrationApplications(
       state: EncounterRunState,
@@ -195,7 +196,7 @@ export async function persistEncounterTurnCommit(
   }
   const zoneCallbacks = {
     applyMechanics: callbacks.applyMechanics,
-    readSceneTokens: callbacks.readSceneTokens
+    readSceneTokens: async (sceneId: string) => (await callbacks.readScene(sceneId)).tokens
   }
   const outgoingZones = await persistEncounterTurnZoneEffects(
     ctx,
@@ -307,6 +308,18 @@ export async function persistEncounterTurnCommit(
     },
     callbacks.applyMechanics
   )
+  // A Creature's passive zones are in place from the Encounter's start, before its first turn (D144).
+  if (root.commandType === 'START')
+    await placeEncounterPassiveZones(
+      ctx,
+      {
+        state,
+        actors: durableActors,
+        occurrenceId: input.occurrenceId,
+        rootCommandId: root.rootCommandId
+      },
+      callbacks.readScene
+    )
   const incomingZones = await persistEncounterTurnZoneEffects(
     ctx,
     { ...zoneCommit, boundary: incomingBoundary, plan: input.incomingZoneTurn },

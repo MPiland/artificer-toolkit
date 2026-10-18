@@ -36,16 +36,47 @@
     }
   },
   "rules": {
-    "no-unused-vars": "error",
+    "no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "ignoreRestSiblings": true }
+    ],
     "no-await-in-loop": "off",
     "no-underscore-dangle": "off",
     "typescript/no-explicit-any": "error",
     "unicorn/no-array-sort": "off",
     "react/react-in-jsx-scope": "off",
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": "off"
+    "react/rules-of-hooks": "error"
   },
   "overrides": [
+    {
+      // Fast Refresh: component files export components only (AGENTS.md). Route modules export `Route`.
+      // Enabling the react plugin here also enables its correctness rules; the ones still red are off
+      // until they are adopted with their own cleanup.
+      "files": [
+        "apps/web/src/**/*.tsx",
+        "packages/design-system/src/**/*.tsx",
+        "packages/emails/src/**/*.tsx"
+      ],
+      "excludeFiles": [
+        "apps/web/src/routes/**",
+        "**/*.test.tsx",
+        "**/*.stories.tsx",
+        "**/__tests__/**",
+        "**/test/**"
+      ],
+      "plugins": ["react"],
+      "rules": {
+        "react/only-export-components": ["error", { "customHOCs": ["withForm", "withFieldGroup"] }],
+        "react/globals": "off",
+        "react/incompatible-library": "off",
+        "react/jsx-key": "off",
+        "react/preserve-manual-memoization": "off",
+        "react/purity": "off",
+        "react/refs": "off",
+        "react/set-state-in-effect": "off",
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
     {
       "files": ["apps/apis/convex/**/*.ts"],
       "rules": {
@@ -96,12 +127,6 @@
       "files": ["packages/shared/src/domains/**/maps/**/*.ts"],
       "rules": {
         "typescript/unbound-method": "off"
-      }
-    },
-    {
-      "files": ["apps/web/src/routes/**/*.{ts,tsx}"],
-      "rules": {
-        "react/only-export-components": "off"
       }
     }
   ]

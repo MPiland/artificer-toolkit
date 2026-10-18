@@ -19,7 +19,8 @@ import {
   compileModifierGrant,
   type CompiledDamageEffect,
   type CompiledDuration,
-  type CompiledEffectGroup
+  type CompiledEffectGroup,
+  type CompiledManifestComponent
 } from '@artificer-toolkit/shared/compilers'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import { abilityModifier } from './abilityModifier.js'
@@ -2228,7 +2229,8 @@ function zonePlacementPlan(
     zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
-  const placement = triggers && {
+  if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  const placement = {
     attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
@@ -2240,10 +2242,9 @@ function zonePlacementPlan(
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {})
   }
-  if (placement && invocation.triggerCode !== 'SAVING_THROW')
+  if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
-    !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     !savingThrow ||
     !pinnedDc ||
@@ -2370,7 +2371,7 @@ function zonePlacementPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   return {
-    ...placement!,
+    ...placement,
     ...(lostAction ? { failedSaveLosesAction: true } : {}),
     entry: {
       ...entryPlan,
@@ -2396,7 +2397,7 @@ function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
   placement: Omit<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'>,
   entries: readonly CompiledEffectGroup['entries'][number][],
-  successImmunity: unknown
+  successImmunity: CompiledManifestComponent['automaticSaveSuccessImmunityDamageTypeId']
 ): CharacterRuleActionZonePlacementPlan {
   if (placement.triggerModes.length > 0)
     unsupported('A zone outcome with no save acts only at turn boundaries.')
@@ -3039,7 +3040,7 @@ function validateDamageBonuses(value: unknown): void {
  * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
  */
 function healDiceConfiguration(
-  outcome: Record<string, unknown>,
+  outcome: Partial<Record<'scalingKind' | 'diceConfig' | 'scalingSource' | 'levels', unknown>>,
   spellCastLevel: number | undefined
 ): string {
   if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
@@ -3453,9 +3454,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    parseBoundedDiceConfiguration(
-      healDiceConfiguration(outcome as unknown as Record<string, unknown>, action.spellCastLevel)
-    )
+    parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
@@ -4897,7 +4896,21 @@ function compiledDiceConfiguration(entry: CompiledEffectGroup['entries'][number]
 }
 
 function exactDiceConfiguration(
-  outcomes: readonly Record<string, unknown>[],
+  outcomes: readonly Partial<
+    Record<
+      | 'effectKind'
+      | 'valueKind'
+      | 'scalingKind'
+      | 'scalingSource'
+      | 'classId'
+      | 'dice'
+      | 'halfHitPointsDice'
+      | 'bonuses'
+      | 'level'
+      | 'order',
+      unknown
+    >
+  >[],
   facts: Dnd5eEffectScalingFacts,
   selectedPath: SpecializedPath,
   outcomeId: string,
@@ -5844,7 +5857,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       if (primaryDamage.kind !== 'DICE_DAMAGE')
         unsupported('D&D immediate follow-up save requires damage before the save.')
       const primaryDiceConfiguration = exactDiceConfiguration(
-        [primaryDamageEntry.outcome as unknown as Record<string, unknown>],
+        [primaryDamageEntry.outcome],
         input.facts,
         input.selectedPath,
         compiledOutcomeIdentity(primaryDamageEntry),
@@ -5934,8 +5947,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               ? exactDiceConfiguration(
                   entries.map(
                     (candidate) =>
-                      (candidate as Extract<typeof candidate, { outcome: unknown }>)
-                        .outcome as unknown as Record<string, unknown>
+                      (candidate as Extract<typeof candidate, { outcome: unknown }>).outcome
                   ),
                   input.facts,
                   input.selectedPath,
@@ -6151,10 +6163,7 @@ function compileDnd5eEffectAction({
     const definition = diceGraphDefinition({
       action,
       entry,
-      diceConfig: healDiceConfiguration(
-        entry.outcome as unknown as Record<string, unknown>,
-        action.spellCastLevel
-      ),
+      diceConfig: healDiceConfiguration(entry.outcome, action.spellCastLevel),
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })

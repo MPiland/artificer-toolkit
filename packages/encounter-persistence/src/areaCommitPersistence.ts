@@ -79,7 +79,6 @@ import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { requireEncounterContentLabel } from './contentLabels.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 
@@ -781,7 +780,6 @@ export async function persistEncounterAreaCommit(
   const projection = await projectNativeGm(ctx, nextState, settledChildren.actors, input.rules)
   // Each creature's save is its own card; the area's one damage roll is carded once, with the first,
   // unless every entry rolled its own.
-  const actionLabel = await requireEncounterContentLabel(ctx.ports, input.initialDefinitionId)
   const answers = await actionSystemRollAnswers(ctx, {
     occurrenceId: areaOccurrenceId,
     response: input.response,
@@ -794,7 +792,7 @@ export async function persistEncounterAreaCommit(
       gameSystemId: state.gameSystemId,
       rollScope: occurrenceId,
       batch: index === 0 || input.rollsPerTarget ? batch : { ...batch, applications: [] },
-      actionLabel,
+      actionLabel: input.label,
       source,
       target: rollerAsPerceivedByCaster(
         actor,

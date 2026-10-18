@@ -264,7 +264,7 @@ function loadTable(
   validate: boolean
 ) {
   // One generic loader serves every table; the caller has matched each document to its table.
-  memory.load(table, documents as unknown as EncounterDocument<typeof table>[], { validate })
+  memory.load(table, documents as EncounterDocument<typeof table>[], { validate })
 }
 
 /**

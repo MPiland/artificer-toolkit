@@ -293,7 +293,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
  * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
  * known; everything else is compiled from the authored manifest.
  */
-const compiledActionZonePlacementSchema = lazySchema(() =>
+export const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
     attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
     label: spatialZoneLabelSchema,

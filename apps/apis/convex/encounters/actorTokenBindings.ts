@@ -10,7 +10,10 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
+import {
+  sceneStoredDefinitionEntitySchema,
+  sceneStoredInitialStateSchema
+} from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneStoredLiveStateSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -40,12 +43,16 @@ export const execute = mutation({
     if (run && (await isRoomHeldRun(ctx, run)))
       throw new Error('This Encounter is currently owned by its Campaign live table.')
     return executeEncounterActorTokenBinding(encounterWriteTransaction(ctx), args, {
-      readScene: async (sceneId) =>
-        ctx.db
+      readScene: async (sceneId) => {
+        const row = await ctx.db
           .query('campaignScenes')
           .withIndex('by_publicId', (q) => q.eq('id', sceneId))
-          .unique(),
-      hasToken: async (sceneId, tokenId) => {
+          .unique()
+        if (!row) return null
+        const { _id, _creationTime, ...scene } = row
+        return sceneStoredInitialStateSchema.parse(scene)
+      },
+      readToken: async (sceneId, tokenId) => {
         const [liveHeadRow, liveTokenRow, scene] = await Promise.all([
           ctx.db
             .query('sceneLiveStates')
@@ -68,8 +75,9 @@ export const execute = mutation({
           liveVersion = sceneStoredLiveStateSchema.parse(storedHead).version
         }
         const liveToken = liveTokenRow ? parseLiveEntity(liveTokenRow, liveVersion) : null
-        if (liveToken) return liveToken.value !== null
-        if (!scene) return false
+        if (liveToken)
+          return liveToken.value?.collection === 'tokens' ? liveToken.value.entity : null
+        if (!scene) return null
         const tokens = await ctx.db
           .query('sceneDefinitionEntities')
           .withIndex('by_saveId_collection_ordinal', (q) =>
@@ -77,7 +85,7 @@ export const execute = mutation({
           )
           .take(VTT_SCENE_LIMITS.tokens + 1)
         const matches = tokens.filter((row) => row.entityId.toLowerCase() === tokenId)
-        if (tokens.length > VTT_SCENE_LIMITS.tokens || matches.length !== 1) return false
+        if (tokens.length > VTT_SCENE_LIMITS.tokens || matches.length !== 1) return null
         const { _id, _creationTime, ...storedToken } = matches[0]!
         const entity = sceneStoredDefinitionEntitySchema.parse(storedToken)
         if (
@@ -86,7 +94,7 @@ export const execute = mutation({
           entity.checksum !== checksumCanonicalJson(entity.value)
         )
           throw new Error('Stored Scene token is inconsistent.')
-        return true
+        return entity.value.entity
       }
     })
   }

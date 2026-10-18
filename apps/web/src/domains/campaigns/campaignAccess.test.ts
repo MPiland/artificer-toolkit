@@ -1,4 +1,8 @@
-import { getCampaignTabs } from './campaignAccess'
+import {
+  getCampaignTabs,
+  getSessionWorkspaceViews,
+  isCampaignTableSettingsEditable
+} from './campaignAccess'
 import { createCampaignDetail } from './campaignDetail.fixtures'
 
 describe('Campaign access presentation', () => {
@@ -30,5 +34,24 @@ describe('Campaign access presentation', () => {
       'content',
       'settings'
     ])
+  })
+})
+
+describe('getSessionWorkspaceViews', () => {
+  it('keeps GM preparation private', () => {
+    expect(getSessionWorkspaceViews('OWNER', 'OPEN')).toEqual(['PREPARE', 'RUN', 'CLOSEOUT'])
+    expect(getSessionWorkspaceViews('PLAYER', 'OPEN')).toEqual(['RUN'])
+  })
+
+  it('sends players to shared history after finish', () => {
+    expect(getSessionWorkspaceViews('PLAYER', 'FINISHED')).toEqual(['CLOSEOUT'])
+  })
+})
+
+describe('CampaignTableSettings access', () => {
+  it('is editable only for an active owner', () => {
+    expect(isCampaignTableSettingsEditable({ role: 'OWNER', status: 'ACTIVE' })).toBe(true)
+    expect(isCampaignTableSettingsEditable({ role: 'PLAYER', status: 'ACTIVE' })).toBe(false)
+    expect(isCampaignTableSettingsEditable({ role: 'OWNER', status: 'ARCHIVED' })).toBe(false)
   })
 })

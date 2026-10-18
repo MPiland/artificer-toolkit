@@ -71,7 +71,7 @@ async function readCheckpointRecord<Table extends LiveSessionCheckpointTable>(
     .query(table)
     .withIndex(index as IndexNames<DataModel[Table]>, (query) => {
       // The shared contract validated this exact scalar key and the index's complete field order.
-      let range = query as unknown as CheckpointIndexRange
+      let range = query as CheckpointIndexRange
       for (let i = 0; i < fields.length; i++) range = range.eq(fields[i]!, key[i]!)
       return range
     })
