@@ -234,7 +234,7 @@ describe('import parsers', () => {
       _id: `${name}-id`,
       name,
       type,
-      system
+      system: { quantity: 1, ...system }
     })
 
     it('maps a D&D Beyond two-handed weapon to a two-handed weapon attack', () => {

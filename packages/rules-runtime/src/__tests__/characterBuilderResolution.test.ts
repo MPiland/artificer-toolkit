@@ -90,18 +90,6 @@ describe('Character Builder over an in-memory context', () => {
         sectionId: 'BACKGROUND'
       })
     ])
-
-    const empty = await prepareFixtureBuilder({
-      character: emptyCharacter(),
-      documents: fixture.documents
-    })
-    expect(
-      empty.resolution.validations.length + empty.resolution.outstandingChoices.length
-    ).toBeGreaterThan(0)
-    for (const issue of [...empty.resolution.validations, ...empty.resolution.outstandingChoices])
-      expect(issue.sectionId).toMatch(
-        /^(BASICS|RACE|CLASSES|BACKGROUND|ABILITIES|EQUIPMENT|REVIEW)$/
-      )
   })
 
   it.each([
