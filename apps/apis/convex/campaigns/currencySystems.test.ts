@@ -928,7 +928,6 @@ describe('native Campaign currency systems', () => {
     'loss',
     'overflow',
     'positive denomination',
-    'ambiguous legacy',
     'duplicate balance'
   ] as const)('rejects assigned Character %s atomically', async (fault) => {
     const base = await setup()
@@ -948,12 +947,7 @@ describe('native Campaign currency systems', () => {
       campaignCurrencySystemId: created.id,
       amount
     }
-    const currencies =
-      fault === 'ambiguous legacy'
-        ? [{ currencyId: collision, amount: 1 }]
-        : fault === 'duplicate balance'
-          ? [holding, { ...holding }]
-          : [holding]
+    const currencies = fault === 'duplicate balance' ? [holding, { ...holding }] : [holding]
     await setAssignedCurrency(base, [{ id: crypto.randomUUID(), currencies }])
     const before = await currencySnapshot(base)
     const denominations =
@@ -971,9 +965,7 @@ describe('native Campaign currency systems', () => {
           ? 'preserve'
           : fault === 'overflow'
             ? 'supported range'
-            : fault === 'ambiguous legacy'
-              ? 'ambiguous legacy identity'
-              : 'duplicate balances'
+            : 'duplicate balances'
     await expect(
       base.gm.caller.mutation(
         save,

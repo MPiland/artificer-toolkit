@@ -202,9 +202,7 @@ export async function returnDepartingCharacterCurrency(input: {
               currencies: group.currencies.filter(
                 (balance) =>
                   !returnedKeys.has(
-                    createCharacterCurrencyIdentityKey(
-                      characterCurrencyIdentity(balance)
-                    )
+                    createCharacterCurrencyIdentityKey(characterCurrencyIdentity(balance))
                   )
               )
             }))

@@ -210,11 +210,11 @@ describe('native Character Sheet currency and containers', () => {
     const item = sheet.inventory.items[0]!
     const beforeInvalid = await readState()
     for (const command of [
-      { type: 'ADJUST_CURRENCY', currencyId: crypto.randomUUID(), amount: 1 },
-      { type: 'ADJUST_CURRENCY', currencyId, amount: 1, containerId: crypto.randomUUID() },
-      { type: 'MOVE_CURRENCY', currencyId, amount: 1, fromContainerId: crypto.randomUUID() },
-      { type: 'MOVE_CURRENCY', currencyId, amount: 1, toContainerId: crypto.randomUUID() },
-      { type: 'MOVE_CURRENCY', currencyId, amount: 1, fromContainerId: bag.id },
+      { type: 'ADJUST_CURRENCY', currencyId: crypto.randomUUID(), kind: 'RULESET', amount: 1 },
+      { type: 'ADJUST_CURRENCY', currencyId, kind: 'RULESET', amount: 1, containerId: crypto.randomUUID() },
+      { type: 'MOVE_CURRENCY', currencyId, kind: 'RULESET', amount: 1, fromContainerId: crypto.randomUUID() },
+      { type: 'MOVE_CURRENCY', currencyId, kind: 'RULESET', amount: 1, toContainerId: crypto.randomUUID() },
+      { type: 'MOVE_CURRENCY', currencyId, kind: 'RULESET', amount: 1, fromContainerId: bag.id },
       { type: 'ADD_INVENTORY_ITEM', equipmentId: backpack.id, quantity: 1, containerId: bag.id },
       { type: 'UPDATE_INVENTORY_ITEM', itemId: bag.id, containerId: bag.id }
     ] as const) {
@@ -274,6 +274,7 @@ describe('native Character Sheet currency and containers', () => {
         commandId: crypto.randomUUID(),
         expectedVersion: 4,
         currencyId,
+        kind: 'RULESET',
         amount: 1,
         containerId: bag.id
       }
@@ -306,6 +307,7 @@ describe('native Character Sheet currency and containers', () => {
         commandId: crypto.randomUUID(),
         expectedVersion: 1,
         currencyId,
+        kind: 'RULESET',
         amount: -initial.amount - 1
       }
     })

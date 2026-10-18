@@ -2261,6 +2261,12 @@ describe('rules runtime contracts', () => {
         sourceActionId: 'x'.repeat(241)
       })
     ).toThrow()
+    const versionOne = Object.fromEntries(
+      Object.entries({ ...descriptor, schemaVersion: 1 }).filter(
+        ([key]) => key !== 'emptyDependentPolicy'
+      )
+    )
+    expect(encounterMaintainedEffectDescriptorDtoSchema.safeParse(versionOne).success).toBe(false)
   })
 
   it('binds maintained Character owner transitions to the immutable source Character', () => {

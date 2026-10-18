@@ -192,9 +192,7 @@ export const CharacterEquipmentStep = withForm({
                           field.replaceValue(
                             index,
                             setFirstCurrency(row, {
-                              kind: 'RULESET',
-                              currencyId: row.currencies[0]?.currencyId ?? '',
-                              ...row.currencies[0],
+                              ...(row.currencies[0] ?? { kind: 'RULESET', currencyId: '' }),
                               amount: typeof value === 'number' ? value : 0
                             })
                           )

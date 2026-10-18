@@ -322,7 +322,12 @@ describe('native Campaign membership departure', () => {
           ...character.state,
           currency: [
             ...character.state.currency,
-            { id: crypto.randomUUID(), currencies: [{ currencyId: denominationId, amount: 5 }] }
+            { id: crypto.randomUUID(), currencies: [{
+                currencyId: denominationId,
+                kind: 'CAMPAIGN',
+                campaignCurrencySystemId: system.id,
+                amount: 5
+              }] }
           ]
         }
       }))

@@ -143,7 +143,8 @@ export async function cleanupRemovedActorEffects(
     const zones = await listStateZones(ctx, { encounterId: input.state.id, stateId: state.id })
     if (
       remaining.length !== 0 ||
-      (!ownedByRemovedActor && (state.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY' || zones.length !== 0))
+      (!ownedByRemovedActor &&
+        (state.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY' || zones.length !== 0))
     )
       continue
     // The zones of a removed caster's Concentration end with it (D135); another state's keep it alive.

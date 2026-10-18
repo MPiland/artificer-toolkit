@@ -255,16 +255,6 @@ describe('native Character currency custody', () => {
       })
     ).toEqual(result)
     expect(await base.readStored()).toEqual(after)
-    await setCurrency(base, [
-      { id: idFor(1), currencies: [{ currencyId: denominationId, amount: 10 }] }
-    ])
-    const ambiguous = await base.readStored()
-    await expect(
-      base.owner.caller.mutation(transfer, {
-        input: command(base, ambiguous.character!.play.streamVersion, 2)
-      })
-    ).rejects.toThrow('ambiguous')
-    expect(await base.readStored()).toEqual(ambiguous)
   })
 
   it('drains more than 48 Character groups completely and retains unrelated historical holdings', async () => {
