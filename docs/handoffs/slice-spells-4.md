@@ -189,3 +189,10 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Authoring: Wall of Fire's wall burns on `ENTER_OR_PASS_THROUGH` (once a turn, `BLOCKS_SIGHT`); its "Wall of Fire Burning Side" band burns on `END_TURN_IN_SPACE`.
 - Proofs: `nativeRoomWallZoneSpells.test.ts` (wall and band placed under one Concentration; the band burns a creature ending its turn on the side picked and spares the other side; a wall with no side refused; undo and Concentration end remove both records), `characterSpellCastActions.test.ts` (band compilation, four malformed bands refused, side required and not offered), `vtt-spatial.test.ts`, `vttSceneRenderer.model.test.ts`, `CampaignTabletopActionDrawer.test.tsx`. Two `characterSpellCastActions.test.ts` Wall of Fire tests changed by the ruling (the wall no longer burns at turn end; the band does).
 - Pre-launch data: the area root's `placedSpatialEffectId` became `placedSpatialEffectIds`; stored local executions from before need the local reset.
+
+### T2a2 (Foresight, D156 class A)
+
+- Ruling (D156 amendment): T2a2 is Foresight alone. Enhance Ability moves to T2t (effect-given temporary hit points lost when the effect ends, and a CHOICE option holding a grant beside them); Feeblemind (T2u), Flame Blade with Spiritual Weapon (T2v) and Faithful Hound (T2w) are class B.
+- Authoring: Foresight's closed rule became one 8-hour `APPLY_GRANT` on a willing touched creature, no Concentration: `ADVANTAGE` on `ATTACK_ROLL` (every attack domain), `ABILITY_CHECK` and `SAVING_THROW_MODIFIER` (one per ability), and `DISADVANTAGE` on `ATTACKS_AGAINST` (every attack domain, whether or not the holder sees the attacker). The grants Help and Dodge use. `FORESIGHT` left `CLOSED_RULE_KIND`.
+- Out of scope: "can't be surprised" is description only; Encounters have no surprise step (future-enhancements).
+- Proofs: `nativeRoomForesight.test.ts` (a Wolf's Bite attack against the warded caster rolls with disadvantage, a Bite save it asks rolls with advantage, both plain without the spell), `grantAuthoringParity.test.ts` (Foresight through the node map).
