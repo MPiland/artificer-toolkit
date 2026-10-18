@@ -148,7 +148,7 @@ async function readCurrentEntity(
   entityId: string,
   baseOrdinal: number | null
 ): Promise<{
-  current: SceneGeometryEntity | null
+  current: LiveEntity['value'] | null
   ordinal: number | null
   doorState: LiveEntity['doorState']
   oldExists: boolean
@@ -180,7 +180,7 @@ async function readCurrentEntity(
     base.entityId.toLowerCase() !== entityId
   )
     throw new Error('Stored Scene geometry source is inconsistent.')
-  let current: SceneGeometryEntity
+  let current: LiveEntity['value']
   if (base.value.collection === 'tokens') current = normalizeSceneGeometryEntity(base.value)
   else if (base.value.collection === 'barriers') current = normalizeSceneGeometryEntity(base.value)
   else throw new Error('Stored Scene geometry source is inconsistent.')

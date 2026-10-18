@@ -92,11 +92,12 @@ export async function publishSceneUndo(
     throw new Error('The latest token move is unavailable.')
   const target = parseGeometryCommand(targetRow, header.version)
   const moved = target.result.delta
-  const movedTokens = moved?.kind === 'BATCH' ? moved.deltas : moved ? [moved] : []
+  const deltas = moved?.kind === 'BATCH' ? moved.deltas : moved ? [moved] : []
+  const movedTokens = deltas.flatMap((delta) => (delta.kind === 'TOKEN_MOVED' ? [delta] : []))
   if (
     target.input.type !== 'MOVE_SCENE_TOKEN' ||
     !movedTokens.length ||
-    movedTokens.some(({ kind }) => kind !== 'TOKEN_MOVED') ||
+    movedTokens.length !== deltas.length ||
     movedTokens[0]!.tokenId !== target.input.tokenId
   )
     throw new Error('The latest token move is invalid.')
