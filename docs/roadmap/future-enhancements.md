@@ -250,6 +250,10 @@ The Balor's "touches the balor" clause needs a touch event, which the rules runt
 
 Melee-hit retaliation dice are system-rolled even when the zone source rolls by hand. Offering the hand roll would pause the attack for the defender, as turn zones pause today.
 
+### Zones that block vision (D154)
+
+A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.

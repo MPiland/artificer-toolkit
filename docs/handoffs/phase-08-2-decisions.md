@@ -947,6 +947,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rejected:** a holder contribution `MELEE_HIT_RETALIATION` on an active effect (a second containment, suppression and lifecycle path for the same behavior, plus a new creature passive holder effect).
   - **Deferred:** the "touches the holder" clause (no touch event; future-enhancements), and Heated Body on Azer, Remorhaz and Salamander (data on the same option; future-enhancements).
 
+* **D154** (2026-10-18) Wall and ring zones (SPELLS-4.T1b and T1b2, AC 4.2; [slice-spells-4.md](slice-spells-4.md)). Orchestrator ruling.
+  - **Rule (straight wall):** the caster picks two endpoints. The length is at most the authored length, the thickness is centered on the segment, and the wall is stored as the existing POLYGON (a rotated rectangle). No new geometry kind is added for walls.
+  - **Rule (ring):** a new RING geometry holds a center, an outer radius and an inner radius equal to the outer radius minus `wallThickness`. A creature is in the ring when its footprint overlaps the outer circle and is not wholly inside the inner circle. The caster picks the outer radius, up to the authored size, by the same "up to" rule as wall length.
+  - **Rule (unsaved damage):** an unsaved dice outcome may run on ENTER and on the creature's own END_TURN, not only at turn boundaries. The caster rolls, as in T6a.
+  - **Rule (movement cost):** a zone `movementCostMultiplier` applies to every mover for the share of the walk inside the zone. Multipliers do not stack: a segment costs its length times the highest of the terrain, zone and careful-doubling multipliers. Spending past speed is still not refused (the existing speed finding).
+  - **Rule (blocking):** `blockingRules` compile into the placement and are projected. A new authorable `BLOCKS_SIGHT` rule covers Wall of Fire and Wall of Thorns. Applying a zone cover tier to attacks and saves belongs to SPELLS-14, which reads projected zone blocking rules as a cover source beside Scene walls and creatures. Zones blocking vision is a future enhancement.
+  - **Rule (cast choices):** Wall of Fire and Wall of Thorns are re-authored in T1b with the D148 cast choice between a straight wall and a ring, as Blade Barrier is in SPELLS-30.T2.
+  - **Split:** Wall of Fire's damaging band within 10 ft of one side (a cast-time side choice plus a one-sided band geometry) is SPELLS-4.T1b2. The save made when a wall appears is SPELLS-4.T1g, which now covers every zone spell whose SRD text has one.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
