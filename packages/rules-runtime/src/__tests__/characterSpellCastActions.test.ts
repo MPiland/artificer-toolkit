@@ -1443,7 +1443,8 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
   it('refuses a zone with components whose appear save holds its condition', () => {
     const grease = structuredClone(spell('Grease'))
     const failure = grease.effects?.[0]?.paths?.find(({ pathCode }) => pathCode === 'ON_SAVE_FAIL')
-    if (!failure?.resultBlock) throw new Error('Grease must author its appear save.')
+    if (!failure || !('resultBlock' in failure) || !failure.resultBlock)
+      throw new Error('Grease must author its appear save.')
     failure.resultBlock.lifecycle = { heldBySource: true }
 
     expect(compiledCast(grease)).toBeNull()
