@@ -1,11 +1,15 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   RANGE_KIND,
+  SCALING,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TRIGGER,
@@ -13,6 +17,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_SEE_INVISIBILITY_SENSE_ID } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const seeInvisibility: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -64,8 +69,24 @@ export const seeInvisibility: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SEE_INVISIBILITY, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SEE_INVISIBILITY' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  senses: [
+                    {
+                      id: spellChildId(SPELL_IDS.SEE_INVISIBILITY, 0x214, 1),
+                      grantKind: GRANT_KIND.SENSE_GRANT,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      scalingKind: SCALING.NONE,
+                      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                      senseIds: [SRD_SEE_INVISIBILITY_SENSE_ID],
+                      range: {
+                        id: spellChildId(SPELL_IDS.SEE_INVISIBILITY, 0x215, 1),
+                        rangeKind: RANGE_KIND.UNLIMITED
+                      },
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }

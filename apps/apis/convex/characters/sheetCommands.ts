@@ -470,7 +470,19 @@ export async function executeCharacterSheetCommand(
       occurredAt
     })
 
-  if (command.type === 'END_ACTIVE_EFFECT' || command.type === 'END_CONCENTRATION') {
+  if (command.type === 'COMPLETE_REST' && completedRest) {
+    const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }
+    const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+    for (const effect of initial.activeEffects)
+      if (activeEffectEndsOnRest(effect, command.restKind))
+        await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  }
+
+  if (
+    command.type === 'END_ACTIVE_EFFECT' ||
+    command.type === 'END_CONCENTRATION' ||
+    (command.type === 'COMPLETE_REST' && completedRest)
+  ) {
     const remaining = await createActiveRuleEffectStore({
       db: createConvexEncounterStore(ctx)
     }).list({ kind: 'CHARACTER', characterId: initial.active.id })
@@ -485,16 +497,9 @@ export async function executeCharacterSheetCommand(
     })
     if (settled.changed) {
       updated.state.conditions = settled.conditions
-      updated.state.hitpoints = settled.hitpoints
+      // A rest has already set hit points against the maximum it rests to (a Campaign's secret one).
+      if (command.type !== 'COMPLETE_REST') updated.state.hitpoints = settled.hitpoints
     }
-  }
-
-  if (command.type === 'COMPLETE_REST' && completedRest) {
-    const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }
-    const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
-    for (const effect of initial.activeEffects)
-      if (activeEffectEndsOnRest(effect, command.restKind))
-        await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
   }
 
   if (updated.state.hitpoints.current > initial.character.state.hitpoints.current)
