@@ -313,6 +313,12 @@ export async function persistMovementSettlements(
       if (nextDistance + 1e-8 < distance) throw new Error('Movement contacts are out of order.')
       distance = nextDistance
       damagedActorIds.add(expected.option.candidate.movingActorId)
+      if (
+        (expected.application.kind === 'CHARACTER_MECHANICS_BATCH' ||
+          expected.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH') &&
+        expected.application.meleeRetaliation
+      )
+        damagedActorIds.add(expected.option.candidate.reactorActorId)
       actors = await callbacks.persistReaction({
         ...common,
         actors,

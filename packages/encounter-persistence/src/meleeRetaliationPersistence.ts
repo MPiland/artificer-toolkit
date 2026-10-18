@@ -1,4 +1,3 @@
-import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -6,18 +5,57 @@ import type {
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { selectMeleeRetaliationContacts } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
+import {
+  selectMeleeRetaliationContacts,
+  type MeleeRetaliationToken
+} from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
+import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 
+/** The Scene a melee hit landed in and the two tokens where it landed. */
+export type MeleeRetaliationScene = {
+  sceneId: string
+  attacker: MeleeRetaliationToken
+  hit: MeleeRetaliationToken
+}
+
+/**
+ * The attacker's and the hit creature's current tokens on the Encounter's bound Scene, for an
+ * attack whose command pins no Scene tokens of its own (an opportunity attack or a Legendary
+ * Action). Null when either creature has no token there.
+ */
+export async function readMeleeRetaliationScene(
+  ctx: EncounterCharacterWriteTransaction,
+  input: { state: EncounterRunState; attackerActorId: string; hitActorId: string },
+  readSceneTokens: (sceneId: string) => Promise<readonly SpatialSceneToken[]>
+): Promise<MeleeRetaliationScene | null> {
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', input.state.id))
+    .unique()
+  if (!binding) return null
+  const bindings = await readEncounterActorTokenBindings(ctx, input.state, binding.sceneId)
+  const tokens = await readSceneTokens(binding.sceneId)
+  const tokenOf = (actorId: string) => {
+    const tokenId = bindings.find((entry) => entry.actorId === actorId)?.tokenId
+    const token = tokens.find(({ id }) => id === tokenId)
+    return token ? { ...token, tokenId: token.id, actorId } : null
+  }
+  const attacker = tokenOf(input.attackerActorId)
+  const hit = tokenOf(input.hitActorId)
+  return attacker && hit ? { sceneId: binding.sceneId, attacker, hit } : null
+}
+
 /**
  * Applies the zones a melee hit set off against its attacker (D153) as the attacker's one mechanics
- * batch, after the action's own writes. The zones are derived again from the locked Scene and the
- * action's pinned tokens, so a plan made against an edited zone or a moved token is refused.
- * Returns the attacker as the batch left it, or unchanged when the zones changed nothing.
+ * batch, after the attack's own writes. The zones are derived again from the locked Scene and the
+ * attack's tokens, so a plan made against an edited zone or a moved token is refused. Returns the
+ * attacker as the batch left it, or unchanged when the zones changed nothing.
  */
 export async function persistEncounterMeleeRetaliation(
   ctx: EncounterCharacterWriteTransaction,
@@ -26,7 +64,7 @@ export async function persistEncounterMeleeRetaliation(
     /** The Run's actors before the action, as the plan selected against them. */
     initialActors: readonly EncounterRunActorState[]
     attacker: EncounterRunActorState
-    scene: Extract<LiveSessionEncounterRulesResponse, { kind: 'ACTION_SCENE' }>['context']
+    scene: MeleeRetaliationScene | null
     evidence: MeleeRetaliationEvidenceDto
     occurrenceId: string
     sourceCommandId: string
@@ -46,11 +84,11 @@ export async function persistEncounterMeleeRetaliation(
       encounterId: state.id,
       sceneId: scene.sceneId
     }))
-  if (!scene || !scope || scene.sourceToken.actorId !== attacker.id) throw stale()
+  if (!scene || !scope || scene.attacker.actorId !== attacker.id) throw stale()
   const selected = selectMeleeRetaliationContacts({
     actors: input.initialActors,
-    attacker: scene.sourceToken,
-    hit: scene.targetToken,
+    attacker: scene.attacker,
+    hit: scene.hit,
     effects: await scope.list()
   })
   const { executions } = evidence

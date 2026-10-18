@@ -7,28 +7,31 @@ import {
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {
   carryingFireShield,
+  placedFireShieldZone,
   shields
 } from '@artificer-toolkit/rules-runtime/testing/fireShieldZoneFixture'
+import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { fireShield } from '@artificer-toolkit/source-data/srd/spells/fire-shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
-import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import { plainWolf, reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { movementRoom } from './movementRoomFixture.js'
 import {
   choiceOptionIdOf,
   hitPointsOf,
   readZones,
   revertLastAction
 } from './placedZoneRoomReads.js'
-import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
+import { parseReceiptExecution, readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
 
 /**
- * SPELLS-20 T6d2a (D153): a melee hit on a creature holding a retaliating zone burns the attacker,
- * through the public RESOLVE_ACTION command of the real local room. The zones come from real SRD
- * content: the Balor's Fire Aura and a Character's cast of Fire Shield.
+ * SPELLS-20 T6d2a/T6d2b (D153): a melee hit on a creature holding a retaliating zone burns the
+ * attacker, through the public RESOLVE_ACTION command and the movement reaction response of the real
+ * local room. The zones come from real SRD content: the Balor's Fire Aura and Fire Shield.
  */
 
 /** Every die the room rolls shows this face (zero-based): each d20 a 19, each d6 a 1, each d8 a 3. */
@@ -41,6 +44,8 @@ const WOLF_ID = testUuid(0x2251)
 const CASTER_ACTOR_ID = testUuid(0x2252)
 const CASTER_ID = testUuid(0x2253)
 const GOBLIN_ID = testUuid(0x2254)
+const REACTOR_ID = testUuid(0x2255)
+const SHIELD_SEED = 0x2260
 
 const balor = srdByLabel(SRD.creatures, 'Balor')
 const goblin = srdByLabel(SRD.creatures, 'Goblin')
@@ -235,5 +240,83 @@ describe('a Character’s Fire Shield answers a melee hit (SPELLS-20 T6d2a, D153
 
     expect(await retaliationOf(room, command.commandId)).toBeUndefined()
     expect(await hitPointsOf(room, GOBLIN_ID)).toBe(goblinBefore)
+  })
+})
+
+describe('a warm Fire Shield answers an opportunity attack’s melee hit (SPELLS-20 T6d2b, D153)', () => {
+  it('burns the reacting Wolf that bites the shielded mover for 2d8 fire', async () => {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: REACTOR_ID, creature: reactionWolf, disposition: 'FRIENDLY' }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [REACTOR_ID]: { x: 50, y: 150 }, [WOLF_ID]: { x: 150, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      fallbackRoll: DIE,
+      seed: async ({ spatial, encounterId, tokenIdOf }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: SHIELD_SEED,
+            sourceActorId: WOLF_ID,
+            sourceTokenId: tokenIdOf(WOLF_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+      }
+    })
+    const before = await readRoomHistory(room.base.stub)
+
+    const moved = await room.move([
+      { x: 150, y: 150 },
+      { x: 450, y: 150 }
+    ])
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    const pending = await room.pending()
+    if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+      throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
+    const option = pending.context.reactionTimeline[0]?.group.options[0]
+    if (!option) throw new Error('The reaction decision offers no option.')
+    const used = await room.respond({ kind: 'OPTION', optionId: option.optionId })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const receipt = (await room.receipts()).find(
+      (entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE'
+    )
+    if (!receipt) throw new Error('The reaction left no receipt.')
+    const result = storedRuleExecutionResultDtoSchema.parse(receipt.result)
+    const reaction =
+      result.status === 'MOVEMENT_COMPLETE' ||
+      (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
+        ? result.reactionExecutions[0]
+        : undefined
+    if (reaction?.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      throw new Error('Expected a Creature movement reaction.')
+    expect(reaction.application.meleeRetaliation).toMatchObject({
+      executions: [
+        {
+          candidate: {
+            candidate: {
+              effectId: testUuid(SHIELD_SEED),
+              sourceActorId: WOLF_ID,
+              targetActorId: REACTOR_ID
+            }
+          },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 2 * D8 })]
+        }
+      ]
+    })
+    const after = await readRoomHistory(room.base.stub)
+    expect(readActorHitPoints(after, REACTOR_ID)).toBe(
+      readActorHitPoints(before, REACTOR_ID) - 2 * D8
+    )
+    expect(readActorHitPoints(after, WOLF_ID)).toBeLessThan(readActorHitPoints(before, WOLF_ID))
   })
 })

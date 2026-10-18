@@ -157,9 +157,11 @@ import {
   evaluateInstalledEncounterActors,
   isInstalledMeleeAttackTrigger
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
+import { readNativeLiveSpatialEffects } from './nativeTurnEffectPerception.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
@@ -1192,26 +1194,28 @@ export async function planNativeLiveEncounterAction(
   const attackerInProjection = settlement.projectedTargets.get(prepared.actor.id)
   const retaliation =
     sceneContext &&
-    meleeAttack &&
-    actionRange.success &&
     attackerInProjection &&
-    prepared.actor.id !== prepared.target.id &&
-    (execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT')
+    isMeleeRetaliationHit({
+      gameSystemId: state.gameSystemId,
+      prepared,
+      resultPath: execution.d20?.resultPath
+    })
       ? await planNativeLiveMeleeRetaliation({
           state,
-          scene: {
+          attackerToken: sceneContext.sourceToken,
+          hitToken: sceneContext.targetToken,
+          effects: await readNativeLiveSpatialEffects({
+            encounterId: state.id,
             sceneId: sceneContext.sceneId,
             sceneVersion: sceneContext.sceneVersion,
-            attacker: sceneContext.sourceToken,
-            hit: sceneContext.targetToken
-          },
+            capture
+          }),
           initialActors: actors,
           attacker: attackerInProjection,
           occurrenceId,
           sourceCommandId: command.commandId,
           occurredAt,
           userId: initial.expectedUserId,
-          capture,
           runtime: executionOptions.runtime,
           random: executionOptions.random ?? nextRollInt
         })

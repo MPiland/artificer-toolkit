@@ -28,6 +28,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
+import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import {
   readNativeLivePerceptionScene,
   readNativeLiveSpatialEffects,
@@ -184,6 +185,42 @@ export function createNativeLiveTurnStages(
         definitions,
         createRuntime,
         random,
+        meleeRetaliation: async (retaliation) => {
+          const attackerActorId = retaliation.attacker.actor.id
+          const loaded = await readNativeLivePerceptionScene({
+            observerActorId: attackerActorId,
+            subjectActorId: retaliation.hitActorId,
+            campaignId: state.campaignId,
+            capture
+          })
+          if (!loaded) return null
+          inputs.onSceneRead({
+            sceneId: loaded.id,
+            sceneVersion: loaded.version,
+            definitionSaveId: loaded.definitionSaveId
+          })
+          const tokenOf = (actorId: string, tokenId: string) => {
+            const token = loaded.scene.tokens.find(({ id }) => id === tokenId)
+            if (!token) throw new Error('Melee retaliation token is unavailable.')
+            return { ...token, tokenId, actorId }
+          }
+          return planNativeLiveMeleeRetaliation({
+            ...retaliation,
+            state,
+            attackerToken: tokenOf(attackerActorId, loaded.observerTokenId),
+            hitToken: tokenOf(retaliation.hitActorId, loaded.subjectTokenId),
+            effects: await readNativeLiveSpatialEffects({
+              encounterId: state.id,
+              sceneId: loaded.id,
+              sceneVersion: loaded.version,
+              capture
+            }),
+            occurrenceId: stage.occurrenceId,
+            userId: stage.userId,
+            runtime,
+            random
+          })
+        },
         discoverWindows: (discovery) =>
           discoverTurnLegendaryWindows({
             ...discovery,

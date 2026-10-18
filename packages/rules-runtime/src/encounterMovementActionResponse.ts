@@ -21,6 +21,7 @@ import type { executeEncounterMovementReactionAction } from './encounterMovement
 import { retainNativeMovementLegendaryResistance } from './encounterMovementLegendaryResistance.js'
 import type { revalidateEncounterMovementReactionOption } from './encounterMovementReactionDiscovery.js'
 import type { MovementConcentrationExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
+import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import {
   appendEncounterMovementReactionActionEvidenceCommand,
   appendEncounterMovementReactionResolutionCommand,
@@ -183,7 +184,12 @@ export async function evaluateEncounterMovementActionResponse<
       selection: Extract<EncounterResponseAnswer, { kind: 'OPTION' | 'DECLINE' }>
       retainedExecution?: ReactionExecution
     }): Promise<Exclude<ReactionExecution, { kind: 'LEGENDARY_RESISTANCE' }>>
-    planReaction(input: ReactionSettlement<TPrepared>, userId: string): TPlan
+    /** `retainedRetaliation` is the replayed reaction's melee retaliation, rolled again from its dice. */
+    planReaction(
+      input: ReactionSettlement<TPrepared>,
+      userId: string,
+      retainedRetaliation: MeleeRetaliationEvidenceDto | null
+    ): Promise<TPlan>
     prepareConcentration(input: {
       autoRoll: EncounterAutoRollByActorId
       state: EncounterRunState
@@ -507,7 +513,16 @@ export async function evaluateEncounterMovementActionResponse<
       occurredAt,
       execution
     }
-    const plan = callbacks.planReaction(settlement, input.userId)
+    const retainedApplication = retainedReceipt?.application
+    const plan = await callbacks.planReaction(
+      settlement,
+      input.userId,
+      (retainedApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        retainedApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH') &&
+        retainedApplication.meleeRetaliation
+        ? retainedApplication.meleeRetaliation
+        : null
+    )
     if (
       retainedReceipt &&
       checksumCanonicalJson(plan.reactionExecution) !==
