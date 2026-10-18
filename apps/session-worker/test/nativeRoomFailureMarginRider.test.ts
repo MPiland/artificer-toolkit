@@ -146,6 +146,7 @@ describe('a save failed by 5 or more in the room (SPELLS-27.T11)', () => {
   it('wakes the target when it takes damage, leaving it poisoned', async () => {
     const room = await marginRoom()
     await shoots(room)
+    expect(await sleeper(room)).toEqual(asleep)
 
     await bites(room)
     // The Bite may also knock the Wolf prone; only the sleep ends.
