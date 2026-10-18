@@ -7914,7 +7914,7 @@
               "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a2",
               "wsjf": {
@@ -7924,10 +7924,11 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): ENHANCE_ABILITY, FAITHFUL_HOUND, FEEBLEMIND, FLAME_BLADE, FORESIGHT. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): ENHANCE_ABILITY, FAITHFUL_HOUND, FEEBLEMIND, FLAME_BLADE, FORESIGHT. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a3",
               "wsjf": {
@@ -7937,7 +7938,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -9459,15 +9461,28 @@
         {
           "id": "SPELLS-20",
           "title": "Auras that move with their source",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomSourceAura.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "An aura (Spirit Guardians, a paladin's Aura of Protection, a creature's damaging aura) is an authored spatial effect centered on its source that moves with it and applies its authored outcome to the creatures inside it; the encounter projection carries each aura's radius and label to the viewers allowed to see its source, so the map can draw it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomSourceAura.test.ts › Spirit Guardians as a source aura (SPELLS-20 T1b)",
+                "apps/session-worker/test/nativeRoomSourceAura.test.ts › Spirit Guardians halves an affected creature’s speed in the aura (SPELLS-20 T4d, D156)",
+                "apps/session-worker/test/nativeRoomSourceAura.test.ts › Spirit Guardians designated unaffected creatures (SPELLS-20 T4c)",
+                "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts › a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)",
+                "packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts › placing a Character’s passive zones (SPELLS-20 T5b, D155)",
+                "packages/rules-runtime/src/__tests__/encounterOccupantSaveAuras.test.ts › a save inside a save-bonus aura (SPELLS-20 T5c, D155)",
+                "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts › a save inside a paladin’s Aura of Protection (SPELLS-20 T5c, D155)",
+                "packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts › placing a Creature’s passive zones (SPELLS-20 T6b, D144)",
+                "packages/rules-runtime/src/__tests__/encounterPassiveZones.test.ts › a passive zone whose source is defeated (SPELLS-20 T6b, D144)",
+                "apps/session-worker/test/nativeRoomTurnZoneEffects.test.ts › the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)",
+                "apps/apis/convex/rules/sessionAuras.test.ts › readSessionAuras",
+                "docs/handoffs/slice-spells-20.md"
+              ],
               "origin": [],
               "note": "Registered 2026-10-12 from lane 3 (VTT_UI-3.1): auras exist only as closed rule kinds, with no geometry any client receives, so the aura preview is blocked on this PBI. Builds on the production spatial-effect creator from SPELLS-17.",
               "id": "SPELLS-20.1"
@@ -9687,7 +9702,7 @@
             },
             {
               "id": "SPELLS-20.T4d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "text": "Half speed inside a zone, on SPELLS-4.T1b's zone movementCostMultiplier (D154): Spirit Guardians authors multiplier 2 for affected creatures only (the movement cost honors unaffected actors, the source and suppression), zone movement costs are projected in the session state, and the web movement preview uses them. Proved on Spirit Guardians. The same zone movement-cost path authors the difficult terrain of Web, Black Tentacles, Sleet Storm and Entangle (D156).",
               "wsjf": {
@@ -9696,7 +9711,8 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["SPELLS-20.T4b2b2"]
-              }
+              },
+              "note": "Green: ci/spells-20-t4d 3ecaaf4da Tests 39146054596, Live 39146056406; batch ci/merge-m121 2e060aa68 green (Tests 39147575910, Live 39147575898); phase merge 66441dfe8."
             },
             {
               "closes": ["SPELLS-20.1"],
@@ -9836,8 +9852,7 @@
               "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths.",
               "note": "Proofs: apps/session-worker/test/nativeRoomMeleeRetaliation.test.ts (Fire Shield answers an opportunity Bite), apps/session-worker/test/nativeRoomLegendary.test.ts (Legendary Tail burn replayed), packages/rules-runtime/src/__tests__/encounterMeleeRetaliation.test.ts (replay, stale evidence, missing die). Green: ci/spells-20-t6d2b f12d2207a Tests 39118481981, Live 39118481975; phase merge 4b8a92175 (fast path; backstop ci/merge-m105)."
             }
-          ],
-          "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+          ]
         },
         {
           "id": "SPELLS-21",
