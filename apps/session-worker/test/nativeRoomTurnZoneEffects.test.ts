@@ -764,7 +764,6 @@ describe('the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)', () => 
         ? answer.delta.result.occurrence?.pending
         : undefined
     if (tie?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected the initiative tie.')
-    const settleCommandId = crypto.randomUUID()
     const settled = await room.send({
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: room.room.encounterId,
