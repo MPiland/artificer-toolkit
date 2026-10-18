@@ -9,9 +9,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
-import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readActorConditionIds, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-4.T2a1: Color Spray, authored from core options. The cast rolls its hit-point pool and
@@ -78,13 +77,11 @@ type ColorSprayRoom = Awaited<ReturnType<typeof colorSprayRoom>>
 async function history(room: ColorSprayRoom) {
   const stored = await readRoomHistory(room.room.base.stub)
   return {
-    blind: vitalsOf(stored)
-      .filter(({ conditions }) =>
-        ((conditions ?? []) as { conditionTypeId: string }[]).some(
-          ({ conditionTypeId }) => conditionTypeId === blinded.id
-        )
-      )
+    blind: stored.actors
       .map(({ id }) => id)
+      .filter(
+        (id) => id !== CHARACTER_ACTOR_ID && readActorConditionIds(stored, id).includes(blinded.id)
+      )
       .sort(),
     effectHolders: stored.activeEffects.map(({ targetActorId }) => targetActorId).sort()
   }

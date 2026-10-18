@@ -19,7 +19,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readActorConditionIds, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-27.T8: Sleep, authored from core options. The cast rolls its hit-point pool, puts the
@@ -121,13 +121,12 @@ type SleepRoom = Awaited<ReturnType<typeof sleepRoom>>
 async function history(room: SleepRoom) {
   const stored = await readRoomHistory(room.room.base.stub)
   const vitals = vitalsOf(stored)
-  const asleep = vitals
-    .filter(({ conditions }) =>
-      ((conditions ?? []) as { conditionTypeId: string }[]).some(
-        ({ conditionTypeId }) => conditionTypeId === unconscious.id
-      )
-    )
+  const asleep = stored.actors
     .map(({ id }) => id)
+    .filter(
+      (id) =>
+        id !== CHARACTER_ACTOR_ID && readActorConditionIds(stored, id).includes(unconscious.id)
+    )
     .sort()
   return {
     asleep,

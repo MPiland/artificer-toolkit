@@ -142,8 +142,8 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
 }
 
 /**
- * Timed effects that store no recurrence stage (grants, and effects counted on their source's
- * turns) count down at the boundary of their anchor actor's turn, so the turn-effect kernel never
+ * Grants, and other timed effects counted on their source's turns, store no recurrence stage and
+ * count down at the boundary of their anchor actor's turn, so the turn-effect kernel never
  * owns them.
  */
 export function planEncounterGrantTicks(input: {
@@ -160,6 +160,7 @@ export function planEncounterGrantTicks(input: {
       const remaining = effect.lifecycle.remainingTicks
       if (
         remaining === null ||
+        (!isModifierGrant(effect) && expiration.anchor !== 'SOURCE') ||
         recurrence.recurrenceStage !== 'NONE' ||
         expiration.kind !== 'TICKS' ||
         expiration.decrementStage !== input.stage ||
