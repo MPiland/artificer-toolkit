@@ -6862,6 +6862,8 @@ function compileEffectActionGraph(
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   if (outcome.kind === 'FORCED_MOVEMENT')
     unsupported('D&D forced movement requires an authored test phase.')
+  if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION')
+    unsupported('D&D hit point maximum reduction requires an authored test phase.')
   const operation =
     outcome.kind === 'HEAL'
       ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
