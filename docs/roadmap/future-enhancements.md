@@ -263,6 +263,10 @@ A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scen
 
 Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
 
+### Wind Wall blocks projectiles and gases (D154)
+
+Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectiles, its block on gases and fog, and its ranged-attack interaction are not modeled yet.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.
