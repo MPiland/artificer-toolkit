@@ -7,7 +7,7 @@ import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   encounterActionLongRangeContributor,
   encounterActorRelationship,
-  encounterRelationshipReachFeet,
+  encounterActionReachFeet,
   evaluateEncounterActionTargetPolicy,
   targetingExcludesCreatureType,
   withoutCreatureTypeRestrictions
@@ -20,9 +20,9 @@ import {
 
 const DISPOSITIONS: readonly EncounterActorDispositionDto[] = ['FRIENDLY', 'NEUTRAL', 'HOSTILE']
 
-describe('the reach a relationship seals (D152)', () => {
+describe('an action’s reach, which a relationship seals (D152)', () => {
   const reachOf = (range: CompiledActionTargetPolicy['range']) =>
-    encounterRelationshipReachFeet({ range, targeting: null, shape: null, pathOverrides: [] })
+    encounterActionReachFeet({ range, targeting: null, shape: null, pathOverrides: [] })
 
   it('is 5 feet for a Touch action and the normal range in feet for a distance', () => {
     expect(reachOf({ id: 'range', rangeKind: 'TOUCH' })).toBe(5)

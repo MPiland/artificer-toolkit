@@ -30,12 +30,15 @@ export type EncounterActionSceneContext = {
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
 export const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
 
-/** The reach a relationship the action takes hold with seals (D152): Touch's 5 feet or its normal distance. */
-export function encounterRelationshipReachFeet(policy: CompiledActionTargetPolicy): number {
+/**
+ * An action's reach: Touch's 5 feet or its normal distance. A relationship the action takes hold with
+ * seals it (D152), and a forced movement aside stays within it (D157).
+ */
+export function encounterActionReachFeet(policy: CompiledActionTargetPolicy): number {
   const { range } = policy
   if (range.rangeKind === 'TOUCH') return lengthMeasurementInFeet(TOUCH_RANGE)
   if (range.rangeKind === 'DISTANCE') return lengthMeasurementInFeet(range)
-  throw new Error('An actor relationship needs an action with a measurable reach.')
+  throw new Error('This action has no measurable reach.')
 }
 
 /**

@@ -353,6 +353,13 @@ pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinit
 `ENTER_DICE` or `SYSTEM_ROLL`). "Roll dice" (`ROLL_RULE_EVIDENCE`) accepts the contest's one `requestId` in the
 picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it.
 
+Forced-movement destinations (D157): an action whose push has two or more legal squares pauses on a
+`FORCED_MOVEMENT_DESTINATION` pending summary (`sourceActorId`, `targetActorId`, `requestId`, and the server-derived
+`positions`, 2 to `MAX_FORCED_MOVEMENT_DESTINATIONS`, staying put first when legal) with `allowedResponses`
+`['FORCED_MOVEMENT']`. The source's controller or the GM answers with a `FORCED_MOVEMENT` resolution (`requestId`,
+`position`); a square the summary did not offer is rejected and the pick stays open. The commit's
+`LiveSessionForcedMovement` carries `upTo`, `sourceReachFeet` (set only for `ASIDE`) and the picked `position`.
+
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
 carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones
