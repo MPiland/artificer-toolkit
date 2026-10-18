@@ -1,5 +1,3 @@
-import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
-
 import { z, lazySchema } from '../zod.js'
 
 import { staticGrantBaseDtoSchema } from './grant.js'
@@ -11,6 +9,7 @@ import {
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { rolledDieShape } from '../shared/d20AddedDice.js'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -216,13 +215,7 @@ const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
 )
 
 /** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
-export const rolledDiePayloadDtoSchema = lazySchema(() =>
-  z.strictObject({
-    count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ROLLED_DIE_COUNT)),
-    faces: z.union(ROLLED_DIE_FACES.map((faces) => z.literal(faces))),
-    sign: z.enum(['ADD', 'SUBTRACT'])
-  })
-)
+export const rolledDiePayloadDtoSchema = lazySchema(() => z.strictObject(rolledDieShape()))
 
 const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })

@@ -15,6 +15,12 @@ import {
   ruleExecutionLocalNodeIdSchema as localNodeIdSchema,
   ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema
 } from './ruleExecutionPrimitives.js'
+import {
+  d20AddedDiceDtoSchema,
+  d20AddedDiceTotal,
+  d20RolledAddedDiceDtoSchema,
+  type D20RolledAddedDieDto
+} from './d20AddedDice.js'
 
 export const serverRuleEvidenceResponseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -85,7 +91,9 @@ export const frozenCheckD20DtoSchema = lazySchema(() =>
     rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
     contributors: canonicalConcentrationContributorsDtoSchema,
     contributorChecksum: checksumSchema,
-    modifier: integerSchema
+    modifier: integerSchema,
+    /** Dice the check rolls beside its d20 (D156), from the roller's active effects. */
+    addedDice: z.optional(d20AddedDiceDtoSchema)
   })
 )
 
@@ -100,7 +108,9 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       contributorChecksum: checksumSchema,
       modifier: integerSchema,
-      dc: integerSchema
+      dc: integerSchema,
+      /** Dice the test rolls beside its d20 (D156), from the roller's active effects. */
+      addedDice: z.optional(d20AddedDiceDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -235,7 +245,9 @@ const serverRuleExecutionD20EvidenceShape = lazySchema(() =>
     total: integerSchema,
     defenseOrDc: integerSchema,
     resultPath: identifierSchema,
-    modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema)
+    modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema),
+    /** The added dice with the faces they rolled; `total` includes their signed sum. */
+    addedDice: z.optional(d20RolledAddedDiceDtoSchema)
   })
 )
 
@@ -262,7 +274,7 @@ function validateServerRuleExecutionD20Evidence(
       path: ['selectedNatural'],
       message: 'd20 evidence selected face is invalid.'
     })
-  if (value.total !== value.selectedNatural + value.modifier)
+  if (value.total !== value.selectedNatural + value.modifier + d20AddedDiceTotal(value.addedDice))
     context.addIssue({
       code: 'custom',
       path: ['total'],
@@ -329,6 +341,7 @@ export type ServerRuleExecutionD20EvidenceDto = {
   defenseOrDc: number
   resultPath: string
   modeAdjustment?: ServerRuleExecutionD20ModeAdjustmentDto
+  addedDice?: D20RolledAddedDieDto[]
 }
 export type ServerRuleExecutionNestedD20EvidenceDto = ServerRuleExecutionD20EvidenceDto & {
   requestNodeId: string

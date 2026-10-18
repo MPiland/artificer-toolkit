@@ -8,6 +8,7 @@ import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecuti
 import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -377,7 +378,9 @@ const enterDiceResolutionDtoSchema = lazySchema(() =>
         .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
         .check(z.minLength(1))
         .check(z.maxLength(2)),
-      rollMode: encounterD20RollModeDtoSchema
+      rollMode: encounterD20RollModeDtoSchema,
+      /** The faces of the request's added dice (D156). */
+      addedFaces: z.optional(d20AddedFacesDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

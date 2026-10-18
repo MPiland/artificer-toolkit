@@ -338,7 +338,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       .set(
         'faces',
         number(['faces'], 'Die Faces', {
-          constraints: { minimum: ROLLED_DIE_FACES[0], maximum: ROLLED_DIE_FACES[ROLLED_DIE_FACES.length - 1] },
+          constraints: { minimum: ROLLED_DIE_FACES[0], maximum: Math.max(...ROLLED_DIE_FACES) },
           showIf: isRolledDie
         })
       )

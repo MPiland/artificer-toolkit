@@ -6,6 +6,7 @@ import {
   activeRuleEffectRecordSchema
 } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
+import type { D20AddedDieDto } from './d20AddedDice.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
@@ -570,6 +571,7 @@ export type EncounterConcealmentCheckPendingContextDto = {
     contributors: z.infer<typeof canonicalConcentrationContributorsDtoSchema>
     contributorChecksum: z.infer<typeof checksumSchema>
     modifier: z.infer<typeof integerSchema>
+    addedDice?: D20AddedDieDto[]
   }
   resolution:
     | {
