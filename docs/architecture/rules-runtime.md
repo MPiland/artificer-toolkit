@@ -1578,6 +1578,17 @@ the activation; an escaper win ends the held effect through `endEncounterEscaped
 `RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
 applies. Undo refuses a contested escape like other contests.
 
+**Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
+condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the
+contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
+the attempt through `target.choiceOptionId`; `prepareEncounterActionSource` narrows a capability source (basic
+action, Creature) to the picked option (`pickedCastChoiceEffect`), and the basic-action choices offer the options.
+On a win the room runs the outcome graph (`planNativeContestOutcome`), applies its conditions to the target in the
+one direct-outcome batch, and settles `CONDITIONS_APPLIED` or `FORCED_MOVEMENT` on the `CONTESTED_ACTION` output.
+`settleContestOutcome` applies the room-planned conditions in Convex, and the commit lands a push through
+`applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
+contest outcome whose push owes a destination pick fails closed.
+
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
 modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds

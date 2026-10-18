@@ -156,7 +156,7 @@ export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
 const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduction-proposal'
-const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
+export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
 const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
 const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
 const DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY = 'dnd5e.damage-multiplier'
@@ -185,7 +185,8 @@ const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
   ON_MISS: 'dnd5e.target-condition-immune.on-miss',
   ON_CRIT: 'dnd5e.target-condition-immune.on-crit',
   ON_SAVE_FAIL: 'dnd5e.target-condition-immune.on-save-fail',
-  ON_SAVE_SUCCESS: 'dnd5e.target-condition-immune.on-save-success'
+  ON_SAVE_SUCCESS: 'dnd5e.target-condition-immune.on-save-success',
+  ON_CHECK_SUCCESS: 'dnd5e.target-condition-immune.on-check-success'
 } as const
 /**
  * A result path may apply several conditions ("grappled, and restrained until the grapple ends"),
@@ -211,7 +212,8 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_MISS: 'dnd5e.resolved-damage-expression.on-miss',
   ON_CRIT: 'dnd5e.resolved-damage-expression.on-crit',
   ON_SAVE_FAIL: 'dnd5e.resolved-damage-expression.on-save-fail',
-  ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success'
+  ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success',
+  ON_CHECK_SUCCESS: 'dnd5e.resolved-damage-expression.on-check-success'
 } as const satisfies Record<SpecializedPath, string>
 const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
@@ -382,11 +384,18 @@ type SpecializedPath =
   | 'ON_CRIT'
   | 'ON_SAVE_FAIL'
   | 'ON_SAVE_SUCCESS'
+  | 'ON_CHECK_SUCCESS'
 
 function isSpecializedPath(value: string): value is SpecializedPath {
-  return ['ON_USE', 'ON_HIT', 'ON_MISS', 'ON_CRIT', 'ON_SAVE_FAIL', 'ON_SAVE_SUCCESS'].includes(
-    value
-  )
+  return [
+    'ON_USE',
+    'ON_HIT',
+    'ON_MISS',
+    'ON_CRIT',
+    'ON_SAVE_FAIL',
+    'ON_SAVE_SUCCESS',
+    'ON_CHECK_SUCCESS'
+  ].includes(value)
 }
 
 /** Server-derived facts only. They select an authored scaling row; they never alter graph topology. */
@@ -626,6 +635,16 @@ interface TestPlan {
   branches: ReadonlyMap<string, Outcome | EntryDiceDamageOutcome>
   /** A condition a result path applies beside its branch, from a proposal of its own (D142). */
   conditions?: ReadonlyMap<string, { outcome: Outcome; entryId: string }>
+}
+
+/** A contest whose win runs its ON_CHECK_SUCCESS outcome after the contest test (Shove, D105). */
+function isContestOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean {
+  const { invocation } = action.compiledEffect
+  return (
+    invocation.triggerCode === 'CHECK' &&
+    invocation.check.dc.kind === 'CONTEST' &&
+    supported(action).kind === 'CONTEST_OUTCOME'
+  )
 }
 
 function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
@@ -3573,10 +3592,12 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
 }
 
 // A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
-// to the contest graph alone; its relationship is the action's active-effect plan.
+// to the contest graph alone; its relationship is the action's active-effect plan. A contest whose
+// win applies a condition or moves its target (Shove, D105) tests by the contest graph and
+// specializes its win as the ON_CHECK_SUCCESS outcome.
 function supported(
   action: Dnd5eCompiledEffectActionSource
-): SpecializedOutcome | { kind: 'CONTEST_RELATIONSHIP' } {
+): SpecializedOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CONTEST_OUTCOME' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
@@ -3713,8 +3734,15 @@ function supported(
   const outcome = entry.outcome
   if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
-  if (contestAction && outcome.effectKind !== 'ACTOR_RELATIONSHIP')
-    unsupported('D&D contest check action outcome must be an actor relationship.')
+  if (
+    contestAction &&
+    outcome.effectKind !== 'ACTOR_RELATIONSHIP' &&
+    outcome.effectKind !== 'CONDITION' &&
+    outcome.effectKind !== 'FORCED_MOVEMENT'
+  )
+    unsupported(
+      'D&D contest check action outcome must be an actor relationship, a condition or a forced movement.'
+    )
   if (
     checkAction &&
     !contestAction &&
@@ -3770,8 +3798,17 @@ function supported(
         0
     )
       unsupported('D&D contest check action must list the checks its target may roll.')
-    relationshipPlan(action)
-    return { kind: 'CONTEST_RELATIONSHIP' }
+    if (outcome.effectKind === 'ACTOR_RELATIONSHIP') {
+      relationshipPlan(action)
+      return { kind: 'CONTEST_RELATIONSHIP' }
+    }
+    const won = specializedTestOutcome(entry)
+    if (
+      won.kind === 'CONDITION_APPLY' &&
+      !(action.conditionDefinitionIds ?? []).includes(won.conditionId)
+    )
+      unsupported('D&D contest check action condition is not in the pinned System vocabulary.')
+    return { kind: 'CONTEST_OUTCOME' }
   }
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
@@ -5183,6 +5220,10 @@ function compileDnd5eEffectActionTestTemplate({
       'D&D Effect action entry point does not match its exact Effect.'
     )
   }
+  if (isContestOutcomeAction(action)) {
+    const published = createDnd5eContestGraph(action.effectId)
+    return { phase: 'TEST', published, templateChecksum: published.checksum }
+  }
   const kind = supportedTestPhaseKind(action)
   const modifierFact =
     kind === 'ATTACK' ? DND5E_ATTACK_MODIFIER_FACT_KEY : DND5E_SAVE_MODIFIER_FACT_KEY
@@ -6201,7 +6242,9 @@ function assertKnownTestResultPath(
       ? ['ON_HIT', 'ON_MISS', 'ON_CRIT']
       : kind === 'SAVE'
         ? ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-        : []
+        : isContestOutcomeAction(action)
+          ? ['ON_CHECK_SUCCESS']
+          : []
   if (!allowedPaths.includes(selectedPath))
     throw new Dnd5eEffectActionCompilerError('D&D selected outcome path is not emitted by TEST.')
 }
@@ -6267,7 +6310,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   selectedPath: SpecializedPath
   facts: Dnd5eEffectScalingFacts
 }): Dnd5eEffectActionTemplate | null {
-  supportedTestPhaseKind(input.action)
+  if (!isContestOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
@@ -6641,6 +6684,8 @@ function compileDnd5eEffectAction({
       action,
       published: createDnd5eContestGraph(action.effectId)
     })
+  if (outcome.kind === 'CONTEST_OUTCOME')
+    unsupported('D&D contest outcome requires its contest test phase.')
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   if (outcome.kind === 'FORCED_MOVEMENT')
@@ -8377,7 +8422,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = dndSourceFromCompilerSource(compilerSource)
     if (
-      !testPhaseKindOrNull(source) ||
+      (!testPhaseKindOrNull(source) && !isContestOutcomeAction(source)) ||
       supportedRecurringPlan(source) ||
       (source.compiledEffect.entries.every(
         (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'

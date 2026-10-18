@@ -107,6 +107,8 @@ async function settle(
       target,
       contest,
       createdEffect: null,
+      conditionApplications: [],
+      forcedMovements: [],
       applyMechanics: () => {
         throw new Error('A Disarm applies no target mechanics.')
       },
