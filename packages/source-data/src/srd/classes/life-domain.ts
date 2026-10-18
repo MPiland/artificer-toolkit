@@ -4,20 +4,26 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   PATH_CODE,
+  PATH_GROUP_TYPE,
+  PATH_USAGE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SCALING_SOURCE,
   SPELL_GRANT_ATTRIBUTE,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
-  type ClassAuthored
+  type ClassAuthored,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
+import { damageTypeId } from '../equipment/shared.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
 
@@ -29,6 +35,60 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const C = 3
+
+/**
+ * Divine Strike as authored data: an `ON_HIT` radiant rider whose dice grow with Cleric level (1d8
+ * at 8th, 2d8 at 14th), once per turn. The melee and ranged triggers are two effects of the one
+ * Feature, which share its single use each turn.
+ */
+function divineStrikeEffect(variant: 'MELEE' | 'RANGED'): EffectAuthored {
+  const melee = variant === 'MELEE'
+  const entry = melee ? 4 : 6
+  const id = (part: number) => classRowId(C, 0x16, (melee ? 0 : 0x10) + part)
+  return {
+    id: classRowId(C, 20, entry),
+    order: melee ? 0 : 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: melee ? TRIGGER.MELEE_WEAPON_ATTACK : TRIGGER.RANGED_WEAPON_ATTACK,
+      range: { id: classRowId(C, 21, entry), rangeKind: RANGE_KIND.SPECIAL },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+      }
+    },
+    paths: [
+      {
+        id: id(0),
+        order: 1,
+        pathCode: PATH_CODE.ON_HIT,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        usage: PATH_USAGE.ONCE_PER_TURN,
+        resultBlock: {
+          id: id(1),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: id(2),
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: damageTypeId('RADIANT'),
+              valueKind: 'DICE',
+              scalingKind: SCALING.PER_LEVEL,
+              scalingSource: 'CLASS_LEVEL',
+              classId: CLASS_IDS.CLERIC,
+              levels: [
+                { id: id(3), level: 8, order: 1, diceConfig: '1d8' },
+                { id: id(4), level: 14, order: 2, diceConfig: '2d8' }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 
 const lifeDomainSpellLevels = [
   { level: 1, spellIds: [SPELL_IDS.BLESS, SPELL_IDS.CURE_WOUNDS] },
@@ -181,36 +241,7 @@ export const lifeDomainCleric: ClassAuthored = {
         'At 8th level, you gain the ability to infuse your weapon strikes with divine energy. Once on each of your turns when you hit a creature with a weapon attack, you can cause the attack to deal an extra 1d8 radiant damage to the target. When you reach 14th level, the extra damage increases to 2d8.',
       availableAtLevel: 8,
       order: 5,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(C, 20, 4),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(C, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_LIFE_DOMAIN_DIVINE_STRIKE
-        }),
-        closedRuleEffect({
-          id: classRowId(C, 20, 6),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(C, 21, 6), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_LIFE_DOMAIN_DIVINE_STRIKE
-        })
-      ]
+      effects: [divineStrikeEffect('MELEE'), divineStrikeEffect('RANGED')]
     },
     {
       id: classRowId(C, 11, 7),

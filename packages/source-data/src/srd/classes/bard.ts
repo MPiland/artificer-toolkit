@@ -20,6 +20,7 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SHAPE_KIND,
+  SPELL_GRANT_ATTRIBUTE,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
   TARGET_SELECTION_KIND,
@@ -28,9 +29,11 @@ import {
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
-  type EffectAuthored
+  type EffectAuthored,
+  type SpellGrantAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
+import { srdSpells } from '../spells/index.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
@@ -56,6 +59,25 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const BD = 2 // Bard class index
+
+/**
+ * Magical Secrets: two chosen spells from any class, of a level the Bard can cast (or a cantrip),
+ * known as bard spells. The same core spell grant as Lore's Additional Magical Secrets.
+ */
+function magicalSecretsGrant(entry: number, maxSpellLevel: number): SpellGrantAuthored {
+  return {
+    id: classRowId(BD, 0x70, entry),
+    grantKind: GRANT_KIND.SPELL_GRANT,
+    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+    count: 2,
+    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+    scalingKind: SCALING.NONE,
+    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+    spellIds: srdSpells.filter((spell) => spell.level <= maxSpellLevel).map((spell) => spell.id),
+    attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
+    order: 0
+  }
+}
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 const bardicInspirationDescription =
@@ -1031,7 +1053,7 @@ export const bard: ClassAuthored = {
         'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table. You learn two additional spells from any class at 14th level and again at 18th level.',
       availableAtLevel: 10,
       order: 12,
-      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_BARD_MAGICAL_SECRETS)]
+      grants: { spells: [magicalSecretsGrant(13, 5)] }
     },
     {
       id: classRowId(BD, 3, 14),
@@ -1063,7 +1085,7 @@ export const bard: ClassAuthored = {
         'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table. You learn two additional spells from any class at 14th level and again at 18th level.',
       availableAtLevel: 14,
       order: 15,
-      effects: [selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_BARD_MAGICAL_SECRETS)]
+      grants: { spells: [magicalSecretsGrant(16, 7)] }
     },
     {
       id: classRowId(BD, 3, 17),
@@ -1087,7 +1109,7 @@ export const bard: ClassAuthored = {
         'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table. You learn two additional spells from any class at 14th level and again at 18th level.',
       availableAtLevel: 18,
       order: 17,
-      effects: [selfClassRuleEffect(18, CLOSED_RULE_KIND.CLASS_BARD_MAGICAL_SECRETS)]
+      grants: { spells: [magicalSecretsGrant(18, 9)] }
     },
     {
       id: classRowId(BD, 3, 19),
