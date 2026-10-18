@@ -7734,7 +7734,7 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1g"]
               },
-              "text": "Spike Growth from core options (D156 T1h amendment): a zone component option perDistanceMoved applies its behavior floor(distance moved inside / 5 ft) times, pinned on the movement candidate, as one damage outcome with multiplied dice; Spike Growth authors it with a ×2 movement cost; CLOSED_RULE SPIKE_GROWTH deleted. Room journey, including forced movement. Its camouflage stays with MOVE-3.4.",
+              "text": "Spike Growth from core options (D156 T1h amendment): a zone component option perDistanceMoved emits one movement candidate per whole 5 ft moved inside the area, each running the compiled 2d4 behavior at the step where it completes; Spike Growth authors it with a ×2 movement cost; CLOSED_RULE SPIKE_GROWTH deleted. Room journey, including forced movement. Its camouflage stays with MOVE-3.4.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
