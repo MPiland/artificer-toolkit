@@ -30,7 +30,8 @@ function heldAt(version: number): HeldEncounterSession {
       waitingOn: null,
       turnMovement: [],
       halfSpeedFields: [],
-      auras: []
+      auras: [],
+      movementCostZones: []
     },
     preparedPending: [],
     actorSides: null,

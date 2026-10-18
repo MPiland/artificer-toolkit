@@ -98,6 +98,8 @@ export const web: SpellAuthored = {
                       'ENTER_OR_PASS_THROUGH' as const,
                       'START_TURN_IN_SPACE' as const
                     ],
+                    // The area is difficult terrain.
+                    movementCostMultiplier: 2,
                     behaviors: [
                       {
                         id: spellChildId(SPELL_IDS.WEB, 0x222, 1),
