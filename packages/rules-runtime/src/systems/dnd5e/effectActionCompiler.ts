@@ -1185,7 +1185,10 @@ function compileSequentialComposition(
   // The composition's grant is what lets the cast ask for a willing target (Enhance Ability); the
   // instant entry is compiled alone only for its graph, so it keeps the grant's allowance.
   const instantInvocation =
-    grant && invocation.kind === 'ACTION' && invocation.targeting?.dispositionKind === 'WILLING'
+    grant &&
+    invocation.kind === 'ACTION' &&
+    invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
+    invocation.targeting.dispositionKind === 'WILLING'
       ? { ...invocation, targeting: { ...invocation.targeting, dispositionKind: 'ANY' as const } }
       : invocation
   const published = compileDnd5eEffectAction({
