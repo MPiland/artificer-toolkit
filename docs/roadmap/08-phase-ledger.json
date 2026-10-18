@@ -795,11 +795,11 @@
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 2,
-                "tc": 3,
-                "rr": 5,
+                "tc": 5,
+                "rr": 8,
                 "size": 3
               },
-              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries."
+              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139."
             }
           ]
         },
@@ -6253,7 +6253,7 @@
             },
             {
               "id": "ATTACK-7.T5b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6263,11 +6263,11 @@
                 "after": ["ATTACK-7.T5"]
               },
               "text": "D157 transport: the FORCED_MOVEMENT_DESTINATION pending decision and FORCED_MOVEMENT resolution, the room pause and resume farthest first with each move committed per D139, the compiler for ASIDE/ANY/UP_TO, and the Crusher room journey. Proves AC 7.7 on the server.",
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "note": "Green: ci/attack-7-t5b 491704dfd Tests 39142195686, Live 39142195716; batch ci/merge-m120 ff8c82210 green (Tests 39145244320, Live 39145244344); phase merge 4aa391dea."
             },
             {
               "id": "ATTACK-7.T5c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6276,7 +6276,8 @@
                 "size": 5,
                 "after": ["ATTACK-7.T5b"]
               },
-              "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user."
+              "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user.",
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T5d",
@@ -7965,7 +7966,7 @@
               "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2b",
               "wsjf": {
@@ -7975,7 +7976,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert the 34 description-only closed rules (D156 T2 split, class C): remove each CLOSED_RULE outcome and kind, keep the description; a corpus test proves none remains and every description is intact."
+              "text": "Convert the 34 description-only closed rules (D156 T2 split, class C): remove each CLOSED_RULE outcome and kind, keep the description; a corpus test proves none remains and every description is intact.",
+              "note": "Green: ci/spells-4-t2b 0a13ed651 Tests 39140950973, Live 39140950907; batch ci/merge-m120 ff8c82210 green; phase merge 4aa391dea."
             },
             {
               "status": "TODO",
