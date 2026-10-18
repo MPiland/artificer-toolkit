@@ -17,7 +17,7 @@ import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
-import { settleDisarm } from './actionDisarmSettlement'
+import { settleContest } from './actionContestSettlement'
 
 useLocalRoomWorker()
 
@@ -99,7 +99,7 @@ async function settle(
       .withIndex('by_publicId', (q) => q.eq('id', state.campaignId))
       .unique()
     if (!campaign) throw new Error('Missing Disarm Campaign.')
-    const settled = await settleDisarm(ctx, {
+    const settled = await settleContest(ctx, {
       state,
       campaign,
       actors: [actor, target],

@@ -692,8 +692,8 @@
             },
             {
               "id": "PLATFORM-13.T4",
-              "text": "End of phase: Convex parallelism trial (2, 4, then 8 file workers, one run each, then three consecutive clean runs for the kept setting; wall time, failures, peak memory and paging recorded; a run that swaps or times out rejects the setting; no per-test timeout raised) and the full-suite timing record (Convex, worker, root), including a loaded root run proving import.test.ts passes at the default 5 s.",
-              "status": "IN_PROGRESS",
+              "text": "CI parallelism trial (pulled forward 2026-10-18): Convex 2 and Worker 4 file workers per job, Convex shards balanced by recorded file duration, no added jobs; Convex 4 rejected (developmentCustody timeouts); three clean full dispatches, no timeout raised. Tests wall time 18.4-19.8 to 10.5-12.2 min (docs/validation/platform-13-t4-ci-parallelism-2026-10-18.md).",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 1,
@@ -702,7 +702,72 @@
                 "size": 3,
                 "finalSource": true
               },
-              "note": "Pulled forward 2026-10-18 (speed to done): Convex and Worker file-worker trials, shard balancing, no added jobs (20-concurrent-job cap)."
+              "note": "Merged by hand c03efd047 (workflow change). End-of-phase timing and the import.test.ts proof moved to T4b."
+            },
+            {
+              "id": "PLATFORM-13.T4b",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "finalSource": true
+              },
+              "text": "End of phase, on the final source: the full-suite timing record (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (one test there carries a 20 s timeout). Split from T4 when the CI parallelism trial landed early."
+            },
+            {
+              "id": "PLATFORM-13.T14",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 3,
+                "size": 1,
+                "after": []
+              },
+              "text": "Lint changed-files format check flagged docs/roadmap/08-phase-ledger.json on ci/platform-13-t4, whose own diff touched only tests.yml, and the tests auto-fix reformatted the whole ledger (fa3f5f0bb). Find why formatChanged.mjs or the Lint job sees an unchanged file (merge-base vs tip, or a slice commit that rewrote it), fix the cause, with a regression test. Found 2026-10-18."
+            },
+            {
+              "id": "PLATFORM-13.T15",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 5,
+                "rr": 3,
+                "size": 2,
+                "after": ["PLATFORM-13.T4"]
+              },
+              "text": "CI wall under 10 min with no added jobs, first lever: web unit maxWorkers 50% to 3, still isolated. Gate: three clean full dispatches, no timeout raised. isolate:false was rejected 2026-10-18 (42 files leak mock and module state; the hygiene migration is in future-enhancements). Hosting test shards inside typecheck jobs was rejected because it couples type-error cancellation to test failures. The Convex lever is T17."
+            },
+            {
+              "id": "PLATFORM-13.T16",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 5,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              },
+              "text": "Flake: nativeRoomAdmission.test.ts \"renews the authorization lease with one read per half-lease while a member is connected, and not before\" saw 4 authorization reads, expected 3 (line 407), on merge batch ci/merge-m139 c227b16a6 (Tests 39172295228), whose diff does not touch the Worker. Find the timing source (clock vs alarm vs resume ordering), make the test deterministic on the fake clock without weakening the read-count assertion, with a repeat-run proof. Found 2026-10-18."
+            },
+            {
+              "id": "PLATFORM-13.T17",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -6341,6 +6406,19 @@
               "closes": ["ATTACK-7.5"]
             },
             {
+              "id": "ATTACK-7.T7b",
+              "status": "TODO",
+              "closes": ["ATTACK-7.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 2,
+                "size": 1,
+                "after": ["ATTACK-7.T7"]
+              },
+              "text": "The web route preview prices a grapple drag at single cost because the session projection carries no actor size. Carry each actor's size on the projection so the preview shows the D105 ×2 drag cost (×4 in difficult terrain, no ×2 when the held creature is two or more sizes smaller), from the same pure rule the room uses, with a preview test. Found in T7, 2026-10-18."
+            },
+            {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
               "status": "TODO",
@@ -7428,6 +7506,13 @@
               "origin": [],
               "note": "Swaps stay free per encounterWieldConflict.ts. The one free object interaction per turn is not tracked (future-enhancements.md).",
               "id": "ATTACK-19.3"
+            },
+            {
+              "id": "ATTACK-19.4",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "text": "With the Campaign ammunition tracking option on, each weapon attack that uses ammunition draws one piece of the chosen stack (auto-selected when only one fits) and is refused when none is left; Volley draws one per target. With it off, the chosen ammunition still applies its bonuses and nothing is counted (D4 and its 2026-09-25 user override)."
             }
           ],
           "tasks": [
@@ -7448,6 +7533,19 @@
               "text": "Thrown and Disarm hand transitions (extend the existing held-item transition).",
               "status": "TODO",
               "closes": ["ATTACK-19.3"]
+            },
+            {
+              "id": "ATTACK-19.T4",
+              "status": "TODO",
+              "closes": ["ATTACK-19.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["ATTACK-19.T1", "SPELLS-4.T2e"]
+              },
+              "text": "Ammunition per attack (D4): the Campaign tracking option, stack choice per weapon, one piece drawn per ammunition attack in the attack transaction (reverted with it), refusal at zero, and a room journey firing a Longbow to empty. Found in the SPELLS-31.T5s design: no attack draws ammunition today."
             }
           ],
           "wsjf": {
@@ -8022,17 +8120,44 @@
               "note": "Green: ci/spells-4-t2b 0a13ed651 Tests 39140950973, Live 39140950907; batch ci/merge-m120 ff8c82210 green; phase merge 4aa391dea."
             },
             {
-              "status": "TODO",
+              "id": "SPELLS-4.T2c1",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2c",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: A rolled die added to or subtracted from d20 tests, optionally consumed on use. Converts BLESS, BANE, GUIDANCE, RESISTANCE, GLIBNESS, with parity proofs; each kind deleted."
+              "text": "Rolled-die modifier (one kind, sign ADD or SUBTRACT) on attack rolls and saves for Characters and Creatures through one evaluation, addedDice transport, server rolls, receipt faces and the roll row; converts BLESS and BANE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2c2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2c1"]
+              },
+              "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
+            },
+            {
+              "id": "SPELLS-4.T2c3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2c1"]
+              },
+              "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
             },
             {
               "status": "TODO",
@@ -10842,7 +10967,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2c"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
               "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -11271,7 +11396,7 @@
             },
             {
               "id": "SPELLS-31.T5s",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11280,7 +11405,8 @@
                 "size": 5,
                 "after": ["SPELLS-31.T3c"]
               },
-              "text": "Class B: a feature weapon attack against each chosen target with the wielded weapon (weapon damage, proficiency, magic bonus, ammunition drawn per target), then convert Volley and Whirlwind Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T3c ruling)."
+              "text": "Class B: a feature weapon attack against each chosen target with the wielded weapon (weapon damage, proficiency, magic bonus; ammunition per target arrives with ATTACK-19.T4, D4), then convert Volley and Whirlwind Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T3c ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5t",
@@ -11348,7 +11474,7 @@
             },
             {
               "id": "SPELLS-32.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -11358,7 +11484,7 @@
                 "after": ["SPELLS-32.T1"]
               },
               "text": "A: Halfling Brave as a saving throw advantage (Steel Will pattern) (1 kind). Dwarven Resilience moved to T4j.. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
+              "note": "Merged m137 (2edf56e4c)."
             },
             {
               "id": "SPELLS-32.T4j",
@@ -11473,9 +11599,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2a5"]
               },
-              "text": "A: self teleports (Balor, Marilith, Teleport), Giant Frog Bite, Darkmantle Attach (5 kinds; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "A: self teleports (Balor, Marilith), Giant Frog Bite, Darkmantle Attach (4 kinds; the Teleport spell stays with SPELLS-4.T2a5; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
@@ -11566,7 +11692,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2c"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2c2"]
               },
               "text": "Knight Leadership, Lamia Intoxicating Touch (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
