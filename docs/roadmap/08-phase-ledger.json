@@ -11097,8 +11097,11 @@
             },
             {
               "text": "The compiled CHARACTER_ACTION contract holds only the versions the compiler emits (COMPILED v4, MANUAL v1); the dead COMPILED v1-v3 members and every reader branch on them are deleted and development data is reseeded.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/compiledActionEntryVersions.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "characterMechanics.ts:306-405; readers in encounterActionEffects.ts:28, encounterActionMaintenance.ts:42, characterNativeActionResources.ts:216-218. The compiler emits only v4 COMPILED and v1 MANUAL.",
               "id": "RELIABILITY-6.2"
@@ -11128,32 +11131,44 @@
             },
             {
               "text": "Currency holdings always carry an explicit kind: the legacy ambiguous identity and the PRESERVE ambiguity policy are deleted and development data is migrated.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/character-currency.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "characterCurrency.ts:4/64/84; 8 non-test PRESERVE callers.",
               "id": "RELIABILITY-6.5"
             },
             {
               "text": "Stored definitions always carry their publish metadata: the legacy-publisher synthesis in definitionStore is deleted, the fields are required, and development data is reseeded.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/authoring/nodeRuntime.test.ts and apps/apis/convex/content/publication.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "apps/apis/convex/content/definitionStore.ts:65-105 (legacyPublisherUserId). Also check the optional ruleState.ts:163/246 fields read with ?? [] for the same never-written-versus-empty gap.",
               "id": "RELIABILITY-6.6"
             },
             {
               "text": "A maintained-effect descriptor always carries its emptyDependentPolicy: the version 1 descriptor is deleted and every consumer reads the policy directly, with no version-derived predicate.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/rules-runtime-contracts.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "activeRuleEffects.ts:318-329; predicates at actorRemovalEffects.ts:142, characterRunEffects.ts:53, turnEffectsPersistence.ts:277, nativeEncounterTurnCompletion.ts:110, encounterConcentration.ts:66, effectActionCompiler.ts:519, characterRuleActionSystemAdapter.ts:93.",
               "id": "RELIABILITY-6.7"
             },
             {
               "text": "A System document has one current schema: the historical System schema versions and the v4-only gate in optionalCombatCheckDefinitions are deleted and development data is migrated.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/subject-schema-parsing.test.ts and packages/shared/src/__tests__/skill-subject-aliases.test.ts.",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "packages/schema/src/vocabulary/system.ts (versions 2-4); packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.ts requireCurrentCheckVocabulary.",
               "id": "RELIABILITY-6.8"
@@ -11207,7 +11222,10 @@
             {
               "text": "Campaign inventory currency ids are typed at the contract: the web's legacy non-UUID currency check and its label fallbacks are deleted (with RELIABILITY-6.5).",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "apps/web/src/domains/campaigns/components/CampaignInventory.test.ts (T4: no legacy non-UUID check or label fallback).",
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+              ],
               "origin": [],
               "note": "apps/web/src/domains/campaigns/components/campaignInventory.utils.ts:155-204.",
               "id": "RELIABILITY-6.13"
@@ -11369,7 +11387,7 @@
             {
               "id": "RELIABILITY-6.T4",
               "text": "Dead contract versions and legacy shapes are deleted with development data migrated.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-6.2",
                 "RELIABILITY-6.5",
@@ -11384,7 +11402,20 @@
                 "rr": 5,
                 "size": 8
               },
-              "activeWorkbook": "docs/handoffs/slice-reliability-6.md"
+              "note": "phase merge ad532219a (fast path; backstop ci/merge-m101)."
+            },
+            {
+              "id": "RELIABILITY-6.T5",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
+              "closes": ["RELIABILITY-6.13"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "text": "Currency labels resolve by currency identity everywhere, plus the PBI journey. Bug: sheetProjection looks up an equipment costLabel by the raw currencyId, but currencyLabels is keyed by identity, so the Sheet never shows a cost label. Fix it with a regression test that fails first. Journey: a browser test of a Campaign inventory currency flow that shows the labelled holdings."
             }
           ]
         },
