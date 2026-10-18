@@ -1,11 +1,15 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -13,9 +17,11 @@ import {
   TARGET_DISPOSITION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_STEALTH_SKILL_ID } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const passWithoutTrace: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -57,12 +63,12 @@ export const passWithoutTrace: SpellAuthored = {
           id: spellChildId(SPELL_IDS.PASS_WITHOUT_TRACE, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.PASS_WITHOUT_TRACE, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.PASS_WITHOUT_TRACE, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -71,8 +77,30 @@ export const passWithoutTrace: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PASS_WITHOUT_TRACE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PASS_WITHOUT_TRACE' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.PASS_WITHOUT_TRACE, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
+                      domain: { skillId: SRD_STEALTH_SKILL_ID },
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'FIXED', amount: 10 },
+                      order: 1
+                    }
+                  ]
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.PASS_WITHOUT_TRACE, 0x215, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Pass without Trace',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "can't be tracked except by magical means. A creature that receives this bonus leaves behind no tracks or other traces of its passage."
               }
             ]
           }

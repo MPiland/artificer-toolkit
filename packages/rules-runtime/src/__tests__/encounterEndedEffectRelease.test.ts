@@ -10,7 +10,7 @@ import type { CharacterRuleActionApplication } from '../characterRuleActionSyste
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
-  damageTakenEndedEffects,
+  targetEndedEffects,
   endedEffectConditionReleases
 } from '../encounterEndedEffectRelease.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
@@ -175,7 +175,7 @@ describe('what an attack roll ends for its roller', () => {
   })
 })
 
-describe('what damage ends on its target', () => {
+describe('what an action ends on its target', () => {
   const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
   const COLD = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'COLD')!.id
   const SOURCE_ID = '00000000-0000-4000-8000-00000000f301'
@@ -233,9 +233,10 @@ describe('what damage ends on its target', () => {
     applications: CharacterRuleActionApplication[],
     damagerActorId = STRANGER_ID
   ) =>
-    damageTakenEndedEffects({
+    targetEndedEffects({
       holderActorId: HOLDER_ID,
       held,
+      attacked: false,
       applications,
       damagerActorId,
       dispositions
@@ -284,6 +285,61 @@ describe('what damage ends on its target', () => {
     const { endedEffects, releases } = taken([ended, untriggered], [damage(FIRE)])
     expect(endedEffects).toEqual([ended])
     expect(releases).toEqual([])
+  })
+
+  describe('an attack roll against the holder (ON_ATTACKED, SPELLS-4.T2a3)', () => {
+    const marked = (consumeOnFirstEvents: readonly ('ON_ATTACKED' | 'ON_ATTACK_ROLL')[]) =>
+      activeEffect({
+        id: FIRST_ID,
+        owner,
+        createdOrdinal: 1,
+        consumeOnFirstEvents,
+        endOnTriggers: anyDamage,
+        stateContributions: [
+          { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+        ]
+      })
+    const attackedBy = (
+      held: ReturnType<typeof marked>[],
+      attacked: boolean,
+      applications: CharacterRuleActionApplication[] = []
+    ) =>
+      targetEndedEffects({
+        holderActorId: HOLDER_ID,
+        held,
+        attacked,
+        applications,
+        damagerActorId: STRANGER_ID,
+        dispositions
+      })
+
+    it('uses the effect up on a miss, and releases the condition it owned', () => {
+      const held = marked(['ON_ATTACKED'])
+      const { endedEffects, releases } = attackedBy([held], true)
+      expect(endedEffects).toEqual([held])
+      expect(releases).toEqual(
+        endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+      )
+      expect(releases).toHaveLength(1)
+    })
+
+    it('ends the effect once when the attack also damages the holder', () => {
+      const held = marked(['ON_ATTACKED'])
+      const { endedEffects, releases } = attackedBy([held], true, [damage(FIRE)])
+      expect(endedEffects).toEqual([held])
+      expect(releases).toHaveLength(1)
+    })
+
+    it('leaves the effect for an action without an attack roll, or one the holder makes', () => {
+      expect(attackedBy([marked(['ON_ATTACKED'])], false)).toEqual({
+        endedEffects: [],
+        releases: []
+      })
+      expect(attackedBy([marked(['ON_ATTACK_ROLL'])], true)).toEqual({
+        endedEffects: [],
+        releases: []
+      })
+    })
   })
 })
 

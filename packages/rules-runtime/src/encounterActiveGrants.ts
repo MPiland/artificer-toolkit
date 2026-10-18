@@ -656,6 +656,22 @@ export function withCreatureActiveGrantArmorClass(
 }
 
 /**
+ * A Creature holder's skill total with its active fixed bonuses and penalties to that skill (Pass
+ * without Trace's +10 Stealth) added to its stat block total. A Character folds the same grants
+ * through its own policy instead.
+ */
+export function withCreatureActiveGrantSkillTotal(
+  total: number | undefined,
+  skillId: string,
+  effects: readonly ActiveRuleEffectRecord[]
+): number | undefined {
+  return total === undefined
+    ? undefined
+    : total +
+        activeFixedGrantTotal(effects, 'SKILL_MODIFIER', (domain) => domain.skillId === skillId)
+}
+
+/**
  * A holder's typed speeds with its active speed grants applied the way the Character policy folds
  * them: the best "your speed is X" grant replaces a speed's base (adding a speed the holder lacked,
  * as Fly does, in the grant's own unit), then bonuses and penalties add (Longstrider, Ray of Frost),

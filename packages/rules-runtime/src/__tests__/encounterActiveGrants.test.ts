@@ -10,6 +10,7 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_DARKVISION_SENSE_ID,
   SRD_SPEEDS,
+  SRD_STEALTH_SKILL_ID,
   SRD_SYSTEM_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -21,7 +22,8 @@ import {
   creatureActiveGrantCheckContributors,
   encounterGrantsEnabledDomain,
   withActiveGrantSpeeds,
-  withCharacterActiveGrants
+  withCharacterActiveGrants,
+  withCreatureActiveGrantSkillTotal
 } from '../encounterActiveGrants.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { rollModeSourceKey } from '../encounterRollModeReasons.js'
@@ -42,6 +44,7 @@ import {
   helpEffect,
   heroismEffect,
   longstriderEffect,
+  passWithoutTraceEffect,
   protectionFromEnergyEffect,
   shimmeringShieldEffect,
   speedFractionEffect,
@@ -159,6 +162,17 @@ describe('Creature holder of an active grant', () => {
       (target(effects).targetDerivedFacts.statBlock as { armorClass?: number }).armorClass
     expect(armorClass([shield])).toBe(14)
     expect(armorClass([])).toBe(12)
+  })
+
+  it('adds a skill grant (Pass without Trace) to that skill total only, only while held', () => {
+    const veil = passWithoutTraceEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(withCreatureActiveGrantSkillTotal(4, SRD_STEALTH_SKILL_ID, [veil])).toBe(14)
+    expect(withCreatureActiveGrantSkillTotal(4, SRD_ATHLETICS_SKILL_ID, [veil])).toBe(4)
+    expect(withCreatureActiveGrantSkillTotal(4, SRD_STEALTH_SKILL_ID, [])).toBe(4)
+    // A stat block with no total for the skill gains none from the grant.
+    expect(withCreatureActiveGrantSkillTotal(undefined, SRD_STEALTH_SKILL_ID, [veil])).toBe(
+      undefined
+    )
   })
 
   it('raises its maximum hit points by a maximum hit point grant (Aid), only while held', () => {

@@ -49,14 +49,17 @@ export function endedEffectConditionReleases(input: {
 }
 
 /**
- * What damage ends on its holder: the effects whose `DAMAGE_TAKEN` end trigger the outcome meets
- * (damage that survives the holder's defenses, of a type the trigger names, by someone the trigger
- * allows), and the conditions only they held. The holder's own mechanics batch applies the
- * releases in the same transaction as the effects' deletion.
+ * What an action ends on its target: the effects used up by an attack roll against the holder
+ * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
+ * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
+ * names, by someone the trigger allows), and the conditions only they held. The holder's own
+ * mechanics batch applies the releases in the same transaction as the effects' deletion.
  */
-export function damageTakenEndedEffects(input: {
+export function targetEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
+  /** Whether the action made an attack roll against the holder. */
+  attacked: boolean
   /** The outcome applications this action settles on the holder. */
   applications: readonly CharacterRuleActionApplication[]
   /** Who dealt the damage; null when nobody did, so only `ANYONE` triggers meet it. */
@@ -78,24 +81,25 @@ export function damageTakenEndedEffects(input: {
         input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
         input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
       ) === 'ALLIED')
-  const endedEffects = dealt.length
-    ? input.held.filter(({ definition }) => {
-        if (definition.schemaVersion !== 2) return false
-        const sourceActorId =
-          definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
-        return definition.recurrence.endOnTriggers.some(
-          (trigger) =>
-            trigger.event === 'DAMAGE_TAKEN' &&
-            (trigger.by === 'ANYONE' || onSourceSide(sourceActorId)) &&
-            dealt.some(
-              (application) =>
-                trigger.damageTypeIds === null ||
-                (application.kind === 'DAMAGE' &&
-                  trigger.damageTypeIds.includes(application.damageTypeId))
-            )
+  const attackConsumed = input.attacked ? effectsEndedBy(input.held, 'ON_ATTACKED') : []
+  const endedEffects = input.held.filter((effect) => {
+    const { definition } = effect
+    if (attackConsumed.includes(effect)) return true
+    if (!dealt.length || definition.schemaVersion !== 2) return false
+    const sourceActorId =
+      definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
+    return definition.recurrence.endOnTriggers.some(
+      (trigger) =>
+        trigger.event === 'DAMAGE_TAKEN' &&
+        (trigger.by === 'ANYONE' || onSourceSide(sourceActorId)) &&
+        dealt.some(
+          (application) =>
+            trigger.damageTypeIds === null ||
+            (application.kind === 'DAMAGE' &&
+              trigger.damageTypeIds.includes(application.damageTypeId))
         )
-      })
-    : []
+    )
+  })
   return {
     endedEffects,
     releases: endedEffectConditionReleases({
