@@ -66,8 +66,11 @@ export const ropeTrick: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ROPE_TRICK, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ROPE_TRICK' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Open the Extradimensional Space',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'You touch a length of rope that is up to 60 feet long. One end of the rope then rises into the air until the whole rope hangs perpendicular to the ground.'
               }
             ]
           }

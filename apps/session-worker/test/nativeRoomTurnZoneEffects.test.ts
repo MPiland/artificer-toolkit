@@ -1,5 +1,6 @@
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { planEncounterPlacedZone } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import {
   creatureAuraFeature,
@@ -17,6 +18,10 @@ import {
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { authoredZone } from '@artificer-toolkit/rules-runtime/testing/encounterTurnZoneFixture'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -32,7 +37,8 @@ import {
   readMaintainedStates,
   readSheetStreamVersion,
   readZones,
-  choiceOptionIdOf
+  choiceOptionIdOf,
+  sendSheetCommand
 } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -805,6 +811,162 @@ describe('a paladin’s Aura of Protection in the room (SPELLS-20 T5b, D155)', (
     expect((await readZones(room)).map(readSpatialEffect)).toEqual([
       expect.objectContaining({ id: placed!.id, placement: placed!.placement })
     ])
+  })
+})
+
+describe('a save inside a paladin’s Aura of Protection (SPELLS-20 T5c, D155)', () => {
+  const paladin = srdByLabel(SRD.classes, 'Paladin')
+  const auraOfProtection = paladin.features?.find(({ label }) => label === 'Aura of Protection')
+
+  /**
+   * The Paladin (at (150, 150), acting first) carries the aura and caltrops that act at the end of
+   * a creature's turn; its allied Wolf stands at `wolfAt`.
+   */
+  function allyRoom(wolfAt: { x: number; y: number }, classLevel: number) {
+    if (!auraOfProtection) throw new Error('The SRD Paladin has no Aura of Protection Feature.')
+    const caltrops = endOfTurnCaltrops()
+    return actionRoom({
+      actors: [
+        casterActor,
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
+      ],
+      positions: { [WOLF_ID]: wolfAt },
+      characterClassFeatures: [auraOfProtection],
+      characterEquipment: [caltrops],
+      characterAction: (action) => action.label === caltrops.label,
+      characterPlay: { characterClass: paladin, classLevel },
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+  }
+
+  /**
+   * The Paladin's token is bound again, which places its aura (D147), spreads the caltrops under the
+   * Wolf (the GM accepting a spread beyond touch) and ends its turn; `beforeWolfEnds` runs on the
+   * Wolf's turn, which then ends in the field. The Wolf's save in the stored end-of-turn zone phase.
+   */
+  async function wolfEndsTurnInCaltrops(
+    room: Room,
+    wolfAt: { x: number; y: number },
+    beforeWolfEnds?: () => Promise<void>
+  ) {
+    for (const command of [
+      { type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' },
+      { type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', tokenId: room.room.scene.tokens[0]!.id }
+    ]) {
+      const answer = await room.send({
+        ...command,
+        actorId: CASTER_ACTOR_ID,
+        commandId: crypto.randomUUID(),
+        encounterId: room.room.encounterId,
+        expectedEncounterVersion: await room.version(),
+        sceneId: room.room.scene.id
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    }
+    expect(
+      (await readZones(room)).map((zone) => readSpatialEffect(zone).placement.occupantSaveBonus)
+    ).toContainEqual(expect.objectContaining({ amount: 1 }))
+    const { answer } = await room.startAreaAction(wolfAt, ['TARGET_OUT_OF_RANGE'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await (await advanceCommand(room)).send()).type).toBe('COMMAND_COMMITTED')
+    await beforeWolfEnds?.()
+    const wolfsTurn = await advanceCommand(room)
+    const ended = await wolfsTurn.send()
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    return (await storedZonePhases(room, wolfsTurn.commandId)).outgoing
+  }
+
+  /** The Wolf's one end-of-turn caltrops save: its modifier and the save fact its execution bound. */
+  async function wolfSave(
+    wolfAt: { x: number; y: number },
+    classLevel: number,
+    beforeWolfEnds?: (room: Room) => Promise<void>
+  ) {
+    const room = await allyRoom(wolfAt, classLevel)
+    const outgoing = await wolfEndsTurnInCaltrops(
+      room,
+      wolfAt,
+      beforeWolfEnds && (() => beforeWolfEnds(room))
+    )
+    if (outgoing?.kind !== 'EXECUTED') throw new Error('The Wolf’s turn end ran no zone.')
+    const [execution, ...others] = outgoing.executions
+    expect(others).toEqual([])
+    expect(execution?.candidate.candidate).toMatchObject({
+      targetActorId: WOLF_ID,
+      trigger: 'END_OF_TURN'
+    })
+    return {
+      modifier: execution?.d20?.modifier,
+      boundModifier: execution?.execution.evidence.facts['dnd5e.save-modifier']
+    }
+  }
+
+  // The Wolf's Dexterity save is +2; the Paladin's Charisma 8 lends the aura's minimum of +1.
+  it('lends the Paladin’s Charisma bonus to an ally’s save inside its 10-foot aura, and the bound save fact records it', async () => {
+    expect(await wolfSave({ x: 250, y: 150 }, 6)).toEqual({ modifier: 3, boundModifier: 3 })
+  })
+
+  it('lends nothing to an ally beyond 10 feet', async () => {
+    expect(await wolfSave({ x: 550, y: 150 }, 6)).toEqual({ modifier: 2, boundModifier: 2 })
+  })
+
+  it('lends nothing while the Paladin is at 0 hit points', async () => {
+    const save = await wolfSave({ x: 250, y: 150 }, 6, async (room) => {
+      const answer = await sendSheetCommand(room, CASTER_ID, {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 200
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    })
+    expect(save).toEqual({ modifier: 2, boundModifier: 2 })
+  })
+
+  it('reaches the same ally 30 feet away at paladin level 18', async () => {
+    expect(await wolfSave({ x: 550, y: 150 }, 18)).toEqual({ modifier: 3, boundModifier: 3 })
+  })
+})
+
+describe('a Dodging creature’s turn-boundary zone save (SPELLS-20 T5d)', () => {
+  const dodgeDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
+    ({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE
+  )
+  if (dodgeDefinition?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Dodge fixture.')
+  const dodgeActionId = encounterBasicActionId(
+    WOLF_ID,
+    SRD_BASIC_ACTION_IDS.DODGE,
+    dodgeDefinition.document.effects[0]!.id
+  )
+
+  it('rolls the Dexterity save of a Wolf that Dodged on its turn with advantage as the turn ends in the caltrops', async () => {
+    const room = await fieldRoom('EVERYONE')
+    await castOnFirstTurn(room, () => room.startAreaAction(FIELD_POINT))
+    expect((await (await advanceCommand(room)).send()).type).toBe('COMMAND_COMMITTED')
+
+    const { answer: dodged } = await room.startAction(
+      WOLF_ID,
+      [],
+      null,
+      null,
+      dodgeActionId,
+      WOLF_ID
+    )
+    expect(dodged.type, JSON.stringify(dodged)).toBe('COMMAND_COMMITTED')
+    const wolfsTurn = await advanceCommand(room)
+    const ended = await wolfsTurn.send()
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+
+    const { outgoing } = await storedZonePhases(room, wolfsTurn.commandId)
+    expect(outgoing).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { targetActorId: WOLF_ID, trigger: 'END_OF_TURN' } },
+          d20: expect.objectContaining({ rollMode: 'ADVANTAGE' })
+        }
+      ]
+    })
   })
 })
 

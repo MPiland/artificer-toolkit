@@ -11,7 +11,11 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { DeadCharacterIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import {
+  buildMovementTarget,
+  characterConditionIds
+} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { withEncounterOccupantSaveBonus } from '@artificer-toolkit/rules-runtime/encounterOccupantSaveAuras'
 import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -143,14 +147,29 @@ export async function prepareNativeLiveMovementTarget(input: {
   })
   const inputs = await capture({ kind: 'INPUTS' })
   if (inputs.kind !== 'INPUTS') throw new Error('Encounter inputs are unavailable.')
+  const auras = await capture({ kind: 'OCCUPANT_SAVE_AURAS', actorId: actor.id })
+  if (auras.kind !== 'OCCUPANT_SAVE_AURAS' || auras.actorId !== actor.id)
+    throw new Error('Encounter save auras are unavailable.')
   // Only an actor with a defensive grant (Dodge) reads its capability definitions.
+  const defended = await withEncounterHolderDefense({
+    target,
+    gameSystemId: state.gameSystemId,
+    definitions,
+    speedDefinitions: inputs.system.speeds,
+    runEffectsByActorId: input.activeEffectsByActorId
+  })
   return {
-    target: await withEncounterHolderDefense({
-      target,
+    target: await withEncounterOccupantSaveBonus({
+      target: defended,
       gameSystemId: state.gameSystemId,
-      definitions,
-      speedDefinitions: inputs.system.speeds,
-      runEffectsByActorId: input.activeEffectsByActorId
+      auras: auras.auras,
+      readCharacterConditionIds: async ({ sourceActorId, sourceCharacterId }) => {
+        const source = await input.captures.prepareCharacter(
+          liveSessionCharacterRulesScope(scope, { id: sourceActorId, sourceId: sourceCharacterId })
+        )
+        revisions = mergeNativeRulesRevisions(revisions, source.revisions)
+        return characterConditionIds(source)
+      }
     }),
     revisions
   }

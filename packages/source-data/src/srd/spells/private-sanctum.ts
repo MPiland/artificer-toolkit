@@ -79,8 +79,10 @@ export const privateSanctum: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PRIVATE_SANCTUM, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PRIVATE_SANCTUM' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Secure the Sanctum',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions: 'You make an area within range magically secure.'
               }
             ]
           }

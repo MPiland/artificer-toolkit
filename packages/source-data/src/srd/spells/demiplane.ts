@@ -75,8 +75,11 @@ export const demiplane: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DEMIPLANE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DEMIPLANE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Open the Demiplane Door',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'You create a shadowy door on a flat solid surface that you can see within range. The door is large enough to allow Medium creatures to pass through unhindered.'
               }
             ]
           }

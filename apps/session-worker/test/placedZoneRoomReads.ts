@@ -96,7 +96,16 @@ export function readSheetStreamVersion(room: ActionRoom, characterId: string) {
  * The player of `characterId` ends the Character's Concentration on the Sheet, as its holder may at
  * any time; the room's answer, not yet checked.
  */
-export async function endConcentrationAtSheet(room: ActionRoom, characterId: string) {
+export function endConcentrationAtSheet(room: ActionRoom, characterId: string) {
+  return sendSheetCommand(room, characterId, { type: 'END_CONCENTRATION' })
+}
+
+/** The player of `characterId` sends one Sheet command at its current version; the room's answer, not yet checked. */
+export async function sendSheetCommand(
+  room: ActionRoom,
+  characterId: string,
+  command: Record<string, unknown>
+) {
   const streamVersion = await readSheetStreamVersion(room, characterId)
   const player = await connectPlayer(room.room.base)
   const commandId = crypto.randomUUID()
@@ -108,7 +117,7 @@ export async function endConcentrationAtSheet(room: ActionRoom, characterId: str
         scope: 'CHARACTER_SHEET',
         characterId,
         encounterId: room.room.encounterId,
-        command: { type: 'END_CONCENTRATION', commandId, expectedVersion: streamVersion }
+        command: { ...command, commandId, expectedVersion: streamVersion }
       }
     })
   )

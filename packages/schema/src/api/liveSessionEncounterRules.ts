@@ -138,6 +138,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
+    z.strictObject({ kind: z.literal('OCCUPANT_SAVE_AURAS'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
@@ -296,6 +297,27 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+    }),
+    z.strictObject({
+      kind: z.literal('OCCUPANT_SAVE_AURAS'),
+      revisions: liveSessionRulesRevisionsSchema,
+      actorId: postgresUuidSchema,
+      /**
+       * The save-bonus auras (D155) whose area holds the actor and whose disposition takes it in. A
+       * defeated Creature source lends nothing; whether a Character source is unconscious is
+       * checked by the save-time decorator.
+       */
+      auras: z
+        .array(
+          z.strictObject({
+            effectId: postgresUuidSchema,
+            sourceActorId: postgresUuidSchema,
+            /** The source Character's id, null for a Creature or custom source. */
+            sourceCharacterId: z.nullable(postgresUuidSchema),
+            amount: z.number().check(z.int())
+          })
+        )
+        .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
     }),
     z.strictObject({
       kind: z.literal('INITIATIVE_ROUND'),

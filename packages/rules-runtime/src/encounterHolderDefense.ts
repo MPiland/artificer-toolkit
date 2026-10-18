@@ -114,7 +114,8 @@ function heldItems(target: MovementTarget): HandOccupancyItem[] {
  * act or its speed is 0) apply nothing. Whether the holder sees its attacker, or the source of an
  * effect it saves against, is decided per roll by `prepareEncounterActionMechanics`
  * (`loadAttackPerception`); flows that do not load perception keep the attack contributors and
- * leave the source-sight saves out.
+ * leave the source-sight saves out. The target keeps the holder state, so a rebuilt turn target
+ * re-applies its grants as they stand then (SPELLS-20 T5d).
  */
 export async function withEncounterHolderDefense<T extends MovementTarget>(input: {
   target: T
@@ -124,17 +125,34 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }): Promise<T> {
   const { target } = input
-  const sourceSightSaves = encounterSourceSightSaveGrants({
+  if (!hasHolderDefenseGrants(target)) return target
+  return withHolderDefenseGrants(target, await encounterHolderState(input))
+}
+
+function sourceSightSaveGrants(target: MovementTarget) {
+  return encounterSourceSightSaveGrants({
     holderActorId: target.actor.id,
     effects: target.activeEffects,
     grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null
   })
-  if (!hasEncounterDefensiveGrants(target.activeEffects) && sourceSightSaves.length === 0)
-    return target
-  const holderState = await encounterHolderState(input)
+}
+
+function hasHolderDefenseGrants(target: MovementTarget): boolean {
+  return (
+    hasEncounterDefensiveGrants(target.activeEffects) || sourceSightSaveGrants(target).length > 0
+  )
+}
+
+/** Applies the target's defensive grants for `holderState`, which the target then keeps. */
+export function withHolderDefenseGrants<T extends MovementTarget>(
+  target: T,
+  holderState: EncounterHolderState
+): T {
+  const sourceSightSaves = sourceSightSaveGrants(target)
   const savingThrowDefinitions = target.targetDerivedFacts.savingThrowDefinitions
   return {
     ...target,
+    holderState,
     attackAgainstContributors: encounterAttackAgainstContributors(
       target.actor.id,
       target.activeEffects,

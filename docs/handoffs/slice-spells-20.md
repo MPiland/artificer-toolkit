@@ -269,6 +269,23 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterPassiveZones.test.ts`: a paladin 6 with Charisma 16 keeps a 10-foot token zone lending +3; at 18 with Charisma 8 it reaches 30 feet and lends +1; the id is stable; no rules, no token or no acquired aura places nothing.
   - `encounterOccupantSaveBonusCompilation.test.ts`: placement pins the bonus and the 30-foot reach against its source, and refuses a modifier bonus with no source (replaces T5a's transitional refusal test, a deliberate behavior change).
 
+### T5c (the bonus at save time, D155)
+
+- Holding auras: `encounterOccupantSaveAuras` (rules-runtime, pure) returns the stored zones lending `occupantSaveBonus` whose area shares area with the target's token footprint (touching the edge is outside), whose source is the target or its ally, and that `spatialEffectAffects` the target; a defeated Creature source is suppressed through `toSpatialInstances`. `readEncounterOccupantSaveAuras` (encounter-persistence) answers `[]` before reading tokens when the Scene holds no such zone.
+- Transport: the room turn capture gains an `OCCUPANT_SAVE_AURAS` request (internal Worker transport, every scope), answered from the Encounter's bound Scene.
+- Save time: `prepareNativeLiveMovementTarget`, the one target preparation every save path uses (action, zone or spatial, recurring active effect, Concentration; Character and Creature occupants), applies `withEncounterOccupantSaveBonus` after `withEncounterHolderDefense`. It reads each Character source's play state and skips an unconscious one, takes the largest amount (same-feature auras do not stack) and adds it to every save row's `modifier`, so the bound save fact records it and replay is exact. The amount is recorded on the target as `occupantSaveBonus`, and `rebuildEncounterTurnTarget` reapplies it, since turn stages (zone and recurring active effects) rebuild each caught creature's target from its raw facts.
+- Deferred: an ability score that changes mid-Run keeps the amount pinned at placement.
+- Proofs:
+  - `encounterOccupantSaveAuras.test.ts`: the real paladin aura holds an adjacent ally and the paladin, not a hostile or neutral creature, an ally whose footprint only touches the 10-foot edge, or an actor with no token; a defeated Creature source lends nothing; the decorator adds the largest bonus to every row, a rebuilt turn target keeps it, it skips an unconscious Character source and reads no Character for a Creature source.
+  - `nativeRoomTurnZoneEffects.test.ts` (room journey): a friendly wolf ending its turn in caltrops saves with the paladin's +CHA inside the aura (the bound `dnd5e.save-modifier` fact records it), without it outside or with the paladin at 0 HP, and with it 30 feet away at paladin level 18.
+
+### T5d (Dodge kept across turn-stage rebuilds)
+
+- Found in T5c: `rebuildEncounterTurnTarget` rebuilt caught targets from raw facts and dropped the holder defense, so a Dodging creature's turn-boundary zone save lost its Dexterity advantage.
+- Fix: `withEncounterHolderDefense` keeps the holder state it found on the target (`holderState`). Its pure half, `withHolderDefenseGrants`, re-applies the grants in the rebuild from the effects in force at that stage, so Dodge's own expiry still applies.
+- Known limit: the holder state is the one found at preparation. A condition an earlier stage of the same turn applies (incapacitated, speed 0) does not end the grants until the next preparation.
+- Proof: `nativeRoomTurnZoneEffects.test.ts`, where a Wolf that Dodged on its turn rolls its end-of-turn caltrops Dexterity save with advantage. Locally it is NORMAL without the fix.
+
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.

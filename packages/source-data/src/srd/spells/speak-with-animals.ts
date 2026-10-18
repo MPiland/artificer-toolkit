@@ -54,18 +54,13 @@ export const speakWithAnimals: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x213, 1),
               durationKind: 'MINUTE',
               amount: 10
             },
             outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SPEAK_WITH_ANIMALS' as const
-              },
               {
                 id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,

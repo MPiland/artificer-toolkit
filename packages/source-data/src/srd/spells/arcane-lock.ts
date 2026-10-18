@@ -65,8 +65,11 @@ export const arcaneLock: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ARCANE_LOCK, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ARCANE_LOCK' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Lock the Entryway',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'You touch a closed door, window, gate, chest, or other entryway, and it becomes locked for the duration.'
               }
             ]
           }
