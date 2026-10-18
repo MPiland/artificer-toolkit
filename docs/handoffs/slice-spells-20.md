@@ -279,6 +279,13 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterOccupantSaveAuras.test.ts`: the real paladin aura holds an adjacent ally and the paladin, not a hostile or neutral creature, an ally whose footprint only touches the 10-foot edge, or an actor with no token; a defeated Creature source lends nothing; the decorator adds the largest bonus to every row, a rebuilt turn target keeps it, it skips an unconscious Character source and reads no Character for a Creature source.
   - `nativeRoomTurnZoneEffects.test.ts` (room journey): a friendly wolf ending its turn in caltrops saves with the paladin's +CHA inside the aura (the bound `dnd5e.save-modifier` fact records it), without it outside or with the paladin at 0 HP, and with it 30 feet away at paladin level 18.
 
+### T5d (Dodge kept across turn-stage rebuilds)
+
+- Found in T5c: `rebuildEncounterTurnTarget` rebuilt caught targets from raw facts and dropped the holder defense, so a Dodging creature's turn-boundary zone save lost its Dexterity advantage.
+- Fix: `withEncounterHolderDefense` keeps the holder state it found on the target (`holderState`). Its pure half, `withHolderDefenseGrants`, re-applies the grants in the rebuild from the effects in force at that stage, so Dodge's own expiry still applies.
+- Known limit: the holder state is the one found at preparation. A condition an earlier stage of the same turn applies (incapacitated, speed 0) does not end the grants until the next preparation.
+- Proof: `nativeRoomTurnZoneEffects.test.ts`, where a Wolf that Dodged on its turn rolls its end-of-turn caltrops Dexterity save with advantage. Locally it is NORMAL without the fix.
+
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.
