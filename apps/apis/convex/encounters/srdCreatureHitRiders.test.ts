@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { sourceImportBatches } from '../content/importBatches'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -95,10 +96,11 @@ async function setup(input: {
   })
   await importSeededSrdCreatureSenses(base.t, creature)
   if (input.basicActions)
-    await base.t.mutation(internal.content.import.importDefinitions, {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: SRD_BASIC_ACTION_DEFINITIONS
-    })
+    for (const definitions of sourceImportBatches(SRD_BASIC_ACTION_DEFINITIONS))
+      await base.t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions
+      })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [

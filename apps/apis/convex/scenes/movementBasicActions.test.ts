@@ -14,6 +14,7 @@ import type {
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { sourceImportBatches } from '../content/importBatches'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -56,10 +57,11 @@ async function moverTurn(
   const base = await setupCreatureReactionRun(null, true, withHelper, 'CHOICE', 'CHOICE', false, {
     qualifiedDamageDefenses
   })
-  await base.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_BASIC_ACTION_DEFINITIONS
-  })
+  for (const definitions of sourceImportBatches(SRD_BASIC_ACTION_DEFINITIONS))
+    await base.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions
+    })
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
   await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
   await setCurrentActor(base, base.additionalReactorActor?.id ?? base.mover.id)

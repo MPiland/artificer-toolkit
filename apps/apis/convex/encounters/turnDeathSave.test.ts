@@ -18,6 +18,7 @@ import {
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { sourceImportBatches } from '../content/importBatches'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -447,10 +448,11 @@ async function basicActionIdOf(
   actorId: string,
   label: string
 ) {
-  await fixture.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_BASIC_ACTION_DEFINITIONS
-  })
+  for (const definitions of sourceImportBatches(SRD_BASIC_ACTION_DEFINITIONS))
+    await fixture.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions
+    })
   await invalidateRoomInputs(fixture.campaign.id, ['PLAY'])
   await checkpointLiveRoom(fixture.campaign.id)
   const choice = (

@@ -8,6 +8,7 @@ import {
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { sourceImportBatches } from '../content/importBatches'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -432,10 +433,11 @@ describe('room Disarm commands', () => {
 
   /** The helper Helps the target through the real room, overriding Assisted mode's hostile-target warning. */
   async function help(base: Base, helperId: string, targetId: string) {
-    await base.t.mutation(internal.content.import.importDefinitions, {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: SRD_BASIC_ACTION_DEFINITIONS
-    })
+    for (const definitions of sourceImportBatches(SRD_BASIC_ACTION_DEFINITIONS))
+      await base.t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions
+      })
     await setCurrentActor(base, helperId)
     await checkpointLiveRoom(base.campaign.id)
     const choice = (
