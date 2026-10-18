@@ -73,7 +73,12 @@ describe('a hit-point pool choosing whom an area affects (SPELLS-27.T8)', () => 
   // conditions it ignores, their hit points left in it.
   it('passes over a creature with a condition the pool ignores', () => {
     const candidates = [
-      { actorId: 'asleep', currentHitPoints: 3, creatureTypeId: null, conditionIds: ['unconscious'] },
+      {
+        actorId: 'asleep',
+        currentHitPoints: 3,
+        creatureTypeId: null,
+        conditionIds: ['unconscious']
+      },
       { actorId: 'prone', currentHitPoints: 5, creatureTypeId: null, conditionIds: ['prone'] },
       { actorId: 'awake', currentHitPoints: 7, creatureTypeId: null, conditionIds: [] }
     ]
