@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
@@ -23,7 +24,7 @@ import {
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
-import { encounterActionChoiceTarget } from '../encounterAreaAction.js'
+import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -362,7 +363,13 @@ function build(
 
 /** The compiled entry the Encounter would run for the spell's cast, or null when it stays manual. */
 function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) {
-  const built = build([candidate(authored, castLevel)])
+  const cast = candidate(authored, castLevel)
+  // The spell as given, which may be a changed copy of a listed one.
+  const documents = new Map([...authoredById, [authored.id, authored]])
+  const built = build([cast], {
+    policyOutput: policyFor([cast], documents),
+    spellDocumentsById: documents
+  })
   const compiled = compileCharacterActionEntryPoints({
     gameSystemId: SRD_SYSTEM_ID,
     candidates: built.candidates,
@@ -945,7 +952,9 @@ describe('a wall cast as a straight wall or a ring (SPELLS-4.T1b, D154)', () => 
     return { entry, options: placement.options }
   }
   /** The damage dice a zone's entry rolls, by their size; a save's d20 is not one. */
-  const entryDice = (zone: ReturnType<typeof zoneOptions>['options'][number]['zone']) =>
+  const entryDice = (
+    zone: Pick<ReturnType<typeof zoneOptions>['options'][number]['zone'], 'entry'>
+  ) =>
     zone.entry.frozenGraph.definition.nodes
       .filter(
         (node) =>
@@ -965,28 +974,48 @@ describe('a wall cast as a straight wall or a ring (SPELLS-4.T1b, D154)', () => 
         {
           id: options[0]!.optionId,
           label: 'Straight Wall',
-          target: { kind: 'WALL', area: { maxLength: feet(60), thickness: feet(1) } }
+          target: {
+            kind: 'WALL',
+            area: { maxLength: feet(60), thickness: feet(1) },
+            sideBand: { distance: feet(10) }
+          }
         },
         {
           id: options[1]!.optionId,
           label: 'Ringed Wall',
-          target: { kind: 'RING', area: { maxOuterRadius: feet(10), thickness: feet(1) } }
+          target: {
+            kind: 'RING',
+            area: { maxOuterRadius: feet(10), thickness: feet(1) },
+            sideBand: { distance: feet(10) }
+          }
         }
       ]
     })
   })
 
-  it('burns, with no save, a creature entering or crossing Wall of Fire once a turn and at the end of its turn there, through its Concentration', () => {
+  it('burns, with no save, a creature entering or crossing Wall of Fire once a turn, and one ending its turn in the wall or within 10 feet on its burning side, through its Concentration', () => {
     const { options } = zoneOptions(WALL_OF_FIRE)
-    for (const { zone } of options)
+    for (const { zone } of options) {
+      expect(zone).not.toHaveProperty('turnTriggers')
       expect(zone).toMatchObject({
         attachment: 'PLACED_SPACE',
         triggerModes: ['ENTER', 'CROSS'],
-        turnTriggers: ['END_OF_TURN'],
         maxApplicationsPerTurn: 1,
         blockingRules: ['BLOCKS_SIGHT'],
         maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
       })
+      // The band of the burning side (the D154 amendment) shares the wall's Concentration.
+      expect(zone.regionComponents).toMatchObject([
+        {
+          region: { kind: 'SIDE_BAND', distance: feet(10) },
+          label: 'Wall of Fire Burning Side',
+          triggerModes: [],
+          turnTriggers: ['END_OF_TURN']
+        }
+      ])
+      expect(zone.regionComponents?.[0]).not.toHaveProperty('maintenance')
+      expect(entryDice(zone.regionComponents![0]!)).toEqual(entryDice(zone))
+    }
     expect(options[0]?.zone.entry.castSaveDcFactKey).toBeNull()
     expect(options[0]?.zone).not.toHaveProperty('ringThickness')
     expect(options[1]?.zone.ringThickness).toEqual(feet(1))
@@ -994,6 +1023,96 @@ describe('a wall cast as a straight wall or a ring (SPELLS-4.T1b, D154)', () => 
     expect(entryDice(zoneOptions(WALL_OF_FIRE, 6).options[1]!.zone)).toEqual(
       Array(7).fill({ kind: 'LITERAL', value: 8 })
     )
+  })
+
+  /** Wall of Fire with each of its zones' components, the wall and its band, changed by `change`. */
+  function withFireComponents(
+    change: (
+      wall: ManifestComponentAuthored,
+      band: ManifestComponentAuthored
+    ) => ManifestComponentAuthored[]
+  ) {
+    const authored = structuredClone(WALL_OF_FIRE)
+    const path = authored.effects?.[0]?.paths[0]
+    if (path?.selectionKind !== 'CHOICE') throw new Error('Wall of Fire must offer its zones.')
+    for (const { resultBlock } of path.options)
+      for (const outcome of resultBlock.outcomes) {
+        if (!('components' in outcome)) continue
+        const [wall, band] = outcome.components ?? []
+        if (!wall || !band) throw new Error('Each Wall of Fire zone must author its wall and band.')
+        outcome.components = change(wall, band)
+      }
+    return authored
+  }
+
+  it.each([
+    {
+      name: 'a band on the wall itself',
+      change: (wall: ManifestComponentAuthored, band: ManifestComponentAuthored) => [
+        { ...wall, region: band.region },
+        band
+      ]
+    },
+    {
+      name: 'a second component with no band',
+      change: (
+        wall: ManifestComponentAuthored,
+        { region: _region, ...band }: ManifestComponentAuthored
+      ) => [wall, band]
+    },
+    {
+      name: 'two bands beside one wall',
+      change: (wall: ManifestComponentAuthored, band: ManifestComponentAuthored) => [
+        wall,
+        band,
+        { ...band, id: testUuid(0xb3a9), order: 3 }
+      ]
+    },
+    {
+      name: 'a band that spares creatures its caster chooses',
+      change: (wall: ManifestComponentAuthored, band: ManifestComponentAuthored) => [
+        wall,
+        { ...band, choosesUnaffected: true }
+      ]
+    }
+  ])('casts no zone for $name (D154 amendment)', ({ change }) => {
+    expect(compiledCastEntry(withFireComponents(change))).toBeNull()
+  })
+
+  it('takes a side only for a wall whose zone reaches a band beside it (D154 amendment)', () => {
+    const aimedWall = (authored: SpellAuthored, side?: 'LEFT' | 'RIGHT') => {
+      const { entry, options } = zoneOptions(authored)
+      if (!entry?.targetPolicy) throw new Error(`${authored.label} must compile with its range.`)
+      return evaluateEncounterZoneTarget({
+        zone: options[0]!.zone,
+        range: entry.targetPolicy.range,
+        target: {
+          kind: 'WALL',
+          sceneId: testUuid(0xb3b0),
+          expectedSceneVersion: 1,
+          from: { x: 0, y: 0 },
+          to: { x: 0, y: 600 },
+          ...(side ? { side } : {})
+        },
+        grid: {
+          kind: 'SQUARE',
+          cellSize: 100,
+          diagonalPolicy: 'EQUAL',
+          distancePerCell: 5,
+          origin: { x: 0, y: 0 },
+          unit: 'FEET'
+        },
+        sourceToken: { position: { x: 0, y: 0 }, height: 1, width: 1, rotationDegrees: 0 },
+        aimSeen: true
+      })
+    }
+
+    expect(aimedWall(WALL_OF_FIRE)).toEqual({ refusal: 'SIDE_REQUIRED' })
+    expect(aimedWall(WALL_OF_FIRE, 'LEFT')).toMatchObject({
+      regions: [{ side: 'LEFT', distance: 200 }]
+    })
+    expect(aimedWall(WALL_OF_THORNS, 'LEFT')).toEqual({ refusal: 'SIDE_NOT_OFFERED' })
+    expect(aimedWall(WALL_OF_THORNS)).toMatchObject({ regions: [] })
   })
 
   it('makes a creature spend four times the movement through Wall of Thorns and save against its thorns', () => {

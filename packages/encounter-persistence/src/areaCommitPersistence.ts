@@ -336,8 +336,9 @@ export async function persistEncounterAreaCommit(
   if (
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== scope.caughtChecksum ||
-    root.placedSpatialEffectId !== (input.placedZone?.id ?? null) ||
-    (scope.zoneSceneId !== null) !== (input.placedZone !== null) ||
+    checksumCanonicalJson(root.placedSpatialEffectIds) !==
+      checksumCanonicalJson(input.placedZones.map(({ id }) => id)) ||
+    (scope.zoneSceneId !== null) !== input.placedZones.length > 0 ||
     checksumCanonicalJson(root.removedActorIds) !== checksumCanonicalJson(scope.removedActorIds) ||
     checksumCanonicalJson(root.targetOccurrenceIds) !==
       checksumCanonicalJson(kept.map(({ occurrenceId }) => occurrenceId)) ||
@@ -434,9 +435,10 @@ export async function persistEncounterAreaCommit(
   if (
     (maintained.length > 0 || rootMaintenance !== null) !== (input.maintainedState !== null) ||
     (maintained.length > 0 && rootMaintenance !== null) ||
-    (input.placedZone &&
-      input.placedZone.maintainedEffectStateId !== null &&
-      input.placedZone.maintainedEffectStateId !== input.maintainedState?.id)
+    input.placedZones.some(
+      ({ maintainedEffectStateId }) =>
+        maintainedEffectStateId !== null && maintainedEffectStateId !== input.maintainedState?.id
+    )
   )
     throw new Error('Live Session area maintenance scope mismatch.')
   const carrier = maintained[0] ?? null
@@ -694,12 +696,14 @@ export async function persistEncounterAreaCommit(
       created: input.maintainedState,
       occurredAt: input.occurredAt
     })
-  if (input.placedZone && scope.zoneSceneId !== null)
-    await createPlacedSpatialEffect(ctx, {
-      encounterId: state.id,
-      sceneId: scope.zoneSceneId,
-      zone: input.placedZone
-    })
+  // A zone's own record, then its bands (D154), in the order the cast planned them.
+  if (scope.zoneSceneId !== null)
+    for (const zone of input.placedZones)
+      await createPlacedSpatialEffect(ctx, {
+        encounterId: state.id,
+        sceneId: scope.zoneSceneId,
+        zone
+      })
   // The placed zone's timed grant lands on its placer (D153), exactly as the root receipted it.
   const grant = input.zoneSourceGrant
   const origin = grant?.definition.origin
@@ -714,7 +718,7 @@ export async function persistEncounterAreaCommit(
         null
     ) !== checksumCanonicalJson(root.sourceGrantTransition ?? null) ||
     (grant &&
-      (!input.placedZone ||
+      (input.placedZones.length === 0 ||
         checksumCanonicalJson(grant.owner) !==
           checksumCanonicalJson(turnEffectOwner(source, state.id)) ||
         grant.maintainedEffectStateId !== null ||

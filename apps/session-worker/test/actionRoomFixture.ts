@@ -636,12 +636,14 @@ export async function actionRoom(config: ActionRoomConfig) {
             kind: 'WALL'
             from: { x: number; y: number }
             to: { x: number; y: number }
+            side?: 'LEFT' | 'RIGHT'
             choiceOptionId?: string
           }
         | {
             kind: 'RING'
             center: { x: number; y: number }
             outerRadius: number
+            side?: 'INSIDE' | 'OUTSIDE'
             choiceOptionId?: string
           },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],

@@ -27,8 +27,11 @@ export interface PlacedSpaceZone {
   shape: NonNullable<PlacedSpaceManifest['shape']>
   /** A hollow zone's wall thickness: it is a ring (D154). Absent for a filled zone. */
   ringThickness?: CompiledActionZonePlacement['ringThickness']
-  component: CompiledManifestComponent
-  behavior: CompiledEffectGroup
+  /**
+   * Its components in authored order, each with the one behavior its entry runs: the first covers
+   * the zone's shape, each later one the region it authors (D154).
+   */
+  components: Array<{ component: CompiledManifestComponent; behavior: CompiledEffectGroup }>
   /** The one APPLY_GRANT entry authored beside the zone, which its placer holds; null for none. */
   sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
 }
@@ -49,6 +52,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'id',
   'order',
   'label',
+  'region',
   'interactionKinds',
   'bypassAtHalfSpeed',
   'choosesUnaffected',
@@ -146,21 +150,28 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone models only its label, shape and entering components.'
     )
-  const [component] = manifest.components ?? []
+  const components = [...(manifest.components ?? [])].sort((a, b) => a.order - b.order)
   const { label, shape } = manifest
-  if (manifest.components?.length !== 1 || !component || !shape || !label)
+  if (!components.length || !shape || !label)
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone needs a label, a shape and exactly one component.'
+      'A placed zone needs a label, a shape and a component.'
     )
-  if (hasUnmodeledField(component, MODELED_COMPONENT_KEYS))
+  if (components[0]?.region || components.slice(1).some((component) => !component.region))
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone component models only its interaction and behavior.'
+      'A placed zone’s first component covers its shape, and each later one a region beside it.'
     )
-  const [behavior] = component.behaviors ?? []
-  if (component.behaviors?.length !== 1 || !behavior)
-    throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone component needs exactly one behavior.'
-    )
+  const planned = components.map((component) => {
+    if (hasUnmodeledField(component, MODELED_COMPONENT_KEYS))
+      throw new CharacterRuleActionUnsupportedCompilationError(
+        'A placed zone component models only its region, interaction and behavior.'
+      )
+    const [behavior] = component.behaviors ?? []
+    if (component.behaviors?.length !== 1 || !behavior)
+      throw new CharacterRuleActionUnsupportedCompilationError(
+        'A placed zone component needs exactly one behavior.'
+      )
+    return { component, behavior }
+  })
   const { hollow, wallThickness } = manifest
   if (Boolean(hollow) !== (wallThickness !== undefined))
     throw new CharacterRuleActionUnsupportedCompilationError(
@@ -171,8 +182,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     label,
     shape,
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
-    component,
-    behavior,
+    components: planned,
     sourceGrantEntry
   }
 }
