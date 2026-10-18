@@ -6308,8 +6308,9 @@
             {
               "id": "ATTACK-7.T6",
               "text": "Slice F: author the Shove basic action on ATTACK-18 (prone or a 5-foot AWAY push on a win).",
-              "status": "TODO",
-              "closes": ["ATTACK-7.6"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.6"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T7",
@@ -7966,7 +7967,8 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2a3"]
               },
               "text": "Convert closed rules (D156 T2 split; T2a4 ruling): SEE_INVISIBILITY (new SRD sense perceiving invisible creatures), PLANT_GROWTH (terrain-only zones place without an appear save; Instantaneous zones persist until the GM removes them), SEQUESTER (after T2a3's SEQUENCE capability lands). Parity proof per spell, plus a room test where it shows in combat; each kind deleted. PRODUCE_FLAME moved to T2v, REGENERATE to T2t.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Increment landed (See Invisibility, perception senses fix, Plant Growth lastingZoneEntry): ci/spells-4-t2a4 52c0ea36d; batch ci/merge-m128 4ae37ea04 green (Tests 39154431682, Live 39154431693); phase merge 0c9cd2299. Sequester and Plant Growth exclusions remain, after T2a3."
             },
             {
               "status": "TODO",
@@ -10705,7 +10707,7 @@
         {
           "id": "SPELLS-31",
           "title": "Class feature closed rules become core authoring options",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -10725,7 +10727,7 @@
           "tasks": [
             {
               "id": "SPELLS-31.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10734,7 +10736,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
               },
-              "text": "Classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+              "text": "Classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             }
           ]
         },
