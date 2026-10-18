@@ -797,9 +797,9 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 2
+                "size": 3
               },
-              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries."
+              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries."
             }
           ]
         },
@@ -9739,7 +9739,7 @@
             },
             {
               "id": "SPELLS-20.T5d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -9748,7 +9748,7 @@
                 "size": 2
               },
               "text": "Bug (found in SPELLS-20.T5c, 2026-10-18; first registered as ATTACK-18.T9z): rebuildEncounterTurnTarget rebuilds a turn stage's target from raw facts and drops the holder's defense (withEncounterHolderDefense, e.g. Dodge), so a Dodging creature's turn-boundary saves (zone start or end of turn, recurring effects) lose Dodge's advantage on Dexterity saves. Carry the holder defense on MovementTarget as T5c did for occupantSaveBonus, with a regression room test that fails before the fix.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5d da3ee7b2d Tests 39143763721, Live 39143722167; fast-path phase merge 1c01a30f4 (m119 backstop)."
             },
             {
               "id": "SPELLS-20.T6a",
