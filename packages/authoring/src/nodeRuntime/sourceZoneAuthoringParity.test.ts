@@ -10,6 +10,7 @@ import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
+import { plantGrowth } from '@artificer-toolkit/source-data/srd/spells/plant-growth.js'
 import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { wallOfFire } from '@artificer-toolkit/source-data/srd/spells/wall-of-fire.js'
@@ -119,9 +120,10 @@ describe('the source aura through the equipment node map', () => {
     ['Black Tentacles', blackTentacles],
     ['Fire Shield', fireShield],
     ['Wall of Fire', wallOfFire],
-    ['Wall of Thorns', wallOfThorns]
+    ['Wall of Thorns', wallOfThorns],
+    ['Plant Growth', plantGrowth]
   ])(
-    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e; SPELLS-20.T6d1)',
+    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e, T2a4; SPELLS-20.T6d1)',
     async (_name, spell) => {
       const authored = carrying(spell.effects as EquipmentAuthored['effects'])
       const result = await normalize(authored)

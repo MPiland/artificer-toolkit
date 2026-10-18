@@ -212,6 +212,58 @@ export function markEncounterAreaLegendaryResistanceDecided(
   })
 }
 
+type ForcedMovementPick = NonNullable<NonNullable<AreaContext['forcedMovement']>['pick']>
+
+/**
+ * The settled area holding the push pick it owes next (D157), after the landings picked so far. The
+ * request is named for the creature, which is picked once.
+ */
+export function holdEncounterAreaForcedMovement(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  pick: Pick<ForcedMovementPick, 'targetActorId' | 'positions'>
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  if (!encounterAreaSettled(snapshot) || applicationContext.forcedMovement?.pick)
+    throw new Error('Only a settled area with no pick open holds a push pick.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      forcedMovement: {
+        landed: applicationContext.forcedMovement?.landed ?? [],
+        pick: {
+          requestId: `forced-movement:${pick.targetActorId}`,
+          targetActorId: pick.targetActorId,
+          positions: pick.positions
+        }
+      }
+    }
+  })
+}
+
+/** The area with its open push pick answered: the creature lands on `position`, one it offered. */
+export function landEncounterAreaForcedMovement(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  position: { x: number; y: number }
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const { pick, landed = [] } = applicationContext.forcedMovement ?? {}
+  if (
+    pick?.requestId !== requestId ||
+    !pick.positions.some(({ x, y }) => x === position.x && y === position.y)
+  )
+    throw new Error('This forced-movement destination is not on offer.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      forcedMovement: {
+        landed: [...landed, { targetActorId: pick.targetActorId, position }]
+      }
+    }
+  })
+}
 /** The pending occurrence of a point-area action: one sealed save per caught creature. */
 export function buildEncounterAreaPendingSnapshot(
   input: Omit<AreaContext, 'kind' | 'schemaVersion' | 'caughtChecksum' | 'removedActorIds'> & {

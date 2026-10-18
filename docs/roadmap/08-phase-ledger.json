@@ -791,7 +791,7 @@
             },
             {
               "id": "PLATFORM-13.T12",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 2,
@@ -799,7 +799,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139."
+              "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139.",
+              "note": "Green: d961c8b72 Tests 39147902939; batch ci/merge-m124 14e183243 green (Tests 39149206211, Live 39149206233); phase merge 41f7647ac."
             }
           ]
         },
@@ -6278,7 +6279,7 @@
             },
             {
               "id": "ATTACK-7.T5c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6288,11 +6289,11 @@
                 "after": ["ATTACK-7.T5b"]
               },
               "text": "D157 board pick: extend vttAreaAimGesture's point pick to the server's legal squares, with highlights, keyboard-focusable squares named by direction and distance, and a board prompt naming the creature (no drawer list); browser test of the pick. Closes AC 7.7 for the user.",
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "note": "Green: ci/attack-7-t5c c50a5bbae; batch ci/merge-m126 07ea436a4 green (Tests 39151389672, Live 39151389675); phase merge edd5774f9."
             },
             {
               "id": "ATTACK-7.T5d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6301,13 +6302,15 @@
                 "size": 3,
                 "after": ["ATTACK-7.T5b"]
               },
-              "text": "Found in T5b (2026-10-18): an area action whose push needs a destination pick (ASIDE, ANY or UP_TO) fails at commit. Per D157, hold one target at a time, farthest first, each offer derived after the farther creatures landed, and commit after the last answer; room journey with two pushed creatures."
+              "text": "Found in T5b (2026-10-18): an area action whose push needs a destination pick (ASIDE, ANY or UP_TO) fails at commit. Per D157, hold one target at a time, farthest first, each offer derived after the farther creatures landed, and commit after the last answer; room journey with two pushed creatures.",
+              "note": "Green: ci/attack-7-t5d 937d8eb5d Tests 39149009032, Live 39149009177; batch ci/merge-m126 07ea436a4 green (Tests 39151389672, Live 39151389675); phase merge edd5774f9."
             },
             {
               "id": "ATTACK-7.T6",
               "text": "Slice F: author the Shove basic action on ATTACK-18 (prone or a 5-foot AWAY push on a win).",
-              "status": "TODO",
-              "closes": ["ATTACK-7.6"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.6"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T7",
@@ -7898,7 +7901,7 @@
               "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a1",
               "wsjf": {
@@ -7909,11 +7912,11 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Convert closed rules (D156 T2 split; T2a1 rulings): hitPointPoolIgnoredConditionIds on AREA_CONTENTS (Sleep [UNCONSCIOUS] with a regression room test that fails before the change, Color Spray [UNCONSCIOUS, BLINDED]); condition-owning effects take the SOURCE turn anchor so Color Spray blinds until the end of the caster's next turn; AWAKEN converts as class C (MANUAL_ADJUDICATION quoting its description). Parity proof per spell; each kind deleted. CONTACT_OTHER_PLANE moved to T2a1b, COMPULSION to T2l, CONTAGION to T2m.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Green: ci/spells-4-t2a1 623622fd5 Tests 39147996513, Live 39147996471; batch ci/merge-m125 869a17ff6 green (Tests 39151386502, Live 39151386595); phase merge edd5774f9 (with m126)."
             },
             {
               "id": "SPELLS-4.T2a1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -7922,10 +7925,11 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2a1"]
               },
-              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted."
+              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted.",
+              "note": "Green: ci/spells-4-t2a1b 8168f966a Tests 39154174874, Live 39154174808; batch ci/merge-m129 a63a47e83 green (Tests 39155855398, Live 39155855438); phase merge d44c5bbcc."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a2",
               "wsjf": {
@@ -7936,7 +7940,7 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Convert closed rules with existing options (D156 T2 split, class A; T2a2 ruling): FORESIGHT (8-hour APPLY_GRANT of the Help and Dodge advantage and disadvantage grants; 'can't be surprised' stays description-only). Parity proof, plus a room test where it shows in combat; the kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Green: ci/spells-4-t2a2 43cd4b1b6 Tests 39150523726, Live 39150523850; batch ci/merge-m127 6d2cf296f green (Tests 39152044303, Live 39152044301); phase merge 9a58b5ee7."
             },
             {
               "status": "IN_PROGRESS",
@@ -7961,13 +7965,14 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-4.T1"]
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2a3"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): PLANT_GROWTH, PRODUCE_FLAME, REGENERATE, SEE_INVISIBILITY, SEQUESTER. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "Convert closed rules (D156 T2 split; T2a4 ruling): SEE_INVISIBILITY (new SRD sense perceiving invisible creatures), PLANT_GROWTH (terrain-only zones place without an appear save; Instantaneous zones persist until the GM removes them), SEQUESTER (after T2a3's SEQUENCE capability lands). Parity proof per spell, plus a room test where it shows in combat; each kind deleted. PRODUCE_FLAME moved to T2v, REGENERATE to T2t.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Increment landed (See Invisibility, perception senses fix, Plant Growth lastingZoneEntry): ci/spells-4-t2a4 52c0ea36d; batch ci/merge-m128 4ae37ea04 green (Tests 39154431682, Live 39154431693); phase merge 0c9cd2299. Sequester and Plant Growth exclusions remain, after T2a3."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a5",
               "wsjf": {
@@ -7977,7 +7982,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
@@ -8215,17 +8221,18 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2t",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 8,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), with a parity proof; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), and REGENERATE (an immediate heal beside a recurring one; fix its SRD data: no Concentration, a 1-minute cast, a 1-hour duration), with parity proofs; each kind deleted. T2t ruling: temporary hit points record their source effect; the compiler accepts SEQUENTIAL entries with one effect-bearing entry; Heroism becomes castable.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -8251,7 +8258,7 @@
                 "size": 8,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE, PRODUCE_FLAME (an optional later hurl that ends the spell) and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted."
             },
             {
               "status": "TODO",
@@ -10702,7 +10709,7 @@
         {
           "id": "SPELLS-31",
           "title": "Class feature closed rules become core authoring options",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -10722,7 +10729,7 @@
           "tasks": [
             {
               "id": "SPELLS-31.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10731,14 +10738,506 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
               },
-              "text": "Classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+              "text": "Classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling.",
+              "note": "Classification of 164 CLASS_* kinds and the 36-subtask split in docs/handoffs/slice-spells-31.md (ci/spells-31-t1 858e6167c); accepted by the D156 SPELLS-31.T1 ruling."
+            },
+            {
+              "id": "SPELLS-31.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "Class C: delete the 28 description-only or sibling-expressed kinds (Natural Explorer and Divine Health included) and their CLOSED_RULE outcomes, keeping descriptions; snapshot and parity checks. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T3a",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "Class A: Fast Movement, Divine Strike, Purity of Body, Magical Secrets, with parity proofs; plus the Fighter Extra Attack 11th- and 20th-level steps as an authored-data fix with its own test. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Stunning Strike moved to T5r.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T3b",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "Class A: Signature Spells, Divine Sense (with its charges), Devil's Sight, Empty Body, Gaze of Two Minds, with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T3c",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "Class A: Divine Intervention (MANUAL_ADJUDICATION with the d100 roll and lockout), Volley, Whirlwind Attack (to class B if per-creature weapon attacks do not compile), with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2c"]
+              },
+              "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4e",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2e"]
+              },
+              "text": "Join SPELLS-4.T2e: Sacred Weapon (regression test for its Holy Nimbus charge bug), Ki-Empowered Strikes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4f",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2f"]
+              },
+              "text": "Join SPELLS-4.T2f: Stillness of Mind, Cleansing Touch, Lay on Hands (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4i",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2d", "SPELLS-4.T2t"]
+              },
+              "text": "Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4j",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2j"]
+              },
+              "text": "Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4k1",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2k", "SPELLS-4.T2l"]
+              },
+              "text": "Join SPELLS-4.T2k: the three Protection styles, Stand Against the Tide, Giant Killer. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4k2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2k", "SPELLS-31.T5l"]
+              },
+              "text": "Join SPELLS-4.T2k: Elusive, Escape the Horde, Nature's Sanctuary, Tranquility. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4l1",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2o"]
+              },
+              "text": "Join SPELLS-4.T2l: Cunning Action, Fast Hands, Vanish, Ki disciplines. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4l2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-31.T4l1", "SPELLS-4.T2l"]
+              },
+              "text": "Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4m",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2m"]
+              },
+              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text), Turn the Unholy (with resource use), Destroy Undead. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4n",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2n", "SPELLS-4.T2i"]
+              },
+              "text": "Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4o",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
+              },
+              "text": "Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4r",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2r", "SPELLS-4.T2j", "SPELLS-31.T5l"]
+              },
+              "text": "Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4s",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2s", "SPELLS-4.T2h"]
+              },
+              "text": "Join SPELLS-4.T2s: Wild Shape, Beast Spells, Archdruid, Hurl Through Hell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T4v",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T1",
+                  "SPELLS-4.T2v",
+                  "SPELLS-4.T2w",
+                  "SPELLS-4.T2e",
+                  "SPELLS-4.T2l"
+                ]
+              },
+              "text": "Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5a",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): holder-side save-damage override and incoming halving; Evasion x3, Uncanny Dodge x2. Shares the damage-resolution step with SPELLS-4.T2p, not an option. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5b",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T1", "SPELLS-31.T5a"]
+              },
+              "text": "New option: incoming damage reduction by an expression; Deflect Missiles, Slow Fall. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5d",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): critical range and extra critical dice; Improved, Superior and Brutal Critical. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5e",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-31.T5g"]
+              },
+              "text": "New option (ruling at start): damage die rerolls; the three Great Weapon styles, Empowered Spell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5f",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m"]
+              },
+              "text": "New option (ruling at start): options bound to another active effect; Persistent, Relentless and Mindless Rage, Frenzy, Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5g",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): cast-time metamagic choice with a resource cost; Careful, Twinned, Heightened, Subtle Spell, Sculpt Spells. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5h",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-31.T5g"]
+              },
+              "text": "New option (ruling at start): cast parameters; Distant, Extended, Quickened Spell, Overchannel. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5i",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
+              },
+              "text": "New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5j",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5k",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2j"]
+              },
+              "text": "New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5l",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5m",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2a5"]
+              },
+              "text": "New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5n",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): movement-bound end events and gates; One with Shadows, Hide in Plain Sight, Supreme Sneak. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5o",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): initiative events; Perfect Self, Superior Inspiration, Thief's Reflexes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5p",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5q",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
+              },
+              "text": "New option (ruling at start): ability score caps and check bonuses; ASI maximum 20, Primal Champion, Jack of All Trades, Remarkable Athlete. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5r",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T1"]
+              },
+              "text": "New option (D156 SPELLS-31.T3a ruling): optionalOnHit gains the RESOURCE_POOL cost D123 names ({ kind: 'RESOURCE_POOL', chargeId, cost }) in the onHitChoice offer, transport and payment path. Converts Stunning Strike, with an authoring-parity proof; the kind deleted."
             }
           ]
         },
         {
           "id": "SPELLS-32",
           "title": "Racial trait closed rules become core authoring options",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -10758,7 +11257,7 @@
           "tasks": [
             {
               "id": "SPELLS-32.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -10767,14 +11266,15 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
               },
-              "text": "Classify the racial trait closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+              "text": "Classify the racial trait closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             }
           ]
         },
         {
           "id": "SPELLS-33",
           "title": "Creature trait and action closed rules become core authoring options",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -10794,7 +11294,7 @@
           "tasks": [
             {
               "id": "SPELLS-33.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -10803,7 +11303,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
               },
-              "text": "Classify the creature trait, action and reaction closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling."
+              "text": "Classify the creature trait, action and reaction closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             }
           ]
         }

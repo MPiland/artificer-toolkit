@@ -1,20 +1,62 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const grantId = (index: number) => spellChildId(SPELL_IDS.FORESIGHT, 0x214, index + 1)
+const grant = {
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+} as const
+const attackDomains = Object.values(ATTACK_DOMAIN_CODE)
+// Advantage on attack rolls, ability checks and every saving throw; attacks against the target
+// have disadvantage. "Can't be surprised" resolves nothing in an Encounter (D156).
+const foresightModifiers = [
+  ...attackDomains.map((attackDomain) => ({
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+    domain: { attackDomain },
+    modifierKind: MODIFIER_KIND.ADVANTAGE
+  })),
+  {
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ADVANTAGE
+  },
+  ...Object.values(ABILITY_CODE).map((ability) => ({
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+    domain: { ability },
+    modifierKind: MODIFIER_KIND.ADVANTAGE
+  })),
+  ...attackDomains.map((attackDomain) => ({
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+    domain: { attackDomain, requiresHolderSeesAttacker: false },
+    modifierKind: MODIFIER_KIND.DISADVANTAGE
+  }))
+].map((modifier, index) => ({ id: grantId(index), ...modifier, order: index + 1 }))
 export const foresight: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.FORESIGHT,
@@ -44,7 +86,7 @@ export const foresight: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       paths: [
@@ -66,8 +108,8 @@ export const foresight: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FORESIGHT, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'FORESIGHT' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: { modifiers: foresightModifiers }
               }
             ]
           }

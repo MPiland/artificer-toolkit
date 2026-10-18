@@ -22,6 +22,8 @@ import type {
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaCaughtChecksum,
+  holdEncounterAreaForcedMovement,
+  landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
@@ -276,9 +278,21 @@ export async function requireAreaActionPendingRoot(
 }
 
 /**
+ * The area holding the push pick `next` opens, if any (D157): the answer that settles an area may
+ * open its first pick, and each landing the next one.
+ */
+function withOpenedPick(
+  area: ServerAggregateChoicePendingSnapshotDto,
+  next: ServerRuleExecutionPendingSnapshotDto
+) {
+  const pick = areaActionPendingContext(next)?.forcedMovement?.pick
+  return pick ? holdEncounterAreaForcedMovement(area, pick) : area
+}
+
+/**
  * Verifies the area snapshot a save answer stores: it is the stored area with exactly the answered
  * creature's save marked tested, with the Legendary Resistance it offered and not yet decided, and
- * nothing else changed.
+ * nothing else changed but the push pick it may open.
  */
 export function requireAreaActionAnswer(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
@@ -294,11 +308,14 @@ export function requireAreaActionAnswer(input: {
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        markEncounterAreaSaveTested(
-          input.stored,
-          input.requestId,
-          answered.testedJson,
-          answered.legendaryResistance
+        withOpenedPick(
+          markEncounterAreaSaveTested(
+            input.stored,
+            input.requestId,
+            answered.testedJson,
+            answered.legendaryResistance
+          ),
+          input.next
         )
       )
   )
@@ -307,7 +324,7 @@ export function requireAreaActionAnswer(input: {
 
 /**
  * Verifies the area snapshot a Legendary Resistance decision stores: it is the stored area with
- * exactly that creature's offer decided, and nothing else changed.
+ * exactly that creature's offer decided, and nothing else changed but the push pick it may open.
  */
 export function requireAreaActionLegendaryResistance(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
@@ -322,10 +339,36 @@ export function requireAreaActionLegendaryResistance(input: {
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        markEncounterAreaLegendaryResistanceDecided(input.stored, input.actorId, decided)
+        withOpenedPick(
+          markEncounterAreaLegendaryResistanceDecided(input.stored, input.actorId, decided),
+          input.next
+        )
       )
   )
     throw new Error('Live Session pending area decision mismatch.')
+}
+
+/**
+ * Verifies the area snapshot a push pick's answer stores (D157): it is the stored area with that
+ * creature landed on the offered square, holding the next pick it opens, and nothing else changed.
+ */
+export function requireAreaActionForcedMovement(input: {
+  stored: ServerRuleExecutionPendingSnapshotDto
+  next: ServerRuleExecutionPendingSnapshotDto
+  requestId: string
+  position: { x: number; y: number }
+}) {
+  if (
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    checksumCanonicalJson(input.next) !==
+      checksumCanonicalJson(
+        withOpenedPick(
+          landEncounterAreaForcedMovement(input.stored, input.requestId, input.position),
+          input.next
+        )
+      )
+  )
+    throw new Error('Live Session pending area destination mismatch.')
 }
 
 /**
@@ -367,6 +410,22 @@ export function projectNativeAreaActionPending(
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
   const answers = (actorId: string) => viewer.isOwner || viewer.controlledActorIds.has(actorId)
   const casterId = pending.context.casterActorId
+  // Once every save settled, an open push pick (D157) is the area's one decision, its source's.
+  const pick = pending.context.forcedMovement?.pick
+  if (pick)
+    return answers(casterId)
+      ? {
+          kind: 'FORCED_MOVEMENT_DESTINATION',
+          occurrenceId: occurrence.id,
+          occurrenceVersion: occurrence.version,
+          encounterVersion: occurrence.expectedEncounterVersion,
+          sourceActorId: casterId,
+          targetActorId: pick.targetActorId,
+          requestId: pick.requestId,
+          positions: pick.positions,
+          allowedResponses: ['FORCED_MOVEMENT']
+        }
+      : null
   const caught =
     viewer.isOwner || viewer.controlledActorIds.has(casterId)
       ? pending.context.targets.flatMap((target) => {

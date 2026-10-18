@@ -4,8 +4,12 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { adultRedDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-red-dragon.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { awaken } from '@artificer-toolkit/source-data/srd/spells/awaken.js'
+import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
+import { contactOtherPlane } from '@artificer-toolkit/source-data/srd/spells/contact-other-plane.js'
 import { fear } from '@artificer-toolkit/source-data/srd/spells/fear.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
+import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
 import {
   SRD_CONDITION_TYPES,
   srdSystemRecord
@@ -137,5 +141,27 @@ describe('a condition whose holder flees its source through the effect node map 
         (outcome) => outcome.fleesSource
       )
     ).toEqual([undefined])
+  })
+})
+
+describe('a hit-point pool that passes over conditions, and a condition counted on its caster’s turns (SPELLS-4.T2a1)', () => {
+  it.each([
+    ['Sleep', sleep],
+    ['Color Spray', colorSpray],
+    ['Awaken', awaken]
+  ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
+    const authored = equipmentWith(spell.effects)
+    const result = await normalize('equipment', authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+})
+
+describe('a self save whose failure holds a condition until a long rest (SPELLS-4.T2a1b)', () => {
+  it('keeps the SRD Contact Other Plane effect, ending on a long rest, exactly as authored', async () => {
+    const authored = equipmentWith(contactOtherPlane.effects)
+    const result = await normalize('equipment', authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 })

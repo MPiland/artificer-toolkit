@@ -19,7 +19,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readActorConditionIds, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-27.T8: Sleep, authored from core options. The cast rolls its hit-point pool, puts the
@@ -36,6 +36,7 @@ const MID_ID = testUuid(0x8a5)
 const TOO_HIGH_ID = testUuid(0x8a6)
 const UNDEAD_ID = testUuid(0x8a7)
 const FAR_ID = testUuid(0x8a8)
+const ASLEEP_ID = testUuid(0x8a9)
 
 const missingVocabulary = (name: string): never => {
   throw new Error(`The SRD vocabulary lacks ${name}.`)
@@ -64,9 +65,10 @@ const wolfAt = (id: string, hitPoints: number) =>
  * The Character casts Sleep at x = 1150, whose sphere reaches the five Wolves placed 1000 to 1400
  * and the Undead at 1500 but not the attacker beside the Character or the Wolf at 2300. Five d8
  * roll 5 each, a pool of 25: it puts the 4, 9 and 11 hit-point Wolves to sleep (21, 12, 1 left), not
- * the 14, and not the 3 hit-point Undead the spell does not affect.
+ * the 14, and not the 3 hit-point Undead the spell does not affect. `alreadyAsleep` adds an unconscious
+ * 2 hit-point Wolf at 1050, which the pool passes over.
  */
-function sleepRoom() {
+function sleepRoom(alreadyAsleep = false) {
   return actionRoom({
     actors: [
       {
@@ -84,7 +86,17 @@ function sleepRoom() {
         creature: { ...plainWolf, hitPoints: 3, creatureTypeId: undead.id },
         currentHitPoints: 3
       }),
-      wolfAt(FAR_ID, 4)
+      wolfAt(FAR_ID, 4),
+      ...(alreadyAsleep
+        ? [
+            srdCreatureActor({
+              id: ASLEEP_ID,
+              creature: { ...plainWolf, hitPoints: 2 },
+              currentHitPoints: 2,
+              conditionIds: [unconscious.id]
+            })
+          ]
+        : [])
     ],
     positions: {
       [ATTACKER_ID]: { x: 300, y: 150 },
@@ -93,7 +105,8 @@ function sleepRoom() {
       [MID_ID]: { x: 1200, y: 150 },
       [TOO_HIGH_ID]: { x: 1300, y: 150 },
       [UNDEAD_ID]: { x: 1500, y: 150 },
-      [FAR_ID]: { x: 2300, y: 150 }
+      [FAR_ID]: { x: 2300, y: 150 },
+      ...(alreadyAsleep ? { [ASLEEP_ID]: { x: 1050, y: 150 } } : {})
     },
     characterSpellcasting: { spells: [sleep], prepared: [sleep.id] },
     characterAction: (action) => action.label === 'Sleep (1st level)',
@@ -108,13 +121,12 @@ type SleepRoom = Awaited<ReturnType<typeof sleepRoom>>
 async function history(room: SleepRoom) {
   const stored = await readRoomHistory(room.room.base.stub)
   const vitals = vitalsOf(stored)
-  const asleep = vitals
-    .filter(({ conditions }) =>
-      ((conditions ?? []) as { conditionTypeId: string }[]).some(
-        ({ conditionTypeId }) => conditionTypeId === unconscious.id
-      )
-    )
+  const asleep = stored.actors
     .map(({ id }) => id)
+    .filter(
+      (id) =>
+        id !== CHARACTER_ACTOR_ID && readActorConditionIds(stored, id).includes(unconscious.id)
+    )
     .sort()
   return {
     asleep,
@@ -192,6 +204,18 @@ describe('room cast of Sleep (SPELLS-27.T8)', () => {
     const { roots, children } = areaReceipts(after.stored)
     expect(roots).toHaveLength(1)
     expect(children.map(({ outputs }) => outputs.targetActorId).sort()).toEqual(SLEEPERS)
+  }, 120000)
+
+  // SPELLS-4.T2a1: the pool spent 2 of its 25 on the Wolf already asleep and had too little left for
+  // the 11 hit-point Wolf.
+  it('passes over a creature already unconscious, its hit points left in the pool', async () => {
+    const room = await sleepRoom(true)
+
+    await castSleep(room)
+
+    const after = await history(room)
+    expect(after.effectHolders).toEqual(SLEEPERS)
+    expect(after.asleep).toEqual([...SLEEPERS, ASLEEP_ID].sort())
   }, 120000)
 
   it('ends the unconscious condition of a sleeper that takes damage, leaving the others asleep', async () => {

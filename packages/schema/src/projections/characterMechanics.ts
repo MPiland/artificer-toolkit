@@ -175,6 +175,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     initialRemaining: z.nullable(
       z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
     ),
+    tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
@@ -211,7 +212,6 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             applyGrantOutcomeId: serverUuidIdentityDtoSchema,
             modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
-            tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
             countedByTurnEffects: z.optional(z.boolean()),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,

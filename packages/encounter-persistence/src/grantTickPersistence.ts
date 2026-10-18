@@ -26,9 +26,10 @@ import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 /**
- * Counts down every Modifier Grant anchored to this turn boundary, whoever holds it. Grants apply
- * no stored state, so unlike the turn-effect phase this writes no receipt and runs no graph; an
- * expired grant's holder is reconciled like any ended effect's (Aid ending lowers current HP).
+ * Counts down every timed effect anchored to this turn boundary that stores no recurrence stage
+ * (Modifier Grants, Color Spray's blindness), whoever holds it. They run no graph, so unlike the
+ * turn-effect phase this writes no receipt; an expired effect's holder is reconciled like any ended
+ * effect's (Aid ending lowers current HP, a held condition is released).
  */
 export async function persistEncounterGrantTicks(
   ctx: EncounterCharacterWriteTransaction,

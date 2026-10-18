@@ -18,6 +18,7 @@ import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
+import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
@@ -30,6 +31,7 @@ import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
+import { youngGoldDragon } from '@artificer-toolkit/source-data/srd/creatures/young-gold-dragon.js'
 import {
   SRD_CONCENTRATION_DEFINITIONS,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
@@ -215,14 +217,15 @@ describe('grant plans', () => {
     expect(srdPlan(antitoxin(), { turnAnchor })).toMatchObject({
       recurrenceStage: boundary,
       initialRemaining: 600,
-      modifierGrantContribution: { tickAnchor }
+      tickAnchor
     })
   })
 
   it('counts the holder at the end of its turn when nothing says otherwise', () => {
     expect(srdPlan(antitoxin(), {})).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
-      modifierGrantContribution: { tickAnchor: 'HOLDER', consumeOnFirstEvents: [] }
+      tickAnchor: 'HOLDER',
+      modifierGrantContribution: { consumeOnFirstEvents: [] }
     })
   })
 
@@ -261,7 +264,7 @@ describe('grant plans', () => {
       const plan = srdPlan(onlyEffect(spell.effects), { turnAnchor: anchor })
       expect(plan).toMatchObject({
         recurrenceStage: anchor.boundary,
-        modifierGrantContribution: { tickAnchor: anchor.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER' }
+        tickAnchor: anchor.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER'
       })
       expect(plan.modifierGrantContribution?.modifiers.length).toBeGreaterThan(0)
     }
@@ -316,8 +319,24 @@ describe('grant plans', () => {
     ).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 1,
-      modifierGrantContribution: { tickAnchor: 'SOURCE' }
+      tickAnchor: 'SOURCE'
     })
+  })
+
+  it('keeps a source anchor on a grant its holder repeats a save against (Weakening Breath)', () => {
+    const breath = youngGoldDragon.features
+      ?.find(({ label }) => label.startsWith('Breath Weapons'))
+      ?.effects?.find(({ paths }) =>
+        paths.some(
+          (path) =>
+            path.selectionKind === 'FIXED' &&
+            path.resultBlock.outcomes.some(({ effectKind }) => effectKind === 'FOLLOW_UP_SAVE')
+        )
+      )
+    if (!breath) throw new Error('The Young Gold Dragon has no Weakening Breath.')
+    expect(
+      srdPlan(breath, { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } })
+    ).toMatchObject({ frozenGraphNodeId: 'repeat-save-test', tickAnchor: 'SOURCE' })
   })
 })
 
@@ -635,8 +654,8 @@ describe('a Rage made on the Barbarian’s own turn', () => {
     expect(srdPlan(rage, {})).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 10,
+      tickAnchor: 'HOLDER',
       modifierGrantContribution: {
-        tickAnchor: 'HOLDER',
         endOnEvents: ['ON_IDLE_TURN'],
         endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
         holderEnd: { activation: 'BONUS_ACTION' }
@@ -1306,6 +1325,75 @@ describe('a timed condition effect on a Character outlasting its Run (SPELLS-5.1
   })
 })
 
+describe('a timed condition counted on its source’s turns (SPELLS-4.T2a1, Color Spray)', () => {
+  const storedBlindness = (currentActorId: string | null) =>
+    plannedTimedCondition({
+      encounterId: ENCOUNTER_ID,
+      sourceActorId: SOURCE_ID,
+      holderActorId: TARGET_ID,
+      spell: colorSpray,
+      lifetimeScope: 'ENCOUNTER',
+      currentActorId
+    })
+  const record = (stored: ReturnType<typeof storedBlindness>) =>
+    grantRecord(stored, { id: 0xc390, holderId: TARGET_ID })
+  const ticks = (effect: ActiveRuleEffectRecord, turnActorId: string) =>
+    planEncounterGrantTicks({
+      encounterId: ENCOUNTER_ID,
+      stage: 'END_OF_TURN',
+      turnActorId,
+      holders: [{ actor: holder(TARGET_ID).actor, effects: [effect] }]
+    })
+
+  it('stores no recurrence stage and a tick count anchored to the caster’s end of turn', () => {
+    expect(storedBlindness(null).definition.recurrence).toMatchObject({
+      recurrenceStage: 'NONE',
+      expiration: {
+        kind: 'TICKS',
+        initialRemaining: 1,
+        decrementStage: 'END_OF_TURN',
+        anchor: 'SOURCE'
+      }
+    })
+  })
+
+  it('counts one more when cast on the caster’s own turn, so it lasts through the next one', () => {
+    expect(storedBlindness(SOURCE_ID).definition.recurrence.expiration).toMatchObject({
+      initialRemaining: 2
+    })
+    expect(storedBlindness(OTHER_ID).definition.recurrence.expiration).toMatchObject({
+      initialRemaining: 1
+    })
+  })
+
+  it('counts down at the end of the caster’s turn, never the holder’s', () => {
+    const effect = record(storedBlindness(SOURCE_ID))
+    expect(ticks(effect, TARGET_ID)).toEqual([])
+    expect(ticks(effect, SOURCE_ID)).toMatchObject([{ kind: 'UPDATE', remainingTicks: 1 }])
+    expect(
+      ticks({ ...effect, lifecycle: { ...effect.lifecycle, remainingTicks: 1 } }, SOURCE_ID)
+    ).toMatchObject([{ kind: 'EXPIRE' }])
+  })
+
+  it('is not left to the turn-effect kernel', () => {
+    const effect = record(storedBlindness(SOURCE_ID))
+    const state = { id: ENCOUNTER_ID } as Parameters<typeof isTurnEffectEligible>[2]
+    const actor = holder(TARGET_ID).actor
+    expect(isTurnEffectEligible(effect, actor, state, 'END_OF_TURN')).toBe(false)
+  })
+
+  it('ends with its caster’s departure, releasing the blindness it alone held', () => {
+    const effect = record(storedBlindness(SOURCE_ID))
+    expect(
+      planDepartedSourceGrantRemovals({
+        encounterId: ENCOUNTER_ID,
+        departedActorId: SOURCE_ID,
+        holders: [{ actor: holder(TARGET_ID).actor, effects: [effect] }]
+      })
+    ).toEqual([effect])
+    expect(endedMaintenanceConditions([effect], [])).toEqual(new Set([conditionTypeId('BLINDED')]))
+  })
+})
 describe('planConcentrationCarriedGrantEnds', () => {
   const carried = (
     id: number,

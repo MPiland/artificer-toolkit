@@ -25658,6 +25658,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -26782,6 +26783,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -27969,6 +27971,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -29196,6 +29199,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -30342,6 +30346,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -31471,6 +31476,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -32656,6 +32662,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -35485,6 +35492,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -36609,6 +36617,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -37796,6 +37805,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -39023,6 +39033,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -40169,6 +40180,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -41298,6 +41310,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -42483,6 +42496,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -45321,6 +45335,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -46445,6 +46460,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -47632,6 +47648,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -48859,6 +48876,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -50005,6 +50023,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -51134,6 +51153,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -52319,6 +52339,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -55148,6 +55169,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -56272,6 +56294,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -57459,6 +57482,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -58686,6 +58710,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -59832,6 +59857,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -60961,6 +60987,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -62146,6 +62173,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -65010,6 +65038,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -66134,6 +66163,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -67321,6 +67351,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -68548,6 +68579,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -69694,6 +69726,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -70823,6 +70856,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -72008,6 +72042,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -74837,6 +74872,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -75961,6 +75997,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -77148,6 +77185,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -78375,6 +78413,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -79521,6 +79560,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -80650,6 +80690,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -81835,6 +81876,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -84633,6 +84675,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -85745,6 +85788,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -86914,6 +86958,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -88119,6 +88164,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -89253,6 +89299,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -90370,6 +90417,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -91539,6 +91587,7 @@ export declare const api: {
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
                               hitPointPool?: { diceConfig: string };
+                              hitPointPoolIgnoredConditionIds?: Array<string>;
                               hitPointPoolScaling?:
                                 | {
                                     breakpoints: Array<{
@@ -94363,6 +94412,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -95487,6 +95537,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -96674,6 +96725,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -97901,6 +97953,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -99047,6 +99100,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -100176,6 +100230,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -101361,6 +101416,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -104190,6 +104246,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -105314,6 +105371,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -106501,6 +106559,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -107728,6 +107787,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -108874,6 +108934,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -110003,6 +110064,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{
@@ -111188,6 +111250,7 @@ export declare const api: {
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
                                 hitPointPool?: { diceConfig: string };
+                                hitPointPoolIgnoredConditionIds?: Array<string>;
                                 hitPointPoolScaling?:
                                   | {
                                       breakpoints: Array<{

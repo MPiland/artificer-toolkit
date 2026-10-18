@@ -68,6 +68,7 @@ import {
   visibleGridLinePositions,
   type VttAreaSize,
   type VttScenePresentationOverlay,
+  type VttSquarePick,
   type VttSenseEffect,
   type VttSenseReach,
   type VttTokenPresentation
@@ -99,6 +100,8 @@ interface VttSceneRendererCallbacks {
   onAreaDirection?: (aim: { origin: ScenePoint; toward: ScenePoint }) => void
   /** The caster pressed Escape while aiming an area. */
   onAreaAimCancel?: () => void
+  /** The source pressed inside one of a forced movement's legal squares (D157): its centre. */
+  onSquarePick?: (center: ScenePoint) => void
   onMapLoadStatus?: (status: VttMapLoadStatus) => void
   onCreateAnnotation?: (position: ScenePoint) => void
   onCreateBarrier: (
@@ -136,6 +139,8 @@ export interface VttSceneRendererUpdate {
    * on its center; a directed area by a drag from the edge of the caster's token (`casterTokenId`).
    */
   areaAim?: { casterTokenId: string | null; size: VttAreaSize } | null
+  /** While set, a press inside one of these legal squares picks it, and a press elsewhere does nothing. */
+  squarePick?: VttSquarePick | null
   boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
@@ -485,17 +490,21 @@ export async function createVttSceneRenderer(
   let wallChainStart: ScenePoint | null = null
   const areaAimGesture = createVttAreaAimGesture(
     () =>
-      current?.areaAim
-        ? {
-            caster:
-              current.scene.tokens.find((token) => token.id === current?.areaAim?.casterTokenId) ??
-              null,
-            size: current.areaAim.size
-          }
-        : null,
+      current?.squarePick
+        ? { squares: current.squarePick }
+        : current?.areaAim
+          ? {
+              caster:
+                current.scene.tokens.find(
+                  (token) => token.id === current?.areaAim?.casterTokenId
+                ) ?? null,
+              size: current.areaAim.size
+            }
+          : null,
     {
       onPoint: (point) => callbacks.onAreaPoint?.(point),
-      onDirection: (aim) => callbacks.onAreaDirection?.(aim)
+      onDirection: (aim) => callbacks.onAreaDirection?.(aim),
+      onSquare: (center) => callbacks.onSquarePick?.(center)
     }
   )
   let drag: {
@@ -1780,7 +1789,7 @@ export async function createVttSceneRenderer(
         callbacks.onTokenPick?.(token.id)
         return
       }
-      if (current?.tool !== 'SELECT' || current.areaAim) return
+      if (current?.tool !== 'SELECT' || current.areaAim || current.squarePick) return
       callbacks.onTokenSelect?.(token.id)
       // A token the member cannot move still lets the press reach the map, so it can ping there.
       if (!tokenCanMove(token)) return

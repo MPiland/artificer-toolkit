@@ -38,13 +38,16 @@ function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
 }
 
 /**
- * Whether finishing a rest deletes this Character active effect: a scalar reduction whose recovery
- * triggers match, or a hit point maximum reduction that ends on a long rest (Life Drain, D62).
+ * Whether finishing a rest deletes this Character active effect: one that ends on a long rest
+ * (Contact Other Plane's madness), a scalar reduction whose recovery triggers match, or a hit point
+ * maximum reduction that ends on a long rest (Life Drain, D62).
  */
 export function activeEffectEndsOnRest(
   effect: Pick<ActiveRuleEffectRecord, 'definition'>,
   restKind: 'SHORT' | 'LONG'
 ): boolean {
+  if (restKind === 'LONG' && effect.definition.recurrence.endOnEvents.includes('ON_LONG_REST'))
+    return true
   if (effect.definition.schemaVersion !== 2) return false
   const triggers = getRestRecoveryTriggers(restKind)
   return effect.definition.stateContributions.some(

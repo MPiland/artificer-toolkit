@@ -11,8 +11,10 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterAreaSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
   requireAreaActionAnswer,
+  requireAreaActionForcedMovement,
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot
 } from './actionAreaPending.js'
@@ -89,8 +91,17 @@ export async function persistEncounterActionPending(
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume?.area) {
-      // An area answer stores the same area with that one save answered, or that one choice decided.
-      if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
+      // An area answer stores the same area with that one save answered, that one choice decided, or
+      // that one push landed.
+      const resolution = input.response?.resolution
+      if (resolution?.kind === 'FORCED_MOVEMENT')
+        requireAreaActionForcedMovement({
+          stored: resume.area.snapshot,
+          next: snapshot,
+          requestId: resolution.requestId,
+          position: resolution.position
+        })
+      else if (resolution?.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
           next: snapshot,
@@ -153,11 +164,17 @@ export async function persistEncounterActionPending(
         callbacks.readAreaSceneInputs
       )
       const failedCounters = area.failedCounters ?? []
+      // An area whose saves all settled as it opened may hold its first push pick, nothing landed.
+      const opened = area.forcedMovement
       if (
-        resume
+        (opened &&
+          (opened.landed.length > 0 ||
+            snapshot.snapshotKind !== 'AGGREGATE_CHOICE' ||
+            !encounterAreaSettled(snapshot))) ||
+        (resume
           ? snapshot.occurrenceId !== resume.occurrence.id ||
             !castPendingContinues(resume.pending.context, input.response, { failedCounters })
-          : failedCounters.length > 0
+          : failedCounters.length > 0)
       )
         throw new Error('Live Session pending area action root mismatch.')
     }
