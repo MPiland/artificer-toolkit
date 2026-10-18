@@ -157,7 +157,8 @@ function contributor(conditionDefinitionId: string, holderActorId: string, influ
     sourceId: `condition:${conditionDefinitionId}`,
     grantId: null,
     domainKey: `condition:${holderActorId}`,
-    influence
+    influence,
+    source: { kind: 'CONDITION', id: conditionDefinitionId, holderActorId }
   }
 }
 
@@ -346,7 +347,13 @@ describe('encounter condition mechanics (D94)', () => {
       mechanics: await mechanicsOf([POISONED]),
       roll: {
         contributors: [
-          { sourceId: 'help', grantId: null, domainKey: null, influence: 'ADVANTAGE' }
+          {
+            sourceId: 'help',
+            grantId: null,
+            domainKey: null,
+            influence: 'ADVANTAGE',
+            source: { kind: 'AUTHORED', id: 'help', holderActorId: null }
+          }
         ],
         rollMode: 'ADVANTAGE'
       }
@@ -456,7 +463,7 @@ describe('a condition that follows its source (SPELLS-29)', () => {
     ).toEqual(new Map())
   })
 
-  it("a sourced Frightened creature has disadvantage on attacks and checks only while it sees a source", async () => {
+  it('a sourced Frightened creature has disadvantage on attacks and checks only while it sees a source', async () => {
     const mechanics = await mechanicsOf([FRIGHTENED])
     const sources = encounterConditionSources(
       holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID)])
@@ -509,9 +516,7 @@ describe('a condition that follows its source (SPELLS-29)', () => {
         end: token(to),
         sourceTokens: new Map([[SOURCE_ID, token(0)]])
       })
-    expect(move(3, 2)).toEqual([
-      { code: 'CONDITION_SOURCE_APPROACH', message: expect.any(String) }
-    ])
+    expect(move(3, 2)).toEqual([{ code: 'CONDITION_SOURCE_APPROACH', message: expect.any(String) }])
     expect(move(3, 3)).toEqual([])
     expect(move(3, 5)).toEqual([])
     // An unsourced Frightened has no source to approach.
@@ -547,8 +552,7 @@ describe('a condition that follows its source (SPELLS-29)', () => {
 })
 
 describe('a condition that flees its source (SPELLS-29.T2)', () => {
-  const fleeing = (...effects: ReturnType<typeof owningEffect>[]) =>
-    holding([FRIGHTENED], effects)
+  const fleeing = (...effects: ReturnType<typeof owningEffect>[]) => holding([FRIGHTENED], effects)
 
   it('the sources to flee are the recorded sources of the held condition owners that flee', () => {
     expect(
@@ -565,9 +569,9 @@ describe('a condition that flees its source (SPELLS-29.T2)', () => {
     ).toEqual([SOURCE_ID, OTHER_SOURCE_ID].sort())
     // A Frightened that does not flee, one held before its effect, an unsourced owner and a
     // condition the creature no longer holds flee nothing.
-    expect(
-      encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID)))
-    ).toEqual([])
+    expect(encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID)))).toEqual(
+      []
+    )
     expect(
       encounterConditionFleeSources(fleeing(owningEffect(1, FRIGHTENED, SOURCE_ID, true, true)))
     ).toEqual([])
@@ -584,13 +588,25 @@ describe('a condition that flees its source (SPELLS-29.T2)', () => {
   it('an action other than Dash warns for a fleeing creature; Dash and other allowances do not', () => {
     const warns = [{ code: 'CONDITION_SOURCE_FLEE', message: expect.any(String) }]
     expect(
-      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'ACTION', dash: false })
+      encounterFleeActionWarnings({
+        sourceActorIds: [SOURCE_ID],
+        activationCode: 'ACTION',
+        dash: false
+      })
     ).toEqual(warns)
     expect(
-      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'ACTION', dash: true })
+      encounterFleeActionWarnings({
+        sourceActorIds: [SOURCE_ID],
+        activationCode: 'ACTION',
+        dash: true
+      })
     ).toEqual([])
     expect(
-      encounterFleeActionWarnings({ sourceActorIds: [SOURCE_ID], activationCode: 'BONUS_ACTION', dash: false })
+      encounterFleeActionWarnings({
+        sourceActorIds: [SOURCE_ID],
+        activationCode: 'BONUS_ACTION',
+        dash: false
+      })
     ).toEqual([])
     expect(
       encounterFleeActionWarnings({ sourceActorIds: [], activationCode: 'ACTION', dash: false })

@@ -10,7 +10,10 @@ import {
   resolvedRuleCapabilityAvailabilityDtoSchema,
   type ResolvedRuleCapabilityAvailabilityDto
 } from '@artificer-toolkit/schema/shared/ruleState'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  checksumRuleDocument,
+  type RollModeContributorSource
+} from '@artificer-toolkit/shared/rules'
 import {
   enumerateSquareGridFootprint,
   findSquareGridFlankingPairs,
@@ -63,6 +66,7 @@ interface Dnd5eFlankingContributor {
   readonly grantId: null
   readonly influence: 'ADVANTAGE'
   readonly sourceId: string
+  readonly source: RollModeContributorSource
 }
 
 interface Dnd5eFlankingPolicyResult {
@@ -269,6 +273,7 @@ export function resolveDnd5eFlankingContributor(input: {
       grantId: null,
       domainKey: DND5E_FLANKING_POLICY_MODULE.key,
       influence: 'ADVANTAGE',
+      source: { kind: 'AUTHORED', id: definition.definitionId, holderActorId: null },
       geometry: {
         flankingDefinitionId: definition.definitionId,
         flankingDefinitionChecksum: definition.definitionChecksum,

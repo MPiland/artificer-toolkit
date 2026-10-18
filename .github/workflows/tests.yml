@@ -226,6 +226,17 @@ jobs:
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
 
+  # `yarn lint` at zero warnings on every run: oxlint (.oxlintrc.jsonc) and the repo check scripts it chains.
+  lint:
+    name: Lint
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: yarn lint
+
   # Proves fail-before in the same run: the slice's new and changed test files run against the production
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
   # labels each file RED, RED-IMPORT or ALREADY-PASSING (scripts/redProof.mjs). Those outcomes all pass;

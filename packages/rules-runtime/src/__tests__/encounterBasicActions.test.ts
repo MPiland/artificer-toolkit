@@ -27,7 +27,7 @@ import { withSourceSightSave } from '../encounterActiveGrants.js'
 import { withEncounterHolderDefense } from '../encounterHolderDefense.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
-import { labelEncounterRollModeReasons } from '../encounterRollModeReasons.js'
+import { labelEncounterRollModeReasons, rollModeSourceKey } from '../encounterRollModeReasons.js'
 import { dodgeEffect, sourceSightSaveEffect } from './antitoxinEffectFixture.js'
 import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
@@ -213,11 +213,17 @@ describe('basic action mechanics (Q11)', () => {
       kind: 'ACTIVE_EFFECT',
       activeEffectId: DODGE_EFFECT_ID
     })
+    const source = {
+      kind: 'ACTIVE_EFFECT',
+      id: DODGE_EFFECT_ID,
+      holderActorId: fighter.id
+    } as const
     const contributor = (influence: 'ADVANTAGE' | 'DISADVANTAGE') => ({
       sourceId,
       grantId: expect.any(String),
       domainKey: `active-grant:${fighter.id}`,
-      influence
+      influence,
+      source
     })
     // One disadvantage per attack domain, each holding only while the dodger sees the attacker.
     expect(defended.attackAgainstContributors).toHaveLength(
@@ -238,7 +244,7 @@ describe('basic action mechanics (Q11)', () => {
       },
       { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
     ])
-    const reasons = labelEncounterRollModeReasons(new Map([[sourceId, 'Dodge']]))
+    const reasons = labelEncounterRollModeReasons(new Map([[rollModeSourceKey(source), 'Dodge']]))
     expect(
       reasons({
         rollMode: 'DISADVANTAGE',
@@ -309,7 +315,8 @@ describe('basic action mechanics (Q11)', () => {
           }),
           grantId: expect.any(String),
           domainKey: expect.any(String),
-          influence: 'ADVANTAGE'
+          influence: 'ADVANTAGE',
+          source: { kind: 'ACTIVE_EFFECT', id: DODGE_EFFECT_ID, holderActorId: fighter.id }
         }
       }
     ])

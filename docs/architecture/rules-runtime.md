@@ -79,6 +79,13 @@ package before tests that import newly added modules.
 Everything here takes structural inputs (domain types, injected readers, ports). None of it imports
 Convex contexts, database rows, or Worker APIs, so the room and Convex run the same functions.
 
+**Installed-System classification (RELIABILITY-6.16, current).** Generic Worker, encounter-persistence
+and rules-runtime code never imports the D&D Concentration maintenance id or melee classification. It
+asks the installed System for the Run's `gameSystemId` through `platformRulesRuntime`:
+`requireInstalledConcentrationMaintenanceDefinitionId` and `isInstalledMeleeAttackTrigger`, both
+registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
+closed.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
@@ -156,7 +163,14 @@ an `EncounterEvidenceMode` (`AUTO_ROLL | PROMPT | MANUAL`); answers arrive as `E
 and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn one into faces. D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
-`rollModeReasons` in `packages/encounter-persistence`). Attack-perception contributors are `rule:unseen-attacker`
+`rollModeReasons` in `packages/encounter-persistence`). **Typed contributor source (RELIABILITY-6.9,
+current).** Every recorded d20 contributor (`D20Contributor`) carries a `source: { kind: ACTIVE_EFFECT
+| CONDITION | AUTHORED | RULE, id, holderActorId }` beside its opaque `sourceId`, `grantId` and
+`domainKey`; the checksum covers it. A reason label is a lookup by `rollModeSourceKey(source)`; no
+consumer parses `sourceId` or `domainKey`. An active effect has one `sourceId`
+(`createCharacterMechanicSourceKey`) and one typed source whichever holder, perception or relationship
+path names it. Rules-owned contributors use kind `RULE` with an id from `ROLL_MODE_RULE_SOURCE_IDS`.
+Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or

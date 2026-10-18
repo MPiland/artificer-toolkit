@@ -6,7 +6,10 @@ import type {
 import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type { AttackDomainCode } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import {
+  compareCanonicalD20Contributors,
+  rollModeContributorSourceOfMechanicSource
+} from '@artificer-toolkit/shared/rules'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { canonicalCharacterAbility } from './characterPolicyValues.js'
@@ -68,7 +71,7 @@ function dnd5eRollContributors(
           attackDomain: domain.attackDomain,
           evidence: {
             sourceId: contribution.sourceId,
-            source: contribution.source,
+            source: rollModeContributorSourceOfMechanicSource(contribution.source),
             grantId: contribution.grantId,
             domainKey: contribution.domainKey,
             influence

@@ -685,6 +685,29 @@ describe('CampaignTabletopEncounterDrawer', () => {
       expect(rowLabels()).toEqual(["Ember's Wake", 'Vault Warden'])
       expect(screen.queryByRole('button', { name: /^Target / })).not.toBeInTheDocument()
     })
+
+    // Ending targeting reopens the action drawer, whose capture-phase Escape listener must not
+    // see targeting already over, or it closes on the same key (ATTACK-17.1).
+    it('cancels on Escape only after every capture-phase Escape listener has run', async () => {
+      const user = userEvent.setup()
+      const onCancel = vi.fn()
+      const cancelledDuringCapture: boolean[] = []
+      const captureListener = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') cancelledDuringCapture.push(onCancel.mock.calls.length > 0)
+      }
+      renderWithAppProviders(
+        drawer({ entries, pickedActorId: null, onCancel, onPick: () => undefined })
+      )
+      window.addEventListener('keydown', captureListener, { capture: true })
+      try {
+        await user.keyboard('{Escape}')
+      } finally {
+        window.removeEventListener('keydown', captureListener, { capture: true })
+      }
+
+      expect(cancelledDuringCapture).toEqual([false])
+      expect(onCancel).toHaveBeenCalledOnce()
+    })
   })
 
   describe('concealment observers (D116)', () => {

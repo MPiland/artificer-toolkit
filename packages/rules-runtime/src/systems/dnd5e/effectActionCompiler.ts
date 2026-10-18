@@ -14,6 +14,7 @@ import {
   hitPointMaximumReductionRecoveryTagsSchema,
   type HitPointMaximumReductionRecoveryTag
 } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
+import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   compileModifierGrant,
   type CompiledDamageEffect,
@@ -46,7 +47,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { v5 as uuidv5 } from 'uuid'
 import {
   checksumRuleDocument,
-  compareCanonicalD20Contributors
+  compareCanonicalD20Contributors,
+  type D20Contributor
 } from '@artificer-toolkit/shared/rules'
 import type { EffectActionCapabilityDescriptor } from '../../characterActionCapabilityDiscovery.js'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -3038,7 +3040,7 @@ function validateDamageBonuses(value: unknown): void {
  * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
  */
 function healDiceConfiguration(
-  outcome: Record<string, unknown>,
+  outcome: Partial<Record<'scalingKind' | 'diceConfig' | 'scalingSource' | 'levels', unknown>>,
   spellCastLevel: number | undefined
 ): string {
   if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
@@ -3452,9 +3454,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    parseBoundedDiceConfiguration(
-      healDiceConfiguration(outcome as unknown as Record<string, unknown>, action.spellCastLevel)
-    )
+    parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
@@ -4896,7 +4896,21 @@ function compiledDiceConfiguration(entry: CompiledEffectGroup['entries'][number]
 }
 
 function exactDiceConfiguration(
-  outcomes: readonly Record<string, unknown>[],
+  outcomes: readonly Partial<
+    Record<
+      | 'effectKind'
+      | 'valueKind'
+      | 'scalingKind'
+      | 'scalingSource'
+      | 'classId'
+      | 'dice'
+      | 'halfHitPointsDice'
+      | 'bonuses'
+      | 'level'
+      | 'order',
+      unknown
+    >
+  >[],
   facts: Dnd5eEffectScalingFacts,
   selectedPath: SpecializedPath,
   outcomeId: string,
@@ -5843,7 +5857,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       if (primaryDamage.kind !== 'DICE_DAMAGE')
         unsupported('D&D immediate follow-up save requires damage before the save.')
       const primaryDiceConfiguration = exactDiceConfiguration(
-        [primaryDamageEntry.outcome as unknown as Record<string, unknown>],
+        [primaryDamageEntry.outcome],
         input.facts,
         input.selectedPath,
         compiledOutcomeIdentity(primaryDamageEntry),
@@ -5933,8 +5947,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               ? exactDiceConfiguration(
                   entries.map(
                     (candidate) =>
-                      (candidate as Extract<typeof candidate, { outcome: unknown }>)
-                        .outcome as unknown as Record<string, unknown>
+                      (candidate as Extract<typeof candidate, { outcome: unknown }>).outcome
                   ),
                   input.facts,
                   input.selectedPath,
@@ -6150,10 +6163,7 @@ function compileDnd5eEffectAction({
     const definition = diceGraphDefinition({
       action,
       entry,
-      diceConfig: healDiceConfiguration(
-        entry.outcome as unknown as Record<string, unknown>,
-        action.spellCastLevel
-      ),
+      diceConfig: healDiceConfiguration(entry.outcome, action.spellCastLevel),
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })
@@ -7582,12 +7592,6 @@ function interpretSpatial(
     }
   ]
 }
-type Dnd5eSaveContributor = {
-  sourceId: string
-  grantId: string
-  domainKey: string
-  influence: 'ADVANTAGE' | 'DISADVANTAGE'
-}
 
 /**
  * The target's save for one ability. A save against a condition the action imposes also takes the
@@ -7600,13 +7604,13 @@ export function selectDnd5eTargetSavingThrow(input: {
 }): {
   modifier: number
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-  contributors: Dnd5eSaveContributor[]
+  contributors: D20Contributor[]
 } {
   type SaveDefinition = {
     conditionTypeId: unknown
     modifier: number
     rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-    contributors: Dnd5eSaveContributor[]
+    contributors: D20Contributor[]
   }
   if (!Array.isArray(input.savingThrowDefinitions))
     throw new Dnd5eEffectActionCompilerError('D&D target saving throws are unavailable.')
@@ -7628,11 +7632,12 @@ export function selectDnd5eTargetSavingThrow(input: {
       if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
         throw new Dnd5eEffectActionCompilerError('D&D target save roll mode is invalid.')
       const contributors = (Array.isArray(row.contributors) ? row.contributors : []).map(
-        ({ sourceId, grantId, domainKey, influence }: Dnd5eSaveContributor) => ({
+        ({ sourceId, grantId, domainKey, influence, source }: D20Contributor) => ({
           sourceId,
           grantId,
           domainKey,
-          influence
+          influence,
+          source
         })
       )
       return [
@@ -7676,12 +7681,7 @@ function flankingContributor(input: {
   gameSystemId: string
   positionalFacts: CharacterRuleActionPositionalFacts | null | undefined
   sceneContext: Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0]['sceneContext']
-}): {
-  sourceId: string
-  grantId: null
-  domainKey: string
-  influence: 'ADVANTAGE'
-} | null {
+}): D20Contributor | null {
   const facts = input.positionalFacts
   const scene = input.sceneContext
   if (!facts || !scene) return null
@@ -7759,7 +7759,8 @@ function flankingContributor(input: {
         sourceId: contributor.sourceId,
         grantId: contributor.grantId,
         domainKey: contributor.domainKey,
-        influence: contributor.influence
+        influence: contributor.influence,
+        source: contributor.source
       }
     : null
 }
@@ -8242,17 +8243,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const statBlock = targetDerivedFacts.statBlock as { armorClass?: unknown } | undefined
     const armorClass = derivedStats?.armorClass?.effective ?? statBlock?.armorClass
     const sourceContributorEvidence = sourceDerivedFacts.rollContributorEvidence as
-      | {
-          attacks?: Record<
-            string,
-            readonly {
-              sourceId: string
-              grantId: string
-              domainKey: string
-              influence: 'ADVANTAGE' | 'DISADVANTAGE'
-            }[]
-          >
-        }
+      | { attacks?: Record<string, readonly D20Contributor[]> }
       | undefined
     const nestedSaveAbilityBindings = Object.entries(published.definition.outputs).filter(
       ([name]) =>
@@ -8293,12 +8284,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           abilityDefinitionId: string
           modifier: number
           rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-          contributors: readonly {
-            sourceId: string
-            grantId: string | null
-            domainKey: string | null
-            influence: 'ADVANTAGE' | 'DISADVANTAGE'
-          }[]
+          contributors: readonly D20Contributor[]
         } =>
           typeof candidate === 'object' &&
           candidate !== null &&
@@ -8315,11 +8301,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         throw new Dnd5eEffectActionCompilerError('D&D nested save policy is unavailable.')
       }
       const contributors = matches[0]!.contributors
-        .map(({ sourceId, grantId, domainKey, influence }) => ({
+        .map(({ sourceId, grantId, domainKey, influence, source }) => ({
           sourceId,
           grantId,
           domainKey,
-          influence
+          influence,
+          source
         }))
         .sort(compareCanonicalD20Contributors)
       const contributorChecksum = checksumRuleDocument(contributors)
@@ -8361,11 +8348,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         sourceContributorEvidence?.attacks?.[
           attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
         ] ?? []
-      ).map(({ sourceId, grantId, domainKey, influence }) => ({
+      ).map(({ sourceId, grantId, domainKey, influence, source }) => ({
         sourceId,
         grantId,
         domainKey,
-        influence
+        influence,
+        source
       }))
       const flanking = flankingContributor({
         attackKind: action.attackKind,
@@ -8533,12 +8521,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         abilityDefinitionId: string
         modifier: number
         rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-        contributors: readonly {
-          sourceId: string
-          grantId: string | null
-          domainKey: string | null
-          influence: 'ADVANTAGE' | 'DISADVANTAGE'
-        }[]
+        contributors: readonly D20Contributor[]
       } =>
         typeof candidate === 'object' &&
         candidate !== null &&
@@ -8555,11 +8538,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError('D&D recurring save policy is unavailable.')
     }
     const contributors = matches[0]!.contributors
-      .map(({ sourceId, grantId, domainKey, influence }) => ({
+      .map(({ sourceId, grantId, domainKey, influence, source }) => ({
         sourceId,
         grantId,
         domainKey,
-        influence
+        influence,
+        source
       }))
       .sort(compareCanonicalD20Contributors)
     if (
@@ -8607,10 +8591,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }
       if (perceptionRequirement.kind === 'ROLL_INFLUENCE' && perception.satisfied) {
         contributors.push({
-          sourceId: `active-effect-perception:${activeEffectId}`,
+          sourceId: createCharacterMechanicSourceKey({ kind: 'ACTIVE_EFFECT', activeEffectId }),
           grantId: null,
           domainKey: `perception:${perception.checksum}`,
-          influence: perceptionRequirement.influence
+          influence: perceptionRequirement.influence,
+          source: { kind: 'ACTIVE_EFFECT', id: activeEffectId, holderActorId: null }
         })
         contributors.sort(compareCanonicalD20Contributors)
       }

@@ -2,6 +2,7 @@ import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LengthUnitCode } from '@artificer-toolkit/shared/core'
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
@@ -10,7 +11,10 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import { ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID } from './encounterRollModeReasons.js'
+import {
+  ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
+  encounterRuleContributorSource
+} from './encounterRollModeReasons.js'
 
 type DispositionActor = { id: string; disposition: EncounterActorDispositionDto }
 
@@ -221,7 +225,8 @@ export function encounterActionLongRangeContributor(input: {
         sourceId: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
         grantId: null,
         domainKey: ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
-        influence: 'DISADVANTAGE'
+        influence: 'DISADVANTAGE',
+        source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
       }
     : null
 }

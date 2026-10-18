@@ -3,7 +3,7 @@ import {
   concentrationEndOccurrenceId,
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -167,7 +167,8 @@ export async function persistLiveMovementConcentration(
     slot.id !== maintainedStateId ||
     slot.encounterId !== state.id ||
     slot.ownerActorId !== target.id ||
-    slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    slot.maintenanceDefinitionId !==
+      requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
   )
     throw new Error('Live Session movement Concentration state changed.')
   const existing = await ctx.db
@@ -254,7 +255,8 @@ export async function persistLiveMovementConcentrationEnd(
     !state.actorIds.includes(holder.id) ||
     !slot ||
     slot.ownerActorId !== holder.id ||
-    slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
+    slot.maintenanceDefinitionId !==
+      requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId) ||
     (await readHolderEndState(ctx, { state, actor: holder, userId: input.userId })).reason !==
       output.reason
   )

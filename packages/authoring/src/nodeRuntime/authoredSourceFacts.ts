@@ -238,7 +238,7 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
     }
   }
 
-  const document = subject.document as unknown as AuthoredRecord
+  const document: AuthoredRecord = subject.document
   switch (subject.subjectKind) {
     case 'BACKGROUND':
       add('backgrounds', { id: value(document, 'id'), label: value(document, 'label') })

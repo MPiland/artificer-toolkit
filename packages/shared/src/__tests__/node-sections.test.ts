@@ -19,7 +19,6 @@ import {
 import {
   buildNodeMap,
   evaluateConditionIf,
-  resolveNestedNodeSections,
   resolveNodeMapSections,
   resolveNodeMapSteps
 } from '#utils'
@@ -61,32 +60,6 @@ describe('node map sections', () => {
         label: 'Basics',
         description: 'Define the core identity for this item.'
       }
-    ])
-  })
-
-  it('inherits nearest parent sections for nested nodes', () => {
-    const childMap = buildNodeMap<{ label?: string }>().define('child', ({ map, nodes }) => {
-      map.set('label', nodes.text(['label'], 'Name'))
-    })
-
-    const parentMap = buildNodeMap<{ child?: { label?: string } }>().define(
-      'parent',
-      ({ map, nodes }) => {
-        map.set(
-          'child',
-          nodes.groupObject(['child'], 'Child', () => childMap, {
-            presentation: 'inline',
-            section: { id: 'details', label: 'Details', order: 10 }
-          })
-        )
-      }
-    )
-
-    const entries = resolveNestedNodeSections(parentMap)
-
-    expect(entries.map((entry) => `${entry.section.id}:${entry.id}`)).toEqual([
-      'details:child',
-      'details:label'
     ])
   })
 

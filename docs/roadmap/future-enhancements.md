@@ -87,6 +87,10 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **A carried caster whose dependents are all outside the Run (D151).** The room loads none of those dependents, so it reinstates no Concentration, and damage in the Run stages no check for them. The caster's next Concentration still ends them. A START read of grants stamped with the Run's Characters would close it.
+
+- **A margin rider outlives an early-ended parent (D149).** The Drow's sleep lasts "while poisoned", but curing or GM-ending the poison mid-sleep leaves the unconscious rider for the GM to end. A persisted effect-to-effect end link would close it.
+
 - **Auras and spells that ignite flammable objects (SPELLS-20.T6, D144).** The Balor's Fire Aura and similar effects ignite unattended flammable objects; no object state is modelled, so the GM narrates it.
 - **A GM private roll resent across a room epoch (QUALITY-1.T1).** The room refuses a private-roll nonce sent before the current epoch ("This roll was already made.") instead of replaying the stored roll, as chat now does. Rare (needs a reconnect across an epoch change between send and retry); fix by replaying from the room's retained-roll record.
 - **Creatures that do not need to breathe (SPELLS-20.T4b3, D141).** Stinking Cloud's automatic success covers poison immunity only. No SRD 5.1 stat block states that a creature does not breathe, and the SRD undead and constructs are almost all poison-immune, so no breathing fact is modelled. Add an authored creature fact and a Character grant domain when homebrew content needs it.
@@ -214,6 +218,18 @@ The user cut these from pre-alpha scope for time to market (D145 amendment). The
 - **QUALITY-3.T1c1 (lint).** Package boundary rule (D145): survey each web import of rules-runtime (38), source-data (38), authoring (6) and design-system (5) and each Convex and Worker package import, propose the allowed matrix in the workbook for an orchestrator ruling, then enforce it in lint with the crossing imports fixed.
 - **QUALITY-3.T1c2 (lint).** Root-barrel ban: codemod the 1,072 root @artificer-toolkit/schema and @artificer-toolkit/shared imports in non-test code to their narrow subpaths, then make the root barrel import a lint error.
 - **QUALITY-3.T1d (lint).** Large-file flag (D145): a non-test file over 1,500 lines fails lint unless it is in a reviewed allowlist. Each of the 18 current files gets a responsibility review: split at a real seam, or stays allowlisted with a one-line reason. The allowlist may only shrink.
+
+### Pit Fiend Fear Aura as a passive zone (D147)
+
+The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELLS-20.T6b) needs four generic zone options: a placement filter by disposition relative to the source, a zone condition that ends at the start of the target's next turn, per-zone, per-target immunity for the rest of the Encounter after a made save, and suppression while the source is incapacitated (generalizing the defeated rule).
+
+### Margin-of-failure riders on direct saves (D149)
+
+The failure-margin rider is wired only on follow-up saves. Direct-save actions that author one (Medusa, Mummy and Ghost gazes, Homunculus) fail closed at compile until the direct save path learns the same margin node.
+
+### Release a grapple to draw (D152)
+
+Drawing a weapon while every hand holds a weapon or a grappled creature is refused today, so the grappler releases first. D107's prompt to release a grapple as part of the draw would save that step.
 
 ### Shared live cursors (Q19)
 

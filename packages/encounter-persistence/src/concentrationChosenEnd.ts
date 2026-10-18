@@ -9,7 +9,7 @@ import type {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { carriedConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { persistNativeConcentrationEnd } from './actionChildPersistence.js'
 import { recordConcentrationCaster } from './actionEffectPersistence.js'
 import { endCarriedGrantsOfConcentratingCasters } from './characterRunEffects.js'
@@ -160,7 +160,9 @@ export async function endChosenConcentration(
   const slot = await store.findMaintainedState({
     encounterId: state.id,
     ownerActorId: holder.id,
-    maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+      state.gameSystemId
+    )
   })
   const authorizedCharacterIds = new Set(
     input.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))

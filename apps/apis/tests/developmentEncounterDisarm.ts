@@ -111,7 +111,8 @@ export async function verifyEncounterDisarm({
   readTimeline: () => Promise<EncounterTimelineDto | null>
   browser?: EncounterDisarmBrowserRunner
 }) {
-  const weapon = createDisarmWeapon(crypto.randomUUID())
+  // On the browser Scene the reach is measured: the map draws its ring and reads "In range".
+  const weapon = createDisarmWeapon(crypto.randomUUID(), { reach: browser !== undefined })
   const creature = createDisarmCreature(weapon, crypto.randomUUID())
   for (const [subjectKind, payload] of [
     ['EQUIPMENT', weapon],

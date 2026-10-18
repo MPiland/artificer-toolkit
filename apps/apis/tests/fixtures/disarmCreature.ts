@@ -8,8 +8,12 @@ export const disarmHeldEntryId = '10000000-0000-4000-8000-000000000201'
 export const disarmOtherEntryId = '10000000-0000-4000-8000-000000000202'
 export const disarmShieldEntryId = '10000000-0000-4000-8000-000000000204'
 
-// Pure authored records shared by transactional and real-backend Disarm proofs.
-export function createDisarmWeapon(id = '10000000-0000-4000-8000-000000000203') {
+// Pure authored records shared by transactional and real-backend Disarm proofs. Proofs without a
+// Scene reach any creature; a proof on a Scene keeps the club's authored melee reach (`reach`).
+export function createDisarmWeapon(
+  id = '10000000-0000-4000-8000-000000000203',
+  { reach = false }: { reach?: boolean } = {}
+) {
   return {
     ...club,
     id,
@@ -17,7 +21,9 @@ export function createDisarmWeapon(id = '10000000-0000-4000-8000-000000000203') 
       ...effect,
       invocation: {
         ...effect.invocation,
-        range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const },
+        range: reach
+          ? effect.invocation.range
+          : { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const },
         targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
       }
     }))

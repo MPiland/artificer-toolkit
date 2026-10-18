@@ -59,6 +59,26 @@ export function compileInstalledCreatureRuleFacts(input: {
   return registration.compileCreatureRuleFacts(input)
 }
 
+function requireInstalledRuntimeModule(gameSystemId: string) {
+  const registration = installedRuntimeModules.find(
+    (module) => module.gameSystemId === gameSystemId
+  )
+  if (!registration) {
+    throw new Error(`No rules runtime module is installed for Game System "${gameSystemId}".`)
+  }
+  return registration
+}
+
+/** The System's published Concentration maintenance rule, by the Run's Game System. */
+export function requireInstalledConcentrationMaintenanceDefinitionId(gameSystemId: string): string {
+  return requireInstalledRuntimeModule(gameSystemId).concentrationMaintenanceDefinitionId
+}
+
+/** Whether the System counts an action trigger as a melee attack (flanking, Cleaving). */
+export function isInstalledMeleeAttackTrigger(gameSystemId: string, triggerCode: string): boolean {
+  return requireInstalledRuntimeModule(gameSystemId).isMeleeAttackTrigger(triggerCode)
+}
+
 /** Returns the current installed System contract without selecting behavior by label or edition. */
 export function findInstalledGameSystemRuleCapability(
   gameSystemId: string
