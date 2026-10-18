@@ -929,6 +929,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rule (T11):** with a Campaign clock, the GM's completed-Encounter view offers to advance it by `ceil(rounds / 10)` minutes through the existing `campaigns.clock.advance`. This is web only.
   - **Rejected:** converting carried timers in Convex at the START checkpoint (turns can commit before it), and threading a MAINTAINED-or-CARRIED subject through the Concentration check and receipt contracts (more persisted shapes for the same rule).
   - **Deferred:** a caster in the Run whose only carried dependents sit outside the Run, so the room loads none of them, gets no reinstated Concentration.
+* **D152** (2026-10-17) Grapple core contracts (ATTACK-7.T3 and T4, AC 7.1, 7.3 and 7.4; [slice-attack-7.md](slice-attack-7.md)). Orchestrator ruling.
+  - **Rule (contest):** one generic contest pending context, `ENCOUNTER_CONTEST_CHECK`. The initiator and the defender each roll their own check, and the defender picks its check when it responds. It serves CHECK-plus-CONTEST actions and CONTEST escapes. It **replaces** the optional-combat contest context: migrate that context's users onto it and delete the old one, so there are never two contest contexts.
+  - **Rule (offer gating):** each facet context gates its subject on the holder's kind, and CREATURE_TYPE is evaluated in an Encounter. The Dodge restriction is re-authored as CHARACTER or CREATURE groups, with no schema shape change.
+  - **Rule (cost and hands):** the basic-action `actionCost` gains `ATTACK`, which fills one slot of the Attack action; Shove reuses it. A new relationship module, `SOURCE_OCCUPIES_HAND`, makes each held creature count against the holder's free hands. The wield-conflict union gains `STOW_HELD_WEAPON {itemInstanceId}`, which is free; a shield is never offered.
+  - **Rule (size):** targeting gains `sizeLimit {stepsAboveActor}`, backed by one shared size-rank helper, which grapple riders' printed limits also use. `TARGET_TOO_LARGE` follows the existing target-policy warning pattern: overridable only where the other target warnings already are.
+  - **Rule (T4):** the relationship contribution persists `sealedReachFeet`. A free `RELEASE_RELATIONSHIP` command can be issued only by the source. An after-commit sweep ends a grapple when the grappler can't act or the held creature is outside the sealed reach. The receipt lists `relationshipEnds`.
+  - **Rule (drawing with full hands):** drawing a weapon while every hand is held is refused by the existing hand check; the grappler releases first. A release-on-draw prompt is deferred, because AC 7.1 doesn't name it.
+  - **Rejected:** a second contest context beside the optional-combat one (two homes for one rule).
 
 ## Approved implementation decisions
 
