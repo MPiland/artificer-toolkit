@@ -403,7 +403,11 @@ export async function persistEncounterActionCommit(
         state,
         initialActors: actors,
         attacker: nextActors.find((actor) => actor.id === source.id)!,
-        scene: sceneInputs,
+        scene: sceneInputs && {
+          sceneId: sceneInputs.sceneId,
+          attacker: sceneInputs.sourceToken,
+          hit: sceneInputs.targetToken
+        },
         evidence: batch.meleeRetaliation,
         occurrenceId: execution.occurrenceId,
         sourceCommandId: command.commandId,

@@ -447,8 +447,11 @@ grant on the placer as `zoneSourceGrant`, recorded as the area root's `sourceGra
 before the zone. A melee hit (`isInstalledMeleeAttackTrigger` with a range) on a creature whose own retaliating zone
 contains the attacker runs `selectMeleeRetaliationContacts` and `planEncounterMeleeRetaliation`: each zone executes
 against the attacker with system-rolled dice, as one attacker mechanics batch carried on the action receipt's
-`meleeRetaliation`, which persistence re-derives from the locked Scene and refuses when stale. Opportunity and
-Legendary Action attacks do not retaliate yet (T6d2b).
+`meleeRetaliation`, which persistence re-derives from the locked Scene and refuses when stale. Opportunity attacks
+(T6d2b) run the same step in `planReaction` with the mover at the reaction's contact, carried on the reaction
+application; Legendary Action attacks run it through `prepareTurnLegendaryActions`' `meleeRetaliation` port, carried
+on the window's application. Both replay from that evidence (`retained`), so a staged response or a later window's
+re-run rolls no fresh die.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's

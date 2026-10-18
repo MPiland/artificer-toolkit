@@ -45,23 +45,22 @@ export function shields(equipment: EquipmentAuthored) {
 }
 
 /**
- * A shield the real planner leaves on its caster's 100 px token, stored as the Scene effect store
- * keeps it: the warm shield (2d8 fire) unless `shield` picks the chill one.
+ * A shield the real planner leaves on its caster's 100 px token: the warm shield (2d8 fire) unless
+ * `shield` picks the chill one.
  */
-export function placedFireShield(input: {
+export function placedFireShieldZone(input: {
   seed: number
   sourceActorId: string
   sourceTokenId: string
-  sceneId: string
+  encounterId?: string
   shield?: 'WARM' | 'CHILL'
-  createdOrdinal?: number
-}): EncounterSpatialRuleEffectRecord {
+}) {
   const [warm, chill] = shields(carryingFireShield())
-  const placed = planEncounterPlacedZone({
+  return planEncounterPlacedZone({
     zone: (input.shield === 'CHILL' ? chill : warm)!.zone,
     id: testUuid(input.seed),
     maintainedEffectStateId: null,
-    encounterId: ENCOUNTER_ID,
+    encounterId: input.encounterId ?? ENCOUNTER_ID,
     occurrenceId: testUuid(input.seed + 1),
     rootCommandId: testUuid(input.seed + 2),
     sourceActorId: input.sourceActorId,
@@ -70,7 +69,18 @@ export function placedFireShield(input: {
     sourceToken: { tokenId: input.sourceTokenId, width: 100 },
     saveDc: null
   })
-  return plannedSpatialEffectRecord(placed, {
+}
+
+/** The `placedFireShieldZone` stored as the Scene effect store keeps it. */
+export function placedFireShield(input: {
+  seed: number
+  sourceActorId: string
+  sourceTokenId: string
+  sceneId: string
+  shield?: 'WARM' | 'CHILL'
+  createdOrdinal?: number
+}): EncounterSpatialRuleEffectRecord {
+  return plannedSpatialEffectRecord(placedFireShieldZone(input), {
     encounterId: ENCOUNTER_ID,
     sceneId: input.sceneId,
     createdOrdinal: input.createdOrdinal ?? 1,

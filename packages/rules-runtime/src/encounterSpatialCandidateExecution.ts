@@ -1,6 +1,8 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
+import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
@@ -222,6 +224,24 @@ export function spatialExecutionOutcome(input: {
     },
     applications: folded.applications
   }
+}
+
+/** The dice a recorded spatial execution rolled, in roll order, so a replay can roll them again. */
+export function spatialExecutionRecordedFaces(recorded: {
+  d20: Pick<ServerRuleExecutionD20EvidenceDto, 'rawFaces'> | null
+  execution: Pick<ServerCompletedRuleExecutionDto, 'evidence'>
+}): number[] {
+  return [
+    ...(recorded.d20?.rawFaces ?? []),
+    ...recorded.execution.evidence.trace.flatMap((entry) =>
+      // Dice behind a save are optional; a zone with no save (melee retaliation) rolls plain ones.
+      (entry.operation.key === 'evidence.optional-integer-range' ||
+        entry.operation.key === 'evidence.integer-range') &&
+      entry.evidence?.kind === 'INTEGER_RANGE'
+        ? [entry.evidence.value]
+        : []
+    )
+  ]
 }
 
 export function requireSupportedD20Policy(

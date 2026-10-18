@@ -1,7 +1,11 @@
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type {
+  ServerRuleExecutionApplicationOutputsDto,
+  StoredRuleExecutionResultDto
+} from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
+import { meleeRetaliationCharacterTransition } from './encounterMeleeRetaliation.js'
 
 type MovementTerminalResult = Extract<
   StoredRuleExecutionResultDto,
@@ -63,7 +67,13 @@ export type MovementCommandTransition =
       kind: 'SPATIAL_PREFIX'
       result: { characterTransitions: readonly CharacterVersionTransition[] }
     }
-  | { kind: 'REACTION'; execution: { characterTransitions: readonly CharacterVersionTransition[] } }
+  | {
+      kind: 'REACTION'
+      execution: {
+        characterTransitions: readonly CharacterVersionTransition[]
+        application: ServerRuleExecutionApplicationOutputsDto
+      }
+    }
   | { kind: 'AREA_DEPARTURE'; characterTransitions: readonly CharacterVersionTransition[] }
   | { kind: 'CONCENTRATION' | 'CONCENTRATION_END'; execution: ConcentrationChild }
 
@@ -212,6 +222,14 @@ export function movementCommandCharacterAggregateVersions(
     if (transition.kind === 'REACTION') {
       for (const characterTransition of transition.execution.characterTransitions)
         append(characterTransition)
+      const { application } = transition.execution
+      // The zones the reaction's melee hit set off settle on the reactor after its own batch.
+      const retaliation =
+        application.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+          ? meleeRetaliationCharacterTransition(application.meleeRetaliation)
+          : null
+      if (retaliation) append(retaliation)
     } else if (transition.kind === 'SPATIAL_PREFIX') {
       for (const characterTransition of transition.result.characterTransitions)
         append(characterTransition)

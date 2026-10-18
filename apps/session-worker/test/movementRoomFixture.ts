@@ -243,6 +243,8 @@ export interface MovementRoomConfig {
     >
     encounterId: string
     occurredAt: string
+    /** The Scene token of the actor `actorId`. */
+    tokenIdOf: (actorId: string) => string
   }) => Promise<void>
   /**
    * The Run has not started yet: PREPARED, round 0, no current actor and no initiative, so a
@@ -497,7 +499,8 @@ export async function movementRoom(config: MovementRoomConfig) {
     effects: createActiveRuleEffectStore({ db: memory.store }),
     spatial,
     encounterId,
-    occurredAt: NOW
+    occurredAt: NOW,
+    tokenIdOf: (actorId) => tokenIdByActorId.get(actorId)!
   })
   // A Character's dependents are rows of the Character, loaded with it, not of the Run.
   const characterOfActor = new Map(

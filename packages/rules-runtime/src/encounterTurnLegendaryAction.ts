@@ -12,6 +12,7 @@ import {
   activeRuleEffectRecordSchema,
   type ActiveRuleEffectRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
@@ -43,6 +44,7 @@ import {
   retainedD20Evidence,
   retainedIntegerEvidence
 } from './encounterActionRetainedEvidence.js'
+import { isMeleeRetaliationHit } from './encounterMeleeRetaliation.js'
 import type { discoverTurnLegendaryWindows } from './encounterTurnLegendaryDiscovery.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterWieldConflictAcceptance } from './encounterWieldConflict.js'
@@ -86,6 +88,23 @@ type TurnLegendaryActionInput<
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   }): Promise<Awaited<ReturnType<typeof prepareEncounterActionMechanics<TCharacterFacts>>>>
+  /**
+   * Plans the zones a melee hit's target holds around itself against the owner (D153) from the
+   * Scene the hit landed in; null when no zone reaches the owner or no Scene is bound.
+   */
+  meleeRetaliation?(input: {
+    /** The Run's actors when the attack was made, so a source the hit defeats still retaliates. */
+    initialActors: readonly EncounterRunActorState[]
+    /** The owner as the attack left it. */
+    attacker: MovementTarget<TCharacterFacts>
+    hitActorId: string
+    sourceCommandId: string
+    occurredAt: string
+    retained?: MeleeRetaliationEvidenceDto
+  }): Promise<{
+    evidence: MeleeRetaliationEvidenceDto
+    projectedAttacker: MovementTarget<TCharacterFacts>
+  } | null>
   definitions: CurrentReusableDefinitionSource
   createRuntime(): Promise<RulesRuntimeService>
   random(maximum: number): number
@@ -400,6 +419,54 @@ export async function prepareTurnLegendaryActions<
     const stateEffect = createEffect('STATE', effects.stateEffect)
     const recurringEffect = createEffect('RECURRING', effects.recurringEffect)
     const riderEffect = createEffect('RIDER', effects.riderEffect)
+    const settledTarget = target.id === actor.id ? plan.settledSource : plan.mechanics.updatedActor
+    const projected = new Map<string, MovementTarget<TCharacterFacts>>()
+    for (const [settled, characterPlan] of [
+      [plan.settledSource, target.id === actor.id ? plan.targetPlan : null],
+      ...(target.id === actor.id ? [] : [[settledTarget, plan.targetPlan] as const])
+    ] as const) {
+      const current = prepared.movementTargets.get(settled.id)
+      if (!current) throw new Error('Legendary Action actor facts are unavailable.')
+      projected.set(
+        settled.id,
+        projectEncounterActionTarget({
+          target: settled.id === target.id ? { ...current, activeEffects: targetEffects } : current,
+          actor: settled,
+          plan: characterPlan,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt: input.updatedAt
+        })
+      )
+    }
+    // A melee hit sets off the zones its target holds around itself against the owner (D153); a
+    // settled window replays the retaliation from its recorded dice.
+    const retainedApplication =
+      retained?.resolution.kind === 'EXECUTED' ? retained.resolution.application : null
+    const retainedRetaliation =
+      retainedApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
+      retainedApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+        ? retainedApplication.meleeRetaliation
+        : undefined
+    const retaliation =
+      input.meleeRetaliation &&
+      isMeleeRetaliationHit({
+        gameSystemId: state.gameSystemId,
+        prepared,
+        resultPath: result.d20?.resultPath
+      })
+        ? await input.meleeRetaliation({
+            initialActors: actors,
+            attacker: projected.get(actor.id)!,
+            hitActorId: target.id,
+            sourceCommandId: root.rootCommandId,
+            occurredAt: input.updatedAt,
+            ...(retainedRetaliation ? { retained: retainedRetaliation } : {})
+          })
+        : null
+    if (retainedRetaliation && !retaliation)
+      throw new Error('Retained melee retaliation evidence is stale.')
+    if (retaliation) projected.set(actor.id, retaliation.projectedAttacker)
     const stored = buildEncounterActionStoredExecution({
       prepared,
       execution: result,
@@ -415,7 +482,8 @@ export async function prepareTurnLegendaryActions<
       maintainedState: null,
       maintenanceTransition: null,
       actionEconomy: null,
-      attackAction: null
+      attackAction: null,
+      meleeRetaliation: retaliation?.evidence ?? null
     })
     if (stored.status !== 'COMPLETE') throw new Error('Legendary Action receipt is incomplete.')
     const targetCharacter = prepared.targetFacts.characterFacts
@@ -447,29 +515,12 @@ export async function prepareTurnLegendaryActions<
     })
     if (retained && !same(evidence, retained))
       throw new Error('Retained Legendary Action execution is stale.')
-    const settledTarget = target.id === actor.id ? plan.settledSource : plan.mechanics.updatedActor
+    const settledOwner = retaliation?.projectedAttacker.actor ?? plan.settledSource
     actors = actors.map((entry) =>
-      entry.id === actor.id ? plan.settledSource : entry.id === target.id ? settledTarget : entry
+      entry.id === actor.id ? settledOwner : entry.id === target.id ? settledTarget : entry
     )
     currentIsStale = true
-    for (const [settled, characterPlan] of [
-      [plan.settledSource, target.id === actor.id ? plan.targetPlan : null],
-      ...(target.id === actor.id ? [] : [[settledTarget, plan.targetPlan] as const])
-    ] as const) {
-      const current = prepared.movementTargets.get(settled.id)
-      if (!current) throw new Error('Legendary Action actor facts are unavailable.')
-      targets.set(
-        settled.id,
-        projectEncounterActionTarget({
-          target: settled.id === target.id ? { ...current, activeEffects: targetEffects } : current,
-          actor: settled,
-          plan: characterPlan,
-          campaignId: state.campaignId,
-          gameSystemId: state.gameSystemId,
-          occurredAt: input.updatedAt
-        })
-      )
-    }
+    for (const [actorId, projection] of projected) targets.set(actorId, projection)
     return { kind: 'COMPLETE' as const, evidence }
   }
 
