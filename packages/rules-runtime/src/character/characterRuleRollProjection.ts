@@ -124,10 +124,7 @@ export function resolveCharacterRulePolicyRollModes(
     attacks: resolveRollModeRecord(canonicalContributors.attacks)
   }
   const derivedSavingThrows = output.derivedStats.savingThrows
-  const abilityDefinitions =
-    vocabularySnapshot && 'abilities' in vocabularySnapshot.document
-      ? vocabularySnapshot.document.abilities
-      : []
+  const abilityDefinitions = vocabularySnapshot?.document.abilities ?? []
   if (derivedSavingThrows.length > 0 && abilityDefinitions.length === 0) {
     throw new Error(
       'Character saving throws require a System vocabulary snapshot with ability definitions.'

@@ -171,8 +171,7 @@ export const conditionRuleStateReusableDefinitionDocumentDtoSchema = lazySchema(
       id: uuidSchema,
       gameSystemId: uuidSchema,
       capabilitySuppressions: z.array(ruleCapabilitySuppressionDtoSchema).check(z.maxLength(32)),
-      /** Optional for legacy reads; current documents explicitly materialize an ordered empty array. */
-      perceptionContributions: z.optional(combatPerceptionContributionsDtoSchema),
+      perceptionContributions: combatPerceptionContributionsDtoSchema,
       mechanics: z.array(conditionMechanicDtoSchema).check(z.maxLength(32))
     })
     .check(
@@ -265,17 +264,14 @@ export const resolvedRuleCapabilityAvailabilityDtoSchema = lazySchema(() =>
     available: z.boolean(),
     suppressingConditionDefinitionIds: z.array(uuidSchema).check(z.maxLength(32)),
     suppressingActiveEffectIds: z.array(uuidSchema).check(z.maxLength(32)),
-    /** Optional only for legacy snapshots created before active-effect provenance was retained. */
-    activeEffectSuppressions: z.optional(
-      z
-        .array(
-          z.strictObject({
-            activeEffectId: uuidSchema,
-            contributionId: uuidSchema
-          })
-        )
-        .check(z.maxLength(32))
-    ),
+    activeEffectSuppressions: z
+      .array(
+        z.strictObject({
+          activeEffectId: uuidSchema,
+          contributionId: uuidSchema
+        })
+      )
+      .check(z.maxLength(32)),
     contributionIds: z.array(uuidSchema).check(z.maxLength(32))
   })
 )

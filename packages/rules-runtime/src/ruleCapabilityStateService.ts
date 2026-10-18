@@ -40,7 +40,7 @@ export function requireResolvedRuleCapabilityStateIntegrity(
       gameSystemId: state.gameSystemId,
       capabilityDefinitionId: capability.capability.capabilityDefinitionId,
       conditions: state.conditionDefinitions.map((definition) => definition.document),
-      activeEffectSuppressions: (capability.activeEffectSuppressions ?? []).map((suppression) => ({
+      activeEffectSuppressions: capability.activeEffectSuppressions.map((suppression) => ({
         ...suppression,
         capabilityDefinitionIds: [capability.capability.capabilityDefinitionId]
       }))
@@ -51,7 +51,7 @@ export function requireResolvedRuleCapabilityStateIntegrity(
         resolved.suppressingConditionDefinitionIds.join('\0') ||
       capability.suppressingActiveEffectIds.join('\0') !==
         resolved.suppressingActiveEffectIds.join('\0') ||
-      (capability.activeEffectSuppressions ?? [])
+      capability.activeEffectSuppressions
         .map(({ activeEffectId, contributionId }) => `${activeEffectId}:${contributionId}`)
         .join('\0') !==
         resolved.activeEffectSuppressions

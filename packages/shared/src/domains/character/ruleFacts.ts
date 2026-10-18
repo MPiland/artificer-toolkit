@@ -17,27 +17,6 @@ const ABILITY_KEY_ALIASES: Record<string, string> = {
   SPELLCASTING: 'SPELLCASTING'
 }
 
-export const SKILL_ABILITY_MAP: Record<string, string> = {
-  acrobatics: 'DEX',
-  'animal-handling': 'WIS',
-  arcana: 'INT',
-  athletics: 'STR',
-  deception: 'CHA',
-  history: 'INT',
-  insight: 'WIS',
-  intimidation: 'CHA',
-  investigation: 'INT',
-  medicine: 'WIS',
-  nature: 'INT',
-  perception: 'WIS',
-  performance: 'CHA',
-  persuasion: 'CHA',
-  religion: 'INT',
-  'sleight-of-hand': 'DEX',
-  stealth: 'DEX',
-  survival: 'WIS'
-}
-
 export type ParsedModifierDomainKey = {
   valueDomainCode: string
   modifierKind: string
@@ -102,46 +81,18 @@ export function buildSkillSubjectAliasMap(
 ): Map<string, string> {
   const aliases = new Map<string, string>()
 
-  if (system?.schemaVersion === 4) {
-    for (const skill of system.skills ?? []) {
-      const canonical = toSkillCanonicalId(skill.code ?? '')
-      if (!canonical) throw new Error(`System check definition "${skill.id}" has no code.`)
-      for (const alias of [skill.id, skill.code, skill.code?.toUpperCase(), canonical]) {
-        if (!alias) continue
-        const existing = aliases.get(alias)
-        if (existing && existing !== canonical) {
-          throw new Error(`System check alias "${alias}" is ambiguous.`)
-        }
-        aliases.set(alias, canonical)
-      }
-    }
-    return aliases
-  }
-
-  for (const canonical of Object.keys(SKILL_ABILITY_MAP)) {
-    aliases.set(canonical, canonical)
-    aliases.set(canonical.toUpperCase(), canonical)
-  }
-
   for (const skill of system?.skills ?? []) {
-    const canonicalByCode = toSkillCanonicalId(skill.code ?? '')
-    const canonical =
-      SKILL_ABILITY_MAP[canonicalByCode] !== undefined
-        ? canonicalByCode
-        : SKILL_ABILITY_MAP[toSkillCanonicalId(skill.id)] !== undefined
-          ? toSkillCanonicalId(skill.id)
-          : undefined
-
-    if (!canonical) continue
-
-    aliases.set(skill.id, canonical)
-    if (skill.code) {
-      aliases.set(skill.code, canonical)
-      aliases.set(skill.code.toUpperCase(), canonical)
-      aliases.set(canonicalByCode, canonical)
+    const canonical = toSkillCanonicalId(skill.code ?? '')
+    if (!canonical) throw new Error(`System check definition "${skill.id}" has no code.`)
+    for (const alias of [skill.id, skill.code, skill.code?.toUpperCase(), canonical]) {
+      if (!alias) continue
+      const existing = aliases.get(alias)
+      if (existing && existing !== canonical) {
+        throw new Error(`System check alias "${alias}" is ambiguous.`)
+      }
+      aliases.set(alias, canonical)
     }
   }
-
   return aliases
 }
 

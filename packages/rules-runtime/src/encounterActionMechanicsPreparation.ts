@@ -184,9 +184,7 @@ export async function prepareEncounterActionSource<
   if (!targetPolicy) throw new Error('The selected Character action target policy is stale.')
   const plan =
     source.kind === 'CHARACTER_ACTION'
-      ? source.entry.schemaVersion === 4
-        ? source.entry.compilation.executionPlan
-        : { kind: 'SINGLE_GRAPH' as const, published: source.entry.compilation.published }
+      ? source.entry.compilation.executionPlan
       : compileEncounterFeatureActionPlan(adapter, source.capability)
   return { source, adapter, targetPolicy, plan }
 }

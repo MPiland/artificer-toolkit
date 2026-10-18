@@ -202,7 +202,8 @@ export function prepareNativeCharacterActionState(input: {
   const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
   const namesCast = (value: { candidateId: string }) =>
     [undefined, input.candidate.effectId].some(
-      (laterEffectId) => spellCastActionId(value.candidateId, laterEffectId) === input.candidate.actionId
+      (laterEffectId) =>
+        spellCastActionId(value.candidateId, laterEffectId) === input.candidate.actionId
     )
   const spellCastLevel = isSpellCast
     ? input.policyOutput.spellCastMechanics.find(namesCast)?.castLevel
@@ -265,12 +266,7 @@ export function prepareNativeCharacterActionState(input: {
     }
   }
 
-  const binding =
-    input.entry.schemaVersion === 2 ||
-    input.entry.schemaVersion === 3 ||
-    input.entry.schemaVersion === 4
-      ? input.entry.compilation.resourceBinding
-      : null
+  const binding = input.entry.compilation.resourceBinding
   if (binding === null) {
     if (
       input.candidate.resourceUse !== null ||

@@ -3,7 +3,7 @@ import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-tool
 import { planDepartedSourceGrantRemovals } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readRunActors } from './documents.js'
-import { createActiveRuleEffectStore, maintainedStateTerminatesWhenEmpty } from './effectStore.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { deleteStateZones, listStateZones } from './maintainedStateZones.js'
 import { deleteActorPassiveZones } from './placedSpatialEffects.js'
@@ -143,7 +143,7 @@ export async function cleanupRemovedActorEffects(
     const zones = await listStateZones(ctx, { encounterId: input.state.id, stateId: state.id })
     if (
       remaining.length !== 0 ||
-      (!ownedByRemovedActor && (!maintainedStateTerminatesWhenEmpty(state) || zones.length !== 0))
+      (!ownedByRemovedActor && (state.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY' || zones.length !== 0))
     )
       continue
     // The zones of a removed caster's Concentration end with it (D135); another state's keep it alive.

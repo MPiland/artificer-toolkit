@@ -266,14 +266,6 @@ export async function readDependentEffects(
   return { characters, actors }
 }
 
-/** Whether the state ends when its last dependent effect does (Concentration), rather than staying until a terminal event. */
-export function maintainedStateTerminatesWhenEmpty(state: EncounterMaintainedEffectStateRecord) {
-  return (
-    state.descriptor.schemaVersion === 1 ||
-    state.descriptor.emptyDependentPolicy === 'TERMINATE_WHEN_EMPTY'
-  )
-}
-
 /** The maintained state an Encounter actor owns for one maintenance definition, if any. */
 export async function readMaintainedStateByDefinition(
   ctx: EncounterReadContext,

@@ -29,7 +29,6 @@ export interface CharacterAssemblyRegistrySystemSpeed {
 }
 
 export interface CharacterAssemblyRegistrySystem {
-  schemaVersion?: number
   abilities?: ReadonlyArray<CharacterAssemblyRegistrySystemAbility>
   skills?: ReadonlyArray<CharacterAssemblyRegistrySystemSkill>
   speeds?: ReadonlyArray<CharacterAssemblyRegistrySystemSpeed>

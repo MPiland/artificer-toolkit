@@ -59,7 +59,7 @@ export interface CharacterRosterEquipmentAssignmentState {
 
 export interface CharacterCurrencyAmountState {
   currencyId: string
-  kind?: 'RULESET' | 'CAMPAIGN'
+  kind: 'RULESET' | 'CAMPAIGN'
   campaignCurrencySystemId?: string
   amount: number
 }

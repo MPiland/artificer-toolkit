@@ -78,7 +78,7 @@ export const inventoryItemDtoSchema = lazySchema(() =>
 )
 export const inventoryCurrencyDtoSchema = lazySchema(() =>
   z.strictObject({
-    kind: z.optional(z.enum(['RULESET', 'CAMPAIGN'])),
+    kind: z.enum(['RULESET', 'CAMPAIGN']),
     campaignCurrencySystemId: z.optional(uuidSchema),
     denominationId: postgresUuidSchema,
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),

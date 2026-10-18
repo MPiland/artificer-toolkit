@@ -1,25 +1,20 @@
 import type { CampaignEventDto } from '@artificer-toolkit/schema/api/campaignLiveState'
 import type { TransferCampaignInventoryInput } from '@artificer-toolkit/schema/api/campaignInventory'
-import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { campaignStoredPartyCurrencySchema } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
 import {
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  characterCurrencyIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { InventoryCustodyOwner } from './inventoryCustodyOwners'
-import { readCampaignInventoryCurrencyOptions } from './characterCurrencyLifecycle'
 import { readCampaignCurrencyPlacement, readPartyDenomination } from './partyInventoryDocuments'
 import { requireInventoryRowEditable, readInventoryRowAvailable } from './inventoryCleanupGuards'
 
 type CharacterOwner = Extract<InventoryCustodyOwner, { kind: 'CHARACTER' }>
 type SharedOwner = Extract<InventoryCustodyOwner, { kind: 'SHARED' }>
 
-function readCharacterBalances(
-  owner: CharacterOwner,
-  options: readonly CharacterSheetCurrencyOptionDto[]
-) {
+function readCharacterBalances(owner: CharacterOwner) {
   const groupIds = new Set<string>()
   const itemIds = new Set(owner.character.state.equipment.inventory.map((item) => item.id))
   return owner.character.state.currency.flatMap((group) => {
@@ -32,7 +27,7 @@ function readCharacterBalances(
     return group.currencies.map((currency) => {
       if (!Number.isSafeInteger(currency.amount) || currency.amount < 0)
         throw new Error('Character currency amount is outside the supported range.')
-      const identity = resolveCharacterCurrencyIdentity(currency, options)
+      const identity = characterCurrencyIdentity(currency)
       const key = createCharacterCurrencyIdentityKey(identity)
       if (identities.has(key)) throw new Error('Character currency group has duplicate balances.')
       identities.add(key)
@@ -101,14 +96,13 @@ export async function transferCharacterCurrencyCustody(
       ? { currencyId: denominationId, kind: 'RULESET' as const }
       : { currencyId: denominationId, kind: 'CAMPAIGN' as const, campaignCurrencySystemId }
   const key = createCharacterCurrencyIdentityKey(identity)
-  const options = await readCampaignInventoryCurrencyOptions(ctx, campaign)
   const sourceCharacterBalances =
     source.kind === 'CHARACTER'
-      ? readCharacterBalances(source, options).filter((entry) => entry.key === key)
+      ? readCharacterBalances(source).filter((entry) => entry.key === key)
       : []
   const destinationCharacterBalances =
     destination.kind === 'CHARACTER'
-      ? readCharacterBalances(destination, options).filter((entry) => entry.key === key)
+      ? readCharacterBalances(destination).filter((entry) => entry.key === key)
       : []
   const sourceSharedBalances =
     source.kind === 'SHARED'

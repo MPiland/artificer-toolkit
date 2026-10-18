@@ -93,9 +93,7 @@ export function composeCharacterRulePolicyFacts(
     resourcePoolCandidates: resourceFacts.resourcePoolCandidates
   })
   const abilityDefinitions =
-    context.vocabularySnapshot && 'abilities' in context.vocabularySnapshot.document
-      ? context.vocabularySnapshot.document.abilities.map(({ id, code }) => ({ id, code }))
-      : []
+    context.vocabularySnapshot?.document.abilities.map(({ id, code }) => ({ id, code })) ?? []
   const facts = characterRulePolicyInputSchema.parse({
     contractVersion: 4,
     abilityDefinitions,

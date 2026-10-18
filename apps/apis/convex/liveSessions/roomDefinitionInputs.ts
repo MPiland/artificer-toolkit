@@ -4,7 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { readStoredDefinitionRoot, readSystemOwner } from '../content/definitionStore'
+import { readStoredDefinitionRoot } from '../content/definitionStore'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 
 /** All System definitions readable as the Campaign owner, bounded before root decoding. */
@@ -31,7 +31,6 @@ export async function readRoomDefinitionsPage(
   if (!page.isDone && page.continueCursor === paginationCursor)
     throw new Error('Room input page cannot advance.')
   const sources = new Map<string, Promise<Doc<'contentSources'> | null>>()
-  let systemOwner: Promise<string> | undefined
   const definitions = await Promise.all(
     page.page.map(async (record) => {
       if (record.gameSystemId !== campaign.gameSystemId || record.ownerUserId !== ownerUserId)
@@ -46,16 +45,7 @@ export async function readRoomDefinitionsPage(
       }
       const source = await sourceRead
       if (!source) throw new Error('Reusable definition unavailable.')
-      const legacyPublisherUserId =
-        source.kind === 'PLATFORM' && record.publishedBy === undefined
-          ? await (systemOwner ??= readSystemOwner(ctx, campaign.gameSystemId))
-          : undefined
-      const root = readStoredDefinitionRoot(
-        record,
-        source,
-        campaign.ownerUserId,
-        legacyPublisherUserId
-      )
+      const root = readStoredDefinitionRoot(record, source, campaign.ownerUserId)
       return { id: root.id, sourceKind: root.sourceKind, definition: root.current }
     })
   )
