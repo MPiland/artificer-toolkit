@@ -556,6 +556,7 @@ learns which fields offer the choice from `halfSpeedFields` on the Encounter ses
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
 preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
 (D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+The multiplier slows only a mover the zone catches (SPELLS-20 T4d, refining D154's "every mover"): `zoneMovementSegmentMultiplier` (shared/vtt) skips a mover that `spatialEffectAffects` spares (designated unaffected, or a defeated Creature's suppressed passive zone) and the token a `TOKEN` zone is anchored to, so Spirit Guardians never slows its caster while a wall the caster placed does. The room's movement charge (`encounterMovementPublication`) and the tabletop's drag-route label (`formatSceneRoute`) both price a walk through it, the label from `movementCostZones` on the Encounter session state (`readSessionMovementCostZones`: visible zones, token zones only when the viewer's projection lists the source, designations filtered to listed actors). A zone whose only component prices movement (Entangle's difficult terrain, D156) compiles from its appear save (`zonePlacementPlan`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
 today), each with its own label, triggers and frozen entry, sharing the zone's Concentration and never sparing
@@ -969,7 +970,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Dodge** is an `APPLY_GRANT` until the start of the holder's next turn with an `ATTACKS_AGAINST` disadvantage modifier
   (`requiresHolderSeesAttacker`) and a Dexterity `SAVING_THROW_MODIFIER` advantage, both under the facet predicates `CAN_ACT` and
   `SPEED_ABOVE_ZERO`, authored as one CHARACTER group and one CREATURE group (unknown contexts fail closed). `withEncounterHolderDefense` (`encounterHolderDefense.ts`) applies the grants
-  to the target facts for attack and save resolution; the D100 sight rule drops the attack contributor only when the holder
+  to the target facts for attack and save resolution, and the target keeps the holder state it found (`holderState`), so
+  `rebuildEncounterTurnTarget` re-applies the grants as they stand at each turn stage (SPELLS-20 T5d); the D100 sight rule drops the attack contributor only when the holder
   definitively can't see the attacker (`UNSEEN`). GM undo removes the grant and refunds the Action like any authored action.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
@@ -984,16 +986,24 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
-- **Pushes and pulls (ATTACK-7.T5a, D139).** A `FORCED_MOVEMENT` outcome with `AWAY_FROM_SOURCE` or `TOWARD_SOURCE` and an exact
-  `EXACT` compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
+- **Forced movement (ATTACK-7.T5a/T5b, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
+  `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
   which the single-target and area room planners pass to the commit as `forcedMovements`. In the action's transaction the room's
-  `applyRoomForcedMovements` moves each target along the straight square-grid ray from the source's token
-  (`deriveSquareGridForcedMovementDestination`, `packages/shared/src/domains/vtt/optionalCombatGeometry.ts`), farthest target first (ties by
-  actor ID), stopping before the first barrier or occupied square, as a `FORCED` Scene move: no opportunity attack, no movement spent.
+  `applyRoomForcedMovements` moves each target, farthest first (ties by actor ID), to a square
+  `deriveSquareGridForcedMovementDestinations` (`packages/shared/src/domains/vtt/optionalCombatGeometry.ts`) calls legal: along the
+  straight square-grid ray from the source's token for away and toward, stopping before the first barrier or occupied square, or any
+  free square within the distance for `ANY` (and within the source's reach for `ASIDE`), as a `FORCED` Scene move: no opportunity
+  attack, no movement spent. When a single-target action's movement has two or more legal squares, the planner holds the settled
+  outcome (`holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
+  OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
+  `{requestId, position}`, the planner restores the completion without running a graph again
+  (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
+  re-checks that the square is still legal. Exact away/toward and a movement with one legal square never pause.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
-  legendary and reaction actions still refuse spatial directives; `ASIDE`, `ANY` and `UP_TO` stay with ATTACK-7.T5.
+  legendary and reaction actions still refuse spatial directives; an area action whose movement needs a pick fails closed in its
+  commit; the board pick is ATTACK-7.T5c.
 - **Disengage** is an `APPLY_GRANT` on SELF for one `TURN` with an `OPPORTUNITY_ATTACK_IMMUNITY` modifier of the flag kind `ENABLE`
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every

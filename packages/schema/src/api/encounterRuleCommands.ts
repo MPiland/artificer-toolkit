@@ -457,6 +457,12 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
           z.strictObject({ kind: z.literal('DECLINE') })
         ])
       }),
+      /** The square the source chooses for a creature its action pushes, from the offered ones (D157). */
+      z.strictObject({
+        kind: z.literal('FORCED_MOVEMENT'),
+        requestId: requestIdSchema,
+        position: spatialPointDtoSchema
+      }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
       /** A Legendary Action option and the actor it targets, from the option's targets. */

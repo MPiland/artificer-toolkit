@@ -308,6 +308,18 @@ export function projectNativeActionPending(
       })),
       allowedResponses: ['DECLINE', 'OPTION']
     }
+  if (context.forcedMovementDestination)
+    return {
+      kind: 'FORCED_MOVEMENT_DESTINATION',
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      encounterVersion: occurrence.expectedEncounterVersion,
+      sourceActorId: context.rollerActorId,
+      targetActorId: context.forcedMovementDestination.targetActorId,
+      requestId: snapshot.request.requestId,
+      positions: context.forcedMovementDestination.positions,
+      allowedResponses: ['FORCED_MOVEMENT']
+    }
   const common = {
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,

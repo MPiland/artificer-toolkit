@@ -276,9 +276,9 @@ Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectil
 
 Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d. Its light obscurement and its burning (a 10-ft cube burns away in a round, dealing 2d4 fire to a creature that starts its turn in the fire) are not modeled yet.
 
-### Day-scale spell durations (D156)
+### Day-scale durations on the Campaign clock (D156)
 
-Awaken's 30-day charm is a GM ruling on its description (SPELLS-4.T2a1, class C). Durations counted in days, such as a charm that outlasts many Runs on the Campaign clock, are not modeled yet.
+Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
 
 ### Shared live cursors (Q19)
 

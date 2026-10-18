@@ -121,6 +121,7 @@ export async function persistEncounterActionPending(
         context.legendaryResistance !== undefined ||
         context.reactionChoice !== undefined ||
         context.onHitChoice !== undefined ||
+        context.forcedMovementDestination !== undefined ||
         (resume &&
           (snapshot.occurrenceId !== resume.occurrence.id ||
             context.currentnessChecksum !== resume.pending.context.currentnessChecksum ||
@@ -182,7 +183,8 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.reactionChoice.reactions.some(
           ({ reactorActorId }) => reactorActorId !== target.actorId
         )) ||
-      (snapshot.applicationContext.onHitChoice !== undefined &&
+      ((snapshot.applicationContext.onHitChoice !== undefined ||
+        snapshot.applicationContext.forcedMovementDestination !== undefined) &&
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||

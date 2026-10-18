@@ -7,7 +7,7 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
-import { encounterRelationshipReachFeet } from './encounterActionTargetPolicy.js'
+import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -161,7 +161,7 @@ export function prepareNativeActionEffectsPlan<
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
     sealedReachFeet: plan?.actorRelationshipContribution
-      ? encounterRelationshipReachFeet(prepared.targetPolicy)
+      ? encounterActionReachFeet(prepared.targetPolicy)
       : undefined,
     concealment: input.concealment,
     link: input.link,

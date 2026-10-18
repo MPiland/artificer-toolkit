@@ -1,5 +1,6 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   canMoveBetween,
@@ -7,6 +8,7 @@ import {
   isDirectedAreaOriginOnToken,
   isDirectedAreaShape,
   measureScenePathDistance,
+  measureScenePathMovementCost,
   nearestFootprintEdgePoint,
   pointCubeOutline,
   SceneBarrierIndex,
@@ -23,7 +25,8 @@ import {
   type SpatialTokenFootprint,
   type SpatialWallSide,
   wallOutline,
-  wallSideBandGeometry
+  wallSideBandGeometry,
+  zoneMovementSegmentMultiplier
 } from '@artificer-toolkit/shared/vtt'
 
 const unexploredOpacity = 224
@@ -479,6 +482,33 @@ export function buildVttFogMask(
 
 export function formatSceneMeasurement(grid: SceneGrid, path: readonly ScenePoint[]): string {
   return formatSceneDistance(grid, measureScenePathDistance(grid, path))
+}
+
+/**
+ * A dragged token's route: its distance and, for an Encounter mover whose terrain or a zone that
+ * slows it makes the walk dearer, the movement it costs, priced as the room charges it (D154, D156).
+ */
+export function formatSceneRoute(
+  scene: CampaignSceneStateDto,
+  path: readonly ScenePoint[],
+  mover: {
+    actorId: string
+    tokenId: string
+    zones: EncounterSessionStateDto['movementCostZones']
+  } | null
+): string {
+  const distance = measureScenePathDistance(scene.grid, path)
+  const cost =
+    mover &&
+    measureScenePathMovementCost(
+      scene.grid,
+      scene,
+      path,
+      zoneMovementSegmentMultiplier({ zones: mover.zones, mover, tokens: scene.tokens })
+    )
+  return cost && cost > distance
+    ? `${formatSceneDistance(scene.grid, distance)} · costs ${formatSceneDistance(scene.grid, cost)}`
+    : formatSceneDistance(scene.grid, distance)
 }
 
 /** A distance in the Scene's grid units, with the unit's short name. */

@@ -68,18 +68,13 @@ export const zoneOfTruth: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x213, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x202, 1),
               durationKind: DURATION_KIND.MINUTE,
               amount: 10
             },
             outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ZONE_OF_TRUTH' as const
-              },
               {
                 id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,

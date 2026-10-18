@@ -73,8 +73,11 @@ export const purifyFoodAndDrink: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PURIFY_FOOD_AND_DRINK, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PURIFY_FOOD_AND_DRINK' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Purify Food and Drink',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'All nonmagical food and drink within a 5-foot-radius sphere centered on a point of your choice within range is purified and rendered free of poison and disease.'
               }
             ]
           }

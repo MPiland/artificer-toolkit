@@ -391,14 +391,27 @@ export interface CharacterRuleActionSpatialDirective {
   targetActorId: string
   sourceNodeId: string
   sourceOperationKey: string
-  /** The straight line the target moves along: away from, or toward, the action's source (D105). */
+  /**
+   * Away from, or toward, the action's source along the straight line (D105); aside within the
+   * source's reach; or in any direction (D157).
+   */
   direction: CharacterRuleActionForcedMovementDirection
-  /** The exact distance the target moves unless a blocked square stops it first. */
+  /** The distance the target moves unless a blocked square stops it first. */
   feet: number
+  /** The target moves at most `feet`, its source choosing how far (D157). */
+  upTo: boolean
   targetStateChecksum: string
 }
 
-export type CharacterRuleActionForcedMovementDirection = 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
+const FORCED_MOVEMENT_DIRECTIONS = ['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'] as const
+
+export type CharacterRuleActionForcedMovementDirection = (typeof FORCED_MOVEMENT_DIRECTIONS)[number]
+
+export function isCharacterRuleActionForcedMovementDirection(
+  value: unknown
+): value is CharacterRuleActionForcedMovementDirection {
+  return FORCED_MOVEMENT_DIRECTIONS.some((direction) => direction === value)
+}
 
 /**
  * A System-owned replacement of an already evidenced failed saving throw.

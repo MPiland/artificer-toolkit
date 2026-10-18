@@ -69,8 +69,11 @@ export const featherFall: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FEATHER_FALL, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'FEATHER_FALL' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Slow the Fall',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends."
               }
             ]
           }

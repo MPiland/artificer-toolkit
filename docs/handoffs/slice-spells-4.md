@@ -14,6 +14,12 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2b (description-only closed rules, D156 T2 class C)
+
+- The 34 class C spells drop their `CLOSED_RULE` outcome, and their kinds leave `CLOSED_RULE_KIND`: Arcane Lock, Arcanist's Magic Aura, Astral Projection, Clone, Comprehend Languages, Demiplane, Detect Thoughts, Disguise Self, Dream, Feather Fall, Gentle Repose, Guards and Wards, Meld into Stone, Mislead, Nondetection, Passwall, Prestidigitation, Private Sanctum, Programmed Illusion, Purify Food and Drink, Rope Trick, Seeming, Sending, Speak with Animals, Speak with Dead, Speak with Plants, Stone Shape, Suggestion, Thaumaturgy, Tongues, Water Breathing, Water Walk, Wish, Zone of Truth.
+- The 17 that already authored a `MANUAL_ADJUDICATION` beside the closed rule keep it alone (`SEQUENCE` becomes `SINGLE`). The other 17 had only the closed rule, so it becomes a `MANUAL_ADJUDICATION` with the same id, like the 35 description-only spells before them (Detect Magic): its instructions quote the description's opening, and the GM rules the rest. The spell stays castable in an Encounter, which spends the Action.
+- Proof: `packages/source-data/src/srd/descriptionOnlySpells.test.ts` (no closed rule at any depth, the description intact, every ruling's instructions quoted from it, no kind left).
+
 ### T1g (the save as a zone appears)
 
 - Contract (D154 amendment, option B): the cast authors its appear save as an ordinary ON_USE `SAVING_THROW` path beside the zone manifest, run as the cast's area occurrence against the zone's aimed area. Grease, Insect Plague and Incendiary Cloud author both triggers (cast and zone); Wall of Fire (5d8 fire) and Wall of Thorns (7d8 piercing) deal half on a success; Wind Wall (3d8 bludgeoning) places a zone with no interaction; Entangle's save is its only one, restraining the creature held by its zone with the T1e escape.

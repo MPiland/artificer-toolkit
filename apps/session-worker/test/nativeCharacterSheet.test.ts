@@ -46,6 +46,7 @@ import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
 import { darkvisionDefinition } from './srdSenseInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
+import { roomStub } from './roomTeardown.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
@@ -138,7 +139,7 @@ async function sheetRoom(
     sceneEncounterId: null,
     sceneHeader: null
   }
-  const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
+  const stub = roomStub(campaignId)
   let currentEpoch = authorityEpoch
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {

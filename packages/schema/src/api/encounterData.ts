@@ -38,7 +38,9 @@ import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healt
 import {
   MAX_SPATIAL_RULE_EFFECTS_PER_SCENE,
   spatialGeometryDtoSchema,
-  spatialPositiveDistanceDtoSchema
+  spatialPersistedGeometryDtoSchema,
+  spatialPositiveDistanceDtoSchema,
+  zoneMovementCostMultiplierSchema
 } from '../shared/spatial.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -571,9 +573,7 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
            * The creatures this actor must Dash away from this turn, because a held condition
            * authored `fleesSource` (Fear); empty when it flees none. Shown, never enforced.
            */
-          fleeSourceActorIds: z
-            .array(postgresUuidSchema)
-            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+          fleeSourceActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
@@ -606,6 +606,24 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           ),
           radius: spatialPositiveDistanceDtoSchema,
           sourceTokenId: postgresUuidSchema
+        })
+      )
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The visible, active zones that raise what moving through them costs (D154, D156), so the map
+     * can price a dragged path as the room will. A token-anchored zone is carried only when the
+     * member's projection lists its source, and `unaffectedActorIds` names only listed actors.
+     * Shown, never enforced: the room charges the movement.
+     */
+    movementCostZones: z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          multiplier: zoneMovementCostMultiplierSchema,
+          anchorKind: z.enum(['FIXED', 'TOKEN']),
+          geometry: spatialPersistedGeometryDtoSchema,
+          sourceTokenId: z.nullable(postgresUuidSchema),
+          unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))

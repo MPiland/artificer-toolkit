@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SessionWorkerEnvironment } from '../src/environment.js'
 import worker from '../src/index.js'
+import { roomStub } from './roomTeardown.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 // The Worker's own bindings plus the secret the typed environment requires.
@@ -54,7 +55,7 @@ it('requires the worker secret and a loopback request host of a local developmen
 })
 
 it('has the room itself refuse test rolls unless it runs in local development', async () => {
-  const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(crypto.randomUUID()))
+  const stub = roomStub(crypto.randomUUID())
   await runInDurableObject(stub, async (instance) => {
     const response = await instance.fetch(
       new Request(`https://live-session.internal${LIVE_SESSION_TEST_ROLLS_PATH}`, {

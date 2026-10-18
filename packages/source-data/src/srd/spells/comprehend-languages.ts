@@ -64,8 +64,11 @@ export const comprehendLanguages: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COMPREHEND_LANGUAGES, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'COMPREHEND_LANGUAGES' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Understand Languages',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'For the duration, you understand the literal meaning of any spoken language that you hear.'
               }
             ]
           }

@@ -55,13 +55,8 @@ export const sending: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SENDING, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.SENDING, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SENDING' as const
-              },
               {
                 id: spellChildId(SPELL_IDS.SENDING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,

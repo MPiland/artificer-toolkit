@@ -279,6 +279,22 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
   - `encounterOccupantSaveAuras.test.ts`: the real paladin aura holds an adjacent ally and the paladin, not a hostile or neutral creature, an ally whose footprint only touches the 10-foot edge, or an actor with no token; a defeated Creature source lends nothing; the decorator adds the largest bonus to every row, a rebuilt turn target keeps it, it skips an unconscious Character source and reads no Character for a Creature source.
   - `nativeRoomTurnZoneEffects.test.ts` (room journey): a friendly wolf ending its turn in caltrops saves with the paladin's +CHA inside the aura (the bound `dnd5e.save-modifier` fact records it), without it outside or with the paladin at 0 HP, and with it 30 feet away at paladin level 18.
 
+### T5d (Dodge kept across turn-stage rebuilds)
+
+- Found in T5c: `rebuildEncounterTurnTarget` rebuilt caught targets from raw facts and dropped the holder defense, so a Dodging creature's turn-boundary zone save lost its Dexterity advantage.
+- Fix: `withEncounterHolderDefense` keeps the holder state it found on the target (`holderState`). Its pure half, `withHolderDefenseGrants`, re-applies the grants in the rebuild from the effects in force at that stage, so Dodge's own expiry still applies.
+- Known limit: the holder state is the one found at preparation. A condition an earlier stage of the same turn applies (incapacitated, speed 0) does not end the grants until the next preparation.
+- Proof: `nativeRoomTurnZoneEffects.test.ts`, where a Wolf that Dodged on its turn rolls its end-of-turn caltrops Dexterity save with advantage. Locally it is NORMAL without the fix.
+
+### T4d (zone movement cost for affected creatures, D154 refined, D156)
+
+- Rule: a zone's `movementCostMultiplier` slows only movers it catches. `zoneMovementSegmentMultiplier` (shared/vtt, the one home of the rule) skips a mover `spatialEffectAffects` spares (designated unaffected, suppressed passive zone) and the token a TOKEN zone is anchored to; a FIXED zone the caster placed still slows the caster. This refines D154's "applies to every mover"; the decisions doc is unchanged, for the orchestrator to record. The careful-crossing doubling stays the max, never a product.
+- Room: `encounterMovementPublication` takes the mover's actor id and `toSpatialInstances` effects (suppression included) and prices through the shared function; `toSpatialInstance` carries `movementCostMultiplier`.
+- Data: `movementCostMultiplier: 2` on Spirit Guardians (affected creatures' halved speed) and on the difficult terrain of Web, Black Tentacles, Sleet Storm, Entangle, Grease and Insect Plague. Entangle gains a terrain-only component; `placedSpaceZone` accepts a component that only prices movement and `zonePlacementPlan` compiles it from the zone's appear save (refused without one or beside later components).
+- Session state: `movementCostZones` (`readSessionMovementCostZones`): visible zones with a multiplier; a TOKEN zone only when the viewer's projection lists its source and not while it is a defeated Creature's passive zone; designations filtered to listed actors.
+- Web: the drag route carries a label from `formatSceneRoute` ("20 ft · costs 40 ft" when terrain or a slowing zone makes the walk dearer, Encounter movers only); diagnostics gain `dragRouteLabel`.
+- Proofs: `encounterMovementPublication.test.ts` (affected, unaffected, own token, FIXED zone and caster, passive aura with live and defeated source); `zoneInteractionKinds.test.ts` (the seven spells author 2); `nativeRoomZoneAppearSave.test.ts` (Entangle's placement carries 2); `nativeRoomSourceAura.test.ts` room journey (an affected Wolf pays double inside Spirit Guardians, a designated one and the caster pay plain); `sessionMovementCostZones.test.ts`; `vttSceneRenderer.model.test.ts` (route label).
+
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
 A placeable zone is one ZONE manifest (label, shape, one component, one behavior), a point or caster-centered sphere/cylinder/circle/cube, a PASSIVE save with damage on failure (plus an optional stop-movement and one grant) and half damage on success.
