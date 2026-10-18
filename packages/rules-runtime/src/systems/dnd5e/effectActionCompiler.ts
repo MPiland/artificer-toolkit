@@ -1794,10 +1794,12 @@ function timedConditionPlan(
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
   // With no duration the conditions last until their Concentration ends (Imp Invisibility) or an
-  // authored event ends them (Contact Other Plane's long rest): one of them must bound them.
+  // authored event ends them (Contact Other Plane's long rest): one of them must bound them. Until
+  // dispelled, they last until the GM ends them or an authored trigger does (Sequester).
   const { duration } = lead.entry
-  const initialRemaining = duration ? conditionDurationTurns(duration) : null
-  const indefinite = !duration
+  const untilDispelled = duration?.durationKind === 'UNTIL_DISPELLED'
+  const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
+  const indefinite = !duration || untilDispelled
   const grantEntry = grantEntries[0]
   // The grant joins the conditions' lifecycle, so it is planned without one of its own and counted
   // by the turn-effect kernel with them.
@@ -1810,7 +1812,9 @@ function timedConditionPlan(
       })?.modifierGrantContribution
     : null
   if (
-    (indefinite ? !maintenance && endOnEvents.length === 0 : initialRemaining === null) ||
+    (indefinite
+      ? !untilDispelled && !maintenance && endOnEvents.length === 0
+      : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.

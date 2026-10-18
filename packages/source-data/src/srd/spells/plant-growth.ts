@@ -66,7 +66,7 @@ export const plantGrowth: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x213, 1),
               durationKind: DURATION_KIND.INSTANTANEOUS
@@ -74,7 +74,8 @@ export const plantGrowth: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x212, 1),
-                // The overgrowth stays until the GM removes it.
+                // The overgrowth stays until the GM removes it; the 8-hour enrichment and the
+                // caster's excluded areas are the GM's to rule from the description.
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
                 attachmentKind: 'PLACED_SPACE',
@@ -93,14 +94,6 @@ export const plantGrowth: SpellAuthored = {
                     movementCostMultiplier: 4
                   }
                 ]
-              },
-              {
-                id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x2f0, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Exclude Areas',
-                reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions:
-                  "You can exclude one or more areas of any size within the spell's area from being affected."
               }
             ]
           }

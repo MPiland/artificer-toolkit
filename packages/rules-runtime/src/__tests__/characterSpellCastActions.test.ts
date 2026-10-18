@@ -1763,21 +1763,6 @@ describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, 
   })
 })
 
-describe('a zone beside a GM ruling (SPELLS-4.T2a4, D156)', () => {
-  it('places Plant Growth’s overgrowth and keeps the caster’s excluded areas as a ruling', () => {
-    const compiled = compiledCast(spell('Plant Growth'))
-    expect(compiled?.zonePlacement).toMatchObject({
-      label: 'Plant Growth',
-      movementCostMultiplier: 4
-    })
-    const plan = compiled?.executionPlan
-    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
-    expect(plan.published.definition.nodes.map((node) => node.operation.key)).toContain(
-      'dnd5e.manual-adjudication-proposal'
-    )
-  })
-})
-
 describe('a condition until dispelled that damage ends, beside a GM ruling (SPELLS-4.T2a4, D156)', () => {
   it('owns Sequester’s invisible on a willing creature with no end of turns, ending on anyone’s damage', () => {
     const entry = compiledCastEntry(spell('Sequester'))
