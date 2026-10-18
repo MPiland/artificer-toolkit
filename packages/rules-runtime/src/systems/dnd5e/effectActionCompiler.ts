@@ -3038,7 +3038,7 @@ function validateDamageBonuses(value: unknown): void {
  * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
  */
 function healDiceConfiguration(
-  outcome: Record<string, unknown>,
+  outcome: Partial<Record<'scalingKind' | 'diceConfig' | 'scalingSource' | 'levels', unknown>>,
   spellCastLevel: number | undefined
 ): string {
   if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
@@ -3452,9 +3452,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    parseBoundedDiceConfiguration(
-      healDiceConfiguration(outcome as unknown as Record<string, unknown>, action.spellCastLevel)
-    )
+    parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
     validateHealBonuses(outcome.bonuses)
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
@@ -4896,7 +4894,21 @@ function compiledDiceConfiguration(entry: CompiledEffectGroup['entries'][number]
 }
 
 function exactDiceConfiguration(
-  outcomes: readonly Record<string, unknown>[],
+  outcomes: readonly Partial<
+    Record<
+      | 'effectKind'
+      | 'valueKind'
+      | 'scalingKind'
+      | 'scalingSource'
+      | 'classId'
+      | 'dice'
+      | 'halfHitPointsDice'
+      | 'bonuses'
+      | 'level'
+      | 'order',
+      unknown
+    >
+  >[],
   facts: Dnd5eEffectScalingFacts,
   selectedPath: SpecializedPath,
   outcomeId: string,
@@ -5843,7 +5855,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       if (primaryDamage.kind !== 'DICE_DAMAGE')
         unsupported('D&D immediate follow-up save requires damage before the save.')
       const primaryDiceConfiguration = exactDiceConfiguration(
-        [primaryDamageEntry.outcome as unknown as Record<string, unknown>],
+        [primaryDamageEntry.outcome],
         input.facts,
         input.selectedPath,
         compiledOutcomeIdentity(primaryDamageEntry),
@@ -5933,8 +5945,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               ? exactDiceConfiguration(
                   entries.map(
                     (candidate) =>
-                      (candidate as Extract<typeof candidate, { outcome: unknown }>)
-                        .outcome as unknown as Record<string, unknown>
+                      (candidate as Extract<typeof candidate, { outcome: unknown }>).outcome
                   ),
                   input.facts,
                   input.selectedPath,
@@ -6150,10 +6161,7 @@ function compileDnd5eEffectAction({
     const definition = diceGraphDefinition({
       action,
       entry,
-      diceConfig: healDiceConfiguration(
-        entry.outcome as unknown as Record<string, unknown>,
-        action.spellCastLevel
-      ),
+      diceConfig: healDiceConfiguration(entry.outcome, action.spellCastLevel),
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })

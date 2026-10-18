@@ -9,7 +9,7 @@ import {
   Text,
   Tooltip
 } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { useDisclosure, useWindowEvent } from '@mantine/hooks'
 import { ListOrdered } from 'lucide-react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
@@ -78,6 +78,15 @@ export function CampaignTabletopEncounterDrawer({
   onEndCharacterConcentration: (characterId: string) => void
 }) {
   const [opened, { close, open }] = useDisclosure(false)
+  // Escape ends targeting only once every drawer's capture-phase Escape listener has seen the key:
+  // ending it reopens the action drawer, which would otherwise close on that same key. An open
+  // dropdown keeps its Escape, as it does from a Mantine drawer.
+  useWindowEvent('keydown', (event) => {
+    const fromOpenDropdown =
+      event.target instanceof Element &&
+      event.target.getAttribute('data-mantine-stop-propagation') === 'true'
+    if (targeting && event.key === 'Escape' && !fromOpenDropdown) targeting.onCancel()
+  })
   const controlsDisabled = !connected || pending
   const listedActors = targeting
     ? orderActorsForTargeting(encounter.actors, targeting.entries)
@@ -133,6 +142,7 @@ export function CampaignTabletopEncounterDrawer({
         // The map stays clickable beside the list while targeting.
         closeButtonProps={{ 'aria-label': targeting ? 'Cancel targeting' : 'Close turn order' }}
         closeOnClickOutside={!targeting}
+        closeOnEscape={!targeting}
         lockScroll={!targeting}
         opened={opened || targeting !== null}
         position='right'

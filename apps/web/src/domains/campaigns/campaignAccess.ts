@@ -1,4 +1,5 @@
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 
 export type CampaignTab =
   | 'sessions'
@@ -27,4 +28,21 @@ export function getCampaignTabs(campaign: CampaignDetailDto): CampaignTab[] {
       : []),
     ...(campaign.role === 'OWNER' ? (['settings'] as const) : [])
   ]
+}
+
+export type SessionWorkspaceView = 'PREPARE' | 'RUN' | 'CLOSEOUT'
+
+export function getSessionWorkspaceViews(
+  role: CampaignDetailDto['role'],
+  status: CampaignSessionDto['status']
+): SessionWorkspaceView[] {
+  return role === 'OWNER'
+    ? ['PREPARE', 'RUN', 'CLOSEOUT']
+    : [status === 'OPEN' ? 'RUN' : 'CLOSEOUT']
+}
+
+export function isCampaignTableSettingsEditable(
+  campaign: Pick<CampaignDetailDto, 'role' | 'status'>
+) {
+  return campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
 }

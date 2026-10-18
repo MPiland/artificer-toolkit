@@ -167,10 +167,10 @@ export type RelationTargetSubject<
 export function getRelatedSubjectOptions<S extends NodeSubjectCode>(
   subject: S
 ): readonly NodeSubjectOption<RelatedSubjectCodes<S>>[] {
-  const rel = RELATIONS[subject as SubjectWithRelations]
+  const rel: Readonly<Record<string, { readonly to: NodeSubjectCode }>> | undefined =
+    RELATIONS[subject as SubjectWithRelations]
   if (!rel) return []
 
-  const relationValues = valuesOf(rel) as unknown as ReadonlyArray<{ to: RelatedSubjectCodes<S> }>
-  const codes = Array.from(new Set(relationValues.map((x) => x.to))) as RelatedSubjectCodes<S>[]
+  const codes = Array.from(new Set(valuesOf(rel).map((x) => x.to))) as RelatedSubjectCodes<S>[]
   return codes.map((c) => NODE_SUBJECT[c]) as readonly NodeSubjectOption<RelatedSubjectCodes<S>>[]
 }

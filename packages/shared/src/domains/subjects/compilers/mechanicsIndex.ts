@@ -516,20 +516,36 @@ function addStartingEquipment(
   }
 }
 
+type RootCollectionSource = Partial<
+  Record<
+    | 'proficiencies'
+    | 'modifiers'
+    | 'feats'
+    | 'senses'
+    | 'spells'
+    | 'specializations'
+    | 'charges'
+    | 'effects'
+    | 'features'
+    | 'startingEquipment',
+    unknown
+  >
+>
+
 function addRootCollections(
   nodes: CompiledSubjectMechanicsNode[],
   rootId: string,
-  compiled: Record<string, unknown>
+  compiled: RootCollectionSource
 ): void {
   const rootPath = [rootId]
-  const directCollections: ReadonlyArray<readonly [string, string]> = [
+  const directCollections = [
     ['proficiencies', 'PROFICIENCY_GRANT'],
     ['modifiers', 'MODIFIER_GRANT'],
     ['feats', 'FEAT_GRANT'],
     ['senses', 'SENSE_GRANT'],
     ['spells', 'SPELL_GRANT'],
     ['specializations', 'SPECIALIZATION']
-  ]
+  ] as const
   for (const [key, kind] of directCollections) {
     const values = compiled[key]
     if (!Array.isArray(values)) continue
@@ -537,16 +553,7 @@ function addRootCollections(
       // Creature display senses and similar inline scalar policy values stay in root semantics.
       if (!value || typeof value !== 'object' || !('id' in value)) continue
       const id = requireId((value as { id?: string }).id, kind)
-      addUuidNode(
-        nodes,
-        kind as Exclude<
-          CompiledSubjectMechanicsNodeKind,
-          'ROOT_COMPILED_SEMANTICS' | 'EFFECT_GROUP'
-        >,
-        id,
-        [...rootPath, id],
-        value
-      )
+      addUuidNode(nodes, kind, id, [...rootPath, id], value)
       if (kind === 'FEAT_GRANT' || kind === 'SENSE_GRANT' || kind === 'SPELL_GRANT') {
         addGrantCharge(nodes, [...rootPath, id], value as CompiledGrantLike)
       }
@@ -568,7 +575,7 @@ function addRootCollections(
 
 function addClassNodes(nodes: CompiledSubjectMechanicsNode[], compiled: CompiledClass): void {
   const rootPath = [compiled.id]
-  addRootCollections(nodes, compiled.id, compiled as unknown as Record<string, unknown>)
+  addRootCollections(nodes, compiled.id, compiled)
   if (compiled.resources) {
     const resourcePath = [...rootPath, compiled.resources.id]
     addUuidNode(nodes, 'CLASS_RESOURCE', compiled.resources.id, resourcePath, compiled.resources)
@@ -610,7 +617,7 @@ function addClassNodes(nodes: CompiledSubjectMechanicsNode[], compiled: Compiled
 
 function addRaceNodes(nodes: CompiledSubjectMechanicsNode[], compiled: CompiledRace): void {
   const rootPath = [compiled.id]
-  addRootCollections(nodes, compiled.id, compiled as unknown as Record<string, unknown>)
+  addRootCollections(nodes, compiled.id, compiled)
   if (!compiled.ancestry) return
   const ancestryPath = [...rootPath, compiled.ancestry.id]
   addUuidNode(nodes, 'RACE_ANCESTRY', compiled.ancestry.id, ancestryPath, compiled.ancestry)
@@ -640,10 +647,10 @@ function buildMechanicsIndex(
       break
     case 'RACE':
       if ('size' in compiled) addRaceNodes(nodes, compiled as CompiledRace)
-      else addRootCollections(nodes, rootId, compiled as unknown as Record<string, unknown>)
+      else addRootCollections(nodes, rootId, compiled)
       break
     default:
-      addRootCollections(nodes, rootId, compiled as unknown as Record<string, unknown>)
+      addRootCollections(nodes, rootId, compiled)
       break
   }
   return { contractVersion: 1, subjectKind, rootId, nodes }
