@@ -1,7 +1,4 @@
-import type {
-  EncounterProjectionDto,
-  EncounterSessionStateDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import { isEncounterPassiveZone } from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
 import type { readSceneSpatialRows } from './sceneSpatialRows.js'
 import type { EncounterReadContext } from './store.js'
@@ -17,7 +14,7 @@ export async function readSessionMovementCostZones(
   input: {
     encounterId: string
     rows: Awaited<ReturnType<typeof readSceneSpatialRows>>
-    actors: readonly Pick<EncounterProjectionDto['actors'][number], 'id' | 'defeated'>[]
+    actors: readonly { id: string; defeated: boolean }[]
   }
 ): Promise<EncounterSessionStateDto['movementCostZones']> {
   const { encounterId, rows, actors } = input
