@@ -497,7 +497,8 @@ export async function executeCharacterSheetCommand(
     })
     if (settled.changed) {
       updated.state.conditions = settled.conditions
-      updated.state.hitpoints = settled.hitpoints
+      // A rest has already set hit points against the maximum it rests to (a Campaign's secret one).
+      if (command.type !== 'COMPLETE_REST') updated.state.hitpoints = settled.hitpoints
     }
   }
 
