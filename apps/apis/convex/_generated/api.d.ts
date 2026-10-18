@@ -3189,6 +3189,7 @@ export declare const api: {
               rollSequences?: Array<Array<number>>;
               rolls: Array<number>;
               subtotal: number;
+              subtracted?: true;
             }>;
             total: number;
             transform:
@@ -7234,6 +7235,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -7328,6 +7330,7 @@ export declare const api: {
                   rollSequences?: Array<Array<number>>;
                   rolls: Array<number>;
                   subtotal: number;
+                  subtracted?: true;
                 }>;
                 total: number;
                 transform:
@@ -7427,6 +7430,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -7514,6 +7518,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -10365,6 +10370,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -10461,6 +10467,7 @@ export declare const api: {
               rollSequences?: Array<Array<number>>;
               rolls: Array<number>;
               subtotal: number;
+              subtracted?: true;
             }>;
             total: number;
             transform:
@@ -10551,6 +10558,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -116313,6 +116321,12 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: {
+                  addedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   max: 20;
@@ -116370,6 +116384,12 @@ export declare const api: {
                 saves: Array<{
                   actorId: string;
                   request: {
+                    addedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
@@ -116624,6 +116644,7 @@ export declare const api: {
         },
         {
           evidenceRoll?: {
+            addedFaces?: Array<number>;
             attempt: number;
             derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
             faces: Array<number>;
@@ -116645,6 +116666,12 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    addedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
@@ -116706,6 +116733,12 @@ export declare const api: {
                   saves: Array<{
                     actorId: string;
                     request: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       derivedRollModeReasons: Array<string>;
                       heldD20?: {
                         caption: string | null;
@@ -117207,6 +117240,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -117447,6 +117481,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -117512,6 +117547,12 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: {
+              addedDice?: Array<{
+                count: number;
+                faces: 4 | 6 | 8 | 10 | 12;
+                label: string;
+                sign: "ADD" | "SUBTRACT";
+              }>;
               derivedRollModeReasons: Array<string>;
               heldD20?: { caption: string | null; faces: Array<number> };
               max: 20;
@@ -117566,6 +117607,12 @@ export declare const api: {
             saves: Array<{
               actorId: string;
               request: {
+                addedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 derivedRollModeReasons: Array<string>;
                 heldD20?: { caption: string | null; faces: Array<number> };
                 max: 20;
@@ -118364,6 +118411,12 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: {
+                  addedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   max: 20;
@@ -118421,6 +118474,12 @@ export declare const api: {
                 saves: Array<{
                   actorId: string;
                   request: {
+                    addedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
@@ -119955,6 +120014,7 @@ export declare const api: {
             rollSequences?: Array<Array<number>>;
             rolls: Array<number>;
             subtotal: number;
+            subtracted?: true;
           }>;
           total: number;
           transform:
@@ -120022,6 +120082,7 @@ export declare const api: {
             rollSequences?: Array<Array<number>>;
             rolls: Array<number>;
             subtotal: number;
+            subtracted?: true;
           }>;
           total: number;
           transform:
@@ -120055,6 +120116,7 @@ export declare const api: {
             rollSequences?: Array<Array<number>>;
             rolls: Array<number>;
             subtotal: number;
+            subtracted?: true;
           }>;
           total: number;
           transform:
