@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1 (audit) is done: the zone table is in [slice-spells-20.md](slice-spells-20.md#zone-table-srd-zones-with-turn-startend-text-static-audit-2026-10-17).
-- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. T1b (wall geometry: Wall of Fire, Wall of Thorns) merged in m103. T1b2 (Wall of Fire's one-side band) is on `ci/spells-4-t1b2`. Next: T1g (the save when a wall appears); Blade Barrier's re-authoring is SPELLS-30.T2.
+- T1a (Cloudkill and Insect Plague) merged in m80; T1c (Moonbeam and Incendiary Cloud) in m81. The Moonbeam shapechanger rider waits on the ruling below. T1d (prone zones: Grease, Sleet Storm) is on `ci/spells-4-t1d`; its restrained zones (Web, Black Tentacles, Entangle) wait on the T1d ruling below. T1b (wall geometry: Wall of Fire, Wall of Thorns) merged in m103. T1b2 (Wall of Fire's one-side band) is in m106. T1g (the save as a zone appears, seven spells) is on `ci/spells-4-t1g`; Blade Barrier's re-authoring is SPELLS-30.T2.
 
 ## Scope
 
@@ -13,6 +13,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - No spell-specific code: each zone is authored data compiled by the generic placed-zone compiler (`placedSpaceZone`, `zonePlacementPlan`). A rule the compiler does not model stays unauthored and is named below, never partly honored.
 
 ## Log
+
+### T1g (the save as a zone appears)
+
+- Contract (D154 amendment, option B): the cast authors its appear save as an ordinary ON_USE `SAVING_THROW` path beside the zone manifest, run as the cast's area occurrence against the zone's aimed area. Grease, Insect Plague and Incendiary Cloud author both triggers (cast and zone); Wall of Fire (5d8 fire) and Wall of Thorns (7d8 piercing) deal half on a success; Wind Wall (3d8 bludgeoning) places a zone with no interaction; Entangle's save is its only one, restraining the creature held by its zone with the T1e escape.
+- Code: `zonePlacementPlan` accepts a WALL area and a component-less zone; the entry-point compiler compiles the appear save with its held lifecycle stripped and the zone's target shape; the Worker catches the area for it (`appearSave`, snapshot `zoneAppearSave`) and plans Entangle's hold through `planSpatialHeldCondition`. Spatial schemas no longer require a trigger.
+- Out of scope: Wind Wall's projectile and gas blocking (future-enhancements).
+- Proofs: `nativeRoomZoneAppearSave.test.ts` (full and half damage, a creature outside spared, undo, Grease prone, Entangle restrained and held, escape, Concentration end, undo), `characterSpellCastActions.test.ts` (all seven compile, triggers kept, Entangle's hold, Wind Wall inert, a held condition beside components refused), `zoneInteractionKinds.test.ts`. Setup-only changes: the hazard turn tests stand a Brown Bear in the area (it survives both saves) and Grease's turn test wins its appear save.
 
 ### T1a (Cloudkill and Insect Plague)
 

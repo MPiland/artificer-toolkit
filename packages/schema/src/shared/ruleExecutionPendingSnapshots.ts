@@ -501,8 +501,12 @@ export type EncounterAreaActionPendingContextDto = {
   commandFingerprint: string
   initiatorUserId: string
   casterActorId: string
-  /** Whether the action leaves a zone at the origin; such an area catches no creature by itself. */
+  /**
+   * Whether the action leaves a zone at the origin; such an area catches no creature by itself
+   * unless `zoneAppearSave`, when each creature in it saves as the zone appears (D154).
+   */
   placesZone: boolean
+  zoneAppearSave: boolean
   /** The Scene the action was read against; null for a list of chosen creatures that read none. */
   scene: { sceneId: string; sceneVersion: number } | null
   /**
@@ -588,6 +592,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       initiatorUserId: uuidSchema,
       casterActorId: uuidSchema,
       placesZone: z.boolean(),
+      zoneAppearSave: z.boolean(),
       scene: z.nullable(
         z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema })
       ),
@@ -619,6 +624,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['scene'],
             message: 'An area and a placed zone are read against a Scene.'
+          })
+        if (value.zoneAppearSave && !value.placesZone)
+          context.addIssue({
+            code: 'custom',
+            path: ['zoneAppearSave'],
+            message: 'Only a placed zone saves as it appears.'
           })
         if (value.placesZone && value.area === null)
           context.addIssue({

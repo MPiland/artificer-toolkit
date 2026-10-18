@@ -300,7 +300,13 @@ export async function prepareCasterSource(
       reason: 'TARGET_UNAVAILABLE',
       message: (takes && WRONG_TARGET_MESSAGES[takes]) ?? 'This action does not take that target.'
     })
-  return { caster, casterFacts, movementTargets, source, targetPolicy, zone }
+  // A zone whose cast authors a save puts each creature in its area through it as it appears (D154).
+  const appearSave =
+    zonePlacement !== null &&
+    source.kind === 'CHARACTER_ACTION' &&
+    source.entry.schemaVersion === 4 &&
+    source.entry.compilation.executionPlan.kind === 'TEST_OUTCOME'
+  return { caster, casterFacts, movementTargets, source, targetPolicy, zone, appearSave }
 }
 
 /**
@@ -313,7 +319,7 @@ export async function prepareAreaScene(
   prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
 ) {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, targetPolicy, zone } =
+  const { caster, casterFacts, movementTargets, targetPolicy, zone, appearSave } =
     prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
@@ -406,6 +412,7 @@ export async function prepareAreaScene(
     placement: zone
       ? {
           zone,
+          appearSave,
           origin,
           shape: area.shape,
           regions: 'regions' in area ? area.regions : [],
@@ -755,16 +762,18 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const base = await prepareAreaScene(input)
   const { caster, casterFacts, movementTargets, scene, area, targetPolicy } = base
 
-  // A zone is entered later, by movement; placing it puts nobody through its save.
-  const caughtActorIds = base.placement
-    ? []
-    : catchEncounterAreaActorIds({
-        origin: area.origin,
-        shape: area.shape,
-        casterActorId: caster.id,
-        tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-        fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
-      })
+  // A zone is entered later, by movement; placing it puts nobody through its entry save, only
+  // through the save its cast authors for when it appears.
+  const caughtActorIds =
+    base.placement && !base.placement.appearSave
+      ? []
+      : catchEncounterAreaActorIds({
+          origin: area.origin,
+          shape: area.shape,
+          casterActorId: caster.id,
+          tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+          fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
+        })
   const caughtInArea = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
@@ -1009,6 +1018,7 @@ export async function sealReachSaves(
     initiatorUserId,
     casterActorId: reach.caster.id,
     placesZone: reach.placement !== null,
+    zoneAppearSave: reach.placement?.appearSave ?? false,
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
     ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),
@@ -1843,6 +1853,38 @@ export async function completeAreaCommit(args: {
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
   let maintainedState: ReturnType<typeof prepareNativeLiveMaintainedState> | null = null
   let maintenanceCarried = false
+  // The zone's own record, then one per band beside its wall (D154), all in the cast's maintenance.
+  // They are named before the outcomes, so the hold a failed appear save leaves names its zone.
+  const zoneIds = placement
+    ? [crypto.randomUUID(), ...placement.regions.map(() => crypto.randomUUID())]
+    : []
+  const planZones = (maintainedEffectStateId: string | null) => {
+    if (!placement) return []
+    const zoneInput = {
+      zone: placement.zone,
+      maintainedEffectStateId: placement.zone.maintenance ? maintainedEffectStateId : null,
+      encounterId: state.id,
+      occurrenceId: areaOccurrenceId,
+      rootCommandId: command.commandId,
+      sourceActorId: caster.id,
+      point: placement.origin,
+      area: placement.shape,
+      sourceToken: placement.sourceToken,
+      saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
+      unaffectedActorIds: placement.unaffectedActorIds
+    }
+    return [
+      planEncounterPlacedZone({ ...zoneInput, id: zoneIds[0]! }),
+      ...planEncounterZoneBands({
+        ...zoneInput,
+        ids: zoneIds.slice(1),
+        regions: placement.regions
+      })
+    ]
+  }
+  const holdingZone = placement?.zone.heldCondition
+    ? { record: planZones(null)[0]!, maintenance: placement.zone.maintenance }
+    : undefined
   // A creature named again meets the hit points and Character record its earlier entries left it.
   const advanced = new Map<string, AreaPrepared>()
   for (const [index, { actor, target }] of kept.entries()) {
@@ -1858,7 +1900,8 @@ export async function completeAreaCommit(args: {
       commandId,
       activeEffectsByActorId: input.activeEffectsByActorId,
       link: { memberActorIds: [...new Set(kept.map((entry) => entry.actor.id))] },
-      ...(formCreature ? { form: { creatureId: formCreature.sourceId } } : {})
+      ...(formCreature ? { form: { creatureId: formCreature.sourceId } } : {}),
+      holdingZone
     })
     if (effects.maintenance)
       maintainedState ??= prepareNativeLiveMaintainedState({
@@ -2097,31 +2140,7 @@ export async function completeAreaCommit(args: {
     sourceLabel
   }))
   const damage = nativeConcentrationDamageApplications(damageSources, false)
-  // The zone's own record, then one per band beside its wall (D154), all in the cast's maintenance.
-  const zoneInput = placement && {
-    zone: placement.zone,
-    maintainedEffectStateId: placement.zone.maintenance ? (maintainedState?.id ?? null) : null,
-    encounterId: state.id,
-    occurrenceId: areaOccurrenceId,
-    rootCommandId: command.commandId,
-    sourceActorId: caster.id,
-    point: placement.origin,
-    area: placement.shape,
-    sourceToken: placement.sourceToken,
-    saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
-    unaffectedActorIds: placement.unaffectedActorIds
-  }
-  const placedZones =
-    zoneInput && placement
-      ? [
-          planEncounterPlacedZone({ ...zoneInput, id: crypto.randomUUID() }),
-          ...planEncounterZoneBands({
-            ...zoneInput,
-            ids: placement.regions.map(() => crypto.randomUUID()),
-            regions: placement.regions
-          })
-        ]
-      : []
+  const placedZones = planZones(maintainedState?.id ?? null)
   // The placed zone's timed grant lands on the creature that placed it (D153).
   const zoneSourceGrant =
     placedZones.length && placement?.zone.sourceGrant

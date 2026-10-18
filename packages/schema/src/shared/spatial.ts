@@ -192,7 +192,10 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       sourceTokenId: z.nullable(uuidSchema),
       geometry: spatialPersistedGeometryDtoSchema,
       triggerModes: z.array(triggerSchema).check(z.maxLength(triggerOrder.length)),
-      /** Turn boundaries at which a creature inside is caught; a zone needs a movement or turn trigger. */
+      /**
+       * Turn boundaries at which a creature inside is caught. A zone with no movement, turn or
+       * melee-hit trigger is one no creature interacts with (D154 amendment).
+       */
       turnTriggers: z.optional(
         z
           .array(turnTriggerSchema)
@@ -230,16 +233,6 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((placement, context) => {
-        if (
-          placement.triggerModes.length === 0 &&
-          !placement.turnTriggers &&
-          !placement.retaliatesMeleeHits
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['triggerModes'],
-            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
-          })
         if (placement.retaliatesMeleeHits && placement.anchorKind !== 'TOKEN')
           context.addIssue({
             code: 'custom',
@@ -350,12 +343,6 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((effect, context) => {
-        if (effect.triggerModes.length === 0 && !effect.turnTriggers && !effect.retaliatesMeleeHits)
-          context.addIssue({
-            code: 'custom',
-            path: ['triggerModes'],
-            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
-          })
         if (effect.turnTriggers && new Set(effect.turnTriggers).size !== effect.turnTriggers.length)
           context.addIssue({
             code: 'custom',

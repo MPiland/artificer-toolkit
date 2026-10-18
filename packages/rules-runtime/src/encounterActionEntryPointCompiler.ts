@@ -26,7 +26,7 @@ import {
   resolveChosenCreaturesTargeting
 } from './encounterAreaAction.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
-import { placedSpaceManifest } from './encounterZonePlacement.js'
+import { placedSpaceManifest, zoneAppearSave } from './encounterZonePlacement.js'
 
 class CharacterActionEntryPointIntegrityError extends Error {
   constructor(message: string) {
@@ -136,7 +136,8 @@ export function buildCompiledActionCompilerSource(
     savingThrowAbilityDefinitionId: descriptor.savingThrowAbilityDefinitionId ?? null,
     compiledEffect: descriptor.compiledEffect,
     compiledEffectChecksum: checksumRuleDocument(descriptor.compiledEffect),
-    capabilityContractVersion: 1
+    capabilityContractVersion: 1,
+    ...(descriptor.zoneAppearSave ? { zoneAppearSave: true as const } : {})
   }
   return {
     ...base,
@@ -260,8 +261,49 @@ export function compileCharacterActionEntryPoints(
       try {
         const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
         if (zonePlacement) {
-          // The zone's entry graph runs when a creature enters it, never when the action is used; a
-          // cast-time pick (D140) names its first option's.
+          // The save each creature in the area makes when the zone appears is the cast's area
+          // occurrence (D154 amendment). Without one, the cast runs nothing: the zone's entry graph
+          // runs when a creature enters it, and a cast-time pick (D140) names its first option's.
+          const appearSave = zoneAppearSave(descriptor.compiledEffect)
+          // It is tested over the zone's area when the invocation names none, as the cast aims it,
+          // and applies a held condition bare: the zone placement holds it (D146).
+          const appear =
+            appearSave &&
+            compileActionPlans(adapter, {
+              ...descriptor,
+              zoneAppearSave: true,
+              compiledEffect: {
+                ...appearSave,
+                entries: appearSave.entries.map((entry) => {
+                  if (!('lifecycle' in entry) || !entry.lifecycle?.heldBySource) return entry
+                  const { lifecycle: _held, ...unheld } = entry
+                  return unheld
+                }),
+                invocation: {
+                  ...appearSave.invocation,
+                  shape: appearSave.invocation.shape ?? exactTargetPolicy.shape ?? undefined
+                }
+              }
+            })
+          if (appear && appear.executionPlan.kind !== 'TEST_OUTCOME')
+            throw new CharacterRuleActionUnsupportedCompilationError(
+              'A zone’s appear save is a saving throw with its outcomes.'
+            )
+          // A condition the zone holds is owned by its hold alone (D146), never by a cast effect
+          // the Concentration also maintains, so escaping the hold ends it.
+          const held = 'options' in zonePlacement ? null : (zonePlacement.heldCondition ?? null)
+          const castPlan = appear?.activeEffectPlan ?? null
+          if (
+            held &&
+            castPlan &&
+            (castPlan.modifierGrantContribution ||
+              castPlan.conditionContributions?.some(
+                ({ conditionId }) => conditionId !== held.conditionId
+              ))
+          )
+            throw new CharacterRuleActionUnsupportedCompilationError(
+              'A zone’s appear save holds its condition and nothing else.'
+            )
           return {
             schemaVersion: 4,
             kind: 'CHARACTER_ACTION',
@@ -271,10 +313,10 @@ export function compileCharacterActionEntryPoints(
             compilation: {
               kind: 'COMPILED',
               resourceBinding: compiledResourceBinding(candidate),
-              activeEffectPlan: null,
+              activeEffectPlan: held ? null : castPlan,
               zonePlacement,
               choice: null,
-              executionPlan: {
+              executionPlan: appear?.executionPlan ?? {
                 kind: 'SINGLE_GRAPH',
                 published: ('options' in zonePlacement
                   ? zonePlacement.options[0]!.zone

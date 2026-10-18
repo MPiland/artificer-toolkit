@@ -10,6 +10,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
+  SCALING_AMOUNT_KIND,
   SCALING_SOURCE,
   SHAPE_KIND,
   SPELL_ATTRIBUTE,
@@ -24,16 +25,31 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 const ONE_FOOT = { amount: 1, unit: MEASUREMENT_UNIT_CODE.FEET }
 
 const TEN_FEET = { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
 
-/**
- * The fire a creature takes with no save: 5d8 at the 4th level, and 1d8 more for each slot level
- * above it.
- */
+/** The fire damage: 5d8 at the 4th level, and 1d8 more for each slot level above it. */
+const fireDamage = (kind: number, half = false) => ({
+  id: spellChildId(SPELL_IDS.WALL_OF_FIRE, kind, 1),
+  effectKind: EFFECT_KIND.DAMAGE,
+  damageTypeId: damageTypeId('FIRE'),
+  valueKind: DAMAGE_VALUE_KIND.DICE,
+  scalingKind: SCALING.PER_LEVEL,
+  scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+  ...(half ? { amountKind: SCALING_AMOUNT_KIND.HALF } : {}),
+  levels: Array.from({ length: 6 }, (_, index) => ({
+    id: spellChildId(SPELL_IDS.WALL_OF_FIRE, kind, index + 2),
+    level: index + 4,
+    order: index + 1,
+    diceConfig: `${index + 5}d8`
+  }))
+})
+
+/** The fire a creature takes with no save where the wall burns. */
 const createFireBehavior = (scope: number): ManifestBehaviorAuthored => ({
   id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope, 1),
   order: 1,
@@ -56,22 +72,7 @@ const createFireBehavior = (scope: number): ManifestBehaviorAuthored => ({
       resultBlock: {
         id: `${spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 2, 1)}__result`,
         resultKind: 'SINGLE',
-        outcomes: [
-          {
-            id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 3, 1),
-            effectKind: EFFECT_KIND.DAMAGE,
-            damageTypeId: damageTypeId('FIRE'),
-            valueKind: DAMAGE_VALUE_KIND.DICE,
-            scalingKind: SCALING.PER_LEVEL,
-            scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
-            levels: Array.from({ length: 6 }, (_, index) => ({
-              id: spellChildId(SPELL_IDS.WALL_OF_FIRE, scope + 3, index + 2),
-              level: index + 4,
-              order: index + 1,
-              diceConfig: `${index + 5}d8`
-            }))
-          }
-        ]
+        outcomes: [fireDamage(scope + 3)]
       }
     }
   ]
@@ -138,7 +139,14 @@ export const wallOfFire: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION',
-        triggerCode: TRIGGER.ACTIVATED,
+        // The save each creature within the wall makes when it appears; the wall itself burns with
+        // none.
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.WALL_OF_FIRE, 0x230, 1),
+          dcMethod: 'SOURCE_SAVE_DC' as const,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+        },
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: {
           id: spellChildId(SPELL_IDS.WALL_OF_FIRE, 0x211, 1),
@@ -213,6 +221,32 @@ export const wallOfFire: SpellAuthored = {
               }
             }
           ]
+        },
+        {
+          id: spellChildId(SPELL_IDS.WALL_OF_FIRE, 0x231, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.WALL_OF_FIRE, 0x231, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [fireDamage(0x232)]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.WALL_OF_FIRE, 0x233, 1),
+          order: 3,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.WALL_OF_FIRE, 0x233, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [fireDamage(0x234, true)]
+          }
         }
       ]
     }
