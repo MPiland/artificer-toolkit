@@ -32,6 +32,7 @@ import {
   type EffectAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
@@ -770,7 +771,33 @@ export const monk: ClassAuthored = {
         'At 10th level, your mastery of the ki flowing through you makes you immune to disease and poison.',
       availableAtLevel: 10,
       order: 16,
-      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_MONK_PURITY_OF_BODY)]
+      // Poison only: the engine has no disease model, so that half stays description (D156).
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(M, 0x90, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('POISON') },
+            order: 0
+          },
+          {
+            id: classRowId(M, 0x90, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { conditionTypeId: conditionTypeId('POISONED') },
+            order: 1
+          }
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 18),
