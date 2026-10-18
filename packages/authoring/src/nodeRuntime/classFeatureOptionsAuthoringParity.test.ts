@@ -54,11 +54,14 @@ function option(record: ClassAuthored, parent: string, label: string) {
 }
 
 /**
- * The Cleric without its starting equipment: the warhammer option's EQUIPMENT_PROFICIENCY
+ * The Cleric without its starting equipment sets: the warhammer option's EQUIPMENT_PROFICIENCY
  * eligibility reads `proficiency_grant_equipment`, which the node runtime does not trust yet (a
  * separate defect), and the features this file proves do not depend on it.
  */
-const { startingEquipment: _clericStartingEquipment, ...clericIntervention } = cleric
+const clericIntervention: ClassAuthored = (() => {
+  if (cleric.category !== 'BASE') throw new Error('The Cleric must be a base class.')
+  return { ...cleric, startingEquipment: { ...cleric.startingEquipment, sets: [] } }
+})()
 
 const fire = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 
@@ -127,8 +130,9 @@ const CASES: ReadonlyArray<{
     label: 'Divine Sense',
     variant: () => {
       const record = structuredClone(paladin)
-      const { charges } = feature(record, 'Divine Sense')
-      if (charges?.limitKind !== 'FIXED_AMOUNT')
+      const authored = feature(record, 'Divine Sense')
+      const charges = 'charges' in authored ? authored.charges : undefined
+      if (charges?.limitKind !== 'FIXED_AMOUNT' || !('amount' in charges))
         throw new Error('Divine Sense must author a fixed charge with a bonus.')
       charges.amount = 2
       return record
@@ -140,8 +144,10 @@ const CASES: ReadonlyArray<{
     variant: () => {
       const record = structuredClone(wizard)
       const [signature] = feature(record, 'Signature Spells').grants?.spells ?? []
-      if (!signature?.charges) throw new Error('Signature Spells must author limited-use charges.')
-      signature.charges.resetKind = 'LONG_REST'
+      const charges = signature && 'charges' in signature ? signature.charges : undefined
+      if (!charges || charges.limitKind === 'SOURCE_CHARGES')
+        throw new Error('Signature Spells must author its own limited-use charges.')
+      charges.resetKind = 'LONG_REST'
       return record
     }
   },
@@ -189,8 +195,9 @@ const CASES: ReadonlyArray<{
     label: 'Divine Intervention',
     variant: () => {
       const record = structuredClone(clericIntervention)
-      const { charges } = feature(record, 'Divine Intervention')
-      if (charges?.limitKind !== 'FIXED_AMOUNT')
+      const authored = feature(record, 'Divine Intervention')
+      const charges = 'charges' in authored ? authored.charges : undefined
+      if (charges?.limitKind !== 'FIXED_AMOUNT' || !('amount' in charges))
         throw new Error('Divine Intervention must author a fixed long-rest charge.')
       charges.amount = 2
       return record

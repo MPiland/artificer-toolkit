@@ -285,5 +285,5 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
   - **Volley and Whirlwind Attack:** stopped, per the brief. Per-creature weapon attacks do not compile from a class option. Feature and option action candidates carry `equipment: null` (`characterActionRuleFacts.ts`), and the attack mechanic takes weapon damage, proficiency and ammunition only from `candidate.equipment` (`characterActionMechanics.ts`). Ruled (22e835f41): both move to SPELLS-31.T5s, "feature weapon attack against each target with the wielded weapon, ammo per target". `CLASS_HUNTER_VOLLEY` and `CLASS_HUNTER_WHIRLWIND_ATTACK` stay until then.
   - **Defect found:** normalizing the full Cleric record through the class node map throws "Untrusted node runtime table: proficiency_grant_equipment".
     - Cause: the starting-equipment EQUIPMENT_PROFICIENCY eligibility (the warhammer option) reaches the facet map branch at `facet.ts:1968`, and `nodeRuntimeSources.ts` does not list that table.
-    - The parity file proves the Cleric without its starting equipment.
+    - The parity file proves the Cleric with empty starting-equipment sets.
     - Follow-up to register: add the table to the node-runtime source manifest, with a regression test that normalizes the full Cleric.
