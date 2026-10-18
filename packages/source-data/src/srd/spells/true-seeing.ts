@@ -1,17 +1,25 @@
 import {
   TARGET_DISPOSITION_KIND,
   ACTIVATION_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
   SUBJECT,
+  TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_TRUESIGHT_SENSE_ID } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const trueSeeing: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -48,8 +56,8 @@ export const trueSeeing: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       paths: [
@@ -65,14 +73,33 @@ export const trueSeeing: SpellAuthored = {
             resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.TRUE_SEEING, 0x213, 1),
-              durationKind: 'HOUR',
+              durationKind: DURATION_KIND.HOUR,
               amount: 1
             },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TRUE_SEEING, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TRUE_SEEING' as const
+                // Truesight to 120 feet; the secret doors and the Ethereal Plane stay with the description.
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  senses: [
+                    {
+                      id: spellChildId(SPELL_IDS.TRUE_SEEING, 0x214, 1),
+                      grantKind: GRANT_KIND.SENSE_GRANT,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      scalingKind: SCALING.NONE,
+                      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                      senseIds: [SRD_TRUESIGHT_SENSE_ID],
+                      range: {
+                        id: spellChildId(SPELL_IDS.TRUE_SEEING, 0x215, 1),
+                        rangeKind: RANGE_KIND.DISTANCE,
+                        amount: 120,
+                        unit: MEASUREMENT_UNIT_CODE.FEET
+                      },
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }
