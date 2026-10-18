@@ -73,6 +73,8 @@ export const authoredSourceKindsByTable: Readonly<
   option_effects: featureSubjectKinds,
   option_proficiency_grants: featureSubjectKinds,
   options: featureSubjectKinds,
+  proficiency_grant_equipment: featureSubjectKinds,
+  proficiency_grant_equipment_properties: featureSubjectKinds,
   proficiency_grant_languages: featureSubjectKinds,
   proficiency_grant_skills: featureSubjectKinds,
   race_ancestries: ['RACE'],
@@ -191,6 +193,18 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
         add('proficiency_grant_languages', {
           proficiency_grant_id: grant.id,
           language_id: languageId
+        })
+    if (grant.proficiencyKind === 'EQUIPMENT')
+      for (const equipmentId of grant.equipmentIds)
+        add('proficiency_grant_equipment', {
+          proficiency_grant_id: grant.id,
+          equipment_id: equipmentId
+        })
+    if (grant.proficiencyKind === 'EQUIPMENT_PROPERTY')
+      for (const propertyCode of grant.properties)
+        add('proficiency_grant_equipment_properties', {
+          proficiency_grant_id: grant.id,
+          property_code: propertyCode
         })
   }
 
