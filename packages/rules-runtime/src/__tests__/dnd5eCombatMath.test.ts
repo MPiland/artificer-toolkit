@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { FacetAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import {
   SRD_ABILITIES,
@@ -957,16 +957,14 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
   })
 
   it('decides the holder kind and creature type as constants, so the fold output is unchanged', () => {
-    const predicate = (id: string, predicateCode: 'CHARACTER_LEVEL' | 'CAN_ACT') => ({
-      id,
-      order: 0,
-      kind: 'PREDICATE' as const,
-      constraint: 'INCLUDE' as const,
-      predicateCode,
-      ...(predicateCode === 'CHARACTER_LEVEL' ? { min: 1 } : {})
-    })
-    const restricted = (id: string, characterPredicate: 'CHARACTER_LEVEL' | 'CAN_ACT') =>
-      normalizeCharacterGrantRestrictions({
+    const predicate = (id: string, predicateCode: 'CHARACTER_LEVEL' | 'CAN_ACT') => {
+      const base = { id, order: 0, kind: 'PREDICATE', constraint: 'INCLUDE' } as const
+      return predicateCode === 'CHARACTER_LEVEL'
+        ? { ...base, predicateCode, min: 1 }
+        : { ...base, predicateCode }
+    }
+    const restricted = (id: string, characterPredicate: 'CHARACTER_LEVEL' | 'CAN_ACT') => {
+      const facet: FacetAuthored = {
         id,
         groups: [
           {
@@ -997,15 +995,16 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
                     kind: 'PREDICATE',
                     constraint: 'INCLUDE',
                     predicateCode: 'CREATURE_TYPE',
-                    authoringModeKind: 'ALL',
-                    creatureTypeIds: []
+                    authoringModeKind: 'ALL'
                   }
                 ]
               }
             ]
           }
         ]
-      })
+      }
+      return normalizeCharacterGrantRestrictions(facet)
+    }
     const character = evaluateSrdCharacter({ abilities: { DEXTERITY: 10 }, classes: [fighter()] })
     const armorClassBonus = (
       grantId: string,
