@@ -4,7 +4,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { rangeDtoSchema, type RangeDto } from './range.js'
-import { spatialPointDtoSchema } from './spatialFacts.js'
+import {
+  MAX_FORCED_MOVEMENT_DESTINATIONS,
+  spatialPointDtoSchema,
+  type SpatialPointDto
+} from './spatialFacts.js'
 import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionInitiativePending.js'
 import {
   optionalCombatPassageContinuationDtoSchema,
@@ -520,6 +524,15 @@ export type EncounterAreaActionPendingContextDto = {
   removedActorIds: string[]
   /** The counters reactors attempted and failed against this cast, which the area's commit spends (D127). */
   failedCounters?: EncounterFailedCounterDto[]
+  /**
+   * Once every save settled, the pushes whose source picks where each creature lands (D157): the
+   * landings picked so far, farthest creature first, and the pick owed next. The area commits once
+   * no pick is owed.
+   */
+  forcedMovement?: {
+    landed: { targetActorId: string; position: SpatialPointDto }[]
+    pick?: { requestId: string; targetActorId: string; positions: SpatialPointDto[] }
+  }
   targets: {
     actorId: string
     /** The footprint of the creature's token when the area caught it; null when it has none on the Scene read. */
@@ -603,6 +616,23 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       failedCounters: z.optional(
         z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
+      forcedMovement: z.optional(
+        z.strictObject({
+          landed: z
+            .array(z.strictObject({ targetActorId: uuidSchema, position: spatialPointDtoSchema }))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          pick: z.optional(
+            z.strictObject({
+              requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+              targetActorId: uuidSchema,
+              positions: z
+                .array(spatialPointDtoSchema)
+                .check(z.minLength(2))
+                .check(z.maxLength(MAX_FORCED_MOVEMENT_DESTINATIONS))
+            })
+          )
+        })
       ),
       targets: z
         .array(

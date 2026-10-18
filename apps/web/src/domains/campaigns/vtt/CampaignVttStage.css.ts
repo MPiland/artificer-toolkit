@@ -240,7 +240,8 @@ export const canvasInstruction = style({
   }
 })
 
-export const carefulMoveChoice = style({
+/** A choice the board waits on, docked above its lower edge. */
+export const boardChoice = style({
   '@layer': {
     [app]: {
       position: 'absolute',

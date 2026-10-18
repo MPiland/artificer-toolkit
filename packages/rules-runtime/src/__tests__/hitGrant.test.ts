@@ -142,7 +142,7 @@ describe('an attack’s hit applies its grant (SPELLS-5.5)', () => {
       {
         recurrenceStage: 'START_OF_TURN',
         initialRemaining: 1,
-        modifierGrantContribution: { tickAnchor: 'HOLDER' },
+        tickAnchor: 'HOLDER',
         adapterFacts: { 'dnd5e.grant-authored-path': 'ON_HIT' }
       }
     ])

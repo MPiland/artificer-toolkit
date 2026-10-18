@@ -69,7 +69,7 @@ export async function cleanupRemovedActorEffects(
     targetActorId: input.actorId
   })
   addEffects(actorOwned)
-  // Timed grants the departing actor applied can no longer count down on its turns, so they end too.
+  // Timed effects the departing actor applied can no longer count down on its turns, so they end too.
   addEffects(
     planDepartedSourceGrantRemovals({
       encounterId: input.state.id,

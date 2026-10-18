@@ -1754,6 +1754,7 @@ function timedConditionPlan(
   )
     return null
   const {
+    turnAnchor,
     consumeOnFirstEvents = [],
     endOnEvents = [],
     endOnTriggers = [],
@@ -1779,6 +1780,9 @@ function timedConditionPlan(
   if (
     (indefinite ? !maintenance : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
+    // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
+    // conditions is counted with them by the turn-effect kernel, on the holder's turns.
+    (turnAnchor && (indefinite || grantEntry)) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     conditionEntries.some(
       ({ entry, outcome }) =>
@@ -1792,8 +1796,9 @@ function timedConditionPlan(
     compiledEntryId: lead.entry.entryId,
     frozenGraphNodeId: 'condition-duration',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: indefinite ? 'NONE' : 'END_OF_TURN',
+    recurrenceStage: indefinite ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
+    tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
     conditionContributions: conditionEntries.map(({ outcome }) => ({
       conditionId: outcome.conditionId,
       recordsSource: outcome.recordsSource,
@@ -1995,11 +2000,11 @@ function modifierGrantEntryPlan(input: {
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
+    tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
       modifiers: buildCharacterGrantFoldModifierFacts(modifiers.map(compileModifierGrant)),
       senses: grantedSenses,
-      tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
       consumeOnFirstEvents: grantConsumeEvents,
       endOnEvents: grantEndEvents,

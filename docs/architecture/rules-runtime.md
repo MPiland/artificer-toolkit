@@ -986,7 +986,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
-- **Forced movement (ATTACK-7.T5a/T5b, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
+- **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
   which the single-target and area room planners pass to the commit as `forcedMovements`. In the action's transaction the room's
@@ -999,11 +999,16 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
   `{requestId, position}`, the planner restores the completion without running a graph again
   (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
-  re-checks that the square is still legal. Exact away/toward and a movement with one legal square never pause.
+  re-checks that the square is still legal. An area action whose settled pushes owe picks holds them on its own
+  aggregate snapshot (`forcedMovement {landed, pick}`, `holdEncounterAreaForcedMovement`), one creature at a time,
+  farthest first: the room's `readRoomForcedMovementPick` lands the creatures already picked on a copy of the Scene
+  (the same `landForcedMovements` simulation `applyRoomForcedMovements` commits with) and offers the next one's legal
+  squares; each answer lands it (`landEncounterAreaForcedMovement`) and the planner re-plans the commit, which runs after
+  the last answer. Exact away/toward and a movement with one legal square never pause.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
-  legendary and reaction actions still refuse spatial directives; an area action whose movement needs a pick fails closed in its
-  commit; the board pick is ATTACK-7.T5c.
+  legendary and reaction actions still refuse spatial directives; an area pick after a GM removal, on an area with no
+  aggregate snapshot, or for a creature moved twice fails closed (future-enhancements, Deferred edge cases).
 - **Disengage** is an `APPLY_GRANT` on SELF for one `TURN` with an `OPPORTUNITY_ATTACK_IMMUNITY` modifier of the flag kind `ENABLE`
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
@@ -1398,12 +1403,14 @@ Scene geometry, so every actor the policy allows is offered.
 
 **Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
 effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
-which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as the
-contribution's `tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as its
+`tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
 anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
 turn" outlasts the current one. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
-never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every grant
-anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
+never selects them. A timed condition with a `SOURCE` turn anchor (Color Spray's blindness, "until the end of
+the caster's next turn") is stored and counted the same way, extra turn included; the kernel counts other timed
+conditions on the holder's turns. `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
+such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the

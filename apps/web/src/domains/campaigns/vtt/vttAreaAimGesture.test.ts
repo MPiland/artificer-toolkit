@@ -149,3 +149,36 @@ describe('aiming an area on the map', () => {
     expect(onDirection).not.toHaveBeenCalled()
   })
 })
+
+describe('picking one of a forced movement’s legal squares (D157)', () => {
+  const squares = {
+    centers: [
+      { x: 500, y: 500 },
+      { x: 600, y: 500 },
+      { x: 500, y: 400 }
+    ],
+    width: cell,
+    height: cell
+  }
+
+  function pickFor() {
+    const onSquare = vi.fn()
+    const onPoint = vi.fn()
+    const gesture = createVttAreaAimGesture(() => ({ squares }), { onPoint, onSquare })
+    return { gesture, onPoint, onSquare }
+  }
+
+  it('picks the legal square the press lands in, at its centre', () => {
+    const { gesture, onPoint, onSquare } = pickFor()
+    expect(gesture.press({ x: 630, y: 460 })).toBe(true)
+    expect(onSquare).toHaveBeenCalledExactlyOnceWith({ x: 600, y: 500 })
+    expect(onPoint).not.toHaveBeenCalled()
+    expect(gesture.release({ x: 630, y: 460 })).toBe(false)
+  })
+
+  it('consumes a press outside every legal square without picking', () => {
+    const { gesture, onSquare } = pickFor()
+    expect(gesture.press({ x: 700, y: 400 })).toBe(true)
+    expect(onSquare).not.toHaveBeenCalled()
+  })
+})
