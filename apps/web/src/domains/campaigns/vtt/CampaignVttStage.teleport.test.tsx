@@ -95,7 +95,8 @@ const room = (): HeldEncounterSession => ({
       }
     ],
     halfSpeedFields: [],
-    auras: []
+    auras: [],
+    movementCostZones: []
   },
   preparedPending: [],
   actorSides: null,

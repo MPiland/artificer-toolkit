@@ -25,6 +25,7 @@ import {
   preparedMovementSegment
 } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import {
   applySceneDelta,
   applySceneGeometryDelta,
@@ -183,8 +184,9 @@ export async function prepareStagedSceneCommit(input: {
       mover: movement
         ? {
             tokenId: staged.tokenId,
+            actorId: movement.planned.actorIdByTokenId.get(staged.tokenId)!,
             tokens: scene.tokens,
-            effects: movement.planned.spatialEffects,
+            effects: toSpatialInstances(movement.planned.spatialEffects, movement.planned.actors),
             carefully: staged.carefully === true
           }
         : undefined

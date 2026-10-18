@@ -681,6 +681,10 @@ export function CampaignVttStage({
         currentUserId: viewerUserId,
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
+        movementCost:
+          activeEncounterSceneBinding && encounterSessionState
+            ? { actorIdByTokenId, zones: encounterSessionState.movementCostZones }
+            : null,
         overlays,
         previewTokenId: effectivePreviewTokenId,
         role: effectiveRole,

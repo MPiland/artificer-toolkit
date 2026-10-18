@@ -93,7 +93,8 @@ const room: HeldEncounterSession = {
     waitingOn: null,
     turnMovement: [],
     halfSpeedFields: [caltrops],
-    auras: []
+    auras: [],
+    movementCostZones: []
   },
   preparedPending: [],
   actorSides: null,

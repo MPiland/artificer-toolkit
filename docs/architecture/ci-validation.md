@@ -1,6 +1,6 @@
 # CI validation and affected-test selection
 
-**Status:** current (PLATFORM-23, 2026-10-16).
+**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18).
 
 Slices validate on GitHub runners by pushing to `ci/<slice>` (AGENTS.md Validation). `.github/workflows/tests.yml` builds the packages once, typechecks everything, and runs only the Vitest files the slice can affect. `.github/workflows/live-backend.yml` is unchanged by this guide.
 
@@ -47,7 +47,7 @@ Two rules widen the selection for tests the graph cannot see into:
 
 Known blind spots, each covered elsewhere: a file URL built from a template literal (only quoted literals are read), and a deleted module that was imported through a `#` alias or package subpath (only relative specifiers are tracked). The always-full typecheck catches a deleted import. A non-test helper that reads files at run time is not followed: name it `*.testUtils.*` or put it under a test directory.
 
-The selection decides what a slice's green run proves. The phase branch itself only runs in full through a `ci/merge-*` batch, a push of its tip to a `ci/` branch, or a `full: true` dispatch. A single slice that already contains the phase tip merges on its own green runs (the fast path in AGENTS.md), which ran only its affected tests, so every fast-path merge gets a non-blocking full-run backstop: after pushing the merge to the phase branch, the orchestrator pushes the same merge commit to `ci/merge-m<N>`, which runs every test, watches that run, and fixes a failure there first, ahead of other work.
+The selection decides what a slice's green run proves. The phase branch itself only runs in full through a `ci/merge-*` batch, a push of its tip to a `ci/` branch, or a `full: true` dispatch. A single slice that already contains the phase tip merges on its own green runs (the fast path in AGENTS.md), which ran only its affected tests, so every fast-path merge gets a non-blocking full-run backstop: after pushing the merge to the phase branch, the same merge commit goes to `ci/merge-m<N>` (by [the merge workflow](#approved-merges) or by hand), which runs every test; the orchestrator watches that run and fixes a failure there first, ahead of other work.
 
 A changed `__snapshots__/<test>.snap` selects its test. A change outside the source roots (docs, the ledger) selects nothing.
 
@@ -58,6 +58,35 @@ The `build` job runs the selector after the build and exposes, per suite, `run-<
 ## Lint
 
 The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains: `lint:schemas` (`scripts/lazySchemas.mjs`) and `lint:casts` (`scripts/doubleCasts.mjs`). The second fails on any `as unknown as` outside tests and generated modules, except the per-file counts in its `ALLOWED` list, which only shrink. Any finding fails the run.
+
+The job then runs oxfmt in check mode on the files the branch changed since its merge base with the phase branch (`scripts/formatChanged.mjs`, deleted files skipped, `.oxfmtrc.jsonc` ignore patterns applied). Only those files: the phase branch is not oxfmt-clean, and a repo-wide format would rewrite other slices' files. Before a push, `node scripts/formatChanged.mjs --base origin/codex/phase-08-2-convex-cutover` formats the same files locally.
+
+## Auto-fix
+
+When Lint is the only failing job of a `ci/<slice>` Tests run, the `auto-fix` job applies `oxlint --fix` (its safe fixes) and `formatChanged.mjs`, reruns `yarn lint` and the format check, and, when both pass, commits the fixes to the same branch with the trailer `Generated-By: tests auto-fix` and dispatches Tests and Live on the new commit. It is the counterpart of `live-backend.yml`'s auto-fix for `_generated` drift (`Generated-By: live-backend auto-fix`). Its guards:
+
+- `ci/**` slice branches only: never the phase branch, main or a `ci/merge-*` batch;
+- every other job passed or was skipped (it waits for them, so a run with a real failure fails as before);
+- HEAD is not already a Tests auto-fix commit, so it never commits twice in a row;
+- a plain push, so a branch that moved meanwhile rejects it and the run fails;
+- write permission only on this job, and the token reaches only its push step, not the install or the fix commands. A fix that would change a file under `.github/workflows` is refused, since `GITHUB_TOKEN` cannot push workflow changes.
+
+A finding `--fix` cannot apply, a `lint:schemas` or `lint:casts` finding, or a fix that changes nothing fails the job, and the run fails as before. A dispatched Tests run queues behind the running one rather than cancelling it, so the auto-fix run ends as a failure; a push still cancels the older run. `scripts/watchCi.ps1` prints `AUTO-FIX <sha>` and follows the new commit for either auto-fix; pull the branch (`git pull --ff-only`) before pushing again.
+
+## Approved merges
+
+After the orchestrator reviews a slice tip and approves it, `.github/workflows/merge-slice.yml` does the merge mechanics (`scripts/mergeSlice.mjs`). Dispatch it from the phase branch, so the merge logic is the phase branch's and not the slice's:
+
+```
+gh workflow run merge-slice.yml --ref codex/phase-08-2-convex-cutover -f branch=ci/<slice> -f sha=<tip> -f title='Merge <PBI>.<task>: <summary>'
+```
+
+1. It refuses unless the branch is a `ci/<slice>` branch still at that SHA. It waits for the newest Tests and Live runs on the SHA and refuses unless both succeeded. A workflow with no run there (Live is path-filtered) is dispatched on the branch once.
+2. `N` is one more than the highest `ci/merge-m<N>` branch, and the merge title gets ` (m<N>)`.
+3. Fast path: when the phase branch has changed nothing outside `docs/` since the slice's merge base (none at all when the slice contains the phase tip), the slice merges `--no-ff` onto the phase tip. The merge must differ from the slice tree only under `docs/`, so the slice's green runs prove it. It is pushed to the phase branch, then to `ci/merge-m<N>` with Tests and Live dispatched as the full-run backstop, which the workflow does not wait for.
+4. Batch path: otherwise the phase tip merges `--no-ff` into the slice, the merge goes to `ci/merge-m<N>`, and the workflow dispatches Tests and Live there and waits. When both are green it fast-forwards the phase branch to the merge, or merges `--no-ff` once more if the phase branch moved meanwhile under `docs/` only.
+
+A conflict, a red or cancelled run, a moved slice tip, or a phase branch that moved outside `docs/` during a batch fails the job with the reason; the phase branch is never pushed then (a red batch leaves only its `ci/merge-m<N>` branch). Every push is a plain push, never main. Merge commits carry the `Co-Authored-By: Claude Opus 5.5` trailer. One merge runs at a time per target. GitHub keeps one pending run per concurrency group and cancels an older pending one, so dispatch an approval after the previous one has started, and re-dispatch a cancelled one. A slice that changes `.github/workflows` cannot be pushed with `GITHUB_TOKEN`; merge it by hand. The `target` and `batch_prefix` inputs exist only to prove the workflow on a scratch branch and `ci/p25-merge-m<N>` batches.
 
 ## Red proof
 
