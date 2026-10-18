@@ -6395,9 +6395,9 @@
             {
               "id": "ATTACK-7.T6b",
               "text": "Rename the Disarm-named contest seam that now settles every basic action contest (nativeDisarm, disarmSettlement, disarmPersistence, roomEncounterDisarm, liveSessionEncounterDisarm and its commit input) to a contest domain name, with no behavior change and no compatibility aliases; docs updated.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.6"],
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "note": "Merged m140 (43d436cbc)."
             },
             {
               "id": "ATTACK-7.T7",
