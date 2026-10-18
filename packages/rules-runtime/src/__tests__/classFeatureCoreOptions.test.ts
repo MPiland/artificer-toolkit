@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { compileCharge } from '@artificer-toolkit/shared/compilers'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { buildCharacterChargeRuleFact } from '../character/characterChargeRuleFacts.js'
@@ -45,8 +46,11 @@ describe('Paladin Divine Sense (SPELLS-31.T3b)', () => {
     const divineSense = srdByLabel(SRD.classes, 'Paladin').features?.find(
       ({ label }) => label === 'Divine Sense'
     )
-    if (!divineSense?.charges) throw new Error('Divine Sense must author its charges.')
-    expect(divineSense.charges.resetKind).toBe('LONG_REST')
+    const charges = divineSense && 'charges' in divineSense ? divineSense.charges : undefined
+    if (!charges || charges.limitKind === 'SOURCE_CHARGES')
+      throw new Error('Divine Sense must author its own charges.')
+    const charge = compileCharge(charges)
+    expect(charge.resetKind).toBe('LONG_REST')
     const maximum = (charisma: number) => {
       const { facts } = evaluateSrdCharacter({
         abilities: { CHARISMA: charisma },
@@ -54,7 +58,7 @@ describe('Paladin Divine Sense (SPELLS-31.T3b)', () => {
       })
       const output = evaluateDnd5e2014CharacterPolicy({
         ...facts,
-        chargeCalculations: [buildCharacterChargeRuleFact(divineSense.charges!, 'divine-sense')]
+        chargeCalculations: [buildCharacterChargeRuleFact(charge, 'divine-sense')]
       })
       return output.chargeMaximums.find(({ calculationId }) => calculationId === 'divine-sense')
         ?.maximum
