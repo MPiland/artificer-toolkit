@@ -12,6 +12,7 @@ import {
 } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
+  type EncounterHolderState,
   type EncounterSourceSightSave,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
@@ -121,6 +122,11 @@ export type MovementTarget<
    * `prepareEncounterActionMechanics` decides them per save.
    */
   sourceSightSaves: readonly EncounterSourceSightSave[]
+  /**
+   * What the actor could do when `withEncounterHolderDefense` applied its grants, which a rebuilt
+   * turn target re-applies them with; absent when it had none.
+   */
+  holderState?: EncounterHolderState
   /**
    * The actor's pinned condition definitions (D94), loaded by `withEncounterConditionMechanics`
    * and carried across rebuilds so `applyEncounterConditionMechanics` can re-derive its mechanics;
