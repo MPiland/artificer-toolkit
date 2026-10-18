@@ -1538,5 +1538,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
       - Creature attacks never fold passive ON_HIT riders from the creature's other features. A new SPELLS-33.T3a5 sends those riders through the same collect, merge and reduce path Characters use, then converts the Assassin and Spy Sneak Attack.
       - Creature feature discovery compiles a whole effect and refuses CHOICE groups. A new SPELLS-33.T3a6 compiles each cast-choice option on its own, as the character entry point does, so the creature picks at use (D148). It then converts the Vampire Spawn Claws and the Vampire Unarmed Strike ("instead of dealing damage, grapple").
       - T3a closes with 5 kinds.
+    - **Amended 2026-10-18 (SPELLS-4.T2c rolled-die ruling):**
+      - **One kind, not a pair.** The unused placeholder `ADD_BONUS_DIE` becomes a single rolled-die modifier carrying `{ count, faces, sign: 'ADD' | 'SUBTRACT' }`. The proposed PENALTY_DIE is rejected: a bonus die and a penalty die are the same rule with a sign.
+      - **Domains.** `ATTACK_ROLL`, `SAVING_THROW_MODIFIER` and `ABILITY_CHECK`, with the existing ability and attack filters. The die applies to every Encounter d20 test in its domain, including concentration and death saves, contests and basic-action checks.
+      - **Order and stacking.** The dice add after advantage picks the kept d20. Dice from different spells stack, so Bless and Bane together roll +d4 and −d4. Two effects from the same spell source give one die.
+      - **Consumption.** The result block's `consumeOnFirstEvents` gains `ON_SAVING_THROW`. Guidance is consumed on the holder's first ability check and Resistance on its first save. The holder's opt-in choice ("before or after the roll") and initiative go to Deferred edge cases.
+      - **One evaluation for both actor kinds.** A single pure function reads the holder's active effects for a test and returns the dice. Every roll site calls it, for Characters and Creatures alike.
+      - **Transport.** The d20 request gains `addedDice`, and `ENTER_DICE` gains `addedFaces`. The server rolls app rolls and auto-rolls. `resolveEncounterD20Answer` returns the added total, and the receipt records the faces.
+      - **Sheet.** Out of an Encounter, a Sheet roll includes the held dice (for example 1d20+5+1d4) and consumes them the same way, because Guidance is mostly cast out of combat. If the Sheet roll path can't consume an effect, T2c2 reports that as a gap; it must not show a die that never gets used up.
+      - **Glibness.** It needs a d20 floor, `MINIMUM_ROLL { amount }`, not a rolled die. That ships in its own task, which Reliable Talent can reuse.
+      - **Split.** T2c1 covers attacks and saves, the transport, the roll row, Bless and Bane. T2c2 covers ability checks, `ON_SAVING_THROW`, the Sheet, Guidance and Resistance. T2c3 covers `MINIMUM_ROLL` and Glibness.
     - Flyby joins the opportunity-attack qualifier from SPELLS-31.T4k2.
     - As in SPELLS-31, each authoring gap is fixed with a regression test in the subtask that owns it, and each new T6 group needs an option-design ruling at its start.
