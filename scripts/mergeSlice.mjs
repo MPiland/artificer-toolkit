@@ -173,7 +173,7 @@ export async function mergeSlice({ branch, sha, title, target, batchPrefix }) {
     throw new MergeRefused(`${branch} is not at ${sha}; the tip moved.`)
   await waitForGreen(sha, branch)
 
-  git('fetch', '--quiet', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`)
+  git('fetch', '--quiet', 'origin', sha, `+refs/heads/${target}:refs/remotes/origin/${target}`)
   const phaseTip = git('rev-parse', `origin/${target}`)
   const mergeBase = git('merge-base', sha, phaseTip)
   const phaseChanges = lines(git('diff', '--name-only', '--no-renames', mergeBase, phaseTip))

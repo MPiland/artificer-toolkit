@@ -14,7 +14,9 @@ $sha = git rev-parse $Ref
 $started = Get-Date
 $testsSeenAt = $null
 while ($true) {
-  $runs = gh run list --commit $sha --limit 20 --json databaseId,workflowName,status,conclusion,createdAt | ConvertFrom-Json
+  # Only the validation workflows: a Merge slice run dispatched from this commit is not its CI.
+  $runs = gh run list --commit $sha --limit 20 --json databaseId,workflowName,status,conclusion,createdAt | ConvertFrom-Json |
+    Where-Object workflowName -in 'Tests', 'Live backend'
   # A superseded run (a re-dispatch or re-push of the same commit) does not count; the newest one per workflow does.
   $latest = $runs | Group-Object workflowName | ForEach-Object { $_.Group | Sort-Object createdAt -Descending | Select-Object -First 1 }
   if ($latest | Where-Object workflowName -eq 'Tests') { $testsSeenAt ??= Get-Date }
