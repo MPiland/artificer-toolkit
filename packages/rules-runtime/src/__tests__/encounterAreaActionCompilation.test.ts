@@ -673,6 +673,7 @@ describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {
         dispositionKind: 'ANY',
         excludedCreatureTypeIds: [undead.id],
         hitPointPool: { diceConfig: '5d8' },
+        hitPointPoolIgnoredConditionIds: [unconscious.id],
         hitPointPoolScaling: {
           scalingKind: 'BREAKPOINTS',
           scalingSource: 'SPELL_CAST_LEVEL',

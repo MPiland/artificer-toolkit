@@ -9,7 +9,8 @@
 # every test. Typechecks always run in full.
 # Convex tests run in-process with convex-test, so no Convex deployment is touched (ADR 0035). Live
 # backend checks (codegen push, deploy, seed, audit) are .github/workflows/live-backend.yml; the Worker,
-# Playwright and reset/review-data work stays local.
+# Playwright and reset/review-data work stays local. When Lint is a slice run's only failing job, the auto-fix
+# job commits format and lint fixes to the branch (see the job for its guards).
 name: Tests
 
 on:
@@ -33,7 +34,9 @@ permissions:
 
 concurrency:
   group: tests-${{ github.ref }}
-  cancel-in-progress: true
+  # A dispatched run queues behind the running one instead of cancelling it: the auto-fix job dispatches
+  # Tests on its new commit while its own run is still finishing, and that run must end as a failure.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   # Slices branch from, and merge into, the phase branch; affected tests are selected against it.
@@ -226,7 +229,8 @@ jobs:
         if: success() || failure()
         run: yarn turbo run typecheck:stories --filter=@artificer-toolkit/web --only --env-mode=loose
 
-  # `yarn lint` at zero warnings on every run: oxlint (.oxlintrc.jsonc) and the repo check scripts it chains.
+  # `yarn lint` at zero warnings on every run: oxlint (.oxlintrc.jsonc) and the repo check scripts it chains,
+  # then oxfmt on the files the branch changed since the phase branch (the phase branch is not oxfmt-clean).
   lint:
     name: Lint
     needs: build
@@ -234,8 +238,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
       - uses: ./.github/actions/setup
-      - run: yarn lint
+      - name: Lint
+        run: yarn lint
+      - name: Format of the changed files
+        if: success() || failure()
+        env:
+          MERGE_BASE: ${{ needs.build.outputs.merge-base }}
+        run: node scripts/formatChanged.mjs --base "$MERGE_BASE" --check
 
   # Proves fail-before in the same run: the slice's new and changed test files run against the production
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
@@ -293,6 +307,71 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
         run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+  # Commits format and lint fixes to the ci/** branch when Lint was the run's only failing job and oxlint
+  # --fix plus oxfmt on the changed files clear it; otherwise this job fails and the run fails as before.
+  # Guards: ci/** slice refs only (never the phase branch, main or a ci/merge-* batch); HEAD is not already
+  # an auto-fix commit (no loop); the push is a plain fast-forward, so a branch that moved meanwhile is
+  # rejected. GITHUB_TOKEN pushes trigger no workflows, so Tests and Live are dispatched explicitly. Only
+  # this job can write, and the token reaches only the push step, not the install or the fix commands.
+  auto-fix:
+    name: Commit format and lint fixes to the ci branch
+    needs: [build, convex, packages, worker, web, typecheck-packages, typecheck-web, lint, red]
+    if: >-
+      always() && needs.lint.result == 'failure'
+      && startsWith(github.ref, 'refs/heads/ci/') && !startsWith(github.ref_name, 'ci/merge-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Skip unless Lint failed alone and HEAD is not an auto-fix commit
+        id: guard
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          others=$(jq -r 'to_entries[] | select(.key != "lint" and (.value.result | IN("success", "skipped") | not)) | .key' <<< "$NEEDS")
+          if [ -n "$others" ]; then
+            echo "Other jobs did not pass ($(echo $others)); not fixing." >&2
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          elif git log -1 --format=%B | grep -qx 'Generated-By: tests auto-fix'; then
+            echo 'HEAD is an auto-fix commit and Lint still fails; not committing again.' >&2
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: ./.github/actions/setup
+        if: steps.guard.outputs.skip != 'true'
+      - name: Fix and verify
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          MERGE_BASE: ${{ needs.build.outputs.merge-base }}
+        run: |
+          # oxlint applies only its safe fixes; a finding it cannot fix fails the `yarn lint` check below.
+          yarn oxlint --fix || true
+          node scripts/formatChanged.mjs --base "$MERGE_BASE"
+          yarn lint
+          node scripts/formatChanged.mjs --base "$MERGE_BASE" --check
+          if git diff --quiet; then echo 'The fixes changed nothing.' >&2; exit 1; fi
+          git diff --stat
+      - name: Commit, push and dispatch
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am 'Apply format and lint fixes (tests auto-fix)' -m 'Generated-By: tests auto-fix'
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
+          gh workflow run tests.yml --ref "$BRANCH"
+          gh workflow run live-backend.yml --ref "$BRANCH"
+          echo "Auto-fix commit $(git rev-parse HEAD) pushed to $BRANCH; Tests and Live dispatched." >> "$GITHUB_STEP_SUMMARY"
 
   # A Tests run that failed on snapshot mismatches leaves the corrected files as one `updated-snapshots`
   # artifact (scripts/watchCi.ps1 prints the download command). The failing job stays failed, so snapshot

@@ -61,6 +61,7 @@ export const sleep: SpellAuthored = {
           dispositionKind: TARGET_DISPOSITION_KIND.ANY,
           excludedCreatureTypeIds: [creatureTypeId('UNDEAD')],
           hitPointPool: { diceConfig: '5d8' },
+          hitPointPoolIgnoredConditionIds: [conditionTypeId('UNCONSCIOUS')],
           hitPointPoolScaling: {
             scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
             scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,

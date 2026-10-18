@@ -12,6 +12,7 @@ import worker from '../src/index.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { aggregate, encounterId, uuid } from '../src/testing/roomAggregateFixture.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
+import { roomStub } from './roomTeardown.js'
 
 const EPOCH = uuid(0xb01)
 const CAMPAIGN_ID = uuid(2)
@@ -26,10 +27,6 @@ const developmentEnvironment = {
 afterEach(() => {
   vi.restoreAllMocks()
 })
-
-function roomStub(campaignId: string) {
-  return env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
-}
 
 /** A room that committed `commands` Run commands, none of them published, then restarted. */
 async function roomWithPendingCommands(commands: number) {

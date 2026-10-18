@@ -121,8 +121,8 @@ function grantAnchorActorId(
 }
 
 /**
- * Timed grants anchored to an actor that left the Run can no longer count down, so they end with
- * it. Holder-anchored grants, and those carried in from an earlier Run, keep their own lifetime.
+ * Timed effects anchored to an actor that left the Run can no longer count down, so they end with
+ * it. Holder-anchored effects, and those carried in from an earlier Run, keep their own lifetime.
  */
 export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
@@ -132,7 +132,6 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
   return input.holders.flatMap(({ effects }) =>
     effects.filter(
       (effect) =>
-        isModifierGrant(effect) &&
         effect.definition.recurrence.expiration.kind === 'TICKS' &&
         effect.definition.recurrence.expiration.anchor === 'SOURCE' &&
         effect.definition.origin.kind === 'ENCOUNTER' &&
@@ -143,8 +142,9 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
 }
 
 /**
- * Grants count down at the boundary of their anchor actor's turn rather than through the
- * turn-effect kernel (they store no recurrence stage), so the kernel never owns them.
+ * Grants, and other timed effects counted on their source's turns, store no recurrence stage and
+ * count down at the boundary of their anchor actor's turn, so the turn-effect kernel never
+ * owns them.
  */
 export function planEncounterGrantTicks(input: {
   encounterId: string
@@ -160,9 +160,9 @@ export function planEncounterGrantTicks(input: {
       const remaining = effect.lifecycle.remainingTicks
       if (
         remaining === null ||
-        !isModifierGrant(effect) ||
         recurrence.recurrenceStage !== 'NONE' ||
         expiration.kind !== 'TICKS' ||
+        (!isModifierGrant(effect) && expiration.anchor !== 'SOURCE') ||
         expiration.decrementStage !== input.stage ||
         !isEffectLiveInEncounter(effect, actor, input.encounterId)
       )

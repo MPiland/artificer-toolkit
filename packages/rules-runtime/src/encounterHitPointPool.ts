@@ -3,9 +3,10 @@ import { targetingExcludesCreatureType } from './encounterActionTargetPolicy.js'
 
 /**
  * The creatures a rolled hit-point pool affects (Sleep): of the candidates whose creature type the
- * action affects, taken from the lowest current hit points up, each one's hit points subtracted
- * from the pool, a creature affected only while its hit points do not exceed what remains. The
- * candidates arrive in a stable order, which breaks a tie. A creature without a type is eligible.
+ * action affects and who have none of the conditions the pool ignores, taken from the lowest current
+ * hit points up, each one's hit points subtracted from the pool, a creature affected only while its
+ * hit points do not exceed what remains. The candidates arrive in a stable order, which breaks a
+ * tie. A creature without a type is eligible.
  */
 export function selectHitPointPoolTargets(
   pool: number,
@@ -13,14 +14,20 @@ export function selectHitPointPoolTargets(
     actorId: string
     currentHitPoints: number
     creatureTypeId: string | null
+    conditionIds: readonly string[]
   }[],
   targeting: CompiledActionTargetPolicy['targeting']
 ): string[] {
+  const ignoredConditionIds =
+    targeting?.selectionKind === 'AREA_CONTENTS'
+      ? (targeting.hitPointPoolIgnoredConditionIds ?? [])
+      : []
   let remaining = pool
   const selected: string[] = []
   const eligible = candidates.filter(
-    ({ creatureTypeId }) =>
-      creatureTypeId === null || !targetingExcludesCreatureType(targeting, creatureTypeId)
+    ({ creatureTypeId, conditionIds }) =>
+      (creatureTypeId === null || !targetingExcludesCreatureType(targeting, creatureTypeId)) &&
+      !conditionIds.some((conditionId) => ignoredConditionIds.includes(conditionId))
   )
   for (const { actorId, currentHitPoints } of eligible.sort(
     (left, right) => left.currentHitPoints - right.currentHitPoints

@@ -1,11 +1,11 @@
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
-import { env } from 'cloudflare:workers'
 import { expect, it, vi } from 'vitest'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { DurableCommandJournal, DurableCommandJournalError } from '../src/durableCommandJournal.js'
 import { RoomCheckpoints } from '../src/roomCheckpoints.js'
 import { RoomEncounterStore, RoomStoreCorruptError } from '../src/roomEncounterStore.js'
 import { aggregate, encounterId, uuid } from '../src/testing/roomAggregateFixture.js'
+import { roomStub } from './roomTeardown.js'
 
 const OLD_EPOCH = uuid(0xa10)
 const NEW_EPOCH = uuid(0xa11)
@@ -31,9 +31,7 @@ function rowCounts(storage: DurableObjectStorage) {
 }
 
 it('replaces a fenced corrupt snapshot and clears its journal and pending upload atomically, surviving eviction', async () => {
-  const stub = env.LIVE_SESSION_ROOMS.get(
-    env.LIVE_SESSION_ROOMS.idFromName(`storage-recovery:${crypto.randomUUID()}`)
-  )
+  const stub = roomStub(`storage-recovery:${crypto.randomUUID()}`)
   const recoveredChecksum = await runInDurableObject(stub, async (_instance, state) => {
     const { storage } = state
     const store = new RoomEncounterStore(storage)

@@ -1,5 +1,4 @@
 import { runInDurableObject, SELF } from 'cloudflare:test'
-import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
@@ -25,7 +24,7 @@ import { DurableCommandJournal } from '../src/durableCommandJournal.js'
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
-import { trackRoom } from './roomTeardown.js'
+import { roomStub } from './roomTeardown.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const allowedOrigin = 'https://app.test'
@@ -99,10 +98,7 @@ async function room() {
   const routes: string[] = []
   let openActivation: () => void = () => undefined
   let activationGate: Promise<void> = Promise.resolve()
-  const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
-  // The fetch and clock spies are isolate-wide, so a room left running would answer from, and count
-  // its reads on, a later test's mock.
-  trackRoom(stub)
+  const stub = roomStub(campaignId)
   await runInDurableObject(stub, () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
@@ -262,7 +258,7 @@ it.each([
 
 it('re-verifies the forwarded ticket inside the room and refuses a forged signature', async () => {
   const campaignId = crypto.randomUUID()
-  const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
+  const stub = roomStub(campaignId)
   const forged = await signTicket(
     { ...baseClaims, campaignId },
     { signingSecret: `${secret}-other` }

@@ -25,4 +25,25 @@ describe('room teardown', () => {
     await clearRoomAlarms()
     expect(await alarm()).toBeNull()
   })
+
+  it('waits for a socket that closes late, so its close cannot re-arm the idle release', async () => {
+    const base = await fixture()
+    base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+    await vi.waitFor(
+      () => expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true),
+      ROOM_REPLY_WAIT
+    )
+
+    // A loaded runner can deliver the close well after teardown starts.
+    setTimeout(closeTrackedSockets, 2_500)
+    await clearRoomAlarms()
+
+    const roomState = () =>
+      runInDurableObject(base.stub, async (_room, state) => ({
+        sockets: state.getWebSockets().length,
+        alarm: await state.storage.getAlarm()
+      }))
+    await vi.waitFor(async () => expect((await roomState()).sockets).toBe(0), ROOM_REPLY_WAIT)
+    expect((await roomState()).alarm).toBeNull()
+  })
 })
