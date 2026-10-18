@@ -1,4 +1,5 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import type {
   CampaignSceneState,
   SceneGrid,
@@ -12,7 +13,8 @@ import { encounterConcealmentOf, isConcealedFrom } from './encounterConcealment.
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-  ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
+  ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
+  encounterRuleContributorSource
 } from './encounterRollModeReasons.js'
 import {
   mergeCanonicalD20Contributors,
@@ -271,7 +273,8 @@ export function encounterAttackPerceptionContributors(
             sourceId: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
             grantId: null,
             domainKey: ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
-            influence: 'ADVANTAGE' as const
+            influence: 'ADVANTAGE' as const,
+            source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER)
           }
         ]
       : []),
@@ -281,7 +284,8 @@ export function encounterAttackPerceptionContributors(
             sourceId: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
             grantId: null,
             domainKey: ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID,
-            influence: 'DISADVANTAGE' as const
+            influence: 'DISADVANTAGE' as const,
+            source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET)
           }
         ]
       : [])

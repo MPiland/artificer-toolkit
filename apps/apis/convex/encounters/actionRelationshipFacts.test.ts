@@ -173,7 +173,8 @@ describe('native action relationship facts', () => {
     await expect(load(fixture.actor.id)).rejects.toThrow('target is restricted')
     await expect(load(targetId)).resolves.toEqual([
       expect.objectContaining({
-        sourceId: `active-effect:${effectId}`,
+        source: expect.objectContaining({ kind: 'ACTIVE_EFFECT', id: effectId }),
+        sourceId: `ACTIVE_EFFECT:${effectId}`,
         influence: 'ADVANTAGE'
       })
     ])

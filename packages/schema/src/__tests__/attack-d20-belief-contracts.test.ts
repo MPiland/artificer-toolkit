@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 
 import { rollRuleCheckDtoSchema } from '../api/rolls.js'
 import { encounterActionPendingContextDtoSchema } from '../shared/encounterActionPending.js'
@@ -16,7 +17,12 @@ const advantage = {
   sourceId: 'rule:unseen-attacker',
   grantId: null,
   domainKey: 'rule:unseen-attacker',
-  influence: 'ADVANTAGE' as const
+  influence: 'ADVANTAGE' as const,
+  source: {
+    kind: 'RULE' as const,
+    id: ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER,
+    holderActorId: null
+  }
 }
 
 const evidenceBase = (contributors: (typeof advantage)[]) => ({

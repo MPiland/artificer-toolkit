@@ -1,6 +1,7 @@
 import {
   collectEncounterRollModeContributors,
   labelEncounterRollModeReasons,
+  rollModeSourceKey,
   type EncounterD20Contributor,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
@@ -9,8 +10,6 @@ import { readCharacterEffect, readEncounterEffect } from './effectStore.js'
 import { readRunActors, readRunState } from './documents.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** The label of authored content, a rule definition or a System condition with this id. */
 async function readIdentityLabel(
@@ -22,87 +21,80 @@ async function readIdentityLabel(
 }
 
 /**
- * A contributor's source label and the Encounter actors it comes from. Source ids name their origin:
- * an active effect (`active-effect:<id>`, or a grant's Character mechanic key `ACTIVE_EFFECT:<id>`;
- * owned by and cast by actors), a basic action held by the
- * actor its domain key names (`basic-action:<holderId>`), a condition of the actor its domain key
- * names (`condition:<holderId>`, D94), or a key whose identities are the authored
- * source, item, feature or rule definition, the first of which with a label names it.
+ * A contributor's source label and the Encounter actors it comes from, by its typed source kind: an
+ * active effect (owned by and cast by actors), a condition of the actor its source names (D94), or
+ * the authored definition that names it. Rules-owned sources carry no label here and no actor.
  */
 async function readContributorSource(
   ctx: EncounterReadTransaction,
-  contributor: EncounterD20Contributor,
+  { source }: EncounterD20Contributor,
   conditionLabels: ReadonlyMap<string, string>,
   consumedGrants: readonly ActiveRuleEffectRecord[]
 ): Promise<{ label: string | null; actorIds: readonly string[]; hidden?: boolean }> {
-  const parts = contributor.sourceId.split(':').map((part) => decodeURIComponent(part))
-  if (
-    parts[0] === 'active-effect' ||
-    parts[0] === 'active-effect-perception' ||
-    parts[0] === 'ACTIVE_EFFECT'
-  ) {
-    const effectId = parts[1] ?? ''
-    const encounterRow = await ctx.db
-      .query('encounterActiveRuleEffects')
-      .withIndex('by_publicId', (q) => q.eq('id', effectId))
-      .unique()
-    const characterRow = encounterRow
-      ? null
-      : await ctx.db
-          .query('characterActiveRuleEffects')
-          .withIndex('by_publicId', (q) => q.eq('id', effectId))
-          .unique()
-    // A grant its roll used up is gone from the stores; the command that consumed it kept its record.
-    const effect = encounterRow
-      ? readEncounterEffect(encounterRow)
-      : characterRow
-        ? readCharacterEffect(characterRow)
-        : consumedGrants.find((grant) => grant.id === effectId)
-    if (!effect) return { label: null, actorIds: [] }
-    const origin = effect.definition.origin
-    // A modifier grant froze its granting item's label; the authored effect id has none.
-    const grant =
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.find(
-            (contribution) => contribution.kind === 'MODIFIER_GRANT'
-          )
-        : undefined
-    if (grant)
+  const holderActorIds = source.holderActorId ? [source.holderActorId] : []
+  switch (source.kind) {
+    case 'RULE':
+      return { label: null, actorIds: [] }
+    case 'CONDITION':
+      // A condition's rule-state definition shares its id, so the System condition label names it.
       return {
-        label: grant.sourceLabel,
-        hidden: grant.sourceHidden,
-        actorIds: [
-          ...(effect.owner.kind === 'ENCOUNTER_ACTOR' ? [effect.owner.targetActorId] : []),
-          ...(origin.kind === 'ENCOUNTER' && origin.sourceActorId ? [origin.sourceActorId] : [])
-        ]
+        label: conditionLabels.get(source.id) ?? (await ctx.ports.readContentLabel(source.id)),
+        actorIds: holderActorIds
       }
-    return {
-      label: await readIdentityLabel(ctx, effect.definition.authoredEffectId, conditionLabels),
-      actorIds: [
-        ...(effect.owner.kind === 'ENCOUNTER_ACTOR' ? [effect.owner.targetActorId] : []),
-        ...(origin.kind === 'ENCOUNTER' && origin.sourceActorId ? [origin.sourceActorId] : [])
-      ]
-    }
+    case 'AUTHORED':
+      return {
+        label: await readIdentityLabel(ctx, source.id, conditionLabels),
+        actorIds: holderActorIds
+      }
+    case 'ACTIVE_EFFECT':
+      return readActiveEffectSource(ctx, source.id, conditionLabels, consumedGrants)
   }
-  const holder = /^(?:basic-action|condition):(.+)$/.exec(contributor.domainKey ?? '')?.[1] ?? null
-  // A condition's rule-state definition shares its id, so the System condition label names it.
-  if (parts[0] === 'condition') {
-    const conditionId = parts[1]?.toLowerCase() ?? ''
-    return {
-      label: conditionLabels.get(conditionId) ?? (await ctx.ports.readContentLabel(conditionId)),
-      actorIds: holder ? [holder] : []
-    }
-  }
-  for (const part of parts) {
-    if (!UUID.test(part)) continue
-    const label = await readIdentityLabel(ctx, part.toLowerCase(), conditionLabels)
-    if (label) return { label, actorIds: holder ? [holder] : [] }
-  }
-  return { label: null, actorIds: holder ? [holder] : [] }
 }
 
-function contributorKey(contributor: EncounterD20Contributor) {
-  return `${contributor.sourceId}\u0000${contributor.domainKey ?? ''}`
+async function readActiveEffectSource(
+  ctx: EncounterReadTransaction,
+  effectId: string,
+  conditionLabels: ReadonlyMap<string, string>,
+  consumedGrants: readonly ActiveRuleEffectRecord[]
+): Promise<{ label: string | null; actorIds: readonly string[]; hidden?: boolean }> {
+  const encounterRow = await ctx.db
+    .query('encounterActiveRuleEffects')
+    .withIndex('by_publicId', (q) => q.eq('id', effectId))
+    .unique()
+  const characterRow = encounterRow
+    ? null
+    : await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_publicId', (q) => q.eq('id', effectId))
+        .unique()
+  // A grant its roll used up is gone from the stores; the command that consumed it kept its record.
+  const effect = encounterRow
+    ? readEncounterEffect(encounterRow)
+    : characterRow
+      ? readCharacterEffect(characterRow)
+      : consumedGrants.find((grant) => grant.id === effectId)
+  if (!effect) return { label: null, actorIds: [] }
+  const origin = effect.definition.origin
+  const actorIds = [
+    ...(effect.owner.kind === 'ENCOUNTER_ACTOR' ? [effect.owner.targetActorId] : []),
+    ...(origin.kind === 'ENCOUNTER' && origin.sourceActorId ? [origin.sourceActorId] : [])
+  ]
+  // A modifier grant froze its granting item's label; the authored effect id has none.
+  const grant =
+    effect.definition.schemaVersion === 2
+      ? effect.definition.stateContributions.find(
+          (contribution) => contribution.kind === 'MODIFIER_GRANT'
+        )
+      : undefined
+  if (grant) return { label: grant.sourceLabel, hidden: grant.sourceHidden, actorIds }
+  return {
+    label: await readIdentityLabel(ctx, effect.definition.authoredEffectId, conditionLabels),
+    actorIds
+  }
+}
+
+function contributorKey({ source }: EncounterD20Contributor) {
+  return `${rollModeSourceKey(source)}\u0000${source.holderActorId ?? ''}`
 }
 
 /**
@@ -139,7 +131,7 @@ export async function withEncounterRollModeReasons<T>(
   const hiddenContributors = new Set<string>()
   for (const contributor of contributors) {
     const source = await readContributorSource(ctx, contributor, conditionLabels, consumedGrants)
-    if (source.label) labels.set(contributor.sourceId, source.label)
+    if (source.label) labels.set(rollModeSourceKey(contributor.source), source.label)
     if (
       (source.hidden && membership.role !== 'OWNER') ||
       source.actorIds.some((actorId) => hiddenActorIds.has(actorId))

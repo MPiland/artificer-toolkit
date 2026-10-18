@@ -1,7 +1,10 @@
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import {
+  compareCanonicalD20Contributors,
+  rollModeContributorSourceOfMechanicSource
+} from '@artificer-toolkit/shared/rules'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
 import {
@@ -189,7 +192,7 @@ export function resolveCharacterRulePolicyRollModes(
           throw new Error('Scoped character saving throws require contributor provenance.')
         scopedContributors.push({
           sourceId: contribution.sourceId,
-          source: contribution.source,
+          source: rollModeContributorSourceOfMechanicSource(contribution.source),
           grantId: contribution.grantId,
           domainKey: contribution.domainKey,
           influence: modifierKind

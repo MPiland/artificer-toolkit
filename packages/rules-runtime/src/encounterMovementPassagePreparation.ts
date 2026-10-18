@@ -154,12 +154,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
         : characterAbilityCheck(facts, policy, input.checkDefinitionId)
     return withConditions({
       controllerCharacterId: facts.active.id,
-      contributors: (check.evidence ?? []).map(({ domainKey, grantId, influence, sourceId }) => ({
-        domainKey: domainKey ?? null,
-        grantId: grantId ?? null,
-        influence,
-        sourceId
-      })),
+      contributors: check.evidence ?? [],
       modifier:
         typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
           ? check.modifier
@@ -356,7 +351,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     const overrun = resolved
     if (overrun.result.kind !== 'PROPOSED')
       throw new Error('Movement passage policy changed before contest.')
-    // Keep a qualified contributor's grant and domain, so a condition still names its holder (D94).
+    // Keep a qualified contributor's grant, domain and source, so a condition still names its holder
+    // (D94); the Overrun rule's own size relation is sourced to the rule's definition.
     initiatorContributors = overrun.result.proposal.contest.initiatorContributors.map(
       (contributor) => {
         const qualified = initiator.contributors.find(
@@ -366,7 +362,12 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
           sourceId: contributor.id,
           grantId: qualified?.grantId ?? null,
           domainKey: qualified?.domainKey ?? null,
-          influence: contributor.influence
+          influence: contributor.influence,
+          source: qualified?.source ?? {
+            kind: 'AUTHORED' as const,
+            id: option.definitionId,
+            holderActorId: null
+          }
         }
       }
     )

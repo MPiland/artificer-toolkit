@@ -639,7 +639,8 @@ describe("passage contests under the contestants' conditions (D94)", () => {
     sourceId: `condition:${POISONED}`,
     grantId: null,
     domainKey: `condition:${holderActorId}`,
-    influence: 'DISADVANTAGE'
+    influence: 'DISADVANTAGE',
+    source: { kind: 'CONDITION', id: POISONED, holderActorId }
   })
 
   it.each(['OVERRUN', 'TUMBLE'] as const)(

@@ -93,16 +93,14 @@ type PolicyContributor = SaveDefinition['contributors'][number]
 
 function contributor(input: {
   sourceId: string
-  sourceKind: 'FEAT' | 'SPELL'
   influence: PolicyContributor['influence']
 }): PolicyContributor {
   return {
     sourceId: input.sourceId,
     source: {
       kind: 'AUTHORED',
-      sourceKind: input.sourceKind,
-      definitionId: '00000000-0000-4000-8000-00000000d301',
-      sourceInstanceId: input.sourceId
+      id: '00000000-0000-4000-8000-00000000d301',
+      holderActorId: null
     },
     grantId: `${input.sourceId}:grant`,
     domainKey: 'saving-throw',
@@ -110,14 +108,13 @@ function contributor(input: {
   }
 }
 
-/** The contributor evidence a Concentration check keeps: identity and influence, not its source. */
-function evidence({ sourceId, grantId, domainKey, influence }: PolicyContributor) {
-  return { sourceId, grantId, domainKey, influence }
+/** The contributor evidence a Concentration check keeps: identity, influence and typed source. */
+function evidence({ sourceId, grantId, domainKey, influence, source }: PolicyContributor) {
+  return { sourceId, grantId, domainKey, influence, source }
 }
 
 const WAR_CASTER = contributor({
   sourceId: 'feat-war-caster',
-  sourceKind: 'FEAT',
   influence: 'ADVANTAGE'
 })
 
@@ -218,7 +215,6 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('orders contributors canonically before checksumming them', () => {
     const bane = contributor({
       sourceId: 'spell-bane',
-      sourceKind: 'SPELL',
       influence: 'DISADVANTAGE'
     })
     const facts = resolveDnd5eConcentrationSaveFacts({
@@ -939,7 +935,8 @@ describe('Concentration held by a Creature', () => {
         sourceId: `condition:${exhaustion}`,
         grantId: null,
         domainKey: `condition:${WOLF_ID}`,
-        influence: 'DISADVANTAGE'
+        influence: 'DISADVANTAGE',
+        source: { kind: 'CONDITION', id: exhaustion, holderActorId: WOLF_ID }
       }
     ])
   })

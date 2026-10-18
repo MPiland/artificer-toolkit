@@ -13,7 +13,10 @@ import {
   type ValueDomainCode
 } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import {
+  compareCanonicalD20Contributors,
+  rollModeContributorSourceOfMechanicSource
+} from '@artificer-toolkit/shared/rules'
 
 import {
   activeFixedGrantTotal,
@@ -55,6 +58,22 @@ export function encounterActiveGrantCapabilitySuppressions(
         : []
     )
   )
+}
+
+/** The d20 contributor an active effect's advantage or disadvantage grant adds for its holder. */
+function activeGrantContributor(
+  effectId: string,
+  holderActorId: string,
+  grantId: string,
+  influence: EncounterRelationshipD20Contributor['influence']
+): EncounterRelationshipD20Contributor {
+  return {
+    sourceId: createCharacterMechanicSourceKey({ kind: 'ACTIVE_EFFECT', activeEffectId: effectId }),
+    grantId,
+    domainKey: `active-grant:${holderActorId}`,
+    influence,
+    source: { kind: 'ACTIVE_EFFECT', id: effectId, holderActorId }
+  }
 }
 
 /** The Character grant fold's `ACTIVE_EFFECT` sources for the holder's grants. */
@@ -124,15 +143,12 @@ export function withCreatureActiveGrantSaves(
         modifier.scope !== 'GLOBAL'
       )
         continue
-      const contributor: EncounterRelationshipD20Contributor = {
-        sourceId: createCharacterMechanicSourceKey({
-          kind: 'ACTIVE_EFFECT',
-          activeEffectId: effectId
-        }),
-        grantId: modifier.grantId,
-        domainKey: `active-grant:${holderActorId}`,
-        influence: modifier.modifierKind
-      }
+      const contributor: EncounterRelationshipD20Contributor = activeGrantContributor(
+        effectId,
+        holderActorId,
+        modifier.grantId,
+        modifier.modifierKind
+      )
       if (conditionTypeId !== undefined) {
         const key = `${abilityDefinitionId}:${conditionTypeId}`
         const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
@@ -291,15 +307,12 @@ export function encounterAttackAgainstContributors(
             {
               attackDomain,
               requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
-              contributor: {
-                sourceId: createCharacterMechanicSourceKey({
-                  kind: 'ACTIVE_EFFECT',
-                  activeEffectId: effectId
-                }),
-                grantId: modifier.grantId,
-                domainKey: `active-grant:${holderActorId}`,
-                influence: modifier.modifierKind
-              }
+              contributor: activeGrantContributor(
+                effectId,
+                holderActorId,
+                modifier.grantId,
+                modifier.modifierKind
+              )
             }
           ]
         : []
@@ -336,15 +349,7 @@ export function withHolderStateGrantSaves(
         continue
       byAbility.set(abilityDefinitionId, [
         ...(byAbility.get(abilityDefinitionId) ?? []),
-        {
-          sourceId: createCharacterMechanicSourceKey({
-            kind: 'ACTIVE_EFFECT',
-            activeEffectId: effectId
-          }),
-          grantId: modifier.grantId,
-          domainKey: `active-grant:${holderActorId}`,
-          influence: modifier.modifierKind
-        }
+        activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)
       ])
     }
   }
@@ -409,7 +414,11 @@ export function encounterSourceSightSaveGrants(input: {
                   sourceId: modifier.sourceId,
                   grantId,
                   domainKey: modifier.domainKey,
-                  influence: modifier.modifierKind
+                  influence: modifier.modifierKind,
+                  source: rollModeContributorSourceOfMechanicSource(
+                    modifier.source,
+                    input.holderActorId
+                  )
                 }
               }
             ]
@@ -428,15 +437,12 @@ export function encounterSourceSightSaveGrants(input: {
             {
               abilityDefinitionId,
               restrictions: modifier.restrictions,
-              contributor: {
-                sourceId: createCharacterMechanicSourceKey({
-                  kind: 'ACTIVE_EFFECT',
-                  activeEffectId: effectId
-                }),
-                grantId: modifier.grantId,
-                domainKey: `active-grant:${input.holderActorId}`,
-                influence: modifier.modifierKind
-              }
+              contributor: activeGrantContributor(
+                effectId,
+                input.holderActorId,
+                modifier.grantId,
+                modifier.modifierKind
+              )
             }
           ]
         : []
@@ -575,17 +581,7 @@ export function creatureActiveGrantAttackContributors(
         modifier.domain.attackDomain === attackDomain &&
         (grantAbility === null || grantAbility === attackAbility) &&
         modifier.scope === 'GLOBAL'
-        ? [
-            {
-              sourceId: createCharacterMechanicSourceKey({
-                kind: 'ACTIVE_EFFECT',
-                activeEffectId: effectId
-              }),
-              grantId: modifier.grantId,
-              domainKey: `active-grant:${holderActorId}`,
-              influence: modifier.modifierKind
-            }
-          ]
+        ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)]
         : []
     })
   )
@@ -609,17 +605,7 @@ export function creatureActiveGrantCheckContributors(
         modifier.valueDomainCode === 'ABILITY_CHECK' &&
         (grantAbility === null || grantAbility === abilityCode) &&
         modifier.scope === 'GLOBAL'
-        ? [
-            {
-              sourceId: createCharacterMechanicSourceKey({
-                kind: 'ACTIVE_EFFECT',
-                activeEffectId: effectId
-              }),
-              grantId: modifier.grantId,
-              domainKey: `active-grant:${holderActorId}`,
-              influence: modifier.modifierKind
-            }
-          ]
+        ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)]
         : []
     })
   )
