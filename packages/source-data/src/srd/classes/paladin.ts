@@ -12,6 +12,7 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -21,6 +22,7 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
+  SHAPE_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
   TARGET_DISPOSITION_KIND,
@@ -31,7 +33,8 @@ import {
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored,
-  type FacetAuthored
+  type FacetAuthored,
+  type ShapeAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
@@ -102,6 +105,30 @@ function selfClassRuleEffect(
   })
 }
 
+/** Aura of Protection's reach (D155): 10 feet, growing to 30 feet at paladin level 18. */
+function auraOfProtectionShape(entry: number): ShapeAuthored {
+  return {
+    id: classRowId(P, 0x71, entry),
+    shapeKind: SHAPE_KIND.SPHERE,
+    radius: {
+      amount: 10,
+      unit: MEASUREMENT_UNIT_CODE.FEET,
+      scaling: {
+        scalingKind: 'BREAKPOINTS',
+        scalingSource: 'CLASS_LEVEL',
+        classId: CLASS_IDS.PALADIN,
+        breakpoints: [
+          {
+            id: classRowId(P, 0x71, entry + 1),
+            level: 18,
+            order: 1,
+            value: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
+          }
+        ]
+      }
+    }
+  }
+}
 function vocabularyEntryId(entries: readonly { id: string; code: string }[], code: string): string {
   const entry = entries.find((candidate) => candidate.code === code)
   if (!entry) throw new Error(`SRD vocabulary entry ${code} required.`)
@@ -1002,24 +1029,59 @@ export const paladin: ClassAuthored = {
       description:
         'Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1). You must be conscious to grant this bonus.\n\nAt 18th level, the range of this aura increases to 30 feet.',
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 0x60, 10),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_AURA_OF_PROTECTION,
+          order: 1,
           invocation: {
             kind: 'PASSIVE',
             triggerCode: TRIGGER.ACTIVATED,
-            range: {
-              id: classRowId(P, 0x69, 10),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
+            range: { id: classRowId(P, 0x69, 10), rangeKind: RANGE_KIND.SELF },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            },
+            shape: auraOfProtectionShape(0)
+          },
+          paths: [
+            {
+              id: classRowId(P, 0x71, 2),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(P, 0x71, 3),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(P, 0x71, 4),
+                    effectKind: EFFECT_KIND.MANIFEST,
+                    manifestKind: MANIFEST_KIND.ZONE,
+                    attachmentKind: 'SOURCE',
+                    label: 'Aura of Protection',
+                    shape: auraOfProtectionShape(5),
+                    components: [
+                      {
+                        id: classRowId(P, 0x71, 7),
+                        order: 1,
+                        label: 'Protective aura',
+                        occupantSaveBonus: {
+                          id: classRowId(P, 0x71, 8),
+                          domain: 'EVERY_SAVING_THROW',
+                          amountKind: 'SOURCE_ABILITY_MODIFIER',
+                          ability: ABILITY_CODE.CHARISMA,
+                          minimum: 1,
+                          dispositionFilter: 'ALLIES_AND_SOURCE'
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
             }
-          }
-        })
+          ]
+        }
       ],
       availableAtLevel: 6,
       order: 9

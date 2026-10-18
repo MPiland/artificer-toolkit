@@ -78,6 +78,7 @@ type AuthoringDefaultKind =
   | 'manifestCreatureFormFilter'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
+  | 'manifestOccupantSaveBonus'
   | 'manifestProximityRule'
   | 'measurement'
   | 'measurementScalingBreakpoint'
@@ -224,6 +225,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
+  manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],
   manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],

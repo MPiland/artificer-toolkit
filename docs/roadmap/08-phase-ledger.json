@@ -9236,20 +9236,20 @@
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-20.T5a",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
                 "size": 5
               },
-              "text": "Occupant save-bonus aura contracts (D155): the every-saving-throw domain, a source ability modifier amount with a minimum, the occupantSaveBonus component and class-level radius scaling, compiled. The Paladin Aura of Protection is re-authored from core options with a parity proof, and CLOSED_RULE CLASS_PALADIN_AURA_OF_PROTECTION is deleted."
+              "text": "Occupant save-bonus aura contracts (D155): the every-saving-throw domain, a source ability modifier amount with a minimum, the occupantSaveBonus component and class-level radius scaling, compiled. The Paladin Aura of Protection is re-authored from core options with a parity proof, and CLOSED_RULE CLASS_PALADIN_AURA_OF_PROTECTION is deleted.",
+              "note": "Occupant save-bonus contracts, class-level radius scaling, Paladin Aura of Protection from core options with parity (ADR 0038); CLOSED_RULE CLASS_PALADIN_AURA_OF_PROTECTION deleted. Proofs: packages/authoring/src/nodeRuntime/classAuraAuthoringParity.test.ts, packages/rules-runtime/src/__tests__/encounterOccupantSaveBonusCompilation.test.ts. Green: ci/spells-20-t5a bdabab7ad Tests 39125451066, Live 39125451002; phase merge e62d492c1 (fast path; backstop ci/merge-m108)."
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-20.T5b",
               "wsjf": {
                 "bv": 5,
@@ -9258,7 +9258,8 @@
                 "size": 5,
                 "after": ["SPELLS-20.T5a"]
               },
-              "text": "Character passive zones (D155): a Character class-feature PASSIVE zone is discovered and placed at START, REINFORCE and token bind, and suppressed while its Character source is unconscious."
+              "text": "Character passive zones (D155): a Character class-feature PASSIVE zone is discovered and placed at START, REINFORCE and token bind, with its occupant save bonus and class-level radius resolved against the source and pinned, for Character and Creature sources; the transitional placement refusal is removed.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "closes": ["SPELLS-20.1"],
@@ -9271,7 +9272,7 @@
                 "size": 8,
                 "after": ["SPELLS-20.T5b"]
               },
-              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18."
+              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18."
             },
             {
               "id": "SPELLS-20.T6a",

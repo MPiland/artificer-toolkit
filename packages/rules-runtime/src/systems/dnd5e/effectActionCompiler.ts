@@ -2196,7 +2196,8 @@ function durationPublishedGraph(input: {
           ? { linkOutcomeId: { kind: 'LITERAL', value: actorLinkContribution.linkOutcomeId } }
           : creatureFormContribution
             ? { formOutcomeId: { kind: 'LITERAL', value: creatureFormContribution.formOutcomeId } }
-            : {},
+            : // A lasting entry with no contribution, such as a zone lending a bonus (D155), names itself.
+              { compiledEntryId: { kind: 'LITERAL', value: input.plan.compiledEntryId } },
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId },
       ...(input.plan.marginRider
@@ -2262,6 +2263,17 @@ function zonePlacementPlan(
   const [first, ...later] = zone.components
   const { appearSave } = zone
   if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
+  // A radius scaled by class level is resolved at placement (D155); any other scaled size is not.
+  if (
+    Object.entries(zone.shape).some(
+      ([key, measurement]) =>
+        typeof measurement === 'object' &&
+        'scaling' in measurement &&
+        measurement.scaling !== undefined &&
+        (key !== 'radius' || measurement.scaling.scalingSource !== 'CLASS_LEVEL')
+    )
+  )
+    unsupported('A zone size scales only as a radius by class level.')
   const placementKind = encounterZoneChoiceTarget(
     { ...zone, regionComponents: later.map(({ component }) => ({ region: component.region! })) },
     action.compiledEffect.invocation.range.rangeKind
@@ -2285,6 +2297,7 @@ function zonePlacementPlan(
     unsupported(
       'Only a zone no creature interacts with holds the condition its appear save applies.'
     )
+  if (first && !first.behavior) return occupantBonusZonePlacementPlan(action, zone, first.component)
   const primary = first
     ? zoneComponentPlan(action, zone, first)
     : zoneComponentPlan(
@@ -2316,6 +2329,72 @@ function zonePlacementPlan(
 }
 
 /**
+ * A zone that only lends its occupants a save bonus (D155): an untriggered source zone with one
+ * component and no other rule, whose entry is a lasting graph so its spatial definition keeps the
+ * shape every zone has. Placement resolves the amount and any class-level radius against the source.
+ */
+function occupantBonusZonePlacementPlan(
+  action: Dnd5eCompiledEffectActionSource,
+  zone: PlacedSpaceZone,
+  component: PlacedSpaceZone['components'][number]['component']
+): CharacterRuleActionZonePlacementPlan {
+  const { entry } = zone
+  const bonus = component.occupantSaveBonus
+  if (!bonus) unsupported('A placed zone component needs exactly one behavior.')
+  if (zone.attachment !== 'SOURCE')
+    unsupported('An occupant save bonus is lent by a zone centered on its source.')
+  if (
+    zone.components.length !== 1 ||
+    component.interactionKinds?.length ||
+    component.bypassAtHalfSpeed ||
+    component.choosesUnaffected ||
+    component.maxApplicationsPerTurn !== undefined ||
+    component.requiresFullyWithin ||
+    component.movementCostMultiplier !== undefined ||
+    component.blockingRules?.length ||
+    component.automaticSaveSuccessImmunityDamageTypeId !== undefined ||
+    zone.ringThickness ||
+    zone.sourceGrantEntry ||
+    !UUID.test(entry.entryId)
+  )
+    unsupported('A zone lending an occupant save bonus has no trigger or other rule.')
+  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'proposal-on_use',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'NONE',
+    initialRemaining: null,
+    adapterFacts: {},
+    castSaveDcFactKey: null,
+    perceptionContributions: [],
+    maintenance: null,
+    marginRider: null
+  }
+  return {
+    attachment: 'SOURCE',
+    label: zone.label,
+    shape: zone.shape,
+    triggerModes: [],
+    occupantSaveBonus: {
+      domain: bonus.domain,
+      dispositionFilter: bonus.dispositionFilter,
+      amount:
+        bonus.amountKind === 'FIXED'
+          ? { kind: 'FIXED', value: bonus.amount }
+          : {
+              kind: 'SOURCE_ABILITY_MODIFIER',
+              ability: bonus.ability,
+              minimum: bonus.minimum ?? null
+            }
+    },
+    entry: { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) },
+    grant: null,
+    maintenance: maintenancePlan(action, entry)
+  }
+}
+
+/**
  * What one component of a placed zone does where it reaches (D154). Its one entering behavior is a
  * saving throw against a fixed DC or the caster's save DC (stored when the zone is placed) whose
  * failure stops the mover, deals damage and may leave a grant that lasts until its authored end
@@ -2328,6 +2407,7 @@ function zoneComponentPlan(
   { component, behavior }: PlacedSpaceZone['components'][number],
   triggers = zoneTriggers(component)
 ): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
+  if (!behavior) unsupported('Only a zone’s own component lends an occupant save bonus.')
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const pinnedDc = pinnedSaveDc(savingThrow)
