@@ -462,6 +462,18 @@ would read a departed actor's Character (its ACTOR/EFFECTS rules capture, or mov
 the domain rejection `TARGET_UNAVAILABLE` ("That Character has left the Campaign.") rather than an
 internal error.
 
+**Hold ends (D152).** The same post-commit task then runs the relationship end sweep
+([roomRelationshipEnds.ts](../../apps/session-worker/src/roomRelationshipEnds.ts)) on the journal head. For
+each ACTIVE Run, an actor relationship ends when its source can't act (DEFEATED or INCAPACITATED, as
+Concentration reads it) or when the held creature's bound token stands beyond the reach the relationship
+sealed (`encounterEndedRelationships`). A first read outside any transaction finds nothing to end in the
+usual case and journals nothing. Otherwise one `RoomEncounterStore` transaction (a journal entry,
+`delta: null`) ends each broken relationship as the Campaign owner and records one `RELATIONSHIPS_ENDED`
+command per Run ("Hold ended", receipt `relationshipEnds`)
+([relationshipEndSweep.ts](../../packages/encounter-persistence/src/relationshipEndSweep.ts)), and the
+receipt goes to the admitted sockets. An ended hold is not restored by undo. A failed sweep is logged, and
+the next commit retries it. The source releases a hold itself with the free `RELEASE_RELATIONSHIP`.
+
 Known gap: a Character actor already frozen whose account is deleted later is removed only at release,
 because a frozen actor names no departure for the room to reconcile.
 

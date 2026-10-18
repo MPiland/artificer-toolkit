@@ -35,3 +35,5 @@ T3 merges only once Disarm and passage are on the new context; the two contexts 
 ## Progress
 
 - 2026-10-17: synced; T3m size reported (30 files, 83 references) and approved. Started the shared `sizeRank` with a failing-first test.
+- 2026-10-17/18: T3m landed (one `ENCOUNTER_CONTEST_CHECK` context). T3 pieces landed: the shared size rank, the size limit, the ATTACK basic-action cost, held creatures filling hands, the free weapon stow, and the SRD Grapple compiling to the contest graph (a contest win holds the target). T4 landed: the sealed reach, the free `RELEASE_RELATIONSHIP` by the source, and the after-commit `RELATIONSHIPS_ENDED` sweep (source can't act, or the held creature beyond the sealed reach), with room journeys.
+- Open: ruling 1 (the shape of the defender's check choice in the worker contest path) blocks the room Grapple contest and the contested escape. Ruling 2 (where the web offers Release) blocks the Release UI.
