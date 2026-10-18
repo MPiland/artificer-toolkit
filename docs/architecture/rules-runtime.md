@@ -1394,6 +1394,13 @@ measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
 reason, and may only shrink. Versatile grips author one effect per grip.
 
+**Hit point maximum reduction (SPELLS-33.T3a4).** A `HIT_POINT_MAXIMUM_REDUCTION` whose `DAMAGE_TAKEN`
+amount names a damage outcome of its own result path compiles on a direct test path too, not only in an
+immediate follow-up save's failure: each path's OUTCOME graph gets one reduction proposal bound to that
+path's damage proposal. The proposal carries the path that authorizes it (`authorizedPath`: `ON_SAVE_FAIL`
+for a nested save, the selected path for a direct one), and interpretation reduces the maximum by the
+damage the target took. SRD Succubus/Incubus Draining Kiss authors it on both save paths.
+
 **Legendary and Recharge.** Policy lives in `dnd5e-encounter-lifecycle` documents; usage state stays with
 Feature-owned charge identities. Recharge runs for the incoming actor in the shared turn occurrence.
 At each `END_OF_OTHER_ACTOR_TURN` boundary the occurrence freezes a UUID-sorted owner queue; each eligible

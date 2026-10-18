@@ -375,6 +375,10 @@ type SpecializedOutcome =
       recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
       terminalConsequence: 'TARGET_DIED'
     }
+  | ({ kind: 'HIT_POINT_MAXIMUM_REDUCTION' } & Pick<
+      HitPointMaximumReductionAuthored,
+      'amountSource' | 'recoveryTags'
+    >)
 type TestKind = 'ATTACK' | 'SAVE'
 type SpecializedPath =
   | 'ON_USE'
@@ -1475,6 +1479,16 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
       valueDefinitionId: outcome.valueDefinitionId,
       recoveryTriggers: outcome.recoveryTriggers,
       terminalConsequence: outcome.terminalConsequence
+    }
+  }
+  if (outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+    uuid(outcome.amountSource.damageOutcomeId, 'D&D hit point maximum reduction damage identity')
+    if (!hitPointMaximumReductionRecoveryTagsSchema.safeParse(outcome.recoveryTags).success)
+      unsupported('D&D hit point maximum reduction recovery is not supported.')
+    return {
+      kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+      amountSource: outcome.amountSource,
+      recoveryTags: outcome.recoveryTags
     }
   }
   if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
@@ -4194,6 +4208,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
   inputs: {
     targetActorId: RULE_VALUE_KIND.TEXT,
     resultPath: RULE_VALUE_KIND.TEXT,
+    authorizedPath: RULE_VALUE_KIND.TEXT,
     sourceDamageNodeId: RULE_VALUE_KIND.TEXT,
     sourceDamageOperationKey: RULE_VALUE_KIND.TEXT,
     sourceDamageOutcomeId: RULE_VALUE_KIND.TEXT,
@@ -4214,6 +4229,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
   execute(inputs) {
     const targetActorId = inputs.targetActorId
     const resultPath = inputs.resultPath
+    const authorizedPath = inputs.authorizedPath
     const sourceDamageNodeId = inputs.sourceDamageNodeId
     const sourceDamageOperationKey = inputs.sourceDamageOperationKey
     const sourceDamageOutcomeId = inputs.sourceDamageOutcomeId
@@ -4223,6 +4239,8 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
       typeof targetActorId !== 'string' ||
       !UUID.test(targetActorId) ||
       typeof resultPath !== 'string' ||
+      typeof authorizedPath !== 'string' ||
+      !isSpecializedPath(authorizedPath) ||
       typeof sourceDamageNodeId !== 'string' ||
       sourceDamageNodeId.length === 0 ||
       typeof sourceDamageOperationKey !== 'string' ||
@@ -4244,8 +4262,41 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
       sourceDamageOutcomeId,
       recoveryTags,
       applicationCandidate: true,
-      authorized: resultPath === 'ON_SAVE_FAIL',
+      authorized: resultPath === authorizedPath,
       targetStateChecksum
+    }
+  }
+}
+
+/**
+ * Reduces the target's hit point maximum by the damage it took from one proposal of the same graph,
+ * when the result path is the authorized one: a nested save's failure, or the selected direct path.
+ */
+function hitPointMaximumReductionProposalNode(input: {
+  id: string
+  resultPath: RuleGraphDefinition['nodes'][number]['inputs'][string]
+  authorizedPath: SpecializedPath
+  sourceDamageNodeId: string
+  reduction: Pick<HitPointMaximumReductionAuthored, 'amountSource' | 'recoveryTags'>
+}): RuleGraphDefinition['nodes'][number] {
+  return {
+    id: input.id,
+    operation: {
+      key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
+      contractVersion: 1
+    },
+    inputs: {
+      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+      resultPath: input.resultPath,
+      authorizedPath: { kind: 'LITERAL', value: input.authorizedPath },
+      sourceDamageNodeId: { kind: 'LITERAL', value: input.sourceDamageNodeId },
+      sourceDamageOperationKey: { kind: 'LITERAL', value: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY },
+      sourceDamageOutcomeId: {
+        kind: 'LITERAL',
+        value: input.reduction.amountSource.damageOutcomeId
+      },
+      recoveryTags: { kind: 'LITERAL', value: JSON.stringify(input.reduction.recoveryTags) },
+      targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
     }
   }
 }
@@ -5257,6 +5308,18 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
         )
       conditionCounts.set(entry.pathCode, count)
     }
+    // A reduction takes its amount from one damage outcome of its own result path.
+    if (
+      outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+      action.compiledEffect.entries.filter(
+        (candidate) =>
+          candidate.pathCode === entry.pathCode &&
+          candidate.entryId === outcome.amountSource.damageOutcomeId &&
+          'outcome' in candidate &&
+          candidate.outcome.effectKind === 'DAMAGE'
+      ).length !== 1
+    )
+      unsupported('D&D hit point maximum reduction needs one damage outcome on its path.')
   }
   for (const pathCode of paths) {
     for (const entries of authoredOutcomeGroups(action, pathCode as SpecializedPath))
@@ -5931,44 +5994,13 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
         : []),
       ...(reduction
         ? [
-            {
+            hitPointMaximumReductionProposalNode({
               id: 'nested-save-hit-point-maximum-reduction',
-              operation: {
-                key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                targetActorId: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_ACTOR_FACT_KEY
-                },
-                resultPath: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: 'nested-save-test',
-                  port: 'resultPath'
-                },
-                sourceDamageNodeId: {
-                  kind: 'LITERAL' as const,
-                  value: 'proposal-on_hit'
-                },
-                sourceDamageOperationKey: {
-                  kind: 'LITERAL' as const,
-                  value: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-                },
-                sourceDamageOutcomeId: {
-                  kind: 'LITERAL' as const,
-                  value: reduction.amountSource.damageOutcomeId
-                },
-                recoveryTags: {
-                  kind: 'LITERAL' as const,
-                  value: JSON.stringify(reduction.recoveryTags)
-                },
-                targetStateChecksum: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-                }
-              }
-            }
+              resultPath: { kind: 'NODE_OUTPUT', nodeId: 'nested-save-test', port: 'resultPath' },
+              authorizedPath: 'ON_SAVE_FAIL',
+              sourceDamageNodeId: 'proposal-on_hit',
+              reduction
+            })
           ]
         : []),
       ...(forcedMovement
@@ -6489,6 +6521,35 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
+    if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+      const damageIndex = groups.findIndex(
+        ([candidate]) => candidate?.entryId === outcome.amountSource.damageOutcomeId
+      )
+      const damageEntry = groups[damageIndex]?.[0]
+      if (!damageEntry) unsupported('D&D hit point maximum reduction damage is not owed.')
+      uuid(entry.entryId, 'D&D hit point maximum reduction identity')
+      const proposalId = `${groupNodePrefix.nodePrefix ?? ''}proposal-${entry.pathCode.toLowerCase()}`
+      return {
+        schemaVersion: 1,
+        id: input.action.effectId,
+        gameSystemId: DND5E_SYSTEM_ID,
+        definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+        nodes: [
+          hitPointMaximumReductionProposalNode({
+            id: proposalId,
+            // The OUTCOME phase runs only on its selected path, so the reduction is authorized by construction.
+            resultPath: { kind: 'LITERAL', value: input.selectedPath },
+            authorizedPath: input.selectedPath,
+            sourceDamageNodeId: `outcome${damageIndex + 1}-proposal-${damageEntry.pathCode.toLowerCase()}`,
+            reduction: outcome
+          })
+        ],
+        outputs: {
+          targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' }
+        },
+        sourceEntryBindings: [{ sourceEntryId: entry.entryId, nodeId: proposalId }]
+      }
+    }
     return outcome.kind === 'DICE_DAMAGE' ||
       outcome.kind === 'DICE_HEAL' ||
       outcome.kind === 'DICE_SCALAR_REDUCTION'
@@ -8074,6 +8135,9 @@ function interpretDirect(
     const recoveryTags = reduction.outputs.recoveryTags
     const parsedRecoveryTags = parseRecoveryTags(recoveryTags)
     const resultPath = reduction.outputs.resultPath
+    // A nested save reads its own result path; a direct OUTCOME is published for its selected one.
+    const publishedResultPath = publishedNode?.inputs.resultPath
+    const publishedAuthorizedPath = publishedNode?.inputs.authorizedPath
     if (
       !publishedNode ||
       publishedNode.operation.key !== DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY ||
@@ -8104,10 +8168,13 @@ function interpretDirect(
       publishedNode.inputs.sourceDamageOutcomeId.value !== sourceDamageOutcomeId ||
       publishedNode.inputs.recoveryTags?.kind !== 'LITERAL' ||
       publishedNode.inputs.recoveryTags.value !== recoveryTags ||
-      publishedNode.inputs.resultPath?.kind !== 'NODE_OUTPUT' ||
-      publishedNode.inputs.resultPath.nodeId !== 'nested-save-test' ||
-      publishedNode.inputs.resultPath.port !== 'resultPath' ||
-      reduction.outputs.authorized !== (resultPath === 'ON_SAVE_FAIL')
+      !(publishedResultPath?.kind === 'NODE_OUTPUT'
+        ? publishedResultPath.nodeId === 'nested-save-test' &&
+          publishedResultPath.port === 'resultPath'
+        : publishedResultPath?.kind === 'LITERAL' && publishedResultPath.value === resultPath) ||
+      publishedAuthorizedPath?.kind !== 'LITERAL' ||
+      reduction.inputs.authorizedPath !== publishedAuthorizedPath.value ||
+      reduction.outputs.authorized !== (resultPath === publishedAuthorizedPath.value)
     ) {
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D hit point maximum reduction trace is invalid.'
