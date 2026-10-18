@@ -9600,7 +9600,7 @@
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-20.T5b",
               "wsjf": {
                 "bv": 5,
@@ -9610,11 +9610,11 @@
                 "after": ["SPELLS-20.T5a"]
               },
               "text": "Character passive zones (D155): a Character class-feature PASSIVE zone is discovered and placed at START, REINFORCE and token bind, with its occupant save bonus and class-level radius resolved against the source and pinned, for Character and Creature sources; the transitional placement refusal is removed.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Green: ci/spells-20-t5b e74cd94d6 Tests 39138061143, Live 39138061118; phase merge 34a954c31 (m114)."
             },
             {
               "closes": ["SPELLS-20.1"],
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-20.T5c",
               "wsjf": {
                 "bv": 5,
@@ -9623,7 +9623,8 @@
                 "size": 8,
                 "after": ["SPELLS-20.T5b"]
               },
-              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18."
+              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. It lends no bonus while the source Character is unconscious. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             },
             {
               "id": "SPELLS-20.T6a",
