@@ -111,7 +111,10 @@ import {
 import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
-import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  encounterActorEffectiveSize,
+  prepareNativeActionEffectsPlan
+} from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
@@ -604,6 +607,7 @@ export async function planNativeLiveEncounterAction(
         outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
     )
   })
+  const targetMovement = movementTargets.get(prepared.target.id)
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: [
       ...prepared.ruleWarnings,
@@ -618,6 +622,8 @@ export async function planNativeLiveEncounterAction(
       sceneContext
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
+    actorSize: encounterActorEffectiveSize(actorTarget),
+    targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
     targetDefeated: isEncounterActorDefeated(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
@@ -626,7 +632,7 @@ export async function planNativeLiveEncounterAction(
       (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE'
     )
       ? {
-          targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id))
+          targetDying: isEncounterTargetDying(targetMovement)
         }
       : null,
     actionEconomy: economy,

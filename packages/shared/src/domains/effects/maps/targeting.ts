@@ -57,6 +57,24 @@ const HIT_POINT_POOL_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
   HIT_POINT_POOL_NODE_MAP
 )
 
+type SizeLimitAuthored = {
+  stepsAboveActor: number
+}
+
+const sizeLimit = buildNodeMap<SizeLimitAuthored>()
+
+const SIZE_LIMIT_NODE_MAP = sizeLimit.define('sizeLimit', ({ map, nodes }) => {
+  const { number } = nodes
+
+  map.set(
+    'stepsAboveActor',
+    number(['stepsAboveActor'], 'Size Steps Above the User', {
+      order: 1,
+      requiredIf: true
+    })
+  )
+})
+
 export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
   'targeting',
   ({ map, nodes, cond, logic, data }) => {
@@ -110,6 +128,14 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
             showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
           }
         )
+      )
+      .set(
+        'sizeLimit',
+        groupObject(['sizeLimit'], 'Size Limit', () => SIZE_LIMIT_NODE_MAP, {
+          presentation: 'inline',
+          order: 11,
+          showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
+        })
       )
       .set(
         'maxTargets',

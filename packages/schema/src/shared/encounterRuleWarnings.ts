@@ -19,7 +19,8 @@ export const encounterRuleWarningCodeDtoSchema = lazySchema(() =>
     'TARGET_NOT_DYING',
     'TARGET_OUT_OF_RANGE',
     'TARGET_OUT_OF_SIGHT',
-    'TARGET_RANGE_UNCHECKED'
+    'TARGET_RANGE_UNCHECKED',
+    'TARGET_TOO_LARGE'
   ])
 )
 export type EncounterRuleWarningCodeDto = z.infer<typeof encounterRuleWarningCodeDtoSchema>

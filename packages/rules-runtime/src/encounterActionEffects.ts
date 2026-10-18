@@ -38,7 +38,10 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function effectiveSize(target: MovementTarget<CharacterActionMovementFacts>): string | null {
+/** An actor's size now: a Creature's snapshot size, or a Character's effective size from its facts. */
+export function encounterActorEffectiveSize(
+  target: MovementTarget<CharacterActionMovementFacts>
+): string | null {
   if (target.actor.kind !== 'CHARACTER') {
     const snapshot = target.actor.snapshot
     const payload =
@@ -97,7 +100,7 @@ export function prepareNativeActionEffectsPlan<
             (condition) => condition.conditionTypeId
           )
         : target.state.conditions,
-      effectiveSize: effectiveSize(target),
+      effectiveSize: encounterActorEffectiveSize(target),
       lifetimeScope: prepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER',
       activeEffects: target.activeEffects
     },
