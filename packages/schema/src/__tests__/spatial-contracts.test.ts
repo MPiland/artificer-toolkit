@@ -109,7 +109,7 @@ describe('spatial contracts', () => {
     ).toMatchObject({ movementKind: 'VOLUNTARY' })
   })
 
-  it('persists a token zone that only answers melee hits, and refuses one with no trigger or a fixed anchor (D153)', () => {
+  it('persists a token zone that only answers melee hits, and refuses one with a fixed anchor (D153)', () => {
     const retaliating = { ...placement(), triggerModes: [], retaliatesMeleeHits: true as const }
     expect(spatialRuleEffectPlacementDtoSchema.parse(retaliating)).toMatchObject({
       retaliatesMeleeHits: true
@@ -121,12 +121,6 @@ describe('spatial contracts', () => {
         retaliatesMeleeHits: true
       })
     ).toMatchObject({ retaliatesMeleeHits: true })
-    expect(
-      spatialRuleEffectPlacementDtoSchema.safeParse({ ...placement(), triggerModes: [] }).success
-    ).toBe(false)
-    expect(
-      spatialEffectInstanceDtoSchema.safeParse({ ...effect(), triggerModes: [] }).success
-    ).toBe(false)
     expect(
       spatialRuleEffectPlacementDtoSchema
         .safeParse({
@@ -140,6 +134,15 @@ describe('spatial contracts', () => {
         })
         .error?.issues.map(({ path }) => path)
     ).toEqual([['retaliatesMeleeHits']])
+  })
+
+  it('persists a zone no creature interacts with, which has no trigger (D154 amendment)', () => {
+    expect(
+      spatialRuleEffectPlacementDtoSchema.safeParse({ ...placement(), triggerModes: [] }).success
+    ).toBe(true)
+    expect(
+      spatialEffectInstanceDtoSchema.safeParse({ ...effect(), triggerModes: [] }).success
+    ).toBe(true)
   })
 
   it('persists canonical fixed or token placement without silently reordering triggers', () => {

@@ -136,7 +136,8 @@ export function buildCompiledActionCompilerSource(
     savingThrowAbilityDefinitionId: descriptor.savingThrowAbilityDefinitionId ?? null,
     compiledEffect: descriptor.compiledEffect,
     compiledEffectChecksum: checksumRuleDocument(descriptor.compiledEffect),
-    capabilityContractVersion: 1
+    capabilityContractVersion: 1,
+    ...(descriptor.zoneAppearSave ? { zoneAppearSave: true as const } : {})
   }
   return {
     ...base,
@@ -270,6 +271,7 @@ export function compileCharacterActionEntryPoints(
             appearSave &&
             compileActionPlans(adapter, {
               ...descriptor,
+              zoneAppearSave: true,
               compiledEffect: {
                 ...appearSave,
                 entries: appearSave.entries.map((entry) => {

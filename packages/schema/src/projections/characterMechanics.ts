@@ -77,6 +77,8 @@ const compiledActionCompilerSourceSchema = lazySchema(() =>
       compiledEffect: jsonValueSchema,
       compiledEffectChecksum: projectionChecksumSchema,
       capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
+      /** The test is the save made over the zone the action places as it appears (D154). */
+      zoneAppearSave: z.optional(z.literal(true)),
       compilerSourceChecksum: projectionChecksumSchema
     })
     .check(

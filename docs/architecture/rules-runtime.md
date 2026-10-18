@@ -549,7 +549,8 @@ distance on that side), so every record a cast places is named on its root, remo
 Concentration together.
 A zone-placing cast may also author an ON_USE `SAVING_THROW` behavior beside the zone manifest (D154 amendment,
 SPELLS-4.T1g): the save each creature in the area makes once as the zone appears. The entry-point compiler runs it
-as the cast's `TEST_OUTCOME` plan against the zone's aimed area (the wall or ring itself, never its band), and the
+as the cast's `TEST_OUTCOME` plan against the zone's aimed area (the wall or ring itself, never its band; its compiler
+source carries `zoneAppearSave`, the only test whose area may be a `WALL`), and the
 Worker catches the area's creatures as for any area save, so answers, D100 perception, GM removal, Legendary
 Resistance, settlement and undo are the area occurrence's own (`prepareCasterSource` sets `appearSave`; the pending
 snapshot's `zoneAppearSave` keeps the catch on refresh). A zone with no component is placed with no triggers, one no

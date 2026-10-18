@@ -615,6 +615,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'compiledEffect'
   | 'spellCastLevel'
   | 'characterLevel'
+  | 'zoneAppearSave'
 >
 interface TestPlan {
   kind: TestKind
@@ -684,7 +685,8 @@ function isSupportedTestActivation(
  * per-creature test plan a single target does.
  */
 function isSupportedArea(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+  overZone = false
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { shape, targeting, range } = invocation
@@ -702,9 +704,9 @@ function isSupportedArea(
     invocation.activation.amount !== 1
   )
     return false
-  // A wall is drawn only as the zone it places (D154), whose appear save is tested over it.
+  // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
   if (
-    shape.shapeKind !== 'WALL' &&
+    !(overZone && shape.shapeKind === 'WALL') &&
     encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
   )
     return false
@@ -749,12 +751,12 @@ function isBoundedDice(value: string): boolean {
   }
 }
 
-function isSupportedTestTargetPolicy(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
-): boolean {
+function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): boolean {
+  const { invocation } = action.compiledEffect
   if (invocation.kind !== 'ACTION') return false
   const { targeting } = invocation
-  if (targeting?.selectionKind === 'AREA_CONTENTS') return isSupportedArea(invocation)
+  if (targeting?.selectionKind === 'AREA_CONTENTS')
+    return isSupportedArea(invocation, action.zoneAppearSave)
   // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
@@ -3394,7 +3396,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(action) ||
     entries.length < 1
   )
     unsupported(
@@ -4954,7 +4956,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
-    !isSupportedTestTargetPolicy(invocation) ||
+    !isSupportedTestTargetPolicy(action) ||
     action.compiledEffect.entries.length < 1
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')
@@ -8144,7 +8146,8 @@ export function dndSourceFromCompilerSource(
     effectId: source.effectId,
     conditionDefinitionIds: source.conditionDefinitionIds,
     savingThrowAbilityDefinitionId: source.savingThrowAbilityDefinitionId,
-    compiledEffect: source.compiledEffect as Dnd5eCompiledEffectActionSource['compiledEffect']
+    compiledEffect: source.compiledEffect as Dnd5eCompiledEffectActionSource['compiledEffect'],
+    ...(source.zoneAppearSave ? { zoneAppearSave: true as const } : {})
   }
 }
 
