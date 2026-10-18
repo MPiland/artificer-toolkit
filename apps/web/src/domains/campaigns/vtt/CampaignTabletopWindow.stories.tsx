@@ -929,14 +929,13 @@ export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
     await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
     const choice = await page.findByRole('region', { name: 'Where Vault Warden lands' })
     await expect(within(choice).getByText('Pick where Vault Warden lands.')).toBeVisible()
-    await waitFor(() =>
-      expect(
-        within(choice).getByRole('button', { name: 'Leave Vault Warden where it is' })
-      ).toHaveFocus()
-    )
-    await expect(
-      within(choice).getByRole('button', { name: 'Move Vault Warden 5 ft west' })
-    ).toBeVisible()
+    const picker = within(choice).getByRole('button', { name: 'Leave Vault Warden where it is' })
+    await waitFor(() => expect(picker).toHaveFocus())
+    // One picker control: the arrow keys walk it over the legal squares, Home returns to the first.
+    await userEvent.keyboard('{ArrowLeft}')
+    await expect(picker).toHaveAccessibleName('Move Vault Warden 5 ft west')
+    await userEvent.keyboard('{Home}')
+    await expect(picker).toHaveAccessibleName('Leave Vault Warden where it is')
     const renderer = await latestStageRenderer()
     // Every legal square is outlined on the board.
     await waitFor(() =>

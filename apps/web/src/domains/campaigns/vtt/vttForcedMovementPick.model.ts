@@ -67,6 +67,35 @@ export function forcedMovementDestinationPick({
   }
 }
 
+const arrowSteps = {
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 }
+} as const
+
+/**
+ * The legal square an arrow key moves the keyboard's focus to: the nearest one that lies in the
+ * arrow's direction, keeping to the focused square's row or column when it can; the focused square
+ * when none does, and null for any other key.
+ */
+export function forcedMovementDestinationAfterKey(
+  destinations: readonly ScenePoint[],
+  focused: ScenePoint,
+  key: string
+): ScenePoint | null {
+  if (!Object.hasOwn(arrowSteps, key)) return null
+  const step = arrowSteps[key as keyof typeof arrowSteps]
+  const along = (point: ScenePoint) =>
+    (point.x - focused.x) * step.x + (point.y - focused.y) * step.y
+  const across = (point: ScenePoint) =>
+    Math.abs((point.x - focused.x) * step.y + (point.y - focused.y) * step.x)
+  const [nearest] = destinations
+    .filter((point) => along(point) > 0)
+    .sort((left, right) => across(left) - across(right) || along(left) - along(right))
+  return nearest ?? focused
+}
+
 /** Outlines every legal square on the board, marking the one the keyboard focuses. */
 export function forcedMovementDestinationOverlays(
   pick: VttForcedMovementPick,

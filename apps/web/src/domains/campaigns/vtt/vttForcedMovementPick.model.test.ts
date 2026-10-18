@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import {
+  forcedMovementDestinationAfterKey,
   forcedMovementDestinationOverlays,
   forcedMovementDestinationPick
 } from './vttForcedMovementPick.model'
@@ -75,5 +76,22 @@ describe('the board pick for a forced movement’s destination (D157)', () => {
         { x: east.x - 35, y: east.y + 35 }
       ]
     })
+  })
+
+  it('moves the keyboard to the nearest legal square in an arrow’s direction, keeping to its row', () => {
+    const squares = [stay, east, northEast, eastNorthEast]
+    expect(forcedMovementDestinationAfterKey(squares, stay, 'ArrowRight')).toEqual(east)
+    expect(forcedMovementDestinationAfterKey(squares, east, 'ArrowUp')).toEqual(northEast)
+    expect(forcedMovementDestinationAfterKey(squares, northEast, 'ArrowRight')).toEqual(
+      eastNorthEast
+    )
+    expect(forcedMovementDestinationAfterKey(squares, eastNorthEast, 'ArrowDown')).toEqual(east)
+    expect(forcedMovementDestinationAfterKey(squares, east, 'ArrowLeft')).toEqual(stay)
+  })
+
+  it('keeps the focus when no legal square lies that way, and ignores other keys', () => {
+    const squares = [stay, east, northEast, eastNorthEast]
+    expect(forcedMovementDestinationAfterKey(squares, stay, 'ArrowLeft')).toEqual(stay)
+    expect(forcedMovementDestinationAfterKey(squares, stay, 'Tab')).toBeNull()
   })
 })

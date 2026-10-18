@@ -209,23 +209,38 @@ describe('CampaignVttStage picking where a forced movement leaves its target (D1
     expect(mocks.mutate).toHaveBeenCalledExactlyOnceWith(resolution(west))
   })
 
-  it('names each square for the keyboard, marks the focused one and answers with it', async () => {
+  it('moves one picker over the legal squares with the arrow keys, marks and announces the focused one, and answers with it', async () => {
     const user = renderStage('OWNER', pendingPush(emberActor.id, wardenActor.id))
-    const stayButton = await screen.findByRole('button', {
-      name: 'Leave Vault Warden where it is'
-    })
-    await waitFor(() => expect(stayButton).toHaveFocus())
-    await user.tab()
-    const westButton = screen.getByRole('button', { name: 'Move Vault Warden 5 ft west' })
-    expect(westButton).toHaveFocus()
+    const picker = await screen.findByRole('button', { name: 'Leave Vault Warden where it is' })
+    await waitFor(() => expect(picker).toHaveFocus())
+    expect(screen.getAllByRole('button', { name: /Vault Warden/ })).toEqual([picker])
+    await user.keyboard('{ArrowLeft}')
+    expect(picker).toHaveAccessibleName('Move Vault Warden 5 ft west')
+    expect(picker).toHaveFocus()
     await waitFor(() =>
       expect(lastUpdate().overlays?.find(({ purpose }) => purpose === 'TARGET')?.label).toBe(
         'Move Vault Warden 5 ft west'
       )
     )
-    expect(screen.getByRole('button', { name: 'Move Vault Warden 5 ft north' })).toBeVisible()
+    expect(
+      screen.getByText('Move Vault Warden 5 ft west', { selector: '[aria-live]' })
+    ).toBeInTheDocument()
+    await user.keyboard('{ArrowUp}')
+    expect(picker).toHaveAccessibleName('Move Vault Warden 5 ft north')
+    await user.keyboard('{Home}')
+    expect(picker).toHaveAccessibleName('Leave Vault Warden where it is')
+    await user.keyboard('{ArrowLeft}')
     await user.keyboard('{Enter}')
     expect(mocks.mutate).toHaveBeenCalledExactlyOnceWith(resolution(west))
+  })
+
+  it('picks the focused square with Space', async () => {
+    const user = renderStage('OWNER', pendingPush(emberActor.id, wardenActor.id))
+    const picker = await screen.findByRole('button', { name: 'Leave Vault Warden where it is' })
+    await waitFor(() => expect(picker).toHaveFocus())
+    await user.keyboard('{ArrowUp}')
+    await user.keyboard(' ')
+    expect(mocks.mutate).toHaveBeenCalledExactlyOnceWith(resolution(north))
   })
 
   it('offers the pick to a player who acts for the source', async () => {
