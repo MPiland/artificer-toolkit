@@ -21,6 +21,11 @@ export const gorgon: CreatureAuthored = {
   },
   naturalArmorBonus: 9,
   hitPoints: 114,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 12,
     die: 10,

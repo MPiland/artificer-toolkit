@@ -72,6 +72,7 @@ function builderPart(level: number, revision: string, updatedAt: string, label: 
       ...document.state,
       hitpoints: {
         current: maximumHitPointsAt(level),
+        temp: 0,
         hitDice: [{ die: 10, total: level, used: 0 }],
         deathSaves: NO_DEATH_SAVES
       }

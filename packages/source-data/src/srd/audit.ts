@@ -180,7 +180,7 @@ export function auditSrdSourceSemantics(): SrdSourceAuditIssue[] {
 
   // A Legendary Action option authored "Costs N Actions" spends N from the pool.
   for (const creature of srdBaselineContent.subjects.creatures) {
-    for (const option of (creature.features ?? []).flatMap((feature) => feature.options ?? [])) {
+    for (const option of creature.features.flatMap((feature) => feature.options ?? [])) {
       const cost = Number(/\(Costs (\d+) Actions\)/.exec(option.label)?.[1] ?? 1)
       const mismatched = (option.effects ?? []).filter(
         (effect) =>

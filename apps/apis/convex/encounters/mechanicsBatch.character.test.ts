@@ -124,7 +124,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
             damage({
               actorId: fixture.actor.id,
               current: currentHitPoints,
-              temporary: character.state.hitpoints.temp ?? 0,
+              temporary: character.state.hitpoints.temp,
               maximum: prepared.active.play.maximumHitPoints
             }),
             {
@@ -358,7 +358,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       state: {
         ...original.state,
         conditions: original.state.conditions ?? [],
-        hitpoints: { ...original.state.hitpoints, temp: original.state.hitpoints.temp ?? 0 },
+        hitpoints: { ...original.state.hitpoints, temp: original.state.hitpoints.temp },
         spellSlots: slots
       }
     })

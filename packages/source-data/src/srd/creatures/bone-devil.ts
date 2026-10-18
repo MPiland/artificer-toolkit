@@ -22,6 +22,9 @@ export const boneDevil: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 142,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 15,
     die: 10,

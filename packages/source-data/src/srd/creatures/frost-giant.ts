@@ -20,6 +20,12 @@ export const frostGiant: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 138,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 12,

@@ -19,6 +19,12 @@ export const minotaur: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 76,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 9,
     die: 10,

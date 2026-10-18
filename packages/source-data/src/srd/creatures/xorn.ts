@@ -19,6 +19,11 @@ export const xorn: CreatureAuthored = {
   },
   naturalArmorBonus: 9,
   hitPoints: 73,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 8,

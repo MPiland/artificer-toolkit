@@ -19,6 +19,11 @@ export const treant: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 138,
+  details: [],
+  senses: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 12,

@@ -19,6 +19,10 @@ export const ochreJelly: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 45,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 6,
     die: 10,

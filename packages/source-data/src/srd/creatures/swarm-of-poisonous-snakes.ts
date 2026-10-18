@@ -20,6 +20,11 @@ export const swarmOfPoisonousSnakes: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 36,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 8,
     die: 8,

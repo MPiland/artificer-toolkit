@@ -19,6 +19,12 @@ export const ettin: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 85,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 10,
     die: 10,

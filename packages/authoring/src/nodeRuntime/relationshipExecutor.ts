@@ -34,14 +34,6 @@ const implicitTableOptionColumns: Readonly<Record<string, readonly string[]>> = 
 
 type RuntimeStream = readonly unknown[]
 
-export async function executeRelationshipPlan(
-  db: NodeRuntimeReader,
-  plan: RelationshipPlan,
-  scope: NodeRuntimeScope
-): Promise<RuntimeStream> {
-  return executeRelationship(db, plan, scope, [])
-}
-
 export function streamToOptions(stream: RuntimeStream): NodeRuntimeOptionDto[] {
   return dedupeByValue(
     stream.map((item) => {
@@ -62,11 +54,11 @@ export function streamToOptions(stream: RuntimeStream): NodeRuntimeOptionDto[] {
   )
 }
 
-async function executeRelationship(
+export async function executeRelationshipPlan(
   db: NodeRuntimeReader,
   plan: RelationshipPlan,
   scope: NodeRuntimeScope,
-  stream: RuntimeStream
+  stream: RuntimeStream = []
 ): Promise<RuntimeStream> {
   switch (plan.kind) {
     case 'TABLE': {
@@ -173,7 +165,7 @@ async function executeConditionPlan<P extends RelationshipPlan | StepPlan | Chai
   if (isStepPlan(selected)) return executeStep(db, selected, scope, stream)
   if (isChainedStep(selected)) return executeChainedStep(db, selected, scope, stream)
 
-  return executeRelationship(db, selected, scope, stream)
+  return executeRelationshipPlan(db, selected, scope, stream)
 }
 
 async function executeMapValues(

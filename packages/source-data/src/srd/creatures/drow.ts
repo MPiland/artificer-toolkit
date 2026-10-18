@@ -22,6 +22,12 @@ export const drow: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 13,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 3,
     die: 8,

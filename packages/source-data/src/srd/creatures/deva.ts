@@ -19,6 +19,10 @@ export const deva: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 136,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 16,
     die: 8,

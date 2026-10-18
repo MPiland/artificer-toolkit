@@ -24,6 +24,9 @@ export const chainDevil: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 85,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 10,
     die: 8,

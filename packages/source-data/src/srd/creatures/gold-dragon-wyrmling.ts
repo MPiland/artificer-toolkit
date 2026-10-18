@@ -20,6 +20,11 @@ export const goldDragonWyrmling: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 60,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 8,
     die: 8,

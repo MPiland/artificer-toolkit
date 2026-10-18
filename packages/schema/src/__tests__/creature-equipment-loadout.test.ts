@@ -31,6 +31,14 @@ function creature(loadout: unknown, features: unknown[] = []) {
     naturalArmorBonus: 0,
     hitPoints: 10,
     speeds: [],
+    details: [],
+    proficiencies: [],
+    senses: [],
+    damageVulnerabilities: [],
+    damageResistances: [],
+    damageImmunities: [],
+    qualifiedDamageDefenses: [],
+    conditionImmunities: [],
     features,
     equipmentLoadout: loadout
   }

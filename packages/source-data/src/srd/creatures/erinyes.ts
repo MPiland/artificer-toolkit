@@ -22,6 +22,9 @@ export const erinyes: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 153,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 18,
     die: 8,

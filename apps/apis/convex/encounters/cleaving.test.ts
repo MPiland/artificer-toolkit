@@ -157,7 +157,7 @@ async function setup(
   let targetCharacterId: string | null = null
   let targetController: Awaited<ReturnType<typeof fixture>>['other'] | null = null
   if (characterSource || characterTarget) {
-    const feature = creature.features?.find(
+    const feature = creature.features.find(
       (feature) => feature.id === automaticChargedBiteFeatureId
     )
     if (

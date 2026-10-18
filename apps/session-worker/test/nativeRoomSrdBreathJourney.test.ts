@@ -38,7 +38,7 @@ const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
  */
 async function breathRoom(breath: { creature: typeof blackDragonWyrmling; featureLabel: string }) {
   const creature = installedSrdCreature(breath.creature)
-  const feature = creature.features?.find(({ label }) => label.startsWith(breath.featureLabel))
+  const feature = creature.features.find(({ label }) => label.startsWith(breath.featureLabel))
   if (!feature) throw new Error(`${creature.label} has no ${breath.featureLabel}.`)
   return {
     feature,
@@ -160,7 +160,7 @@ describe('every SRD breath weapon is offered and resolves through the area (SPEL
         conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
         abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
       })
-      return (creature.features ?? [])
+      return creature.features
         .filter(({ description }) => /\bexhales?\b/i.test(description ?? ''))
         .flatMap((feature) =>
           (feature.effects ?? [])
@@ -191,7 +191,7 @@ describe('every SRD breath weapon is offered and resolves through the area (SPEL
     // 2. The Bronze Dragon Wyrmling breathes its 30 ft cone east: the Wolf on its row and the Wolf
     // below it are caught, the Wolf far off its row is not.
     const creature = installedSrdCreature(bronzeDragonWyrmling)
-    const feature = creature.features?.find(({ label }) => label.startsWith('Breath Weapons'))
+    const feature = creature.features.find(({ label }) => label.startsWith('Breath Weapons'))
     const repulsion = feature?.effects?.find(({ paths }) =>
       paths.some(
         (path) =>

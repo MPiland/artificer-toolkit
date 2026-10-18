@@ -20,6 +20,11 @@ export const wererat: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 33,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 6,
     die: 8,

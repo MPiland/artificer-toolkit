@@ -20,6 +20,12 @@ export const worg: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 26,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 10,

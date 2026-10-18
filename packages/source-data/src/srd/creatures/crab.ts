@@ -19,6 +19,12 @@ export const crab: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 2,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 1,
     die: 4,

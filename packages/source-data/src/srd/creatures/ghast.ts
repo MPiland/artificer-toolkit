@@ -20,6 +20,9 @@ export const ghast: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 36,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 8,
     die: 8,

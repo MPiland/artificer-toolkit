@@ -19,6 +19,13 @@ export const veteran: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 58,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 9,
     die: 8,

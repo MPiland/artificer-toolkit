@@ -19,6 +19,8 @@ export const shadow: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 16,
+  details: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 8,

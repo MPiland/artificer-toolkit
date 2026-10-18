@@ -191,13 +191,13 @@ const creatureLogisticsNoteDtoSchema = lazySchema(() =>
 function validateCreatureEquipmentLoadout(
   creature: {
     equipmentLoadout?: CreatureEquipmentLoadoutEntryDto[]
-    features?: z.infer<typeof featureDtoSchema>[]
+    features: z.infer<typeof featureDtoSchema>[]
   },
   context: z.core.$RefinementCtx
 ) {
   if (!creature.equipmentLoadout) return
 
-  const featuresById = new Map((creature.features ?? []).map((feature) => [feature.id, feature]))
+  const featuresById = new Map(creature.features.map((feature) => [feature.id, feature]))
 
   for (const [entryIndex, entry] of creature.equipmentLoadout.entries()) {
     for (const [featureIndex, featureId] of entry.actionFeatureIds.entries()) {
@@ -234,10 +234,10 @@ function validateCreatureEquipmentLoadout(
  * already published Creatures do not re-apply it; discovery isolates such an action instead.
  */
 function validateCreatureAttackRolls(
-  creature: { features?: z.infer<typeof featureDtoSchema>[] },
+  creature: { features: z.infer<typeof featureDtoSchema>[] },
   context: z.core.$RefinementCtx
 ) {
-  for (const [featureIndex, feature] of (creature.features ?? []).entries()) {
+  for (const [featureIndex, feature] of creature.features.entries()) {
     const sources = [
       { source: feature, path: ['features', featureIndex] },
       ...(feature.options ?? []).map((option, optionIndex) => ({
@@ -272,10 +272,10 @@ function validateCreatureAttackRolls(
  * two-handed effect of that trigger, and no gripless one.
  */
 function validateCreatureVersatileAttacks(
-  creature: { features?: z.infer<typeof featureDtoSchema>[] },
+  creature: { features: z.infer<typeof featureDtoSchema>[] },
   context: z.core.$RefinementCtx
 ) {
-  for (const [featureIndex, feature] of (creature.features ?? []).entries()) {
+  for (const [featureIndex, feature] of creature.features.entries()) {
     const sources = [
       { source: feature, path: ['features', featureIndex] },
       ...(feature.options ?? []).map((option, optionIndex) => ({
@@ -311,10 +311,10 @@ function validateCreatureVersatileAttacks(
  * Creature and spends its own Feature's fixed charges.
  */
 function validateCreatureActionReferences(
-  creature: { features?: z.infer<typeof featureDtoSchema>[] },
+  creature: { features: z.infer<typeof featureDtoSchema>[] },
   context: z.core.$RefinementCtx
 ) {
-  const features = creature.features ?? []
+  const { features } = creature
   for (const [featureIndex, feature] of features.entries()) {
     for (const [optionIndex, option] of (feature.options ?? []).entries()) {
       const reference = option.actionReference
@@ -353,9 +353,9 @@ const creatureAuthoredDtoObject = lazySchema(() =>
     quote: z.optional(authoredRichTextSchema),
     description: z.optional(authoredRichTextSchema),
     status: z.optional(authoredRecordStatusSchema),
-    details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
-    features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
-    proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema)),
+    details: authoredNestedCollectionSchema(detailDtoSchema),
+    features: authoredNestedCollectionSchema(featureDtoSchema),
+    proficiencies: authoredNestedCollectionSchema(proficiencyGrantDtoSchema),
     userId: authoredIdentifierSchema,
     systemId: authoredIdentifierSchema,
     category: creatureCategoryCodeSchema,
@@ -368,15 +368,15 @@ const creatureAuthoredDtoObject = lazySchema(() =>
     hitPoints: z.number().check(z.int()).check(z.nonnegative()),
     hitDice: z.optional(diceExpressionDtoSchema),
     speeds: authoredNestedCollectionSchema(speedDtoSchema),
-    senses: z.optional(creatureSensesSchema),
+    senses: creatureSensesSchema,
     passivePerception: z.optional(z.number()),
-    damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    qualifiedDamageDefenses: z.optional(
-      authoredNestedCollectionSchema(creatureQualifiedDamageDefenseDtoSchema)
+    damageVulnerabilities: authoredReferenceCollectionSchema(authoredShortTextSchema),
+    damageResistances: authoredReferenceCollectionSchema(authoredShortTextSchema),
+    damageImmunities: authoredReferenceCollectionSchema(authoredShortTextSchema),
+    qualifiedDamageDefenses: authoredNestedCollectionSchema(
+      creatureQualifiedDamageDefenseDtoSchema
     ),
-    conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
+    conditionImmunities: authoredReferenceCollectionSchema(authoredShortTextSchema),
     challengeRatingId: z.optional(authoredIdentifierSchema),
     xp: z.optional(z.number()),
     npcProfile: z.optional(creatureNpcProfileDtoSchema),

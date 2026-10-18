@@ -41,7 +41,7 @@ async function breathRoom(
   }
 ) {
   const creature = installedSrdCreature(creatureAuthored)
-  const feature = creature.features?.find(({ label }) => label.startsWith('Breath Weapons'))
+  const feature = creature.features.find(({ label }) => label.startsWith('Breath Weapons'))
   if (!feature) throw new Error(`${creature.label} has no Breath Weapons.`)
   // The one Effect of the feature that repeats a save: its lasting effect is the breath's grant.
   const effect = feature.effects?.find((candidate) =>

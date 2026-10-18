@@ -22,6 +22,9 @@ export const hezrou: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 136,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 13,
     die: 10,

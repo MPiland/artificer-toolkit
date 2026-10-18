@@ -19,6 +19,12 @@ export const awakenedTree: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 59,
+  details: [],
+  proficiencies: [],
+  senses: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 12,

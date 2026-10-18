@@ -19,6 +19,12 @@ export const killerWhale: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 90,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 12,

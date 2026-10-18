@@ -20,6 +20,13 @@ export const lizardfolk: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 22,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 8,

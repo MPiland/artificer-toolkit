@@ -80,14 +80,14 @@ function structuredSense(sense: NonNullable<CreatureAuthored['senses']>[number])
 /** Each field's printed and authored values, compared as JSON. */
 function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock) {
   const proficiencies = [
-    ...(creature.proficiencies ?? []),
-    ...(creature.features ?? []).flatMap((feature) => feature.grants?.proficiencies ?? [])
+    ...creature.proficiencies,
+    ...creature.features.flatMap((feature) => feature.grants?.proficiencies ?? [])
   ]
   const saveAbilities = proficiencies.flatMap((grant) =>
     grant.proficiencyKind === 'SAVE_ABILITY' && 'abilities' in grant ? (grant.abilities ?? []) : []
   )
   const skillLevels = new Map<string, string>(
-    (creature.proficiencies ?? []).flatMap((grant) =>
+    creature.proficiencies.flatMap((grant) =>
       grant.proficiencyKind === 'SKILL' && 'skillIds' in grant
         ? (grant.skillIds ?? []).map((id) => [codeById.get(id)!, grant.level] as const)
         : []
@@ -118,7 +118,7 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
         bypassedBy: sorted(defense.bypassedBy)
       }))
 
-  const telepathy = (creature.features ?? []).find((feature) => feature.label === 'Telepathy')
+  const telepathy = creature.features.find((feature) => feature.label === 'Telepathy')
   // "Speed 0 ft." prints the absence of a walking speed.
   const speeds = Object.fromEntries(
     creature.speeds
@@ -166,7 +166,7 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
         ...qualified('RESISTANCE', block.damageResistances),
         ...qualified('IMMUNITY', block.damageImmunities)
       ],
-      (creature.qualifiedDamageDefenses ?? []).map((defense) => ({
+      creature.qualifiedDamageDefenses.map((defense) => ({
         kind: defense.kind,
         damageTypes: codes(defense.damageTypeIds),
         bypassedBy: sorted(defense.bypassedBy)
@@ -183,10 +183,7 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
       []
     ],
     conditionImmunities: [sorted(block.conditionImmunities), codes(creature.conditionImmunities)],
-    senses: [
-      (block.senses ?? []).map(parsePrintedSense),
-      (creature.senses ?? []).map(structuredSense)
-    ],
+    senses: [(block.senses ?? []).map(parsePrintedSense), creature.senses.map(structuredSense)],
     passivePerception: [block.passivePerception, creature.passivePerception],
     languages: [
       sorted(block.languageCodes),
@@ -214,13 +211,11 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
  * `features -Name` for each authored one the stat block does not print; likewise legendary actions.
  */
 function nameDifferences(creature: CreatureAuthored, block: SrdCreatureStatBlock) {
-  const legendary = (creature.features ?? []).find(
-    (feature) => feature.label === 'Legendary Actions'
-  )
+  const legendary = creature.features.find((feature) => feature.label === 'Legendary Actions')
   const lists = {
     features: [
       [...block.traits, ...block.actions, ...(block.reactions ?? [])],
-      (creature.features ?? [])
+      creature.features
         .filter((feature) => feature !== legendary && !LANGUAGE_FEATURE_LABELS.has(feature.label))
         .map((feature) => feature.label)
     ],
@@ -284,7 +279,7 @@ const descriptionOnlyActions = new Set(
   srdBaselineContent.subjects.creatures.flatMap((creature) => {
     const block = SRD_CREATURE_STAT_BLOCKS.get(creature.id)
     if (!block) return []
-    const features = creature.features ?? []
+    const features = creature.features
     const legendary = features.find((feature) => feature.label === 'Legendary Actions')
     const lists = {
       actions: [block.actions, features],
@@ -341,7 +336,7 @@ describe('SRD Creature stat blocks', () => {
       // kept as the book words it, so both sides are compared in the registry's form.
       const unabbreviated = (line: string) => line.replaceAll(' ft.', ' ft')
       const printed = (SRD_CREATURE_STAT_BLOCKS.get(creature.id)?.senses ?? []).map(unabbreviated)
-      const derived = printCreatureSenses(creature.senses ?? [], senseLabel).map(unabbreviated)
+      const derived = printCreatureSenses(creature.senses, senseLabel).map(unabbreviated)
       return derived.join('; ') === printed.join('; ')
         ? []
         : [`${creature.label}: printed ${printed.join('; ')}, derived ${derived.join('; ')}`]

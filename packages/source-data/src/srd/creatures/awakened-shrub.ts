@@ -19,6 +19,12 @@ export const awakenedShrub: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 10,
+  details: [],
+  proficiencies: [],
+  senses: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 3,
     die: 6,

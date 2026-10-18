@@ -21,6 +21,11 @@ export const youngSilverDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 168,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 16,
     die: 10,

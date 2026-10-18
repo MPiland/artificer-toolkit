@@ -90,6 +90,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
           "damageImmunities": [],
           "damageResistances": [],
           "damageVulnerabilities": [],
+          "details": [],
           "features": [
             {
               "description": "Keen Hearing and Smell. The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell.",
@@ -198,6 +199,8 @@ exports[`Encounter projections built on read > applies an action mechanics batch
               ],
             },
           ],
+          "qualifiedDamageDefenses": [],
+          "senses": [],
           "size": "MEDIUM",
           "speeds": [
             {

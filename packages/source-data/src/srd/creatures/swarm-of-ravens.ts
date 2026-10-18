@@ -20,6 +20,11 @@ export const swarmOfRavens: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 24,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 7,
     die: 8,

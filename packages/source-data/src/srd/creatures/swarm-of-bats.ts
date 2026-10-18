@@ -20,6 +20,11 @@ export const swarmOfBats: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 22,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 5,
     die: 8,

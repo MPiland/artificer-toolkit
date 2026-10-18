@@ -21,7 +21,7 @@ const SAVED = 19
 /** The dragon with only its SRD Repulsion Breath, the breath Effect that pushes. */
 function repulsionBreather(raw: typeof bronzeDragonWyrmling) {
   const creature = installedSrdCreature(raw)
-  const feature = creature.features?.find(({ effects }) =>
+  const feature = creature.features.find(({ effects }) =>
     effects?.some(({ paths }) =>
       paths.some(
         (path) =>

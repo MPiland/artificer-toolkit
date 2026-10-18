@@ -627,6 +627,14 @@ describe('subject schema parsing', () => {
       naturalArmorBonus: 1,
       hitPoints: 32,
       speeds: [{ speedId: 'walk', amount: 50, unit: 'FEET' }],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: [],
       features: [
         {
           id: 'gore',
@@ -648,7 +656,7 @@ describe('subject schema parsing', () => {
 
     expect(creature.category).toBe('BEAST')
     expect(creature.mountProfile?.riderCount).toBe(1)
-    expect(creature.features?.[0]?.section).toBe('ACTION')
+    expect(creature.features[0]?.section).toBe('ACTION')
   })
 
   it('normalizes creature logistics-note editor rows to the canonical string array', () => {
@@ -671,10 +679,65 @@ describe('subject schema parsing', () => {
       naturalArmorBonus: 1,
       hitPoints: 32,
       speeds: [],
+      features: [],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: [],
       logisticsNotes: [{ value: 'Can carry a rider.' }, 'Requires a saddle.']
     })
 
     expect(creature.logisticsNotes).toEqual(['Can carry a rider.', 'Requires a saddle.'])
+  })
+
+  it.each([
+    'speeds',
+    'details',
+    'features',
+    'proficiencies',
+    'senses',
+    'damageVulnerabilities',
+    'damageResistances',
+    'damageImmunities',
+    'qualifiedDamageDefenses',
+    'conditionImmunities'
+  ])('refuses a Creature without its %s array, which is empty when it has none', (key) => {
+    const creature: Record<string, unknown> = {
+      id: 'bare-hart',
+      label: 'Bare Hart',
+      category: 'BEAST',
+      creatureTypeId: 'beast',
+      size: 'LARGE',
+      userId: 'user-1',
+      systemId: 'system-1',
+      abilityScores: {
+        STRENGTH: 18,
+        DEXTERITY: 14,
+        CONSTITUTION: 15,
+        INTELLIGENCE: 3,
+        WISDOM: 12,
+        CHARISMA: 7
+      },
+      naturalArmorBonus: 1,
+      hitPoints: 32,
+      speeds: [],
+      features: [],
+      details: [],
+      proficiencies: [],
+      senses: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      qualifiedDamageDefenses: [],
+      conditionImmunities: []
+    }
+    expect(creatureAuthoredDtoSchema.safeParse(creature).success).toBe(true)
+    delete creature[key]
+    expect(creatureAuthoredDtoSchema.safeParse(creature).success).toBe(false)
   })
 
   it('parses authored content list and single-resource transport wrappers', () => {

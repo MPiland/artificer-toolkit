@@ -19,6 +19,11 @@ export const blackPudding: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 85,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 10,
     die: 10,

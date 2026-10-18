@@ -20,6 +20,9 @@ export const waterElemental: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 114,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 12,
     die: 10,

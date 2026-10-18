@@ -19,6 +19,13 @@ export const crocodile: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 19,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 3,
     die: 10,

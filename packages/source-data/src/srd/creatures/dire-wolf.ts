@@ -20,6 +20,13 @@ export const direWolf: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 37,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 5,
     die: 10,

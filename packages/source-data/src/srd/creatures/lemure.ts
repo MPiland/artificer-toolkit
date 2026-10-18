@@ -20,6 +20,10 @@ export const lemure: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 13,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 8,

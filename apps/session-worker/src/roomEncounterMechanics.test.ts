@@ -357,7 +357,7 @@ it('settles Character and Creature mechanics from native play with private recei
         if (!play) throw new Error('Missing Character play.')
         const state = {
           ...play.state,
-          hitpoints: { ...play.state.hitpoints, temp: (play.state.hitpoints.temp ?? 0) + 1 }
+          hitpoints: { ...play.state.hitpoints, temp: play.state.hitpoints.temp + 1 }
         }
         await store.store.patch(play._id, { state, checksum: checksumRuleDocument(state) })
       },

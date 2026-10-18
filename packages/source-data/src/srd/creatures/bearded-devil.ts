@@ -21,6 +21,9 @@ export const beardedDevil: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 52,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 8,
     die: 8,

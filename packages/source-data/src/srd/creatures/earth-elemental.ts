@@ -20,6 +20,8 @@ export const earthElemental: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 126,
+  details: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 12,
     die: 10,

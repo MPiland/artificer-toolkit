@@ -20,6 +20,11 @@ export const swarmOfQuippers: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 28,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 8,
     die: 8,

@@ -20,6 +20,9 @@ export const gargoyle: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 52,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 7,
     die: 8,

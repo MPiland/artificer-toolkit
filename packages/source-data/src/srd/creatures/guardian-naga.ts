@@ -20,6 +20,10 @@ export const guardianNaga: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 127,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 15,
     die: 10,

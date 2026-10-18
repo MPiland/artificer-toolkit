@@ -19,6 +19,13 @@ export const flyingSnake: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 5,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 4,

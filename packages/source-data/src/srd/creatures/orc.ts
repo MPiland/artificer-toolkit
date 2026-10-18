@@ -23,6 +23,12 @@ export const orc: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 15,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 8,

@@ -19,6 +19,13 @@ export const roc: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 248,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 16,
     die: 20,

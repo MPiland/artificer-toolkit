@@ -19,6 +19,13 @@ export const jackal: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 3,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 1,
     die: 6,

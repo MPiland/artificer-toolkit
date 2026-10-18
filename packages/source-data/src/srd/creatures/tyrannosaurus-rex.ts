@@ -21,6 +21,13 @@ export const tyrannosaurusRex: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 136,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 12,

@@ -20,6 +20,12 @@ export const kobold: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 5,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 6,

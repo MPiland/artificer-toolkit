@@ -792,7 +792,7 @@ export function applyCharacterSheetCommand(
           maximumHitPoints: maxHitPoints
         })
       } else {
-        const currentTemp = next.state.hitpoints.temp ?? 0
+        const currentTemp = next.state.hitpoints.temp
         const absorbed = Math.min(currentTemp, command.amount)
         const remainingDamage = command.amount - absorbed
         next.state.hitpoints.temp = Math.max(currentTemp - absorbed, 0)

@@ -19,6 +19,10 @@ export const skeleton: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 13,
+  details: [],
+  proficiencies: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 2,
     die: 8,

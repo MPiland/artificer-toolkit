@@ -21,6 +21,9 @@ export const marilith: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 189,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 18,
     die: 10,

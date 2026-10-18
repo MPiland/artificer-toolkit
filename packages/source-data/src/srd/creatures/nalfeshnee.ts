@@ -22,6 +22,9 @@ export const nalfeshnee: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 184,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 16,
     die: 10,

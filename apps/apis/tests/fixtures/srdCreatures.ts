@@ -50,7 +50,7 @@ export async function importSeededSrdCreatureSenses(
   t: TestConvex<typeof schema>,
   creature: CreatureAuthored
 ) {
-  const senseIds = new Set((creature.senses ?? []).map((entry) => entry.senseDefinitionId))
+  const senseIds = new Set(creature.senses.map((entry) => entry.senseDefinitionId))
   const definitions = SRD_SENSE_DEFINITIONS.filter((definition) => senseIds.has(definition.id)).map(
     (definition) => ({ ...definition, definitionFamilyKey: 'sense' })
   )

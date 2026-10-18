@@ -55,7 +55,7 @@ type Memory = ReturnType<typeof createMemoryEncounterStore>
 
 interface SnapshotContent {
   counters: { clock: number; sequence: number }
-  documents: Partial<Record<EncounterTableName, StoredDocument[]>>
+  documents: Partial<Record<EncounterTableName, EncounterDocument<EncounterTableName>[]>>
   records: RoomRecord[]
 }
 
@@ -260,7 +260,7 @@ function parseStored(json: string, what: string): unknown {
 function loadTable(
   memory: Memory,
   table: EncounterTableName,
-  documents: StoredDocument[],
+  documents: readonly { _id: string; _creationTime: number }[],
   validate: boolean
 ) {
   // One generic loader serves every table; the caller has matched each document to its table.
@@ -798,9 +798,7 @@ export class RoomEncounterStore {
     const epoch = this.#requireEpoch()
     const documents: RoomDocument[] = []
     for (const table of TABLES)
-      for (const { _id, _creationTime, ...fields } of this.#base.documents(
-        table
-      ) as StoredDocument[])
+      for (const { _id, _creationTime, ...fields } of this.#base.documents(table))
         documents.push({ table, id: _id, creationTime: _creationTime, fields })
     return {
       epoch,
@@ -925,7 +923,7 @@ export class RoomEncounterStore {
     const documents: SnapshotContent['documents'] = {}
     for (const table of TABLES) {
       const rows = memory.documents(table)
-      if (rows.length > 0) documents[table] = rows as StoredDocument[]
+      if (rows.length > 0) documents[table] = rows
     }
     return {
       counters: memory.counters(),

@@ -22,6 +22,13 @@ export const sprite: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 2,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 1,
     die: 4,

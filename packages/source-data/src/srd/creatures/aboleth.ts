@@ -23,6 +23,12 @@ export const aboleth: CreatureAuthored = {
   },
   naturalArmorBonus: 8,
   hitPoints: 135,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 18,
     die: 10,

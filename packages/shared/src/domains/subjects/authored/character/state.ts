@@ -149,7 +149,7 @@ export interface CharacterDeathSavesState {
 
 export interface CharacterHitpointsState {
   current: number
-  temp?: number
+  temp: number
   hitDice: CharacterHitDiceUsageState[]
   deathSaves: CharacterDeathSavesState
 }

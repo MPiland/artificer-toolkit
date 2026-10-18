@@ -85,7 +85,8 @@ export interface ParsedExternalCharacter {
     'STRENGTH' | 'DEXTERITY' | 'CONSTITUTION' | 'INTELLIGENCE' | 'WISDOM' | 'CHARISMA',
     number
   >
-  hitPoints?: { current: number; temp?: number }
+  /** Temporary hit points are 0 when the source records none. */
+  hitPoints?: { current: number; temp: number }
   references: ExternalContentReference[]
   customContent: ExternalCustomContent[]
   issues: ImportIssueDto[]
@@ -618,10 +619,7 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
       flaws: readString(details?.flaw)
     }),
     abilities,
-    hitPoints:
-      hpCurrent === undefined
-        ? undefined
-        : { current: hpCurrent, ...(hpTemp ? { temp: hpTemp } : {}) },
+    hitPoints: hpCurrent === undefined ? undefined : { current: hpCurrent, temp: hpTemp ?? 0 },
     references,
     customContent,
     issues
@@ -732,10 +730,9 @@ function parseDndBeyondHitPoints(
   if (base === undefined) return undefined
   const bonus = readNonnegativeInteger(source.bonusHitPoints) ?? 0
   const removed = readNonnegativeInteger(source.removedHitPoints) ?? 0
-  const temp = readNonnegativeInteger(source.temporaryHitPoints)
   return {
     current: Math.max(0, base + bonus - removed),
-    ...(temp ? { temp } : {})
+    temp: readNonnegativeInteger(source.temporaryHitPoints) ?? 0
   }
 }
 

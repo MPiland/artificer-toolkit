@@ -72,9 +72,9 @@ export interface CreatureBaseAuthored {
   quote?: string
   description?: string
   status?: AuthoredRecordStatus
-  details?: DetailAuthored[]
-  features?: FeatureAuthored[]
-  proficiencies?: ProficiencyGrantAuthored[]
+  details: DetailAuthored[]
+  features: FeatureAuthored[]
+  proficiencies: ProficiencyGrantAuthored[]
   userId: string
   systemId: string
   category: CreatureCategoryCode
@@ -102,13 +102,13 @@ export interface CreatureAuthored extends CreatureBaseAuthored {
   hitPoints: number
   hitDice?: DiceExpression
 
-  senses?: CreatureSenseAuthored[]
+  senses: CreatureSenseAuthored[]
   passivePerception?: number
-  damageVulnerabilities?: string[]
-  damageResistances?: string[]
-  damageImmunities?: string[]
-  qualifiedDamageDefenses?: CreatureQualifiedDamageDefenseAuthored[]
-  conditionImmunities?: string[]
+  damageVulnerabilities: string[]
+  damageResistances: string[]
+  damageImmunities: string[]
+  qualifiedDamageDefenses: CreatureQualifiedDamageDefenseAuthored[]
+  conditionImmunities: string[]
   challengeRatingId?: string
   xp?: number
   npcProfile?: CreatureNpcProfile

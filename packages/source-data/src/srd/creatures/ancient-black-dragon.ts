@@ -21,6 +21,11 @@ export const ancientBlackDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 367,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 21,
     die: 20,

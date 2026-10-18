@@ -68,21 +68,20 @@ export function CharacterSheetExtras({
   }
 
   async function addExtra() {
-    if (!kind || !sourceId || (isCreature && !originKind)) return
-    priorExtraIds.current = new Set(sheet.extras.items.map((extra) => extra.id))
-    const added = await submitCommand(
-      kind === 'COMPANION' || kind === 'MOUNT' || kind === 'OWNED'
-        ? {
-            type: 'ADD_SHEET_EXTRA',
-            expectedVersion: sheet.meta.streamVersion,
-            extra: { kind, creatureId: sourceId, originKind: originKind ?? 'WORLD' }
-          }
-        : {
-            type: 'ADD_SHEET_EXTRA',
-            expectedVersion: sheet.meta.streamVersion,
-            extra: { kind: 'VEHICLE', vehicleId: sourceId }
-          }
-    )
+    if (!kind || !sourceId) return
+    const extra =
+      kind === 'VEHICLE'
+        ? { kind, vehicleId: sourceId }
+        : originKind
+          ? { kind, creatureId: sourceId, originKind }
+          : null
+    if (!extra) return
+    priorExtraIds.current = new Set(sheet.extras.items.map((existing) => existing.id))
+    const added = await submitCommand({
+      type: 'ADD_SHEET_EXTRA',
+      expectedVersion: sheet.meta.streamVersion,
+      extra
+    })
     if (added) {
       setShouldOpenAdded(true)
       closeDrawer()

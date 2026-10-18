@@ -20,6 +20,12 @@ export const shrieker: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 13,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 3,
     die: 8,

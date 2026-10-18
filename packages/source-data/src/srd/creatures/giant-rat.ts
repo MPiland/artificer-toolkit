@@ -19,6 +19,13 @@ export const giantRat: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 7,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 6,

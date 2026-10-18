@@ -21,6 +21,11 @@ export const doppelganger: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 52,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 8,
     die: 8,

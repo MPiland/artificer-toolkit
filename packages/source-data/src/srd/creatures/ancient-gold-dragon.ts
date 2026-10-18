@@ -21,6 +21,11 @@ export const ancientGoldDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 546,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 28,
     die: 20,

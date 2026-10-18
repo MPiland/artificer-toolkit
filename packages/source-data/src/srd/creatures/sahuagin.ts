@@ -20,6 +20,12 @@ export const sahuagin: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 22,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 8,

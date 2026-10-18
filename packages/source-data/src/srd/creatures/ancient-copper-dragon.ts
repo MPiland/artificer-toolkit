@@ -21,6 +21,11 @@ export const ancientCopperDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 350,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 20,
     die: 20,

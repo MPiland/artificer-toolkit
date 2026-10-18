@@ -20,6 +20,9 @@ export const fireElemental: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 102,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 12,
     die: 10,
