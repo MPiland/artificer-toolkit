@@ -6,8 +6,9 @@ import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPoli
 import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
 /**
- * SPELLS-31.T3b (D156): Divine Sense, Empty Body and Gaze of Two Minds resolve from the core
- * options a Builder author has on a class feature, with no closed rule.
+ * SPELLS-31.T3b and T3c (D156): Divine Sense, Empty Body, Gaze of Two Minds and Divine
+ * Intervention resolve from the core options a Builder author has on a class feature, with no
+ * closed rule.
  */
 
 const condition = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)!.id
@@ -109,5 +110,34 @@ describe('Warlock Gaze of Two Minds (SPELLS-31.T3b)', () => {
       expect.objectContaining({ kind: 'CONDITION', conditionId: condition('BLINDED') }),
       expect.objectContaining({ kind: 'CONDITION', conditionId: condition('DEAFENED') })
     ])
+  })
+})
+
+describe('Cleric Divine Intervention (SPELLS-31.T3c)', () => {
+  it('spends its one long-rest use as an action and hands the roll and lockout to the table', () => {
+    const intervention = srdByLabel(SRD.classes, 'Cleric').features?.find(
+      ({ label }) => label === 'Divine Intervention'
+    )
+    expect(intervention?.charges).toEqual(
+      expect.objectContaining({ limitKind: 'FIXED_AMOUNT', amount: 1, resetKind: 'LONG_REST' })
+    )
+    const { candidate } = featureAction({
+      classLabel: 'Cleric',
+      level: 10,
+      featureLabel: 'Divine Intervention',
+      actionLabel: 'Divine Intervention'
+    })
+    expect(candidate.resourceUse).toEqual(expect.objectContaining({ cost: 1 }))
+    expect(candidate.mechanicFacts.invocation.activation?.code).toBe('ACTION')
+    expect(candidate.mechanicFacts.outcomes).toEqual([
+      expect.objectContaining({ kind: 'EFFECT', effectKind: 'MANUAL_ADJUDICATION' })
+    ])
+    const [outcome] = intervention?.effects?.[0]?.paths[0]?.resultBlock.outcomes ?? []
+    if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
+      throw new Error('Divine Intervention must stay a manual adjudication.')
+    expect(outcome.reasonCode).toBe('GM_CHOICE')
+    expect(outcome.instructions).toMatch(/percentile dice/)
+    expect(outcome.instructions).toMatch(/cleric level/)
+    expect(outcome.instructions).toMatch(/7 days/)
   })
 })

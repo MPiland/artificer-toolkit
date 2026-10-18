@@ -277,3 +277,13 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - Empty Body and Gaze compile to MANUAL in play, as the closed rule did. `supported()` in `effectActionCompiler.ts` accepts one outcome entry per self action.
     - Follow-up to register: encounter support for multi-outcome timed self actions.
   - **VTT_UI-3.5:** T3b delivers the Devil's Sight sense model. The VTT view proof stays with VTT_UI-3.5.
+- **T3c (class A, options), 2026-10-18:** one kind deleted.
+  - **Divine Intervention:**
+    - The feature gets a LIMITED_USE FIXED 1 LONG_REST charge.
+    - Its ACTION spends that use and gives a MANUAL_ADJUDICATION GM_CHOICE outcome. The instructions carry the percentile roll against cleric level, the automatic 20th-level success and the 7-day lockout on success.
+    - Proofs: `classFeatureCoreOptions.test.ts` (candidate and instructions) and the parity file (SRD and a homebrew variant).
+  - **Volley and Whirlwind Attack:** stopped, per the brief. Per-creature weapon attacks do not compile from a class option. Feature and option action candidates carry `equipment: null` (`characterActionRuleFacts.ts`), and the attack mechanic takes weapon damage, proficiency and ammunition only from `candidate.equipment` (`characterActionMechanics.ts`). Reported to the orchestrator with a proposal to move both to a B task, "feature weapon attack against each target with the wielded weapon". `CLASS_HUNTER_VOLLEY` and `CLASS_HUNTER_WHIRLWIND_ATTACK` stay until then.
+  - **Defect found:** normalizing the full Cleric record through the class node map throws "Untrusted node runtime table: proficiency_grant_equipment".
+    - Cause: the starting-equipment EQUIPMENT_PROFICIENCY eligibility (the warhammer option) reaches the facet map branch at `facet.ts:1968`, and `nodeRuntimeSources.ts` does not list that table.
+    - The parity file proves the Cleric without its starting equipment.
+    - Follow-up to register: add the table to the node-runtime source manifest, with a regression test that normalizes the full Cleric.

@@ -88,41 +88,53 @@ function selfClassRuleEffect(
   })
 }
 
-function divineInterventionEffect(): EffectAuthored {
-  const effect = selfClassRuleEffect(
-    11,
-    CLOSED_RULE_KIND.CLASS_CLERIC_DIVINE_INTERVENTION,
-    ACTIVATION_CODE.ACTION
-  )
-  const path = effect.paths[0]
-  if (!path || path.selectionKind !== 'FIXED') {
-    throw new Error('Divine Intervention requires a fixed closed-rule path')
-  }
+const divineInterventionCharge = {
+  id: classRowId(C, 0x66, 11),
+  limitKind: 'FIXED_AMOUNT',
+  scalingKind: SCALING.NONE,
+  resetKind: 'LONG_REST',
+  amount: 1
+} as const
 
-  return {
-    ...effect,
-    paths: [
-      {
-        ...path,
-        groupType: PATH_GROUP_TYPE.SEQUENTIAL,
-        resultBlock: {
-          ...path.resultBlock,
-          resultKind: 'SEQUENCE',
-          outcomes: [
-            ...path.resultBlock.outcomes,
-            {
-              id: classRowId(C, 0x6c, 11),
-              effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-              label: 'Divine Intervention',
-              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-              instructions:
-                'The GM chooses the nature of the intervention; the effect of any cleric spell or cleric domain spell would be appropriate.'
-            }
-          ]
-        }
+/**
+ * Divine Intervention as authored data: an action that spends the feature's one long-rest use and
+ * hands the percentile roll, the GM's choice and the 7-day lockout on success to the table.
+ */
+const divineInterventionEffect: EffectAuthored = {
+  id: classRowId(C, 0x60, 11),
+  order: 1,
+  invocation: {
+    kind: 'ACTION',
+    triggerCode: TRIGGER.ACTIVATED,
+    resourceUse: { chargeId: divineInterventionCharge.id, cost: 1 },
+    activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+    range: { id: classRowId(C, 0x69, 11), rangeKind: RANGE_KIND.SELF },
+    targeting: { selectionKind: 'SELF' }
+  },
+  paths: [
+    {
+      id: classRowId(C, 0x80, 11),
+      order: 1,
+      pathCode: PATH_CODE.ON_USE,
+      groupType: PATH_GROUP_TYPE.SINGLE,
+      originKind: 'SOURCE',
+      selectionKind: 'FIXED',
+      resultBlock: {
+        id: classRowId(C, 0x81, 11),
+        resultKind: 'SINGLE',
+        outcomes: [
+          {
+            id: classRowId(C, 0x6c, 11),
+            effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+            label: 'Divine Intervention',
+            reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+            instructions:
+              'Describe the assistance you seek and roll percentile dice; at 20th level the call succeeds without a roll. On a roll equal to or lower than your cleric level, your deity intervenes: the GM chooses the nature of the intervention, and the effect of any cleric spell or cleric domain spell would be appropriate. If your deity intervenes, you cannot use this feature again for 7 days, even after a long rest.'
+          }
+        ]
       }
-    ]
-  }
+    }
+  ]
 }
 
 // Cleric spell slot charge — resets on long rest (full caster)
@@ -1035,7 +1047,9 @@ export const cleric: ClassAuthored = {
         "Beginning at 10th level, you can call on your deity to intervene on your behalf when your need is great. Imploring your deity's aid requires you to use your action. Describe the assistance you seek, and roll percentile dice. If you roll a number equal to or lower than your cleric level, your deity intervenes. The GM chooses the nature of the intervention; the effect of any cleric spell or cleric domain spell would be appropriate. If your deity intervenes, you can't use this feature again for 7 days. Otherwise, you can use it again after you finish a long rest. At 20th level, your call for intervention succeeds automatically, no roll required.",
       availableAtLevel: 10,
       order: 10,
-      effects: [divineInterventionEffect()]
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: divineInterventionCharge,
+      effects: [divineInterventionEffect]
     },
     {
       id: classRowId(C, 3, 12),

@@ -5,6 +5,7 @@ import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
+import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
@@ -16,8 +17,9 @@ import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
 /**
- * SPELLS-31.T3a and T3b (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
- * Divine Sense, Signature Spells, Empty Body, Devil's Sight and Gaze of Two Minds resolve from the
+ * SPELLS-31.T3a-T3c (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets, Divine
+ * Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds and Divine Intervention
+ * resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options.
  */
@@ -50,6 +52,13 @@ function option(record: ClassAuthored, parent: string, label: string) {
   if (!found) throw new Error(`${parent} has no ${label}.`)
   return found
 }
+
+/**
+ * The Cleric without its starting equipment: the warhammer option's EQUIPMENT_PROFICIENCY
+ * eligibility reads `proficiency_grant_equipment`, which the node runtime does not trust yet (a
+ * separate defect), and the features this file proves do not depend on it.
+ */
+const { startingEquipment: _clericStartingEquipment, ...clericIntervention } = cleric
 
 const fire = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 
@@ -174,10 +183,22 @@ const CASES: ReadonlyArray<{
       path.resultBlock.outcomes = path.resultBlock.outcomes.slice(0, 1)
       return record
     }
+  },
+  {
+    record: clericIntervention,
+    label: 'Divine Intervention',
+    variant: () => {
+      const record = structuredClone(clericIntervention)
+      const { charges } = feature(record, 'Divine Intervention')
+      if (charges?.limitKind !== 'FIXED_AMOUNT')
+        throw new Error('Divine Intervention must author a fixed long-rest charge.')
+      charges.amount = 2
+      return record
+    }
   }
 ]
 
-describe('class features resolved from core options through the class node map (SPELLS-31.T3a, T3b)', () => {
+describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c)', () => {
   it.each(CASES)('keeps the SRD $label exactly as authored, with no closed rule', async (entry) => {
     const nodes = caseNodes(entry.record, entry.label, entry.parent)
     expect(nodes.length).toBeGreaterThan(0)
