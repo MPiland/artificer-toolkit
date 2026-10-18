@@ -160,9 +160,9 @@ export function planEncounterGrantTicks(input: {
       const remaining = effect.lifecycle.remainingTicks
       if (
         remaining === null ||
-        (!isModifierGrant(effect) && expiration.anchor !== 'SOURCE') ||
         recurrence.recurrenceStage !== 'NONE' ||
         expiration.kind !== 'TICKS' ||
+        (!isModifierGrant(effect) && expiration.anchor !== 'SOURCE') ||
         expiration.decrementStage !== input.stage ||
         !isEffectLiveInEncounter(effect, actor, input.encounterId)
       )
