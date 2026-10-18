@@ -54,6 +54,10 @@ import {
   ruleExecutionChecksumSchema as checksumSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import {
+  meleeRetaliationEvidenceDtoSchema,
+  validateMeleeRetaliation
+} from './ruleExecutionEffectEvidence.js'
 const noApplicationOutputDtoSchema = lazySchema(() => z.strictObject({ kind: z.literal('NONE') }))
 
 const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
@@ -120,10 +124,13 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         .array(characterMechanicsApplicationDtoSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       /** The source's own conditions released by effects its action ended; empty when none. */
-      sourceApplications: sourceApplicationsDtoSchema
+      sourceApplications: sourceApplicationsDtoSchema,
+      /** The zones its target holds that this melee hit set off against the attacker (D153). */
+      meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
+        validateMeleeRetaliation(value, context)
         validateStateEffectTransitions({
           applications: value.applications,
           transitions: value.stateEffectTransitions,

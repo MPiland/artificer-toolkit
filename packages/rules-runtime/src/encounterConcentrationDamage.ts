@@ -9,6 +9,7 @@ import type { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { StagedTurnZonePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
+import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 
 type DamageBatch = {
   targetActorId: string
@@ -142,6 +143,23 @@ export async function labelTurnEffectDamage<
   )
 }
 
+/** Each zone a melee hit set off (D153) as its own damage source against the attacker. */
+export function meleeRetaliationDamage(
+  evidence: MeleeRetaliationEvidenceDto | undefined
+): DamageBatch[] {
+  return (evidence?.executions ?? []).map(({ candidate, applications }) => ({
+    targetActorId: candidate.candidate.targetActorId,
+    applications
+  }))
+}
+
+/** An action's damage: its target's batch, then the zones its melee hit set off against the attacker. */
+export function nativeActionDamage(
+  batch: DamageBatch & { meleeRetaliation?: MeleeRetaliationEvidenceDto }
+): DamageBatch[] {
+  return [batch, ...meleeRetaliationDamage(batch.meleeRetaliation)]
+}
+
 export function nativeConcentrationParentDamage(
   result: StoredRuleExecutionResultDto
 ): ConcentrationDamageApplicationDto[] {
@@ -150,7 +168,10 @@ export function nativeConcentrationParentDamage(
     (result.applicationOutputs.kind === 'CHARACTER_MECHANICS_BATCH' ||
       result.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
   )
-    return nativeConcentrationDamageApplications([result.applicationOutputs], true)
+    return nativeConcentrationDamageApplications(
+      nativeActionDamage(result.applicationOutputs),
+      true
+    )
   if (
     result.status === 'AGGREGATE_CHOICE_COMPLETE' &&
     result.applicationOutputs.kind === 'ENCOUNTER_AREA_ACTION'

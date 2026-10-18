@@ -159,6 +159,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
+import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
@@ -1180,6 +1181,53 @@ export async function planNativeLiveEncounterAction(
     maintenance,
     activeEffectsByActorId
   })
+  const actionRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
+  const meleeAttack = isInstalledMeleeAttackTrigger(
+    state.gameSystemId,
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
+      : prepared.source.capability.mechanicFacts.invocation.triggerCode
+  )
+  // A melee hit sets off the zones its target holds around itself against the attacker (D153).
+  const attackerInProjection = settlement.projectedTargets.get(prepared.actor.id)
+  const retaliation =
+    sceneContext &&
+    meleeAttack &&
+    actionRange.success &&
+    attackerInProjection &&
+    prepared.actor.id !== prepared.target.id &&
+    (execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT')
+      ? await planNativeLiveMeleeRetaliation({
+          state,
+          scene: {
+            sceneId: sceneContext.sceneId,
+            sceneVersion: sceneContext.sceneVersion,
+            attacker: sceneContext.sourceToken,
+            hit: sceneContext.targetToken
+          },
+          initialActors: actors,
+          attacker: attackerInProjection,
+          occurrenceId,
+          sourceCommandId: command.commandId,
+          occurredAt,
+          userId: initial.expectedUserId,
+          capture,
+          runtime: executionOptions.runtime,
+          random: executionOptions.random ?? nextRollInt
+        })
+      : null
+  const retaliatedSettlement = retaliation
+    ? {
+        ...settlement,
+        actors: settlement.actors.map((actor) =>
+          actor.id === prepared.actor.id ? retaliation.projectedAttacker.actor : actor
+        ),
+        projectedTargets: new Map(settlement.projectedTargets).set(
+          prepared.actor.id,
+          retaliation.projectedAttacker
+        )
+      }
+    : settlement
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -1190,7 +1238,8 @@ export async function planNativeLiveEncounterAction(
       targetActorId: prepared.target.id,
       applications: mechanics.mechanics.receiptApplications,
       sourceLabel: encounterActionSourceLabel(prepared.source)
-    }
+    },
+    ...(retaliation?.damage ?? [])
   ]
   const concentration = await planNativeLiveConcentration({
     state: nextState,
@@ -1200,7 +1249,7 @@ export async function planNativeLiveEncounterAction(
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
     occurredAt,
-    settlement,
+    settlement: retaliatedSettlement,
     capture,
     runtime: executionOptions.runtime,
     random: executionOptions.random
@@ -1236,11 +1285,11 @@ export async function planNativeLiveEncounterAction(
         activeEffectTransitions: settlement.reactionActiveEffectTransitions
       }
     },
-    targetFailedCounterSpend
+    targetFailedCounterSpend,
+    meleeRetaliation: retaliation?.evidence ?? null
   })
-  const cleavingRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
   const cleaving =
-    storedExecution.status === 'COMPLETE' && cleavingRange.success && sceneContext
+    storedExecution.status === 'COMPLETE' && actionRange.success && sceneContext
       ? await planNativeLiveCleaving({
           state: nextState,
           result: storedExecution,
@@ -1249,15 +1298,8 @@ export async function planNativeLiveEncounterAction(
             actionId: command.actionId,
             publishedDefinitionId: execution.published.id,
             publishedDefinitionChecksum: execution.published.checksum,
-            attackKind: isInstalledMeleeAttackTrigger(
-              state.gameSystemId,
-              prepared.source.kind === 'CHARACTER_ACTION'
-                ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
-                : prepared.source.capability.mechanicFacts.invocation.triggerCode
-            )
-              ? 'MELEE'
-              : 'OTHER',
-            range: cleavingRange.data
+            attackKind: meleeAttack ? 'MELEE' : 'OTHER',
+            range: actionRange.data
           },
           scene: {
             sceneId: sceneContext.sceneId,

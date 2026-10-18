@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
-import { fireShield } from '@artificer-toolkit/source-data/srd/spells/fire-shield.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { encounterActionChoiceTarget } from '../encounterAreaAction.js'
+import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import {
@@ -14,6 +13,7 @@ import {
   variantEquipment,
   type ZoneParts
 } from '../testing/authoredZoneFixture.js'
+import { carryingFireShield, shieldOutcomes, shields } from '../testing/fireShieldZoneFixture.js'
 
 /**
  * SPELLS-20 T4e (D140): an ON_USE CHOICE whose every option places one zone compiles to a cast-time
@@ -116,42 +116,6 @@ describe('a cast-time pick between zones (SPELLS-20 T4e, D140)', () => {
 
 const damageType = (code: string) => SRD_DAMAGE_TYPES.find((type) => type.code === code)!.id
 
-type AuthoredEffects = NonNullable<EquipmentAuthored['effects']>
-
-/** An item carrying Fire Shield's authored effects, gripless as an item's effects are, edited by `change`. */
-function carryingFireShield(change: (effects: AuthoredEffects) => void = () => {}) {
-  const effects = structuredClone(fireShield.effects ?? []).map((effect) => ({
-    ...effect,
-    grip: null
-  }))
-  change(effects)
-  return { ...structuredClone(caltropsBagOf20), id: extraId(0x1a0), label: 'Shield charm', effects }
-}
-
-/** The outcomes of each shield the cast offers. */
-function shieldOutcomes(effects: AuthoredEffects) {
-  const path = effects[0]?.paths[0]
-  if (path?.selectionKind !== 'CHOICE') throw new Error('Fire Shield must author a cast choice.')
-  return path.options.map((option) => option.resultBlock.outcomes)
-}
-
-/** Each shield the cast offers, by label, with its compiled zone. */
-function shields(equipment: EquipmentAuthored) {
-  const path = equipment.effects?.[0]?.paths[0]
-  if (path?.selectionKind !== 'CHOICE') throw new Error('Fire Shield must author a cast choice.')
-  const entry = compileItemEntry(equipment)
-  const placement =
-    entry.schemaVersion === 4 &&
-    entry.compilation.kind === 'COMPILED' &&
-    entry.compilation.zonePlacement
-  if (!placement) throw new Error('Fire Shield must place a zone.')
-  return path.options.map(({ id, label }) => {
-    const zone = chosenZonePlacement(placement, id)
-    if (!zone) throw new Error(`The ${label} must compile a zone.`)
-    return { label, zone }
-  })
-}
-
 /** What a shield's zone does: the dice it rolls, their damage type and the grant its caster holds. */
 function shieldEffect({ zone }: ReturnType<typeof shields>[number]) {
   const { nodes } = zone.entry.frozenGraph.definition
@@ -181,6 +145,32 @@ describe('Fire Shield: a cast-time pick between shields that burn a melee attack
         grant: null
       })
       expect(zone).not.toHaveProperty('turnTriggers')
+    }
+  })
+
+  it('places each shield on its caster’s token, answering melee hits and nothing else (T6d2a)', () => {
+    const casterToken = { tokenId: extraId(0x1c1), width: 100 }
+    for (const { zone } of shields(carryingFireShield())) {
+      const { placement } = planEncounterPlacedZone({
+        zone,
+        id: extraId(0x1c2),
+        maintainedEffectStateId: null,
+        encounterId: extraId(0x1c3),
+        occurrenceId: extraId(0x1c4),
+        rootCommandId: extraId(0x1c5),
+        sourceActorId: extraId(0x1c6),
+        point: { x: 500, y: 500 },
+        area: { kind: 'RADIUS', radius: 100 },
+        sourceToken: casterToken,
+        saveDc: null
+      })
+      expect(placement).toMatchObject({
+        anchorKind: 'TOKEN',
+        sourceTokenId: casterToken.tokenId,
+        triggerModes: [],
+        retaliatesMeleeHits: true
+      })
+      expect(placement).not.toHaveProperty('turnTriggers')
     }
   })
 

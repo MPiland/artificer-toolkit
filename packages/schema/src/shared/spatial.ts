@@ -188,15 +188,27 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       /** The condition the zone holds on a creature failing its save, its escape DC pinned. */
       heldCondition: z.optional(
         spatialHeldConditionDtoSchema(z.number().check(z.int()).check(z.positive()))
-      )
+      ),
+      /** The zone catches a creature inside it that hits its source token with a melee attack (D153). */
+      retaliatesMeleeHits: z.optional(z.literal(true))
     })
     .check(
       z.superRefine((placement, context) => {
-        if (placement.triggerModes.length === 0 && !placement.turnTriggers)
+        if (
+          placement.triggerModes.length === 0 &&
+          !placement.turnTriggers &&
+          !placement.retaliatesMeleeHits
+        )
           context.addIssue({
             code: 'custom',
             path: ['triggerModes'],
-            message: 'A spatial effect needs a movement trigger or a turn trigger.'
+            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
+          })
+        if (placement.retaliatesMeleeHits && placement.anchorKind !== 'TOKEN')
+          context.addIssue({
+            code: 'custom',
+            path: ['retaliatesMeleeHits'],
+            message: 'Only a zone anchored to its source token answers melee hits.'
           })
         if (
           placement.turnTriggers &&
@@ -297,15 +309,16 @@ export const spatialEffectInstanceDtoSchema = lazySchema(() =>
         z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       ),
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
-      requiresFullyWithin: z.optional(z.boolean())
+      requiresFullyWithin: z.optional(z.boolean()),
+      retaliatesMeleeHits: z.optional(z.literal(true))
     })
     .check(
       z.superRefine((effect, context) => {
-        if (effect.triggerModes.length === 0 && !effect.turnTriggers)
+        if (effect.triggerModes.length === 0 && !effect.turnTriggers && !effect.retaliatesMeleeHits)
           context.addIssue({
             code: 'custom',
             path: ['triggerModes'],
-            message: 'A spatial effect needs a movement trigger or a turn trigger.'
+            message: 'A spatial effect needs a movement, turn or melee-hit trigger.'
           })
         if (effect.turnTriggers && new Set(effect.turnTriggers).size !== effect.turnTriggers.length)
           context.addIssue({

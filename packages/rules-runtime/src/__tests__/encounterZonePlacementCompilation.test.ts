@@ -981,18 +981,6 @@ describe('a creature’s passive zone (D144)', () => {
 })
 
 describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6d1, D153)', () => {
-  const withInteractions = (
-    interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']>,
-    diceConfig = '2d6'
-  ) => {
-    const feature = creatureAuraFeature(diceConfig)
-    const path = feature.effects![0]!.paths[0]!
-    const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
-    if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
-      throw new Error('The aura is a manifest zone.')
-    outcome.components![0]!.interactionKinds = interactionKinds
-    return feature
-  }
   const passiveZoneOf = (creature: Parameters<typeof srdCreatureActor>[0]['creature']) => {
     const { passiveZones } = discoverEncounterFeatureActions({
       actor: srdCreatureActor({ id: testUuid(0x1951), creature }),
@@ -1008,7 +996,7 @@ describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6
 
   it('compiles the melee-hit interaction beside the turn trigger of the same component', () => {
     expect(
-      goblinWith(withInteractions(['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE']))
+      goblinWith(creatureAuraFeature('2d6', 5, ['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE']))
     ).toMatchObject({
       attachment: 'SOURCE',
       triggerModes: [],
@@ -1018,7 +1006,7 @@ describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6
   })
 
   it('compiles a zone that only answers melee hits, with no movement or turn trigger', () => {
-    const zone = goblinWith(withInteractions(['MELEE_HIT_ON_SOURCE']))
+    const zone = goblinWith(creatureAuraFeature('2d6', 5, ['MELEE_HIT_ON_SOURCE']))
     expect(zone).toMatchObject({ triggerModes: [], retaliatesMeleeHits: true, grant: null })
     expect(zone).not.toHaveProperty('turnTriggers')
   })
@@ -1035,7 +1023,7 @@ describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6
     })
     const balor = passiveZoneOf(srdByLabel(SRD.creatures, 'Balor'))
     const homebrew = goblinWith(
-      withInteractions(['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'], '3d6')
+      creatureAuraFeature('3d6', 5, ['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'])
     )
     expect(balor).toMatchObject({ label: 'Fire Aura', retaliatesMeleeHits: true })
     expect(comparable(balor)).toEqual(comparable(homebrew))
