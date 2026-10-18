@@ -26,7 +26,8 @@ export function createNativeCleavingChoice(input: {
   automationMode: AutomationModeDto
   gameSystemId: string
   optionalCombatSnapshot: unknown
-  optionalCombatSnapshotChecksum: string
+  /** The Run's pinned optional-combat policy; a Run without one cannot seal a Cleaving choice. */
+  optionalCombatSnapshotChecksum: string | null
   parentOccurrenceId: string
   parentResultChecksum: string
   sourceActorId: string
@@ -53,13 +54,16 @@ export function createNativeCleavingChoice(input: {
   >['damage']
   candidates: readonly NativeCleavingCandidate[]
 }): ServerAggregateChoicePendingSnapshotDto | null {
+  const optionalCombatSnapshotChecksum = input.optionalCombatSnapshotChecksum
+  if (optionalCombatSnapshotChecksum === null)
+    throw new Error("A Cleaving choice requires the Run's pinned optional-combat policy.")
   const eligibleTargetActorIds = input.candidates.map((candidate) => candidate.actorId)
   const proposed = input.candidates.flatMap((candidate) => {
     const resolution = resolveDnd5eCleaving({
       automationMode: input.automationMode,
       gameSystemId: input.gameSystemId,
       optionalCombatSnapshot: input.optionalCombatSnapshot,
-      optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum,
+      optionalCombatSnapshotChecksum,
       attackKind: input.action.attackKind === 'MELEE' ? 'MELEE' : 'OTHER',
       attackTotal: input.originalAttack.total,
       attackerActorId: input.sourceActorId,
@@ -106,7 +110,7 @@ export function createNativeCleavingChoice(input: {
     snapshotKind: 'AGGREGATE_CHOICE',
     schemaVersion: 1,
     occurrenceId,
-    optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum,
+    optionalCombatSnapshotChecksum,
     applicationContext: {
       kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING',
       schemaVersion: 1,

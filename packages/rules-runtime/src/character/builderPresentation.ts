@@ -73,12 +73,14 @@ function hasOutstandingCode(outstandingChoices: CharacterBuilderIssue[], codes: 
   return outstandingChoices.some((choice) => codes.includes(choice.code))
 }
 
-function getCharacterBuilderSectionForSource(
+/**
+ * The Builder section that owns a choice from this source. Feats, features, options and manual
+ * entries have no step of their own, so the Review section lists them.
+ */
+export function characterBuilderSectionOfSource(
   source: CharacterProvenance | undefined
-): CharacterBuilderSectionId | null {
-  if (!source) return null
-
-  switch (source.kind) {
+): CharacterBuilderSectionId {
+  switch (source?.kind) {
     case 'RACE':
     case 'SUBRACE':
     case 'ANCESTRY':
@@ -88,8 +90,12 @@ function getCharacterBuilderSectionForSource(
       return 'CLASSES'
     case 'BACKGROUND':
       return 'BACKGROUND'
-    default:
-      return null
+    case 'FEAT':
+    case 'FEATURE':
+    case 'OPTION':
+    case 'MANUAL':
+    case undefined:
+      return 'REVIEW'
   }
 }
 
@@ -167,19 +173,11 @@ export function resolveRecommendedCharacterBuilderSection(
     return 'EQUIPMENT'
   }
 
-  if (
-    hasOutstandingCode(outstandingChoices, [
-      'FEATURE_SELECTION_REQUIRED',
-      'FEATURE_SELECTION_INCOMPLETE'
-    ])
-  ) {
-    const featureChoice = outstandingChoices.find(
-      (choice) =>
-        choice.code === 'FEATURE_SELECTION_REQUIRED' ||
-        choice.code === 'FEATURE_SELECTION_INCOMPLETE'
-    )
-    return getCharacterBuilderSectionForSource(featureChoice?.source) ?? 'REVIEW'
-  }
+  const featureChoice = outstandingChoices.find(
+    (choice) =>
+      choice.code === 'FEATURE_SELECTION_REQUIRED' || choice.code === 'FEATURE_SELECTION_INCOMPLETE'
+  )
+  if (featureChoice) return featureChoice.sectionId
 
   if (validations.length > 0 || outstandingChoices.length > 0) {
     return 'REVIEW'

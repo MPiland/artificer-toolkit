@@ -179,6 +179,7 @@ export function appendDuplicateSpellSelectionIssues(
     validations.push({
       code: 'DUPLICATE_SPELL_SELECTION',
       severity: 'blocking',
+      sectionId: 'CLASSES',
       message: spellLabel
         ? `Spell selection "${spellLabel}" is selected by multiple sources.`
         : `Spell selection "${spellId}" is selected by multiple sources.`

@@ -3,6 +3,7 @@ import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import { characterBuilderSectionOfSource } from '../character/builderPresentation.js'
 import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
 import { WALK_SPEED_CODE } from '../walkingSpeed.js'
 import {
@@ -78,6 +79,27 @@ describe('Character Builder over an in-memory context', () => {
       scenario.outstanding ? [scenario.outstanding] : []
     )
     expect(resolution.readiness.ready).toBe(scenario.ready)
+  })
+
+  it('names the section that owns each issue, from the source that raised it', async () => {
+    const fixture = readyFighterFixture({ languageChoice: true })
+    const { resolution } = await prepareFixtureBuilder(fixture)
+    expect(resolution.outstandingChoices).toEqual([
+      expect.objectContaining({
+        code: 'CHOSEN_GRANT_SELECTION_REQUIRED',
+        sectionId: 'BACKGROUND'
+      })
+    ])
+  })
+
+  it.each([
+    { source: { kind: 'ANCESTRY', ancestryId: unknownId, optionId: unknownId }, section: 'RACE' },
+    { source: { kind: 'SUBCLASS', subclassId: unknownId, classLevel: 3 }, section: 'CLASSES' },
+    { source: { kind: 'BACKGROUND', backgroundId: unknownId }, section: 'BACKGROUND' },
+    { source: { kind: 'FEAT', featId: unknownId }, section: 'REVIEW' },
+    { source: undefined, section: 'REVIEW' }
+  ] as const)('files an issue raised by $source.kind under $section', ({ source, section }) => {
+    expect(characterBuilderSectionOfSource(source)).toBe(section)
   })
 
   it('keeps a chosen-grant selection that still matches and drops one that no longer does', async () => {

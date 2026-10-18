@@ -780,7 +780,6 @@ export async function persistEncounterAreaCommit(
   const projection = await projectNativeGm(ctx, nextState, settledChildren.actors, input.rules)
   // Each creature's save is its own card; the area's one damage roll is carded once, with the first,
   // unless every entry rolled its own.
-  const actionLabel = (await ctx.ports.readContentLabel(input.initialDefinitionId)) ?? 'Action'
   const answers = await actionSystemRollAnswers(ctx, {
     occurrenceId: areaOccurrenceId,
     response: input.response,
@@ -793,7 +792,7 @@ export async function persistEncounterAreaCommit(
       gameSystemId: state.gameSystemId,
       rollScope: occurrenceId,
       batch: index === 0 || input.rollsPerTarget ? batch : { ...batch, applications: [] },
-      actionLabel,
+      actionLabel: input.label,
       source,
       target: rollerAsPerceivedByCaster(
         actor,

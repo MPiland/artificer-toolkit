@@ -2,12 +2,7 @@ import { Button, Text } from '@mantine/core'
 import { useLocation } from '@tanstack/react-router'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
-import {
-  characterBuilderSteps,
-  getCharacterBuilderIssueStepId,
-  getCharacterBuilderValidationStepId,
-  type CharacterBuilderStepId
-} from '../../core/stepNavigation'
+import { characterBuilderSteps, type CharacterBuilderStepId } from '../../core/stepNavigation'
 import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as styles from './characterReview.css'
@@ -135,10 +130,10 @@ function buildReviewGroups(
   }
 
   for (const issue of payload.resolution.outstandingChoices) {
-    add(getCharacterBuilderIssueStepId(issue), { message: issue.message, severity: 'blocking' })
+    add(issue.sectionId, { message: issue.message, severity: 'blocking' })
   }
   for (const validation of payload.resolution.validations) {
-    add(getCharacterBuilderValidationStepId(validation), {
+    add(validation.sectionId, {
       message: validation.message,
       severity: validation.severity === 'warning' ? 'warning' : 'blocking'
     })

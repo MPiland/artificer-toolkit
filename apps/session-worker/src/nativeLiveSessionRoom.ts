@@ -57,6 +57,7 @@ import {
   projectSceneTokenPreviewForViewer,
   SceneBarrierIndex,
   sceneFogOwnerFailure,
+  sceneTransientStreamKey,
   type ScenePoint,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
@@ -299,13 +300,6 @@ function replayMessage(
       delta: { ...delta, result: { ...delta.result, replayed: true } }
     }
   return receipt
-}
-
-function streamKey(envelope: SceneTransientEnvelopeDto): string {
-  if (envelope.kind === 'TOKEN_DRAG_PREVIEW') return `${envelope.kind}:${envelope.tokenId}`
-  if (envelope.kind === 'FOG_AREA_PREVIEW')
-    return `${envelope.kind}:${envelope.ownerUserId ?? 'SHARED_PARTY'}`
-  return envelope.kind
 }
 
 function cacheKey(capture: LiveSessionRoomSceneCapture): string {
@@ -4435,7 +4429,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     scene: CampaignSceneStateDto,
     envelope: SceneTransientEnvelopeDto
   ): void {
-    const key = streamKey(envelope)
+    const key = sceneTransientStreamKey(envelope)
     const streams = this.#previewStreams.get(origin) ?? new Map<string, PreviewStream>()
     const retained = streams.get(key)
     if ((retained?.sequence ?? -1) >= envelope.sequence) return

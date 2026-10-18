@@ -258,6 +258,7 @@ export const characterBuilderGrantedContentDtoSchema = lazySchema(() =>
 export const characterBuilderIssueDtoSchema = lazySchema(() =>
   z.object({
     code: stringSchema,
+    sectionId: characterBuilderSectionIdDtoSchema,
     message: stringSchema,
     sourceLabel: stringSchema,
     source: z.optional(characterProvenanceDtoSchema),
@@ -268,6 +269,7 @@ export const characterBuilderIssueDtoSchema = lazySchema(() =>
 export const characterBuilderValidationDtoSchema = lazySchema(() =>
   z.object({
     code: stringSchema,
+    sectionId: characterBuilderSectionIdDtoSchema,
     message: stringSchema,
     severity: z.enum(['blocking', 'warning']),
     sourceLabel: z.optional(stringSchema),

@@ -95,6 +95,8 @@ export interface CharacterBuilderGrantedContent {
 
 export interface CharacterBuilderIssue {
   code: string
+  /** The Builder section that resolves this choice, set where the choice is produced. */
+  sectionId: CharacterBuilderSectionId
   message: string
   sourceLabel: string
   source?: CharacterProvenance
@@ -103,6 +105,8 @@ export interface CharacterBuilderIssue {
 
 export interface CharacterBuilderValidation {
   code: string
+  /** The Builder section that fixes this error, set where the error is produced. */
+  sectionId: CharacterBuilderSectionId
   message: string
   severity: 'blocking' | 'warning'
   sourceLabel?: string

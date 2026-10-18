@@ -20,7 +20,11 @@ import type {
   SceneTokenVision,
   SceneTransientEnvelope
 } from '@artificer-toolkit/shared/vtt/scene'
-import { SCENE_LENGTH_AMOUNT_MAX, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
+import {
+  SCENE_LENGTH_AMOUNT_MAX,
+  sceneFogOwnerKey,
+  VTT_SCENE_LIMITS
+} from '@artificer-toolkit/shared/vtt/scene'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
@@ -469,7 +473,7 @@ export const campaignSceneStateDtoSchema: z.ZodMiniType<CampaignSceneState> = la
       uniqueIds(scene.lights, context, 'lights')
       uniqueIds(scene.measurements, context, 'measurements')
       uniqueIds(scene.tokens, context, 'tokens')
-      const fogLayerKeys = scene.fogLayers.map((layer) => layer.ownerUserId ?? 'SHARED_PARTY')
+      const fogLayerKeys = scene.fogLayers.map((layer) => sceneFogOwnerKey(layer.ownerUserId))
       if (new Set(fogLayerKeys).size !== fogLayerKeys.length) {
         context.addIssue({
           code: 'custom',
