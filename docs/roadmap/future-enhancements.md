@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **A carried caster whose dependents are all outside the Run (D151).** The room loads none of those dependents, so it reinstates no Concentration, and damage in the Run stages no check for them. The caster's next Concentration still ends them. A START read of grants stamped with the Run's Characters would close it.
+
 - **A margin rider outlives an early-ended parent (D149).** The Drow's sleep lasts "while poisoned", but curing or GM-ending the poison mid-sleep leaves the unconscious rider for the GM to end. A persisted effect-to-effect end link would close it.
 
 - **Auras and spells that ignite flammable objects (SPELLS-20.T6, D144).** The Balor's Fire Aura and similar effects ignite unattended flammable objects; no object state is modelled, so the GM narrates it.
