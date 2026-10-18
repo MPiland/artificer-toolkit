@@ -1,5 +1,6 @@
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
+  CompiledActionChoice,
   CompiledActionTargetPolicy,
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
@@ -223,7 +224,8 @@ function authoredDirectedArea(
  * creature (with whether its user may be chosen), the point an area is centered on, or the origin
  * and direction of a directed area (each with the area, for the client's preview). A list of chosen
  * creatures also offers the forms the action authors, when it authors any, and says when the user
- * may name any Creature that meets the action's form filter. A policy this path cannot resolve
+ * may name any Creature that meets the action's form filter, and a cast that picks an option lists
+ * the options. A policy this path cannot resolve
  * stays an actor choice; resolving it is refused.
  */
 export function encounterActionChoiceTarget(
@@ -236,21 +238,22 @@ export function encounterActionChoiceTarget(
    * The zone the action places: one that lets the caster spare creatures says so, and a cast-time
    * pick lists the zones to pick from (D140).
    */
-  zonePlacement?: CompiledActionZonePlacement | CompiledActionZoneChoice | null
+  zonePlacement?: CompiledActionZonePlacement | CompiledActionZoneChoice | null,
+  /** The options a cast picks one of on the creatures it targets (D148). */
+  castChoice?: CompiledActionChoice | null
 ): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
+  const offered = (options: readonly { optionId: string; label: string }[] | undefined) =>
+    options
+      ? { choiceOptions: options.map(({ optionId, label }) => ({ id: optionId, label })) }
+      : {}
+  // A zone is picked where it is placed; any other pick on the creatures targeted.
+  const choiceOptions = offered(castChoice?.options)
   const zoneChoices = {
     ...(zonePlacement && sharedZonePlacement(zonePlacement).choosesUnaffected
       ? { choosesUnaffected: true as const }
       : {}),
-    ...(zonePlacement && 'options' in zonePlacement
-      ? {
-          choiceOptions: zonePlacement.options.map(({ optionId, label }) => ({
-            id: optionId,
-            label
-          }))
-        }
-      : {})
+    ...offered(zonePlacement && 'options' in zonePlacement ? zonePlacement.options : undefined)
   }
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
@@ -271,7 +274,8 @@ export function encounterActionChoiceTarget(
       ...(forms?.length
         ? { forms: forms.map(({ id, label, maxTargets }) => ({ id, label, maxTargets })) }
         : {}),
-      ...(formContribution?.filter ? { choosesCreatureForm: true as const } : {})
+      ...(formContribution?.filter ? { choosesCreatureForm: true as const } : {}),
+      ...choiceOptions
     }
   if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
     return { kind: 'CASTER_CENTERED', area, ...zoneChoices }
@@ -280,7 +284,7 @@ export function encounterActionChoiceTarget(
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
   const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
-  return { kind: 'ACTOR', self: self ?? 'ALLOWED' }
+  return { kind: 'ACTOR', self: self ?? 'ALLOWED', ...choiceOptions }
 }
 
 /**

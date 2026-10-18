@@ -489,7 +489,17 @@ attachment, shape, spared-creature choice, Concentration and any save at the cas
 (`zoneChoicePlan`); the action's facts read that shared save from every option (`zoneEntrySavingThrow`). The
 choice DTO lists them as `choiceOptions` on the `POINT` / `CASTER_CENTERED` target, the cast command names one as
 `choiceOptionId`, and the Worker places that option's zone (`chosenZonePlacement`), refusing a missing or unknown
-pick; later triggers run the stored definition. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
+pick; later triggers run the stored definition. A `CHOICE` path whose options place no zone (Protection from
+Energy's damage type, Blindness/Deafness's condition, SPELLS-30, D148) compiles to `compilation.choice =
+{ options: [{ optionId, label, activeEffectPlan, executionPlan }] }`, exclusive with `zonePlacement`. Both pickers
+narrow the action to one option with `castChoiceOptions`, which restores each option's own result kind from the
+compiled entry's `optionGroupKind`. The options must share their test and maintenance graphs, or the action goes
+manual. The top-level plans hold the first option. The choice DTO lists the options as `choiceOptions` on the
+`ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
+kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
+modifiers) passes `readsSharedTest` and reads the top-level option.
+`prepareEncounterActionSource` is the one place the picked option's plans replace the top-level ones. It refuses
+a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
 zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
