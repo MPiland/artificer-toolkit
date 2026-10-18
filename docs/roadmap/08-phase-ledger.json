@@ -7627,7 +7627,7 @@
             },
             {
               "id": "SPELLS-4.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -7637,11 +7637,11 @@
                 "after": ["SPELLS-20.T4b2b2"]
               },
               "text": "Wall geometry for placed zones: wall and ring shapes (hollow, wall thickness) in the zone placement plan and containment, damage without a save, and a zone movement cost and blocking rule authored from core options. Proved on Blade Barrier, Wall of Fire and Wall of Thorns (Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Wall of Fire and Wall of Thorns re-authored from CLOSED_RULE with the straight-wall or ring choice (ZONE_OPTIONS, WALL and RING targets), unsaved ENTER and END_TURN damage, zone movement cost and blocking rules. Proof: apps/session-worker/test/nativeRoomWallZoneSpells.test.ts. Green: ci/spells-4-t1b 606be9656 Tests 39113886951, Live 39113886987; phase merge 0c2e79c49 (fast path; backstop ci/merge-m103)."
             },
             {
               "id": "SPELLS-4.T1b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7650,7 +7650,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1b"]
               },
-              "text": "Wall of Fire's damaging side (D154): a cast-time choice of the wall's damaging side and a one-sided 10 ft band geometry; a creature ending its turn in the band, or entering it, takes the fire damage. Proved on Wall of Fire with a room journey."
+              "text": "Wall of Fire's damaging side (D154): a cast-time choice of the wall's damaging side and a one-sided 10 ft band geometry; a creature ending its turn in the band, or entering it, takes the fire damage. Proved on Wall of Fire with a room journey.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1c",

@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Flaky lease-renewal test.** `apps/session-worker/test/nativeRoomAdmission.test.ts` ("renews the authorization lease with one read per half-lease...") once made 4 authorization reads instead of 3 (Tests 39111148417, attempt 1) and passed on rerun. Likely a timer-boundary race in the test clock. Fix if it recurs.
+
 - **Fire Shield past 100 rounds or recast (D153):** the zone lasts the Run while its resistance expires after 100 turns, and recasting while it is up stacks a second zone; dismissing it early is not offered. A timed zone lifetime would close all three.
 
 - **A cast-time pick on a movement reaction (SPELLS-30.T1, D148).** A Character reaction whose effect offers a CHOICE pick is still discovered as a movement reaction, then fails to prepare with a raw `CastChoiceUnavailableError` instead of being dropped as stale. No SRD reaction offers a pick; fix by skipping such sources at discovery when one does.
