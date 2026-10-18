@@ -188,9 +188,11 @@ export function roomInputsResponse(
       const system = systemAuthoredDtoSchema.parse({
         id: systemId,
         label: 'Room fixture System',
+        schemaVersion: 4,
         rulesetCode: 'DND5E',
         rulesetVersion: '2014',
         userId: ownerUserId,
+        abilities: [],
         alignments: [],
         challengeRatings: [],
         conditionTypes: [],
