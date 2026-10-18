@@ -54,4 +54,24 @@ D151 approved the split (T10, then T12, then T11). The `CAMPAIGN_CLOCK` response
 - Fixture: `movementRoomFixture` derives a Character row's `sourceEncounterId` with `sourceEncounterIdForDefinition`, so a carried OWNER grant gets null, and takes `campaignClockMinute`.
 - Deferred post-launch: joining an ACTIVE Run and worn-form-only carried effects (future-enhancements, Deferred edge cases).
 
-Next: T12 (5.12), then T11 (5.13b).
+T10 CI: Live backend 39096689340 failed only on generated-file drift; the auto-fix committed 0a8ca61e9 on `ci/spells-5`, merged here before T12.
+
+**T12 (5.12): code and tests done.**
+
+- Descriptor `provenance` union (`ACTION` | `CARRIED`) replaces the top-level `sourceActionId`/`sourceOccurrenceId`; the receipt's `priorState` drops both. The orchestrator approved this as option A: nothing reads the prior state's action ids, and `descriptorChecksum` already pins the prior descriptor. Old dev ledgers are handled by the standing local reset/reseed approval, and the D151 note is added at merge. Stored states migrate through `rules/maintainedProvenanceMigration:run`.
+- `planReinstatedConcentrations` (`encounterGrantLifetimes.ts`) and `persistCarriedEffectResumes` reinstate one System Concentration per carried caster in the Run and relink their grants (`effectStore.relinkCarriedCas`); `readCharacterEffect` accepts a relinked stamped row.
+- `applyLiveConcentrationCleanup` records a `CARRIED` state's caster in `concentrationCasterCharacterIds`; `requireTurnMaintainedStates` binds a carried turn effect by its caster stamp.
+- Proofs: `grantLifetimes.test.ts` (planner), `encounterTurnEffectState.test.ts` (carried binding), `maintainedProvenanceMigration.test.ts` (migration), `nativeRoomCarriedGrantResume.test.ts` (room journey: START reinstates and relinks, Bite damage, failed check ends both carried grants, caster recorded).
+- `_generated/api.d.ts` gained the migration module by hand in codegen's shape; CI's live-backend drift check confirms it.
+- Deferred post-launch: actor removal of a reinstated caster, undo of a relinked grant, a reinstated state emptied by its own dependents.
+
+**T11 (5.13b): done.**
+
+- `campaignMinutesForRounds`/`ROUNDS_PER_CAMPAIGN_MINUTE` (`rules-runtime/campaignClock.ts`) are the one home of "ten rounds a minute". The carry-over and resume planners and the web offer use them.
+- `EncounterClockAdvanceOffer`: right after a COMPLETE command succeeds, the GM's Encounter view offers an ordinary `campaigns.clock.advance` by the elapsed rounds. "Not now" declines it. There's no backend change, and the offer is not persisted: a reload after completing drops it, and the GM can still use the clock editor's Advance.
+- Proofs: `CampaignEncounterWorkspace.test.tsx` (journey: complete, offer, advance by 2 minutes for 12 rounds; decline), `campaignClock.test.ts` (rounding).
+- T12 journey fix: the fixture stores an OWNER-lifetime carried grant with no source Run, so the untouched unstamped grant asserts `[null, null]`.
+- Light lane green: packages 256, Convex 26, Worker 33 + 2, web 14. Typecheck lane `spells-5-t12c` green.
+- Ledger: T10 now closes SPELLS-5.13 (its empty `closes` failed `acceptanceProgress.mjs`). T10, T11 and T12 are DONE, and ACs 5.12 and 5.13 are DONE. The PBI's status is left for the merge.
+
+T10 CI green: Tests 39097111839, Live 39097113212. Red proof: `roomInputs.test.ts` (Convex), `nativeRoomCarriedGrantResume.test.ts` and `grantLifetimes.test.ts` are RED. Worker `roomInputs.test.ts` is ALREADY-PASSING.

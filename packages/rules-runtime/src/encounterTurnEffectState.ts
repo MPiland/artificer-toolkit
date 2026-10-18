@@ -119,6 +119,16 @@ export async function requireTurnMaintainedStates(
   for (const effect of candidates) {
     const stateId = effect.maintainedEffectStateId
     if (stateId === null) continue
+    const state = states.get(stateId) ?? (await loadState(stateId))
+    if (!state) throw new Error('Maintained turn effect source binding is stale.')
+    const { provenance } = state.descriptor
+    if (provenance.kind === 'CARRIED') {
+      // D151: a carried effect keeps its earlier Run's origin; its caster stamp binds it.
+      if (effect.lifecycle.concentrationCasterCharacterId !== provenance.casterCharacterId)
+        throw new Error('Maintained turn effect source binding is stale.')
+      states.set(stateId, state)
+      continue
+    }
     const origin = effect.definition.origin
     if (
       origin.kind !== 'ENCOUNTER' ||
@@ -126,13 +136,11 @@ export async function requireTurnMaintainedStates(
       origin.sourceActorId === null
     )
       throw new Error('Maintained turn effect has an invalid Encounter source.')
-    const state = states.get(stateId) ?? (await loadState(stateId))
     if (
-      !state ||
       state.ownerActorId !== origin.sourceActorId ||
       ![
-        state.descriptor.sourceOccurrenceId,
-        encounterAreaTargetOccurrenceId(state.descriptor.sourceOccurrenceId, actor.id)
+        provenance.sourceOccurrenceId,
+        encounterAreaTargetOccurrenceId(provenance.sourceOccurrenceId, actor.id)
       ].includes(origin.sourceOccurrenceId)
     )
       throw new Error('Maintained turn effect source binding is stale.')

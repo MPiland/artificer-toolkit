@@ -128,8 +128,7 @@ const descriptor: EncounterMaintainedEffectDescriptorDto = {
   schemaVersion: 2,
   maintenanceDefinitionId: ids.maintenanceDefinition,
   definitionChecksum: 'b'.repeat(64),
-  sourceActionId: ids.command,
-  sourceOccurrenceId: ids.occurrence,
+  provenance: { kind: 'ACTION', sourceActionId: ids.command, sourceOccurrenceId: ids.occurrence },
   sourceActorId: ids.actor,
   replacementPolicy: 'REPLACE_SAME_DEFINITION',
   emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

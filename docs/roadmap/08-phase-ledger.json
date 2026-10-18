@@ -9506,16 +9506,27 @@
             },
             {
               "text": "A caster whose Concentration carried over to the Campaign clock is still concentrating in a later Encounter: damage stages a Concentration check, and losing it ends every carried grant that depends on it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterTurnEffectState.test.ts",
+                "apps/apis/convex/rules/maintainedProvenanceMigration.test.ts"
+              ],
               "origin": [],
               "note": "Found 2026-10-09 while planning SPELLS-5.11: a carried-only caster holds no Run slot, so damage in a new Run stages no check. Builds after SPELLS-5.11 and reuses its by-caster grant index.",
               "id": "SPELLS-5.12"
             },
             {
               "text": "A grant carried over to the Campaign clock counts down in rounds while its holder is in a later Encounter and ends there when its time runs out, and completing an Encounter offers the GM to advance the Campaign clock by the Encounter's elapsed rounds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCarriedGrantResume.test.ts",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts",
+                "apps/apis/convex/liveSessions/roomInputs.test.ts",
+                "apps/web/src/domains/campaigns/components/CampaignEncounterWorkspace.test.tsx",
+                "packages/rules-runtime/src/__tests__/campaignClock.test.ts"
+              ],
               "origin": [],
               "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
               "id": "SPELLS-5.13"
@@ -9556,20 +9567,21 @@
             {
               "id": "SPELLS-5.T10",
               "text": "Carried timers resume at a later Run's START (D151): remaining ticks from expiresAtCampaignMinute and the Campaign clock (CAMPAIGN_CLOCK room input), capped at the authored duration; an expired one ends; a SOURCE anchor from an earlier Run counts on its holder; tick writes keep the lifecycle's optional fields.",
-              "status": "IN_PROGRESS",
-              "closes": [],
+              "status": "DONE",
+              "closes": [
+                "SPELLS-5.13"
+              ],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 5,
                 "size": 3
-              },
-              "activeWorkbook": "docs/handoffs/slice-spells-5.md"
+              }
             },
             {
               "id": "SPELLS-5.T12",
               "text": "A carried caster's Concentration is reinstated at a later Run's START as a maintained state from the System Concentration definition, relinking its carried grants; the descriptor gains a required provenance union (ACTION or CARRIED) with stored rows migrated; ending it records the caster (D151).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-5.12"
               ],
@@ -9586,7 +9598,7 @@
             {
               "id": "SPELLS-5.T11",
               "text": "The GM's completed-Encounter view offers to advance the Campaign clock by ceil(rounds / 10) minutes through campaigns.clock.advance (D151).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-5.13"
               ],

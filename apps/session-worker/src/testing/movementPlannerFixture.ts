@@ -262,8 +262,11 @@ export async function concentrationDescriptor(
     schemaVersion: 2,
     maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
     definitionChecksum: definition.checksum,
-    sourceActionId: 'maintained-source-action',
-    sourceOccurrenceId: testUuid(0x4001),
+    provenance: {
+      kind: 'ACTION',
+      sourceActionId: 'maintained-source-action',
+      sourceOccurrenceId: testUuid(0x4001)
+    },
     sourceActorId: actorId,
     replacementPolicy: 'REPLACE_SAME_DEFINITION',
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'

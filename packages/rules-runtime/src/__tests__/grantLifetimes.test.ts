@@ -30,7 +30,13 @@ import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
-import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
+import {
+  SRD_CONCENTRATION_DEFINITIONS,
+  SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+} from '@artificer-toolkit/source-data/srd/concentration.js'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
@@ -51,6 +57,7 @@ import {
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks,
   planIdleTurnCheck,
+  planReinstatedConcentrations,
   planResumedCarriedEffects,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
@@ -1346,6 +1353,105 @@ describe('planConcentrationCarriedGrantEnds', () => {
     expect(
       planConcentrationCarriedGrantEnds({ casterCharacterId: CHARACTER_ID, effects: [unstamped] })
     ).toEqual([])
+  })
+})
+
+describe('planReinstatedConcentrations (SPELLS-5.12, D151)', () => {
+  const CASTER_ACTOR_ID = testUuid(0xc3a0)
+  const CASTER_CHARACTER_ID = testUuid(0xc3a1)
+  const [, concentration] = SRD_CONCENTRATION_DEFINITIONS
+  const definition = reusableDefinitionCurrentDtoSchema.parse({
+    ...concentration,
+    gameSystemId: SRD_SYSTEM_ID,
+    contentSourceId: testUuid(0xc3a2),
+    contractVersion: 1,
+    version: 1,
+    publishedAt: TIMESTAMP,
+    publishedBy: testUuid(0xc3a3)
+  })
+  const actors = [
+    characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_CHARACTER_ID }),
+    creatureActor({ id: SOURCE_ID, snapshot: {} })
+  ]
+  const stamped = (
+    id: number,
+    caster: string | null,
+    overrides: Partial<Pick<ActiveRuleEffectRecord, 'owner' | 'maintainedEffectStateId'>> = {}
+  ): ActiveRuleEffectRecord => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks: 4
+    })
+    return {
+      ...effect,
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      lifecycle: { ...effect.lifecycle, concentrationCasterCharacterId: caster },
+      ...overrides
+    }
+  }
+  const plan = (
+    effects: ActiveRuleEffectRecord[],
+    readDefinition: () => Promise<typeof definition | null> = async () => definition
+  ) =>
+    planReinstatedConcentrations({ gameSystemId: SRD_SYSTEM_ID, actors, effects, readDefinition })
+
+  it('gives a caster in the Run one System Concentration for all the grants stamped with them', async () => {
+    const first = stamped(0xc3a4, CASTER_CHARACTER_ID)
+    const second = stamped(0xc3a5, CASTER_CHARACTER_ID, {
+      owner: { kind: 'CHARACTER', characterId: CASTER_CHARACTER_ID }
+    })
+    await expect(plan([first, second])).resolves.toEqual([
+      {
+        casterActorId: CASTER_ACTOR_ID,
+        effects: [first, second],
+        descriptor: {
+          schemaVersion: 2,
+          maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+          definitionChecksum: concentration.checksum,
+          provenance: { kind: 'CARRIED', casterCharacterId: CASTER_CHARACTER_ID },
+          sourceActorId: CASTER_ACTOR_ID,
+          replacementPolicy: 'REPLACE_SAME_DEFINITION',
+          emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+        }
+      }
+    ])
+    const [{ descriptor }] = await plan([first])
+    expect(encounterMaintainedEffectDescriptorDtoSchema.parse(descriptor)).toEqual(descriptor)
+  })
+
+  it('reinstates nothing, and reads no definition, for a caster outside the Run', async () => {
+    let reads = 0
+    const readDefinition = async () => {
+      reads += 1
+      return definition
+    }
+    await expect(plan([stamped(0xc3a6, testUuid(0xc3af))], readDefinition)).resolves.toEqual([])
+    expect(reads).toBe(0)
+  })
+
+  it('skips unstamped, already linked and Encounter-actor effects', async () => {
+    const unstamped = stamped(0xc3a7, null)
+    const linked = stamped(0xc3a8, CASTER_CHARACTER_ID, {
+      maintainedEffectStateId: testUuid(0xc3ae)
+    })
+    const onActor = stamped(0xc3a9, CASTER_CHARACTER_ID, {
+      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: TARGET_ID }
+    })
+    await expect(plan([unstamped, linked, onActor])).resolves.toEqual([])
+  })
+
+  it('refuses a missing definition, or one from another System or family', async () => {
+    const effects = [stamped(0xc3aa, CASTER_CHARACTER_ID)]
+    await expect(plan(effects, async () => null)).rejects.toThrow(
+      'The System Concentration definition is unavailable.'
+    )
+    await expect(
+      plan(effects, async () => ({ ...definition, gameSystemId: testUuid(0xc3ab) }))
+    ).rejects.toThrow('The System Concentration definition is unavailable.')
+    await expect(
+      plan(effects, async () => ({ ...definition, definitionFamilyKey: 'rules-runtime-graph' }))
+    ).rejects.toThrow('The System Concentration definition is unavailable.')
   })
 })
 

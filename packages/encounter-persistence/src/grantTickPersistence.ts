@@ -5,8 +5,11 @@ import {
 import {
   planEncounterGrantTicks,
   planIdleTurnCheck,
+  planReinstatedConcentrations,
   planResumedCarriedEffects
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
   turnEffectOwner,
   type TurnEffectBoundary
@@ -72,13 +75,17 @@ export async function persistEncounterGrantTicks(
  * D151, SPELLS-5.13: a Run's START resumes its Characters' carried-over effects from the Campaign
  * clock, in the START's own transaction and before its turn is planned, so the first turn already
  * counts them down. Only a PREPARED Run resumes, and the clock is read only when an effect waits on
- * it. An effect whose expiry the clock has reached ends like an expired grant.
+ * it. An effect whose expiry the clock has reached ends like an expired grant. A Character caster in
+ * the Run then gets back the Concentration its surviving carried grants are stamped with (D151,
+ * SPELLS-5.12), and those grants relink to it.
  */
 export async function persistCarriedEffectResumes(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     encounterId: string
     readClockMinute(): Promise<number | null>
+    /** Reads the System's Concentration definition, only when a carried caster reinstates it. */
+    readDefinition(definitionId: string): Promise<ReusableDefinitionCurrentDto | null>
     occurredAt: string
   }
 ) {
@@ -102,24 +109,55 @@ export async function persistCarriedEffectResumes(
   const waiting = holders.some(({ effects }) =>
     effects.some(({ lifecycle }) => typeof lifecycle.expiresAtCampaignMinute === 'number')
   )
-  if (!waiting) return
-  const clockMinute = await input.readClockMinute()
+  const clockMinute = waiting ? await input.readClockMinute() : null
   const expired: ActiveRuleEffectRecord[] = []
-  for (const { owner, effects } of holders)
-    for (const resume of planResumedCarriedEffects({ effects, clockMinute })) {
-      const { effect } = resume
-      if (resume.kind === 'EXPIRE') {
+  const resumed: ActiveRuleEffectRecord[] = []
+  for (const { owner, effects } of holders) {
+    const plans = new Map(
+      planResumedCarriedEffects({ effects, clockMinute }).map((plan) => [plan.effect.id, plan])
+    )
+    for (const effect of effects) {
+      const resume = plans.get(effect.id)
+      if (!resume) resumed.push(effect)
+      else if (resume.kind === 'EXPIRE') {
         await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
         expired.push(effect)
       } else
-        await store.updateLifecycleCas({
-          id: effect.id,
-          owner,
-          expectedVersion: effect.version,
-          lifecycle: resume.lifecycle
-        })
+        resumed.push(
+          await store.updateLifecycleCas({
+            id: effect.id,
+            owner,
+            expectedVersion: effect.version,
+            lifecycle: resume.lifecycle
+          })
+        )
     }
+  }
   await reconcileExpiredGrants(ctx, { state, expired, actors, occurredAt: input.occurredAt })
+  const definitionId = requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
+  for (const { casterActorId, descriptor, effects } of await planReinstatedConcentrations({
+    gameSystemId: state.gameSystemId,
+    actors,
+    effects: resumed,
+    readDefinition: () => input.readDefinition(definitionId)
+  })) {
+    const reinstated = await store.createMaintainedState({
+      id: crypto.randomUUID(),
+      encounterId: state.id,
+      ownerActorId: casterActorId,
+      descriptor,
+      occurredAt: input.occurredAt
+    })
+    for (const effect of effects) {
+      if (effect.owner.kind !== 'CHARACTER') throw new Error('Only a Character grant is carried.')
+      await store.relinkCarriedCas({
+        id: effect.id,
+        characterId: effect.owner.characterId,
+        expectedVersion: effect.version,
+        state: reinstated
+      })
+    }
+  }
 }
 
 /**

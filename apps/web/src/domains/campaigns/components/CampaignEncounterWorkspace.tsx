@@ -34,6 +34,7 @@ import { EncounterActorCard } from './EncounterActorCard'
 import { EncounterReinforcement } from './EncounterReinforcement'
 import { CampaignEncounterDecision } from './CampaignEncounterDecision'
 import { EncounterReminders } from './EncounterReminders'
+import { EncounterClockAdvanceOffer } from './CampaignClock/EncounterClockAdvanceOffer'
 import { readRoomEncounterRun } from '../vtt/roomEncounterRun'
 import { useCampaignLiveSession } from '../vtt/useCampaignLiveSession'
 import { useEncounterPendingDecision } from './useEncounterPendingDecision'
@@ -71,6 +72,7 @@ export function CampaignEncounterWorkspace({
   const [removeActorId, setRemoveActorId] = useState<string | null>(null)
   const [rulesetSystemId, setRulesetSystemId] = useState<string | null>(null)
   const [round, setRound] = useState(encounter.round)
+  const [completedRounds, setCompletedRounds] = useState<number | null>(null)
   const timeline =
     live.encounterSession?.state.encounter?.id === encounter.id
       ? live.encounterSession.timeline
@@ -98,6 +100,7 @@ export function CampaignEncounterWorkspace({
       setUndoConfirmOpen(false)
       setRemoveActorId(null)
       setReinforceOpen(false)
+      if (updated.status === 'COMPLETED') setCompletedRounds(updated.round)
       onUpdated(updated)
     }
   })
@@ -322,6 +325,13 @@ export function CampaignEncounterWorkspace({
         </Text>
       ) : null}
       {commandError ? <Alert color='red'>{commandError}</Alert> : null}
+      {completedRounds !== null ? (
+        <EncounterClockAdvanceOffer
+          campaignId={campaign.id}
+          rounds={completedRounds}
+          onClose={() => setCompletedRounds(null)}
+        />
+      ) : null}
       {!readOnly ? (
         <AppSelect
           allowDeselect={false}

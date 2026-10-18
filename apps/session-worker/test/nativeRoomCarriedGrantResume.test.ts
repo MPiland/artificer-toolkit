@@ -5,14 +5,15 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
-import { actionRoom } from './actionRoomFixture.js'
+import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-5.13, D151: a Run's START resumes the grants its Characters carried out of an earlier Run.
@@ -147,5 +148,115 @@ describe('a room START with grants carried from an earlier Run (SPELLS-5.13, D15
       remainingTicks: 9,
       concentrationCasterCharacterId: CASTER_CHARACTER_ID
     })
+  })
+})
+
+/**
+ * SPELLS-5.12, D151: a caster whose Concentration carried over is still concentrating in a later Run.
+ * START gives them back the System Concentration and relinks the grants stamped with them, so damage
+ * stages a Concentration check and losing it ends every one of those grants.
+ */
+const CARRIED_IDS = [testUuid(0x5620), testUuid(0x5621)]
+const UNSTAMPED_ID = testUuid(0x5622)
+
+function carriedConcentrationRoom() {
+  const wolf = biteWolf('ATTACK')
+  return actionRoom({
+    actors: [
+      srdCreatureActor({ id: WOLF_ID, creature: wolf }),
+      {
+        ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+      }
+    ],
+    ownerFeatureId: creatureFeature(wolf, 'Bite').id,
+    status: 'PREPARED',
+    campaignClockMinute: CLOCK_MINUTE,
+    autoRoll: 'EVERYONE',
+    // The Character wins initiative; the Wolf's attack die then shows 19 and the save die 1.
+    rolls: [20, 1, 18, 0],
+    seed: async ({ effects, encounterId, occurredAt }) => {
+      // Carried untimed out of the earlier Run, where the Character cast them on itself.
+      const grant = plannedModifierGrant({
+        encounterId: PREVIOUS_RUN_ID,
+        sourceActorId: PREVIOUS_SOURCE_ID,
+        holderActorId: CHARACTER_ACTOR_ID,
+        lifecycle: {},
+        rounds: 20,
+        lifetimeScope: 'OWNER'
+      })
+      for (const [id, concentrationCasterCharacterId] of [
+        ...CARRIED_IDS.map((carried) => [carried, CHARACTER_ID] as const),
+        [UNSTAMPED_ID, null] as const
+      ])
+        await effects.create({
+          id,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: CHARACTER_ACTOR_ID },
+          definition: grant.definition,
+          lifecycle: {
+            schemaVersion: 1,
+            remainingTicks: null,
+            expiresAtCampaignMinute: null,
+            concentrationCasterCharacterId
+          },
+          occurredAt
+        })
+    }
+  })
+}
+
+function concentrationChecks(history: Awaited<ReturnType<typeof readRoomHistory>>) {
+  return history.receipts.flatMap((receipt) => {
+    const execution = parseReceiptExecution(receipt)
+    return execution.status === 'COMPLETE' &&
+      execution.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+      ? [execution.applicationOutputs]
+      : []
+  })
+}
+
+describe('a carried Concentration in a later Run (SPELLS-5.12, D151)', () => {
+  it('is reinstated at START, staged by damage, and ends every carried grant when lost', async () => {
+    const room = await carriedConcentrationRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    expect(before.maintainedStates).toEqual([])
+
+    await send(room, 'START')
+
+    const started = await readRoomHistory(room.room.base.stub)
+    const [state, ...others] = started.maintainedStates
+    expect(others).toEqual([])
+    expect(state).toMatchObject({
+      encounterId: room.room.encounterId,
+      ownerActorId: CHARACTER_ACTOR_ID,
+      maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+    })
+    expect(JSON.parse(String(state!.descriptorJson))).toMatchObject({
+      provenance: { kind: 'CARRIED', casterCharacterId: CHARACTER_ID },
+      sourceActorId: CHARACTER_ACTOR_ID
+    })
+    const links = Object.fromEntries(
+      started.characterEffects.map((effect) => [
+        effect.id,
+        [effect.maintainedEffectStateId, effect.sourceEncounterId]
+      ])
+    )
+    expect(links).toEqual({
+      [CARRIED_IDS[0]!]: [state!.id, room.room.encounterId],
+      [CARRIED_IDS[1]!]: [state!.id, room.room.encounterId],
+      // An OWNER-lifetime carried grant is stored with no source Run, and START leaves it so.
+      [UNSTAMPED_ID]: [null, null]
+    })
+
+    // The Character's turn passes to the Wolf, whose Bite hits the concentrating Character.
+    await send(room, 'ADVANCE_TURN')
+    const bite = await room.startAction(CHARACTER_ACTOR_ID)
+    expect(bite.answer.type, JSON.stringify(bite.answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toMatchObject([{ outcome: 'SAVE_FAILURE' }])
+    expect(after.maintainedStates).toEqual([])
+    expect(after.characterEffects.map(({ id }) => id)).toEqual([UNSTAMPED_ID])
+    expect(after.runs[0]!.concentrationCasterCharacterIds).toEqual([CHARACTER_ID])
   })
 })

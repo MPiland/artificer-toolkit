@@ -1347,6 +1347,21 @@ holder's turns instead (`grantAnchorActorId`), and the departed-source removal s
 spread the stored lifecycle, so the caster stamp survives every count. Not resumed: a Character that joins
 an already `ACTIVE` Run, and a carried effect held only through a worn form.
 
+**Reinstated Concentration (D151, SPELLS-5.12).** After the resume, the same START gives a carried caster
+who is a Character actor of the Run back the Concentration their surviving carried grants are stamped
+with. `planReinstatedConcentrations` groups the Run's Character-owned, unlinked, stamped effects by caster,
+keeps the casters in the Run, and builds one maintained-state descriptor each from the System
+Concentration definition (`requireInstalledConcentrationMaintenanceDefinitionId`, read only when a caster
+reinstates) with `provenance: { kind: 'CARRIED', casterCharacterId }`. `persistCarriedEffectResumes`
+creates the state on the caster's actor and relinks each grant (`relinkCarriedCas`), so damage stages a
+Concentration check and every loss path (failed check, incapacitation, edit or chosen end) ends the grants
+as dependents through `applyLiveConcentrationCleanup`, which also records the caster in
+`concentrationCasterCharacterIds` when the ended state is `CARRIED`. At COMPLETE the relinked grants carry
+over again through the usual detach. A turn effect under a `CARRIED` state binds by its caster stamp, not
+its origin (`requireTurnMaintainedStates`). An `ACTION` provenance names the creating action and
+occurrence; the receipt's `priorState` names neither (its checksum pins the prior descriptor). Not
+reinstated: a caster whose stamped grants all sit on Characters outside the Run.
+
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
 whether the source was hidden, rounds left or the carried expiry minute, and its polarity);
 `hideActiveGrantSources` nulls a hidden source's label for everyone but the GM and keeps the polarity (D110).

@@ -64,6 +64,7 @@ export async function executeRoomEncounterTurn(input: {
     await persistCarriedEffectResumes(ctx, {
       encounterId: scope.encounterId,
       readClockMinute: () => inputs.campaignClockMinute(),
+      readDefinition: async (id) => (await inputs.definition(id, observed, transaction)).definition,
       occurredAt: new Date().toISOString()
     })
   const plan = await planNativeLiveEncounterTurn(scope, input.command, {

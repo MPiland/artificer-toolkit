@@ -73,10 +73,7 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   // The effect of a reaction the target used lands on the target beside the action's own effects.
   const reactionTransition =
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
-      ? [
-          ...(outputs.reaction?.activeEffectTransitions ?? []),
-          ...outputs.reactionEffectTransitions
-        ]
+      ? [...(outputs.reaction?.activeEffectTransitions ?? []), ...outputs.reactionEffectTransitions]
       : []
   if (
     input.createdEffects.length > 3 ||
@@ -181,8 +178,9 @@ export async function prepareMaintenanceReplacement(
     created.ownerActorId !== input.command.actorId ||
     created.maintenanceDefinitionId !== created.descriptor.maintenanceDefinitionId ||
     created.descriptor.sourceActorId !== input.command.actorId ||
-    created.descriptor.sourceActionId !== input.command.actionId ||
-    created.descriptor.sourceOccurrenceId !== input.sourceOccurrenceId
+    created.descriptor.provenance.kind !== 'ACTION' ||
+    created.descriptor.provenance.sourceActionId !== input.command.actionId ||
+    created.descriptor.provenance.sourceOccurrenceId !== input.sourceOccurrenceId
   )
     throw new Error('Created maintained effect state does not match the completed action.')
 

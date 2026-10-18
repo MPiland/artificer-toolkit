@@ -80,9 +80,15 @@ export function readCharacterEffect(
     )
   if (checksumCanonicalJson(lifecycle) !== value.lifecycleChecksum)
     throw new Error('Active rule-effect lifecycle checksum does not match its persisted lifecycle.')
+  // D151: a carried grant relinked to a later Run's reinstated Concentration keeps its earlier origin.
+  const relinkedCarried =
+    value.maintainedEffectStateId !== null &&
+    value.sourceEncounterId !== null &&
+    concentrationCasterColumn(lifecycle) !== null
   if (
+    !relinkedCarried &&
     value.sourceEncounterId !==
-    sourceEncounterIdForDefinition(definition, value.maintainedEffectStateId)
+      sourceEncounterIdForDefinition(definition, value.maintainedEffectStateId)
   )
     throw new Error(
       'Character active rule-effect source Encounter does not match immutable definition provenance.'
@@ -746,6 +752,53 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       })
       const updated = await ctx.db.get(row._id)
       if (!updated) throw new Error('Active rule effect changed before detaching from its Run.')
+      return readCharacterEffect(updated)
+    },
+    /**
+     * Relinks a carried Concentration grant to the Concentration a later Run reinstated for its caster
+     * (D151, SPELLS-5.12), so that state's ending ends it like any dependent.
+     */
+    async relinkCarriedCas(input: {
+      id: string
+      characterId: string
+      expectedVersion: number
+      state: EncounterMaintainedEffectStateRecord
+    }): Promise<ActiveRuleEffectRecord> {
+      const owner = ownerFor({ kind: 'CHARACTER', characterId: input.characterId })
+      if (owner.kind !== 'CHARACTER') throw new Error('Only a Character grant is carried.')
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
+      const { provenance } = input.state.descriptor
+      const current = await findEffectById(owner, id)
+      if (
+        !current ||
+        current.version !== expectedVersion ||
+        current.maintainedEffectStateId !== null ||
+        provenance.kind !== 'CARRIED' ||
+        current.lifecycle.concentrationCasterCharacterId !== provenance.casterCharacterId
+      )
+        throw new Error('Active rule effect changed before relinking to its caster.')
+      if (
+        (await maintainedDependentCount(input.state.encounterId, input.state.ownerActorId)) >=
+        MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+      )
+        throw new Error(
+          `An Encounter actor may own at most ${MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR} maintained dependent effects.`
+        )
+      const row = await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_id', (q) => q.eq('characterId', owner.characterId).eq('id', id))
+        .unique()
+      if (!row || row.version !== expectedVersion)
+        throw new Error('Active rule effect changed before relinking to its caster.')
+      await ctx.db.patch(row._id, {
+        maintainedEffectStateId: input.state.id,
+        sourceEncounterId: input.state.encounterId,
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString()
+      })
+      const updated = await ctx.db.get(row._id)
+      if (!updated) throw new Error('Active rule effect changed before relinking to its caster.')
       return readCharacterEffect(updated)
     },
     async deleteCas(input: { id: string; owner: ActiveRuleEffectOwner; expectedVersion: number }) {

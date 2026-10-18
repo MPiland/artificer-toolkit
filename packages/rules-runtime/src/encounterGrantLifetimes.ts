@@ -5,9 +5,13 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   ActiveEffectConsumeEvent,
-  ActiveEffectEndEvent
+  ActiveEffectEndEvent,
+  EncounterMaintainedEffectDescriptorDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
@@ -254,7 +258,7 @@ export function planCarriedOverEffects(input: {
       ...(concentrationCasterCharacterId === undefined ? {} : { concentrationCasterCharacterId }),
       ...(wornForm ? { carriedCreatureForm: carriedCreatureForm(wornForm) } : {}),
       expiresAtCampaignMinute:
-        input.clockMinute === null ? null : input.clockMinute + Math.ceil(remaining / 10)
+        input.clockMinute === null ? null : input.clockMinute + campaignMinutesForRounds(remaining)
     }
     return [{ effect, lifecycle }]
   })
@@ -287,12 +291,62 @@ export function planResumedCarriedEffects<Effect extends ActiveRuleEffectRecord>
       return []
     const remainingTicks = Math.min(
       expiration.initialRemaining,
-      (expiresAtCampaignMinute - clockMinute) * 10
+      (expiresAtCampaignMinute - clockMinute) * ROUNDS_PER_CAMPAIGN_MINUTE
     )
     return remainingTicks <= 0
       ? [{ kind: 'EXPIRE', effect }]
       : [{ kind: 'UPDATE', effect, lifecycle: { ...lifecycle, remainingTicks } }]
   })
+}
+
+/**
+ * D151, SPELLS-5.12: a later Run's START gives each Character caster in the Run back the Concentration
+ * that the carried grants of the Run's Characters still stamp them with, as the System's maintenance
+ * definition, so a failed check or a new Concentration ends those grants through the usual paths.
+ * A caster outside the Run, or a grant already relinked, reinstates nothing.
+ */
+export async function planReinstatedConcentrations<Effect extends ActiveRuleEffectRecord>(input: {
+  gameSystemId: string
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'>[]
+  effects: readonly Effect[]
+  /** Read only when some caster reinstates. */
+  readDefinition(): Promise<ReusableDefinitionCurrentDto | null>
+}) {
+  const byCaster = new Map<string, Effect[]>()
+  for (const effect of input.effects) {
+    const casterCharacterId = effect.lifecycle.concentrationCasterCharacterId
+    if (effect.owner.kind !== 'CHARACTER' || effect.maintainedEffectStateId !== null) continue
+    if (typeof casterCharacterId === 'string')
+      byCaster.set(casterCharacterId, [...(byCaster.get(casterCharacterId) ?? []), effect])
+  }
+  const reinstated = [...byCaster].flatMap(([casterCharacterId, effects]) => {
+    const caster = input.actors.find(
+      (actor) => actor.kind === 'CHARACTER' && actor.sourceId === casterCharacterId
+    )
+    return caster ? [{ caster, casterCharacterId, effects }] : []
+  })
+  if (reinstated.length === 0) return []
+  const definition = await input.readDefinition()
+  if (
+    !definition ||
+    definition.gameSystemId !== input.gameSystemId ||
+    definition.definitionFamilyKey !== 'rule-maintenance'
+  )
+    throw new Error('The System Concentration definition is unavailable.')
+  const policy = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse(definition.document)
+  return reinstated.map(({ caster, casterCharacterId, effects }) => ({
+    casterActorId: caster.id,
+    effects,
+    descriptor: {
+      schemaVersion: 2,
+      maintenanceDefinitionId: definition.id,
+      definitionChecksum: definition.checksum,
+      provenance: { kind: 'CARRIED', casterCharacterId },
+      sourceActorId: caster.id,
+      replacementPolicy: policy.replacementPolicy,
+      emptyDependentPolicy: policy.emptyDependentPolicy
+    } satisfies EncounterMaintainedEffectDescriptorDto
+  }))
 }
 
 /**

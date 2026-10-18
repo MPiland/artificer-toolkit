@@ -81,8 +81,11 @@ export function maintainedState(input: {
       schemaVersion: 2,
       maintenanceDefinitionId: input.definitionId,
       definitionChecksum: input.definitionChecksum ?? 'c'.repeat(64),
-      sourceActionId: 'maintained-source-action',
-      sourceOccurrenceId: testUuid(0x4001),
+      provenance: {
+        kind: 'ACTION',
+        sourceActionId: 'maintained-source-action',
+        sourceOccurrenceId: testUuid(0x4001)
+      },
       sourceActorId: input.ownerActorId,
       replacementPolicy: 'REPLACE_SAME_DEFINITION',
       emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
