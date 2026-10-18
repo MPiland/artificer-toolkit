@@ -27,6 +27,8 @@ export interface PlacedSpaceZone {
   shape: NonNullable<PlacedSpaceManifest['shape']>
   component: CompiledManifestComponent
   behavior: CompiledEffectGroup
+  /** The one APPLY_GRANT entry authored beside the zone, which its placer holds; null for none. */
+  sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
 }
 
 /** The authored fields a placed zone models; any other field would change behavior unmodeled. */
@@ -94,14 +96,35 @@ export function placedSpaceManifest(
 function singlePlacedSpaceManifest(
   compiledEffect: CompiledEffectGroup
 ): PlacedSpaceManifest | null {
-  const [entry] = compiledEffect.entries
-  if (compiledEffect.entries.length !== 1 || !entry || !('outcome' in entry)) return null
-  const outcome = entry.outcome
-  return outcome.effectKind === 'MANIFEST' &&
-    outcome.manifestKind === 'ZONE' &&
-    (outcome.attachmentKind === 'PLACED_SPACE' || outcome.attachmentKind === 'SOURCE')
-    ? (outcome as PlacedSpaceManifest)
-    : null
+  return placedSpaceEntries(compiledEffect)?.manifest ?? null
+}
+
+/**
+ * The zone manifest of an action whose entries are one PLACED_SPACE or SOURCE zone and at most one
+ * APPLY_GRANT beside it (D153), with that grant's entry; null for any other action.
+ */
+function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
+  manifest: PlacedSpaceManifest
+  sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
+} | null {
+  const zones = compiledEffect.entries.filter(
+    (entry) =>
+      'outcome' in entry &&
+      entry.outcome.effectKind === 'MANIFEST' &&
+      entry.outcome.manifestKind === 'ZONE' &&
+      (entry.outcome.attachmentKind === 'PLACED_SPACE' || entry.outcome.attachmentKind === 'SOURCE')
+  )
+  const [zone] = zones
+  const others = compiledEffect.entries.filter((entry) => entry !== zone)
+  if (
+    zones.length !== 1 ||
+    !zone ||
+    !('outcome' in zone) ||
+    others.length > 1 ||
+    others.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT')
+  )
+    return null
+  return { manifest: zone.outcome as PlacedSpaceManifest, sourceGrantEntry: others[0] ?? null }
 }
 
 /**
@@ -110,8 +133,9 @@ function singlePlacedSpaceManifest(
  * partly honored).
  */
 export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpaceZone | null {
-  const manifest = singlePlacedSpaceManifest(compiledEffect)
-  if (!manifest) return null
+  const entries = placedSpaceEntries(compiledEffect)
+  if (!entries) return null
+  const { manifest, sourceGrantEntry } = entries
   if (hasUnmodeledField(manifest, MODELED_MANIFEST_KEYS))
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone models only its label, shape and entering components.'
@@ -136,22 +160,28 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     label,
     shape,
     component,
-    behavior
+    behavior,
+    sourceGrantEntry
   }
 }
 
 /**
  * What a zone component reacts to, in canonical order: the movements and the turn boundaries its
- * interactions name. Null when it names none, or any interaction the System does not model.
+ * interactions name, and whether it answers a melee hit on its source (D153). Null when it names
+ * none, or any interaction the System does not model.
  */
 export function zoneTriggers(
   component: CompiledManifestComponent
-): Pick<CompiledActionZonePlacement, 'triggerModes' | 'turnTriggers'> | null {
+): Pick<
+  CompiledActionZonePlacement,
+  'triggerModes' | 'turnTriggers' | 'retaliatesMeleeHits'
+> | null {
   const kinds = component.interactionKinds
   if (!kinds?.length) return null
   const movement = new Set<string>()
   const turn = new Set<string>()
   for (const kind of kinds) {
+    if (kind === 'MELEE_HIT_ON_SOURCE') continue
     const movements = ZONE_MOVEMENT_TRIGGERS[kind]
     const boundary = ZONE_TURN_TRIGGERS[kind]
     if (!movements && !boundary) return null
@@ -161,7 +191,8 @@ export function zoneTriggers(
   const turnTriggers = SPATIAL_TURN_TRIGGERS.filter((t) => turn.has(t))
   return {
     triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter((t) => movement.has(t)),
-    ...(turnTriggers.length ? { turnTriggers } : {})
+    ...(turnTriggers.length ? { turnTriggers } : {}),
+    ...(kinds.includes('MELEE_HIT_ON_SOURCE') ? { retaliatesMeleeHits: true as const } : {})
   }
 }
 

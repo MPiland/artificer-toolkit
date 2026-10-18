@@ -45,6 +45,7 @@ describe('SRD zones state where they are placed (ADR 0038)', () => {
       'Antilife Shell',
       'Antimagic Field',
       'Balor',
+      'Fire Shield',
       'Spirit Guardians'
     ])
     expect(ownersOf('PRIMARY_TARGET')).toEqual(['Resilient Sphere'])

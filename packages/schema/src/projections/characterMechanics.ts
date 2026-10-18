@@ -155,7 +155,7 @@ const compiledActionMaintenanceSchema = lazySchema(() =>
   )
 )
 
-const compiledActionActiveEffectPlanSchema = lazySchema(() =>
+const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
   z.strictObject({
     authoredEffectId: serverUuidIdentityDtoSchema,
     compiledEntryId: serverUuidIdentityDtoSchema,
@@ -288,6 +288,14 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
   })
 )
 
+/** Named so the many schemas embedding a plan stay within the declaration size limit (TS7056). */
+export type CompiledActionActiveEffectPlan = z.infer<
+  typeof compiledActionActiveEffectPlanObjectSchema
+>
+
+const compiledActionActiveEffectPlanSchema: z.ZodMiniType<CompiledActionActiveEffectPlan> =
+  compiledActionActiveEffectPlanObjectSchema
+
 /**
  * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
  * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
@@ -306,6 +314,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
         .check(z.minLength(1))
         .check(z.maxLength(SPATIAL_TURN_TRIGGERS.length))
     ),
+    /**
+     * Whether an attacker standing in a SOURCE zone who hits its source with a melee attack is
+     * caught (D153); absent when not.
+     */
+    retaliatesMeleeHits: z.optional(z.literal(true)),
     /** Whether a mover who crosses at half speed (moves carefully) skips the entry. */
     bypassAtHalfSpeed: z.optional(z.boolean()),
     /** Whether the caster designates creatures at cast that the zone never affects. */
@@ -329,7 +342,9 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
       })
     ),
     /** The Concentration the placing cast opens; the zone depends on it (D135). */
-    maintenance: compiledActionMaintenanceSchema
+    maintenance: compiledActionMaintenanceSchema,
+    /** The timed grant the zone's placer holds once it is placed (D153); absent for none. */
+    sourceGrant: z.optional(compiledActionActiveEffectPlanSchema)
   })
 )
 
