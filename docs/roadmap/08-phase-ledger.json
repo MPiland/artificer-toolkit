@@ -11059,8 +11059,11 @@
             },
             {
               "text": "Grant and restriction folding narrows on each grant's discriminant and reads typed fields, with exhaustive switches; no `as unknown as Record<string, unknown>` casts remain, so a new kind or renamed field fails to compile.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/compiler-restrictions.test.ts and compiler-scaling.test.ts, plus the Character grant-fold tests; typecheck proves the exhaustive never defaults in the restriction and source-fact folds and the chosen-grant resolver.",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "characterGrantFoldSourceFacts.ts:73/125/133, characterGrantFoldRestrictionFacts.ts:25/174, chosenGrantChoiceResolver.ts:266-333.",
               "id": "RELIABILITY-6.4"
@@ -11112,16 +11115,22 @@
             },
             {
               "text": "An authored Creature's defence, speed, detail, feature and proficiency arrays are required in the contract (empty when none), so no consumer re-defaults or casts them.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/subject-schema-parsing.test.ts (each of the ten Creature arrays is required; a Creature without one is refused).",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "creature.ts:339-340 optional arrays; re-defaults in creatureAuthoring.utils.ts:84-123 and blueprintSnapshots.ts:34-46 (with an `as CreatureAuthored` cast).",
               "id": "RELIABILITY-6.10"
             },
             {
               "text": "Authored-source fact extraction traverses the typed authored DTOs per subject kind, with no `as unknown as AuthoredRecord` casts or untyped record helpers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts (unchanged facts over the typed traversal); typecheck.",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "packages/authoring/src/nodeRuntime/authoredSourceFacts.ts:180-238.",
               "id": "RELIABILITY-6.11"
@@ -11206,8 +11215,11 @@
             },
             {
               "text": "Small type gaps close: a Character's temporary hit points are required (0 when none) so nine `temp ?? 0` repeats go; the Sheet extras form narrows the creature origin instead of defaulting it to WORLD; stored encounter documents are typed without `as unknown as`; the held-only read port input is a narrowed type rather than a comment; and the pure wrappers prepareAreaCaster, getChildMapId and executeRelationshipPlan are removed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/characterHitpointsState.test.ts (temporary hit points are required); typecheck (HeldRoomInputs is the only input the turn read ports accept; no double cast in the room store).",
+                "Green: ci/reliability-6-t3 986d53cc0 Tests 39097232591, Live 39097232561; phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
+              ],
               "origin": [],
               "note": "characterState.ts:205; CharacterSheetExtras.tsx:78; roomEncounterStore.ts:803/928; roomEncounterTurnReadPorts.ts:13-17; nativeEncounterAreaRules.ts:240-250, authoringNodeDefaults.ts:685, relationshipExecutor.ts:37-43.",
               "id": "RELIABILITY-6.19"
@@ -11281,7 +11293,7 @@
             {
               "id": "RELIABILITY-6.T3",
               "text": "Typed narrowing instead of casts: grant folding, required Creature arrays, authored fact extraction and small type gaps.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-6.4",
                 "RELIABILITY-6.10",
@@ -11293,12 +11305,13 @@
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "phase merge b2d86b0a7 (batch ci/merge-m98, Tests 39098612501, Live 39098612516; landed as ece85a99a)."
             },
             {
               "id": "RELIABILITY-6.T4",
               "text": "Dead contract versions and legacy shapes are deleted with development data migrated.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "RELIABILITY-6.2",
                 "RELIABILITY-6.5",
@@ -11312,7 +11325,8 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-6.md"
             }
           ]
         },
