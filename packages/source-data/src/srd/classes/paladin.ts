@@ -872,22 +872,6 @@ export const paladin: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(P, 0x60, 21),
-              ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_FIGHTING_STYLE_DUELING,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(P, 0x69, 21), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            })
-          ],
           order: 1
         },
         {
@@ -983,7 +967,6 @@ export const paladin: ClassAuthored = {
       label: 'Divine Health',
       description:
         'By 3rd level, the divine magic flowing through you makes you immune to disease.',
-      effects: [selfClassRuleEffect(6, CLOSED_RULE_KIND.CLASS_PALADIN_DIVINE_HEALTH)],
       availableAtLevel: 3,
       order: 5
     },

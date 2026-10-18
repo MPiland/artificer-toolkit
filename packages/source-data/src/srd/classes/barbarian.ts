@@ -37,6 +37,7 @@ import {
   SRD_CURRENCIES,
   SRD_DAMAGE_TYPES,
   SRD_SKILLS,
+  SRD_SPEEDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
@@ -77,6 +78,9 @@ const GREATAXE_ID = equipmentId(18)
 const HANDAXE_ID = equipmentId(4)
 const JAVELIN_ID = equipmentId(5)
 const EXPLORERS_PACK_ID = equipmentId(186)
+
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+if (!walkSpeedId) throw new Error('SRD walk speed required.')
 
 function selfClassRuleEffect(
   entry: number,
@@ -189,8 +193,8 @@ const heavyArmorExclusion = (id: string, order: number) => ({
   properties: [EQUIPMENT_PROPERTY_CODE.HEAVY]
 })
 
-/** The restriction of a Rage benefit that has no other: the holder wears no heavy armor. */
-function rageArmorRestriction(index: number): FacetAuthored {
+/** A benefit that holds only while the holder wears no heavy armor (Rage's, Fast Movement). */
+function noHeavyArmorRestriction(index: number): FacetAuthored {
   const id = (entry: number) => classRowId(B, 0x86, index * 8 + entry)
   return {
     id: id(0),
@@ -303,7 +307,7 @@ function rageEffect(): EffectAuthored {
       modifierKind: MODIFIER_KIND.ADD_OPTION,
       payload: { damageTypeId: rageDamageTypeId(code) },
       order: 3 + index,
-      restrictions: rageArmorRestriction(index)
+      restrictions: noHeavyArmorRestriction(index)
     })
   )
   const strengthAdvantages: ModifierGrantAuthored[] = [
@@ -314,7 +318,7 @@ function rageEffect(): EffectAuthored {
       domain: { ability: ABILITY_CODE.STRENGTH },
       modifierKind: MODIFIER_KIND.ADVANTAGE,
       order: 6,
-      restrictions: rageArmorRestriction(3)
+      restrictions: noHeavyArmorRestriction(3)
     },
     {
       ...grantShape,
@@ -323,7 +327,7 @@ function rageEffect(): EffectAuthored {
       domain: { ability: ABILITY_CODE.STRENGTH },
       modifierKind: MODIFIER_KIND.ADVANTAGE,
       order: 7,
-      restrictions: rageArmorRestriction(4)
+      restrictions: noHeavyArmorRestriction(4)
     }
   ]
   const spellcastingLock: ModifierGrantAuthored = {
@@ -665,7 +669,6 @@ export const barbarian: ClassAuthored = {
       label: 'Unarmored Defense',
       description:
         'While you are not wearing any armor, your Armor Class equals 10 + your Dexterity modifier + your Constitution modifier. You can use a shield and still gain this benefit.',
-      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_BARBARIAN_UNARMORED_DEFENSE)],
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -779,16 +782,30 @@ export const barbarian: ClassAuthored = {
       label: 'Fast Movement',
       description:
         "Starting at 5th level, your speed increases by 10 feet while you aren't wearing heavy armor.",
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_BARBARIAN_FAST_MOVEMENT)],
       availableAtLevel: 5,
-      order: 7
+      order: 7,
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0x89, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+            domain: { speedId: walkSpeedId },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { amount: 10, unit: 'FEET' },
+            order: 0,
+            restrictions: noHeavyArmorRestriction(5)
+          }
+        ]
+      }
     },
     {
       id: classRowId(B, 3, 10),
       label: 'Feral Instinct',
       description:
         "By 7th level, your instincts are so honed that you have advantage on initiative rolls. Additionally, if you are surprised at the beginning of combat and aren't incapacitated, you can act normally on your first turn, but only if you enter your rage before doing anything else on that turn.",
-      effects: [selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_BARBARIAN_FERAL_INSTINCT)],
       availableAtLevel: 7,
       order: 8,
       grants: {
