@@ -347,6 +347,12 @@ payloads (action, area, cleaving, concentration and turn) carry the grants the e
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
+A list of chosen creatures (D118) is offered in the action choices as the `ACTORS` target: `maxTargets` caps it,
+and is absent for a list with no cap, which names each creature once (SPELLS-4.T2a3: Pass without Trace's "each
+creature you choose"); the tabletop then shows no cap. A list with `allowRepeatedTargets` always carries its
+`maxTargets`, and the schema refuses one without it. The Worker refuses a list over its cap and, unless it repeats
+creatures, one that names a creature twice.
+
 Held escapes (D105, D152): the action choices' `escapes` carry `dc`, null for an escape the holder contests
 (the tabletop shows "Contested"). A contest participant offered several checks answers its `CONTEST_CHECK`
 pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinitionId`, and the d20 `roll` as

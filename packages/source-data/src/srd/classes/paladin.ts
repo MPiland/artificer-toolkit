@@ -5,6 +5,7 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
+  CHARGE_BONUS_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   EFFECT_KIND,
@@ -13,6 +14,7 @@ import {
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MANIFEST_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -746,26 +748,60 @@ export const paladin: ClassAuthored = {
       label: 'Divine Sense',
       description:
         'The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you can open your awareness to detect such forces. Until the end of your next turn, you know the location of any celestial, fiend, or undead within 60 feet of you that is not behind total cover. You know the type (celestial, fiend, or undead) of any being whose presence you sense, but not its identity (the vampire Count Strahd von Zarovich, for instance). Within the same radius, you also detect the presence of any place or object that has been consecrated or desecrated, as with the hallow spell.\n\nYou can use this feature a number of times equal to 1 + your Charisma modifier. When you finish a long rest, you regain all expended uses.',
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: classRowId(P, 0x66, 1),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        amount: 1,
+        bonuses: [
+          {
+            id: classRowId(P, 0x67, 1),
+            bonusKind: CHARGE_BONUS_KIND.ABILITY_MODIFIER,
+            ability: ABILITY_CODE.CHARISMA,
+            order: 0
+          }
+        ]
+      },
+      // Detection stays manual: the engine has no creature-type sense (D156).
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 0x60, 1),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_DIVINE_SENSE,
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(P, 0x66, 1), cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: classRowId(P, 0x69, 1),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            range: { id: classRowId(P, 0x69, 1), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(P, 0x80, 1),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(P, 0x81, 1),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(P, 0x82, 1),
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Sense Celestials, Fiends and Undead',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+                    instructions:
+                      'Until the end of your next turn, you know the location and type of any celestial, fiend or undead within 60 feet of you that is not behind total cover, and any consecrated or desecrated place or object within 60 feet.'
+                  }
+                ]
+              }
             }
-          }
-        })
+          ]
+        }
       ],
       availableAtLevel: 1,
       order: 0

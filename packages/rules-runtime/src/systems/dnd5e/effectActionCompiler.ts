@@ -1,3 +1,4 @@
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -77,8 +78,8 @@ import {
 } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
-  chosenCreaturesCapIsAuthored,
-  chosenCreaturesMaxTargets,
+  chosenCreaturesCap,
+  chosenCreaturesListResolves,
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored,
   resolveChosenCreaturesTargeting,
@@ -167,8 +168,6 @@ const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
 const DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY = 'dnd5e.actor-relationship-state'
 const DND5E_CONDITION_DURATION_OPERATION_KEY = 'dnd5e.condition-duration'
 const DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION = 1
-/** The most target turns an Encounter active effect counts (its persisted tick bound). */
-const MAX_ACTIVE_EFFECT_TURNS = 10_000
 export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
 const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
 const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
@@ -780,7 +779,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
   const { targeting } = invocation
   if (targeting?.selectionKind === 'AREA_CONTENTS')
     return isSupportedArea(invocation, action.zoneAppearSave)
-  // A bounded list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
+  // A resolved list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
   // creature, and it has no area.
@@ -790,7 +789,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
       targeting.dispositionKind !== 'ANY' ||
       (!attacks &&
         (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
-      !chosenCreaturesCapIsAuthored(targeting) ||
+      !chosenCreaturesListResolves(targeting) ||
       (invocation.shape !== undefined &&
         (attacks ||
           !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
@@ -2018,9 +2017,7 @@ function modifierGrantEntryPlan(input: {
     grants.proficiencies?.length ||
     (untilEndEvent
       ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
-      : initialRemaining === null ||
-        // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
-        initialRemaining >= MAX_ACTIVE_EFFECT_TURNS) ||
+      : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
@@ -3627,6 +3624,48 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   return { kind, branches }
 }
 
+/**
+ * An ON_USE SEQUENCE whose other outcomes are all GM rulings (D156): its one executable outcome
+ * compiles as the action's result, and each ruling stays beside it as a manual-adjudication node.
+ * A sequence with two executable outcomes is not split, so the one-result rule refuses it.
+ */
+function rulingSequence(action: Dnd5eCompiledEffectActionSource): {
+  executable: Dnd5eCompiledEffectActionSource
+  rulings: readonly Dnd5eCompiledEffectActionSource['compiledEffect']['entries'][number][]
+} | null {
+  const { entries } = action.compiledEffect
+  if (
+    entries.length < 2 ||
+    !entries.every(
+      (entry) =>
+        entry.resolutionKind === 'DIRECT' &&
+        entry.groupKind === 'SEQUENTIAL' &&
+        entry.pathCode === 'ON_USE'
+    )
+  )
+    return null
+  const isRuling = (entry: (typeof entries)[number]) =>
+    'outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION'
+  const rulings = entries.filter(isRuling)
+  const executable = entries.filter((entry) => !isRuling(entry))
+  if (executable.length !== 1) return null
+  return {
+    executable: {
+      ...action,
+      compiledEffect: {
+        ...action.compiledEffect,
+        entries: [{ ...executable[0]!, groupKind: 'SINGLE' }]
+      }
+    },
+    rulings
+  }
+}
+
+/** The action a plan reads: a ruling sequence's one executable outcome, or the action itself. */
+function executableAction(action: Dnd5eCompiledEffectActionSource) {
+  return rulingSequence(action)?.executable ?? action
+}
+
 // A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
 // to the contest graph alone; its relationship is the action's active-effect plan. A contest whose
 // win applies a condition or moves its target (Shove, D105) tests by the contest graph and
@@ -3685,18 +3724,19 @@ function supported(
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' &&
         (grantPlan !== null || conditionPlan !== null || checkAction)))
-  // A bounded list of chosen creatures (Mass Healing Word), inside a round area when it names one
-  // (Mass Cure Wounds), resolves the one outcome on each; only a heal or dice damage that needs no
-  // test (Magic Missile) is supported, checked below once the outcome is read.
+  // A resolved list of chosen creatures, capped (Mass Healing Word) or naming each creature once
+  // (Pass without Trace), inside a round area when it names one (Mass Cure Wounds), resolves the one
+  // outcome on each; only a heal or dice damage that needs no test (Magic Missile), or a plan that
+  // holds one active effect per chosen creature (Pass without Trace), is supported, checked below
+  // once the outcome is read.
   const supportsChosenCreatures =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     // A bond (Telepathic Bond) asks for willing creatures: an unwilling one only warns.
     (invocation.targeting.dispositionKind === 'ANY' ||
       (invocation.targeting.dispositionKind === 'WILLING' &&
-        (linkPlan !== null || formPlan !== null))) &&
-    chosenCreaturesMaxTargets(resolveChosenCreaturesTargeting(invocation.targeting, action)) !==
-      null &&
+        (grantPlan !== null || linkPlan !== null || formPlan !== null))) &&
+    chosenCreaturesCap(resolveChosenCreaturesTargeting(invocation.targeting, action)) !== null &&
     (!invocation.shape ||
       chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind))
   // A hit-point pool area (Sleep) rolls one pool for the cast and puts the creatures it reaches under
@@ -3787,12 +3827,12 @@ function supported(
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  // A list runs only a hit-point, teleport, link or creature form outcome, but an outcome no cast can run keeps the
+  // A list runs only a hit-point, teleport, grant, link or creature form outcome, but an outcome no cast can run keeps the
   // reason a single target gets, so each other plan below is refused here rather than up front.
   const notOnAList = <Plan extends SpecializedOutcome>(plan: Plan): Plan => {
     if (supportsChosenCreatures)
       unsupported(
-        'D&D chosen-creature action outcome must be a heal, damage, teleport, link or creature form.'
+        'D&D chosen-creature action outcome must be a heal, damage, teleport, grant, link or creature form.'
       )
     return plan
   }
@@ -3870,8 +3910,7 @@ function supported(
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
   if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
     return notOnAList({ kind: 'CANCEL_TRIGGERING_EVENT' })
-  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan)
-    return notOnAList({ kind: 'MODIFIER_GRANT' })
+  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
   if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
   if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
   // The Action is spent and the GM rules the result: nothing is stored on the target.
@@ -6639,6 +6678,42 @@ function compileDnd5eEffectAction({
 }: {
   action: Dnd5eCompiledEffectActionSource
 }): ServerPublishedRuleDefinitionDto {
+  const sequence = rulingSequence(action)
+  if (!sequence) return compileEffectActionGraph(action)
+  const { definition } = compileEffectActionGraph(sequence.executable)
+  // Each ruling is a manual-adjudication proposal on the same target, bound to its authored entry
+  // so the commit carries the GM's instructions beside the executable result.
+  const rulingNodes = sequence.rulings.map((entry, index) => ({
+    entryId: entry.entryId,
+    node: {
+      id: `manual_adjudication-${index + 1}`,
+      operation: { key: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
+      inputs: {
+        targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+        targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
+      }
+    } satisfies RuleGraphDefinition['nodes'][number]
+  }))
+  const withRulings: RuleGraphDefinition = {
+    ...definition,
+    nodes: [...definition.nodes, ...rulingNodes.map(({ node }) => node)],
+    sourceEntryBindings: [
+      ...(definition.sourceEntryBindings ?? []),
+      ...rulingNodes.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
+    ]
+  }
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    id: withRulings.id,
+    gameSystemId: withRulings.gameSystemId,
+    definitionFamilyKey: withRulings.definitionFamilyKey,
+    checksum: checksumRuleDocument(withRulings),
+    definition: withRulings
+  })
+}
+
+function compileEffectActionGraph(
+  action: Dnd5eCompiledEffectActionSource
+): ServerPublishedRuleDefinitionDto {
   if (action.gameSystemId !== DND5E_SYSTEM_ID)
     throw new Dnd5eEffectActionCompilerError(
       'D&D compiler received an action from another Game System.'
@@ -8453,10 +8528,13 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   compile: compileDnd5eEffectAction,
-  compileZonePlacement: ({ action }) => zoneChoicePlan(action) ?? zonePlacementPlan(action),
+  compileZonePlacement: ({ action }) => {
+    const executable = executableAction(action)
+    return zoneChoicePlan(executable) ?? zonePlacementPlan(executable)
+  },
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {
-    const source = dndSourceFromCompilerSource(compilerSource)
+    const source = executableAction(dndSourceFromCompilerSource(compilerSource))
     if (
       (!testPhaseKindOrNull(source) && !isContestOutcomeAction(source)) ||
       supportedRecurringPlan(source) ||
@@ -8572,7 +8650,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return { kind: 'ATTEMPT_GATE', allow, requirement: pinned }
     throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
   },
-  activeEffectPlans: ({ action, published }) => {
+  activeEffectPlans: ({ action: authored, published }) => {
+    const action = executableAction(authored)
     if (published.id !== action.effectId || published.checksum.length !== 64)
       throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
     const repeatPlan =

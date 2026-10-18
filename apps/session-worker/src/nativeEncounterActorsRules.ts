@@ -2,7 +2,7 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { chosenCreaturesMaxTargets } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { chosenCreaturesCap } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaTargetCommandId,
@@ -52,12 +52,11 @@ export async function planNativeLiveEncounterActorsAction(
   const sourced = await prepareCasterSource(input, 'ACTORS')
   const { caster, casterFacts, movementTargets, targetPolicy } = sourced
   const { targeting } = targetPolicy
-  const maxTargets =
-    targeting?.selectionKind === 'CHOSEN_CREATURES' ? chosenCreaturesMaxTargets(targeting) : null
-  if (maxTargets === null) throw refusal('This action does not take that target.')
+  const cap = targeting?.selectionKind === 'CHOSEN_CREATURES' ? chosenCreaturesCap(targeting) : null
+  if (cap === null) throw refusal('This action does not take that target.')
   const { actorIds, scene: sceneRequest } = command.target
-  if (actorIds.length > maxTargets)
-    throw refusal(`This action takes at most ${maxTargets} creatures.`)
+  if (cap.maxTargets !== undefined && actorIds.length > cap.maxTargets)
+    throw refusal(`This action takes at most ${cap.maxTargets} creatures.`)
   // Each entry of a projectile list is one projectile; any other action names each creature once.
   const allowRepeatedTargets =
     targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets === true
@@ -168,7 +167,10 @@ export async function planNativeLiveEncounterActorsAction(
     const prepareReactor = (reactorTarget: Awaited<ReturnType<typeof input.loadTarget>>) =>
       prepareAreaTarget({
         ...input,
-        base: { ...reach, movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget) },
+        base: {
+          ...reach,
+          movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget)
+        },
         actor: reactor,
         token: reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
       })

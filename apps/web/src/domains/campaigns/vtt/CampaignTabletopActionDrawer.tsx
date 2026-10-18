@@ -829,7 +829,7 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedFormCreatureId}
                 />
               ) : null}
-              {actorsTarget?.allowRepeatedTargets ? (
+              {actorsTarget?.allowRepeatedTargets && actorsTarget.maxTargets !== undefined ? (
                 <CampaignTabletopProjectileTargets
                   // A defeated creature isn't a target (D63); the server still warns if one is named.
                   creatures={encounter.actors.filter((actor) => !actor.defeated)}
@@ -846,7 +846,12 @@ export function CampaignTabletopActionDrawer({
                     .filter((actor) => !actor.defeated)
                     .map((actor) => ({ label: actor.label, value: actor.id }))}
                   disabled={selectionControlsDisabled}
-                  label={`Targets (up to ${actorsTarget.maxTargets})`}
+                  // A list with no cap names each creature once (Pass without Trace).
+                  label={
+                    actorsTarget.maxTargets === undefined
+                      ? 'Targets'
+                      : `Targets (up to ${actorsTarget.maxTargets})`
+                  }
                   maxValues={actorsTarget.maxTargets}
                   searchable
                   value={pickedActorIds}
