@@ -1468,7 +1468,7 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": [],
           "journeyStatus": "none",
@@ -1499,7 +1499,7 @@
           "tasks": [
             {
               "id": "PLATFORM-25.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-25.1"],
               "wsjf": {
                 "bv": 3,
