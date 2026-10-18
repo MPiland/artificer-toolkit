@@ -157,6 +157,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       'START_TURN_IN_SPACE',
       'END_TURN_IN_SPACE',
       'START_OF_SOURCE_TURN',
+      'MELEE_HIT_ON_SOURCE',
       'SOURCE_HIT',
       'TARGET_TAKES_FIRE_DAMAGE',
       'START_OF_ATTACHED_TARGET_TURN',

@@ -440,6 +440,11 @@ rebinding its token, deletes them first. While the source is defeated its passiv
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
 placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+`MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
+other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
+authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the
+active-effect clock, independent of the zone's lifetime. Target: T6d2 applies the grant at placement and answers a
+melee hit on the source from inside the zone; until then neither field is persisted or acted on.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's

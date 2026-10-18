@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
@@ -1037,6 +1038,79 @@ describe('a creature’s passive zone (D144)', () => {
     expect(discovery.unavailable).toContainEqual(
       expect.objectContaining({ ownerFeatureId: aura.id })
     )
+  })
+})
+
+describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6d1, D153)', () => {
+  const withInteractions = (
+    interactionKinds: NonNullable<ZoneParts['component']['interactionKinds']>,
+    diceConfig = '2d6'
+  ) => {
+    const feature = creatureAuraFeature(diceConfig)
+    const path = feature.effects![0]!.paths[0]!
+    const outcome = path.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+      throw new Error('The aura is a manifest zone.')
+    outcome.components![0]!.interactionKinds = interactionKinds
+    return feature
+  }
+  const passiveZoneOf = (creature: Parameters<typeof srdCreatureActor>[0]['creature']) => {
+    const { passiveZones } = discoverEncounterFeatureActions({
+      actor: srdCreatureActor({ id: testUuid(0x1951), creature }),
+      conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+    })
+    const [passive, ...others] = passiveZones
+    if (!passive || others.length) throw new Error('The creature must keep exactly one zone.')
+    return passive.zone
+  }
+  const goblinWith = (feature: ReturnType<typeof creatureAuraFeature>) =>
+    passiveZoneOf(withFeature(srdByLabel(SRD.creatures, 'Goblin'), feature))
+
+  it('compiles the melee-hit interaction beside the turn trigger of the same component', () => {
+    expect(
+      goblinWith(withInteractions(['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE']))
+    ).toMatchObject({
+      attachment: 'SOURCE',
+      triggerModes: [],
+      turnTriggers: ['START_OF_SOURCE_TURN'],
+      retaliatesMeleeHits: true
+    })
+  })
+
+  it('compiles a zone that only answers melee hits, with no movement or turn trigger', () => {
+    const zone = goblinWith(withInteractions(['MELEE_HIT_ON_SOURCE']))
+    expect(zone).toMatchObject({ triggerModes: [], retaliatesMeleeHits: true, grant: null })
+    expect(zone).not.toHaveProperty('turnTriggers')
+  })
+
+  it('leaves the flag off a zone that does not answer melee hits', () => {
+    expect(goblinWith(creatureAuraFeature('2d6'))).not.toHaveProperty('retaliatesMeleeHits')
+  })
+
+  it('compiles the SRD Balor’s Fire Aura as the same zone a core-options aura of 3d6 fire answering melee hits is (ADR 0038)', () => {
+    const comparable = ({ label: _label, shape, entry, ...rest }: CompiledActionZonePlacement) => ({
+      ...rest,
+      shape: { ...shape, id: null },
+      nodes: entry.frozenGraph.definition.nodes.map(({ id, operation }) => ({ id, operation }))
+    })
+    const balor = passiveZoneOf(srdByLabel(SRD.creatures, 'Balor'))
+    const homebrew = goblinWith(
+      withInteractions(['START_OF_SOURCE_TURN', 'MELEE_HIT_ON_SOURCE'], '3d6')
+    )
+    expect(balor).toMatchObject({ label: 'Fire Aura', retaliatesMeleeHits: true })
+    expect(comparable(balor)).toEqual(comparable(homebrew))
+  })
+
+  it('stays manual on a zone left at a point, which has no source to hit', () => {
+    expect(
+      compileItemEntry(
+        variantEquipment((parts) => {
+          diceDamage('2d6')(parts)
+          noSave(['MELEE_HIT_ON_SOURCE'])(parts)
+        })
+      ).compilation
+    ).toMatchObject({ kind: 'MANUAL', reasonCode: 'NOT_NORMALIZED' })
   })
 })
 

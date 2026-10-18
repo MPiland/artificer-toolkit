@@ -2284,6 +2284,9 @@ function zonePlacementPlan(
     !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
   )
     unsupported('A zone movement cost multiplies the cost of moving by more than 1, up to 100.')
+  if (triggers.retaliatesMeleeHits && zone.attachment !== 'SOURCE')
+    unsupported('Only a zone centered on its source answers a melee hit on that source.')
+  const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
   const placement = {
     attachment: zone.attachment,
     label: zone.label,
@@ -2296,7 +2299,8 @@ function zonePlacementPlan(
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
-    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
+    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {}),
+    ...(sourceGrant ? { sourceGrant } : {})
   }
   if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
@@ -2499,6 +2503,19 @@ function zoneHeldCondition(
       ? { escape: { activation: escape.activation, checks: escape.checks, dc: escape.dc } }
       : {})
   }
+}
+
+/**
+ * The timed grant a zone's placer receives when the zone is placed (D153), counted on its own
+ * active-effect clock rather than the zone's, compiled as any timed modifier grant. A grant that is not one is refused rather than dropped.
+ */
+function sourceGrantPlan(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledEffectGroup['entries'][number]
+): CharacterRuleActionActiveEffectPlan {
+  const plan = modifierGrantEntryPlan({ action, entry, attack: false, untilEndEvent: false })
+  if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
+  return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
 }
 
 /**

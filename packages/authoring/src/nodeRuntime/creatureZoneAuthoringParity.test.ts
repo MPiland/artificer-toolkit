@@ -59,7 +59,11 @@ describe('a creature’s passive zone through the creature node map (ADR 0038)',
   it('keeps the SRD Balor’s Fire Aura exactly as authored, with no closed rule', async () => {
     const { feature, zone } = fireAura(balor)
     expect(JSON.stringify(feature)).not.toContain('CLOSED_RULE')
-    expect(zone.components?.[0]?.interactionKinds).toEqual(['START_OF_SOURCE_TURN'])
+    // One component burns at the source's turn start and answers a melee hit (T6d1, D153).
+    expect(zone.components?.[0]?.interactionKinds).toEqual([
+      'START_OF_SOURCE_TURN',
+      'MELEE_HIT_ON_SOURCE'
+    ])
     const result = await normalize(balor)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(balor.features)

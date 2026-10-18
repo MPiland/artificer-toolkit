@@ -254,6 +254,10 @@ Melee-hit retaliation dice are system-rolled even when the zone source rolls by 
 
 A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
 
+### Disarm defender picks its check (D152)
+
+Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.
