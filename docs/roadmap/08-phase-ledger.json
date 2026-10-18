@@ -9303,7 +9303,7 @@
             },
             {
               "id": "SPELLS-20.T6d2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9313,11 +9313,11 @@
                 "after": ["SPELLS-20.T6c"]
               },
               "text": "Melee-hit retaliation on ordinary actions (D153): one shared pure retaliation step after the attack mechanics plan, wired into the ordinary action commit and its receipt; persisted placement carries retaliatesMeleeHits and sourceGrant applies at placement; retaliation dice are system-rolled and recorded. Room journeys: a Wolf bites the Balor and takes 3d6 fire; a melee hit on a Fire Shield caster takes 2d8 and a ranged hit takes nothing. Deletes CLOSED_RULE FIRE_SHIELD.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Proofs: apps/session-worker/test/nativeRoomMeleeRetaliation.test.ts (Wolf on the Balor; Fire Shield melee, ranged, undo and the caster grant), packages/rules-runtime/src/__tests__/encounterMeleeRetaliation.test.ts. CLOSED_RULE FIRE_SHIELD deleted. Green: ci/spells-20-t6d2a 14f0c0716 Tests 39110858930, Live 39110858947; phase merge a850417d2 (batch ci/merge-m102, Tests 39113186904, Live 39113186893)."
             },
             {
               "id": "SPELLS-20.T6d2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9326,7 +9326,8 @@
                 "size": 3,
                 "after": ["SPELLS-20.T6c"]
               },
-              "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths."
+              "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"
@@ -11078,9 +11079,12 @@
         {
           "id": "RELIABILITY-6",
           "title": "Band-aids from the 2026-10-13 audit are replaced by the domain model",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/campaigns/currencyLabels.test.ts",
+            "apps/web/src/domains/campaigns/components/CampaignCurrencyLabels.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -11221,10 +11225,15 @@
             },
             {
               "text": "Campaign inventory currency ids are typed at the contract: the web's legacy non-UUID currency check and its label fallbacks are deleted (with RELIABILITY-6.5).",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "apps/web/src/domains/campaigns/components/CampaignInventory.test.ts (T4: no legacy non-UUID check or label fallback).",
-                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101)."
+                "Green: ci/reliability-6-t4 c1235159e Tests 39107215293, Live 39107215295; phase merge ad532219a (fast path; backstop ci/merge-m101).",
+                "packages/rules-runtime/src/__tests__/sheetItemCostLabel.test.ts (Sheet cost label by currency identity).",
+                "packages/source-data/src/srd/currencyPrices.test.ts (SRD sp and cp prices name Silver and Copper).",
+                "apps/apis/convex/campaigns/currencyLabels.test.ts (journey).",
+                "apps/web/src/domains/campaigns/components/CampaignCurrencyLabels.test.tsx (journey).",
+                "Green: ci/reliability-6-t5 cc3059e1e Tests 39111821819, Live 39111821808; phase merge a850417d2 (batch ci/merge-m102, Tests 39113186904, Live 39113186893)."
               ],
               "origin": [],
               "note": "apps/web/src/domains/campaigns/components/campaignInventory.utils.ts:155-204.",
@@ -11406,8 +11415,7 @@
             },
             {
               "id": "RELIABILITY-6.T5",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-reliability-6.md",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.13"],
               "wsjf": {
                 "bv": 2,
@@ -11415,7 +11423,8 @@
                 "rr": 3,
                 "size": 2
               },
-              "text": "Currency labels resolve by currency identity everywhere, plus the PBI journey. Bug: sheetProjection looks up an equipment costLabel by the raw currencyId, but currencyLabels is keyed by identity, so the Sheet never shows a cost label. Fix it with a regression test that fails first. Journey: a browser test of a Campaign inventory currency flow that shows the labelled holdings."
+              "text": "Currency labels resolve by currency identity everywhere, plus the PBI journey. Bug: sheetProjection looks up an equipment costLabel by the raw currencyId, but currencyLabels is keyed by identity, so the Sheet never shows a cost label. Fix it with a regression test that fails first. Journey: a browser test of a Campaign inventory currency flow that shows the labelled holdings.",
+              "note": "phase merge a850417d2 (batch ci/merge-m102, Tests 39113186904, Live 39113186893)."
             }
           ]
         },
