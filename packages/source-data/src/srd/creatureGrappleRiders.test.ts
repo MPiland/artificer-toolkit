@@ -224,6 +224,24 @@ describe('SRD Creature grapple riders (D105)', () => {
     ).toEqual([])
   })
 
+  it('lets every grappler drag the creature it grapples (D105 amendment)', () => {
+    const grapples = authoredAttacks.flatMap(({ name, relationships }) =>
+      relationships
+        .filter(({ conditions }) =>
+          (conditions ?? []).some(
+            ({ conditionId }) => conditionCodeById.get(conditionId) === 'GRAPPLED'
+          )
+        )
+        .map((relationship) => ({ name, relationship }))
+    )
+    const undragged = grapples.flatMap(({ name, relationship }) =>
+      relationship.modules.some(({ kind }) => kind === 'TARGET_DRAGGED') ? [] : [name]
+    )
+
+    expect(grapples).toHaveLength(27)
+    expect(undragged).toEqual([])
+  })
+
   it('authors an Actor Relationship for every attack that prints "grappled (escape DC"', () => {
     const unauthored = authoredAttacks.flatMap(({ name, printed, relationships }) =>
       printed.some((paragraph) => GRAPPLED_PRINT.test(paragraph.text)) && relationships.length === 0

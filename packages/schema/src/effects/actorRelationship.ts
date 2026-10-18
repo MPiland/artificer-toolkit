@@ -40,6 +40,11 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_FOLLOWS_TARGET') }),
     /** Each creature held this way fills one of the source's free hands (D152). */
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_OCCUPIES_HAND') }),
+    /**
+     * The source's voluntary moves drag each creature held this way along the same displacement,
+     * at double cost unless it is two or more sizes smaller (D105).
+     */
+    z.object({ ...moduleBase(), kind: z.literal('TARGET_DRAGGED') }),
     z.object({
       ...moduleBase(),
       kind: z.literal('SOURCE_RELEASE_MOVEMENT_COST'),

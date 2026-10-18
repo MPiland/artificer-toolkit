@@ -290,8 +290,8 @@ export type GrappleRider = {
 
 /**
  * A Grappled outcome (D105): the target escapes with its Action by an Athletics or Acrobatics
- * check against the printed escape DC. It takes the IDs `grappleId(creatureIndex, localIndex)`
- * through `localIndex + 3 + untilEnds.length`.
+ * check against the printed escape DC, and the grappler drags it when it moves. It takes the IDs
+ * `grappleId(creatureIndex, localIndex)` through `localIndex + 4 + untilEnds.length`.
  */
 export function grappledOutcome(
   creatureIndex: number,
@@ -320,7 +320,8 @@ export function grappledOutcome(
       },
       dc: { kind: 'FIXED', value: rider.escapeDc },
       actorKinds: ['TARGET']
-    }
+    },
+    { id: id(4 + (rider.untilEnds?.length ?? 0)), order: 0, kind: 'TARGET_DRAGGED' }
   ]
   return {
     id: id(0),

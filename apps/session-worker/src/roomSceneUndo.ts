@@ -256,7 +256,10 @@ export async function publishRoomSceneUndo(input: {
       command.commandId !== command.result.commandId ||
       command.result.replayed ||
       command.result.version > header.version ||
-      command.undoneCommandId !== command.result.delta.undoneCommandId
+      (command.result.delta.kind === 'BATCH'
+        ? command.result.delta.deltas
+        : [command.result.delta]
+      ).some(({ undoneCommandId }) => undoneCommandId !== command.undoneCommandId)
     )
       throw new Error('Stored Scene undo command is inconsistent.')
     return command

@@ -13,6 +13,7 @@ import { sliceMovementPath } from './encounterMovementPath.js'
 
 type Point = { x: number; y: number }
 type MovementOutcome = SceneSpatialPreparation['outcome']
+type TokenMoved = { kind: 'TOKEN_MOVED'; tokenId: string; position: Point }
 
 function pathLength(path: readonly Point[]): number {
   return path
@@ -72,14 +73,40 @@ export function preparedMovementSegment(input: {
 /**
  * The token delta a move publishes: a terminal result moves to its terminal position unless it
  * ended where the Scene already has it, a pause moves only by its movement intent, and an
- * uninterrupted or unbound move reaches the end of its path.
+ * uninterrupted or unbound move reaches the end of its path. A drag publishes one batch: the
+ * mover's move, then each dragged token's (D105).
  */
 export function preparedMovementSceneDelta(input: {
   tokenId: string
   path: readonly Point[]
   outcome: MovementOutcome | null
   sceneVersion: number
-}): { kind: 'TOKEN_MOVED'; tokenId: string; position: Point } | null {
+  draggedTokens?: SceneSpatialPreparation['draggedTokens']
+}): TokenMoved | { kind: 'BATCH'; deltas: TokenMoved[] } | null {
+  const moved = preparedMoverSceneDelta(input)
+  const dragged = input.draggedTokens ?? []
+  if (!dragged.length) return moved
+  if (!moved) throw new EncounterValidationError('A drag requires its mover to move.')
+  return {
+    kind: 'BATCH',
+    deltas: [
+      moved,
+      ...dragged.map(({ tokenId, to }) => ({
+        kind: 'TOKEN_MOVED' as const,
+        tokenId,
+        position: to
+      }))
+    ]
+  }
+}
+
+/** The mover's own token delta, before any drag. */
+export function preparedMoverSceneDelta(input: {
+  tokenId: string
+  path: readonly Point[]
+  outcome: MovementOutcome | null
+  sceneVersion: number
+}): TokenMoved | null {
   const { outcome } = input
   if (outcome?.kind === 'TERMINAL') {
     const { result } = outcome
@@ -103,6 +130,7 @@ export function preparedMovementSceneDelta(input: {
  * rounding consistent, so a move's segments sum to its whole walk across decision pauses.
  * A careful mover (SPELLS-17) pays double for the stretch its footprint spends inside a field that
  * allows passage at half speed, and a zone's movement cost applies to the movers it catches (D154).
+ * A drag doubles the whole cost on top (D105).
  */
 export function preparedMovementCost(input: {
   grid: SceneGrid
@@ -118,11 +146,13 @@ export function preparedMovementCost(input: {
     effects: readonly SpatialEffectInstance[]
     /** A careful mover pays double inside a visible field that allows passage at half speed. */
     carefully: boolean
+    /** A grappler dragging a creature not two sizes smaller pays double (D105). */
+    dragDoublesCost?: boolean
   }
 }): number {
   const { mover } = input
   // The highest of the terrain, zone and careful multipliers applies (D154).
-  const segmentMultiplier =
+  const zoneMultiplier =
     mover &&
     zoneMovementSegmentMultiplier({
       zones: mover.effects.map((effect) => ({
@@ -135,6 +165,9 @@ export function preparedMovementCost(input: {
       mover,
       tokens: mover.tokens
     })
+  const segmentMultiplier: typeof zoneMultiplier = mover?.dragDoublesCost
+    ? (from, to, terrain) => (zoneMultiplier?.(from, to, terrain) ?? terrain) * 2
+    : zoneMultiplier
   const walked = (path: readonly Point[]) =>
     measureScenePathMovementCost(input.grid, input.scene, path, segmentMultiplier)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path

@@ -377,6 +377,15 @@ carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape
 re-derives which zones `carefully` applies to with the same visibility predicate, so a client cannot bypass a
 hidden zone.
 
+Drags (D105, ATTACK-7.T7): a voluntary `MOVE_SCENE_TOKEN` whose mover holds creatures through a `TARGET_DRAGGED`
+hold commits as one move at one Scene version. Its committed delta is a `BATCH` of `TOKEN_MOVED`: the mover first,
+then each dragged token moved by the mover's published displacement. The preparation records the drag as
+`draggedTokens` (`{tokenId, from, to}`, 1 to 101), which receipt replay, persistence and undo read back. The
+command carries no drag field; the server derives it. Prediction, broadcast and fog treat the batch as one move,
+and each dragged token explores fog along the mover's walked segment from its own place. `UNDO_LAST_SCENE_MOVE`
+of a drag commits a `BATCH` of `TOKEN_MOVE_UNDONE` that returns every token to where it stood
+(`sceneUndoCommandResultSchema` accepts one entry or the batch).
+
 Auras (SPELLS-20): the same frame and `encounters/activeReads:active` carry `auras` (`id`, `label`, `radius`,
 `sourceTokenId`): the visible circle zones centered on a token, so the map draws them around the moving source.
 `readSessionAuras` lists an aura only when its source actor is in the member's own presented projection

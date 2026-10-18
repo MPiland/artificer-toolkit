@@ -1549,6 +1549,16 @@ Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_AP
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
 
+**Drag (D105, ATTACK-7.T7).** An outcome's `TARGET_DRAGGED` module makes its hold drag: the SRD Grapple and
+the creature grapple riders author it. `encounterMovementDrag` finds the actors the mover itself holds through
+such a hold (one level deep; nothing keys on the Grappled condition) for a voluntary, automated move. Each held
+token moves by the mover's displacement in the same Scene move, spends no movement and provokes no opportunity
+attack, and the mover's path ignores it as an obstacle. The drag doubles the mover's cost on top of the D154
+maximum (difficult terrain costs ×4) unless every held creature is two or more sizes smaller; an unknown size
+counts as not smaller. A mover stopped mid-path drags only the walked part. The room refuses a drag
+(`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked, ends on an occupied place, or
+enters, leaves or crosses a Scene effect (SPELLS-4.T1j).
+
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
 authored `activation` to try to break the hold (`findEncounterHolderEscape`). `prepareEncounterEscapeCheck`
