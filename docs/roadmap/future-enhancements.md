@@ -276,6 +276,10 @@ Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectil
 
 Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d. Its light obscurement and its burning (a 10-ft cube burns away in a round, dealing 2d4 fire to a creature that starts its turn in the fire) are not modeled yet.
 
+### Day-scale durations on the Campaign clock (D156)
+
+Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.

@@ -7896,8 +7896,21 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A; T2a1 ruling): AWAKEN (charm authored, Int and language MANUAL), COLOR_SPRAY, CONTACT_OTHER_PLANE, plus two small generic options: hitPointPool.ignoredConditionIds (Sleep [UNCONSCIOUS] with a regression test, Color Spray [UNCONSCIOUS, BLINDED]) and a condition end on LONG_REST. Parity proof per spell, plus a room test where it shows in combat; each kind deleted. COMPULSION moved to T2l, CONTAGION to T2m.",
+              "text": "Convert closed rules (D156 T2 split; T2a1 rulings): hitPointPoolIgnoredConditionIds on AREA_CONTENTS (Sleep [UNCONSCIOUS] with a regression room test that fails before the change, Color Spray [UNCONSCIOUS, BLINDED]); condition-owning effects take the SOURCE turn anchor so Color Spray blinds until the end of the caster's next turn; AWAKEN converts as class C (MANUAL_ADJUDICATION quoting its description). Parity proof per spell; each kind deleted. CONTACT_OTHER_PLANE moved to T2a1b, COMPULSION to T2l, CONTAGION to T2m.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2a1b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2a1"]
+              },
+              "text": "Contact Other Plane from core options (T2a1 ruling): a SELF action with a FIXED_DC save whose failure deals damage beside a condition its effect holds, an INDEFINITE condition without Concentration, and an ON_LONG_REST end honored by activeEffectEndsOnRest with the rest settling the effect so the condition is released. Parity proof and a long-rest test; kind deleted."
             },
             {
               "status": "TODO",
