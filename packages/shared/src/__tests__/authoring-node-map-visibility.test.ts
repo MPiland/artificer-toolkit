@@ -188,6 +188,8 @@ describe('authoring node map visibility', () => {
     }
     const kindCodes = kindNode.source.options?.map((option) => option.code)
     expect(kindCodes).toContain('ESCAPE_CHECK')
+    // A grappler's moves drag what it holds, authored as a module with no fields of its own (D105).
+    expect(kindCodes).toContain('TARGET_DRAGGED')
     expect(kindCodes).not.toContain('SOURCE_EXCLUSIVE_TARGET')
     for (const key of ['activation', 'checks', 'dc', 'actorKinds']) {
       expect(isVisible(moduleNode(key), { kind: 'ESCAPE_CHECK' })).toBe(true)
