@@ -257,3 +257,44 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
 - **T3a (class A, options), 2026-10-18:** four kinds deleted, each now resolved from existing options. Fast Movement is a WALK SPEED BONUS of 10 ft. with the no-heavy-armor restriction that Rage uses (renamed `noHeavyArmorRestriction`). Divine Strike is two PASSIVE ON_HIT radiant riders, melee and ranged, with ONCE_PER_TURN and CLASS_LEVEL dice (1d8 at 8th, 2d8 at 14th). Purity of Body is DAMAGE_IMMUNITY poison plus CONDITION_IMMUNITY poisoned; disease stays description because the engine has no disease model. Magical Secrets (10th, 14th, 18th) is a CHOSEN KNOWN spell grant of 2 from every SRD spell up to level 5, 7 and 9. Proofs: `packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts` checks the SRD data and a homebrew variant of each against the class node map. `dnd5eCombatMath.test.ts` checks Fast Movement speed (40 unarmored or in Hide, 30 in Chain Mail) and the Purity of Body immunities. `characterOnHitRiders.test.ts` checks the Divine Strike dice on melee and ranged hits. `classMechanics.test.ts` checks the Magical Secrets lists.
   - **Fighter Extra Attack:** no gap. `fighter.ts` already authors "Extra Attack (2)" at 11th (3 attacks) and "Extra Attack (3)" at 20th (4), and `characterAttacksPerAttackAction.test.ts` already proves 2, 3 and 4. The T1 note misread this, so there is no data fix and no test that fails first.
   - **Stunning Strike:** not done in T3a. No existing option spends ki on a hit: PASSIVE invocations have no `resourceUse`, and `optionalOnHit` only offers SPELL_SLOT (D123's resource-pool use was dropped in ATTACK-9.T4). Ruled (a), "SPELLS-31.T3a ruling": Stunning Strike moves to SPELLS-31.T5r, which adds a RESOURCE_POOL cost to `optionalOnHit`. `CLASS_MONK_STUNNING_STRIKE` stays until then.
+- **T3b (class A, options), 2026-10-18:** five kinds deleted, each now resolved from existing options.
+  - **Signature Spells** is the PREPARED CAST_AT_LEVEL 3 grant plus LIMITED_USE, with a FIXED 1 SHORT_REST charge per spell.
+  - **Divine Sense** gets a feature charge of FIXED 1 plus a CHARISMA ABILITY_MODIFIER bonus, reset on a LONG_REST. Its ACTION spends 1 use and gives a MANUAL_ADJUDICATION outcome (EXTERNAL_WORLD_STATE); the detection itself stays in the instructions.
+  - **Devil's Sight** is a new SRD sense, `DEVILS_SIGHT` (VISUAL, PRECISE, illuminationAccess MAGICAL_DARKNESS). It is granted at 120 ft in place of darkvision.
+  - **Empty Body** is an ACTION spending 4 ki for 1 minute: CONDITION invisible plus APPLY_GRANT DAMAGE_RESISTANCE to every SRD damage type except force.
+  - **Gaze of Two Minds** is an ACTION giving the self CONDITION BLINDED + DEAFENED until the end of your next turn.
+  - Proofs:
+    - `classFeatureOptionsAuthoringParity.test.ts` covers the SRD data and a homebrew variant of all five against the class node map; the two invocations are checked as Eldritch Invocations options.
+    - `classFeatureCoreOptions.test.ts` covers the action candidates and the Divine Sense maximum: 4 at CHA 16, 1 at CHA 10.
+    - `encounterAttackPerception.test.ts` covers Devil's Sight and darkvision:
+      - Devil's Sight sees in magical darkness and in ordinary darkness.
+      - Darkvision does not see in magical darkness.
+      - Devil's Sight does not see beyond its range, or while the observer is blinded.
+    - `classMechanics.test.ts` covers the Signature Spells data.
+  - **Gaze of Two Minds (accepted, 8ecea4c51):** authored SELF, not TOUCH WILLING. Effects have no per-path targeting override, so the touched humanoid stays description and the conditions land on the warlock.
+  - **Empty Body Astral Projection (8 ki):** stays description: ruled (a) under D156 (8ecea4c51), and a class-pool spell-grant cost is a deferred edge case in future-enhancements, not a task. A class spell grant cannot spend a class pool, because SOURCE_CHARGES is wired only for equipment (`characterGrantFold.ts`).
+  - **Encounter compile:**
+    - Empty Body and Gaze compile to MANUAL in play, as the closed rule did. `supported()` in `effectActionCompiler.ts` accepts one outcome entry per self action.
+    - Follow-up, for the orchestrator to triage: encounter support for multi-outcome timed self actions.
+  - **VTT_UI-3.5:** T3b delivers the Devil's Sight sense model. The VTT view proof stays with VTT_UI-3.5.
+- **T3c (class A, options), 2026-10-18:** one kind deleted.
+  - **Divine Intervention:**
+    - The feature gets a LIMITED_USE FIXED 1 LONG_REST charge.
+    - Its ACTION spends that use and gives a MANUAL_ADJUDICATION GM_CHOICE outcome. The instructions carry the percentile roll against cleric level, the automatic 20th-level success and the 7-day lockout on success.
+    - Proofs: `classFeatureCoreOptions.test.ts` (candidate and instructions) and the parity file (SRD and a homebrew variant).
+  - **Volley and Whirlwind Attack:** stopped, per the brief. Per-creature weapon attacks do not compile from a class option. Feature and option action candidates carry `equipment: null` (`characterActionRuleFacts.ts`), and the attack mechanic takes weapon damage, proficiency and ammunition only from `candidate.equipment` (`characterActionMechanics.ts`). Ruled (22e835f41): both move to SPELLS-31.T5s, "feature weapon attack against each target with the wielded weapon, ammo per target". `CLASS_HUNTER_VOLLEY` and `CLASS_HUNTER_WHIRLWIND_ATTACK` stay until then.
+  - **Defect found:** normalizing the full Cleric record through the class node map throws "Untrusted node runtime table: proficiency_grant_equipment".
+    - Cause: the starting-equipment EQUIPMENT_PROFICIENCY eligibility (the warhammer option) reaches the facet map branch at `facet.ts:1968`, and `nodeRuntimeSources.ts` does not list that table.
+    - Registered as SPELLS-31.T3d.
+- **T3d (SRD classes through the class node map), 2026-10-18:** an owned copy of any SRD class saves unchanged.
+  - **Regression test:** `srdClassNodeMap.test.ts` normalizes every SRD class record and expects no cleared paths and identical values. It was red for two classes before the fix:
+    - Cleric: the untrusted-table throw.
+    - Circle of the Land: its Circle Spells restrictions lost `specializationIds`.
+  - **Equipment proficiency tables:**
+    - `proficiency_grant_equipment` and `proficiency_grant_equipment_properties` are now listed in the node-runtime source manifest (`nodeRuntimeSources.ts`).
+    - `authoredSourceFacts.ts` projects them from SELECTED EQUIPMENT and EQUIPMENT_PROPERTY proficiency grants, alongside the skill and language tables.
+  - **CHARACTER-context eligibility:**
+    - The facet map's `category` and `properties` filters for EQUIPMENT_PROFICIENCY and EQUIPMENT_PROPERTY_PROFICIENCY only followed the context source's own proficiency grants. A CHARACTER context has no such grants, so the Cleric's "proficient with martial weapons" starting-equipment eligibility was cleared.
+    - A CHARACTER context now offers every equipment category and property, seeded the same way the `.all` branches seed them.
+  - **Circle of the Land:** the restriction context now authors SELECTED `subclassIds: [Circle of the Land]` instead of ALL with no subclass ids. Specialization options derive from the context's subclass ids, so the old record could not be authored. Spell access reads only `specializationIds` (`characterSpellRuleFacts.ts`), so play does not change.
+  - The parity file's emptied-starting-equipment Cleric workaround is removed.

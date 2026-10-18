@@ -5,8 +5,8 @@ import type {
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
-  disarmApplicationOutputs,
-  disarmSourceWins,
+  contestApplicationOutputs,
+  contestSourceWins,
   planEncounterDisarmSuccess
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
@@ -19,7 +19,7 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { LiveSessionEncounterDisarmCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
+import type { LiveSessionEncounterContestCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterContest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
@@ -32,9 +32,9 @@ import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterDocument } from './store.js'
 
-type DisarmSettlementInput = Parameters<typeof disarmApplicationOutputs>[0]
+type ContestApplicationOutputsInput = Parameters<typeof contestApplicationOutputs>[0]
 
-type ContestSettlementInput = Omit<DisarmSettlementInput, 'stateTransition'> & {
+type ContestSettlementInput = Omit<ContestApplicationOutputsInput, 'stateTransition'> & {
   state: EncounterRunState
   campaign: EncounterDocument<'campaigns'>
   /** Every current Run actor, which an escape's ended effect may reconcile. */
@@ -44,8 +44,8 @@ type ContestSettlementInput = Omit<DisarmSettlementInput, 'stateTransition'> & {
   /** The hold effect a won basic action contest creates on its target; null otherwise. */
   createdEffect: ActiveRuleEffectRecord | null
   /** What a won contest's picked outcome (Shove, D105) applies or settles; empty otherwise. */
-  conditionApplications: LiveSessionEncounterDisarmCommitInput['conditionApplications']
-  forcedMovements: LiveSessionEncounterDisarmCommitInput['forcedMovements']
+  conditionApplications: LiveSessionEncounterContestCommitInput['conditionApplications']
+  forcedMovements: LiveSessionEncounterContestCommitInput['forcedMovements']
   commandId: string
   sourceCommandId: string
   userId: string
@@ -233,8 +233,8 @@ async function settleContestEscape(
       })
     : input.actor
   let actors = input.actors.map((entry) => (entry.id === actor.id ? actor : entry))
-  let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
-  if (disarmSourceWins(input.rolls)) {
+  let stateTransition: ContestApplicationOutputsInput['stateTransition'] = { kind: 'NONE' }
+  if (contestSourceWins(input.rolls)) {
     const held = await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))
     const origin = held.find((effect) => effect.id === activeEffectId)?.definition.origin
     if (origin?.kind !== 'ENCOUNTER' || origin.sourceActorId !== target.id)
@@ -254,7 +254,7 @@ async function settleContestEscape(
       removedConditionIds: ended.endedConditionIds
     }
   }
-  return { actors, applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition }) }
+  return { actors, applicationOutputs: contestApplicationOutputs({ ...input, stateTransition }) }
 }
 
 /**
@@ -263,7 +263,7 @@ async function settleContestEscape(
  * spends its action economy.
  * It re-derives every change from current state.
  */
-export async function settleDisarm(
+export async function settleContest(
   ctx: EncounterCharacterWriteTransaction,
   input: ContestSettlementInput
 ) {
@@ -271,14 +271,14 @@ export async function settleDisarm(
   if (contest.origin.kind === 'ESCAPE')
     return settleContestEscape(ctx, input, contest.origin.activeEffectId)
   let target = input.target
-  let stateTransition: DisarmSettlementInput['stateTransition'] = { kind: 'NONE' }
-  if (disarmSourceWins(rolls) && contest.origin.kind === 'BASIC_ACTION') {
+  let stateTransition: ContestApplicationOutputsInput['stateTransition'] = { kind: 'NONE' }
+  if (contestSourceWins(rolls) && contest.origin.kind === 'BASIC_ACTION') {
     const won = input.createdEffect
       ? await settleContestHold(ctx, input)
       : await settleContestOutcome(ctx, input)
     target = won.target
     stateTransition = won.stateTransition
-  } else if (disarmSourceWins(rolls)) {
+  } else if (contestSourceWins(rolls)) {
     const targetRow = await ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) =>
@@ -332,6 +332,6 @@ export async function settleDisarm(
     actors: input.actors.map((actor) =>
       actor.id === engaged.id ? engaged : actor.id === target.id ? target : actor
     ),
-    applicationOutputs: disarmApplicationOutputs({ ...input, stateTransition })
+    applicationOutputs: contestApplicationOutputs({ ...input, stateTransition })
   }
 }

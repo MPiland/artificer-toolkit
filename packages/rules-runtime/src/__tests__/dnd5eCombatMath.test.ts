@@ -617,6 +617,39 @@ describe('D&D 5e saving throws and defenses', () => {
     expect(character.output.rollModes.savingThrows.WISDOM).toBe('NORMAL')
   })
 
+  it('Halfling Brave authors the Steel Will advantage: saves of every ability against being frightened only', () => {
+    const halfling = evaluateSrdCharacter({
+      race: 'Halfling',
+      subrace: 'Lightfoot',
+      classes: [{ label: 'Fighter', level: 1 }]
+    })
+    const steelWill = evaluateSrdCharacter({
+      classes: [{ label: 'Ranger', level: 7, subclass: 'Hunter' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Ranger',
+          subclassLabel: 'Hunter',
+          featureLabel: 'Defensive Tactics',
+          level: 7,
+          optionLabels: ['Steel Will']
+        })
+      ]
+    })
+    for (const ability of SRD_ABILITIES) {
+      const save = (character: typeof halfling, conditionIds: string[]) =>
+        selectDnd5eTargetSavingThrow({
+          savingThrowDefinitions: character.output.savingThrowDefinitions,
+          abilityDefinitionId: ability.id,
+          conditionIds
+        }).rollMode
+      expect(save(halfling, [frightened])).toBe('ADVANTAGE')
+      expect(save(halfling, [])).toBe('NORMAL')
+      expect(save(halfling, [poisoned])).toBe('NORMAL')
+      expect(save(halfling, [frightened])).toBe(save(steelWill, [frightened]))
+    }
+  })
+
   it('Danger Sense keeps its Dexterity advantage out of the Sheet and hands the Encounter the source-sight grant', () => {
     const character = evaluateSrdCharacter({
       abilities: { DEXTERITY: 14 },

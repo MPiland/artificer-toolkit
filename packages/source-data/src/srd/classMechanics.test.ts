@@ -142,3 +142,24 @@ describe('SRD Bard Magical Secrets (SPELLS-31.T3a, D156)', () => {
     expect(eighteenth?.has('Wish')).toBe(true)
   })
 })
+
+describe('SRD Wizard Signature Spells (SPELLS-31.T3b, D156)', () => {
+  it('casts each chosen 3rd-level spell once at 3rd level without a slot, regained on a short rest', () => {
+    const signature = classes
+      .find((entry) => entry.label === 'Wizard')
+      ?.features?.find((feature) => feature.label === 'Signature Spells')
+    const [grant] = signature?.grants?.spells ?? []
+    expect(grant).toEqual(
+      expect.objectContaining({
+        attributes: ['PREPARED', 'LIMITED_USE', 'CAST_AT_LEVEL'],
+        castAtLevel: 3,
+        charges: expect.objectContaining({
+          limitKind: 'FIXED_AMOUNT',
+          amount: 1,
+          resetKind: 'SHORT_REST'
+        })
+      })
+    )
+    expect(signature?.effects ?? []).toEqual([])
+  })
+})
