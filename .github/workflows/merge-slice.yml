@@ -8,11 +8,10 @@
 name: Merge slice
 
 on:
-  # GitHub dispatches only a workflow some event has already triggered, and main holds no workflows: a push
-  # that changes this file to a ci/** branch registers it, and the job skips on that push.
+  # GitHub dispatches only a workflow some event has already triggered, and main holds no workflows: one
+  # push to this branch registered it (the job skips on push), so slice and batch pushes never list it.
   push:
-    branches: ['ci/**']
-    paths: ['.github/workflows/merge-slice.yml']
+    branches: ['ci/register-merge-slice']
   workflow_dispatch:
     inputs:
       branch:
