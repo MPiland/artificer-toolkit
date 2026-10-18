@@ -25,6 +25,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
@@ -125,8 +126,11 @@ export async function nativeDisarmFixture(
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: [
       optional,
+      // A Help reads the actors' choices, which check whether each holder can act.
       ...SRD_RULE_STATE_DEFINITIONS.filter(
-        (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
+        (definition) =>
+          definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID ||
+          definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
       )
     ]
   })

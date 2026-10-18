@@ -9,12 +9,12 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionCheckTrigger,
   evaluateEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '../encounterBasicActionCheck.js'
+import { encounterBasicActionCheckLabel } from '../encounterMovementPassagePreparation.js'
 import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,

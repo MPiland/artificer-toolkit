@@ -326,6 +326,42 @@ export const encounterD20RollModeDtoSchema = lazySchema(() =>
 )
 export type EncounterD20RollModeDto = z.infer<typeof encounterD20RollModeDtoSchema>
 
+/** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */
+const enterDiceResolutionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENTER_DICE'),
+      requestId: requestIdSchema,
+      rawFaces: z
+        .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
+        .check(z.minLength(1))
+        .check(z.maxLength(2)),
+      rollMode: encounterD20RollModeDtoSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2))
+          context.addIssue({
+            code: 'custom',
+            path: ['rawFaces'],
+            message: 'Advantage and disadvantage take two faces; a normal roll takes one.'
+          })
+      })
+    )
+)
+
+/**
+ * Settles the request with the roller's latest app roll for it ("Rolled by the app"). The server
+ * reads the recorded faces; a client never supplies an app roll's values.
+ */
+const systemRollResolutionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('SYSTEM_ROLL'),
+    requestId: requestIdSchema,
+    rollId: uuidSchema
+  })
+)
+
 export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('RESOLVE_RULE_OCCURRENCE'),
@@ -333,36 +369,29 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
     occurrenceId: uuidSchema,
     expectedOccurrenceVersion: versionSchema,
     resolution: z.discriminatedUnion('kind', [
-      /** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */
+      enterDiceResolutionDtoSchema,
+      systemRollResolutionDtoSchema,
+      /** A contest defender picks one of its sealed checks and rolls it in one step (D152). */
       z
         .strictObject({
-          kind: z.literal('ENTER_DICE'),
+          kind: z.literal('CONTEST_CHECK'),
           requestId: requestIdSchema,
-          rawFaces: z
-            .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
-            .check(z.minLength(1))
-            .check(z.maxLength(2)),
-          rollMode: encounterD20RollModeDtoSchema
+          checkDefinitionId: uuidSchema,
+          roll: z.discriminatedUnion('kind', [
+            enterDiceResolutionDtoSchema,
+            systemRollResolutionDtoSchema
+          ])
         })
         .check(
           z.superRefine((value, context) => {
-            if (value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2))
+            if (value.roll.requestId !== value.requestId)
               context.addIssue({
                 code: 'custom',
-                path: ['rawFaces'],
-                message: 'Advantage and disadvantage take two faces; a normal roll takes one.'
+                path: ['roll', 'requestId'],
+                message: 'A contest check rolls its own request.'
               })
           })
         ),
-      /**
-       * Settles the request with the roller's latest app roll for it ("Rolled by the app"). The
-       * server reads the recorded faces; a client never supplies an app roll's values.
-       */
-      z.strictObject({
-        kind: z.literal('SYSTEM_ROLL'),
-        requestId: requestIdSchema,
-        rollId: uuidSchema
-      }),
       z.strictObject({
         kind: z.literal('ENTER_INTEGER'),
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),

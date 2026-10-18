@@ -934,13 +934,16 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
       sourceActorId: uuidSchema,
       targetActorId: uuidSchema,
       sealedContextChecksum: checksumSchema,
-      policy: z.strictObject({
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        moduleKey: capabilityKeySchema,
-        moduleContractVersion: contractVersionSchema
-      }),
+      /** The sealed optional-combat policy; null for a basic-action contest (D152 amendment). */
+      policy: z.nullable(
+        z.strictObject({
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          moduleKey: capabilityKeySchema,
+          moduleContractVersion: contractVersionSchema
+        })
+      ),
       contestGraph: z.strictObject({
         definitionId: uuidSchema,
         checksum: checksumSchema,
@@ -966,6 +969,14 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           kind: z.literal('SCENE_TOKEN_MOVED'),
           tokenId: uuidSchema,
           destination: z.strictObject({ x: z.number(), y: z.number() })
+        }),
+        /** The relationship effect the win created and the conditions it newly applied to the target. */
+        z.strictObject({
+          kind: z.literal('ACTOR_RELATIONSHIP'),
+          createdEffect: encounterActorActiveEffectCreateReceiptDtoSchema,
+          appliedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
         })
       ]),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
@@ -1027,6 +1038,15 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['stateTransition'],
             message: 'Contested-action Scene transition is invalid.'
+          })
+        if (
+          value.stateTransition.kind === 'ACTOR_RELATIONSHIP' &&
+          value.stateTransition.createdEffect.targetActorId !== value.targetActorId
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['stateTransition', 'createdEffect'],
+            message: 'A contested relationship effect belongs to the contest target.'
           })
         if (
           value.actionEconomyTransition &&

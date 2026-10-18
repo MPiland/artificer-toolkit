@@ -79,8 +79,8 @@ export type NativeEncounterOccurrenceFacts = {
   occurrence: Pick<EncounterDocument<'encounterRuleOccurrences'>, 'id' | 'rootCommandId'>
   context:
     | (Pick<PendingContext, 'kind'> & {
-        contest?: { origin: { actionKind?: string } } | null
-        origin?: { movementContinuation?: unknown }
+        contest?: { origin: { kind: string; actionKind?: string } } | null
+        origin?: { kind: string; movementContinuation?: unknown }
       })
     | null
   rootCommandType: string | null
@@ -170,6 +170,6 @@ async function isCompletedNativeDisarm(
   return (
     payload.status === 'COMPLETE' &&
     payload.applicationOutputs.kind === 'CONTESTED_ACTION' &&
-    payload.applicationOutputs.policy.moduleKey === DND5E_DISARM_OPERATION_KEY
+    payload.applicationOutputs.policy?.moduleKey === DND5E_DISARM_OPERATION_KEY
   )
 }

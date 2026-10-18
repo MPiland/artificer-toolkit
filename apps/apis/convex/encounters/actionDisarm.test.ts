@@ -195,7 +195,7 @@ describe('room Disarm commands', () => {
       const before = await records(base)
       const sourceFace = 10
       const tiedTargetFace =
-        sourceFace + base.contest.initiator.modifier - base.contest.defender.modifier
+        sourceFace + base.contest.initiator.modifier - base.contest.defender.checks[0]!.modifier
       const targetFace = tiedTargetFace + (outcome === 'win' ? -1 : outcome === 'loss' ? 1 : 0)
       await queueRoomRolls(base.campaign.id, { rolls: [sourceFace - 1, targetFace - 1] })
       const result = await disarmInRoom(base.owner, base.command)

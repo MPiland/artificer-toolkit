@@ -211,15 +211,15 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
           })
         if (
           value.contest &&
-          (value.contest.origin.kind !== 'OPTIONAL_COMBAT' ||
-            value.contest.origin.actionKind !== 'DISARM' ||
+          ((value.contest.origin.kind === 'OPTIONAL_COMBAT' &&
+            value.contest.origin.actionKind !== 'DISARM') ||
             value.d20Policy !== null ||
             value.twoPhase !== null)
         )
           context.addIssue({
             code: 'custom',
             path: ['contest'],
-            message: 'Direct Disarm contest evidence cannot also retain ordinary action phases.'
+            message: 'Direct contest evidence cannot also retain ordinary action phases.'
           })
       })
     )

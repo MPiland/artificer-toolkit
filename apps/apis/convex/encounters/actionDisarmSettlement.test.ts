@@ -5,7 +5,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
+import {
+  contestDefenderPolicy,
+  executeEncounterOptionalContestAction
+} from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestPendingContext'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
@@ -46,7 +49,11 @@ async function settle(
       command: base.command,
       campaignOwnerUserId: base.owner.userId
     })
-    const { checkDefinitionId: _checkDefinitionId, ...defender } = preparation.contest.defender
+    const {
+      checkDefinitionId,
+      label: _label,
+      ...defender
+    } = contestDefenderPolicy(preparation.contest.defender, null)
     const sourceFace = 10
     const targetFace =
       sourceFace +
@@ -82,7 +89,8 @@ async function settle(
         },
         defender: {
           requestId: preparation.contest.defender.requestNodeId,
-          rawFaces: [...execution.defender.rawFaces]
+          rawFaces: [...execution.defender.rawFaces],
+          checkDefinitionId
         }
       }
     })

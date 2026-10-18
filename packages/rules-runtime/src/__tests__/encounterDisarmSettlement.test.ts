@@ -183,11 +183,16 @@ function disarmContest(input: {
     defender: {
       actorId: TARGET_ACTOR_ID,
       requestNodeId: 'target_d20',
-      rollMode: 'NORMAL',
-      contributors,
-      contributorChecksum: checksumRuleDocument(contributors),
-      modifier: 1,
-      checkDefinitionId: DEFENDER_CHECK_ID
+      checks: [
+        {
+          checkDefinitionId: DEFENDER_CHECK_ID,
+          label: 'Strength (Athletics)',
+          rollMode: 'NORMAL',
+          contributors,
+          contributorChecksum: checksumRuleDocument(contributors),
+          modifier: 1
+        }
+      ]
     },
     rollEvidence: { initiator: null, defender: null },
     actionEconomy: null
@@ -480,10 +485,13 @@ describe('Disarm settlement plan', () => {
 
   it('refuses a contest that is not a Disarm', () => {
     const disarm = creatureContest()
+    const { origin } = disarm
+    if (origin.kind !== 'OPTIONAL_COMBAT')
+      throw new Error('The fixture Disarm is an optional combat contest.')
     const shove = prepareDnd5eOptionalCombatContestPendingContext({
       ...disarm,
       origin: {
-        ...disarm.origin,
+        ...origin,
         actionKind: 'SHOVE_ASIDE',
         selection: {
           kind: 'SHOVE_ASIDE',
@@ -610,7 +618,7 @@ describe('Disarm receipt outputs', () => {
       ...contest,
       rollEvidence: {
         initiator: { requestId: 'initiator_d20', rawFaces: [12] },
-        defender: { requestId: 'target_d20', rawFaces: [10] }
+        defender: { requestId: 'target_d20', rawFaces: [10], checkDefinitionId: DEFENDER_CHECK_ID }
       }
     })
     const settled = disarmApplicationOutputs({

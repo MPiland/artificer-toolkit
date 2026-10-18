@@ -86,11 +86,16 @@ function context() {
     defender: {
       actorId: ids.targetActor,
       requestNodeId: 'target_d20',
-      rollMode: 'NORMAL' as const,
-      contributors,
-      contributorChecksum: checksumRuleDocument(contributors),
-      modifier: 2,
-      checkDefinitionId: ids.check
+      checks: [
+        {
+          checkDefinitionId: ids.check,
+          label: 'Strength (Athletics)',
+          rollMode: 'NORMAL' as const,
+          contributors,
+          contributorChecksum: checksumRuleDocument(contributors),
+          modifier: 2
+        }
+      ]
     },
     rollEvidence: { initiator: null, defender: null },
     actionEconomy: null
@@ -107,7 +112,13 @@ describe('optional-combat contest pending context contract', () => {
     const valid = context()
     for (const invalid of [
       { ...valid, targetActorId: ids.sourceActor },
-      { ...valid, defender: { ...valid.defender, checkDefinitionId: ids.published } },
+      {
+        ...valid,
+        defender: {
+          ...valid.defender,
+          checks: [{ ...valid.defender.checks[0]!, checkDefinitionId: ids.published }]
+        }
+      },
       { ...valid, initiator: { ...valid.initiator, contributorChecksum: checksum('8') } },
       { ...valid, extra: true }
     ]) {

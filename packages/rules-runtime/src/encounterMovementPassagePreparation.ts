@@ -29,6 +29,7 @@ import {
 import { createEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import { EncounterValidationError } from './encounterErrors.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './systems/dnd5e/identity.js'
 import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
@@ -85,6 +86,19 @@ function characterAbilityCheck(
     evidence: byCanonical(policy.rollContributorEvidence.abilityChecks),
     rollMode: byCanonical(policy.rollModes.abilityChecks)
   }
+}
+
+/** The check's name as the roller reads it: "Strength" or "Wisdom (Medicine)". */
+export function encounterBasicActionCheckLabel(
+  system: SystemAuthoredDto,
+  checkDefinitionId: string
+): string {
+  const abilityCheck = system.abilities.find((entry) => entry.id === checkDefinitionId)
+  if (abilityCheck) return abilityCheck.label
+  const skill = system.skills.find((entry) => entry.id === checkDefinitionId)
+  if (!skill) throw new EncounterValidationError('The basic action check is not in the System.')
+  const ability = system.abilities.find((entry) => entry.id === skill.governingAbilityDefinitionId)
+  return ability ? `${ability.label} (${skill.label})` : skill.label
 }
 
 /**
@@ -438,11 +452,16 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     defender: {
       actorId: blocker.actor.id,
       requestNodeId: 'target_d20',
-      rollMode: defender.rollMode,
-      contributors: defender.contributors,
-      contributorChecksum: checksumRuleDocument(defender.contributors),
-      modifier: defender.modifier,
-      checkDefinitionId: proposal.contest.targetCheckDefinitionId
+      checks: [
+        {
+          checkDefinitionId: proposal.contest.targetCheckDefinitionId,
+          label: encounterBasicActionCheckLabel(system, proposal.contest.targetCheckDefinitionId),
+          rollMode: defender.rollMode,
+          contributors: defender.contributors,
+          contributorChecksum: checksumRuleDocument(defender.contributors),
+          modifier: defender.modifier
+        }
+      ]
     },
     rollEvidence: { initiator: null, defender: null },
     actionEconomy: {

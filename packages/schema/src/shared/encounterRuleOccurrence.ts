@@ -187,6 +187,34 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         request: d20EvidenceRequestDtoSchema,
         allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
       }),
+      /**
+       * A contest defender's roll: it picks one of the checks the contest sealed for it and rolls it
+       * in the same answer (D152), such as Strength (Athletics) or Dexterity (Acrobatics) against a
+       * Grapple.
+       */
+      z.strictObject({
+        kind: z.literal('CONTEST_CHECK'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        rollerActorId: uuidSchema,
+        actionLabel: triggerLabelSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        checks: z
+          .array(
+            z.strictObject({
+              checkDefinitionId: uuidSchema,
+              label: triggerLabelSchema,
+              rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+              derivedRollModeReasons: z
+                .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
+                .check(z.maxLength(32))
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('CONTEST_CHECK')])
+      }),
       z
         .strictObject({
           kind: z.literal('AREA_SAVES'),

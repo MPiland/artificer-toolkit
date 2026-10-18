@@ -1,5 +1,9 @@
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type {
+  ContestDefenderCheckDto,
+  ContestDefenderDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionOptionalCombatPending'
+import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -31,6 +35,23 @@ type OptionalContestD20Policy = {
   contributors: readonly D20Contributor[]
   contributorChecksum: string
   modifier: number
+}
+
+/**
+ * The defender's roll for one of its sealed checks (D152): the named check, or with null the check
+ * an auto-rolling defender takes, the highest modifier with ties going in sealed order.
+ */
+export function contestDefenderPolicy(
+  defender: ContestDefenderDto,
+  checkDefinitionId: string | null
+): ContestDefenderCheckDto & { actorId: string; requestNodeId: string } {
+  const check =
+    checkDefinitionId === null
+      ? defender.checks.reduce((best, entry) => (entry.modifier > best.modifier ? entry : best))
+      : defender.checks.find((entry) => entry.checkDefinitionId === checkDefinitionId)
+  if (!check)
+    throw new EncounterValidationError('The contest defender can roll only a check it was offered.')
+  return { ...check, actorId: defender.actorId, requestNodeId: defender.requestNodeId }
 }
 
 /** Entered dice, the roller's app roll, or an auto-roll for a contest participant's d20. */

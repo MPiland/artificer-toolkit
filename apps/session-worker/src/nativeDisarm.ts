@@ -35,7 +35,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
+import {
+  contestDefenderPolicy,
+  executeEncounterOptionalContestAction
+} from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { sightGovernedStageD20 } from '@artificer-toolkit/rules-runtime/encounterSightGovernedD20'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -63,13 +66,17 @@ function withRollEvidence(
 ) {
   return {
     ...contest,
-    rollEvidence: {
-      ...contest.rollEvidence,
-      [participant === 'INITIATOR' ? 'initiator' : 'defender']: {
-        requestId,
-        rawFaces: [...rawFaces]
-      }
-    }
+    rollEvidence:
+      participant === 'INITIATOR'
+        ? { ...contest.rollEvidence, initiator: { requestId, rawFaces: [...rawFaces] } }
+        : {
+            ...contest.rollEvidence,
+            defender: {
+              requestId,
+              rawFaces: [...rawFaces],
+              checkDefinitionId: contestDefenderPolicy(contest.defender, null).checkDefinitionId
+            }
+          }
   }
 }
 
@@ -302,7 +309,11 @@ export async function planNativeLiveDisarm(
     priorRolls.set('DEFENDER', contest.rollEvidence.defender.rawFaces)
   const occurrenceId = pending?.occurrenceId ?? crypto.randomUUID()
   const occurrenceVersion = ready.occurrenceVersion === null ? 0 : ready.occurrenceVersion + 1
-  const { checkDefinitionId: _checkDefinitionId, ...defender } = contest.defender
+  const {
+    checkDefinitionId: _checkDefinitionId,
+    label: _label,
+    ...defender
+  } = contestDefenderPolicy(contest.defender, null)
   const execution = await executeEncounterOptionalContestAction({
     runtime: executionOptions.runtime,
     // Each participant's d20 goes to that actor's controllers; the initiator rolls their own.

@@ -426,7 +426,8 @@ export async function publishMovementResponse(
         ? preparedContext
         : preparedContext.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
           ? preparedContext.movement
-          : preparedContext.kind === 'ENCOUNTER_CONTEST_CHECK'
+          : preparedContext.kind === 'ENCOUNTER_CONTEST_CHECK' &&
+              preparedContext.origin.kind === 'OPTIONAL_COMBAT'
             ? preparedContext.origin.movementContinuation
             : null
     if (committed.mechanicsChanged && movementContext) {

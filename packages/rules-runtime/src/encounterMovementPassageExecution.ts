@@ -12,6 +12,7 @@ import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schem
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { resolveEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import { executeEncounterMovementPassageContest } from './encounterMovementPassageContest.js'
+import { contestDefenderPolicy } from './encounterOptionalContestActionExecution.js'
 import type { prepareEncounterMovementPassageContest } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -62,8 +63,41 @@ function same(left: unknown, right: unknown) {
   return checksumRuleDocument(left) === checksumRuleDocument(right)
 }
 
+/** A passage contest always has the optional-combat origin that carries its movement. */
+function passagePending(context: ContestCheck): PassagePending {
+  const { origin } = context
+  if (origin.kind !== 'OPTIONAL_COMBAT')
+    throw new Error('Movement passage contest origin is unavailable.')
+  return { ...context, origin }
+}
+
 function withoutEvidence(pending: PassagePending) {
   return { ...pending, rollEvidence: { initiator: null, defender: null } }
+}
+
+/** The pending contest with one participant's submitted d20 recorded; a defender rolls its one sealed check. */
+function withSubmittedEvidence(
+  pending: PassagePending,
+  submitted: {
+    participant: 'INITIATOR' | 'DEFENDER'
+    requestId: string
+    rawFaces: readonly number[]
+  }
+): PassagePending {
+  const evidence = { requestId: submitted.requestId, rawFaces: [...submitted.rawFaces] }
+  return {
+    ...pending,
+    rollEvidence:
+      submitted.participant === 'INITIATOR'
+        ? { ...pending.rollEvidence, initiator: evidence }
+        : {
+            ...pending.rollEvidence,
+            defender: {
+              ...evidence,
+              checkDefinitionId: contestDefenderPolicy(pending.defender, null).checkDefinitionId
+            }
+          }
+  }
 }
 
 function appendedMovement<
@@ -83,7 +117,7 @@ function receipt(input: {
   const movement = input.pending.origin.movementContinuation
   if (!economy || !movement) throw new Error('Movement passage allowance is unavailable.')
   const participant = (
-    policy: PassagePending['initiator'],
+    policy: { rollMode: PassagePending['initiator']['rollMode']; modifier: number },
     rawFaces: readonly number[],
     total: number
   ) => ({
@@ -110,7 +144,7 @@ function receipt(input: {
       input.execution.evidence.initiatorTotal
     ),
     defender: participant(
-      input.pending.defender,
+      contestDefenderPolicy(input.pending.defender, null),
       input.execution.evidence.defenderRawFaces,
       input.execution.evidence.defenderTotal
     ),
@@ -205,12 +239,14 @@ export async function evaluateEncounterMovementPassageContest<
       if (input.retained) throw new Error('Retained movement passage evidence is stale.')
       return { kind: 'DECLINED' as const, movement }
     }
-    const pending = await callbacks.prepareContest({
-      state: input.state,
-      choice: { ...choice, movement },
-      optionId: selected.option.optionId,
-      targets: input.targets
-    })
+    const pending = passagePending(
+      await callbacks.prepareContest({
+        state: input.state,
+        choice: { ...choice, movement },
+        optionId: selected.option.optionId,
+        targets: input.targets
+      })
+    )
     const retainedFaces = input.retained?.receipt
       ? [...input.retained.receipt.initiator.rawFaces, ...input.retained.receipt.defender.rawFaces]
       : []
@@ -233,22 +269,9 @@ export async function evaluateEncounterMovementPassageContest<
     if (execution.kind === 'PENDING') {
       if (input.retained?.receipt)
         throw new Error('Retained movement passage completion evidence is stale.')
-      const nextPending: PassagePending = {
-        ...pending,
-        rollEvidence: {
-          ...pending.rollEvidence,
-          ...(execution.submittedEvidence
-            ? {
-                [execution.submittedEvidence.participant === 'INITIATOR'
-                  ? 'initiator'
-                  : 'defender']: {
-                  requestId: execution.submittedEvidence.requestId,
-                  rawFaces: [...execution.submittedEvidence.rawFaces]
-                }
-              }
-            : {})
-        }
-      }
+      const nextPending = execution.submittedEvidence
+        ? withSubmittedEvidence(pending, execution.submittedEvidence)
+        : pending
       const nextSnapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...execution.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',
@@ -329,12 +352,14 @@ export async function evaluateEncounterMovementPassageContest<
     optionsChecksum: ''
   }
   choice.optionsChecksum = checksumRuleDocument(choice.options)
-  const current = await callbacks.prepareContest({
-    state: input.state,
-    choice,
-    optionId: sealed.origin.optionId,
-    targets: input.targets
-  })
+  const current = passagePending(
+    await callbacks.prepareContest({
+      state: input.state,
+      choice,
+      optionId: sealed.origin.optionId,
+      targets: input.targets
+    })
+  )
   const sealedPending: PassagePending = {
     ...sealed,
     origin: { ...sealed.origin, movementContinuation: sealed.origin.movementContinuation },
@@ -378,16 +403,7 @@ export async function evaluateEncounterMovementPassageContest<
     if (input.retained?.receipt)
       throw new Error('Retained movement passage completion evidence is stale.')
     if (!execution.submittedEvidence) throw new Error('Movement passage evidence is unavailable.')
-    const nextPending: PassagePending = {
-      ...pending,
-      rollEvidence: {
-        ...pending.rollEvidence,
-        [execution.submittedEvidence.participant === 'INITIATOR' ? 'initiator' : 'defender']: {
-          requestId: execution.submittedEvidence.requestId,
-          rawFaces: [...execution.submittedEvidence.rawFaces]
-        }
-      }
-    }
+    const nextPending = withSubmittedEvidence(pending, execution.submittedEvidence)
     const nextSnapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
       ...execution.continuation,
       snapshotKind: 'KERNEL_EVIDENCE',

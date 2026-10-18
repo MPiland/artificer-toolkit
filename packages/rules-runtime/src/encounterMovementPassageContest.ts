@@ -6,6 +6,7 @@ import type {
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
 import {
+  contestDefenderPolicy,
   executeEncounterOptionalContestAction,
   type OptionalContestResolution
 } from './encounterOptionalContestActionExecution.js'
@@ -48,7 +49,8 @@ export async function executeEncounterMovementPassageContest(input: {
 > {
   if (
     input.pending.origin.kind !== 'OPTIONAL_COMBAT' ||
-    (input.pending.origin.actionKind !== 'OVERRUN' && input.pending.origin.actionKind !== 'TUMBLE') ||
+    (input.pending.origin.actionKind !== 'OVERRUN' &&
+      input.pending.origin.actionKind !== 'TUMBLE') ||
     input.pending.origin.movementContinuation === null ||
     input.pending.origin.movementContinuation === undefined
   ) {
@@ -93,7 +95,10 @@ export async function executeEncounterMovementPassageContest(input: {
     ...(input.continuation ? { continuation: input.continuation } : {}),
     graph,
     initiator: { ...input.pending.initiator, requestNodeId: 'initiator_d20' },
-    defender: { ...input.pending.defender, requestNodeId: 'target_d20' },
+    defender: {
+      ...contestDefenderPolicy(input.pending.defender, null),
+      requestNodeId: 'target_d20'
+    },
     occurrenceId: input.occurrenceId,
     ...(input.resolution ? { resolution: input.resolution } : {}),
     rollD20,

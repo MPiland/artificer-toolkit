@@ -62,11 +62,13 @@ export async function readNativeDisarmReplay(
   if (
     payload.status !== 'COMPLETE' ||
     payload.applicationOutputs.kind !== 'CONTESTED_ACTION' ||
+    !payload.applicationOutputs.policy ||
     metadata.transition !== 'START'
   )
     throw new Error('Stored Disarm rule receipt mismatch.')
   const application = payload.applicationOutputs
-  const graph = createDnd5eOptionalCombatContestGraph(application.policy)
+  const policy = payload.applicationOutputs.policy
+  const graph = createDnd5eOptionalCombatContestGraph(policy)
   if (
     occurrence.state !== 'COMPLETED' ||
     occurrence.encounterId !== run.id ||
@@ -89,7 +91,7 @@ export async function readNativeDisarmReplay(
     application.occurrenceId !== occurrence.id ||
     application.sourceActorId !== command.actorId ||
     application.targetActorId !== actionTargetActorId(command.target) ||
-    application.policy.definitionId !== command.optionalCombatIntent?.definitionId ||
+    policy.definitionId !== command.optionalCombatIntent?.definitionId ||
     application.contestGraph.definitionId !== graph.published.id ||
     application.contestGraph.checksum !== graph.published.checksum ||
     application.contestGraph.identityChecksum !== graph.identityChecksum ||

@@ -37,7 +37,10 @@ import {
   mergedRollContributors
 } from './encounterActiveGrants.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
-import { checkAbilityCode } from './encounterMovementPassagePreparation.js'
+import {
+  checkAbilityCode,
+  encounterBasicActionCheckLabel
+} from './encounterMovementPassagePreparation.js'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -502,10 +505,15 @@ export function prepareEncounterDisarmContest(input: {
     defender: {
       actorId: target.id,
       requestNodeId: 'target_d20',
-      ...defenderRoll,
-      contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
-      modifier: targetCheckTotal,
-      checkDefinitionId
+      checks: [
+        {
+          checkDefinitionId,
+          label: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
+          ...defenderRoll,
+          contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
+          modifier: targetCheckTotal
+        }
+      ]
     },
     actionEconomy: actionEconomy
       ? {

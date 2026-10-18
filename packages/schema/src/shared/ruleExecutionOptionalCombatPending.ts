@@ -30,18 +30,12 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import { MAX_SPATIAL_CANDIDATES, spatialPointDtoSchema } from './spatialFacts.js'
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
-/**
- * Immutable pending evidence context for an optional-combat contested action.
- * It retains identities and currentness pins only; the executable contest graph
- * is re-created from its sealed System policy pin when the request resumes.
- */
-const optionalCombatContestD20PolicyDtoSchema = lazySchema(() =>
+/** One sealed contest d20 roll: its mode, contributors and modifier. */
+const contestD20RollDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      actorId: uuidSchema,
-      requestNodeId: localNodeIdSchema,
       rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
       contributors: z
         .array(receiptD20ContributorSchema)
@@ -75,6 +69,29 @@ const optionalCombatContestD20PolicyDtoSchema = lazySchema(() =>
     )
 )
 
+const contestInitiatorD20PolicyDtoSchema = lazySchema(() =>
+  z.extend(contestD20RollDtoSchema, { actorId: uuidSchema, requestNodeId: localNodeIdSchema })
+)
+
+/** A check the defender may roll, frozen from its own facts when the contest is sealed (D152). */
+const contestDefenderCheckDtoSchema = lazySchema(() =>
+  z.extend(contestD20RollDtoSchema, { checkDefinitionId: uuidSchema, label: identifierSchema })
+)
+
+const contestDefenderDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actorId: uuidSchema,
+    requestNodeId: localNodeIdSchema,
+    checks: z
+      .array(contestDefenderCheckDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+  })
+)
+
+export type ContestDefenderDto = z.infer<typeof contestDefenderDtoSchema>
+export type ContestDefenderCheckDto = z.infer<typeof contestDefenderCheckDtoSchema>
+
 const optionalCombatContestActionEconomyReceiptDtoSchema = lazySchema(() =>
   z.nullable(
     z.strictObject({
@@ -87,13 +104,15 @@ const optionalCombatContestActionEconomyReceiptDtoSchema = lazySchema(() =>
   )
 )
 
-const optionalCombatContestRollEvidenceDtoSchema = lazySchema(() =>
-  z.nullable(
-    z.strictObject({
-      requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
-      rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2))
-    })
-  )
+const contestRollEvidenceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+    rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2))
+  })
+)
+
+const contestDefenderRollEvidenceDtoSchema = lazySchema(() =>
+  z.extend(contestRollEvidenceDtoSchema, { checkDefinitionId: uuidSchema })
 )
 
 /**
@@ -217,7 +236,8 @@ const contestCheckOriginDtoSchema = lazySchema(() =>
       resolvedSelectionChecksum: checksumSchema,
       selection: optionalCombatPassageSelectionDtoSchema,
       movementContinuation: z.optional(z.nullable(optionalCombatPassageContinuationDtoSchema))
-    })
+    }),
+    z.strictObject({ kind: z.literal('BASIC_ACTION'), initiatorCheckDefinitionId: uuidSchema })
   ])
 )
 
@@ -281,6 +301,15 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
           definitionChecksum: checksumSchema,
           moduleKey: capabilityKeySchema,
           moduleContractVersion: contractVersionSchema
+        }),
+        z.strictObject({
+          kind: z.literal('BASIC_ACTION'),
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          effectId: uuidSchema,
+          authoredEffectChecksum: checksumSchema,
+          compiledEffectChecksum: checksumSchema
         })
       ]),
       target: z.discriminatedUnion('kind', [
@@ -294,14 +323,12 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
         }),
         z.strictObject({ kind: z.literal('ENCOUNTER_ACTOR'), currentnessChecksum: checksumSchema })
       ]),
-      initiator: optionalCombatContestD20PolicyDtoSchema,
-      defender: z.extend(optionalCombatContestD20PolicyDtoSchema, {
-        checkDefinitionId: uuidSchema
-      }),
+      initiator: contestInitiatorD20PolicyDtoSchema,
+      defender: contestDefenderDtoSchema,
       rollEvidence: z._default(
         z.strictObject({
-          initiator: z._default(optionalCombatContestRollEvidenceDtoSchema, null),
-          defender: z._default(optionalCombatContestRollEvidenceDtoSchema, null)
+          initiator: z._default(z.nullable(contestRollEvidenceDtoSchema), null),
+          defender: z._default(z.nullable(contestDefenderRollEvidenceDtoSchema), null)
         }),
         { initiator: null, defender: null }
       ),
@@ -327,37 +354,71 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
           })
         }
         const { origin } = value
-        if (value.defender.checkDefinitionId !== origin.selection.defenderCheckDefinitionId) {
+        const defenderChecks = value.defender.checks.map((check) => check.checkDefinitionId)
+        if (new Set(defenderChecks).size !== defenderChecks.length) {
           context.addIssue({
             code: 'custom',
-            path: ['origin', 'selection'],
-            message: 'Optional-combat contest selection does not match its sealed defender check.'
+            path: ['defender', 'checks'],
+            message: 'Contest defender checks must be unique.'
           })
         }
-        if (origin.actionKind !== origin.selection.kind) {
+        if ((origin.kind === 'BASIC_ACTION') !== (value.source.kind === 'BASIC_ACTION')) {
           context.addIssue({
             code: 'custom',
-            path: ['origin', 'selection'],
-            message: 'Optional-combat contest action and selection kinds must match.'
+            path: ['source', 'kind'],
+            message: 'Only a basic-action contest seals a basic-action source.'
           })
         }
-        const passageAction = origin.actionKind === 'OVERRUN' || origin.actionKind === 'TUMBLE'
-        if (
-          passageAction !==
-          (origin.movementContinuation !== null && origin.movementContinuation !== undefined)
-        ) {
+        if (origin.kind === 'OPTIONAL_COMBAT') {
+          if (
+            defenderChecks.length !== 1 ||
+            defenderChecks[0] !== origin.selection.defenderCheckDefinitionId
+          ) {
+            context.addIssue({
+              code: 'custom',
+              path: ['origin', 'selection'],
+              message: 'Optional-combat contest selection does not match its sealed defender check.'
+            })
+          }
+          if (origin.actionKind !== origin.selection.kind) {
+            context.addIssue({
+              code: 'custom',
+              path: ['origin', 'selection'],
+              message: 'Optional-combat contest action and selection kinds must match.'
+            })
+          }
+          const passageAction = origin.actionKind === 'OVERRUN' || origin.actionKind === 'TUMBLE'
+          if (
+            passageAction !==
+            (origin.movementContinuation !== null && origin.movementContinuation !== undefined)
+          ) {
+            context.addIssue({
+              code: 'custom',
+              path: ['origin', 'movementContinuation'],
+              message: 'Only passage contests retain a frozen movement continuation.'
+            })
+          }
+        }
+        const defenderEvidence = value.rollEvidence.defender
+        const defenderCheck =
+          defenderEvidence === null
+            ? null
+            : value.defender.checks.find(
+                (check) => check.checkDefinitionId === defenderEvidence.checkDefinitionId
+              )
+        if (defenderCheck === undefined) {
           context.addIssue({
             code: 'custom',
-            path: ['origin', 'movementContinuation'],
-            message: 'Only passage contests retain a frozen movement continuation.'
+            path: ['rollEvidence', 'defender', 'checkDefinitionId'],
+            message: 'Contest defender evidence must roll a sealed defender check.'
           })
         }
         const requireRollEvidence = (
-          evidence: z.infer<typeof optionalCombatContestRollEvidenceDtoSchema>,
-          policy: z.infer<typeof optionalCombatContestD20PolicyDtoSchema>,
+          evidence: z.infer<typeof contestRollEvidenceDtoSchema> | null,
+          policy: z.infer<typeof contestD20RollDtoSchema> | null | undefined,
           path: 'initiator' | 'defender'
         ) => {
-          if (evidence === null) return
+          if (evidence === null || !policy) return
           const expectedFaces = policy.rollMode === 'NORMAL' ? 1 : 2
           if (evidence.rawFaces.length !== expectedFaces) {
             context.addIssue({
@@ -375,7 +436,7 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
           }
         }
         requireRollEvidence(value.rollEvidence.initiator, value.initiator, 'initiator')
-        requireRollEvidence(value.rollEvidence.defender, value.defender, 'defender')
+        requireRollEvidence(defenderEvidence, defenderCheck, 'defender')
         if (value.rollEvidence.defender !== null && value.rollEvidence.initiator === null) {
           context.addIssue({
             code: 'custom',

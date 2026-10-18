@@ -2,6 +2,7 @@ import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { contestDefenderPolicy } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import {
   noEncounterRollModeReasons,
@@ -307,7 +308,7 @@ export function projectNativeActionPending(
     ? snapshot.request.nodeId === 'initiator_d20'
       ? context.contest.initiator
       : snapshot.request.nodeId === 'target_d20'
-        ? context.contest.defender
+        ? contestDefenderPolicy(context.contest.defender, null)
         : null
     : (context.d20Policy ?? castCheck?.d20 ?? null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))

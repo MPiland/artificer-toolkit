@@ -5,7 +5,6 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
-  encounterBasicActionCheckLabel,
   evaluateEncounterBasicActionCheck,
   storedCheckResult
 } from './encounterBasicActionCheck.js'
@@ -17,7 +16,10 @@ import {
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import { actorContestFacts } from './encounterMovementPassagePreparation.js'
+import {
+  actorContestFacts,
+  encounterBasicActionCheckLabel
+} from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 
 export const ESCAPE_ACTION_LABEL = 'Escape'

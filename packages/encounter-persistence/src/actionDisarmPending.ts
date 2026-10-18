@@ -1,4 +1,5 @@
 import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { contestDefenderPolicy } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import { projectNativeActionPending, readNativeActionPending } from './actionPending.js'
@@ -50,7 +51,8 @@ export async function readNativeDisarmPending(
       : contest.rollEvidence.initiator === null)
   )
     throw new Error('Stored Disarm participant evidence is invalid.')
-  const policy = participant === 'INITIATOR' ? contest.initiator : contest.defender
+  const policy =
+    participant === 'INITIATOR' ? contest.initiator : contestDefenderPolicy(contest.defender, null)
   return { ...pending, contest, participant, policy }
 }
 
