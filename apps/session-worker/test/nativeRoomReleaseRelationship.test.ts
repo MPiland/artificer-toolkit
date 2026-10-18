@@ -115,6 +115,21 @@ describe('a source releases the creature it holds (D152), in the room', () => {
     ])
   })
 
+  it("offers each member the holds its creatures source on another creature's turn, and releases one there", async () => {
+    const hold = { sourceActorId: GRAPPLER_ID, heldActorId: HELD_ID, activeEffectId: EFFECT_ID }
+    const stranger = await releaseRoom({ heldHidden: true })
+    expect(await stranger.heldRelationships(true)).toEqual([])
+    expect(await stranger.heldRelationships()).toEqual([{ ...hold, label: 'Release Wolf' }])
+
+    const room = await releaseRoom({ playerControlledActorIds: [GRAPPLER_ID], heldHidden: true })
+    // The held Wolf is acting, and the player's grappler still offers its release.
+    expect(await room.heldRelationships(true)).toEqual([{ ...hold, label: 'Release a creature' }])
+    const answer = await room.sendAsPlayer(await releaseCommand(room))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await room.heldRelationships(true)).toEqual([])
+    expect((await releaseState(room)).conditions).toEqual([])
+  })
+
   it('refuses the held creature releasing a hold it does not source', async () => {
     const room = await releaseRoom()
     const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)

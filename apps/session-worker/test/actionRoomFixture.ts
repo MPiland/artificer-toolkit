@@ -539,6 +539,13 @@ export async function actionRoom(config: ActionRoomConfig) {
       if (!choices) throw new Error('The room offers the player no action choices.')
       return choices
     },
+    /** The holds the room offers to release on any turn, as the GM or, with `asPlayer`, a player reads them. */
+    async heldRelationships(asPlayer = false) {
+      return readRoom(
+        { kind: 'HELD_RELATIONSHIPS', input: { encounterId: room.encounterId } },
+        asPlayer ? await connectPlayer(room.base) : room.base
+      )
+    },
     /** The Scene context of the acting actor's token and the token of the actor at `targetIndex`. */
     sceneContext(targetIndex = 1) {
       const { scene } = room

@@ -15,7 +15,7 @@ import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
-import { encounterSourceRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -27,6 +27,7 @@ import {
   type EncounterActionChoiceDto,
   type EncounterActionChoicesDto,
   type EncounterActionChoicesResponseDto,
+  type EncounterHeldRelationshipDto,
   type EncounterOptionalActionChoicesDto,
   type GetEncounterActionChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
@@ -34,7 +35,7 @@ import {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { activationCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
-import { requireEncounterActorControl } from './actorController.js'
+import { readEncounterControlledActorIds, requireEncounterActorControl } from './actorController.js'
 import {
   evaluateActionAttackAction,
   readActionHolderState,
@@ -427,28 +428,9 @@ export async function readEncounterActionChoices(
     })
   }
   // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
-  const runActors = await readRunActors(tx, state)
-  const releases: EncounterActionChoicesDto['releases'] = encounterSourceRelationships(
-    new Map(
-      await Promise.all(
-        runActors.map(
-          async (held) =>
-            [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
-        )
-      )
-    ),
-    actor.id
-  ).map(({ actorId: heldActorId, effect }) => {
-    const held = runActors.find((candidate) => candidate.id === heldActorId)
-    return {
-      heldActorId,
-      activeEffectId: effect.id,
-      label:
-        held && (membership.role === 'OWNER' || held.public)
-          ? `Release ${held.label}`
-          : 'Release a creature'
-    }
-  })
+  const releases: EncounterActionChoicesDto['releases'] = (
+    await readHeldRelationships(tx, { state, membership, sourceActorIds: new Set([actor.id]) })
+  ).map(({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label }))
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
@@ -477,6 +459,62 @@ export async function readEncounterActionChoices(
         definitionId: definition.definitionId,
         label: definition.label
       }))
+  })
+}
+
+/** The holds `sourceActorIds` apply in the Run, each labelled for the member who may release it. */
+async function readHeldRelationships(
+  tx: EncounterTurnReadTransaction,
+  input: {
+    state: ReturnType<typeof readRunState>
+    membership: CampaignAuthority['membership']
+    sourceActorIds: ReadonlySet<string>
+  }
+): Promise<EncounterHeldRelationshipDto[]> {
+  const { state, membership, sourceActorIds } = input
+  const runActors = await readRunActors(tx, state)
+  const activeEffectsByActorId = new Map(
+    await Promise.all(
+      runActors.map(
+        async (held) =>
+          [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
+      )
+    )
+  )
+  return encounterRelationships(activeEffectsByActorId)
+    .filter(({ sourceActorId }) => sourceActorIds.has(sourceActorId))
+    .map(({ sourceActorId, actorId: heldActorId, effect }) => {
+      const held = runActors.find((candidate) => candidate.id === heldActorId)
+      return {
+        sourceActorId,
+        heldActorId,
+        activeEffectId: effect.id,
+        label:
+          held && (membership.role === 'OWNER' || held.public)
+            ? `Release ${held.label}`
+            : 'Release a creature'
+      }
+    })
+}
+
+/**
+ * The holds the member's creatures source, released for no action on any turn (D152); the GM's
+ * are every hold. A Run without assisted play offers none.
+ */
+export async function readEncounterHeldRelationships(
+  tx: EncounterTurnReadTransaction,
+  input: ActionChoiceReadInput<unknown>
+): Promise<EncounterHeldRelationshipDto[]> {
+  const { campaign, membership } = input
+  const state = readRunState(input.run)
+  if (campaign.status !== 'ACTIVE' || campaign.gameSystemId !== state.gameSystemId)
+    throw new Error('Encounter Campaign is stale.')
+  if (state.status !== 'ACTIVE' || state.automationMode === 'MANUAL') return []
+  const actors = await readRunActors(tx, state)
+  return readHeldRelationships(tx, {
+    state,
+    membership,
+    sourceActorIds: await readEncounterControlledActorIds(tx, { campaign, membership, actors })
   })
 }
 

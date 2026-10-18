@@ -1038,11 +1038,10 @@ export function CampaignTabletopActionDrawer({
           ) : null}
           {currentActor && !actionsLoading && !actionChoicesError && releases.length ? (
             <CampaignTabletopReleases
-              actorId={currentActor.id}
               disabled={selectionControlsDisabled}
               encounterId={encounter.id}
               encounterVersion={encounter.version}
-              releases={releases}
+              releases={releases.map((release) => ({ ...release, sourceActorId: currentActor.id }))}
               onRelease={onRelease}
             />
           ) : null}

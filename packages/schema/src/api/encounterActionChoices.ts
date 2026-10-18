@@ -247,6 +247,11 @@ export const encounterReleaseChoiceDtoSchema = lazySchema(() =>
   })
 )
 
+/** A hold a creature the requester controls applied, which its source may release on any turn (D152). */
+export const encounterHeldRelationshipDtoSchema = lazySchema(() =>
+  z.extend(encounterReleaseChoiceDtoSchema, { sourceActorId: postgresUuidSchema })
+)
+
 export const encounterActionChoicesDtoSchema = lazySchema(() =>
   z.strictObject({
     encounterId: postgresUuidSchema,
@@ -341,6 +346,7 @@ export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSc
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
 export type EncounterReleaseChoiceDto = z.infer<typeof encounterReleaseChoiceDtoSchema>
+export type EncounterHeldRelationshipDto = z.infer<typeof encounterHeldRelationshipDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema

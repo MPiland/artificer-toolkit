@@ -355,7 +355,7 @@ settlement, timeline }`:
 The four version-keyed turn reads (`actionChoices.get`, `actionChoices.optional`,
 `evidenceRolls.latest`, `sceneBindings.get`), the Scene's actor token bindings and the target modifiers are
 not in the frame; they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union
-over the six reads with the Convex query's arguments less `expectedVersion`
+over the seven reads with the Convex query's arguments less `expectedVersion`
 ([encounterRead.ts](../../packages/schema/src/api/encounterRead.ts)). The room answers at its own current
 version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result }`, or
 `ENCOUNTER_READ_REJECTED { requestId, code, reason, message }` (the rejection codes of `COMMAND_REJECTED`).
@@ -371,6 +371,12 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   the room; the web view (`CampaignVttStage`) reads this while routed and re-asks when the viewer's token
   set changes. It keeps the Convex action for an unrouted read. A Scene the room does not present is
   `UNAVAILABLE`.
+- `HELD_RELATIONSHIPS { encounterId }` is room-only, like the release it offers: the holds whose source
+  the reader controls (every hold for the GM), each `{ sourceActorId, heldActorId, activeEffectId, label }`
+  with the held creature's name hidden from a player unless it is public
+  (`readEncounterHeldRelationships`). It reads on any turn, and the turn-order drawer lists them under
+  Holding with a Release that sends `RELEASE_RELATIONSHIP` for the hold's source (D152). The current actor's
+  action choices carry the same holds as `releases`.
 - `ACTION_TARGET_MODIFIERS { encounterId, actorId, actionId, scene }` answers ATTACK-17.2's hover readout
   ([encounterActionTargetModifiers.ts](../../packages/schema/src/api/encounterActionTargetModifiers.ts),
   [actionTargetModifierReads.ts](../../packages/encounter-persistence/src/actionTargetModifierReads.ts)). For

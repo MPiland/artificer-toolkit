@@ -1,5 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
+import { encounterHeldRelationshipDtoSchema } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type {
+  EncounterCommandResultDto,
+  ReleaseRelationshipInputDto
+} from '@artificer-toolkit/schema/api/encounters'
+import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import {
   createTabletopCampaign,
@@ -21,6 +27,17 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const onGmCommand = fn()
+const releaseSent = fn()
+
+async function sendReleaseCommand(command: ReleaseRelationshipInputDto) {
+  releaseSent(command)
+  return {
+    projection: { ...tabletopPlayerEncounter, version: tabletopPlayerEncounter.version + 1 },
+    roll: null,
+    occurrence: null,
+    evidenceRoll: null
+  } satisfies EncounterCommandResultDto
+}
 
 export const Gm: Story = {
   args: {
@@ -32,8 +49,10 @@ export const Gm: Story = {
     pending: false,
     role: 'OWNER',
     scene: tabletopLiveScene,
+    holds: [],
     onCommand: onGmCommand,
-    onEndCharacterConcentration: () => undefined
+    onEndCharacterConcentration: () => undefined,
+    onRelease: sendReleaseCommand
   }
 }
 
@@ -67,8 +86,48 @@ export const Player: Story = {
     pending: false,
     role: 'PLAYER',
     scene: tabletopLiveScene,
+    holds: [],
     onCommand: () => undefined,
-    onEndCharacterConcentration: () => undefined
+    onEndCharacterConcentration: () => undefined,
+    onRelease: sendReleaseCommand
+  }
+}
+
+const [playerCharacter, vaultWarden] = tabletopPlayerEncounter.actors
+const playerHold = validated(encounterHeldRelationshipDtoSchema)({
+  sourceActorId: playerCharacter!.id,
+  heldActorId: vaultWarden!.id,
+  activeEffectId: '00000000-0000-4000-8000-000000000e31',
+  label: `Release ${vaultWarden!.label}`
+})
+
+/** On the held creature's own turn, the player's Character lets go of it for no action (D152). */
+export const PlayerReleasesOffTurn: Story = {
+  args: {
+    ...Player.args,
+    encounter: { ...tabletopPlayerEncounter, currentActorId: vaultWarden!.id },
+    holds: [playerHold]
+  },
+  play: async ({ canvasElement }) => {
+    releaseSent.mockClear()
+    const canvas = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole('button', { name: 'Open turn order' }))
+    const section = within(await canvas.findByRole('region', { name: 'Holding' }))
+
+    await userEvent.click(section.getByRole('button', { name: playerHold.label }))
+
+    await waitFor(() => expect(releaseSent).toHaveBeenCalledTimes(1))
+    await expect(await section.findByText('Released.')).toBeVisible()
+    await expect(releaseSent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RELEASE_RELATIONSHIP',
+        encounterId: tabletopPlayerEncounter.id,
+        expectedVersion: tabletopPlayerEncounter.version,
+        actorId: playerCharacter!.id,
+        heldActorId: vaultWarden!.id,
+        activeEffectId: playerHold.activeEffectId
+      })
+    )
   }
 }
 

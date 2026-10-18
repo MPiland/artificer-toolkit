@@ -254,6 +254,16 @@ export function CampaignVttStage({
   const actionChoices = useQuery(
     getCampaignEncounterActionChoices(roomActionChoices.routed ? null : actionChoiceScope)
   )
+  // Release is a room command, so only the room offers the holds a member may release (D152).
+  const heldRelationships = useRoomEncounterRead({
+    read:
+      activeEncounter && activeEncounter.automationMode !== 'MANUAL'
+        ? { kind: 'HELD_RELATIONSHIPS', input: { encounterId: activeEncounter.id } }
+        : null,
+    readEncounter: live.readEncounter,
+    room,
+    select: (result) => (result.kind === 'HELD_RELATIONSHIPS' ? result.result : undefined)
+  })
   const latestEvidenceRoll = useLatestEvidenceRoll({
     encounterId: pendingOccurrence && activeEncounter ? activeEncounter.id : null,
     readEncounter: live.readEncounter,
@@ -1337,6 +1347,7 @@ export function CampaignVttStage({
               connected={live.status === 'CONNECTED'}
               currentActorMine={currentActorMine}
               encounter={activeEncounter}
+              holds={(heldRelationships.routed && heldRelationships.value) || []}
               memberships={campaign.memberships}
               pending={
                 encounterCommand.isPending ||
@@ -1362,6 +1373,7 @@ export function CampaignVttStage({
               }
               onCommand={(command) => encounterCommand.mutate(command)}
               onEndCharacterConcentration={setEndingConcentrationOf}
+              onRelease={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}
           {activeEncounter && currentTurnMovement ? (

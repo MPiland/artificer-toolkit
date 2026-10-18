@@ -1,6 +1,6 @@
 import { Button, Text, Title } from '@mantine/core'
 import { useId } from 'react'
-import type { EncounterReleaseChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { EncounterHeldRelationshipDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandResultDto,
   ReleaseRelationshipInputDto
@@ -10,8 +10,7 @@ import { useWarnedCommand } from './useWarnedCommand'
 import * as styles from './CampaignTabletopActionList.css'
 
 type ReleasesProps = {
-  releases: EncounterReleaseChoiceDto[]
-  actorId: string
+  releases: EncounterHeldRelationshipDto[]
   encounterId: string
   encounterVersion: number
   disabled: boolean
@@ -19,27 +18,28 @@ type ReleasesProps = {
 }
 
 /**
- * The creatures the current actor holds through a relationship it applied (D152): one row per
- * hold, released for no action. The outcome belongs to the holds on offer, so a different actor or
- * set of holds starts afresh.
+ * The creatures held through a relationship their source applied (D152): one row per hold, which
+ * its source releases for no action. The outcome belongs to the holds on offer, so a different set
+ * of holds starts afresh.
  */
 export function CampaignTabletopReleases(props: ReleasesProps) {
-  const holdsKey = `${props.actorId}:${props.releases.map(({ activeEffectId }) => activeEffectId).join()}`
+  const holdsKey = props.releases
+    .map(({ sourceActorId, activeEffectId }) => `${sourceActorId}:${activeEffectId}`)
+    .join()
   return <ReleaseList key={holdsKey} {...props} />
 }
 
 function ReleaseList({
   releases,
-  actorId,
   encounterId,
   encounterVersion,
   disabled,
   onRelease
 }: ReleasesProps) {
   const titleId = useId()
-  const { submittingId, feedback, error, run, cancelConfirmation } = useWarnedCommand(actorId)
+  const { submittingId, feedback, error, run, cancelConfirmation } = useWarnedCommand(encounterId)
 
-  function release(choice: EncounterReleaseChoiceDto) {
+  function release(choice: EncounterHeldRelationshipDto) {
     return run(
       choice.activeEffectId,
       () =>
@@ -48,7 +48,7 @@ function ReleaseList({
           encounterId,
           commandId: crypto.randomUUID(),
           expectedVersion: encounterVersion,
-          actorId,
+          actorId: choice.sourceActorId,
           heldActorId: choice.heldActorId,
           activeEffectId: choice.activeEffectId
         }),
