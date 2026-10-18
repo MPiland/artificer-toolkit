@@ -523,17 +523,6 @@ export type CompiledActionTargetPolicy = z.infer<typeof compiledActionTargetPoli
 const compiledActionEntryPointSchema = lazySchema(() =>
   z.union([
     z.strictObject({
-      schemaVersion: z.literal(1),
-      kind: z.literal('CHARACTER_ACTION'),
-      actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-      effectId: serverUuidIdentityDtoSchema,
-      targetPolicy: z.optional(compiledActionTargetPolicySchema),
-      compilation: z.strictObject({
-        kind: z.literal('COMPILED'),
-        published: serverPublishedRuleDefinitionDtoSchema
-      })
-    }),
-    z.strictObject({
       schemaVersion: z.literal(4),
       kind: z.literal('CHARACTER_SPELL_CAST'),
       /** The exact current Character spell-cast candidate identity. */
@@ -587,34 +576,6 @@ const compiledActionEntryPointSchema = lazySchema(() =>
          */
         choice: z.nullable(compiledActionChoiceSchema),
         executionPlan: compiledActionExecutionPlanSchema
-      })
-    }),
-    z.strictObject({
-      schemaVersion: z.literal(2),
-      kind: z.literal('CHARACTER_ACTION'),
-      actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-      effectId: serverUuidIdentityDtoSchema,
-      targetPolicy: z.optional(compiledActionTargetPolicySchema),
-      compilation: z.strictObject({
-        kind: z.literal('COMPILED'),
-        published: serverPublishedRuleDefinitionDtoSchema,
-        resourceBinding: z.nullable(compiledActionResourceBindingSchema),
-        activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema)
-      })
-    }),
-    z.strictObject({
-      schemaVersion: z.literal(3),
-      kind: z.literal('CHARACTER_ACTION'),
-      actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-      effectId: serverUuidIdentityDtoSchema,
-      targetPolicy: z.optional(compiledActionTargetPolicySchema),
-      compilation: z.strictObject({
-        kind: z.literal('COMPILED'),
-        /** Legacy compiled graph retained for non-phased fixed/recurring actions. */
-        published: serverPublishedRuleDefinitionDtoSchema,
-        resourceBinding: z.nullable(compiledActionResourceBindingSchema),
-        activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
-        compilerSource: compiledActionCompilerSourceSchema
       })
     }),
     z.strictObject({
@@ -806,14 +767,12 @@ export const characterMechanicsProjectionSchema = lazySchema(() =>
         const published =
           entry.compilation.kind !== 'COMPILED'
             ? []
-            : entry.schemaVersion === 4
-              ? [
-                  graphOf(entry.compilation.executionPlan),
-                  ...(entry.compilation.choice?.options.map((option) =>
-                    graphOf(option.executionPlan)
-                  ) ?? [])
-                ]
-              : [entry.compilation.published]
+            : [
+                graphOf(entry.compilation.executionPlan),
+                ...(entry.compilation.choice?.options.map((option) =>
+                  graphOf(option.executionPlan)
+                ) ?? [])
+              ]
         if (
           published.some(
             (graph) =>
@@ -827,7 +786,6 @@ export const characterMechanicsProjectionSchema = lazySchema(() =>
           })
         }
         if (
-          entry.schemaVersion === 4 &&
           entry.compilation.kind === 'COMPILED' &&
           entry.compilation.choice !== null &&
           entry.compilation.zonePlacement !== null
@@ -836,61 +794,6 @@ export const characterMechanicsProjectionSchema = lazySchema(() =>
             code: 'custom',
             message: 'A compiled action picks its option or its zone at cast, never both.',
             path: ['compiledActionEntryPoints', index, 'compilation', 'choice']
-          })
-        }
-        if (entry.schemaVersion === 2 && entry.compilation.kind === 'COMPILED') {
-          const binding = entry.compilation.resourceBinding
-          const activeEffectPlan = entry.compilation.activeEffectPlan
-          const resourceUse = candidate.resourceUse
-          const bindingMatches =
-            (resourceUse === null && binding === null) ||
-            (resourceUse !== null &&
-              resourceUse.poolId !== null &&
-              binding !== null &&
-              binding.poolId === resourceUse.poolId &&
-              binding.chargeId === resourceUse.chargeId &&
-              binding.cost === resourceUse.cost)
-          if (!bindingMatches) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Compiled action resource binding must match its exact action candidate.',
-              path: ['compiledActionEntryPoints', index, 'compilation', 'resourceBinding']
-            })
-          }
-          if (
-            activeEffectPlan &&
-            (activeEffectPlan.authoredEffectId !== entry.effectId ||
-              (activeEffectPlan.initialRemaining !== null && activeEffectPlan.initialRemaining < 1))
-          ) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Compiled active-effect plan must match its exact Effect.',
-              path: ['compiledActionEntryPoints', index, 'compilation', 'activeEffectPlan']
-            })
-          }
-          if (
-            activeEffectPlan?.perceptionContributions.some(
-              (contribution) =>
-                contribution.kind === 'SENSE_GRANT' &&
-                contribution.document.gameSystemId !== entry.compilation.published.gameSystemId
-            )
-          )
-            ctx.addIssue({
-              code: 'custom',
-              message: 'Compiled active-effect sense grants must belong to the action Game System.',
-              path: ['compiledActionEntryPoints', index, 'compilation', 'activeEffectPlan']
-            })
-        }
-        if (
-          entry.schemaVersion === 1 &&
-          entry.compilation.kind === 'COMPILED' &&
-          candidate.resourceUse !== null
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message:
-              'Historical compiled action entries are resource-free and cannot align with a resource-bound action candidate.',
-            path: ['compiledActionEntryPoints', index]
           })
         }
       }

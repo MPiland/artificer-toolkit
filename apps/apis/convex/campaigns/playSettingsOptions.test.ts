@@ -129,6 +129,9 @@ describe('native Campaign settings options', () => {
           contentSourceId: sourceId,
           gameSystemId: srdSystemRecord.id,
           version: 1,
+          contractVersion: 1,
+          publishedAt: new Date().toISOString(),
+          publishedBy: owner.userId,
           ...(sourceId === privateSource ? { ownerUserId: owner.userId } : {})
         })
       }
@@ -208,7 +211,10 @@ describe('native Campaign settings options', () => {
           checksum: checksumRuleDocument(document),
           contentSourceId: SRD_CONTENT_SOURCE.id,
           gameSystemId: srdSystemRecord.id,
-          version: 1
+          version: 1,
+          contractVersion: 1,
+          publishedAt: new Date().toISOString(),
+          publishedBy: owner.userId
         })
       }
     })
@@ -227,7 +233,10 @@ describe('native Campaign settings options', () => {
         checksum: checksumRuleDocument(document),
         contentSourceId: SRD_CONTENT_SOURCE.id,
         gameSystemId: srdSystemRecord.id,
-        version: 1
+        version: 1,
+        contractVersion: 1,
+        publishedAt: new Date().toISOString(),
+        publishedBy: owner.userId
       })
     })
     await expect(owner.caller.query(options, { campaignId: campaign.id })).rejects.toThrow(

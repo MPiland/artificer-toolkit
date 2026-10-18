@@ -379,11 +379,25 @@ describe('native Campaign Character assignments', () => {
             currency: [
               {
                 id: crypto.randomUUID(),
-                currencies: [{ currencyId: denominationId, amount: 2 }]
+                currencies: [
+                  {
+                    currencyId: denominationId,
+                    kind: 'CAMPAIGN',
+                    campaignCurrencySystemId,
+                    amount: 2
+                  }
+                ]
               },
               {
                 id: crypto.randomUUID(),
-                currencies: [{ currencyId: denominationId, amount: 3 }]
+                currencies: [
+                  {
+                    currencyId: denominationId,
+                    kind: 'CAMPAIGN',
+                    campaignCurrencySystemId,
+                    amount: 3
+                  }
+                ]
               }
             ]
           }
@@ -621,7 +635,7 @@ describe('native Campaign Character assignments', () => {
       campaignId: base.campaign.id,
       characterId: base.character.id
     })
-    const { denominationId } = await departureCurrency(base)
+    const { denominationId, campaignCurrencySystemId } = await departureCurrency(base)
     await base.t.run(async (ctx) => {
       await editCharacterRecord(ctx, base.character.id, (character) => ({
         ...character,
@@ -629,7 +643,17 @@ describe('native Campaign Character assignments', () => {
           ...character.state,
           currency: [
             ...character.state.currency,
-            { id: crypto.randomUUID(), currencies: [{ currencyId: denominationId, amount: 5 }] }
+            {
+              id: crypto.randomUUID(),
+              currencies: [
+                {
+                  currencyId: denominationId,
+                  kind: 'CAMPAIGN',
+                  campaignCurrencySystemId,
+                  amount: 5
+                }
+              ]
+            }
           ]
         }
       }))
@@ -700,7 +724,14 @@ describe('native Campaign Character assignments', () => {
           currency: [
             {
               id: crypto.randomUUID(),
-              currencies: [{ currencyId: denominationId, amount: 1 }]
+              currencies: [
+                {
+                  currencyId: denominationId,
+                  kind: 'CAMPAIGN',
+                  campaignCurrencySystemId,
+                  amount: 1
+                }
+              ]
             }
           ]
         }

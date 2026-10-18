@@ -68,9 +68,6 @@ export function encounterBasicActionCheckLabel(
   system: SystemAuthoredDto,
   checkDefinitionId: string
 ): string {
-  // Only current Systems define UUID-backed check definitions.
-  if (!('schemaVersion' in system) || system.schemaVersion !== 4)
-    throw new EncounterValidationError('The System defines no check definitions.')
   const abilityCheck = system.abilities.find((entry) => entry.id === checkDefinitionId)
   if (abilityCheck) return abilityCheck.label
   const skill = system.skills.find((entry) => entry.id === checkDefinitionId)

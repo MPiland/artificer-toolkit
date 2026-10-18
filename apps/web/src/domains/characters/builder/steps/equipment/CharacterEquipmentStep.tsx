@@ -176,6 +176,7 @@ export const CharacterEquipmentStep = withForm({
                           field.replaceValue(
                             index,
                             setFirstCurrency(row, {
+                              kind: 'RULESET',
                               currencyId: value ?? '',
                               amount: row.currencies[0]?.amount ?? 0
                             })
@@ -191,7 +192,7 @@ export const CharacterEquipmentStep = withForm({
                           field.replaceValue(
                             index,
                             setFirstCurrency(row, {
-                              currencyId: row.currencies[0]?.currencyId ?? '',
+                              ...(row.currencies[0] ?? { kind: 'RULESET', currencyId: '' }),
                               amount: typeof value === 'number' ? value : 0
                             })
                           )
@@ -235,6 +236,7 @@ function createCurrencyGroup(): CurrencyGroup {
     id: crypto.randomUUID(),
     currencies: [
       {
+        kind: 'RULESET',
         currencyId: '',
         amount: 0
       }

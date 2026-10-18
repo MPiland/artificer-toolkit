@@ -18,8 +18,7 @@ type Context = MutationCtx | QueryCtx
 export async function readCurrentSourceDefinitions(
   ctx: QueryCtx,
   sources: readonly Doc<'contentSources'>[],
-  actorUserId: string,
-  systemAuthorUserId: string
+  actorUserId: string
 ): Promise<ReusableDefinitionCurrentDto[]> {
   const current: ReusableDefinitionCurrentDto[] = []
   for (const source of sources) {
@@ -34,7 +33,7 @@ export async function readCurrentSourceDefinitions(
     if (current.length + definitions.length > 500)
       throw new Error('Definition options require paginated search.')
     for (const definition of definitions) {
-      const root = readStoredDefinitionRoot(definition, source, actorUserId, systemAuthorUserId)
+      const root = readStoredDefinitionRoot(definition, source, actorUserId)
       if (!root.current) throw new Error('Definition is not published.')
       current.push(root.current)
     }
@@ -62,11 +61,7 @@ export async function readDefinitionRoot(
     .withIndex('by_publicId', (q) => q.eq('id', record.contentSourceId))
     .unique()
   if (!source) throw new Error('Reusable definition unavailable.')
-  const legacyPublisherUserId =
-    source.kind === 'PLATFORM' && record.publishedBy === undefined
-      ? await readSystemOwner(ctx, record.gameSystemId)
-      : undefined
-  return readStoredDefinitionRoot(record, source, actorUserId, legacyPublisherUserId)
+  return readStoredDefinitionRoot(record, source, actorUserId)
 }
 
 // Option readers already hold the source and validated System. Decode their rows
@@ -74,8 +69,7 @@ export async function readDefinitionRoot(
 export function readStoredDefinitionRoot(
   record: Doc<'reusableDefinitions'>,
   source: Doc<'contentSources'>,
-  actorUserId: string | null,
-  legacyPublisherUserId?: string
+  actorUserId: string | null
 ): ReusableDefinitionRootRecord & { _id: Id<'reusableDefinitions'> } {
   if (source.id !== record.contentSourceId || source.gameSystemId !== record.gameSystemId)
     throw new Error('Reusable definition unavailable.')
@@ -90,7 +84,6 @@ export function readStoredDefinitionRoot(
     record.contractVersion === undefined &&
     record.publishedAt === undefined &&
     record.publishedBy === undefined
-  const legacy = source.kind === 'PLATFORM' && record.version === 1 && metadataAbsent
   if (
     !Number.isInteger(record.version) ||
     record.version < 0 ||
@@ -102,7 +95,6 @@ export function readStoredDefinitionRoot(
     throw new Error('Reusable definition integrity mismatch.')
   if (
     record.version > 0 &&
-    !legacy &&
     (record.contractVersion === undefined ||
       record.publishedAt === undefined ||
       record.publishedBy === undefined)
@@ -120,10 +112,10 @@ export function readStoredDefinitionRoot(
           description: record.description,
           document: decodeDefinitionDocument(record.documentJson),
           checksum: record.checksum,
-          contractVersion: legacy ? 1 : record.contractVersion,
+          contractVersion: record.contractVersion,
           version: record.version,
-          publishedAt: legacy ? new Date(record._creationTime).toISOString() : record.publishedAt,
-          publishedBy: legacy ? legacyPublisherUserId : record.publishedBy
+          publishedAt: record.publishedAt,
+          publishedBy: record.publishedBy
         })
   if (
     current &&

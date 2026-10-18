@@ -23,7 +23,13 @@ describe('native Character commit', () => {
         currency: [
           {
             id: crypto.randomUUID(),
-            currencies: [{ currencyId: baseClass.startingGold.currencyId, amount: 999 }]
+            currencies: [
+              {
+                kind: 'RULESET' as const,
+                currencyId: baseClass.startingGold.currencyId,
+                amount: 999
+              }
+            ]
           }
         ],
         equipment: {

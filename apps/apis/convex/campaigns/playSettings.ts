@@ -162,12 +162,12 @@ export const options = query({
     const { userId } = await requireIdentity(ctx)
     const { campaignId } = getCampaignPlaySettingsInputSchema.parse(args)
     const { campaign } = await requireCampaignAuthority(ctx, campaignId, userId)
-    const { system, sources } = await requireRulesCatalogueBinding(ctx, {
+    const { sources } = await requireRulesCatalogueBinding(ctx, {
       systemId: campaign.gameSystemId,
       primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
       additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
     })
-    const definitions = await readCurrentSourceDefinitions(ctx, sources, userId, system.userId)
+    const definitions = await readCurrentSourceDefinitions(ctx, sources, userId)
     return presentCampaignPlaySettingsOptions(definitions)
   }
 })

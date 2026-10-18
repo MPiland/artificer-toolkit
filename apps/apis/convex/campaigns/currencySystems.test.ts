@@ -924,68 +924,58 @@ describe('native Campaign currency systems', () => {
     ).rejects.toThrow('positive Character')
   })
 
-  it.each([
-    'loss',
-    'overflow',
-    'positive denomination',
-    'ambiguous legacy',
-    'duplicate balance'
-  ] as const)('rejects assigned Character %s atomically', async (fault) => {
-    const base = await setup()
-    const collision = srdSystemRecord.currencies[0]!.id
-    const highId = idFor(1_100)
-    const created = await base.gm.caller.mutation(
-      save,
-      systemInput(base.campaign.id, 'Character rollback', [
-        denomination(collision, 'Base', 'b', 1),
-        denomination(highId, 'High', 'h', 2)
-      ])
-    )
-    const amount = fault === 'overflow' ? Number.MAX_SAFE_INTEGER : fault === 'loss' ? 1 : 3
-    const holding = {
-      currencyId: highId,
-      kind: 'CAMPAIGN' as const,
-      campaignCurrencySystemId: created.id,
-      amount
-    }
-    const currencies =
-      fault === 'ambiguous legacy'
-        ? [{ currencyId: collision, amount: 1 }]
-        : fault === 'duplicate balance'
-          ? [holding, { ...holding }]
-          : [holding]
-    await setAssignedCurrency(base, [{ id: crypto.randomUUID(), currencies }])
-    const before = await currencySnapshot(base)
-    const denominations =
-      fault === 'positive denomination'
-        ? [denomination(collision, 'Base', 'b', 1)]
-        : fault === 'loss'
-          ? [denomination(collision, 'Base', 'b', 1), denomination(highId, 'High', 'h', 3)]
-          : fault === 'overflow'
-            ? [denomination(collision, 'Base', 'b', 2), denomination(highId, 'High', 'h', 1)]
-            : created.denominations
-    const expected =
-      fault === 'positive denomination'
-        ? 'positive Character'
-        : fault === 'loss'
-          ? 'preserve'
-          : fault === 'overflow'
-            ? 'supported range'
-            : fault === 'ambiguous legacy'
-              ? 'ambiguous legacy identity'
-              : 'duplicate balances'
-    await expect(
-      base.gm.caller.mutation(
+  it.each(['loss', 'overflow', 'positive denomination', 'duplicate balance'] as const)(
+    'rejects assigned Character %s atomically',
+    async (fault) => {
+      const base = await setup()
+      const collision = srdSystemRecord.currencies[0]!.id
+      const highId = idFor(1_100)
+      const created = await base.gm.caller.mutation(
         save,
-        systemInput(base.campaign.id, 'Changed', denominations, {
-          systemId: created.id,
-          isReference: true,
-          expectedVersion: 0
-        })
+        systemInput(base.campaign.id, 'Character rollback', [
+          denomination(collision, 'Base', 'b', 1),
+          denomination(highId, 'High', 'h', 2)
+        ])
       )
-    ).rejects.toThrow(expected)
-    expect(await currencySnapshot(base)).toEqual(before)
-  })
+      const amount = fault === 'overflow' ? Number.MAX_SAFE_INTEGER : fault === 'loss' ? 1 : 3
+      const holding = {
+        currencyId: highId,
+        kind: 'CAMPAIGN' as const,
+        campaignCurrencySystemId: created.id,
+        amount
+      }
+      const currencies = fault === 'duplicate balance' ? [holding, { ...holding }] : [holding]
+      await setAssignedCurrency(base, [{ id: crypto.randomUUID(), currencies }])
+      const before = await currencySnapshot(base)
+      const denominations =
+        fault === 'positive denomination'
+          ? [denomination(collision, 'Base', 'b', 1)]
+          : fault === 'loss'
+            ? [denomination(collision, 'Base', 'b', 1), denomination(highId, 'High', 'h', 3)]
+            : fault === 'overflow'
+              ? [denomination(collision, 'Base', 'b', 2), denomination(highId, 'High', 'h', 1)]
+              : created.denominations
+      const expected =
+        fault === 'positive denomination'
+          ? 'positive Character'
+          : fault === 'loss'
+            ? 'preserve'
+            : fault === 'overflow'
+              ? 'supported range'
+              : 'duplicate balances'
+      await expect(
+        base.gm.caller.mutation(
+          save,
+          systemInput(base.campaign.id, 'Changed', denominations, {
+            systemId: created.id,
+            isReference: true,
+            expectedVersion: 0
+          })
+        )
+      ).rejects.toThrow(expected)
+      expect(await currencySnapshot(base)).toEqual(before)
+    }
+  )
 
   it('keeps same-ID RULESET and foreign balances literal while deleting only zero target holdings', async () => {
     const base = await setup()

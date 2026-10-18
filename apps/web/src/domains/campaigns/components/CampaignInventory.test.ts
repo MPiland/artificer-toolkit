@@ -127,17 +127,44 @@ describe('Campaign inventory currency rows', () => {
       )
     ).toMatchObject([{ amount: '18014398509481982' }])
   })
-  it('preserves an unresolved UUID holding without classifying it as ruleset currency', () => {
+  it('labels a holding only from the Campaign currency option it names', () => {
     expect(
-      getCharacterInventoryCurrencies([{ currencyId, amount: 4, label: 'Historic coin' }], [])
-        .currencies
-    ).toMatchObject([
-      {
-        denominationId: currencyId,
-        kind: undefined,
-        label: 'Historic coin'
-      }
-    ])
+      getCharacterInventoryCurrencies(
+        [{ currencyId, kind: 'RULESET', amount: 4, label: 'Stale label' }],
+        [
+          {
+            kind: 'RULESET',
+            denominationId: currencyId,
+            label: 'Gold',
+            abbreviation: 'gp',
+            amount: 0,
+            containerId: null
+          }
+        ]
+      )
+    ).toEqual({
+      currencies: [
+        {
+          kind: 'RULESET',
+          denominationId: currencyId,
+          label: 'Gold',
+          abbreviation: 'gp',
+          amount: 4,
+          containerId: null
+        }
+      ]
+    })
+  })
+
+  it('refuses a holding whose currency the Campaign does not define', () => {
+    expect(
+      getCharacterInventoryCurrencies(
+        [{ currencyId, kind: 'RULESET', amount: 4, label: 'Historic coin' }],
+        []
+      )
+    ).toEqual({
+      error: `Character inventory holds currency "${currencyId}" that the Campaign does not define.`
+    })
   })
 
   it('has no current acquisition options without a current System or Campaign currency system', () => {

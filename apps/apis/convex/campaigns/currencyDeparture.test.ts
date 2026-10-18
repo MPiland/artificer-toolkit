@@ -52,13 +52,20 @@ async function setup(amounts = [2, 3], destination = 7) {
           {
             id: crypto.randomUUID(),
             currencies: [
-              { currencyId: personalId, amount: 11 },
-              { currencyId: foreignId, amount: 4 }
+              { currencyId: personalId, kind: 'RULESET', amount: 11 },
+              { currencyId: foreignId, kind: 'RULESET', amount: 4 }
             ]
           },
           ...amounts.map((amount) => ({
             id: crypto.randomUUID(),
-            currencies: [{ currencyId: denominationId, amount }]
+            currencies: [
+              {
+                currencyId: denominationId,
+                kind: 'CAMPAIGN' as const,
+                campaignCurrencySystemId: system.id,
+                amount
+              }
+            ]
           }))
         ]
       }

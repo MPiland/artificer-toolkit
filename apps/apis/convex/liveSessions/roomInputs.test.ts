@@ -1599,6 +1599,9 @@ describe('live room inputs (ADR 0035 S2)', () => {
         label: 'Room platform sense',
         description: null,
         version: 1,
+        contractVersion: 1,
+        publishedAt: new Date().toISOString(),
+        publishedBy: srdSystemRecord.userId,
         documentJson: encodeDefinitionDocument(platformDocument),
         checksum: checksumRuleDocument(platformDocument)
       })

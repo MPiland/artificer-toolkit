@@ -86,6 +86,7 @@ export const characterFixture = characterAuthoredDtoSchema.parse({
         currencies: [
           {
             currencyId: 'gp',
+            kind: 'RULESET',
             amount: 10
           }
         ]

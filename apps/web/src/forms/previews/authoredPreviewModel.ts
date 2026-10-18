@@ -14,7 +14,14 @@ import type {
 type RuntimeRecord = Record<string, unknown>
 type VocabularyKey = Exclude<
   keyof NonNullable<SystemResponseDto>,
-  'description' | 'id' | 'label' | 'rulesetCode' | 'rulesetVersion' | 'userId'
+  | 'description'
+  | 'id'
+  | 'initiativePolicy'
+  | 'label'
+  | 'rulesetCode'
+  | 'rulesetVersion'
+  | 'schemaVersion'
+  | 'userId'
 >
 
 const MAX_COLLECTION_ITEMS = 5

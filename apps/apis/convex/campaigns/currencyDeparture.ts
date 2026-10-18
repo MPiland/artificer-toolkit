@@ -10,13 +10,12 @@ import {
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import {
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity,
+  characterCurrencyIdentity,
   type CharacterCurrencyIdentityDto
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import { readCampaignCurrencyOptions } from './currencySystemDocuments'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { requireSystem } from '../content/systemDocuments'
 import { readCampaignInventory, readPartyDenomination } from './partyInventoryDocuments'
 
 /** Caller authorizes departure and persists the returned Character state in this same mutation. */
@@ -30,16 +29,7 @@ export async function returnDepartingCharacterCurrency(input: {
 }) {
   const { ctx, campaign } = input
   const state = characterStateDtoSchema.parse(input.state)
-  const system = await requireSystem(ctx, campaign.gameSystemId)
   const campaignOptions = await readCampaignCurrencyOptions(ctx, campaign)
-  const options = [
-    ...system.currencies.map((currency) => ({
-      id: currency.id,
-      label: currency.label,
-      kind: 'RULESET' as const
-    })),
-    ...campaignOptions
-  ]
   const currentSystemIds = new Set(campaignOptions.map((option) => option.campaignCurrencySystemId))
   const currentCurrencyKeys = new Set(
     campaignOptions.map((option) =>
@@ -56,7 +46,7 @@ export async function returnDepartingCharacterCurrency(input: {
     for (const balance of group.currencies) {
       if (!Number.isSafeInteger(balance.amount) || balance.amount < 0)
         throw new Error('Stored Character currency amount is invalid.')
-      const identity = resolveCharacterCurrencyIdentity(balance, options, 'PRESERVE')
+      const identity = characterCurrencyIdentity(balance)
       const key = createCharacterCurrencyIdentityKey(identity)
       if (groupKeys.has(key))
         throw new Error('Stored Character currency group has duplicate identities.')
@@ -212,9 +202,7 @@ export async function returnDepartingCharacterCurrency(input: {
               currencies: group.currencies.filter(
                 (balance) =>
                   !returnedKeys.has(
-                    createCharacterCurrencyIdentityKey(
-                      resolveCharacterCurrencyIdentity(balance, options, 'PRESERVE')
-                    )
+                    createCharacterCurrencyIdentityKey(characterCurrencyIdentity(balance))
                   )
               )
             }))

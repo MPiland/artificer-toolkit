@@ -26,9 +26,7 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   published: CompleteExecution['published']
 ) {
   if (prepared.source.kind === 'CHARACTER_ACTION')
-    return prepared.source.entry.schemaVersion === 1
-      ? null
-      : (prepared.source.entry.compilation.activeEffectPlan ?? null)
+    return prepared.source.entry.compilation.activeEffectPlan
   const plans =
     prepared.adapter.activeEffectPlans?.({
       action: prepared.source.capability,

@@ -1,23 +1,15 @@
 import type { CharacterSheetInventoryDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type { CharacterCurrencyIdentityDto } from '@artificer-toolkit/schema/shared/characterCurrency'
 import {
+  characterCurrencyIdentity,
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
-
-type CurrencyIdentity = ReturnType<typeof resolveCharacterCurrencyIdentity>
-
-function currencyIdentity(
-  currency: CharacterCurrencyIdentityDto,
-  sheet: CharacterSheetInventoryDto
-) {
-  return resolveCharacterCurrencyIdentity(currency, sheet.reference.currencyOptions, 'PRESERVE')
-}
 
 function currencyOptionsByKey(sheet: CharacterSheetInventoryDto) {
   return new Map(
     sheet.reference.currencyOptions.map((option) => {
-      const identity = resolveCharacterCurrencyIdentity({ currencyId: option.id }, [option])
+      const identity = currencyOptionIdentity(option)
       return [
         createCharacterCurrencyIdentityKey(identity),
         { identity, label: option.label }
@@ -32,11 +24,17 @@ export function getInventoryCurrencyRows(
 ) {
   const rows = new Map<
     string,
-    { id: string; label: string; amount: string; containerId?: string; identity: CurrencyIdentity }
+    {
+      id: string
+      label: string
+      amount: string
+      containerId?: string
+      identity: CharacterCurrencyIdentityDto
+    }
   >()
   const options = currencyOptionsByKey(sheet)
   for (const currency of currencies) {
-    const identity = currencyIdentity(currency, sheet)
+    const identity = characterCurrencyIdentity(currency)
     const identityKey = createCharacterCurrencyIdentityKey(identity)
     const key = JSON.stringify([identityKey, currency.containerId ?? null])
     const existing = rows.get(key)
@@ -52,7 +50,10 @@ export function getInventoryCurrencyRows(
 }
 
 export function getInventoryCurrencyTotals(sheet: CharacterSheetInventoryDto) {
-  const totals = new Map<string, { identity: CurrencyIdentity; label: string; amount: bigint }>()
+  const totals = new Map<
+    string,
+    { identity: CharacterCurrencyIdentityDto; label: string; amount: bigint }
+  >()
   const options = currencyOptionsByKey(sheet)
   for (const option of options.values()) {
     totals.set(createCharacterCurrencyIdentityKey(option.identity), {
@@ -62,7 +63,7 @@ export function getInventoryCurrencyTotals(sheet: CharacterSheetInventoryDto) {
     })
   }
   for (const currency of sheet.inventory.currencies) {
-    const identity = currencyIdentity(currency, sheet)
+    const identity = characterCurrencyIdentity(currency)
     const key = createCharacterCurrencyIdentityKey(identity)
     const existing = totals.get(key)
     totals.set(key, {

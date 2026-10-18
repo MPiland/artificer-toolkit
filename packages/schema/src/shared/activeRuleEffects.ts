@@ -535,17 +535,12 @@ const encounterMaintainedEffectDescriptorBaseDtoSchema = lazySchema(() =>
   })
 )
 
-/** Version one retains its original implicit terminal-empty cleanup behavior. */
 export const encounterMaintainedEffectDescriptorDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('schemaVersion', [
-    z.extend(encounterMaintainedEffectDescriptorBaseDtoSchema, {
-      schemaVersion: z.literal(1)
-    }),
-    z.extend(encounterMaintainedEffectDescriptorBaseDtoSchema, {
-      schemaVersion: z.literal(2),
-      emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
-    })
-  ])
+  z.extend(encounterMaintainedEffectDescriptorBaseDtoSchema, {
+    schemaVersion: z.literal(2),
+    /** Whether the state ends when its last dependent effect does (Concentration), or stays until a terminal event. */
+    emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
+  })
 )
 
 export type EncounterMaintainedEffectDescriptorDto = z.infer<

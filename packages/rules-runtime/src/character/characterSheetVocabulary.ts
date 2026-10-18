@@ -2,8 +2,7 @@ import { ABILITIES } from '@artificer-toolkit/shared/core'
 import {
   buildSkillSubjectAliasMap,
   resolveAbilityAlias,
-  resolveSystemSkillAbilities,
-  SKILL_ABILITY_MAP
+  resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -32,22 +31,6 @@ function resolveAbilityCode(subjectId: string): keyof typeof ABILITIES | undefin
   return abilityCode && isAbilityCode(abilityCode) ? abilityCode : undefined
 }
 
-function toSkillCanonicalCode(value: string | undefined): string {
-  if (!value) return ''
-  return value.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
-}
-
-function toSkillFallbackCode(slug: string): string {
-  return slug.toUpperCase().replace(/-/g, '_')
-}
-
-function toSkillFallbackLabel(slug: string): string {
-  return slug
-    .split('-')
-    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(' ')
-}
-
 export function createSkillReference(system: CharacterAssemblyRegistry['system']) {
   // One alias map with the rule facts, which refuses an alias two System skills share.
   const canonicalBySubject = buildSkillSubjectAliasMap(system)
@@ -61,56 +44,21 @@ export function createSkillReference(system: CharacterAssemblyRegistry['system']
     }
   >()
 
-  if (system?.schemaVersion === 4) {
-    for (const { skill, code, canonicalId, abilityCode } of resolveSystemSkillAbilities(system)) {
-      const ability = resolveAbilityCode(abilityCode)
-      if (!ability) {
-        throw new Error(
-          `System check definition "${skill.id}" is governed by an ability the Sheet does not know.`
-        )
-      }
-      metadataByCanonical.set(canonicalId, {
-        skillId: skill.id,
-        code,
-        label: skill.label,
-        ability
-      })
+  if (!system) return { canonicalBySubject, metadataByCanonical }
+  for (const { skill, code, canonicalId, abilityCode } of resolveSystemSkillAbilities(system)) {
+    const ability = resolveAbilityCode(abilityCode)
+    if (!ability) {
+      throw new Error(
+        `System check definition "${skill.id}" is governed by an ability the Sheet does not know.`
+      )
     }
-    return { canonicalBySubject, metadataByCanonical }
-  }
-
-  for (const [skillId, ability] of Object.entries(SKILL_ABILITY_MAP)) {
-    const abilityCode = resolveAbilityCode(ability)
-    if (!abilityCode) continue
-    metadataByCanonical.set(skillId, {
-      skillId,
-      code: toSkillFallbackCode(skillId),
-      label: toSkillFallbackLabel(skillId),
-      ability: abilityCode
+    metadataByCanonical.set(canonicalId, {
+      skillId: skill.id,
+      code,
+      label: skill.label,
+      ability
     })
   }
-
-  for (const skill of system?.skills ?? []) {
-    const canonicalFromCode = SKILL_ABILITY_MAP[toSkillCanonicalCode(skill.code)]
-      ? toSkillCanonicalCode(skill.code)
-      : undefined
-    const canonicalFromId = SKILL_ABILITY_MAP[toSkillCanonicalCode(skill.id)]
-      ? toSkillCanonicalCode(skill.id)
-      : undefined
-    const canonical = canonicalFromCode ?? canonicalFromId
-    if (!canonical) continue
-
-    const existing = metadataByCanonical.get(canonical)
-    if (existing) {
-      metadataByCanonical.set(canonical, {
-        ...existing,
-        skillId: skill.id,
-        code: skill.code ?? existing.code,
-        label: skill.label
-      })
-    }
-  }
-
   return { canonicalBySubject, metadataByCanonical }
 }
 

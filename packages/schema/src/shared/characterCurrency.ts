@@ -1,11 +1,11 @@
 import type { CharacterSheetCurrencyOptionDto } from '../api/characterSheetData.js'
 import { z, lazySchema } from '../zod.js'
 
-/** Absent qualification preserves legacy holdings; new acquisition producers supply an explicit kind. */
+/** Every currency holding names its kind; a Campaign currency also names its currency system. */
 export const characterCurrencyQualificationDtoSchema = lazySchema(() =>
   z
     .object({
-      kind: z.optional(z.enum(['RULESET', 'CAMPAIGN'])),
+      kind: z.enum(['RULESET', 'CAMPAIGN']),
       campaignCurrencySystemId: z.optional(z.string().check(z.uuid()))
     })
     .check(
@@ -29,60 +29,38 @@ export const characterCurrencyAmountDtoSchema = lazySchema(() =>
 )
 export type CharacterCurrencyIdentityDto = z.infer<typeof characterCurrencyIdentityDtoSchema>
 
-type CharacterCurrencyIdentityInput = Pick<CharacterCurrencyIdentityDto, 'currencyId'> &
-  Partial<Pick<CharacterCurrencyIdentityDto, 'kind' | 'campaignCurrencySystemId'>>
-
-export function createCharacterCurrencyIdentityKey(
-  identity: CharacterCurrencyIdentityInput
-): string {
+export function createCharacterCurrencyIdentityKey(identity: CharacterCurrencyIdentityDto): string {
   return JSON.stringify([
     identity.currencyId,
-    identity.kind ?? null,
+    identity.kind,
     identity.campaignCurrencySystemId ?? null
   ])
 }
 
-function toCurrencyOptionIdentity(
-  option: CharacterSheetCurrencyOptionDto
+/** The currency identity a balance, command or row names, without its other fields. */
+export function characterCurrencyIdentity(
+  record: CharacterCurrencyIdentityDto
 ): CharacterCurrencyIdentityDto {
-  const kind = option.kind ?? 'RULESET'
-  if (kind === 'CAMPAIGN') {
-    if (!option.campaignCurrencySystemId)
-      throw new Error(`Campaign currency "${option.id}" is missing its currency system.`)
-    return {
-      currencyId: option.id,
-      kind,
-      campaignCurrencySystemId: option.campaignCurrencySystemId
-    }
+  if (record.kind === 'RULESET') return { currencyId: record.currencyId, kind: record.kind }
+  if (!record.campaignCurrencySystemId)
+    throw new Error(`Campaign currency "${record.currencyId}" is missing its currency system.`)
+  return {
+    currencyId: record.currencyId,
+    kind: record.kind,
+    campaignCurrencySystemId: record.campaignCurrencySystemId
   }
-  return { currencyId: option.id, kind }
 }
 
-export function resolveCharacterCurrencyIdentity(
-  identity: CharacterCurrencyIdentityInput,
-  options: readonly CharacterSheetCurrencyOptionDto[],
-  ambiguityPolicy: 'REJECT' | 'PRESERVE' = 'REJECT'
+/** The holding identity of a currency option: its id, kind and Campaign currency system. */
+export function currencyOptionIdentity(
+  option: CharacterSheetCurrencyOptionDto
 ): CharacterCurrencyIdentityDto {
-  if (identity.kind === 'CAMPAIGN') {
-    if (!identity.campaignCurrencySystemId)
-      throw new Error(`Campaign currency "${identity.currencyId}" is missing its currency system.`)
-    return {
-      currencyId: identity.currencyId,
-      kind: identity.kind,
-      campaignCurrencySystemId: identity.campaignCurrencySystemId
-    }
+  if (option.kind === 'RULESET') return { currencyId: option.id, kind: option.kind }
+  if (!option.campaignCurrencySystemId)
+    throw new Error(`Campaign currency "${option.id}" is missing its currency system.`)
+  return {
+    currencyId: option.id,
+    kind: option.kind,
+    campaignCurrencySystemId: option.campaignCurrencySystemId
   }
-  if (identity.kind === 'RULESET') return { currencyId: identity.currencyId, kind: identity.kind }
-
-  const matches = new Map<string, CharacterCurrencyIdentityDto>()
-  for (const option of options) {
-    if (option.id !== identity.currencyId) continue
-    const resolved = toCurrencyOptionIdentity(option)
-    matches.set(createCharacterCurrencyIdentityKey(resolved), resolved)
-  }
-  if (matches.size > 1) {
-    if (ambiguityPolicy === 'PRESERVE') return { currencyId: identity.currencyId }
-    throw new Error(`Currency "${identity.currencyId}" has an ambiguous legacy identity.`)
-  }
-  return matches.values().next().value ?? { currencyId: identity.currencyId }
 }

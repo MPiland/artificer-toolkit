@@ -1,7 +1,8 @@
 import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   createCharacterCurrencyIdentityKey,
-  resolveCharacterCurrencyIdentity
+  characterCurrencyIdentity,
+  currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import {
   ABILITIES,
@@ -902,11 +903,7 @@ export function projectCharacterSheetBundle(
   ]
   const currencyLabels = new Map(
     currencyOptions.map((currency) => [
-      createCharacterCurrencyIdentityKey({
-        currencyId: currency.id,
-        kind: currency.kind ?? 'RULESET',
-        campaignCurrencySystemId: currency.campaignCurrencySystemId
-      }),
+      createCharacterCurrencyIdentityKey(currencyOptionIdentity(currency)),
       currency.label
     ])
   )
@@ -1301,7 +1298,7 @@ export function projectCharacterSheetBundle(
     .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
   const currencies = character.state.currency.flatMap((group) =>
     group.currencies.map((currency) => {
-      const identity = resolveCharacterCurrencyIdentity(currency, currencyOptions, 'PRESERVE')
+      const identity = characterCurrencyIdentity(currency)
       return {
         ...identity,
         label: currencyLabels.get(createCharacterCurrencyIdentityKey(identity)) ?? 'Currency',

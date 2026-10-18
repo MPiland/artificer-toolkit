@@ -45,16 +45,14 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     prepared.plan.kind === 'SINGLE_GRAPH' ? prepared.plan.published : prepared.plan.test.published
   const plans =
     prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.entry.schemaVersion === 1
-        ? []
-        : [prepared.source.entry.compilation.activeEffectPlan]
+      ? [prepared.source.entry.compilation.activeEffectPlan]
       : (prepared.adapter.activeEffectPlans?.({
           action: prepared.source.capability,
           published
         }) ?? [])
   // A zone-only cast keeps its Concentration on the zone placement, not on any creature effect.
   const zone =
-    prepared.source.kind === 'CHARACTER_ACTION' && prepared.source.entry.schemaVersion === 4
+    prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.entry.compilation.zonePlacement
       : null
   // The zones a cast picks between open one Concentration (D140).
