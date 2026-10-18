@@ -49,10 +49,6 @@ export default defineConfig({
           // physical-core API, so half the logical CPUs stands in for it: GitHub runners and
           // developer machines are two-threads-per-core, and the share scales with the machine.
           maxWorkers: '50%',
-          // A worker reuses its jsdom environment and module cache across files: per-file environment
-          // setup and imports cost more than the tests themselves (PLATFORM-13.T15). setup.ts still runs
-          // per file and cleans up the rendered DOM and MSW handlers after every test.
-          isolate: false,
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
           exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.browser.test.tsx'],
           // Workspace packages resolve outside node_modules, so Vitest transforms them, and its
