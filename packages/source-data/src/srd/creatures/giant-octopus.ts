@@ -42,18 +42,6 @@ export const giantOctopus: CreatureAuthored = {
       id: S.featureId(128, 1),
       label: 'Hold Breath',
       description: 'Hold Breath. While out of water, the octopus can hold its breath for 1 hour.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(128, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(128, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HOLD_BREATH
-        })
-      ],
       order: 1
     },
     {
@@ -124,12 +112,7 @@ export const giantOctopus: CreatureAuthored = {
                     escapeDc: 16,
                     heldAtOnce: 1,
                     untilEnds: ['RESTRAINED']
-                  }),
-                  {
-                    id: S.actionId(128, 209),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_OCTOPUS_TENTACLES
-                  }
+                  })
                 ]
               }
             }

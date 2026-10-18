@@ -47,18 +47,6 @@ export const pegasus: CreatureAuthored = {
           S.grantedLanguageProficiency(217, 3, 'CELESTIAL', 'COMMON', 'ELVISH', 'SYLVAN')
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(217, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(217, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PEGASUS_LANGUAGE_LIMITATION
-        })
-      ],
       order: 1
     },
     {
