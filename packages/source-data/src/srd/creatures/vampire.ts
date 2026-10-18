@@ -77,18 +77,6 @@ export const vampire: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 2
     },
     {
@@ -187,18 +175,6 @@ export const vampire: CreatureAuthored = {
       label: 'Forbiddance',
       description:
         "Forbiddance. The vampire can't enter a residence without an invitation from one of the occupants.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 214),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 215), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_FORBIDDANCE
-        })
-      ],
       order: 7
     },
     {
@@ -254,18 +230,6 @@ export const vampire: CreatureAuthored = {
       label: 'Stake to the Heart',
       description:
         "Stake to the Heart. If a piercing weapon made of wood is driven into the vampire's heart while the vampire is incapacitated in its resting place, the vampire is paralyzed until the stake is removed.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 218),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 219), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_STAKE_TO_THE_HEART
-        })
-      ],
       order: 9
     },
     {

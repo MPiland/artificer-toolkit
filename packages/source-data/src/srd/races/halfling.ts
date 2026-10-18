@@ -222,13 +222,7 @@ export const lightfoot: RaceAuthored = {
       description:
         'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
       availableAtLevel: 1,
-      order: 1,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(106, 2, entry),
-          CLOSED_RULE_KIND.RACE_NATURALLY_STEALTHY
-        )
-      ]
+      order: 1
     }
   ]
 }

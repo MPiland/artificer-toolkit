@@ -58,18 +58,6 @@ export const shadow: CreatureAuthored = {
       label: 'Amorphous',
       description:
         'Amorphous. The shadow can move through a space as narrow as 1 inch wide without squeezing.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(250, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(250, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHADOW_AMORPHOUS
-        })
-      ],
       order: 1
     },
     {

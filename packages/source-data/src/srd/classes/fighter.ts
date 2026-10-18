@@ -474,10 +474,7 @@ export const fighter: ClassAuthored = {
               }
             ]
           },
-          order: 1,
-          effects: [
-            selfClassRuleEffect(0x82, CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_DEFENSE)
-          ]
+          order: 1
         },
         {
           id: classRowId(F, 4, 3),
@@ -500,23 +497,7 @@ export const fighter: ClassAuthored = {
               }
             ]
           },
-          order: 2,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 0x60, 0x83),
-              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_DUELING,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 0x69, 0x83), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'HOSTILE'
-                }
-              }
-            })
-          ]
+          order: 2
         },
         {
           id: classRowId(F, 4, 4),

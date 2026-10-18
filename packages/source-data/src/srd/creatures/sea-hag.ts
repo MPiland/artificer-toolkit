@@ -43,18 +43,6 @@ export const seaHag: CreatureAuthored = {
       id: S.featureId(248, 1),
       label: 'Amphibious',
       description: 'Amphibious. The hag can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(248, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(248, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
@@ -122,19 +110,6 @@ export const seaHag: CreatureAuthored = {
       label: 'Illusory Appearance',
       description:
         'Illusory Appearance. The hag covers herself and anything she is wearing or carrying with a magical illusion that makes her look like an ugly creature of her general size and humanoid shape. The effect ends if the hag takes a bonus action to end it or if she dies.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(248, 503),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(248, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_ILLUSORY_APPEARANCE
-        })
-      ],
       order: 3
     },
     {

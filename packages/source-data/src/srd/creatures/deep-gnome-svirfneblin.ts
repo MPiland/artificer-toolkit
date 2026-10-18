@@ -124,18 +124,6 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(78, 305),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(78, 1303), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEEP_GNOME_INNATE_SPELLCASTING
-        })
-      ],
       order: 3
     },
     {

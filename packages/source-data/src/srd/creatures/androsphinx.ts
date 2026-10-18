@@ -138,17 +138,6 @@ export const androsphinx: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(24, 330),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(24, 331), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPELLCASTING_SLOTS
-        })
-      ],
       order: 3
     },
     {

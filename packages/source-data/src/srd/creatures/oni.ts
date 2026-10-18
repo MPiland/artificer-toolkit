@@ -85,18 +85,6 @@ export const oni: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(211, 704),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(211, 705), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ONI_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {

@@ -97,19 +97,7 @@ export const thiefRoguishArchetype: ClassAuthored = {
       description:
         'By 13th level, you have learned enough about the workings of magic that you can improvise the use of items even when they are not intended for you. You ignore all class, race, and level requirements on the use of magic items.',
       availableAtLevel: 13,
-      order: 3,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(R, 20, 4),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(R, 21, 4), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_THIEF_USE_MAGIC_DEVICE
-        })
-      ]
+      order: 3
     },
     {
       id: classRowId(R, 11, 5),

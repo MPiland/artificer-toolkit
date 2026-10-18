@@ -58,17 +58,6 @@ export const adultBlueDragon: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(4, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(4, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 1
     },
     {

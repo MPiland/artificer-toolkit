@@ -87,7 +87,12 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Intimidating Presence extension and range end (D156, SPELLS-31.T5l):** the barbarian can't spend an action to extend the fear, and it doesn't end when the creature ends its turn beyond 60 feet or out of sight. Only a 14th-level Berserker has it, and the shipped turn of fear is the common case.
+- **After-save immunity edge forms (D156, SPELLS-31.T5l):** a creature trait whose immunity also ends the effect on that creature, and the Mummy's immunity keyed to every Mummy rather than to one source, stay description-only.
+
 - **Area push picks outside the ordinary area flow (ATTACK-7.T5d, D157).** An area push that needs a destination pick fails closed when the area settles through a GM removal, through a hit-point-pool area or a chosen-creatures action with no saves, or when one creature is moved two ways by the same action. No SRD action does any of these with a choice; hold the pick on those paths if content needs it.
+
+- **Spell grants that spend a class resource pool (D156, SPELLS-31.T3b):** a spell grant's charges are its own pool or an item's charges, so Empty Body's Astral Projection (8 ki, 18th-level monk) stays description-only. To support it, add a class-pool cost to spell grants (SOURCE_CHARGES for class resources).
 
 - **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
 - **A Creature's sense grants in Encounter perception (SPELLS-4.T2a4):** A Creature perceives only with its stat-block Senses; a sense an Active Effect grants it (a Creature casting See Invisibility or Darkvision on itself) is not folded in, unlike a Character's. Fold Creature sense grants into `perceptionSenses` and Scene vision if a Creature caster needs it.
