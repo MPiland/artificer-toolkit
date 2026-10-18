@@ -112843,7 +112843,11 @@ export declare const api: {
             sourceLabel?: string;
             target:
               | { kind: "SELF" }
-              | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
+              | {
+                  choiceOptions?: Array<{ id: string; label: string }>;
+                  kind: "ACTOR";
+                  self: "ALLOWED" | "WARN" | "REFUSED";
+                }
               | {
                   allowRepeatedTargets?: true;
                   area: {
@@ -112907,6 +112911,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesCreatureForm?: true;
                   forms?: Array<{
                     id: string;
@@ -113578,7 +113583,11 @@ export declare const api: {
             sourceLabel?: string;
             target:
               | { kind: "SELF" }
-              | { kind: "ACTOR"; self: "ALLOWED" | "WARN" | "REFUSED" }
+              | {
+                  choiceOptions?: Array<{ id: string; label: string }>;
+                  kind: "ACTOR";
+                  self: "ALLOWED" | "WARN" | "REFUSED";
+                }
               | {
                   allowRepeatedTargets?: true;
                   area: {
@@ -113642,6 +113651,7 @@ export declare const api: {
                       unit: "INCHES" | "FEET" | "YARDS" | "MILES";
                     };
                   } | null;
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesCreatureForm?: true;
                   forms?: Array<{
                     id: string;
