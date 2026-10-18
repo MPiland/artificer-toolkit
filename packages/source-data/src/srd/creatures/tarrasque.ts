@@ -58,18 +58,6 @@ export const tarrasque: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(268, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(268, 202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 1
     },
     {

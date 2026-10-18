@@ -805,7 +805,7 @@
             {
               "id": "PLATFORM-13.T4",
               "text": "End of phase: Convex parallelism trial (2, 4, then 8 file workers, one run each, then three consecutive clean runs for the kept setting; wall time, failures, peak memory and paging recorded; a run that swaps or times out rejects the setting; no per-test timeout raised) and the full-suite timing record (Convex, worker, root), including a loaded root run proving import.test.ts passes at the default 5 s.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "PLATFORM-13.3"
               ],
@@ -815,7 +815,8 @@
                 "rr": 8,
                 "size": 3,
                 "finalSource": true
-              }
+              },
+              "note": "Pulled forward 2026-10-18 (speed to done): Convex and Worker file-worker trials, shard balancing, no added jobs (20-concurrent-job cap)."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -933,6 +934,21 @@
               },
               "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139.",
               "note": "Green: d961c8b72 Tests 39147902939; batch ci/merge-m124 14e183243 green (Tests 39149206211, Live 39149206233); phase merge 41f7647ac."
+            },
+            {
+              "id": "PLATFORM-13.T13",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-13.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test."
             }
           ]
         },
@@ -7753,6 +7769,15 @@
             {
               "id": "ATTACK-7.T6",
               "text": "Slice F: author the Shove basic action on ATTACK-18 (prone or a 5-foot AWAY push on a win).",
+              "status": "DONE",
+              "closes": [
+                "ATTACK-7.6"
+              ],
+              "note": "Green: ci/attack-7-t6 2694c1f23 Tests 39162983674, Live 39162983521; merge d01738380 (m134)."
+            },
+            {
+              "id": "ATTACK-7.T6b",
+              "text": "Rename the Disarm-named contest seam that now settles every basic action contest (nativeDisarm, disarmSettlement, disarmPersistence, roomEncounterDisarm, liveSessionEncounterDisarm and its commit input) to a contest domain name, with no behavior change and no compatibility aliases; docs updated.",
               "status": "IN_PROGRESS",
               "closes": [
                 "ATTACK-7.6"
@@ -9580,10 +9605,11 @@
                 "rr": 5,
                 "size": 5,
                 "after": [
-                  "SPELLS-4.T1h"
+                  "SPELLS-4.T1h",
+                  "ATTACK-7.T7"
                 ]
               },
-              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18."
+              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18. Also settles dragged paths (ATTACK-7.T7 refuses a drag through a Scene effect until then; D105 drag ruling, 2026-10-18)."
             },
             {
               "status": "DONE",
@@ -12985,6 +13011,24 @@
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
+              "id": "SPELLS-31.T3d",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T3c"
+                ]
+              },
+              "text": "Bug: normalizing the full SRD Cleric through the class node map throws \"Untrusted node runtime table: proficiency_grant_equipment\" (starting-equipment eligibility). Trust the table where the node runtime reads it, add a regression test that normalizes every SRD class record unchanged and fails before the fix, and remove the parity test’s emptied starting-equipment workaround."
+            },
+            {
               "id": "SPELLS-31.T4c",
               "status": "TODO",
               "closes": [
@@ -13465,7 +13509,7 @@
             },
             {
               "id": "SPELLS-31.T5l",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -13475,10 +13519,12 @@
                 "rr": 3,
                 "size": 2,
                 "after": [
-                  "SPELLS-31.T1"
+                  "SPELLS-31.T1",
+                  "SPELLS-4.T2a3"
                 ]
               },
-              "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5m",
@@ -13600,6 +13646,23 @@
                 ]
               },
               "text": "Class B: a feature weapon attack against each chosen target with the wielded weapon (weapon damage, proficiency, magic bonus, ammunition drawn per target), then convert Volley and Whirlwind Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T3c ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5t",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T5l"
+                ]
+              },
+              "text": "Spell grants on chosen features (Eldritch Invocations, feats, options, background features) become spell access: buildCharacterSpellRuleFacts reads snapshot.features by provenance, with spell-access source kinds for FEAT, OPTION and BACKGROUND. List every chosen-feature grant this moves from MANUAL to automated, and prove the Chains of Carceri journey (cast, lockout, creature-type narrowing) end to end (D156 SPELLS-31.T5l ruling)."
             }
           ]
         },
@@ -13647,7 +13710,7 @@
             },
             {
               "id": "SPELLS-32.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-32.1"
               ],
@@ -13661,7 +13724,7 @@
                 ]
               },
               "text": "C: delete the description-only kinds and their CLOSED_RULE outcomes; keep descriptions (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
+              "note": "Green: ci/spells-32-33-t2 2aefe76ed Tests 39162606645, Live 39162606660; red proof descriptionOnlyCreatureAndRaceRules.test.ts; merge 2ff801c3c (m133)."
             },
             {
               "id": "SPELLS-32.T3",
@@ -13783,7 +13846,7 @@
             },
             {
               "id": "SPELLS-33.T2a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -13797,11 +13860,11 @@
                 ]
               },
               "text": "C: delete the 13 unreferenced kinds, the leftover ON_HIT_POISON_SAVE rule, and the innate and slot spellcasting kinds whose spells are already SPELL_GRANT entries (35 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Green: ci/spells-32-33-t2 2aefe76ed Tests 39162606645, Live 39162606660; red proof descriptionOnlyCreatureAndRaceRules.test.ts; merge 2ff801c3c (m133)."
             },
             {
               "id": "SPELLS-33.T2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -13815,7 +13878,7 @@
                 ]
               },
               "text": "C: delete the remaining description-only kinds; keep descriptions; snapshot and parity checks (44 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Green: ci/spells-32-33-t2 2aefe76ed Tests 39162606645, Live 39162606660; red proof descriptionOnlyCreatureAndRaceRules.test.ts; merge 2ff801c3c (m133)."
             },
             {
               "id": "SPELLS-33.T3a",
@@ -13832,8 +13895,59 @@
                   "SPELLS-33.T1"
                 ]
               },
-              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, Draining Kiss, damage-or-grapple choices, self teleports, attach and grapple riders, Cloaker Moan filter (15 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, damage-or-grapple choices, self teleports, attach riders (8 kinds; Draining Kiss moved to T3a4, Dark Devotion x2, Two-Headed and Brave moved to T3a2, Mimic Grappler to T4s3, Cloaker Moan to T3a3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T3a2",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-33.T1"
+                ]
+              },
+              "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use, then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T3a3",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-33.T1"
+                ]
+              },
+              "text": "Lift the compiler refusal of AREA_CONTENTS saves with excluded creature types generically, then convert Cloaker Moan as a 60-foot self-centered sphere excluding aberrations; its after-save immunity stays in T7a (1 kind). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T3a4",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-33.T1"
+                ]
+              },
+              "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T3b",
@@ -13940,7 +14054,8 @@
                 "size": 3,
                 "after": [
                   "SPELLS-33.T1",
-                  "SPELLS-4.T2j"
+                  "SPELLS-4.T2j",
+                  "SPELLS-33.T3a2"
                 ]
               },
               "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
@@ -14125,7 +14240,7 @@
                   "SPELLS-33.T4s1"
                 ]
               },
-              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T4w",
@@ -14569,6 +14684,23 @@
                 ]
               },
               "text": "new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T7a",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T5l"
+                ]
+              },
+              "text": "Data-only: creature after-save immunities (the dragons’ Frightful Presence, the Tarrasque and the rest of the T5l survey) authored with SOURCE_IMMUNITY. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md)."
             }
           ]
         }

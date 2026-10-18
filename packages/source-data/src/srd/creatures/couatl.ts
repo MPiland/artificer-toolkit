@@ -69,18 +69,6 @@ export const couatl: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(71, 302),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(71, 1301), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_INNATE_SPELLCASTING
-        })
-      ],
       order: 1
     },
     {
@@ -106,18 +94,6 @@ export const couatl: CreatureAuthored = {
       label: 'Shielded Mind',
       description:
         'Shielded Mind. The couatl is immune to scrying and to any effect that would sense its emotions, read its thoughts, or detect its location.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(71, 203),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(71, 1203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_SHIELDED_MIND
-        })
-      ],
       order: 3
     },
     {
@@ -293,12 +269,7 @@ export const couatl: CreatureAuthored = {
                     heldAtOnce: 1,
                     largestTarget: S.SIZE_CODE.MEDIUM,
                     untilEnds: ['RESTRAINED']
-                  }),
-                  {
-                    id: S.actionId(71, 208),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_CONSTRICT
-                  }
+                  })
                 ]
               }
             }

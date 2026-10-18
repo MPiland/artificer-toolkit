@@ -260,7 +260,7 @@ export async function revertLastEncounterAction(
         batch = outputs
       else if (outputs?.kind === 'ENCOUNTER_AREA_ACTION') areaRoot = outputs
       else if (outputs?.kind === 'ENCOUNTER_COUNTERED_CAST') counteredRoot = outputs
-      else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a Disarm' : 'this action')
+      else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a contest' : 'this action')
       continue
     }
     if (

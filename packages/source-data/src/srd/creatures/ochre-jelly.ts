@@ -42,18 +42,6 @@ export const ochreJelly: CreatureAuthored = {
       label: 'Amorphous',
       description:
         'Amorphous. The jelly can move through a space as narrow as 1 inch wide without squeezing.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(207, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(207, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_OCHRE_JELLY_AMORPHOUS
-        })
-      ],
       order: 1
     },
     {

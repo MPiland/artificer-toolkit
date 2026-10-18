@@ -43,17 +43,6 @@ export const chuul: CreatureAuthored = {
       id: S.featureId(63, 1),
       label: 'Amphibious',
       description: 'Amphibious. The chuul can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(63, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(63, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
@@ -61,22 +50,6 @@ export const chuul: CreatureAuthored = {
       label: 'Sense Magic',
       description:
         "Sense Magic. The chuul senses magic within 120 feet of it at will. This trait otherwise works like the detect magic spell but isn't itself magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(63, 103),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(63, 104),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHUUL_SENSE_MAGIC
-        })
-      ],
       order: 2
     },
     {

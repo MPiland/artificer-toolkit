@@ -132,18 +132,6 @@ export const rakshasa: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(230, 706),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(230, 707), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RAKSHASA_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {

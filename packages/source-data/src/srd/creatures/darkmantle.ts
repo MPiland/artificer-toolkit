@@ -49,18 +49,6 @@ export const darkmantle: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the darkmantle remains motionless, it is indistinguishable from a cave formation such as a stalactite or stalagmite.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(76, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(76, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DARKMANTLE_FALSE_APPEARANCE
-        })
-      ],
       order: 2
     },
     {

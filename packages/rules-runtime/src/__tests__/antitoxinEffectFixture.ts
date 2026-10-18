@@ -13,6 +13,7 @@ import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
 import { longstrider } from '@artificer-toolkit/source-data/srd/spells/longstrider.js'
+import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 
@@ -346,6 +347,15 @@ export function shimmeringShieldEffect(input: { id: string; holderActorId: strin
     ...input,
     effect: option?.effects?.[0],
     sourceLabel: option?.label ?? 'Shimmering Shield'
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Pass without Trace, held by one chosen creature. */
+export function passWithoutTraceEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: passWithoutTrace.effects?.[0],
+    sourceLabel: passWithoutTrace.label
   })
 }
 

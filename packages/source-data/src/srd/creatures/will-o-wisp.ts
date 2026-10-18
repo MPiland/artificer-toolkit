@@ -116,18 +116,6 @@ export const willOWisp: CreatureAuthored = {
       id: S.featureId(294, 2),
       label: 'Ephemeral',
       description: "Ephemeral. The will-o'-wisp can't wear or carry anything.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(294, 207),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(294, 208), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_EPHEMERAL
-        })
-      ],
       order: 2
     },
     {

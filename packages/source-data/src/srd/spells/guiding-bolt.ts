@@ -1,10 +1,16 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
+  DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
@@ -12,6 +18,7 @@ import {
   TARGET_DISPOSITION_KIND,
   SUBJECT,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -139,11 +146,32 @@ export const guidingBolt: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.GUIDING_BOLT, 0x213, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
+            // The next attack roll against the target, before the end of the caster's next turn.
+            duration: {
+              id: spellChildId(SPELL_IDS.GUIDING_BOLT, 0x214, 1),
+              durationKind: DURATION_KIND.ROUND,
+              amount: 1
+            },
+            lifecycle: {
+              turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' },
+              consumeOnFirstEvents: ['ON_ATTACKED']
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GUIDING_BOLT, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GUIDING_BOLT' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+                    id: spellChildId(SPELL_IDS.GUIDING_BOLT, 0x215, index + 1),
+                    grantKind: GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+                    domain: { attackDomain, requiresHolderSeesAttacker: false },
+                    modifierKind: MODIFIER_KIND.ADVANTAGE,
+                    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    order: index + 1
+                  }))
+                }
               }
             ]
           }

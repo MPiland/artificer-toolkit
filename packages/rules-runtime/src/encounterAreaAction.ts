@@ -1,6 +1,5 @@
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
-  CompiledActionChoice,
   CompiledActionTargetPolicy,
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
@@ -65,27 +64,32 @@ export function encounterAreaTargetKind(
 type ChosenCreaturesTargeting = Extract<TargetingDto, { selectionKind: 'CHOSEN_CREATURES' }>
 
 /**
- * The most creatures a chosen-creatures targeting names, or null when it is not a bounded list:
- * no authored cap, or a cap that still scales (a cap scaled by the spell's cast level or the
- * Character's level is resolved first, {@link resolveChosenCreaturesTargeting}). A creature may be
- * named once per entry, up to this cap, when the targeting allows repeated targets.
+ * The cap on a chosen-creatures targeting's list: `{ maxTargets }` for a fixed cap, `{}` for a list
+ * with no cap that names each creature once (Pass without Trace), or null when the list is not
+ * resolved: a cap that still scales (a cap scaled by the spell's cast level or the Character's level
+ * is resolved first, {@link resolveChosenCreaturesTargeting}), or no cap on a list that repeats
+ * creatures. A creature may be named once per entry, up to the cap, when the targeting allows
+ * repeated targets.
  */
-export function chosenCreaturesMaxTargets(targeting: ChosenCreaturesTargeting): number | null {
+export function chosenCreaturesCap(
+  targeting: ChosenCreaturesTargeting
+): { maxTargets?: number } | null {
   if (targeting.maxTargetsScaling !== undefined) return null
-  return targeting.maxTargets ?? null
+  if (targeting.maxTargets !== undefined) return { maxTargets: targeting.maxTargets }
+  return targeting.allowRepeatedTargets ? null : {}
 }
 
 /**
- * Whether a chosen-creatures targeting bounds its list at every cast: a fixed cap, or one that
- * scales only with the spell's cast level or the Character's level, which each cast resolves
- * ({@link resolveChosenCreaturesTargeting}). The execution plan is compiled before either level is
- * known, so this is what it can check.
+ * Whether a chosen-creatures targeting resolves its list at every cast: a fixed cap, one that scales
+ * only with the spell's cast level or the Character's level, which each cast resolves
+ * ({@link resolveChosenCreaturesTargeting}), or no cap on a list that names each creature once. The
+ * execution plan is compiled before either level is known, so this is what it can check.
  */
-export function chosenCreaturesCapIsAuthored(targeting: ChosenCreaturesTargeting): boolean {
+export function chosenCreaturesListResolves(targeting: ChosenCreaturesTargeting): boolean {
   return targeting.maxTargetsScaling
     ? targeting.maxTargetsScaling.scalingSource === 'SPELL_CAST_LEVEL' ||
         targeting.maxTargetsScaling.scalingSource === 'CHARACTER_LEVEL'
-    : targeting.maxTargets !== undefined
+    : chosenCreaturesCap(targeting) !== null
 }
 
 /**
@@ -163,8 +167,8 @@ export function chosenCreaturesAreaSupported(rangeKind: string, shapeKind: strin
 
 /**
  * Which target a compiled action takes: a directed, point or caster-centered target for an
- * AREA_CONTENTS action ({@link encounterAreaTargetKind}), a bounded list of chosen creatures
- * ({@link chosenCreaturesMaxTargets}, inside a round area when it names one), one creature for a
+ * AREA_CONTENTS action ({@link encounterAreaTargetKind}), a resolved list of chosen creatures
+ * ({@link chosenCreaturesCap}, inside a round area when it names one), one creature for a
  * policy that names no shape. Null is a policy this path cannot resolve (an unsupported area, or
  * per-path overrides): a hard refusal.
  */
@@ -173,7 +177,7 @@ export function encounterActionTargetKind(
 ): 'ACTOR' | 'ACTORS' | 'POINT' | 'DIRECTED' | 'CASTER_CENTERED' | null {
   if (policy.pathOverrides.length !== 0) return null
   if (policy.targeting?.selectionKind === 'CHOSEN_CREATURES')
-    return chosenCreaturesMaxTargets(policy.targeting) !== null &&
+    return chosenCreaturesCap(policy.targeting) !== null &&
       (policy.shape === null ||
         chosenCreaturesAreaSupported(policy.range.rangeKind, policy.shape.shapeKind))
       ? 'ACTORS'
@@ -295,8 +299,8 @@ export function encounterActionChoiceTarget(
    * pick lists the zones to pick from (D140).
    */
   zonePlacement?: CompiledActionZonePlacement | CompiledActionZoneChoice | null,
-  /** The options a cast picks one of on the creatures it targets (D148). */
-  castChoice?: CompiledActionChoice | null
+  /** The options a cast or a basic action (Shove) picks one of on the creatures it targets (D148). */
+  castChoice?: { options: readonly { optionId: string; label: string }[] } | null
 ): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
   const offered = (options: readonly { optionId: string; label: string }[] | undefined) =>
@@ -308,16 +312,16 @@ export function encounterActionChoiceTarget(
   const choiceOptions = offered(castChoice?.options)
   const area = policy ? authoredPointArea(policy) : null
   const targeting = policy?.targeting
-  const maxTargets =
+  const cap =
     policy &&
     targeting?.selectionKind === 'CHOSEN_CREATURES' &&
     encounterActionTargetKind(policy) === 'ACTORS'
-      ? chosenCreaturesMaxTargets(targeting)
+      ? chosenCreaturesCap(targeting)
       : null
-  if (maxTargets !== null)
+  if (cap !== null)
     return {
       kind: 'ACTORS',
-      maxTargets,
+      ...cap,
       area: area?.kind === 'RADIUS' ? area : null,
       ...(targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets
         ? { allowRepeatedTargets: true as const }

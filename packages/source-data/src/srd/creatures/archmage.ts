@@ -160,17 +160,6 @@ export const archmage: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(28, 103),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(28, 104), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPELLCASTING_SLOTS
-        })
-      ],
       order: 2
     },
     {

@@ -2,11 +2,18 @@ import { z, lazySchema } from '../zod.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
+/** The most turns an authored Encounter active effect lasts: 24 hours of 6-second rounds (D156). */
+export const MAX_ACTIVE_EFFECT_TURNS = 14_400
+/** A grant made on its anchor's own turn is stored one tick longer, so storage allows one more turn. */
+export const MAX_ACTIVE_EFFECT_STORED_TICKS = MAX_ACTIVE_EFFECT_TURNS + 1
+
 /** Mutable current lifecycle state. It never repeats immutable recurrence configuration. */
 export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
   z.strictObject({
     schemaVersion: z.literal(1),
-    remainingTicks: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000))),
+    remainingTicks: z.nullable(
+      z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS))
+    ),
     /**
      * Set once a grant is carried out of its Run (D99): it ends when the Campaign clock reaches this
      * absolute minute, or, `null` without a Campaign clock, when the GM ends it.

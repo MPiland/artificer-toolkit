@@ -40,7 +40,7 @@ import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  targetEndedEffects
 } from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
@@ -219,10 +219,11 @@ function reactionEndedEffects<
     [prepared.actor.id, prepared.actor.disposition],
     [prepared.target.id, prepared.target.disposition]
   ])
+  const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
   const reactor = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
+    makesAttackRoll,
     castsSpell: preparedCastsSpell(prepared),
     againstEnemy: actsAgainstEnemy({
       actorId: prepared.actor.id,
@@ -230,11 +231,12 @@ function reactionEndedEffects<
       dispositions
     })
   })
-  const mover = damageTakenEndedEffects({
+  const mover = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
       ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
     ),
+    attacked: makesAttackRoll,
     applications: [
       ...requireCompletedMovementReaction(input).applications,
       ...effects.effects.relationshipConditionApplications

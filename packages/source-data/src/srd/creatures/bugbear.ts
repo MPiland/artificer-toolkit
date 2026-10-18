@@ -47,18 +47,6 @@ export const bugbear: CreatureAuthored = {
       label: 'Brute',
       description:
         'Brute. A melee weapon deals one extra die of its damage when the bugbear hits with it (included in the attack).',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(56, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(56, 102), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_BRUTE
-        })
-      ],
       order: 1
     },
     {
