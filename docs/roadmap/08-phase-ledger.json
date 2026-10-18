@@ -1480,10 +1480,10 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["scripts/mergeSlice.test.mjs"],
+          "journeyStatus": "verified",
           "wsjf": {
             "bv": 3,
             "tc": 5,
@@ -1493,16 +1493,25 @@
           "acs": [
             {
               "id": "PLATFORM-25.1",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "scripts/formatChanged.test.mjs",
+                ".github/workflows/tests.yml",
+                "scripts/watchCi.ps1",
+                "docs/architecture/ci-validation.md"
+              ],
               "origin": ["User request 2026-10-18 (cycle-time gains)"],
               "note": "AC confirmed by the user 2026-10-18.",
               "text": "When a ci/<slice> Tests run's only failures are formatting (oxfmt) or lint findings lint can fix itself, CI commits the fixes to the same ci/<slice> branch (fast-forward push, an auto-fix trailer, never the phase branch or main, never twice in a row) and reruns Tests and Live on the new commit; watchCi.ps1 follows it, as it does the _generated auto-fix."
             },
             {
               "id": "PLATFORM-25.2",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "scripts/mergeSlice.test.mjs",
+                ".github/workflows/merge-slice.yml",
+                "docs/architecture/ci-validation.md"
+              ],
               "origin": ["User request 2026-10-18 (cycle-time gains)"],
               "note": "AC confirmed by the user 2026-10-18. The orchestrator still reviews every slice for band-aids and weakened assertions before approving.",
               "text": "After the orchestrator approves a reviewed slice tip (a workflow dispatch naming the ci/<slice> branch and tip SHA), a workflow checks that Tests and Live are green on that exact tip and merges it into the phase branch: the fast path (--no-ff, tree check, then the ci/merge-m<N> backstop run) when the tip contains the phase tip, otherwise a ci/merge-m<N> batch run that pushes to the phase branch only when green. A conflict, a red run or a moved tip fails with nothing pushed."
@@ -1511,7 +1520,7 @@
           "tasks": [
             {
               "id": "PLATFORM-25.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-25.1"],
               "wsjf": {
                 "bv": 3,
@@ -1519,11 +1528,12 @@
                 "rr": 5,
                 "size": 3
               },
-              "text": "Format and lint auto-fix job in tests.yml on the live-backend auto-fix pattern, with watchCi.ps1 following it."
+              "text": "Format and lint auto-fix job in tests.yml on the live-backend auto-fix pattern, with watchCi.ps1 following it.",
+              "note": "Batch ci/merge-m122 f0dbf70aa green (Tests 39148130773, Live 39148130875); phase merge 733b2f5b4."
             },
             {
               "id": "PLATFORM-25.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-25.2"],
               "wsjf": {
                 "bv": 3,
@@ -1531,7 +1541,8 @@
                 "rr": 5,
                 "size": 5
               },
-              "text": "merge-slice.yml workflow_dispatch: verify green runs on the tip, fast path or ci/merge-m<N> batch (next N from the existing ci/merge-m* refs), push to the phase branch on green, fail closed otherwise; the CI validation guide documents it."
+              "text": "merge-slice.yml workflow_dispatch: verify green runs on the tip, fast path or ci/merge-m<N> batch (next N from the existing ci/merge-m* refs), push to the phase branch on green, fail closed otherwise; the CI validation guide documents it.",
+              "note": "Batch ci/merge-m122 f0dbf70aa green (Tests 39148130773, Live 39148130875); phase merge 733b2f5b4."
             }
           ]
         }
@@ -7921,10 +7932,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): ENHANCE_ABILITY, FAITHFUL_HOUND, FEEBLEMIND, FLAME_BLADE, FORESIGHT. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "text": "Convert closed rules with existing options (D156 T2 split, class A; T2a2 ruling): FORESIGHT (8-hour APPLY_GRANT of the Help and Dodge advantage and disadvantage grants; 'can't be surprised' stays description-only). Parity proof, plus a room test where it shows in combat; the kind deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -7935,14 +7946,14 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): GUIDING_BOLT, LIGHT, MAGE_ARMOR, MIND_BLANK, PASS_WITHOUT_TRACE. Parity proof per spell, plus a room test where it shows in combat; each kind deleted. T2a3 rulings: Guiding Bolt adds the generic ON_ATTACKED consume event; the compiler compiles an ON_USE SEQUENCE beside MANUAL_ADJUDICATION outcomes (GM notes on the commit) and CHOSEN_CREATURES grant plans.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a4",
               "wsjf": {
@@ -7952,7 +7963,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Convert closed rules with existing options (D156 T2 split, class A): PLANT_GROWTH, PRODUCE_FLAME, REGENERATE, SEE_INVISIBILITY, SEQUESTER. Parity proof per spell, plus a room test where it shows in combat; each kind deleted."
+              "text": "Convert closed rules with existing options (D156 T2 split, class A): PLANT_GROWTH, PRODUCE_FLAME, REGENERATE, SEE_INVISIBILITY, SEQUESTER. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -8201,6 +8213,58 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2t",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), with a parity proof; the kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2u",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2v",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
+              },
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2w",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2v"]
+              },
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted."
             }
           ]
         },

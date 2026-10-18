@@ -1,0 +1,73 @@
+# Merges a reviewed ci/<slice> tip into the phase branch once the orchestrator approves it
+# (scripts/mergeSlice.mjs, docs/architecture/ci-validation.md#approved-merges). Dispatch it from the phase
+# branch, so the merge logic comes from the phase branch and not from the slice:
+#   gh workflow run merge-slice.yml --ref codex/phase-08-2-convex-cutover \
+#     -f branch=ci/<slice> -f sha=<tip> -f title='Merge <PBI>.<task>: <summary>'
+# It refuses, pushing nothing, when the tip moved, Tests or Live is not green on that SHA, or the merge
+# conflicts; a batch that goes red leaves only its ci/merge-m<N> branch. Plain pushes only, never main.
+name: Merge slice
+
+on:
+  # GitHub dispatches only a workflow some event has already triggered, and main holds no workflows: one
+  # push to this branch registered it (the job skips on push), so slice and batch pushes never list it.
+  push:
+    branches: ['ci/register-merge-slice']
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: The approved ci/<slice> branch
+        required: true
+      sha:
+        description: Its approved tip (full SHA)
+        required: true
+      title:
+        description: Merge commit title; the workflow appends (m<N>)
+        required: true
+      target:
+        description: The branch to merge into (a scratch branch only to prove this workflow)
+        default: codex/phase-08-2-convex-cutover
+      batch_prefix:
+        description: Merge batch branch prefix (ci/p25-merge-m only to prove this workflow)
+        default: ci/merge-m
+
+permissions:
+  contents: read
+
+# One merge at a time per target. GitHub keeps one pending run per group and cancels an older pending one,
+# so dispatch the next approval after the previous one has started, and re-dispatch a cancelled one.
+concurrency:
+  group: merge-slice-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    name: Merge ${{ inputs.branch }} into ${{ inputs.target }}
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # A batch waits for a full Tests run and a Live run.
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ inputs.branch }}
+          SHA: ${{ inputs.sha }}
+          TITLE: ${{ inputs.title }}
+          TARGET: ${{ inputs.target }}
+          BATCH_PREFIX: ${{ inputs.batch_prefix }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          node scripts/mergeSlice.mjs --branch "$BRANCH" --sha "$SHA" --title "$TITLE" \
+            --target "$TARGET" --batch-prefix "$BATCH_PREFIX" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
