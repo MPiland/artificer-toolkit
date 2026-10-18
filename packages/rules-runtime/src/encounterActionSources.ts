@@ -63,7 +63,8 @@ export type NativeEncounterActionSource =
       effectivePolicyOutput: CharacterRulePolicyOutput
     }
 
-function systemAbilityDefinitions(system: SystemAuthoredDto) {
+/** The ability definitions a System authors, as Creature discovery reads them. */
+export function systemAbilityDefinitions(system: SystemAuthoredDto) {
   return 'abilities' in system && Array.isArray(system.abilities)
     ? system.abilities.map((ability) => ({ id: ability.id, code: ability.code }))
     : []

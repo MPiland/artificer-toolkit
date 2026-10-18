@@ -19,7 +19,8 @@ import {
   compileModifierGrant,
   type CompiledDamageEffect,
   type CompiledDuration,
-  type CompiledEffectGroup
+  type CompiledEffectGroup,
+  type CompiledManifestComponent
 } from '@artificer-toolkit/shared/compilers'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import { abilityModifier } from './abilityModifier.js'
@@ -2228,7 +2229,8 @@ function zonePlacementPlan(
     zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
-  const placement = triggers && {
+  if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  const placement = {
     attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
@@ -2240,10 +2242,9 @@ function zonePlacementPlan(
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {})
   }
-  if (placement && invocation.triggerCode !== 'SAVING_THROW')
+  if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
-    !triggers ||
     invocation.triggerCode !== 'SAVING_THROW' ||
     !savingThrow ||
     !pinnedDc ||
@@ -2370,7 +2371,7 @@ function zonePlacementPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   return {
-    ...placement!,
+    ...placement,
     ...(lostAction ? { failedSaveLosesAction: true } : {}),
     entry: {
       ...entryPlan,
@@ -2396,7 +2397,7 @@ function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
   placement: Omit<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'>,
   entries: readonly CompiledEffectGroup['entries'][number][],
-  successImmunity: unknown
+  successImmunity: CompiledManifestComponent['automaticSaveSuccessImmunityDamageTypeId']
 ): CharacterRuleActionZonePlacementPlan {
   if (placement.triggerModes.length > 0)
     unsupported('A zone outcome with no save acts only at turn boundaries.')

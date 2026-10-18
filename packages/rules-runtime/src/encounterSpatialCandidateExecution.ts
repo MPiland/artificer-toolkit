@@ -15,6 +15,7 @@ import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
+import { isEncounterPassiveZone } from './encounterPassiveZones.js'
 import { isVisibleHalfSpeedField } from './halfSpeedField.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -74,11 +75,30 @@ export function toSpatialMovementTarget<TCharacterFacts extends ProjectableChara
   }
 }
 
-export function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
+/**
+ * The Scene's effects as the spatial seams read them. A Creature's passive zone rests, still drawn,
+ * while its source is defeated and acts again once the source is revived (D144); `actors` is
+ * required so that no seam can miss it.
+ */
+export function toSpatialInstances(
+  effects: readonly EncounterSpatialRuleEffectRecord[],
+  actors: readonly EncounterRunActorState[]
+) {
+  const defeated = new Set(
+    actors.flatMap((actor) => (actor.kind !== 'CHARACTER' && actor.defeated ? [actor.id] : []))
+  )
+  return effects.map((effect) => toSpatialInstance(effect, defeated))
+}
+
+function toSpatialInstance(
+  effect: EncounterSpatialRuleEffectRecord,
+  defeatedActorIds: ReadonlySet<string>
+) {
+  const sourceActorId =
+    effect.definition.origin.kind === 'ENCOUNTER' ? effect.definition.origin.sourceActorId : null
   return {
     effectId: effect.id,
-    sourceActorId:
-      effect.definition.origin.kind === 'ENCOUNTER' ? effect.definition.origin.sourceActorId : null,
+    sourceActorId,
     sourceTokenId: effect.placement.sourceTokenId,
     anchorKind: effect.placement.anchorKind,
     geometry: effect.placement.geometry,
@@ -88,7 +108,11 @@ export function toSpatialInstance(effect: EncounterSpatialRuleEffectRecord) {
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
     unaffectedActorIds: effect.placement.unaffectedActorIds,
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
-    requiresFullyWithin: effect.placement.requiresFullyWithin
+    requiresFullyWithin: effect.placement.requiresFullyWithin,
+    suppressed:
+      isEncounterPassiveZone(effect) &&
+      sourceActorId !== null &&
+      defeatedActorIds.has(sourceActorId)
   } as const
 }
 
