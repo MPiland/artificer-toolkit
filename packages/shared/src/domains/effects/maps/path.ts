@@ -243,7 +243,11 @@ const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode
 const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
 const followUpSaveRepeatAttemptGate = buildNodeMap<FollowUpSaveRepeatAttemptGateAuthored>()
 const followUpSaveRepeatPerception = buildNodeMap<FollowUpSaveRepeatPerceptionAuthored>()
-type FollowUpSaveFailureMarginRiderNode = NonNullable<FollowUpSaveAuthored['failureMarginRider']>
+/** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
+type FollowUpSaveFailureMarginRiderNode = Omit<
+  NonNullable<FollowUpSaveAuthored['failureMarginRider']>,
+  'outcomes'
+> & { outcomes: OutcomeNode[] }
 const followUpSaveFailureMarginRider = buildNodeMap<FollowUpSaveFailureMarginRiderNode>()
 const followUpSaveFailureMarginRiderLifecycle =
   buildNodeMap<FollowUpSaveFailureMarginRiderNode['lifecycle']>()
@@ -1149,12 +1153,10 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRi
       )
       .set(
         'outcomes',
-        groupArray(
-          ['outcomes'],
-          'Conditions',
-          () => OUTCOME_NODE_MAP as unknown as NodeMap<ConditionAuthored>,
-          { presentation: 'summary', requiredIf: true }
-        )
+        groupArray(['outcomes'], 'Conditions', () => OUTCOME_NODE_MAP, {
+          presentation: 'summary',
+          requiredIf: true
+        })
       )
       .set(
         'lifecycle',
