@@ -114,6 +114,10 @@ export function planEncounterPlacedZone(input: {
         ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+      ...(zone.movementCostMultiplier
+        ? { movementCostMultiplier: zone.movementCostMultiplier }
+        : {}),
+      ...(zone.blockingRules ? { blockingRules: zone.blockingRules } : {}),
       ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
       ...(heldCondition

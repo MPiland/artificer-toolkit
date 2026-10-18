@@ -37,7 +37,6 @@ import {
 } from './targetBoundActiveRuleEffectExecutor.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
-  requireSupportedD20Policy,
   settleAutomaticSpatialEvidence,
   spatialCandidateEvidence,
   spatialExecutionInput,
@@ -683,7 +682,6 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       random: input.random
     }))
     if ('continuation' in result) {
-      requireSupportedD20Policy(result.evidencePolicy)
       const contactPosition = pathPointAtDistance(root.originalPath, candidate.pathDistance)
       if (!contactPosition)
         throw new EncounterConflictError('The spatial contact has no authoritative path position.')
@@ -1058,7 +1056,7 @@ async function resumeSpatial(input: {
   return resumeTargetBoundActiveRuleEffectWithAnswer({
     effectInput: input.effectInput,
     continuation,
-    policy: requireSupportedD20Policy(input.pending.d20Policy),
+    policy: input.pending.d20Policy,
     diceStage: input.pending.diceStage,
     answer: input.resolution,
     random: input.random

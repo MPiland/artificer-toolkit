@@ -1186,3 +1186,73 @@ describe('spatial turn candidates', () => {
     ).toEqual([])
   })
 })
+
+describe('ring geometry (SPELLS-4.T1b, D154)', () => {
+  const ring = (innerRadius = 9) =>
+    ({ kind: 'RING', center: { x: 0, y: 0 }, outerRadius: 10, innerRadius }) as const
+  const inRing = (x: number) =>
+    spatialGeometryOverlapsTokenFootprint({ geometry: ring(), token: token(ids.targetToken, x) })
+
+  it('catches a footprint that overlaps the band, even one reaching into the hollow', () => {
+    expect(inRing(9.5)).toBe(true)
+    expect(inRing(8)).toBe(true)
+  })
+
+  it('does not catch a footprint wholly inside the hollow, or one only touching the outer edge', () => {
+    expect(inRing(0)).toBe(false)
+    expect(inRing(7.9)).toBe(false)
+    expect(inRing(11)).toBe(false)
+  })
+
+  it('raises a crossing where the mover leaves the hollow and the share of a walk in the band', () => {
+    const geometry = { frame: 'SCENE_ABSOLUTE' as const, shape: ring() }
+    const [cross] = collect({
+      effects: [effect({ geometry })],
+      movementKind: 'VOLUNTARY',
+      path: [
+        { x: 0, y: 0 },
+        { x: 20, y: 0 }
+      ]
+    })
+    expect(cross).toMatchObject({ trigger: 'CROSS' })
+    expect(cross?.contact.x).toBeCloseTo(Math.sqrt(80) - 1)
+    expect(
+      spatialSegmentShareInside({
+        geometries: [ring()],
+        token: token(ids.targetToken, -20),
+        from: { x: -20, y: 0 },
+        to: { x: 20, y: 0 }
+      })
+    ).toBeCloseTo((2 * (11 - (Math.sqrt(80) - 1))) / 40)
+  })
+
+  it('holds a creature fully within the band only when it shares no area with the hollow', () => {
+    const fullyWithin = (x: number) =>
+      collectSpatialTurnCandidates({
+        actorIdByTokenId: new Map([[ids.targetToken, ids.targetActor]]),
+        effects: [
+          effect({
+            geometry: { frame: 'SCENE_ABSOLUTE', shape: ring(7) },
+            turnTriggers: ['START_OF_TURN'],
+            requiresFullyWithin: true
+          })
+        ],
+        targetTokenId: ids.targetToken,
+        tokens: [token(ids.targetToken, x)],
+        trigger: 'START_OF_TURN',
+        turnSequence: 1
+      })
+    expect(fullyWithin(8.5)).toHaveLength(1)
+    expect(fullyWithin(8)).toHaveLength(1)
+    expect(fullyWithin(7.5)).toHaveLength(0)
+  })
+
+  it('refuses a ring whose hollow is not inside its outer circle', () => {
+    expect(
+      spatialGeometryOverlapsTokenFootprint({
+        geometry: ring(10),
+        token: token(ids.targetToken, 9.5)
+      })
+    ).toBe(false)
+  })
+})

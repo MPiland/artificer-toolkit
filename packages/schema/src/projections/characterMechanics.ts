@@ -15,7 +15,12 @@ import {
   spatialTriggerDtoSchema,
   spatialTurnTriggerDtoSchema
 } from '../shared/spatialFacts.js'
-import { compiledSpatialHeldConditionDtoSchema, spatialZoneLabelSchema } from '../shared/spatial.js'
+import {
+  compiledSpatialHeldConditionDtoSchema,
+  spatialZoneLabelSchema,
+  zoneBlockingRulesSchema,
+  zoneMovementCostMultiplierSchema
+} from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -339,6 +344,8 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
     /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
     requiresFullyWithin: z.optional(z.boolean()),
+    movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
+    blockingRules: z.optional(zoneBlockingRulesSchema),
     /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
     failedSaveLosesAction: z.optional(z.boolean()),
     /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */

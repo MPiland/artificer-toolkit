@@ -416,10 +416,11 @@ a kind the System does not model keeps the whole zone manual. A zone outcome may
 T6a): a behavior whose invocation is not `SAVING_THROW` and whose entries are `ON_USE` damage compiles, through
 `unsavedZonePlacementPlan`, to one unmodified damage dice row dealt in full: a frozen graph of plain
 `evidence.integer-range` dice and a `proposal-on_use` node, no d20 or `test` node, no adapter facts and no pinned
-DC. It acts only at turn boundaries (a movement trigger, a halved or modified roll, a stop or any other outcome is
-refused), since only the turn path answers dice with no d20 policy: `isDamageDieRequest` accepts a plain integer
-range, the executor resumes a damage die with `d20: null` when the effect has no policy, and
-`awaitsSpatialDamageDice` routes those dice to the zone's source as roller.
+DC. It may act at turn boundaries and, since D154 (SPELLS-4.T1b), on a movement trigger; a halved or modified
+roll, a stop or any other outcome is refused. Both the turn and the movement paths answer dice with no d20 policy:
+`isDamageDieRequest` accepts a plain integer range, the executor resumes a damage die with `d20: null` when the
+effect has no policy, `awaitsSpatialDamageDice` routes those dice to the zone's source as roller, and a paused
+movement contact with no policy is summarized as `ACTION_OUTCOME_EVIDENCE`.
 The turn stage (`selectTurnZoneContacts`) gathers contacts over every bound token: the boundary creature's own
 zones at its boundary, and, at the start of its turn, each other creature standing in a zone it is the source of
 that acts at `START_OF_SOURCE_TURN`. Contacts run in canonical zone turn order (`followsInZoneTurnOrder`: target
@@ -502,13 +503,19 @@ modifiers) passes `readsSharedTest` and reads the top-level option.
 a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
 command carries an optional `carefully` flag, the movement cost doubles for the path's footprint share inside that
-zone (`spatialSegmentShareInside` through `preparedMovementCost`), and the flag reaches candidate evaluation so that
+zone, and the flag reaches candidate evaluation so that
 zone's save is skipped (`collectSpatialMovementCandidates`; forced and teleport movement ignore it). Both the
 bypass and the doubled cost apply only to zones the mover can see (`isVisibleHalfSpeedField`: `PUBLIC`, or
 `spatialState.revealed`), so a hidden zone triggers whatever `carefully` says. The tabletop
 learns which fields offer the choice from `halfSpeedFields` on the Encounter session state (visible, scene-absolute
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
-preview offers "Move carefully" and "Move normally" before sending. Every path that raises a holder's hit points ends its
+preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
+(D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
+gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
+a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and
+careful doubling, with no stacking. Blocking rules are only projected: cover from them belongs to SPELLS-14, and
+zones blocking vision is a future enhancement. Every path that raises a holder's hit points ends its
 `ON_HIT_POINTS_REGAINED` grants through one helper, `endGrantsOnHitPointsRegained` (`consumedGrantPersistence.ts`): the
 Encounter mechanics batch (a heal, or a death save's natural 20, keyed on the target's hit points rising),
 a Character's Sheet command that raises hit points (Convex `executeCharacterSheetCommand` and the room's Sheet command path), and

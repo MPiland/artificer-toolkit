@@ -180,14 +180,14 @@ export async function prepareStagedSceneCommit(input: {
       ...walk,
       grid: scene.grid,
       scene,
-      careful:
-        staged.carefully && movement
-          ? {
-              tokenId: staged.tokenId,
-              tokens: scene.tokens,
-              effects: movement.planned.spatialEffects
-            }
-          : undefined
+      mover: movement
+        ? {
+            tokenId: staged.tokenId,
+            tokens: scene.tokens,
+            effects: movement.planned.spatialEffects,
+            carefully: staged.carefully === true
+          }
+        : undefined
     })
     publishedDelta = preparedMovementSceneDelta({
       tokenId: staged.tokenId,

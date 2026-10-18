@@ -10,6 +10,7 @@ import {
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from '@artificer-toolkit/schema/shared/enums'
+import { zoneMovementCostMultiplierSchema } from '@artificer-toolkit/schema/shared/spatial'
 import {
   hitPointMaximumReductionRecoveryTagsSchema,
   type HitPointMaximumReductionRecoveryTag
@@ -2269,11 +2270,20 @@ function zonePlacementPlan(
         : 'A placed zone takes a point or the caster as its center.'
     )
   const pinnedDc = pinnedSaveDc(savingThrow)
-  const { requiresFullyWithin, automaticSaveSuccessImmunityDamageTypeId: successImmunity } =
-    zone.component
+  const {
+    requiresFullyWithin,
+    movementCostMultiplier,
+    blockingRules,
+    automaticSaveSuccessImmunityDamageTypeId: successImmunity
+  } = zone.component
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
   if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  if (
+    movementCostMultiplier !== undefined &&
+    !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
+  )
+    unsupported('A zone movement cost multiplies the cost of moving by more than 1, up to 100.')
   const placement = {
     attachment: zone.attachment,
     label: zone.label,
@@ -2284,7 +2294,9 @@ function zonePlacementPlan(
     ...(zone.component.maxApplicationsPerTurn
       ? { maxApplicationsPerTurn: zone.component.maxApplicationsPerTurn }
       : {}),
-    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {})
+    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
+    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
   if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
@@ -2490,8 +2502,9 @@ function zoneHeldCondition(
 }
 
 /**
- * A zone whose outcome needs no save (D144): it rolls one unmodified damage dice row and deals it in
- * full, with no test node, so it acts only at turn boundaries, where its source rolls the dice.
+ * A zone whose outcome needs no save (D144, D154): it rolls one unmodified damage dice row and deals
+ * it in full, with no test node, at a turn boundary or when a mover enters it; its source rolls the
+ * dice.
  */
 function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
@@ -2499,8 +2512,6 @@ function unsavedZonePlacementPlan(
   entries: readonly CompiledEffectGroup['entries'][number][],
   successImmunity: CompiledManifestComponent['automaticSaveSuccessImmunityDamageTypeId']
 ): CharacterRuleActionZonePlacementPlan {
-  if (placement.triggerModes.length > 0)
-    unsupported('A zone outcome with no save acts only at turn boundaries.')
   if (
     successImmunity ||
     entries.length === 0 ||
