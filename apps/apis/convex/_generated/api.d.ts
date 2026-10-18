@@ -114279,6 +114279,22 @@ export declare const api: {
                     };
               }
             | {
+                actionLabel: string;
+                allowedResponses: Array<"CONTEST_CHECK">;
+                checks: Array<{
+                  checkDefinitionId: string;
+                  derivedRollModeReasons: Array<string>;
+                  label: string;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                }>;
+                encounterVersion: number;
+                kind: "CONTEST_CHECK";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                requestId: string;
+                rollerActorId: string;
+              }
+            | {
                 allowedResponses: Array<
                   "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
                 >;
@@ -114586,6 +114602,22 @@ export declare const api: {
                         dc: number | null;
                         kind: "BASIC_ACTION_CHECK";
                       };
+                }
+              | {
+                  actionLabel: string;
+                  allowedResponses: Array<"CONTEST_CHECK">;
+                  checks: Array<{
+                    checkDefinitionId: string;
+                    derivedRollModeReasons: Array<string>;
+                    label: string;
+                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  }>;
+                  encounterVersion: number;
+                  kind: "CONTEST_CHECK";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  requestId: string;
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<
@@ -115424,6 +115456,22 @@ export declare const api: {
                 };
           }
         | {
+            actionLabel: string;
+            allowedResponses: Array<"CONTEST_CHECK">;
+            checks: Array<{
+              checkDefinitionId: string;
+              derivedRollModeReasons: Array<string>;
+              label: string;
+              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            }>;
+            encounterVersion: number;
+            kind: "CONTEST_CHECK";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            requestId: string;
+            rollerActorId: string;
+          }
+        | {
             allowedResponses: Array<
               "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
             >;
@@ -116247,6 +116295,22 @@ export declare const api: {
                       dc: number | null;
                       kind: "BASIC_ACTION_CHECK";
                     };
+              }
+            | {
+                actionLabel: string;
+                allowedResponses: Array<"CONTEST_CHECK">;
+                checks: Array<{
+                  checkDefinitionId: string;
+                  derivedRollModeReasons: Array<string>;
+                  label: string;
+                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                }>;
+                encounterVersion: number;
+                kind: "CONTEST_CHECK";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                requestId: string;
+                rollerActorId: string;
               }
             | {
                 allowedResponses: Array<
