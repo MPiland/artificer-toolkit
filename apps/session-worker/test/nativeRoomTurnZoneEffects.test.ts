@@ -760,7 +760,7 @@ describe('the SRD Balor’s Fire Aura in the room (SPELLS-20 T6c, D144)', () => 
     // Both have Dexterity 15 and roll the same die, so the GM settles the tie with the Balor first;
     // the turn the settled START opens is recorded on the START's receipt.
     const tie =
-      answer.type === 'COMMAND_COMMITTED' && answer.delta.scope === 'ENCOUNTER'
+      answer.type === 'COMMAND_COMMITTED' && answer.delta?.scope === 'ENCOUNTER'
         ? answer.delta.result.occurrence?.pending
         : undefined
     if (tie?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected the initiative tie.')
