@@ -15,6 +15,10 @@ import {
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
+  pendingEncounterRuleOccurrenceSummaryDtoSchema,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import {
   sceneFogAppendInputSchema,
   sceneFogChunksPageInputSchema,
   sceneFogChunksPageSchema,
@@ -911,6 +915,59 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
   }
 }
 
+// D157: a push that leaves its target a choice waits on the board for the player whose Character
+// pushed; a press inside one of the highlighted legal squares answers it.
+export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, pushedWardenFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const choice = await page.findByRole('region', { name: 'Where Vault Warden lands' })
+    await expect(within(choice).getByText('Pick where Vault Warden lands.')).toBeVisible()
+    await waitFor(() =>
+      expect(
+        within(choice).getByRole('button', { name: 'Leave Vault Warden where it is' })
+      ).toHaveFocus()
+    )
+    await expect(
+      within(choice).getByRole('button', { name: 'Move Vault Warden 5 ft west' })
+    ).toBeVisible()
+    const renderer = await latestStageRenderer()
+    // Every legal square is outlined on the board.
+    await waitFor(() =>
+      expect(renderer.getDiagnostics().overlayCount).toBeGreaterThanOrEqual(
+        pushedWardenSquares.length
+      )
+    )
+    renderer.focusPoint(pushedWardenSquares[1]!)
+    await pressStage(page.getByRole('img', { name: 'Interactive campaign scene' }), 'centre')
+    await waitFor(() =>
+      expect(liveCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({
+              type: 'RESOLVE_RULE_OCCURRENCE',
+              occurrenceId: pushedWardenPending.occurrenceId,
+              resolution: {
+                kind: 'FORCED_MOVEMENT',
+                requestId: pushedWardenPending.requestId,
+                position: pushedWardenSquares[1]
+              }
+            }),
+            scope: 'ENCOUNTER'
+          },
+          type: 'COMMAND'
+        })
+      )
+    )
+  }
+}
+
 // D87: the GM shows another Scene's map to players without changing the presented Scene.
 export const GmShowsSceneToPlayers: Story = {
   args: {
@@ -957,6 +1014,7 @@ type TabletopFixtures = {
   gmEncounter: EncounterGmProjectionDto
   liveScene: CampaignSceneStateDto
   playerEncounter: EncounterPlayerProjectionDto
+  pending?: PendingEncounterRuleOccurrenceSummaryDto
 }
 
 const defaultTabletopFixtures: TabletopFixtures = {
@@ -991,6 +1049,31 @@ const presentedTokensFixtures: TabletopFixtures = {
     ),
     currentActorId: wardenId
   }
+}
+
+// Ember's Wake pushed the Warden, which may stay put or land one square west or north (D157).
+const pushedWardenPosition = presentedTokensFixtures.liveScene.tokens[1]!.position
+const pushedWardenSquares = [
+  pushedWardenPosition,
+  { x: pushedWardenPosition.x - 70, y: pushedWardenPosition.y },
+  { x: pushedWardenPosition.x, y: pushedWardenPosition.y - 70 }
+]
+const pushedWardenPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+  kind: 'FORCED_MOVEMENT_DESTINATION',
+  occurrenceId: '12121212-1212-4121-8121-121212121212',
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  sourceActorId: tabletopGmEncounter.actors[0]!.id,
+  targetActorId: wardenId,
+  requestId: 'crusher-push',
+  positions: pushedWardenSquares,
+  allowedResponses: ['FORCED_MOVEMENT']
+})
+if (pushedWardenPending.kind !== 'FORCED_MOVEMENT_DESTINATION')
+  throw new Error('Unexpected pending kind.')
+const pushedWardenFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  pending: pushedWardenPending
 }
 
 // The Warden bound to a token but carrying no status, so only its disposition is listed.
@@ -1136,7 +1219,7 @@ function renderWindow(
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
     queryFn: async () => ({
       encounter,
-      pending: null,
+      pending: fixtures.pending ?? null,
       waitingOn: null,
       turnMovement: [],
       halfSpeedFields: [],
@@ -1175,7 +1258,7 @@ function renderWindow(
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
-    pending: null,
+    pending: fixtures.pending ?? null,
     waitingOn: null,
     turnMovement: [],
     halfSpeedFields: [],
@@ -1195,7 +1278,7 @@ function renderWindow(
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
         return {
           encounter,
-          pending: null,
+          pending: fixtures.pending ?? null,
           waitingOn: null,
           turnMovement: [],
           halfSpeedFields: [],
