@@ -46,7 +46,9 @@ describe('a contest whose win is a picked outcome, through the effect node map (
 
   it('keeps a variant Shove that pushes 10 feet, so an author builds what the SRD does', async () => {
     const effects = shoveEffects()
-    const push = effects[0]?.paths[0]?.options?.[1]?.resultBlock?.outcomes[0]
+    const win = effects[0]?.paths[0]
+    if (win?.selectionKind !== 'CHOICE') throw new Error('Shove must author its pick.')
+    const push = win.options[1]?.resultBlock.outcomes[0]
     if (push?.effectKind !== 'FORCED_MOVEMENT') throw new Error('Shove must author its push.')
     push.amount = 10
     await expectKept(effects)
