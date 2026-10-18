@@ -62,6 +62,8 @@ export async function evaluateNativeLiveActionEconomy(input: {
     suppressed
   } = await evaluateEncounterAttackAction({
     triggerCode: invocation.triggerCode,
+    replacesAttack:
+      prepared.source.kind === 'BASIC_ACTION' && prepared.source.capability.actionCost === 'ATTACK',
     actor: prepared.actor,
     state: input.state,
     activation: { code: activation.code, amount: activation.amount },

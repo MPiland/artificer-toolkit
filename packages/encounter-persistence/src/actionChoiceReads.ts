@@ -105,11 +105,12 @@ export async function readEncounterActionChoices(
   const economyReads = new Map<string, Promise<EconomyRead>>()
   const readEconomy = (
     activation: { code: string; amount: number | null } | null,
-    triggerCode = ''
+    triggerCode = '',
+    replacesAttack = false
   ): Promise<EconomyRead> => {
     if (!activation || activation.amount === null)
       return Promise.resolve({ warnings: [], attackSlot: null })
-    const key = `${activation.code}:${activation.amount}:${triggerCode}`
+    const key = `${activation.code}:${activation.amount}:${triggerCode}:${replacesAttack}`
     const known = economyReads.get(key)
     if (known) return known
     const read = evaluateActionAttackAction(tx, {
@@ -118,7 +119,8 @@ export async function readEncounterActionChoices(
       campaign,
       activation: { code: activation.code, amount: activation.amount },
       target: actorTarget,
-      triggerCode
+      triggerCode,
+      replacesAttack
     }).then(({ economy, suppressed, slot }) => ({
       warnings: [
         ...encounterActionEconomyWarnings(economy, activation.code),
@@ -335,9 +337,11 @@ export async function readEncounterActionChoices(
     )
     basicActionChoices = await Promise.all(
       offered.map(async (action) => {
+        const { activation, triggerCode } = action.mechanicFacts.invocation
         const economy = await readEconomy(
-          action.mechanicFacts.invocation.activation,
-          action.mechanicFacts.invocation.triggerCode
+          activation,
+          triggerCode,
+          action.actionCost === 'ATTACK'
         )
         const document = catalogue.find(
           ({ definition }) => definition.id === action.definitionId
@@ -348,7 +352,8 @@ export async function readEncounterActionChoices(
           label: action.label,
           ...encounterActionChoiceRange(targetPolicy),
           rulesText: document?.rulesText,
-          actionCost: document?.actionCost,
+          // The activation it spends; an attack it replaces shows as its `attackSlot`.
+          ...(activation ? { actionCost: activationCodeSchema.parse(activation.code) } : {}),
           grip: null,
           wieldConflict: null,
           attackSlot: economy.attackSlot,

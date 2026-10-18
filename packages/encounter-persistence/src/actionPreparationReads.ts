@@ -134,11 +134,12 @@ export async function prepareActionEconomy<TFacts extends CharacterTurnFacts>(
  */
 export async function evaluateActionAttackAction<TFacts extends CharacterTurnFacts>(
   tx: EncounterTurnReadTransaction<TFacts>,
-  input: ActionEconomyInput<TFacts> & { triggerCode: string }
+  input: ActionEconomyInput<TFacts> & { triggerCode: string; replacesAttack?: boolean }
 ) {
   return evaluateEncounterAttackAction({
     ...economyInput(tx, input),
-    triggerCode: input.triggerCode
+    triggerCode: input.triggerCode,
+    replacesAttack: input.replacesAttack
   })
 }
 
