@@ -251,6 +251,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { amount: 1 }
     case 'hitPointPool':
       return { diceConfig: '1d8' }
+    case 'sizeLimit':
+      return { stepsAboveActor: 1 }
     case 'hitPointPoolScalingBreakpoint':
       return {
         id: crypto.randomUUID(),
