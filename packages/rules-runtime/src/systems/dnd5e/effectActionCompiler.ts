@@ -702,7 +702,12 @@ function isSupportedArea(
     invocation.activation.amount !== 1
   )
     return false
-  if (encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null) return false
+  // A wall is drawn only as the zone it places (D154), whose appear save is tested over it.
+  if (
+    shape.shapeKind !== 'WALL' &&
+    encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
+  )
+    return false
   if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED') {
     if (
       range.rangeKind !== 'DISTANCE' ||
@@ -715,7 +720,7 @@ function isSupportedArea(
   const size =
     shape.shapeKind === 'CUBE'
       ? shape.edgeLength
-      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE'
+      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE' || shape.shapeKind === 'WALL'
         ? shape.length
         : shape.shapeKind === 'SPHERE' ||
             shape.shapeKind === 'CYLINDER' ||
@@ -2253,6 +2258,7 @@ function zonePlacementPlan(
   const zone = placedSpaceZone(action.compiledEffect)
   if (!zone) return null
   const [first, ...later] = zone.components
+  const { appearSave } = zone
   if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
   const placementKind = encounterZoneChoiceTarget(
     { ...zone, regionComponents: later.map(({ component }) => ({ region: component.region! })) },
@@ -2268,7 +2274,23 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
-  const primary = zoneComponentPlan(action, zone, first!)
+  // A zone no creature interacts with is placed with no triggers; its appear save is its provenance
+  // and names the condition it holds (Entangle's restraint). A zone with components holds only theirs.
+  if (
+    first &&
+    appearSave?.entries.some((entry) => 'lifecycle' in entry && entry.lifecycle?.heldBySource)
+  )
+    unsupported(
+      'Only a zone no creature interacts with holds the condition its appear save applies.'
+    )
+  const primary = first
+    ? zoneComponentPlan(action, zone, first)
+    : zoneComponentPlan(
+        action,
+        zone,
+        { component: { id: appearSave!.id, order: 1, label: zone.label }, behavior: appearSave! },
+        { triggerModes: [] }
+      )
   // Each band is a record of its own, sparing whom the zone spares.
   const regionComponents = later.map((planned) => {
     const { region, choosesUnaffected, label } = planned.component
@@ -2301,9 +2323,9 @@ function zonePlacementPlan(
 function zoneComponentPlan(
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone,
-  { component, behavior }: PlacedSpaceZone['components'][number]
+  { component, behavior }: PlacedSpaceZone['components'][number],
+  triggers = zoneTriggers(component)
 ): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
-  const triggers = zoneTriggers(component)
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const pinnedDc = pinnedSaveDc(savingThrow)

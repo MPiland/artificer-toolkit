@@ -8,6 +8,8 @@ import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
+import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
@@ -353,11 +355,11 @@ function build(
   return buildCharacterSpellCastActions({
     spellCastCandidates: candidates,
     castableCandidateIds: new Set(candidates.map((cast) => cast.candidateId)),
-    policyOutput: policyFor(candidates, authoredById, slotKeyFor),
     spellDocumentsById: authoredById,
     firstSequence: 10,
     characterLevel: 1,
-    ...overrides
+    ...overrides,
+    policyOutput: overrides.policyOutput ?? policyFor(candidates, authoredById, slotKeyFor)
   })
 }
 
@@ -1376,5 +1378,74 @@ describe('the timed condition a hit-point pool cast owns (SPELLS-27.T8)', () => 
         ]
       }
     })
+  })
+})
+
+describe('the save each creature in the area makes as a zone appears (SPELLS-4.T1g, D154)', () => {
+  const zoneOf = (authored: SpellAuthored) => {
+    const placement = compiledCast(authored)?.zonePlacement
+    if (!placement) throw new Error('The cast must place a zone.')
+    return 'options' in placement ? placement.options.map(({ zone }) => zone) : [placement]
+  }
+
+  it.each([
+    ['Insect Plague', ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Incendiary Cloud', ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Grease', ['ON_SAVE_FAIL']],
+    ['Wall of Fire', ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Wall of Thorns', ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Entangle', ['ON_SAVE_FAIL']],
+    ['Wind Wall', ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']]
+  ])(
+    'runs %s’s cast as its save over the area it aims, beside the zone it places',
+    (label, paths) => {
+      const cast = compiledCast(spell(label))
+
+      expect(cast?.zonePlacement).not.toBeNull()
+      expect(cast?.activeEffectPlan).toBeNull()
+      expect(cast?.executionPlan.kind).toBe('TEST_OUTCOME')
+      if (cast?.executionPlan.kind !== 'TEST_OUTCOME') return
+      expect(cast.executionPlan.outcomes.map(({ pathCode }) => pathCode)).toEqual(paths)
+    }
+  )
+
+  it('keeps the entry save of a zone that also saves as it appears', () => {
+    for (const label of ['Insect Plague', 'Incendiary Cloud', 'Grease'])
+      for (const zone of zoneOf(spell(label))) expect(zone.triggerModes).toEqual(['ENTER', 'CROSS'])
+  })
+
+  it('holds Entangle’s restraint by its inert zone through its Concentration, with its Strength escape', () => {
+    const [zone] = zoneOf(spell('Entangle'))
+
+    expect(zone).toMatchObject({
+      triggerModes: [],
+      heldCondition: {
+        conditionId: conditionTypeId('RESTRAINED'),
+        escape: {
+          activation: { code: 'ACTION', amount: 1 },
+          checks: { skillIds: [], abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH] },
+          dc: { kind: 'SOURCE_SAVE_DC' }
+        }
+      },
+      maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+    })
+    expect(zone).not.toHaveProperty('turnTriggers')
+  })
+
+  it('places Wind Wall as a zone no creature interacts with', () => {
+    for (const zone of zoneOf(spell('Wind Wall'))) {
+      expect(zone.triggerModes).toEqual([])
+      expect(zone).not.toHaveProperty('turnTriggers')
+      expect(zone).not.toHaveProperty('heldCondition')
+    }
+  })
+
+  it('refuses a zone with components whose appear save holds its condition', () => {
+    const grease = structuredClone(spell('Grease'))
+    const failure = grease.effects?.[0]?.paths?.find(({ pathCode }) => pathCode === 'ON_SAVE_FAIL')
+    if (!failure?.resultBlock) throw new Error('Grease must author its appear save.')
+    failure.resultBlock.lifecycle = { heldBySource: true }
+
+    expect(compiledCast(grease)).toBeNull()
   })
 })

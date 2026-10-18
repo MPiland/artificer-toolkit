@@ -29,9 +29,12 @@ export interface PlacedSpaceZone {
   ringThickness?: CompiledActionZonePlacement['ringThickness']
   /**
    * Its components in authored order, each with the one behavior its entry runs: the first covers
-   * the zone's shape, each later one the region it authors (D154).
+   * the zone's shape, each later one the region it authors (D154). Empty for a zone no creature
+   * interacts with, which only its appear save acts through.
    */
   components: Array<{ component: CompiledManifestComponent; behavior: CompiledEffectGroup }>
+  /** The save each creature in the area makes when the zone appears; null for none. */
+  appearSave: CompiledEffectGroup | null
   /** The one APPLY_GRANT entry authored beside the zone, which its placer holds; null for none. */
   sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
 }
@@ -110,14 +113,35 @@ function singlePlacedSpaceManifest(
 }
 
 /**
- * The zone manifest of an action whose entries are one PLACED_SPACE or SOURCE zone and at most one
- * APPLY_GRANT beside it (D153), with that grant's entry; null for any other action.
+ * The save each creature in the area makes when the zone an action places appears (D154
+ * amendment): the action narrowed to its save outcome entries, run as its area occurrence. Null
+ * when the action authors none beside its zone.
+ */
+export function zoneAppearSave(compiledEffect: CompiledEffectGroup): CompiledEffectGroup | null {
+  const entries = compiledEffect.entries.filter((entry) => entry.pathCode !== 'ON_USE')
+  return entries.length ? { ...compiledEffect, entries } : null
+}
+
+/**
+ * The zone manifest of an action whose ON_USE entries are one PLACED_SPACE or SOURCE zone and at
+ * most one APPLY_GRANT beside it (D153), with that grant's entry, and whose other entries are the
+ * outcomes of the save its invocation makes when the zone appears; null for any other action.
  */
 function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
   manifest: PlacedSpaceManifest
   sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
 } | null {
-  const zones = compiledEffect.entries.filter(
+  const onUse = compiledEffect.entries.filter((entry) => entry.pathCode === 'ON_USE')
+  const saved = compiledEffect.invocation.triggerCode === 'SAVING_THROW'
+  if (
+    compiledEffect.entries.some(
+      (entry) =>
+        entry.pathCode !== 'ON_USE' &&
+        (!saved || (entry.pathCode !== 'ON_SAVE_FAIL' && entry.pathCode !== 'ON_SAVE_SUCCESS'))
+    )
+  )
+    return null
+  const zones = onUse.filter(
     (entry) =>
       'outcome' in entry &&
       entry.outcome.effectKind === 'MANIFEST' &&
@@ -125,7 +149,7 @@ function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
       (entry.outcome.attachmentKind === 'PLACED_SPACE' || entry.outcome.attachmentKind === 'SOURCE')
   )
   const [zone] = zones
-  const others = compiledEffect.entries.filter((entry) => entry !== zone)
+  const others = onUse.filter((entry) => entry !== zone)
   if (
     zones.length !== 1 ||
     !zone ||
@@ -152,9 +176,10 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     )
   const components = [...(manifest.components ?? [])].sort((a, b) => a.order - b.order)
   const { label, shape } = manifest
-  if (!components.length || !shape || !label)
+  const appearSave = zoneAppearSave(compiledEffect)
+  if ((!components.length && !appearSave) || !shape || !label)
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone needs a label, a shape and a component.'
+      'A placed zone needs a label, a shape and a component or a save when it appears.'
     )
   if (components[0]?.region || components.slice(1).some((component) => !component.region))
     throw new CharacterRuleActionUnsupportedCompilationError(
@@ -183,6 +208,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     shape,
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     components: planned,
+    appearSave,
     sourceGrantEntry
   }
 }

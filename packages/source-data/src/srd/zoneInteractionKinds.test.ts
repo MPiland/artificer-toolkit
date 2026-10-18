@@ -8,6 +8,7 @@ import type { SpellAuthored } from '@artificer-toolkit/shared'
 import { blackTentacles } from './spells/black-tentacles.js'
 import { bladeBarrier } from './spells/blade-barrier.js'
 import { cloudkill } from './spells/cloudkill.js'
+import { entangle } from './spells/entangle.js'
 import { grease } from './spells/grease.js'
 import { incendiaryCloud } from './spells/incendiary-cloud.js'
 import { insectPlague } from './spells/insect-plague.js'
@@ -18,7 +19,9 @@ import { stinkingCloud } from './spells/stinking-cloud.js'
 import { wallOfFire } from './spells/wall-of-fire.js'
 import { wallOfThorns } from './spells/wall-of-thorns.js'
 import { web } from './spells/web.js'
+import { windWall } from './spells/wind-wall.js'
 import { damageTypeId } from './spells/shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from './vocabulary.js'
 
 /** The interaction kinds each labelled manifest component authors, wherever it is nested. */
 function interactionKindsByComponent(node: unknown): Record<string, readonly string[]> {
@@ -158,10 +161,9 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
   /**
    * Not authorable at all yet, so nothing in the record can show them: Cloudkill's fog moving 10
    * feet away from the caster at the start of each of the caster's turns and sinking to the lowest
-   * ground, strong wind dispersing it, and Insect Plague's and Grease's save for each creature in the area
-   * when it appears (a cast that places a zone has no cast-time area save). Incendiary Cloud's cloud
-   * moving 10 feet away from the caster at the start of each of the caster's turns, its wind
-   * dispersal and its save when it appears, and Moonbeam's beam moved 60 feet by the caster's
+   * ground, strong wind dispersing it, Incendiary Cloud's cloud
+   * moving 10 feet away from the caster at the start of each of the caster's turns and its wind
+   * dispersal, and Moonbeam's beam moved 60 feet by the caster's
    * action. Each needs a new core option. Moonbeam's shapechanger rider (disadvantage on the save,
    * reverting to its original form on a failure and no new form while in the light) needs a
    * creature-trait condition on a zone save and a creature form state, which the save contract
@@ -169,19 +171,30 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
    * Plague or Incendiary Cloud creature that enters and ends the same turn in the area saves once
    * (the SRD text gives two saves). Sleet Storm's Constitution save to keep Concentration for a
    * creature concentrating in the area, and its dousing of exposed flames, need a zone save that
-   * targets a maintained effect and a light-source state, which no core option has. Wall of Fire's and
-   * Wall of Thorns' save when the wall appears waits on SPELLS-4.T1g.
+   * targets a maintained effect and a light-source state, which no core option has.
    */
+  // SPELLS-4.T1g (D154 amendment): each creature in the area when the zone appears saves once, as the
+  // cast's own save paths beside the zone manifest.
+  const { STRENGTH, DEXTERITY, CONSTITUTION } = SRD_ABILITY_DEFINITION_IDS
   it.each([
-    ['Insect Plague', insectPlague],
-    ['Incendiary Cloud', incendiaryCloud],
-    ['Grease', grease],
-    ['Wall of Fire', wallOfFire],
-    ['Wall of Thorns', wallOfThorns]
-  ])('%s places only the zone: no cast-time area save beside it', (_name, spell) => {
-    expect(spell.effects?.[0]?.paths).toHaveLength(1)
-    expect(spell.effects?.[0]?.invocation).not.toHaveProperty('savingThrow')
-  })
+    ['Insect Plague', insectPlague, CONSTITUTION, ['ON_USE', 'ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Incendiary Cloud', incendiaryCloud, DEXTERITY, ['ON_USE', 'ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Grease', grease, DEXTERITY, ['ON_USE', 'ON_SAVE_FAIL']],
+    ['Wall of Fire', wallOfFire, DEXTERITY, ['ON_USE', 'ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Wall of Thorns', wallOfThorns, DEXTERITY, ['ON_USE', 'ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']],
+    ['Entangle', entangle, STRENGTH, ['ON_USE', 'ON_SAVE_FAIL']],
+    ['Wind Wall', windWall, STRENGTH, ['ON_USE', 'ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']]
+  ])(
+    '%s authors its save when the zone appears beside the zone',
+    (_name, spell, ability, paths) => {
+      const [effect] = spell.effects ?? []
+      expect(effect?.invocation).toMatchObject({
+        triggerCode: 'SAVING_THROW',
+        savingThrow: { dcMethod: 'SOURCE_SAVE_DC', abilityDefinitionId: ability }
+      })
+      expect(effect?.paths?.map(({ pathCode }) => pathCode)).toEqual(paths)
+    }
+  )
 
   it('authors Moonbeam’s save without a shapechanger condition', () => {
     const invocation = placedZoneOf(moonbeam).components?.[0]?.behaviors?.[0]?.invocation
