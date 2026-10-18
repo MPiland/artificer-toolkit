@@ -2271,17 +2271,19 @@ function zonePlacementPlan(
   const [first, ...later] = zone.components
   const { appearSave } = zone
   if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
-  // A radius scaled by class level is resolved at placement (D155); any other scaled size is not.
+  // A passive zone's radius scaled by class level is resolved when it is placed on its source's
+  // token (D155); a cast's area is aimed before any source resolves it, and no other size scales.
+  const passive = action.compiledEffect.invocation.kind === 'PASSIVE'
   if (
     Object.entries(zone.shape).some(
       ([key, measurement]) =>
         typeof measurement === 'object' &&
         'scaling' in measurement &&
         measurement.scaling !== undefined &&
-        (key !== 'radius' || measurement.scaling.scalingSource !== 'CLASS_LEVEL')
+        (!passive || key !== 'radius' || measurement.scaling.scalingSource !== 'CLASS_LEVEL')
     )
   )
-    unsupported('A zone size scales only as a radius by class level.')
+    unsupported('A zone size scales only as a passive zone’s radius by class level.')
   const placementKind = encounterZoneChoiceTarget(
     { ...zone, regionComponents: later.map(({ component }) => ({ region: component.region! })) },
     action.compiledEffect.invocation.range.rangeKind
@@ -2339,7 +2341,8 @@ function zonePlacementPlan(
 /**
  * A zone that only lends its occupants a save bonus (D155): an untriggered source zone with one
  * component and no other rule, whose entry is a lasting graph so its spatial definition keeps the
- * shape every zone has. Placement resolves the amount and any class-level radius against the source.
+ * shape every zone has. Placement resolves a passive zone's amount and class-level radius against
+ * its source.
  */
 function occupantBonusZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
@@ -2351,6 +2354,8 @@ function occupantBonusZonePlacementPlan(
   if (!bonus) unsupported('A placed zone component needs exactly one behavior.')
   if (zone.attachment !== 'SOURCE')
     unsupported('An occupant save bonus is lent by a zone centered on its source.')
+  if (bonus.amountKind !== 'FIXED' && action.compiledEffect.invocation.kind !== 'PASSIVE')
+    unsupported('A save bonus of its source’s modifier is lent by a passive zone.')
   if (
     zone.components.length !== 1 ||
     component.interactionKinds?.length ||

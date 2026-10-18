@@ -46,7 +46,7 @@ function fighterRoom() {
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
-    characterPlay: { equipped: true, fighterLevel: 5 },
+    characterPlay: { equipped: true, classLevel: 5 },
     characterClassFeatures: [extraAttack],
     characterAction: (action) => action.label.includes('Club')
   })
@@ -206,7 +206,7 @@ describe('an incapacitated Fighter finishing its Attack action in the room', () 
       actors: [actor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
       characterPlay: {
         equipped: true,
-        fighterLevel: 5,
+        classLevel: 5,
         conditions: [{ conditionTypeId: incapacitated.id, label: 'Incapacitated' }]
       },
       characterClassFeatures: [extraAttack],

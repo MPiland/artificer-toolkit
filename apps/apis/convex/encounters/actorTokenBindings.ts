@@ -21,6 +21,7 @@ import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import { encounterWriteTransaction } from './encounterPorts'
+import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { parseLiveEntity } from '../scenes/liveDocuments'
 
 const inputValidator: Validator<EncounterActorTokenBindingCommandInputDto, 'required', string> =
@@ -43,6 +44,9 @@ export const execute = mutation({
     if (run && (await isRoomHeldRun(ctx, run)))
       throw new Error('This Encounter is currently owned by its Campaign live table.')
     return executeEncounterActorTokenBinding(encounterWriteTransaction(ctx), args, {
+      readCharacterRules: async (campaign, characterId) =>
+        (await loadCharacterSheetFacts(ctx, campaign.ownerUserId, characterId, campaign.id))
+          ?.ruleEvaluation ?? null,
       readScene: async (sceneId) => {
         const row = await ctx.db
           .query('campaignScenes')

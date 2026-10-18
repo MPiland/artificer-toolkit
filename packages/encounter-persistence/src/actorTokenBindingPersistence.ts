@@ -22,7 +22,11 @@ import {
   readEncounterReplayReceipt,
   replayEncounterCommandResult
 } from './replayReceipts.js'
-import { deleteActorPassiveZones, placeEncounterPassiveZones } from './placedSpatialEffects.js'
+import {
+  deleteActorPassiveZones,
+  placeEncounterPassiveZones,
+  type EncounterPassiveZoneReaders
+} from './placedSpatialEffects.js'
 import { insertRunCommand } from './timelineEntries.js'
 
 /**
@@ -38,7 +42,7 @@ export async function executeEncounterActorTokenBinding(
       sceneId: string
     ): Promise<Pick<SceneLiveStateHeader, 'id' | 'campaignId' | 'grid'> | null>
     readToken(sceneId: string, tokenId: string): Promise<SpatialSceneToken | null>
-  }
+  } & Pick<EncounterPassiveZoneReaders, 'readCharacterRules'>
 ): Promise<EncounterCommandResultDto> {
   const input = encounterActorTokenBindingCommandInputDtoSchema.parse({
     ...args,
@@ -147,11 +151,15 @@ export async function executeEncounterActorTokenBinding(
         ctx,
         {
           state,
+          campaign,
           actors: actors.filter((actor) => actor.id === input.actorId),
           occurrenceId: input.commandId,
           rootCommandId: input.commandId
         },
-        async () => ({ grid: scene.grid, tokens: [token] })
+        {
+          readScene: async () => ({ grid: scene.grid, tokens: [token] }),
+          readCharacterRules: callbacks.readCharacterRules
+        }
       )
   } else {
     if (!actorBinding)
