@@ -1,17 +1,15 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import {
-  effectiveSpatialGeometry,
   measureScenePathMovementCost,
-  spatialSegmentMovementMultiplier,
+  zoneMovementSegmentMultiplier,
   type SceneBarrier,
   type SceneGrid,
+  type SpatialEffectInstance,
   type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import { sliceMovementPath } from './encounterMovementPath.js'
-import { isVisibleHalfSpeedField } from './halfSpeedField.js'
 
 type Point = { x: number; y: number }
 type MovementOutcome = SceneSpatialPreparation['outcome']
@@ -104,7 +102,7 @@ export function preparedMovementSceneDelta(input: {
  * segment's end less its cost to the segment's start. Measuring from the path's origin keeps grid
  * rounding consistent, so a move's segments sum to its whole walk across decision pauses.
  * A careful mover (SPELLS-17) pays double for the stretch its footprint spends inside a field that
- * allows passage at half speed.
+ * allows passage at half speed, and a zone's movement cost applies to the movers it catches (D154).
  */
 export function preparedMovementCost(input: {
   grid: SceneGrid
@@ -115,32 +113,28 @@ export function preparedMovementCost(input: {
   /** A bound mover and the zones on its Scene; absent for an unbound move. */
   mover?: {
     tokenId: string
+    actorId: string
     tokens: readonly SpatialSceneToken[]
-    effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement' | 'spatialState'>[]
+    effects: readonly SpatialEffectInstance[]
     /** A careful mover pays double inside a visible field that allows passage at half speed. */
     carefully: boolean
   }
 }): number {
-  const mover = input.mover
-  const token = mover?.tokens.find(({ id }) => id === mover.tokenId)
-  // Every mover pays a zone's movement cost (D154); the highest multiplier applies.
-  const zones =
-    mover && token
-      ? mover.effects.flatMap((effect) => {
-          const multiplier = Math.max(
-            effect.placement.movementCostMultiplier ?? 1,
-            mover.carefully && isVisibleHalfSpeedField(effect) ? 2 : 1
-          )
-          const geometry =
-            multiplier > 1 ? effectiveSpatialGeometry(effect.placement, mover.tokens) : null
-          return geometry ? [{ geometry, multiplier }] : []
-        })
-      : []
+  const { mover } = input
+  // The highest of the terrain, zone and careful multipliers applies (D154).
   const segmentMultiplier =
-    token && zones.length
-      ? (from: Point, to: Point, floor: number) =>
-          spatialSegmentMovementMultiplier({ zones, token, from, to, floor })
-      : undefined
+    mover &&
+    zoneMovementSegmentMultiplier({
+      zones: mover.effects.map((effect) => ({
+        ...effect,
+        multiplier: Math.max(
+          effect.movementCostMultiplier ?? 1,
+          mover.carefully && effect.bypassAtHalfSpeed ? 2 : 1
+        )
+      })),
+      mover,
+      tokens: mover.tokens
+    })
   const walked = (path: readonly Point[]) =>
     measureScenePathMovementCost(input.grid, input.scene, path, segmentMultiplier)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path

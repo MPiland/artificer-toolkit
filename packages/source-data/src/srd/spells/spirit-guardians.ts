@@ -72,6 +72,8 @@ const auraResult = (damageType: 'RADIANT' | 'NECROTIC', bucket: number) => ({
           interactionKinds: ['ENTER_OR_PASS_THROUGH' as const, 'START_TURN_IN_SPACE' as const],
           choosesUnaffected: true,
           maxApplicationsPerTurn: 1,
+          // An affected creature's speed is halved in the area.
+          movementCostMultiplier: 2,
           behaviors: [
             {
               id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, bucket + 0x22, 1),

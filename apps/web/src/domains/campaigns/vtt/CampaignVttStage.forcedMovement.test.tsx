@@ -136,6 +136,7 @@ function renderStage(
       waitingOn: null,
       turnMovement: [],
       halfSpeedFields: [],
+      movementCostZones: [],
       auras: []
     },
     preparedPending: [],

@@ -25,6 +25,7 @@ export async function readSceneSpatialRows(ctx: EncounterReadContext, encounterI
     .take(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
   return rows.map((row) => ({
     id: row.id,
+    maintainedEffectStateId: row.maintainedEffectStateId,
     placement: spatialRuleEffectPlacementDtoSchema.parse(row.placement),
     spatialState: spatialRuleEffectStateDtoSchema.parse(row.spatialState)
   }))

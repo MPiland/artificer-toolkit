@@ -375,6 +375,12 @@ Auras (SPELLS-20): the same frame and `encounters/activeReads:active` carry `aur
 (`encounter.actors`), the one visibility rule (D121) the GM, a Convex read and the room share; Convex reads
 (no fog) therefore list only sources the projection lists, and the room, which reads fog, lists more.
 
+Zone movement costs (SPELLS-20 T4d): the same frame and read carry `movementCostZones` (`id`, `multiplier`,
+`anchorKind`, `geometry`, `sourceTokenId`, `unaffectedActorIds`) so the map labels a dragged route with the
+movement the room will charge. `readSessionMovementCostZones` lists visible zones only; a token zone needs its
+source in the member's projection (as auras do) and rests while it is a defeated Creature's passive zone, and
+designations name only listed actors. Shown, never enforced: the room prices the move.
+
 Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
 live Door commands and standalone token move/undo travel through the Session Durable Object; direct
 overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.

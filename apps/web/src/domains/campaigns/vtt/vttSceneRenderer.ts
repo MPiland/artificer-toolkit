@@ -1,4 +1,5 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { LiveSessionTransientBroadcastDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   CampaignSceneStateDto,
@@ -43,6 +44,7 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   formatSceneMeasurement,
+  formatSceneRoute,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
   isTokenRevealed,
@@ -143,6 +145,14 @@ export interface VttSceneRendererUpdate {
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
   mode: CampaignVttMode
+  /**
+   * For an Encounter's Scene: the actor each bound token moves for and the zones that raise what
+   * moving costs, so a dragged route shows the movement the room will charge.
+   */
+  movementCost?: {
+    actorIdByTokenId: ReadonlyMap<string, string>
+    zones: EncounterSessionStateDto['movementCostZones']
+  } | null
   overlays?: readonly VttScenePresentationOverlay[]
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
   previewTokenId?: string | null
@@ -173,6 +183,7 @@ export interface VttSceneRenderer {
     activeDrag: { pointCount: number; position: ScenePoint; route: ScenePoint[] } | null
     doorVisualCreateCount: number
     /** How many route lines are drawn: one during a token drag, none otherwise. */
+    dragRouteLabel: string | null
     dragRouteLineCount: number
     facingIndicatorCount: number
     fogRenderCount: number
@@ -1567,15 +1578,21 @@ export async function createVttSceneRenderer(
       line.moveTo(first.x, first.y)
       for (const point of rest) line.lineTo(point.x, point.y)
       line.stroke({ color: colors.measurement, width: 3 })
-      const label = measurementLabel(scene, measurement.path)
+      const label = measurementLabel(
+        measurement.path,
+        formatSceneMeasurement(scene.grid, measurement.path)
+      )
       measurementLayer.addChild(line, label)
     }
   }
 
-  /** The dragged token's route so far, in the measurement line style; gone once the drag ends. */
+  /**
+   * The dragged token's route so far, in the measurement line style and labeled with its distance and
+   * cost; gone once the drag ends.
+   */
   function drawDragRoute(): void {
     destroyChildren(dragRouteLayer)
-    if (!drag) return
+    if (!drag || !current) return
     const position = { x: drag.visual.x, y: drag.visual.y }
     const end = drag.path.at(-1)
     const route = end && pointsEqual(end, position) ? drag.path : [...drag.path, position]
@@ -1586,8 +1603,15 @@ export async function createVttSceneRenderer(
           route.flatMap((point) => [point.x, point.y]),
           false
         )
-        .stroke({ color: colors.measurement, width: 3 })
+        .stroke({ color: colors.measurement, width: 3 }),
+      measurementLabel(route, formatSceneRoute(current.scene, route, routeMover(drag.tokenId)))
     )
+  }
+
+  function routeMover(tokenId: string) {
+    const pricing = current?.movementCost
+    const actorId = pricing?.actorIdByTokenId.get(tokenId)
+    return pricing && actorId ? { actorId, tokenId, zones: pricing.zones } : null
   }
 
   function tokenCanMove(token: CampaignSceneStateDto['tokens'][number]): boolean {
@@ -2068,7 +2092,10 @@ export async function createVttSceneRenderer(
         .moveTo(gestureStart.x, gestureStart.y)
         .lineTo(point.x, point.y)
         .stroke({ color: colors.measurement, width: 3 })
-      measurementLayer.addChild(line, measurementLabel(current.scene, gesturePath))
+      measurementLayer.addChild(
+        line,
+        measurementLabel(gesturePath, formatSceneMeasurement(current.scene.grid, gesturePath))
+      )
       callbacks.onMeasurementPreview(gesturePath)
       return
     }
@@ -2520,7 +2547,11 @@ export async function createVttSceneRenderer(
             }
           : null,
         doorVisualCreateCount,
-        dragRouteLineCount: dragRouteLayer.children.length,
+        dragRouteLabel:
+          dragRouteLayer.children.find((child): child is PixiText => child instanceof pixi.Text)
+            ?.text ?? null,
+        dragRouteLineCount: dragRouteLayer.children.filter((child) => !(child instanceof pixi.Text))
+          .length,
         facingIndicatorCount: [...tokenVisuals.values()].filter(({ visual }) =>
           visual.getChildByLabel(tokenFacingLabel)
         ).length,
@@ -2789,7 +2820,7 @@ export async function createVttSceneRenderer(
     greyTileLayer = null
   }
 
-  function measurementLabel(scene: CampaignSceneStateDto, path: ScenePoint[]): PixiText {
+  function measurementLabel(path: readonly ScenePoint[], text: string): PixiText {
     const first = path[0]!
     const last = path[path.length - 1]!
     const label: PixiText = new pixi.Text({
@@ -2800,7 +2831,7 @@ export async function createVttSceneRenderer(
         fontWeight: '700',
         stroke: { color: '#101315', width: 4 }
       },
-      text: formatSceneMeasurement(scene.grid, path)
+      text
     })
     label.anchor.set(0.5, 1)
     label.position.set((first.x + last.x) / 2, (first.y + last.y) / 2 - 6)
