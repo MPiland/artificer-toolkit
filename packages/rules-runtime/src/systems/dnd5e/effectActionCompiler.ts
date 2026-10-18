@@ -2304,13 +2304,14 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
-  // A zone no creature interacts with is placed with no triggers; its appear save is its provenance
-  // and names the condition it holds (Entangle's restraint), and its one component, if any, only
-  // prices movement there (Entangle's difficult terrain). A zone with components holds only theirs.
+  // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
+  // provenance and names the condition it holds (Entangle's restraint), and its one component, if
+  // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
+  // A zone with components holds only theirs.
   const terrain =
     first && !first.behavior && !first.component.occupantSaveBonus ? first.component : null
-  if (terrain && (later.length || !appearSave))
-    unsupported('A zone whose component only prices movement is placed by its appear save.')
+  if (terrain && later.length)
+    unsupported('A zone whose component only prices movement has no band beside its wall.')
   if (
     first &&
     !terrain &&
@@ -2322,8 +2323,8 @@ function zonePlacementPlan(
   if (first && !first.behavior && !terrain)
     return occupantBonusZonePlacementPlan(action, zone, first.component)
   const primary =
-    first && !terrain
-      ? zoneComponentPlan(action, zone, first)
+    first && (!terrain || !appearSave)
+      ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
       : zoneComponentPlan(
           action,
           zone,
@@ -2336,6 +2337,7 @@ function zonePlacementPlan(
   // Each band is a record of its own, sparing whom the zone spares.
   const regionComponents = later.map((planned) => {
     const { region, choosesUnaffected, label } = planned.component
+    if (!planned.behavior) unsupported('A zone’s band beside its wall acts where it reaches.')
     if (choosesUnaffected)
       unsupported('A zone’s region component spares the creatures the zone spares.')
     const { attachment, shape, ringThickness, maintenance, ...component } = zoneComponentPlan(
@@ -2366,7 +2368,6 @@ function occupantBonusZonePlacementPlan(
   zone: PlacedSpaceZone,
   component: PlacedSpaceZone['components'][number]['component']
 ): CharacterRuleActionZonePlacementPlan {
-  const { entry } = zone
   const bonus = component.occupantSaveBonus
   if (!bonus) unsupported('A placed zone component needs exactly one behavior.')
   if (zone.attachment !== 'SOURCE')
@@ -2384,23 +2385,9 @@ function occupantBonusZonePlacementPlan(
     component.blockingRules?.length ||
     component.automaticSaveSuccessImmunityDamageTypeId !== undefined ||
     zone.ringThickness ||
-    zone.sourceGrantEntry ||
-    !UUID.test(entry.entryId)
+    zone.sourceGrantEntry
   )
     unsupported('A zone lending an occupant save bonus has no trigger or other rule.')
-  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
-    authoredEffectId: action.effectId,
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'proposal-on_use',
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'NONE',
-    initialRemaining: null,
-    adapterFacts: {},
-    castSaveDcFactKey: null,
-    perceptionContributions: [],
-    maintenance: null,
-    marginRider: null
-  }
   return {
     attachment: 'SOURCE',
     label: zone.label,
@@ -2418,6 +2405,35 @@ function occupantBonusZonePlacementPlan(
               minimum: bonus.minimum ?? null
             }
     },
+    ...lastingZoneEntry(action, zone)
+  }
+}
+
+/**
+ * The entry of a zone that runs no rule of its own (an occupant save bonus, or terrain placed with
+ * no appear save): a lasting graph from the zone's manifest entry, so its spatial definition keeps
+ * the shape every zone has, maintained only by the Concentration its cast opens.
+ */
+function lastingZoneEntry(
+  action: Dnd5eCompiledEffectActionSource,
+  zone: PlacedSpaceZone
+): Pick<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'> {
+  const { entry } = zone
+  if (!UUID.test(entry.entryId)) unsupported('A placed zone outcome needs a compiled identity.')
+  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'proposal-on_use',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'NONE',
+    initialRemaining: null,
+    adapterFacts: {},
+    castSaveDcFactKey: null,
+    perceptionContributions: [],
+    maintenance: null,
+    marginRider: null
+  }
+  return {
     entry: { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) },
     grant: null,
     maintenance: maintenancePlan(action, entry)
@@ -2437,10 +2453,8 @@ function zoneComponentPlan(
   { component, behavior }: PlacedSpaceZone['components'][number],
   triggers = zoneTriggers(component)
 ): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
-  if (!behavior) unsupported('Only a zone’s own component lends an occupant save bonus.')
-  const { invocation, entries } = behavior
-  const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
-  const pinnedDc = pinnedSaveDc(savingThrow)
+  if (!behavior && !component.movementCostMultiplier)
+    unsupported('Only a zone’s own component lends an occupant save bonus.')
   const {
     requiresFullyWithin,
     movementCostMultiplier,
@@ -2472,6 +2486,10 @@ function zoneComponentPlan(
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
     ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
+  if (!behavior) return { ...placement, ...lastingZoneEntry(action, zone) }
+  const { invocation, entries } = behavior
+  const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
+  const pinnedDc = pinnedSaveDc(savingThrow)
   if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (

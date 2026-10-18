@@ -1450,3 +1450,27 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
     expect(compiledCast(grease)).toBeNull()
   })
 })
+
+describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, D156)', () => {
+  it('places Plant Growth’s overgrowth with no triggers, costing 4 feet for each foot moved', () => {
+    const placement = compiledCast(spell('Plant Growth'))?.zonePlacement
+    if (!placement || 'options' in placement) throw new Error('Plant Growth places one zone.')
+
+    expect(placement).toMatchObject({
+      attachment: 'PLACED_SPACE',
+      label: 'Plant Growth',
+      triggerModes: [],
+      movementCostMultiplier: 4,
+      bypassAtHalfSpeed: false,
+      grant: null
+    })
+    expect(placement).not.toHaveProperty('turnTriggers')
+    expect(placement).not.toHaveProperty('heldCondition')
+  })
+
+  it('keeps an Instantaneous zone with no Concentration until the GM removes it, with no maintenance', () => {
+    const placement = compiledCast(spell('Plant Growth'))?.zonePlacement
+
+    expect(placement).toMatchObject({ maintenance: null, entry: { maintenance: null } })
+  })
+})
