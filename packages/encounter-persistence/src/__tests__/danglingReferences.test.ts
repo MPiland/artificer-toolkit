@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { characterProjectionState } from '../characterStates.js'
-import { requireEncounterContentLabel } from '../contentLabels.js'
 
 const POISONED = { id: '00000000-0000-4000-8000-0000000000d1', code: 'POISONED', label: 'Poisoned' }
 const hitpoints = { current: 10, hitDice: [], deathSaves: NO_DEATH_SAVES }
@@ -24,13 +23,5 @@ describe('a dangling Encounter reference fails loudly', () => {
         POISONED
       ])
     ).toThrow(missingId)
-  })
-
-  it('refuses an action, area or legendary-action commit whose content label is unreadable', async () => {
-    const ports = { readContentLabel: async (id: string) => (id === 'bite' ? 'Bite' : null) }
-    await expect(requireEncounterContentLabel(ports, 'bite')).resolves.toBe('Bite')
-    await expect(requireEncounterContentLabel(ports, 'deleted-action')).rejects.toThrow(
-      'deleted-action'
-    )
   })
 })

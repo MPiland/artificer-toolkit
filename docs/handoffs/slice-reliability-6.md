@@ -9,7 +9,7 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 | T1a  | 6.1, 6.3, 6.15                | merged      |
 | T1b  | 6.16                          | merging     |
 | T1c  | 6.9                           | green       |
-| T2   | 6.12, 6.14, 6.17, 6.18        | CI          |
+| T2   | 6.12, 6.14, 6.17, 6.18        | D150 fix    |
 | T3   | 6.4, 6.10, 6.11, 6.19         | in progress |
 | T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | todo        |
 
@@ -85,7 +85,7 @@ CI branch `ci/reliability-6-t2`.
 | 6.18 | `packages/authoring/src/imports/importParsers.test.ts` (D&D Beyond and Foundry entries with no name, level or quantity are left out and raise `IMPORTED_ENTRY_INCOMPLETE`)                                                                                                                                     | coded  |
 
 - 6.12: `sceneTransientStreamKey` and `sceneFogOwnerKey` live in shared `vtt/scene.ts`. The Worker `streamKey`, web `previewStreamKey` and reducer `fogLayerKey` copies are gone.
-- 6.14: conditions are labelled by `labelCharacterConditions`, used by both the Sheet projection and the Encounter projection. Commit labels go through `requireEncounterContentLabel`, and the 'Action' and 'Legendary Action' fallbacks are gone. `createNativeCleavingChoice` takes `optionalCombatSnapshotChecksum: string | null` and throws on null; the Worker's `?? ''` is gone.
+- 6.14: conditions are labelled by `labelCharacterConditions`, used by both the Sheet projection and the Encounter projection. Commit labels follow D150: the Worker plans the label from the action source it executed (`encounterActionSourceLabel`, the candidate's or capability's label) and sends it as the required `label` of the action, area and countered-cast commit inputs; a legendary commit uses its option's label. The candidate `label` is required. `contentLabels.ts` (`requireEncounterContentLabel`) is deleted, and the 'Action' and 'Legendary Action' fallbacks are gone. `readContentLabel` stays in both read ports because `rollModeReasons` still labels contributor sources with it. Proof: `nativeRoomHitRiders.test.ts` (a compound `<actor>:FEATURE:…:EFFECT:…` Hell Hound Bite labels its roll cards "Bite"). The first T2 Tests run (39082670176) failed because the content-label lookup could not read compound Creature action ids. `createNativeCleavingChoice` takes `optionalCombatSnapshotChecksum: string | null` and throws on null; the Worker's `?? ''` is gone.
 - 6.17: `sectionId` is a required field of `CharacterBuilderIssue` and `CharacterBuilderValidation` and of their DTO schemas. It is set where each issue is produced, and source-raised issues use `characterBuilderSectionOfSource`. The web code maps and the source mapping in `stepNavigation.ts` are deleted. Two behaviour changes: `EQUIPMENT_SOURCE_UNAVAILABLE` now routes to EQUIPMENT instead of REVIEW, and a feature-selection validation now routes by its source instead of REVIEW.
 - 6.18: `requireImportedValue` warns and leaves the entry out. This covers the D&D Beyond race, background, class, subclass, inventory, custom item, feat and spell entries, and the Foundry item name, class level and equipment quantity; the Foundry entries apply the same rule beyond the cited lines. The unreachable collision label fallbacks in `importPreparation.ts`, for the character and for authored content, now read the found record's label.
 

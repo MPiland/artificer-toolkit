@@ -165,8 +165,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The counters reactors attempted and failed against this cast, each spent with this commit (D127). */
   failedCounters: LiveSessionFailedCounter[]
-  /** The resolved action's display name; the stored command and the timeline carry it. */
-  label: string | null
+  /** The planned action's display name; the stored command, the timeline and its roll cards carry it (D150). */
+  label: string
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
   ruleOverrides: EncounterRuleWarningDto[]
   createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
@@ -225,7 +225,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       failedCounters: liveSessionFailedCountersSchema,
-      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       // The action's state and recurring effects, and the effect of a reaction its target used.
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(3)),
@@ -276,7 +276,7 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
         spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
         failedCounters: liveSessionFailedCountersSchema,
-        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+        label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
         ruleOverrides: encounterRuleWarningsDtoSchema,
         consumedGrants: z
           .array(activeRuleEffectRecordSchema)
@@ -368,7 +368,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       failedCounters: liveSessionFailedCountersSchema,
-      label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
