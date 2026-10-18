@@ -7937,7 +7937,7 @@
         {
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
             "apps/web/tests/live-backend/encounterArea.ts"
@@ -7963,11 +7963,14 @@
             },
             {
               "text": "Every caught creature's save is asked at once, each by the creature's own roller; damage is rolled once and applies in full on a failed save and halved on a success, per target with its own defenses; the action commits once when the last save is in, and GM undo reverts every target.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
                 "apps/session-worker/test/nativeRoomAreaAction.test.ts",
-                "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
+                "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
+                "packages/source-data/src/srd/iceStormIds.test.ts (Ice Storm fail-path ids).",
+                "apps/session-worker/test/nativeRoomSpellCasting.test.ts (Ice Storm upcast in the room).",
+                "Green: ci/spells-7-t2 551bbea82 Tests 39079468045, Live 39079468000; red proof RED on both new tests; phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
               ],
               "origin": [],
               "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5). Built 2026-10-10 (D103): proved by the executor, room and journey tests. 2026-10-17: SPELLS-7.T1 merged (47f6f85cd, m75) proves save-for-half; stays TODO until T2 fixes Ice Storm.",
@@ -8002,14 +8005,15 @@
             {
               "id": "SPELLS-7.T2",
               "text": "Ice Storm: scale the bludgeoning damage with spell slot level when upcast, and give the cold fail path its own save effect id instead of reusing (0x214,1); failing-first tests on the real SRD spell.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-7.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
                 "size": 2
-              }
+              },
+              "note": "phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
             }
           ],
           "wsjf": {
@@ -11084,8 +11088,11 @@
             },
             {
               "text": "Generic Worker and encounter-persistence code resolves Concentration maintenance and melee-attack classification through the System module for the Run's gameSystemId, not by importing D&D constants (ADR 0023).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/installedSystemClassification.test.ts (System seam for Concentration maintenance and melee classification).",
+                "Green: ci/reliability-6-t1b b488925fd Tests 39079460729, Live 39075528851 (on 7dea3fc; later changes outside Live paths); red proof RED 4 of 4; phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
+              ],
               "origin": [],
               "note": "DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID in nativeEncounterConcentration.ts:130/137, nativeEncounterMovementConcentration.ts:37/44/97, encounterConcentration.ts:47 and six encounter-persistence concentration modules; dnd5eAttackKind/isDnd5eMeleeAttackKind in nativeEncounterRules.ts:743-751.",
               "id": "RELIABILITY-6.16"
@@ -11137,7 +11144,7 @@
             {
               "id": "RELIABILITY-6.T1b",
               "text": "System-owned Concentration and melee classification through a System seam keyed by gameSystemId; Worker, encounter-persistence and rules-runtime consumers read it instead of hard-coded identities.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.16"],
               "wsjf": {
                 "bv": 3,
@@ -11145,12 +11152,13 @@
                 "rr": 8,
                 "size": 5,
                 "after": ["RELIABILITY-6.T1a"]
-              }
+              },
+              "note": "phase merge 657e73e4e (batch ci/merge-m88, Tests 39081064499, Live 39081064358)."
             },
             {
               "id": "RELIABILITY-6.T1c",
               "text": "Typed roll-mode contributor source in the persisted d20 contributor contract and every producer; the rollModeReasons parser goes; development data migrated in the same change.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-6.9"],
               "wsjf": {
                 "bv": 3,
@@ -11164,7 +11172,7 @@
             {
               "id": "RELIABILITY-6.T2",
               "text": "Fail loudly and own identities in one place: live-session envelope keys, dangling references, server section ids and import warnings.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "RELIABILITY-6.12",
                 "RELIABILITY-6.14",
