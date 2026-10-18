@@ -1589,10 +1589,8 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
     expect(plan).toMatchObject({
       initialRemaining: 1,
       recurrenceStage: 'END_OF_TURN',
-      modifierGrantContribution: {
-        tickAnchor: 'SOURCE',
-        consumeOnFirstEvents: ['ON_ATTACKED']
-      }
+      tickAnchor: 'SOURCE',
+      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
     })
     expect(
       plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, modifierKind }) => ({
