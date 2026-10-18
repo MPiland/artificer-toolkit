@@ -34,6 +34,7 @@ import {
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
+import { rollModeContributorSourceDtoSchema } from '../shared/ruleExecutionEvidence.js'
 import { unlimitedRangeDtoSchema } from '../shared/range.js'
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
 
@@ -1109,7 +1110,7 @@ const characterAbilityRollModesSchema = lazySchema(() =>
 const characterRollContributorSchema = lazySchema(() =>
   z.strictObject({
     sourceId: boundedIdentitySchema,
-    source: characterMechanicSourceSchema,
+    source: rollModeContributorSourceDtoSchema,
     grantId: boundedIdentitySchema,
     domainKey: boundedIdentitySchema,
     influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])

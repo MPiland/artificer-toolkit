@@ -58,6 +58,9 @@ const turnBatchIds = {
   entry: '00000000-0000-4000-8000-000000000208'
 }
 
+/** The typed roll-mode source of a fixture contributor named by an authored definition. */
+const authoredSource = (id: string) => ({ kind: 'AUTHORED', id, holderActorId: null }) as const
+
 type TurnBatchResult = Extract<
   StoredRuleExecutionResultDto,
   { status: 'BATCH_COMPLETE'; batchKind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' }
@@ -179,15 +182,34 @@ function recurringSaveBatchResult(outcome: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'): 
   const sourceTrace = execution.execution.evidence.trace[0]!
   const before = execution.targetTransition.before
   const contributors = [
-    { sourceId: 'Z!', grantId: null, domainKey: 'domain:one', influence: 'ADVANTAGE' as const },
-    { sourceId: 'a', grantId: 'grant.two', domainKey: null, influence: 'DISADVANTAGE' as const },
+    {
+      sourceId: 'Z!',
+      grantId: null,
+      domainKey: 'domain:one',
+      influence: 'ADVANTAGE' as const,
+      source: authoredSource('Z!')
+    },
+    {
+      sourceId: 'a',
+      grantId: 'grant.two',
+      domainKey: null,
+      influence: 'DISADVANTAGE' as const,
+      source: authoredSource('a')
+    },
     {
       sourceId: 'a:source',
       grantId: 'grant:two',
       domainKey: '[]',
-      influence: 'DISADVANTAGE' as const
+      influence: 'DISADVANTAGE' as const,
+      source: authoredSource('a:source')
     },
-    { sourceId: 'é', grantId: null, domainKey: null, influence: 'ADVANTAGE' as const }
+    {
+      sourceId: 'é',
+      grantId: null,
+      domainKey: null,
+      influence: 'ADVANTAGE' as const,
+      source: authoredSource('é')
+    }
   ]
   const contributorChecksum = checksumRuleDocument(contributors)
   execution.d20 = {
@@ -582,7 +604,8 @@ describe('rules runtime contracts', () => {
           sourceId: 'grant:one',
           grantId: null,
           domainKey: null,
-          influence: 'ADVANTAGE' as const
+          influence: 'ADVANTAGE' as const,
+          source: authoredSource('grant:one')
         }
       ],
       contributorChecksum: 'a'.repeat(64),
@@ -681,7 +704,8 @@ describe('rules runtime contracts', () => {
         sourceId: 'nested-save-test',
         grantId: null,
         domainKey: 'nested-save-test',
-        influence: 'ADVANTAGE' as const
+        influence: 'ADVANTAGE' as const,
+        source: authoredSource('nested-save-test')
       }
     ]
     const nestedOutcomeD20 = {
@@ -871,15 +895,34 @@ describe('rules runtime contracts', () => {
       })
     ).toMatchObject({ kind: 'CONCENTRATION_CHECK', outcome: 'SAVE_SUCCESS' })
     const canonicalContributors = [
-      { sourceId: 'Z!', grantId: null, domainKey: 'domain:one', influence: 'ADVANTAGE' as const },
-      { sourceId: 'a', grantId: 'grant.two', domainKey: null, influence: 'DISADVANTAGE' as const },
+      {
+        sourceId: 'Z!',
+        grantId: null,
+        domainKey: 'domain:one',
+        influence: 'ADVANTAGE' as const,
+        source: authoredSource('Z!')
+      },
+      {
+        sourceId: 'a',
+        grantId: 'grant.two',
+        domainKey: null,
+        influence: 'DISADVANTAGE' as const,
+        source: authoredSource('a')
+      },
       {
         sourceId: 'a:source',
         grantId: 'grant:two',
         domainKey: '[]',
-        influence: 'DISADVANTAGE' as const
+        influence: 'DISADVANTAGE' as const,
+        source: authoredSource('a:source')
       },
-      { sourceId: 'é', grantId: null, domainKey: null, influence: 'ADVANTAGE' as const }
+      {
+        sourceId: 'é',
+        grantId: null,
+        domainKey: null,
+        influence: 'ADVANTAGE' as const,
+        source: authoredSource('é')
+      }
     ]
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.parse({
@@ -1385,7 +1428,8 @@ describe('rules runtime contracts', () => {
         sourceId: 'ordinary-d20-test',
         grantId: null,
         domainKey: 'ordinary-d20-test',
-        influence: 'ADVANTAGE' as const
+        influence: 'ADVANTAGE' as const,
+        source: authoredSource('ordinary-d20-test')
       }
     ]
     const evidence = {

@@ -24,6 +24,7 @@ import {
   withCharacterActiveGrants
 } from '../encounterActiveGrants.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
+import { rollModeSourceKey } from '../encounterRollModeReasons.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import { checkAbilityCode } from '../encounterMovementPassagePreparation.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
@@ -140,7 +141,8 @@ describe('Creature holder of an active grant', () => {
         {
           sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
           domainKey: `active-grant:${HOLDER_ID}`,
-          influence: 'ADVANTAGE'
+          influence: 'ADVANTAGE',
+          source: { kind: 'ACTIVE_EFFECT', id: EFFECT_ID, holderActorId: HOLDER_ID }
         }
       ]
     })
@@ -351,7 +353,8 @@ describe('Creature holder of an active grant', () => {
         {
           sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
           domainKey: `active-grant:${HOLDER_ID}`,
-          influence: 'DISADVANTAGE'
+          influence: 'DISADVANTAGE',
+          source: { kind: 'ACTIVE_EFFECT', id: EFFECT_ID, holderActorId: HOLDER_ID }
         }
       ])
     }
@@ -365,7 +368,8 @@ describe('Creature holder of an active grant', () => {
     const contributor = {
       sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
       domainKey: `active-grant:${HOLDER_ID}`,
-      influence: 'ADVANTAGE'
+      influence: 'ADVANTAGE',
+      source: { kind: 'ACTIVE_EFFECT', id: EFFECT_ID, holderActorId: HOLDER_ID }
     }
     // An ability-less check grant applies to a skill check (null) and to any ability's check.
     expect(creatureActiveGrantCheckContributors(HOLDER_ID, null, [help])).toMatchObject([
@@ -447,7 +451,7 @@ describe('Character holder of an active grant', () => {
       {
         conditionTypeId: POISONED_CONDITION_ID,
         rollMode: 'ADVANTAGE',
-        contributors: [{ source: { kind: 'ACTIVE_EFFECT', activeEffectId: EFFECT_ID } }]
+        contributors: [{ source: { kind: 'ACTIVE_EFFECT', id: EFFECT_ID } }]
       }
     ])
     expect(saves.filter((save) => !('conditionTypeId' in save))).toMatchObject([
@@ -477,9 +481,29 @@ describe('Character holder of an active grant', () => {
     expect(policy.rollModes.abilityChecks.STRENGTH).toBe('ADVANTAGE')
     expect(policy.rollModes.skillChecks.athletics).toBe('ADVANTAGE')
     expect(policy.rollContributorEvidence.skillChecks.athletics).toMatchObject([
-      { sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`, influence: 'ADVANTAGE' }
+      {
+        sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
+        influence: 'ADVANTAGE',
+        source: { kind: 'ACTIVE_EFFECT', id: EFFECT_ID, holderActorId: null }
+      }
     ])
     expect(policy.rollModes.attacks.MELEE).toBe('ADVANTAGE')
+  })
+
+  it('names one active effect by one source id and one reason key for a Creature and a Character holder', () => {
+    const help = helpEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    const [creatureContributor] = creatureActiveGrantCheckContributors(HOLDER_ID, 'STRENGTH', [
+      help
+    ])
+    const policy = resolveCharacterRulePolicyRollModes(
+      evaluateDnd5e2014CharacterPolicy(withCharacterActiveGrants(fighter.facts, [help])),
+      vocabulary
+    )
+    const [characterContributor] = policy.rollContributorEvidence.skillChecks.athletics!
+    expect(characterContributor!.sourceId).toBe(creatureContributor!.sourceId)
+    expect(rollModeSourceKey(characterContributor!.source)).toBe(
+      rollModeSourceKey(creatureContributor!.source)
+    )
   })
 
   it('folds resistance, an immunity and attack disadvantage into its policy', () => {

@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -22,6 +23,7 @@ import {
 } from '../encounterAttackPerception.js'
 import { selectEncounterActionD20Natural } from '../encounterEvidenceAnswer.js'
 import { mergeCanonicalD20Contributors } from '../encounterRelationshipActionFacts.js'
+import { encounterRuleContributorSource } from '../encounterRollModeReasons.js'
 import {
   QUILL_VOLLEY_ID,
   creatureActor,
@@ -41,7 +43,8 @@ const dodge = {
   sourceId: 'test:dodge',
   grantId: null,
   domainKey: 'test:dodge',
-  influence: 'DISADVANTAGE' as const
+  influence: 'DISADVANTAGE' as const,
+  source: { kind: 'AUTHORED' as const, id: 'test:dodge', holderActorId: null }
 }
 
 const blindsightLabel = srdSystemRecord.senses.find(
@@ -170,7 +173,12 @@ describe('encounter attack d20 belief', () => {
       attackerConditionIds: [INVISIBLE],
       targetBlindsight: true
     })
-    const longRange = { ...dodge, sourceId: 'rule:long-range', domainKey: 'rule:long-range' }
+    const longRange = {
+      ...dodge,
+      sourceId: 'rule:long-range',
+      domainKey: 'rule:long-range',
+      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
+    }
     const trueSight = encounterAttackSightContributors({
       perception: actual,
       attacksAgainst: []
@@ -325,7 +333,8 @@ describe('encounter save sight captions', () => {
     sourceId: 'test:danger-sense',
     grantId: null,
     domainKey: 'test:danger-sense',
-    influence: 'ADVANTAGE' as const
+    influence: 'ADVANTAGE' as const,
+    source: { kind: 'AUTHORED' as const, id: 'test:danger-sense', holderActorId: null }
   }
   const disadvantage = { ...advantage, influence: 'DISADVANTAGE' as const }
   const sight = (

@@ -6116,8 +6116,9 @@
             {
               "id": "ATTACK-7.T3",
               "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.1", "ATTACK-7.3"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.1", "ATTACK-7.3"],
+              "note": "D152 contracts approved 2026-10-17; T4 follows in the same session."
             },
             {
               "id": "ATTACK-7.T4",
@@ -7910,6 +7911,42 @@
                 "tc": 5,
                 "rr": 5,
                 "size": 2
+              }
+            },
+            {
+              "id": "SPELLS-5.T10",
+              "text": "D151: resume carried timers at START through the CAMPAIGN_CLOCK capture; fix the tick UPDATE that drops optional lifecycle fields (red first); room journey with Fly carried from Run 1 ending in Run 2.",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-5.13"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-5.T12",
+              "text": "D151: reinstate a carried caster's Concentration at START as a real maintained state, with a required descriptor provenance discriminant (migrated); damage check and loss end dependents; room journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.12"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              }
+            },
+            {
+              "id": "SPELLS-5.T11",
+              "text": "D151: the completed-Encounter view offers to advance the Campaign clock by ceil(rounds / 10) minutes through campaigns.clock.advance; component test and Convex journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-5.13"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 2,
+                "size": 1
               }
             }
           ]
@@ -11034,8 +11071,13 @@
             },
             {
               "text": "A roll-mode contributor carries a typed source (its kind, id and holder) so a reason label is a lookup by kind; no consumer parses sourceId or domainKey strings, and the three spellings of an active-effect source collapse to one; proved by tests that fail before the fix.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "rollModeContributorSource.test.ts (contributor source names the granting effect).",
+                "encounterActiveGrants.test.ts (active grants carry their source).",
+                "apps/apis/convex/encounters/actionRelationshipFacts.test.ts (persisted relationship facts keep the contributor source).",
+                "Green: slice Tests 39081656178, Live 39081656156; phase merge 7ff0fe727 (batch ci/merge-m91, Tests 39083023029, Live 39083023022; landed as 17d7a01ed)."
+              ],
               "origin": [],
               "note": "encounter-persistence rollModeReasons.ts:32-102 splits sourceId on ':' and takes the first UUID with a label; producers combatPerception.ts:1016 (ACTIVE_EFFECT:), effectActionCompiler.ts:6836 (active-effect-perception:), encounterRelationshipActionFacts.ts:55 (active-effect:).",
               "id": "RELIABILITY-6.9"
@@ -11163,7 +11205,7 @@
             {
               "id": "RELIABILITY-6.T1c",
               "text": "Typed roll-mode contributor source in the persisted d20 contributor contract and every producer; the rollModeReasons parser goes; development data migrated in the same change.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-6.9"],
               "wsjf": {
                 "bv": 3,
@@ -11172,7 +11214,7 @@
                 "size": 8,
                 "after": ["RELIABILITY-6.T1b"]
               },
-              "note": "AC 6.9 red already pushed: ci/reliability-6-red-69 Tests 38891936885 on 7264b2819."
+              "note": "phase merge 7ff0fe727 (batch ci/merge-m91, Tests 39083023029, Live 39083023022; landed as 17d7a01ed)."
             },
             {
               "id": "RELIABILITY-6.T2",

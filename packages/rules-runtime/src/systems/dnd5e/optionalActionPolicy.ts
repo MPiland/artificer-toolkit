@@ -10,7 +10,8 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 import {
   checksumRuleDocument,
-  compareCanonicalD20Contributors
+  compareCanonicalD20Contributors,
+  type D20Contributor
 } from '@artificer-toolkit/shared/rules'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
@@ -43,12 +44,7 @@ interface Dnd5eOptionalActionPin {
   readonly moduleKey: string
 }
 
-interface Dnd5eOptionalActionContributor {
-  readonly domainKey: string | null
-  readonly grantId: string | null
-  readonly influence: D20Influence
-  readonly sourceId: string
-}
+type Dnd5eOptionalActionContributor = Readonly<D20Contributor>
 
 interface D20ContestEvidence {
   readonly initiatorTotal: number | null
@@ -147,7 +143,8 @@ function contributor(input: {
     }),
     grantId: null,
     domainKey: input.reason,
-    influence: input.influence
+    influence: input.influence,
+    source: { kind: 'AUTHORED', id: input.definition.definitionId, holderActorId: null }
   }
 }
 

@@ -89,6 +89,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 - **A cast-time pick on a movement reaction (SPELLS-30.T1, D148).** A Character reaction whose effect offers a CHOICE pick is still discovered as a movement reaction, then fails to prepare with a raw `CastChoiceUnavailableError` instead of being dropped as stale. No SRD reaction offers a pick; fix by skipping such sources at discovery when one does.
 - **An authored pick past the option-list limits (SPELLS-30.T1, D140).** A CHOICE with more than 20 options fails the compiled-entry schema parse, which fails every action of that Character, not just that one action. Zone picks share this. No SRD spell comes near the limit; fix by making the per-candidate compile refuse it (MANUAL) when homebrew needs more.
+- **A carried caster whose dependents are all outside the Run (D151).** The room loads none of those dependents, so it reinstates no Concentration, and damage in the Run stages no check for them. The caster's next Concentration still ends them. A START read of grants stamped with the Run's Characters would close it.
+
 - **A margin rider outlives an early-ended parent (D149).** The Drow's sleep lasts "while poisoned", but curing or GM-ending the poison mid-sleep leaves the unconscious rider for the GM to end. A persisted effect-to-effect end link would close it.
 
 - **Auras and spells that ignite flammable objects (SPELLS-20.T6, D144).** The Balor's Fire Aura and similar effects ignite unattended flammable objects; no object state is modelled, so the GM narrates it.
@@ -226,6 +228,10 @@ The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELL
 ### Margin-of-failure riders on direct saves (D149)
 
 The failure-margin rider is wired only on follow-up saves. Direct-save actions that author one (Medusa, Mummy and Ghost gazes, Homunculus) fail closed at compile until the direct save path learns the same margin node.
+
+### Release a grapple to draw (D152)
+
+Drawing a weapon while every hand holds a weapon or a grappled creature is refused today, so the grappler releases first. D107's prompt to release a grapple as part of the draw would save that step.
 
 ### Shared live cursors (Q19)
 
