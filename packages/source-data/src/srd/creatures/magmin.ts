@@ -20,6 +20,10 @@ export const magmin: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 9,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 6,

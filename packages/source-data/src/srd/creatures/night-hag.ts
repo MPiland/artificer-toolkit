@@ -19,6 +19,10 @@ export const nightHag: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 112,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 15,
     die: 8,

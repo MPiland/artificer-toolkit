@@ -579,7 +579,7 @@ describe('encounter attack perception: Creature Senses on a dark Scene (VTT_UI-5
     // The roller does not credit the Creature's own Senses, so it believes an Invisible attacker
     // is unseen by a Creature whose Blindsight actually finds it.
     const blindsighted = SRD.creatures.find((creature) =>
-      creature.senses?.some(
+      creature.senses.some(
         (sense) =>
           sense.senseDefinitionId === SRD_BLINDSIGHT_SENSE_ID &&
           sense.range.rangeKind === 'DISTANCE' &&

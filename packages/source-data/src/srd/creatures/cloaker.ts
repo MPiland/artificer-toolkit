@@ -22,6 +22,12 @@ export const cloaker: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 78,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 10,

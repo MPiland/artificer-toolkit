@@ -93,6 +93,7 @@ export const characterFixture = characterAuthoredDtoSchema.parse({
     ],
     hitpoints: {
       current: 6,
+      temp: 0,
       hitDice: [{ die: 6, total: 1, used: 0 }],
       deathSaves: NO_DEATH_SAVES
     }

@@ -21,6 +21,12 @@ export const greenHag: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 82,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 11,
     die: 8,

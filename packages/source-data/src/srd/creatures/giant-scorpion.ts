@@ -19,6 +19,13 @@ export const giantScorpion: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 52,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 10,

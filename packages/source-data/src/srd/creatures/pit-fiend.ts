@@ -22,6 +22,9 @@ export const pitFiend: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 300,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 24,
     die: 10,

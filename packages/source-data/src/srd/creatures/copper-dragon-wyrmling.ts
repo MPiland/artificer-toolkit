@@ -20,6 +20,11 @@ export const copperDragonWyrmling: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 22,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 8,

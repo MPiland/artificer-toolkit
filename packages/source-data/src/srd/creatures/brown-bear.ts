@@ -19,6 +19,13 @@ export const brownBear: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 34,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 10,

@@ -349,7 +349,7 @@ export function buildMovementTarget<
         form === null
           ? {
               current: characterFacts.character.state.hitpoints.current,
-              temporary: characterFacts.character.state.hitpoints.temp ?? 0,
+              temporary: characterFacts.character.state.hitpoints.temp,
               conditions: conditionIds,
               deathSaves: characterFacts.character.state.hitpoints.deathSaves
             }

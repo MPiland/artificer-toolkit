@@ -19,6 +19,9 @@ export const solar: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 243,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 18,
     die: 10,

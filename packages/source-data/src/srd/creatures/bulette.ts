@@ -19,6 +19,12 @@ export const bulette: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 94,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 9,
     die: 10,

@@ -21,6 +21,11 @@ export const silverDragonWyrmling: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 45,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 6,
     die: 8,

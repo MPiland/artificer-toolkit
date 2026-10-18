@@ -76,15 +76,15 @@ function proficiencyTargets(
   if (grant.authoringModeKind === AUTHORING_MODE_KIND.ALL) return ['*']
   switch (grant.proficiencyKind) {
     case PROFICIENCY_KIND.SKILL:
-      return 'skillIds' in grant ? [...grant.skillIds] : []
+      return [...grant.skillIds]
     case PROFICIENCY_KIND.SAVE_ABILITY:
-      return 'abilities' in grant ? [...grant.abilities] : []
+      return [...grant.abilities]
     case PROFICIENCY_KIND.LANGUAGE:
-      return 'languageIds' in grant ? [...grant.languageIds] : []
+      return [...grant.languageIds]
     case PROFICIENCY_KIND.EQUIPMENT:
-      return 'equipmentIds' in grant ? [...grant.equipmentIds] : []
+      return [...grant.equipmentIds]
     case PROFICIENCY_KIND.EQUIPMENT_PROPERTY:
-      return 'properties' in grant ? [...(grant.properties ?? [])] : []
+      return [...grant.properties]
   }
 }
 
@@ -104,7 +104,7 @@ export function buildCharacterGrantFoldProficiencyFacts(
         normalizeTarget ? normalizeTarget(grant.proficiencyKind, targetId) : targetId
       ),
       category:
-        grant.proficiencyKind === 'EQUIPMENT_PROPERTY' && 'category' in grant
+        grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY
           ? (grant.category ?? null)
           : null,
       scaling: grant.level === 'DOUBLE' ? 'DOUBLE' : grant.level === 'HALF' ? 'HALF' : 'FULL'

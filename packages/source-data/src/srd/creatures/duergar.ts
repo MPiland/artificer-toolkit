@@ -101,6 +101,11 @@ export const duergar: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 26,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 4,
     die: 8,

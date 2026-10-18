@@ -22,6 +22,10 @@ export const tarrasque: CreatureAuthored = {
   },
   naturalArmorBonus: 15,
   hitPoints: 676,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 33,
     die: 20,

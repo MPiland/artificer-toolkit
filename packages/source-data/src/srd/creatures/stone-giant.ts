@@ -19,6 +19,12 @@ export const stoneGiant: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 126,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 11,
     die: 12,

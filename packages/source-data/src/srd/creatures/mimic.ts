@@ -20,6 +20,10 @@ export const mimic: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 58,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 9,
     die: 8,

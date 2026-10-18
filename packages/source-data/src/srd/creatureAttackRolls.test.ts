@@ -5,7 +5,7 @@ import { SRD_CREATURE_ATTACK_BONUSES } from './creatures/attack-bonuses.js'
 import { srdBaselineContent } from './index.js'
 
 const attackSources = srdBaselineContent.subjects.creatures.flatMap((creature) =>
-  (creature.features ?? [])
+  creature.features
     .flatMap((feature): FeatureBaseAuthored[] => [feature, ...(feature.options ?? [])])
     .filter((source) =>
       (source.effects ?? []).some(
@@ -52,7 +52,7 @@ describe('SRD Creature attack rolls', () => {
 
   it('authors the printed normal and long range on every ranged weapon attack (D62)', () => {
     const ranges = srdBaselineContent.subjects.creatures.flatMap((creature) =>
-      (creature.features ?? []).flatMap((feature) =>
+      creature.features.flatMap((feature) =>
         [feature, ...(feature.options ?? [])].flatMap((source) =>
           (source.effects ?? []).flatMap((effect) => {
             if (

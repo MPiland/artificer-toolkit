@@ -20,6 +20,11 @@ export const youngWhiteDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 133,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 14,
     die: 10,

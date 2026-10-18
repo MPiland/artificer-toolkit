@@ -4,11 +4,29 @@ import {
   type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
+import type {
+  EffectPathAuthored,
+  ProficiencyGrantAuthored,
+  ResultBlockAuthored
+} from '@artificer-toolkit/shared/authored'
 
 type Scalar = string | number | boolean | null
 type Row = Record<string, Scalar>
-type AuthoredRecord = Record<string, unknown>
-type Subject = Pick<AuthoredDocumentVersion, 'subjectKind' | 'document' | 'checksum'>
+type Subject = {
+  [K in AuthoredDocumentVersion['subjectKind']]: Pick<
+    Extract<AuthoredDocumentVersion, { subjectKind: K }>,
+    'subjectKind' | 'document' | 'checksum'
+  >
+}[AuthoredDocumentVersion['subjectKind']]
+type EffectFacts = { id: string; paths: readonly EffectPathAuthored[] }
+type ProficiencyGrantFacts = { proficiencies?: readonly ProficiencyGrantAuthored[] }
+type FeatureOptionFacts = {
+  id: string
+  label: string
+  effects?: readonly EffectFacts[]
+  grants?: ProficiencyGrantFacts
+}
+type FeatureFacts = FeatureOptionFacts & { options?: readonly FeatureOptionFacts[] }
 
 const featureSubjectKinds = [
   'BACKGROUND',
@@ -66,28 +84,6 @@ export const authoredSourceKindsByTable: Readonly<
   spells: ['SPELL']
 }
 
-function records(value: unknown): AuthoredRecord[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is AuthoredRecord => !!entry && typeof entry === 'object')
-    : []
-}
-
-function value(record: AuthoredRecord, key: string): Scalar {
-  const candidate = record[key]
-  if (
-    typeof candidate === 'string' ||
-    typeof candidate === 'number' ||
-    typeof candidate === 'boolean' ||
-    candidate === null
-  )
-    return candidate
-  throw new Error(`Authored source fact is missing scalar ${key}.`)
-}
-
-function optionalValue(record: AuthoredRecord, key: string): Scalar {
-  return record[key] === undefined ? null : value(record, key)
-}
-
 function projectionRows() {
   const rows: Partial<Record<NodeRuntimeSourceTable, Row[]>> = {}
   const identities = new Map<NodeRuntimeSourceTable, Map<string, string>>()
@@ -120,64 +116,61 @@ function projectionRows() {
 export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSourceFacts {
   const { rows, add } = projectionRows()
 
-  const addResultBlock = (resultBlock: AuthoredRecord) => {
-    for (const outcome of records(resultBlock.outcomes)) {
+  const addResultBlock = (resultBlock: ResultBlockAuthored) => {
+    for (const outcome of resultBlock.outcomes) {
       add('effect_result_block_outcomes', {
-        result_block_id: value(resultBlock, 'id'),
-        outcome_id: value(outcome, 'id')
+        result_block_id: resultBlock.id,
+        outcome_id: outcome.id
       })
       if (outcome.effectKind === 'CONDITION')
-        add('conditions', {
-          id: value(outcome, 'id'),
-          condition_type_id: value(outcome, 'conditionId')
-        })
+        add('conditions', { id: outcome.id, condition_type_id: outcome.conditionId })
       if (outcome.effectKind === 'DAMAGE')
-        add('damages', {
-          id: value(outcome, 'id'),
-          damage_type_id: optionalValue(outcome, 'damageTypeId')
-        })
+        add('damages', { id: outcome.id, damage_type_id: outcome.damageTypeId ?? null })
     }
   }
 
-  const addEffect = (effect: AuthoredRecord) => {
-    for (const path of records(effect.paths)) {
+  const addEffect = (effect: EffectFacts) => {
+    for (const path of effect.paths) {
       add('effect_paths', {
-        effect_id: value(effect, 'id'),
-        id: value(path, 'id'),
-        result_block_id:
-          path.selectionKind === 'FIXED' ? value(path.resultBlock as AuthoredRecord, 'id') : null
+        effect_id: effect.id,
+        id: path.id,
+        result_block_id: path.selectionKind === 'FIXED' ? path.resultBlock.id : null
       })
-      if (path.selectionKind === 'FIXED') addResultBlock(path.resultBlock as AuthoredRecord)
-      if (path.selectionKind === 'CHOICE')
-        for (const option of records(path.options)) {
-          const resultBlock = option.resultBlock as AuthoredRecord
-          add('effect_path_choice_options', {
-            path_id: value(path, 'id'),
-            result_block_id: value(resultBlock, 'id')
-          })
-          addResultBlock(resultBlock)
-        }
-      if (path.selectionKind === 'ROLL_TABLE')
-        for (const row of records(path.rows)) {
-          if (row.resolutionKind !== 'RESULT') continue
-          const resultBlock = row.resultBlock as AuthoredRecord
-          add('effect_path_roll_table_rows', {
-            path_id: value(path, 'id'),
-            result_block_id: value(resultBlock, 'id')
-          })
-          addResultBlock(resultBlock)
-        }
+      switch (path.selectionKind) {
+        case 'FIXED':
+          addResultBlock(path.resultBlock)
+          break
+        case 'CHOICE':
+          for (const option of path.options) {
+            add('effect_path_choice_options', {
+              path_id: path.id,
+              result_block_id: option.resultBlock.id
+            })
+            addResultBlock(option.resultBlock)
+          }
+          break
+        case 'ROLL_TABLE':
+          for (const row of path.rows) {
+            if (row.resolutionKind !== 'RESULT') continue
+            add('effect_path_roll_table_rows', {
+              path_id: path.id,
+              result_block_id: row.resultBlock.id
+            })
+            addResultBlock(row.resultBlock)
+          }
+          break
+      }
     }
   }
 
   const addGrant = (
-    grant: AuthoredRecord,
+    grant: ProficiencyGrantAuthored,
     table:
       | 'class_proficiency_grants'
       | 'feat_proficiency_grants'
       | 'feature_proficiency_grants'
       | 'option_proficiency_grants',
-    ownerId: Scalar
+    ownerId: string
   ) => {
     add(table, {
       [table === 'class_proficiency_grants'
@@ -187,25 +180,22 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
           : table === 'feature_proficiency_grants'
             ? 'feature_id'
             : 'option_id']: ownerId,
-      proficiency_grant_id: value(grant, 'id')
+      proficiency_grant_id: grant.id
     })
     if (grant.authoringModeKind !== 'SELECTED') return
-    for (const skillId of Array.isArray(grant.skillIds) ? grant.skillIds : [])
-      if (typeof skillId === 'string')
-        add('proficiency_grant_skills', {
-          proficiency_grant_id: value(grant, 'id'),
-          skill_id: skillId
-        })
-    for (const languageId of Array.isArray(grant.languageIds) ? grant.languageIds : [])
-      if (typeof languageId === 'string')
+    if (grant.proficiencyKind === 'SKILL')
+      for (const skillId of grant.skillIds)
+        add('proficiency_grant_skills', { proficiency_grant_id: grant.id, skill_id: skillId })
+    if (grant.proficiencyKind === 'LANGUAGE')
+      for (const languageId of grant.languageIds)
         add('proficiency_grant_languages', {
-          proficiency_grant_id: value(grant, 'id'),
+          proficiency_grant_id: grant.id,
           language_id: languageId
         })
   }
 
   const addFeature = (
-    feature: AuthoredRecord,
+    feature: FeatureFacts,
     owner: {
       table:
         | 'background_features'
@@ -215,155 +205,143 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
         | 'race_features'
         | 'race_ancestry_option_features'
       key: string
-      id: Scalar
+      id: string
     } | null
   ) => {
-    add('features', { id: value(feature, 'id'), label: value(feature, 'label') })
-    if (owner) add(owner.table, { [owner.key]: owner.id, feature_id: value(feature, 'id') })
-    for (const effect of records(feature.effects)) {
-      add('feature_effects', { feature_id: value(feature, 'id'), effect_id: value(effect, 'id') })
+    add('features', { id: feature.id, label: feature.label })
+    if (owner) add(owner.table, { [owner.key]: owner.id, feature_id: feature.id })
+    for (const effect of feature.effects ?? []) {
+      add('feature_effects', { feature_id: feature.id, effect_id: effect.id })
       addEffect(effect)
     }
-    for (const grant of records((feature.grants as AuthoredRecord | undefined)?.proficiencies))
-      addGrant(grant, 'feature_proficiency_grants', value(feature, 'id'))
-    for (const option of records(feature.options)) {
-      add('options', { id: value(option, 'id'), label: value(option, 'label') })
-      add('feature_options', { feature_id: value(feature, 'id'), option_id: value(option, 'id') })
-      for (const effect of records(option.effects)) {
-        add('option_effects', { option_id: value(option, 'id'), effect_id: value(effect, 'id') })
+    for (const grant of feature.grants?.proficiencies ?? [])
+      addGrant(grant, 'feature_proficiency_grants', feature.id)
+    for (const option of feature.options ?? []) {
+      add('options', { id: option.id, label: option.label })
+      add('feature_options', { feature_id: feature.id, option_id: option.id })
+      for (const effect of option.effects ?? []) {
+        add('option_effects', { option_id: option.id, effect_id: effect.id })
         addEffect(effect)
       }
-      for (const grant of records((option.grants as AuthoredRecord | undefined)?.proficiencies))
-        addGrant(grant, 'option_proficiency_grants', value(option, 'id'))
+      for (const grant of option.grants?.proficiencies ?? [])
+        addGrant(grant, 'option_proficiency_grants', option.id)
     }
   }
 
-  const document: AuthoredRecord = subject.document
   switch (subject.subjectKind) {
-    case 'BACKGROUND':
-      add('backgrounds', { id: value(document, 'id'), label: value(document, 'label') })
-      for (const feature of records(document.features))
-        addFeature(feature, {
-          table: 'background_features',
-          key: 'background_id',
-          id: value(document, 'id')
-        })
+    case 'BACKGROUND': {
+      const { document } = subject
+      add('backgrounds', { id: document.id, label: document.label })
+      for (const feature of document.features ?? [])
+        addFeature(feature, { table: 'background_features', key: 'background_id', id: document.id })
       break
-    case 'CLASS':
+    }
+    case 'CLASS': {
+      const { document } = subject
       add('classes', {
-        id: value(document, 'id'),
-        label: value(document, 'label'),
-        category: value(document, 'category'),
-        parent_class_id: optionalValue(document, 'parentClassId')
+        id: document.id,
+        label: document.label,
+        category: document.category,
+        parent_class_id: document.category === 'SUBCLASS' ? document.parentClassId : null
       })
-      for (const feature of records(document.features))
-        addFeature(feature, { table: 'class_features', key: 'class_id', id: value(document, 'id') })
-      if (
-        document.resources &&
-        typeof document.resources === 'object' &&
-        !Array.isArray(document.resources)
-      ) {
-        const resource = document.resources as AuthoredRecord
+      for (const feature of document.features ?? [])
+        addFeature(feature, { table: 'class_features', key: 'class_id', id: document.id })
+      if (document.resources)
         add('class_resources', {
-          class_id: value(document, 'id'),
-          id: value(resource, 'id'),
-          label: value(resource, 'label')
+          class_id: document.id,
+          id: document.resources.id,
+          label: document.resources.label
         })
-      }
-      for (const specialization of records(document.specializations))
+      const specializations = document.category === 'SUBCLASS' ? document.specializations : []
+      for (const specialization of specializations ?? [])
         add('class_specializations', {
-          class_id: value(document, 'id'),
-          id: value(specialization, 'id'),
-          label: value(specialization, 'label')
+          class_id: document.id,
+          id: specialization.id,
+          label: specialization.label
         })
       for (const grant of [
-        ...records(document.proficiencies),
-        ...records((document.multiclass as AuthoredRecord | undefined)?.proficiencies)
+        ...(document.proficiencies ?? []),
+        ...(document.category === 'BASE' ? (document.multiclass.proficiencies ?? []) : [])
       ])
-        addGrant(grant, 'class_proficiency_grants', value(document, 'id'))
+        addGrant(grant, 'class_proficiency_grants', document.id)
       break
-    case 'CREATURE':
-      add('creatures', { id: value(document, 'id'), label: value(document, 'label') })
-      for (const feature of records(document.features)) addFeature(feature, null)
+    }
+    case 'CREATURE': {
+      const { document } = subject
+      add('creatures', { id: document.id, label: document.label })
+      for (const feature of document.features) addFeature(feature, null)
       break
-    case 'EQUIPMENT':
-      add('equipment', {
-        id: value(document, 'id'),
-        label: value(document, 'label'),
-        category: value(document, 'category')
-      })
-      for (const property of Array.isArray(document.properties) ? document.properties : [])
-        if (typeof property === 'string')
-          add('equipment_properties', {
-            equipment_id: value(document, 'id'),
-            property_code: property
-          })
-      for (const feature of records(document.features))
-        addFeature(feature, {
-          table: 'equipment_features',
-          key: 'equipment_id',
-          id: value(document, 'id')
-        })
-      for (const effect of records(document.effects)) {
-        add('equipment_effects', {
-          equipment_id: value(document, 'id'),
-          effect_id: value(effect, 'id')
-        })
+    }
+    case 'EQUIPMENT': {
+      const { document } = subject
+      add('equipment', { id: document.id, label: document.label, category: document.category })
+      for (const property of document.properties ?? [])
+        add('equipment_properties', { equipment_id: document.id, property_code: property })
+      for (const feature of document.features ?? [])
+        addFeature(feature, { table: 'equipment_features', key: 'equipment_id', id: document.id })
+      for (const effect of document.effects ?? []) {
+        add('equipment_effects', { equipment_id: document.id, effect_id: effect.id })
         addEffect(effect)
       }
       break
-    case 'FEAT':
-      add('feats', { id: value(document, 'id'), label: value(document, 'label') })
-      for (const feature of records(document.features))
-        addFeature(feature, { table: 'feat_features', key: 'feat_id', id: value(document, 'id') })
-      for (const effect of records(document.effects)) {
-        add('feat_effects', { feat_id: value(document, 'id'), effect_id: value(effect, 'id') })
+    }
+    case 'FEAT': {
+      const { document } = subject
+      add('feats', { id: document.id, label: document.label })
+      for (const feature of document.features ?? [])
+        addFeature(feature, { table: 'feat_features', key: 'feat_id', id: document.id })
+      for (const effect of document.effects ?? []) {
+        add('feat_effects', { feat_id: document.id, effect_id: effect.id })
         addEffect(effect)
       }
-      for (const grant of records((document.grants as AuthoredRecord | undefined)?.proficiencies))
-        addGrant(grant, 'feat_proficiency_grants', value(document, 'id'))
+      for (const grant of document.grants?.proficiencies ?? [])
+        addGrant(grant, 'feat_proficiency_grants', document.id)
       break
+    }
     case 'RACE': {
+      const { document } = subject
       add('races', {
-        id: value(document, 'id'),
-        label: value(document, 'label'),
-        category: value(document, 'category'),
-        parent_race_id: optionalValue(document, 'parentRaceId')
+        id: document.id,
+        label: document.label,
+        category: document.category,
+        parent_race_id: document.category === 'SUBRACE' ? document.parentRaceId : null
       })
-      for (const feature of records(document.features))
-        addFeature(feature, { table: 'race_features', key: 'race_id', id: value(document, 'id') })
-      const ancestry = document.ancestry as AuthoredRecord | undefined
+      for (const feature of document.features ?? [])
+        addFeature(feature, { table: 'race_features', key: 'race_id', id: document.id })
+      const ancestry = document.category === 'BASE' ? document.ancestry : undefined
       if (ancestry) {
-        add('race_ancestries', { id: value(ancestry, 'id'), race_id: value(document, 'id') })
-        for (const option of records(ancestry.options)) {
+        add('race_ancestries', { id: ancestry.id, race_id: document.id })
+        for (const option of ancestry.options) {
           add('race_ancestry_options', {
-            ancestry_id: value(ancestry, 'id'),
-            id: value(option, 'id'),
-            label: value(option, 'label')
+            ancestry_id: ancestry.id,
+            id: option.id,
+            label: option.label
           })
-          for (const feature of records(option.features))
+          for (const feature of option.features ?? [])
             addFeature(feature, {
               table: 'race_ancestry_option_features',
               key: 'ancestry_option_id',
-              id: value(option, 'id')
+              id: option.id
             })
         }
       }
       break
     }
-    case 'SPELL':
+    case 'SPELL': {
+      const { document } = subject
       add('spells', {
-        id: value(document, 'id'),
-        label: value(document, 'label'),
-        magic_school_id: value(document, 'magicSchoolId')
+        id: document.id,
+        label: document.label,
+        magic_school_id: document.magicSchoolId
       })
-      for (const effect of records(document.effects)) {
-        add('spell_effects', { spell_id: value(document, 'id'), effect_id: value(effect, 'id') })
+      for (const effect of document.effects ?? []) {
+        add('spell_effects', { spell_id: document.id, effect_id: effect.id })
         addEffect(effect)
       }
       break
+    }
     case 'VEHICLE':
-      for (const feature of records(document.features)) addFeature(feature, null)
+      for (const feature of subject.document.features ?? []) addFeature(feature, null)
       break
   }
 

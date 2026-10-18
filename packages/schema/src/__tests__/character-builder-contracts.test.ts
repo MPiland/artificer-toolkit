@@ -51,6 +51,7 @@ const baseRequest = {
       currency: [],
       hitpoints: {
         current: 6,
+        temp: 0,
         hitDice: [],
         deathSaves: NO_DEATH_SAVES
       }

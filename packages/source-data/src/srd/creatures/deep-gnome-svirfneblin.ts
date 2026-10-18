@@ -21,6 +21,12 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 16,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 3,
     die: 6,

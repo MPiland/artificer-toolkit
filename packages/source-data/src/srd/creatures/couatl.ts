@@ -21,6 +21,10 @@ export const couatl: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 97,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 8,

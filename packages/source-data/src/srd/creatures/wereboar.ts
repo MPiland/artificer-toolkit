@@ -20,6 +20,12 @@ export const wereboar: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 78,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 8,

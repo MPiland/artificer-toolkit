@@ -19,6 +19,12 @@ export const oni: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 110,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 10,

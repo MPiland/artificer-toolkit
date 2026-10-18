@@ -72,7 +72,7 @@ const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, crea
   }
   const discovery = everyAction.discover(input)
   const offered = discoverEncounterFeatureActions(input)
-  return (creature.features ?? [])
+  return creature.features
     .filter((feature) => BREATH_DESCRIPTION.test(feature.description ?? ''))
     .flatMap((feature) => {
       const printed = printedAreas(feature.description ?? '')

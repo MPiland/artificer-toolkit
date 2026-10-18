@@ -22,6 +22,9 @@ export const mummyLord: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 97,
+  details: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 13,
     die: 8,

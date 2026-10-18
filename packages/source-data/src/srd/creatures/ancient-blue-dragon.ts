@@ -21,6 +21,11 @@ export const ancientBlueDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 12,
   hitPoints: 481,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 26,
     die: 20,

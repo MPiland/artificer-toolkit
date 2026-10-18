@@ -3,7 +3,6 @@ import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type {
   NodeRuntimeArrayGroupNodeDto,
-  NodeRuntimeGroupNodeDto,
   NodeRuntimeObjectGroupNodeDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { getAuthoringDefaultKind } from './authoringNodeDefaultRegistry'
@@ -18,13 +17,13 @@ export function createDefaultAuthoringArrayItem(
   node: NodeRuntimeArrayGroupNodeDto,
   currentLength: number
 ): AuthoringGroupValues {
-  return createDefaultAuthoringNodeValue(getChildMapId(node), currentLength + 1)
+  return createDefaultAuthoringNodeValue(node.childMapId, currentLength + 1)
 }
 
 export function createDefaultAuthoringObjectItem(
   node: NodeRuntimeObjectGroupNodeDto
 ): AuthoringGroupValues {
-  return createDefaultAuthoringNodeValue(getChildMapId(node), 1)
+  return createDefaultAuthoringNodeValue(node.childMapId, 1)
 }
 
 function createDefaultAuthoringNodeValue(childMapId: string, order = 1): AuthoringGroupValues {
@@ -730,10 +729,6 @@ export function createTargeting(selectionKind = 'SELF'): TargetingDto {
   if (selectionKind === 'AREA_CONTENTS')
     return { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' }
   return { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
-}
-
-function getChildMapId(node: NodeRuntimeGroupNodeDto): string {
-  return node.childMapId
 }
 
 function createAbilityScores() {

@@ -19,6 +19,10 @@ export const planetar: CreatureAuthored = {
   },
   naturalArmorBonus: 4,
   hitPoints: 200,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 16,
     die: 10,

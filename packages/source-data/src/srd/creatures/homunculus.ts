@@ -21,6 +21,11 @@ export const homunculus: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 5,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 2,
     die: 4,

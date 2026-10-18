@@ -20,6 +20,11 @@ export const blueDragonWyrmling: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 52,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 8,
     die: 8,

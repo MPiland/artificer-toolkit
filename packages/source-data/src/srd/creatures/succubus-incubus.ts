@@ -22,6 +22,11 @@ export const succubusIncubus: CreatureAuthored = {
   },
   naturalArmorBonus: 2,
   hitPoints: 66,
+  details: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 8,

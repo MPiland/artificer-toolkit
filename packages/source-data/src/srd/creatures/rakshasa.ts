@@ -20,6 +20,10 @@ export const rakshasa: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 110,
+  details: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 8,

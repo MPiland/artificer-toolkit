@@ -19,6 +19,13 @@ export const giantFireBeetle: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 4,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 1,
     die: 6,

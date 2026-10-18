@@ -20,6 +20,9 @@ export const gynosphinx: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 136,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 16,
     die: 10,

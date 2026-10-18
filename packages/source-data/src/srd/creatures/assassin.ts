@@ -20,6 +20,12 @@ export const assassin: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 78,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 8,

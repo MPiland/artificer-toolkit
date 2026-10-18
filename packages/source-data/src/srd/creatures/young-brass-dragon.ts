@@ -21,6 +21,11 @@ export const youngBrassDragon: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 110,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 13,
     die: 10,

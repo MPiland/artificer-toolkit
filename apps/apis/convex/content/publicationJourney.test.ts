@@ -207,7 +207,7 @@ function invalidMechanicPayload(kind: Kind, payload: Payload): Payload {
     const creature = creatureAuthoredDtoSchema.parse(payload)
     return {
       ...creature,
-      features: creature.features?.map((feature) =>
+      features: creature.features.map((feature) =>
         feature.label === 'Hooves' ? { ...feature, rollDefinitions: [] } : feature
       )
     }

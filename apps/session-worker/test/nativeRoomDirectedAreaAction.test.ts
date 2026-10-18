@@ -37,7 +37,7 @@ function directedRoom(creature: ReturnType<typeof directedAreaWolf>, featureId?:
       )
     ],
     positions: { [FAR_ID]: { x: 450, y: 650 } },
-    ownerFeatureId: featureId ?? creature.features?.find((feature) => feature.label === 'Bite')?.id
+    ownerFeatureId: featureId ?? creature.features.find((feature) => feature.label === 'Bite')?.id
   })
 }
 type Room = Awaited<ReturnType<typeof directedRoom>>

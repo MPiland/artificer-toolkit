@@ -22,6 +22,9 @@ export const glabrezu: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 157,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 15,
     die: 10,

@@ -20,6 +20,13 @@ export const wolf: CreatureAuthored = {
   },
   naturalArmorBonus: 1,
   hitPoints: 11,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 2,
     die: 8,

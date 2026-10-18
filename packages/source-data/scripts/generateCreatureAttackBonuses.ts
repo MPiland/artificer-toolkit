@@ -47,7 +47,7 @@ const entries: { entry: string; comment: string }[] = []
 const review: string[] = []
 const usedBaseKeys = new Set<string>()
 for (const creature of srdCreatureRecords) {
-  const features = creature.features ?? []
+  const features = creature.features
   const sources = features.flatMap((feature) => [
     { source: feature, path: feature.label },
     ...(feature.options ?? []).map((option) => ({

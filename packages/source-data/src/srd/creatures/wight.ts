@@ -20,6 +20,9 @@ export const wight: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 45,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 6,
     die: 8,

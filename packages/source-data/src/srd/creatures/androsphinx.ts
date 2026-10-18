@@ -22,6 +22,10 @@ export const androsphinx: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 199,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 19,
     die: 10,

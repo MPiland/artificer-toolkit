@@ -21,6 +21,9 @@ export const salamander: CreatureAuthored = {
   },
   naturalArmorBonus: 3,
   hitPoints: 90,
+  details: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 12,
     die: 10,

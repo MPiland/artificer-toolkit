@@ -31,7 +31,7 @@ export function buildCreatureDetailModel(
   references: CreatureReferences,
   armorClass: number | null | undefined
 ) {
-  const legendaryActionFeature = creature.features?.find(isLegendaryActionFeature)
+  const legendaryActionFeature = creature.features.find(isLegendaryActionFeature)
   const featureBuckets = getCreatureFeatureBuckets(creature.features, legendaryActionFeature)
 
   return {
@@ -220,9 +220,7 @@ function hasFeatureActivation(
 }
 
 function getCreatureProfileItems(creature: CreatureAuthoredDto, references: CreatureReferences) {
-  const featureLabels = new Map(
-    (creature.features ?? []).map((feature) => [feature.id, feature.label])
-  )
+  const featureLabels = new Map(creature.features.map((feature) => [feature.id, feature.label]))
 
   return [
     ...(creature.npcProfile?.personalityTraits ?? []).map((trait, index) => ({

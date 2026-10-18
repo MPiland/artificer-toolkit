@@ -6,17 +6,19 @@ import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/
 import { MAX_BASIC_ACTION_CHOICES } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
+import type { HeldRoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import { readRoomScene } from './roomSceneRead.js'
 
 /**
- * A member's turn reads over the room's held state. The inputs must be a `heldOnly` view, so a
- * Character, definition or System the room does not hold current refuses the read instead of
- * loading it from Convex. The caller owns admission.
+ * A member's turn reads over the room's held state: a Character, definition or System the room does
+ * not hold current refuses the read instead of loading it from Convex. The caller owns admission.
  */
 export async function roomEncounterTurnReadTransaction(
-  input: Parameters<typeof roomEncounterReadTransaction>[0]
+  input: Omit<Parameters<typeof roomEncounterReadTransaction>[0], 'inputs'> & {
+    inputs: HeldRoomInputs
+  }
 ): Promise<EncounterTurnReadTransaction<RoomCharacterTurnFacts>> {
   const { store, inputs, campaignId, epoch, observed } = input
   const base = await roomEncounterReadTransaction(input)

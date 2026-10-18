@@ -10,7 +10,7 @@ Typed identities replace label and string parsing for hit dice, skill abilities,
 | T1b  | 6.16                          | merging     |
 | T1c  | 6.9                           | green       |
 | T2   | 6.12, 6.14, 6.17, 6.18        | D150 fix    |
-| T3   | 6.4, 6.10, 6.11, 6.19         | in progress |
+| T3   | 6.4, 6.10, 6.11, 6.19         | CI          |
 | T4   | 6.2, 6.5, 6.6, 6.7, 6.8, 6.13 | todo        |
 
 ## T1a: hit-die source kind, System skill abilities, shared initiative reader
@@ -88,6 +88,22 @@ CI branch `ci/reliability-6-t2`.
 - 6.14: conditions are labelled by `labelCharacterConditions`, used by both the Sheet projection and the Encounter projection. Commit labels follow D150: the Worker plans the label from the action source it executed (`encounterActionSourceLabel`, the candidate's or capability's label) and sends it as the required `label` of the action, area and countered-cast commit inputs; a legendary commit uses its option's label. The candidate `label` is required. `contentLabels.ts` (`requireEncounterContentLabel`) is deleted, and the 'Action' and 'Legendary Action' fallbacks are gone. `readContentLabel` stays in both read ports because `rollModeReasons` still labels contributor sources with it. Proof: `nativeRoomHitRiders.test.ts` (a compound `<actor>:FEATURE:…:EFFECT:…` Hell Hound Bite labels its roll cards "Bite"). The first T2 Tests run (39082670176) failed because the content-label lookup could not read compound Creature action ids. `createNativeCleavingChoice` takes `optionalCombatSnapshotChecksum: string | null` and throws on null; the Worker's `?? ''` is gone.
 - 6.17: `sectionId` is a required field of `CharacterBuilderIssue` and `CharacterBuilderValidation` and of their DTO schemas. It is set where each issue is produced, and source-raised issues use `characterBuilderSectionOfSource`. The web code maps and the source mapping in `stepNavigation.ts` are deleted. Two behaviour changes: `EQUIPMENT_SOURCE_UNAVAILABLE` now routes to EQUIPMENT instead of REVIEW, and a feature-selection validation now routes by its source instead of REVIEW.
 - 6.18: `requireImportedValue` warns and leaves the entry out. This covers the D&D Beyond race, background, class, subclass, inventory, custom item, feat and spell entries, and the Foundry item name, class level and equipment quantity; the Foundry entries apply the same rule beyond the cited lines. The unreachable collision label fallbacks in `importPreparation.ts`, for the character and for authored content, now read the found record's label.
+
+## T3: typed grant folding, required Creature arrays, typed source facts, small type gaps (6.4, 6.10, 6.11, 6.19)
+
+CI branch `ci/reliability-6-t3`.
+
+| AC   | Proof                                                                                                                                                                                                                | Status |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 6.4  | Typecheck (exhaustive `never` defaults in the restriction and source-fact folds and the chosen-grant resolver); `compiler-restrictions.test.ts`, `compiler-scaling.test.ts` and the Character grant-fold tests       | coded  |
+| 6.10 | `packages/schema/src/__tests__/subject-schema-parsing.test.ts` (each of the ten Creature arrays is required; a Creature without one is refused)                                                                      | coded  |
+| 6.11 | Typecheck; `packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts` (unchanged facts over the typed traversal)                                                                                               | coded  |
+| 6.19 | `packages/schema/src/__tests__/characterHitpointsState.test.ts` (temporary hit points are required); typecheck (`HeldRoomInputs` is the only input the turn read ports accept; no `as unknown as` in the room store) | coded  |
+
+- 6.4: the fold switches are exhaustive over the grant kind. `SAVING_THROW_ABILITY` reached the untyped default, which copied `requiredIds`, `min` and `max` off the record by cast; it is now an explicit case that folds to `UNAVAILABLE` like the skill-score and saving-throw-bonus restrictions (an `UNAVAILABLE` condition reads none of those fields, so the result is the same). The proficiency compiler passes the authored grant through minus `restrictions` and `scalingKind`; an EQUIPMENT grant in ALL mode now keeps `category` and `properties`, and an empty-string category is kept. Fold results do not change: the fold reads `category` only for `EQUIPMENT_PROPERTY`.
+- 6.10: `details`, `features`, `proficiencies`, `senses`, the three damage-defense lists, `qualifiedDamageDefenses` and `conditionImmunities` are required in the schema and in `CreatureAuthored`. All 317 SRD Creature files state them; every `?? []` and `?.` at Creature-typed sites is gone; `blueprintSnapshots` parses without re-defaults. Development data: stored Creature documents without the arrays fail to parse, so the local backend is reset and reseeded at merge.
+- 6.11: `authoredSourceFacts` walks typed Subjects, effects, proficiency grants and features; behaviour is unchanged.
+- 6.19: `temp` is required in the Character hit-points schema and state; the `temp ?? 0` defaults are gone. `addExtra` builds a typed extra and returns early instead of asserting. `RoomInputs.heldOnly()` returns `HeldRoomInputs`, which the turn read ports require. The room store loads documents typed by table. `executeRelationship`, `getChildMapId` and `prepareAreaCaster` pass-throughs are removed.
 
 ## Proposed ledger edits
 

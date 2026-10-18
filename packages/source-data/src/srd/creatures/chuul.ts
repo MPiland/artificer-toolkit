@@ -21,6 +21,10 @@ export const chuul: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 93,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 11,
     die: 10,

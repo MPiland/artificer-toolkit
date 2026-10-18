@@ -141,7 +141,7 @@ export function srdCondition(label: string): string {
 }
 
 export function creatureFeature(creature: CreatureAuthored, label: string) {
-  const feature = creature.features?.find((entry) => entry.label === label)
+  const feature = creature.features.find((entry) => entry.label === label)
   if (!feature) throw new Error(`SRD ${creature.label} Feature "${label}" is missing.`)
   return feature
 }
@@ -163,13 +163,7 @@ export function srdCreatureActor(input: {
   sideId?: string
   disposition?: EncounterRunActorState['disposition']
 }): EncounterRunActorState {
-  const creature = {
-    ...input.creature,
-    damageVulnerabilities: input.creature.damageVulnerabilities ?? [],
-    damageResistances: input.creature.damageResistances ?? [],
-    damageImmunities: input.creature.damageImmunities ?? [],
-    conditionImmunities: input.creature.conditionImmunities ?? []
-  }
+  const { creature } = input
   const equipmentSources = pinCreatureEquipmentSources({
     creature,
     equipmentRecords: srdLoadoutEquipmentRecords(creature)

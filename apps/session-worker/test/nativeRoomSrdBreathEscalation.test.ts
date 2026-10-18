@@ -45,7 +45,7 @@ async function breathRoom(
   dice: { rolls: readonly number[]; fallbackRoll: number }
 ) {
   const creature = installedSrdCreature(gorgon)
-  const feature = creature.features?.find(({ label }) => label.startsWith('Petrifying Breath'))
+  const feature = creature.features.find(({ label }) => label.startsWith('Petrifying Breath'))
   const effect = feature?.effects?.[0]
   if (!feature || !effect) throw new Error('The Gorgon has no Petrifying Breath.')
   return actionRoom({

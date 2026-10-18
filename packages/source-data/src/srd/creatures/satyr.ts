@@ -19,6 +19,13 @@ export const satyr: CreatureAuthored = {
   },
   naturalArmorBonus: 0,
   hitPoints: 31,
+  details: [],
+  senses: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 7,
     die: 8,

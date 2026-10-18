@@ -29,6 +29,9 @@ export const balor: CreatureAuthored = {
   },
   naturalArmorBonus: 7,
   hitPoints: 262,
+  details: [],
+  damageVulnerabilities: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 21,
     die: 12,

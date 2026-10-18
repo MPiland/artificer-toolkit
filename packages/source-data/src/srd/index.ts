@@ -16,14 +16,10 @@ export { readSrdSemanticLedgerEntries, type SrdSemanticLedgerEntry } from './sem
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function normalizeVocabularyList(
-  values: readonly string[] | undefined,
+  values: readonly string[],
   vocabulary: readonly { code: string; id: string; label: string }[],
   context: string
-): string[] | undefined {
-  if (!values) {
-    return undefined
-  }
-
+): string[] {
   const resolvedIds = values.flatMap((value) => {
     if (UUID_PATTERN.test(value)) {
       return [value]
@@ -47,7 +43,7 @@ function normalizeVocabularyList(
   return [...new Set(resolvedIds)]
 }
 
-type QualifiedDamageDefense = NonNullable<CreatureAuthored['qualifiedDamageDefenses']>[number]
+type QualifiedDamageDefense = CreatureAuthored['qualifiedDamageDefenses'][number]
 
 /**
  * Splits SRD damage-defense prose into plain damage types and typed "from nonmagical attacks"
@@ -56,16 +52,15 @@ type QualifiedDamageDefense = NonNullable<CreatureAuthored['qualifiedDamageDefen
  * the creature then takes normal damage rather than gaining an unconditional defense.
  */
 function splitSrdDamageDefenses(
-  values: readonly string[] | undefined,
+  values: readonly string[],
   kind: QualifiedDamageDefense['kind'] | 'VULNERABILITY',
   context: string
-): { plain: string[] | undefined; qualified: QualifiedDamageDefense[] } {
-  if (!values) return { plain: undefined, qualified: [] }
+): { plain: string[]; qualified: QualifiedDamageDefense[] } {
   const plain: string[] = []
   const qualified: QualifiedDamageDefense[] = []
   for (const segment of values.flatMap((value) => value.split(';')).map((part) => part.trim())) {
     if (segment.length === 0 || /\bfrom spells\b|\bmagic weapons wielded\b/i.test(segment)) continue
-    const damageTypeIds = normalizeVocabularyList([segment], srdSystemRecord.damageTypes, context)!
+    const damageTypeIds = normalizeVocabularyList([segment], srdSystemRecord.damageTypes, context)
     if (!/\bnonmagical\b/i.test(segment)) {
       plain.push(...damageTypeIds)
       continue
@@ -101,13 +96,12 @@ function normalizeSrdCreature(creature: CreatureAuthored): CreatureAuthored {
     'VULNERABILITY',
     `${creature.label} damage vulnerability`
   )
-  const qualifiedDamageDefenses = [...resistances.qualified, ...immunities.qualified]
   return {
     ...creature,
     damageResistances: resistances.plain,
     damageImmunities: immunities.plain,
     damageVulnerabilities: vulnerabilities.plain,
-    ...(qualifiedDamageDefenses.length > 0 ? { qualifiedDamageDefenses } : {}),
+    qualifiedDamageDefenses: [...resistances.qualified, ...immunities.qualified],
     conditionImmunities: normalizeVocabularyList(
       creature.conditionImmunities,
       srdSystemRecord.conditionTypes,

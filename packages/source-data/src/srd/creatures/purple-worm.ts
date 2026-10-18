@@ -20,6 +20,12 @@ export const purpleWorm: CreatureAuthored = {
   },
   naturalArmorBonus: 10,
   hitPoints: 247,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  damageImmunities: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 15,
     die: 20,

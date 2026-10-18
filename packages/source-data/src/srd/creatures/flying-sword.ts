@@ -20,6 +20,10 @@ export const flyingSword: CreatureAuthored = {
   },
   naturalArmorBonus: 5,
   hitPoints: 17,
+  details: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
   hitDice: {
     count: 5,
     die: 6,

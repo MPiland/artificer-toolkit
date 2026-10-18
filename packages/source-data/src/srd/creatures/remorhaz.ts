@@ -19,6 +19,12 @@ export const remorhaz: CreatureAuthored = {
   },
   naturalArmorBonus: 6,
   hitPoints: 195,
+  details: [],
+  proficiencies: [],
+  damageVulnerabilities: [],
+  damageResistances: [],
+  qualifiedDamageDefenses: [],
+  conditionImmunities: [],
   hitDice: {
     count: 17,
     die: 12,
