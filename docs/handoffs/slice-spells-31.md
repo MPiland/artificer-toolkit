@@ -4,7 +4,7 @@ Living handoff for SPELLS-31 (class feature and subclass feature closed rules be
 
 ## Current task
 
-SPELLS-31.T1: classify the class feature and subclass feature closed-rule kinds as description-only, existing options or new options (D156), reusing the SPELLS-4 option groups where they fit, and propose a split into subtasks of size 5 or less for a ruling.
+SPELLS-31.T2, T3a, T3b and T3c (accepted T1 ruling, D156 amendment of 2026-10-18), one `ci/spells-31-<task>` push each, in order.
 
 ## T1 classification (D156)
 
@@ -251,4 +251,9 @@ Open points for the ruling:
 
 ## Status
 
-Started 2026-10-18 from the phase tip. T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
+Started 2026-10-18 from the phase tip. T1 classification and split accepted (D156, SPELLS-31.T1 ruling).
+
+- **T2 (class C), 2026-10-18:** the 28 kinds are gone from `closedRuleKind.ts` and their 29 CLOSED_RULE effects from the class files (Natural Explorer had two, on the feature and its improvement); descriptions are unchanged. `packages/source-data/src/srd/descriptionOnlyClassFeatures.test.ts` proves each feature keeps its description, has no closed rule, and either carries its sibling grant or none (description-only), and that no kind remains. Book of Ancient Secrets, Pact of the Tome and Spell Mastery keep sibling spell grants for their modeled part; their remaining text (transcription, the book, the swap) is downtime.
+- **T3a (class A, options), 2026-10-18:** four kinds deleted, each now resolved from existing options. Fast Movement is a WALK SPEED BONUS of 10 ft. with the no-heavy-armor restriction that Rage uses (renamed `noHeavyArmorRestriction`). Divine Strike is two PASSIVE ON_HIT radiant riders, melee and ranged, with ONCE_PER_TURN and CLASS_LEVEL dice (1d8 at 8th, 2d8 at 14th). Purity of Body is DAMAGE_IMMUNITY poison plus CONDITION_IMMUNITY poisoned; disease stays description because the engine has no disease model. Magical Secrets (10th, 14th, 18th) is a CHOSEN KNOWN spell grant of 2 from every SRD spell up to level 5, 7 and 9. Proofs: `packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts` checks the SRD data and a homebrew variant of each against the class node map. `dnd5eCombatMath.test.ts` checks Fast Movement speed (40 unarmored or in Hide, 30 in Chain Mail) and the Purity of Body immunities. `characterOnHitRiders.test.ts` checks the Divine Strike dice on melee and ranged hits. `classMechanics.test.ts` checks the Magical Secrets lists.
+  - **Fighter Extra Attack:** no gap. `fighter.ts` already authors "Extra Attack (2)" at 11th (3 attacks) and "Extra Attack (3)" at 20th (4), and `characterAttacksPerAttackAction.test.ts` already proves 2, 3 and 4. The T1 note misread this, so there is no data fix and no test that fails first.
+  - **Stunning Strike:** not done in T3a. No existing option spends ki on a hit: PASSIVE invocations have no `resourceUse`, and `optionalOnHit` only offers SPELL_SLOT (D123's resource-pool use was dropped in ATTACK-9.T4). Ruled (a), "SPELLS-31.T3a ruling": Stunning Strike moves to SPELLS-31.T5r, which adds a RESOURCE_POOL cost to `optionalOnHit`. `CLASS_MONK_STUNNING_STRIKE` stays until then.

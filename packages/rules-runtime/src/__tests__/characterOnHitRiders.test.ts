@@ -289,6 +289,44 @@ describe('a passive Feature’s ON_HIT damage rides on the weapon hit (D119)', (
   })
 })
 
+describe('Life Domain Divine Strike rides on a weapon hit as authored ON_HIT data (SPELLS-31.T3a)', () => {
+  const RADIANT = srdDamageTypeId('RADIANT')
+  const riders = (level: number, weapon: 'Longsword' | 'Shortbow') => {
+    const cleric = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16, DEXTERITY: 16 },
+      classes: [{ label: 'Cleric', level, subclass: 'Life Domain' }],
+      items: [{ label: weapon, equipped: true }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Cleric',
+          subclassLabel: 'Life Domain',
+          featureLabel: 'Divine Strike',
+          level: 8
+        })
+      ]
+    })
+    const { decision } = itemAction(
+      cleric,
+      weapon,
+      weapon === 'Longsword'
+        ? { attackKind: 'MELEE', grip: 'ONE_HANDED' }
+        : { attackKind: 'RANGED', grip: 'TWO_HANDED' }
+    )
+    return decision.mechanic.outcomes.flatMap((outcome) =>
+      outcome.kind === 'DAMAGE' && outcome.damageTypeId === RADIANT ? [outcome.expression] : []
+    )
+  }
+
+  it('adds 1d8 radiant at 8th level and 2d8 at 14th, on melee and ranged weapon hits', () => {
+    expect(riders(8, 'Longsword')).toEqual(['1d8'])
+    expect(riders(13, 'Longsword')).toEqual(['1d8'])
+    expect(riders(14, 'Longsword')).toEqual(['2d8'])
+    expect(riders(8, 'Shortbow')).toEqual(['1d8'])
+    expect(riders(14, 'Shortbow')).toEqual(['2d8'])
+  })
+})
+
 describe('a rider gated on the attack roll mode (D119)', () => {
   const advantageOnly = riderGate([{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }])
   const notDisadvantaged = riderGate([

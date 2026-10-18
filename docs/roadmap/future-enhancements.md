@@ -87,7 +87,12 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Intimidating Presence extension and range end (D156, SPELLS-31.T5l):** the barbarian can't spend an action to extend the fear, and it doesn't end when the creature ends its turn beyond 60 feet or out of sight. Only a 14th-level Berserker has it, and the shipped turn of fear is the common case.
+- **After-save immunity edge forms (D156, SPELLS-31.T5l):** a creature trait whose immunity also ends the effect on that creature, and the Mummy's immunity keyed to every Mummy rather than to one source, stay description-only.
+
 - **Area push picks outside the ordinary area flow (ATTACK-7.T5d, D157).** An area push that needs a destination pick fails closed when the area settles through a GM removal, through a hit-point-pool area or a chosen-creatures action with no saves, or when one creature is moved two ways by the same action. No SRD action does any of these with a choice; hold the pick on those paths if content needs it.
+
+- **Spell grants that spend a class resource pool (D156, SPELLS-31.T3b):** a spell grant's charges are its own pool or an item's charges, so Empty Body's Astral Projection (8 ki, 18th-level monk) stays description-only. To support it, add a class-pool cost to spell grants (SOURCE_CHARGES for class resources).
 
 - **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
 - **Mage Armor on a Creature (SPELLS-4.T2a3):** a Creature's armor class adds only fixed armor-class bonuses (`withCreatureActiveGrantArmorClass`), so Mage Armor's 13 + Dexterity formula does nothing on a Creature. Characters are the usual targets; fold formula grants into Creature facts when a table casts it on a Creature.
@@ -271,6 +276,10 @@ Melee-hit retaliation dice are system-rolled even when the zone source rolls by 
 ### Zones that block vision (D154)
 
 A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
+
+### Undo for contested actions (D105)
+
+Undo refuses every CONTESTED_ACTION root: Grapple, Shove, Disarm and the contested escape. A generic contest revert would restore the spent attack, the applied conditions, the forced movement and the grapple hold, the same way for every contest.
 
 ### Disarm defender picks its check (D152)
 

@@ -251,11 +251,6 @@ export const assassin: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '7d6'
-                  },
-                  {
-                    id: S.actionId(29, 117),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_POISON_SAVE
                   }
                 ]
               }
@@ -384,11 +379,6 @@ export const assassin: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '7d6'
-                  },
-                  {
-                    id: S.actionId(29, 125),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_POISON_SAVE
                   }
                 ]
               }

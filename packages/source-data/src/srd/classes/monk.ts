@@ -32,6 +32,7 @@ import {
   type EffectAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
@@ -439,7 +440,6 @@ export const monk: ClassAuthored = {
         'Beginning at 1st level, while you are wearing no armor and not wielding a shield, your AC equals 10 + your Dexterity modifier + your Wisdom modifier.',
       availableAtLevel: 1,
       order: 0,
-      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_DEFENSE)],
       grants: {
         modifiers: [
           {
@@ -536,7 +536,6 @@ export const monk: ClassAuthored = {
         'Starting at 2nd level, your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus increases when you reach certain monk levels, as shown in the Monk table.',
       availableAtLevel: 2,
       order: 3,
-      effects: [selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_MOVEMENT)],
       grants: { modifiers: unarmoredMovementModifiers }
     },
     {
@@ -772,7 +771,33 @@ export const monk: ClassAuthored = {
         'At 10th level, your mastery of the ki flowing through you makes you immune to disease and poison.',
       availableAtLevel: 10,
       order: 16,
-      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_MONK_PURITY_OF_BODY)]
+      // Poison only: the engine has no disease model, so that half stays description (D156).
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(M, 0x90, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('POISON') },
+            order: 0
+          },
+          {
+            id: classRowId(M, 0x90, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { conditionTypeId: conditionTypeId('POISONED') },
+            order: 1
+          }
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 18),
@@ -803,22 +828,7 @@ export const monk: ClassAuthored = {
       description:
         'Starting at 13th level, you learn to touch the ki of other minds so that you understand all spoken languages. Moreover, any creature that can understand a language can understand what you say.',
       availableAtLevel: 13,
-      order: 19,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 20),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_TONGUE_OF_SUN_AND_MOON,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(M, 0x69, 20), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
-            }
-          }
-        })
-      ]
+      order: 19
     },
     {
       id: classRowId(M, 3, 21),
@@ -885,8 +895,7 @@ export const monk: ClassAuthored = {
       description:
         "At 15th level, your ki sustains you so that you suffer none of the frailty of old age, and you can't be aged magically. You can still die of old age, however. In addition, you no longer need food or water.",
       availableAtLevel: 15,
-      order: 21,
-      effects: [selfClassRuleEffect(22, CLOSED_RULE_KIND.CLASS_MONK_TIMELESS_BODY)]
+      order: 21
     },
     {
       id: classRowId(M, 3, 23),

@@ -42,17 +42,6 @@ export const blackPudding: CreatureAuthored = {
       label: 'Amorphous',
       description:
         'Amorphous. The pudding can move through a space as narrow as 1 inch wide without squeezing.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(47, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(47, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMORPHOUS
-        })
-      ],
       order: 1
     },
     {

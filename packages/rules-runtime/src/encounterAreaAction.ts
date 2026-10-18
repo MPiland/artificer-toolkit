@@ -1,6 +1,5 @@
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
-  CompiledActionChoice,
   CompiledActionTargetPolicy,
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
@@ -300,8 +299,8 @@ export function encounterActionChoiceTarget(
    * pick lists the zones to pick from (D140).
    */
   zonePlacement?: CompiledActionZonePlacement | CompiledActionZoneChoice | null,
-  /** The options a cast picks one of on the creatures it targets (D148). */
-  castChoice?: CompiledActionChoice | null
+  /** The options a cast or a basic action (Shove) picks one of on the creatures it targets (D148). */
+  castChoice?: { options: readonly { optionId: string; label: string }[] } | null
 ): EncounterActionChoiceDto['target'] {
   const forms = formContribution?.forms
   const offered = (options: readonly { optionId: string; label: string }[] | undefined) =>

@@ -100,18 +100,6 @@ export const drow: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(88, 304),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(88, 1302), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DROW_INNATE_SPELLCASTING
-        })
-      ],
       order: 3
     },
     {

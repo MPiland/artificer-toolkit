@@ -42,17 +42,6 @@ export const awakenedTree: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the tree remains motionless, it is indistinguishable from a normal tree.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(31, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(31, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FALSE_APPEARANCE
-        })
-      ],
       order: 1
     },
     {

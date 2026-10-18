@@ -138,17 +138,6 @@ export const cloudGiant: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(66, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(66, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {

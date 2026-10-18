@@ -693,7 +693,7 @@
             {
               "id": "PLATFORM-13.T4",
               "text": "End of phase: Convex parallelism trial (2, 4, then 8 file workers, one run each, then three consecutive clean runs for the kept setting; wall time, failures, peak memory and paging recorded; a run that swaps or times out rejects the setting; no per-test timeout raised) and the full-suite timing record (Convex, worker, root), including a loaded root run proving import.test.ts passes at the default 5 s.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 1,
@@ -701,7 +701,8 @@
                 "rr": 8,
                 "size": 3,
                 "finalSource": true
-              }
+              },
+              "note": "Pulled forward 2026-10-18 (speed to done): Convex and Worker file-worker trials, shard balancing, no added jobs (20-concurrent-job cap)."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -801,6 +802,19 @@
               },
               "text": "Flake recurred after PLATFORM-13.T11: Worker nativeRoomAdmission \"renews the authorization lease\" expected 3 reads, got 2 (Tests 39139543744, SPELLS-20.T5c, passed on rerun). Root-cause the timing dependence and make the test deterministic with a fake clock; no retries. Second flake, same task: Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" asserts a mock is never called but an idle-alarm retry log (\"Live Session alarm failed; retrying.\") calls it (SPELLS-4.T2b Tests 39140950973, ci/merge-m118 Tests 39143841455). Make the alarm deterministic in that suite or scope the assertion to the refusal; no retries. Third hit: phase backstop ci/merge-m119 Tests 39145228139.",
               "note": "Green: d961c8b72 Tests 39147902939; batch ci/merge-m124 14e183243 green (Tests 39149206211, Live 39149206233); phase merge 41f7647ac."
+            },
+            {
+              "id": "PLATFORM-13.T13",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test."
             }
           ]
         },
@@ -10743,7 +10757,7 @@
             },
             {
               "id": "SPELLS-31.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10753,11 +10767,11 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "Class C: delete the 28 description-only or sibling-expressed kinds (Natural Explorer and Divine Health included) and their CLOSED_RULE outcomes, keeping descriptions; snapshot and parity checks. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Green: ci/spells-31-t2 fa8897c8d Tests 39158892030, Live 39158892115; fast-path merge 52c320549 (m130 backstop)."
             },
             {
               "id": "SPELLS-31.T3a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -10766,8 +10780,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "Class A: Fast Movement, Divine Strike, Purity of Body, Magical Secrets, with parity proofs; plus the Fighter Extra Attack 11th- and 20th-level steps as an authored-data fix with its own test. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Stunning Strike moved to T5r.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "text": "Class A: Fast Movement, Divine Strike, Purity of Body, Magical Secrets, with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Stunning Strike moved to T5r. (Fighter Extra Attack 11th/20th steps were already authored; T1 misread them.)",
+              "note": "Green: ci/spells-31-t3a 96c9eecd4 Tests 39160213728, Live 39160213758; merge 4e5063e4c (m131). The merge title misnames the features; the scope is Fast Movement, Divine Strike, Purity of Body and Magical Secrets."
             },
             {
               "id": "SPELLS-31.T3b",
@@ -10794,8 +10808,22 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "Class A: Divine Intervention (MANUAL_ADJUDICATION with the d100 roll and lockout), Volley, Whirlwind Attack (to class B if per-creature weapon attacks do not compile), with parity proofs. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "Class A: Divine Intervention (MANUAL_ADJUDICATION with the d100 roll and lockout), with a parity proof. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Volley and Whirlwind Attack moved to T5s (D156 SPELLS-31.T3c ruling).",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T3d",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-31.T3c"]
+              },
+              "text": "Bug: normalizing the full SRD Cleric through the class node map throws \"Untrusted node runtime table: proficiency_grant_equipment\" (starting-equipment eligibility). Trust the table where the node runtime reads it, add a regression test that normalizes every SRD class record unchanged and fails before the fix, and remove the parity test’s emptied starting-equipment workaround."
             },
             {
               "id": "SPELLS-31.T4c",
@@ -11143,16 +11171,17 @@
             },
             {
               "id": "SPELLS-31.T5l",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-31.T1"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2a3"]
               },
-              "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5m",
@@ -11231,6 +11260,32 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "New option (D156 SPELLS-31.T3a ruling): optionalOnHit gains the RESOURCE_POOL cost D123 names ({ kind: 'RESOURCE_POOL', chargeId, cost }) in the onHitChoice offer, transport and payment path. Converts Stunning Strike, with an authoring-parity proof; the kind deleted."
+            },
+            {
+              "id": "SPELLS-31.T5s",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T3c"]
+              },
+              "text": "Class B: a feature weapon attack against each chosen target with the wielded weapon (weapon damage, proficiency, magic bonus, ammunition drawn per target), then convert Volley and Whirlwind Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T3c ruling)."
+            },
+            {
+              "id": "SPELLS-31.T5t",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-31.T5l"]
+              },
+              "text": "Spell grants on chosen features (Eldritch Invocations, feats, options, background features) become spell access: buildCharacterSpellRuleFacts reads snapshot.features by provenance, with spell-access source kinds for FEAT, OPTION and BACKGROUND. List every chosen-feature grant this moves from MANUAL to automated, and prove the Chains of Carceri journey (cast, lockout, creature-type narrowing) end to end (D156 SPELLS-31.T5l ruling)."
             }
           ]
         },
@@ -11243,7 +11298,7 @@
             "bv": 5,
             "tc": 2,
             "rr": 3,
-            "size": 3
+            "size": 5
           },
           "acs": [
             {
@@ -11257,7 +11312,7 @@
           "tasks": [
             {
               "id": "SPELLS-32.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -11267,7 +11322,74 @@
                 "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
               },
               "text": "Classify the racial trait closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Classification and split in docs/handoffs/slice-spells-32.md (ci/spells-32-33-t1 f8e0618a4); accepted by the D156 SPELLS-32/33.T1 ruling."
+            },
+            {
+              "id": "SPELLS-32.T2",
+              "status": "DONE",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-32.T1"]
+              },
+              "text": "C: delete the description-only kinds and their CLOSED_RULE outcomes; keep descriptions (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
+              "note": "Green: ci/spells-32-33-t2 2aefe76ed Tests 39162606645, Live 39162606660; red proof descriptionOnlyCreatureAndRaceRules.test.ts; merge 2ff801c3c (m133)."
+            },
+            {
+              "id": "SPELLS-32.T3",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-32.T1"]
+              },
+              "text": "A: Halfling Brave as a saving throw advantage (Steel Will pattern) (1 kind). Dwarven Resilience moved to T4j.. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-32.md"
+            },
+            {
+              "id": "SPELLS-32.T4j",
+              "status": "TODO",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-32.T1", "SPELLS-4.T2j"]
+              },
+              "text": "Fey Ancestry, Gnome Cunning (\"against magic\" qualifier, built with SPELLS-33.T4j) and Dwarven Resilience (\"against poison\": the POISONED condition or poison damage, the same qualifier family) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
+            },
+            {
+              "id": "SPELLS-32.T5",
+              "status": "TODO",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-32.T1", "SPELLS-31.T5c", "SPELLS-31.T5d", "SPELLS-31.T5f"]
+              },
+              "text": "Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
+            },
+            {
+              "id": "SPELLS-32.T6",
+              "status": "TODO",
+              "closes": ["SPELLS-32.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-32.T1", "SPELLS-33.T6k1"]
+              },
+              "text": "Halfling Nimbleness (1 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
             }
           ]
         },
@@ -11280,7 +11402,7 @@
             "bv": 5,
             "tc": 2,
             "rr": 3,
-            "size": 13
+            "size": 20
           },
           "acs": [
             {
@@ -11294,7 +11416,7 @@
           "tasks": [
             {
               "id": "SPELLS-33.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11304,7 +11426,596 @@
                 "after": ["SPELLS-4.T2a1", "SPELLS-4.T2b"]
               },
               "text": "Classify the creature trait, action and reaction closed-rule kinds as description-only, existing options or new options (D156), reuse the SPELLS-4 option groups where they fit, and propose a split of subtasks of size 5 or less for a ruling.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Classification and split in docs/handoffs/slice-spells-33.md (ci/spells-32-33-t1 f8e0618a4); accepted by the D156 SPELLS-32/33.T1 ruling."
+            },
+            {
+              "id": "SPELLS-33.T2a",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "C: delete the 13 unreferenced kinds, the leftover ON_HIT_POISON_SAVE rule, and the innate and slot spellcasting kinds whose spells are already SPELL_GRANT entries (35 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "Green: ci/spells-32-33-t2 2aefe76ed Tests 39162606645, Live 39162606660; red proof descriptionOnlyCreatureAndRaceRules.test.ts; merge 2ff801c3c (m133)."
+            },
+            {
+              "id": "SPELLS-33.T2b",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "C: delete the remaining description-only kinds; keep descriptions; snapshot and parity checks (44 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "Green: ci/spells-32-33-t2 2aefe76ed Tests 39162606645, Live 39162606660; red proof descriptionOnlyCreatureAndRaceRules.test.ts; merge 2ff801c3c (m133)."
+            },
+            {
+              "id": "SPELLS-33.T3a",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "A: saving throw advantages (Steel Will pattern), Sneak Attack x2, Draining Kiss, damage-or-grapple choices, self teleports, attach and grapple riders, Cloaker Moan filter (15 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T3b",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2c"]
+              },
+              "text": "Knight Leadership, Lamia Intoxicating Touch (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4de",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2d", "SPELLS-4.T2e"]
+              },
+              "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4gh",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2g", "SPELLS-4.T2h"]
+              },
+              "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4i",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i"]
+              },
+              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4j",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2j"]
+              },
+              "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4k",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2k"]
+              },
+              "text": "four Parry reactions, Remorhaz Heated Body (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4l1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2l"]
+              },
+              "text": "bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4l2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T4l1", "SPELLS-31.T5n"]
+              },
+              "text": "extra reactions, reaction denial, charge-and-knock-prone follow-ups, Wing Attack (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4m",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2m"]
+              },
+              "text": "Horrifying Visage, Petrifying Gaze, Vrock Spores, Freedom of Movement (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4n",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2n"]
+              },
+              "text": "absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4o",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2o"]
+              },
+              "text": "Spider Climb, standing leaps, Ice Walk, Harpoon pull (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4pr",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2p", "SPELLS-4.T2r"]
+              },
+              "text": "Siege Monster, fear and darkness auras, Web Walker, Create Whirlwind (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4s1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2s"]
+              },
+              "text": "Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4s2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
+              },
+              "text": "lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4s3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
+              },
+              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4w",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2w"]
+              },
+              "text": "Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T5afp",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f", "SPELLS-31.T5p"]
+              },
+              "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T5k",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-33.T1", "SPELLS-31.T4k2"]
+              },
+              "text": "Flyby (opportunity-attack qualifier) (1 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T5l",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5l"]
+              },
+              "text": "per-target immunity after a save: frightful presences, glares, stench (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T5n",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5n"]
+              },
+              "text": "straight-line Charge gates (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6a1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6a2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
+              },
+              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6a3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6b1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n"]
+              },
+              "text": "new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6b2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6b1", "SPELLS-33.T4s2"]
+              },
+              "text": "new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6b3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6b1"]
+              },
+              "text": "new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T3b"]
+              },
+              "text": "new: legendary option that casts a granted spell (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6d1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: illumination and sunlight predicates on standing modifiers and turn events (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6d2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6d1"]
+              },
+              "text": "new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6d3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5o"]
+              },
+              "text": "new: encounter-state gates (surprised, first round, ally near target on a standing modifier) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6e",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: event triggers (holder death, holder takes a damage type, another creature starts its turn in range, touched) (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6f",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6g",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6h",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6i",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6e"]
+              },
+              "text": "new: equipment degradation (corrode) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6j",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: token light emission (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6k1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: passage through hostile footprints and objects (also SPELLS-32 Halfling Nimbleness) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6k2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
+              },
+              "text": "new: collision damage and landing on occupied spaces (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6m1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: checks against the holder (auto-fail, divination immunity, quarry tracking) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6m2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1"]
+              },
+              "text": "new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T7a",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T5l"]
+              },
+              "text": "Data-only: creature after-save immunities (the dragons’ Frightful Presence, the Tarrasque and the rest of the T5l survey) authored with SOURCE_IMMUNITY. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md)."
             }
           ]
         }

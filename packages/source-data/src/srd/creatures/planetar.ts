@@ -64,18 +64,6 @@ export const planetar: CreatureAuthored = {
       id: S.featureId(220, 2),
       label: 'Divine Awareness',
       description: 'Divine Awareness. The planetar knows if it hears a lie.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(220, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(220, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_DIVINE_AWARENESS
-        })
-      ],
       order: 2
     },
     {
@@ -150,18 +138,6 @@ export const planetar: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(220, 707),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(220, 708), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_INNATE_SPELLCASTING
-        })
-      ],
       order: 3
     },
     {

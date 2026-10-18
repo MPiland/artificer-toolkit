@@ -13,7 +13,11 @@ import {
   SRD_CONDITION_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
+import { castChoiceOptions } from '../encounterCastChoice.js'
 import {
+  DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
+  DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   dnd5eCharacterRuleActionSystemAdapter
 } from '../systems/dnd5e/effectActionCompiler.js'
@@ -141,5 +145,51 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
         })
       )
     ).toThrow('exactly one check')
+  })
+})
+
+describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
+  const adapter = dnd5eCharacterRuleActionSystemAdapter
+  const options = () => {
+    const action = srdAction(basicActionEffect(SRD_BASIC_ACTION_IDS.SHOVE))
+    const picks = castChoiceOptions(action.compiledEffect)
+    if (!picks) throw new Error('Shove offers no pick.')
+    return picks.map(({ label, compiledEffect }) => {
+      const option = { ...action, compiledEffect }
+      const compilerSource = buildCompiledActionCompilerSource(option)
+      const plan = adapter.compileExecutionPlan?.({ action: option, compilerSource })
+      if (plan?.kind !== 'TEST_OUTCOME') throw new Error(`${label} is not a test and its outcome.`)
+      return { label, compilerSource, plan }
+    })
+  }
+
+  it('offers knocking the target prone or pushing it 5 feet away', () => {
+    expect(options().map(({ label }) => label)).toEqual(['Knock prone', 'Push 5 feet away'])
+  })
+
+  it('tests each pick by the two-roller contest, with an outcome only on the win', () => {
+    for (const { plan } of options()) {
+      expect(Object.keys(plan.test.published.definition.outputs).sort()).toEqual([
+        'initiatorNaturalD20',
+        'initiatorTotal',
+        'targetNaturalD20',
+        'targetTotal'
+      ])
+      expect(plan.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_CHECK_SUCCESS'])
+    }
+  })
+
+  it('specializes the win to the Prone condition or the push its pick names', () => {
+    const [prone, push] = options().map(({ compilerSource, plan }) =>
+      adapter.specializeOutcomeTemplate?.({
+        compilerSource,
+        testTemplate: plan.test,
+        selectedPath: 'ON_CHECK_SUCCESS',
+        facts: {},
+        testRollMode: 'NORMAL'
+      })
+    )
+    expect(operationKeys(prone?.published)).toEqual([DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY])
+    expect(operationKeys(push?.published)).toEqual([DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY])
   })
 })
