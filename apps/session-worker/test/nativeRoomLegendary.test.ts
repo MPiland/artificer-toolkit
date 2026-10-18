@@ -6,6 +6,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { placedFireShieldZone } from '@artificer-toolkit/rules-runtime/testing/fireShieldZoneFixture'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -889,5 +890,103 @@ describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', (
       { audience: 'TABLE', kind: 'ATTACK' },
       { audience: 'TABLE', kind: 'RECHARGE' }
     ])
+  })
+})
+
+describe('a warm Fire Shield answers a Legendary Action’s melee hit (SPELLS-20 T6d2b, D153)', () => {
+  it('burns the dragon whose Tail hits the shielded Wolf, and replays the burn from its evidence when the next window settles', async () => {
+    // Every die shows face 18 (zero-based): the Tail's d20 a 19, each d8 of the shield a 3.
+    const DIE = 18
+    const D8 = (DIE % 8) + 1
+    const SHIELD_SEED = 0x740
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon }),
+        srdCreatureActor({ id: SECOND_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: {
+        [WOLF_ID]: { x: 150, y: 150 },
+        [FIRST_DRAGON_ID]: { x: 250, y: 150 },
+        [SECOND_DRAGON_ID]: { x: 50, y: 150 }
+      },
+      autoRoll: 'GAME_MASTER',
+      fallbackRoll: DIE,
+      seed: async ({ spatial, encounterId, tokenIdOf }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: SHIELD_SEED,
+            sourceActorId: WOLF_ID,
+            sourceTokenId: tokenIdOf(WOLF_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+      }
+    })
+    const before = await readRoomHistory(room.base.stub)
+    const advanceId = crypto.randomUUID()
+    await room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: advanceId,
+        expectedVersion: before.runs[0]!.version
+      }
+    })
+    const first = await readLegendaryChoice(room.base.stub)
+    const option = first?.options[0]
+    if (first?.ownerActorId !== FIRST_DRAGON_ID || !option)
+      throw new Error('Expected the first dragon’s Legendary option.')
+    await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+
+    // Settling the second window re-runs the first from its retained evidence, and the turn
+    // commits the burn once.
+    expect((await readLegendaryChoice(room.base.stub))?.ownerActorId).toBe(SECOND_DRAGON_ID)
+    await respond(room, { kind: 'DECLINE' })
+    expect(await readLegendaryChoice(room.base.stub)).toBeNull()
+
+    const after = await readRoomHistory(room.base.stub)
+    expect(readActorHitPoints(after, FIRST_DRAGON_ID)).toBe(
+      readActorHitPoints(before, FIRST_DRAGON_ID) - 2 * D8
+    )
+    expect(readActorHitPoints(after, WOLF_ID)).toBe(readActorHitPoints(before, WOLF_ID) - 10)
+    const receipt = after.receipts.find((candidate) => candidate.commandId === advanceId)
+    if (!receipt) throw new Error('The room holds no ADVANCE_TURN receipt.')
+    const result = parseReceiptExecution(receipt)
+    if (result.status !== 'INITIATIVE_COMPLETE')
+      throw new Error(`Expected an initiative receipt, got ${result.status}.`)
+    const [strike] = result.legendaryActions ?? []
+    if (strike?.resolution.kind !== 'EXECUTED') throw new Error('Expected the dragon’s strike.')
+    expect(strike.resolution.application).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+      d20: { resultPath: 'ON_HIT' },
+      meleeRetaliation: {
+        executions: [
+          {
+            candidate: {
+              candidate: {
+                effectId: testUuid(SHIELD_SEED),
+                sourceActorId: WOLF_ID,
+                targetActorId: FIRST_DRAGON_ID
+              }
+            },
+            applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 2 * D8 })]
+          }
+        ]
+      }
+    })
   })
 })

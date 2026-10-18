@@ -90,7 +90,8 @@ export function nativeConcentrationDamageSourceLabels(
 }
 /**
  * Each executed Legendary Action of a turn as one damage source against its target, named after
- * its option. A turn orders them between its outgoing and incoming turn effects.
+ * its option, then the zones its melee hit set off against the owner. A turn orders them between
+ * its outgoing and incoming turn effects.
  */
 export function legendaryActionDamage(
   actions: TurnCoordinatorRootDto['completedLegendaryActions']
@@ -102,15 +103,16 @@ export function legendaryActionDamage(
         resolution.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
     )
       return []
-    return [
-      {
-        targetActorId: resolution.application.targetActorId,
-        applications: resolution.application.applications,
-        sourceLabel:
-          choice.options.find((option) => option.optionId === resolution.selectedOptionId)?.label ??
-          null
-      }
-    ]
+    return nativeActionDamage({
+      targetActorId: resolution.application.targetActorId,
+      applications: resolution.application.applications,
+      sourceLabel:
+        choice.options.find((option) => option.optionId === resolution.selectedOptionId)?.label ??
+        null,
+      ...(resolution.application.meleeRetaliation
+        ? { meleeRetaliation: resolution.application.meleeRetaliation }
+        : {})
+    })
   })
 }
 

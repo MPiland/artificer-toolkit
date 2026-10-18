@@ -25,6 +25,7 @@ import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtim
 import { applyStagedLegendaryActionRefreshes } from '@artificer-toolkit/rules-runtime/encounterLegendaryActionDiscovery'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
+import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -50,6 +51,10 @@ import type {
   EncounterWritePorts
 } from './ports.js'
 import { persistEncounterActionEffects } from './actionEffectPersistence.js'
+import {
+  persistEncounterMeleeRetaliation,
+  readMeleeRetaliationScene
+} from './meleeRetaliationPersistence.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -72,6 +77,7 @@ export async function persistEncounterTurnResources(
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
+    readSceneTokens(sceneId: string): Promise<readonly SpatialSceneToken[]>
   }
 ): Promise<void> {
   const { state, root, occurrenceId, occurredAt, userId } = input
@@ -405,6 +411,30 @@ export async function persistEncounterTurnResources(
         [0, 1].filter((checkIndex) => legendaryAppCarded.has(2 * ordinal + checkIndex))
       )
     })
+    if (!application.meleeRetaliation) continue
+    // The zones the melee hit set off burn the owner after its charge is spent (D153), selected
+    // against the Run as the hit found it.
+    const initialActors = await Promise.all(
+      state.actorIds.map((actorId) => (actorId === targetActorId ? target : readActor(actorId)))
+    )
+    await persistEncounterMeleeRetaliation(
+      ctx,
+      {
+        state,
+        initialActors,
+        attacker: await readActor(ownerId),
+        scene: await readMeleeRetaliationScene(
+          ctx,
+          { state, attackerActorId: ownerId, hitActorId: targetActorId },
+          callbacks.readSceneTokens
+        ),
+        evidence: application.meleeRetaliation,
+        occurrenceId,
+        sourceCommandId: root.rootCommandId,
+        occurredAt
+      },
+      { applyMechanics: callbacks.applyMechanics }
+    )
   }
   if (legendaryRefreshes.length) {
     if (

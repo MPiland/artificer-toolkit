@@ -7720,7 +7720,7 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1e"]
               },
-              "text": "Cast-time area save on a zone-placing cast: each creature in the area when the zone appears makes the save once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each."
+              "text": "Cast-time area save on a zone-placing cast (D154 T1g amendment): the spell authors an ON_USE save path beside its zone manifest, run as the cast's area occurrence against the creatures in the aimed area, once, from core options. Covers every zone spell whose SRD text has that save (Insect Plague, Grease, Entangle, Wall of Fire, Wall of Thorns, Wind Wall and any other). For Entangle it is the only save, with the T1e restrained condition and escape. Proved on each."
             },
             {
               "id": "SPELLS-4.T2",
@@ -9224,27 +9224,53 @@
               "id": "SPELLS-20.T4d",
               "status": "TODO",
               "closes": ["SPELLS-20.1"],
-              "text": "Half speed inside a zone: a zone consumer of movement cost shared with terrain (shared pathing, Worker movement inputs, web movement preview), authored from core options; proved on Spirit Guardians.",
+              "text": "Half speed inside a zone, on SPELLS-4.T1b's zone movementCostMultiplier (D154): Spirit Guardians authors multiplier 2 for affected creatures only (the movement cost honors unaffected actors, the source and suppression), zone movement costs are projected in the session state, and the web movement preview uses them. Proved on Spirit Guardians.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 5,
                 "after": ["SPELLS-20.T4b2b2"]
               }
             },
             {
-              "id": "SPELLS-20.T5",
-              "text": "Paladin Aura of Protection as an authored source aura: allies in range add the paladin's Charisma modifier to saves while the paladin is conscious (30 ft at level 18).",
-              "status": "TODO",
               "closes": ["SPELLS-20.1"],
+              "status": "IN_PROGRESS",
+              "id": "SPELLS-20.T5a",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "text": "Occupant save-bonus aura contracts (D155): the every-saving-throw domain, a source ability modifier amount with a minimum, the occupantSaveBonus component and class-level radius scaling, compiled. The Paladin Aura of Protection is re-authored from core options with a parity proof, and CLOSED_RULE CLASS_PALADIN_AURA_OF_PROTECTION is deleted."
+            },
+            {
+              "closes": ["SPELLS-20.1"],
+              "status": "TODO",
+              "id": "SPELLS-20.T5b",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-20.T1b"]
-              }
+                "after": ["SPELLS-20.T5a"]
+              },
+              "text": "Character passive zones (D155): a Character class-feature PASSIVE zone is discovered and placed at START, REINFORCE and token bind, and suppressed while its Character source is unconscious."
+            },
+            {
+              "closes": ["SPELLS-20.1"],
+              "status": "TODO",
+              "id": "SPELLS-20.T5c",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-20.T5b"]
+              },
+              "text": "The save-time aura decorator (D155) on every save path: action, zone or spatial, recurring active effect and Concentration, for Character and Creature occupants. Room journey: an ally inside the paladin's aura saves with +CHA; outside it, or with the paladin at 0 HP, without; 30 ft at level 18."
             },
             {
               "id": "SPELLS-20.T6a",
@@ -9318,7 +9344,7 @@
             },
             {
               "id": "SPELLS-20.T6d2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-20.1"],
               "wsjf": {
                 "bv": 3,
@@ -9328,7 +9354,7 @@
                 "after": ["SPELLS-20.T6c"]
               },
               "text": "Melee-hit retaliation on opportunity attacks and Legendary Action attacks (D153): the same retaliation step in the movement-reaction and Legendary Action plans, with the roll stored in their retained evidence for replay, proved by room journeys on both paths.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Proofs: apps/session-worker/test/nativeRoomMeleeRetaliation.test.ts (Fire Shield answers an opportunity Bite), apps/session-worker/test/nativeRoomLegendary.test.ts (Legendary Tail burn replayed), packages/rules-runtime/src/__tests__/encounterMeleeRetaliation.test.ts (replay, stale evidence, missing die). Green: ci/spells-20-t6d2b f12d2207a Tests 39118481981, Live 39118481975; phase merge 4b8a92175 (fast path; backstop ci/merge-m105)."
             }
           ],
           "activeWorkbook": "docs/handoffs/slice-spells-20.md"

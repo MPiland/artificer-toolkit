@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { meleeRetaliationEvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 
 import {
+  meleeRetaliationCharacterTransition,
   planEncounterMeleeRetaliation,
   selectMeleeRetaliationContacts
 } from '../encounterMeleeRetaliation.js'
@@ -64,7 +65,13 @@ const shield = (seed: number, kind: 'WARM' | 'CHILL' = 'WARM') =>
 const select = (effects: ReturnType<typeof shield>[], x = CASTER_AT.x + 100) =>
   selectMeleeRetaliationContacts({ actors, attacker: attackerAt(x), hit, effects })
 const state = srdEncounterState({ actors, currentActorId: GOBLIN_ID })
-function plan(selected: NonNullable<ReturnType<typeof select>>) {
+function plan(
+  selected: NonNullable<ReturnType<typeof select>>,
+  replay: Pick<Parameters<typeof planEncounterMeleeRetaliation>[0], 'random' | 'retained'> = {
+    // The lowest face: each d8 rolls 1.
+    random: () => 0
+  }
+) {
   return planEncounterMeleeRetaliation({
     selected,
     attacker: srdCreatureTarget(goblin),
@@ -74,9 +81,11 @@ function plan(selected: NonNullable<ReturnType<typeof select>>) {
     occurredAt: TIMESTAMP,
     userId: GM_USER_ID,
     runtime,
-    // The lowest face: each d8 rolls 1.
-    random: () => 0
+    ...replay
   })
+}
+const noFreshDice = () => {
+  throw new Error('A replay must roll no fresh die.')
 }
 
 describe('a melee hit setting off the zones its target holds (SPELLS-20 T6d2a, D153)', () => {
@@ -132,5 +141,44 @@ describe('a melee hit setting off the zones its target holds (SPELLS-20 T6d2a, D
     expect(settlement?.plan.targetTransition.after.currentHitPoints).toBe(
       first!.targetTransition.before.currentHitPoints - 4
     )
+  })
+
+  it('leaves a Creature attacker’s burn without a Character span', async () => {
+    const { evidence } = await plan(select([shield(0x3c0)])!)
+    expect(meleeRetaliationCharacterTransition(evidence)).toBeNull()
+  })
+})
+
+describe('a retained melee retaliation replayed by a later run (SPELLS-20 T6d2b, D153)', () => {
+  it('rebuilds the same evidence from its recorded dice', async () => {
+    const selected = select([shield(0x3c0), shield(0x3c9, 'CHILL')])!
+    const planned = await plan(selected, { random: (maximum) => maximum - 1 })
+    const replayed = await plan(selected, { random: noFreshDice, retained: planned.evidence })
+    expect(replayed.evidence).toEqual(planned.evidence)
+    expect(replayed.settlement?.plan.targetTransition.after).toEqual(
+      planned.settlement?.plan.targetTransition.after
+    )
+  })
+
+  it('refuses evidence that no longer matches the zones the hit selects', async () => {
+    const zone = shield(0x3c0)
+    const { evidence } = await plan(select([zone])!)
+    await expect(
+      plan(select([{ ...zone, version: zone.version + 1 }])!, {
+        random: noFreshDice,
+        retained: evidence
+      })
+    ).rejects.toThrow('Retained melee retaliation evidence is stale.')
+  })
+
+  it('refuses evidence that recorded fewer dice than the replay rolls', async () => {
+    const selected = select([shield(0x3c0), shield(0x3c9, 'CHILL')])!
+    const { evidence } = await plan(selected)
+    await expect(
+      plan(selected, {
+        random: noFreshDice,
+        retained: { ...evidence, executions: evidence.executions.slice(0, 1) }
+      })
+    ).rejects.toThrow('Retained melee retaliation evidence is missing a recorded die.')
   })
 })

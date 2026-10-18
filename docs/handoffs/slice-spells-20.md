@@ -233,11 +233,21 @@ Docs updated by the tasks that change them: `rules-runtime.md` (zone seam), `per
 - Receipt: `applicationOutputs.meleeRetaliation` on both mechanics batches (`meleeRetaliationEvidenceDtoSchema`: selection checksum, per-zone candidate, applications and target transition). `meleeRetaliationPersistence.ts` re-derives the selection from the locked Scene and the action's pinned tokens and refuses a stale one; it pins a Character attacker's stream version. An action planned with no retaliation relies on the Run version check, since every zone placement is a Run command. Undo restores a Creature attacker's hit points and refuses for a Character attacker, as other cross-actor Character writes do.
 - Placement: `retaliatesMeleeHits` is persisted on the placement. `sourceGrant` is applied at placement: the worker prepares the caster's timed grant through `prepareRecurringActiveEffect` (`prepareNativeZoneSourceGrantEffect`) and carries it as the area commit's `zoneSourceGrant`; the area root's receipt records it as `sourceGrantTransition` (source only, and only with a placed zone). Persistence checks owner, origin, system and receipt projection before creating it; undo deletes it before the zone.
 - CLOSED_RULE `FIRE_SHIELD` is deleted.
-- Remaining (T6d2b): retaliation on opportunity attacks and Legendary Action attacks.
+- Remaining (T6d2b): retaliation on opportunity attacks and Legendary Action attacks (done below).
 - Proofs:
   - `encounterMeleeRetaliation.test.ts`: selection inside and beyond the shield, the checksum pinning zone version and tokens, system-rolled 2d8 with the attacker's one batch, and two shields applied in effect-id order.
   - `vtt-spatial.test.ts`, `spatial-contracts.test.ts`: contact collection and the receipt contract.
   - `nativeRoomMeleeRetaliation.test.ts` (room): a Wolf biting the Balor takes 3d6 fire; a Goblin's Scimitar hit on a warm Fire Shield caster takes 2d8 fire and undo restores it; its Shortbow hit takes nothing; the cast grants the caster its resistance.
+
+### T6d2b (melee-hit retaliation on opportunity and Legendary Action attacks, D153)
+
+- Opportunity attacks: `planReaction` (`encounterMovementActionResponse.ts`) runs the same step after a melee reaction hits, with the mover's token at the reaction's contact (`option.candidate.contact`) and the reactor as attacker; the evidence is the reaction application's `meleeRetaliation`. A staged response replays it from that evidence (`retained`). `liveMovementReactionPersistence.ts` re-derives the selection from the locked Scene with the mover at the contact and writes the reactor's batch; the settlement counts the reactor among the damaged actors. The reactor's Character span is appended beside the reaction's own (`encounterMovementChangedAggregates.ts`), so the reaction's `characterTransitions` stay its own.
+- Legendary Actions: `prepareTurnLegendaryActions` takes an optional `meleeRetaliation` port; the worker binds it to the bound Scene's tokens and zones (`nativeEncounterTurnPreparation.ts`). The owner's retaliation is planned against the Run as the hit found it, carried on the window's `application.meleeRetaliation`, and replayed exactly from that evidence on every later run of the coordinator (a later window's answer re-runs the earlier ones); a retained window whose replay plans no retaliation is stale. Concentration damage to the owner goes through `legendaryActionDamage`. `turnResourcesPersistence.ts` writes the owner's batch after its charge.
+- `planEncounterMeleeRetaliation` replays recorded faces (`spatialExecutionRecordedFaces`) and refuses evidence that differs or leaves a die unused.
+- Proofs:
+  - `encounterMeleeRetaliation.test.ts`: a replay rebuilds the same evidence with no fresh die; an edited zone or missing recorded die is refused; a Creature attacker has no Character span.
+  - `nativeRoomMeleeRetaliation.test.ts` (room): a Wolf whose opportunity Bite hits a mover holding a warm Fire Shield takes 2d8 fire, recorded on the reaction.
+  - `nativeRoomLegendary.test.ts` (room): a dragon whose Legendary Tail hits a shielded Wolf takes 2d8 fire; the second dragon's declined window replays the first window and the burn is not applied twice.
 
 #### Zone table: SRD zones with turn-start/end text (static audit, 2026-10-17)
 
