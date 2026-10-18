@@ -136,7 +136,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
-    z.strictObject({ kind: z.literal('CLEAVING_BINDINGS') }),
+    z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
@@ -285,7 +285,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       result: z.nullable(encounterCommandResultDtoSchema)
     }),
     z.strictObject({
-      kind: z.literal('CLEAVING_BINDINGS'),
+      kind: z.literal('ACTOR_TOKEN_BINDINGS'),
       revisions: liveSessionRulesRevisionsSchema,
       bindings: z
         .array(

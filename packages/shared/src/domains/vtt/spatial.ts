@@ -18,8 +18,11 @@ export type SpatialAnchorKind = 'FIXED' | 'TOKEN'
 type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
 export type SpatialMovementKind = 'VOLUNTARY' | 'FORCED' | 'TELEPORT'
 export type SpatialTriggerMode = 'ENTER' | 'EXIT' | 'CROSS'
-/** The turn boundary at which a creature standing in an effect is caught. */
-export type SpatialTurnTrigger = 'START_OF_TURN' | 'END_OF_TURN'
+/**
+ * The turn boundary at which a creature standing in an effect is caught: the start or end of its
+ * own turn, or the start of the effect source's turn.
+ */
+export type SpatialTurnTrigger = 'START_OF_TURN' | 'END_OF_TURN' | 'START_OF_SOURCE_TURN'
 
 export type SpatialGeometry =
   | {

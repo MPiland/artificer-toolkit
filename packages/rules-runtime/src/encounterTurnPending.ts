@@ -243,8 +243,7 @@ export function projectNativeTurnPending(
     const candidate = context.currentCandidate
     if (
       input.snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
-      input.snapshot.occurrenceId !== input.occurrenceId ||
-      !candidate.d20Policy
+      input.snapshot.occurrenceId !== input.occurrenceId
     )
       throw new Error('Zone evidence is unavailable.')
     const identity = {
@@ -255,7 +254,7 @@ export function projectNativeTurnPending(
     }
     const { request } = input.snapshot
     return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(
-      candidate.diceStage
+      !candidate.d20Policy || candidate.diceStage
         ? {
             ...identity,
             kind: 'ACTION_OUTCOME_EVIDENCE',

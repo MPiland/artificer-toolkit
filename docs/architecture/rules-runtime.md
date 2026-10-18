@@ -410,8 +410,24 @@ unmodeled field, a save DC other than fixed, an end event the System never reads
 `NOT_NORMALIZED`. The component's `interactionKinds` (a non-empty list; there is no single-kind field) pick what catches a
 creature (`zoneTriggers`): `ENTER_SPACE` is ENTER (the path ends inside), `MOVE_ACROSS` is CROSS, and
 `ENTER_OR_PASS_THROUGH` is both (`triggerModes`); `START_TURN_IN_SPACE` and `END_TURN_IN_SPACE` are the
-placement's `turnTriggers` `START_OF_TURN` and `END_OF_TURN`, in that order. A zone may have either set or both;
-a kind the System does not model keeps the whole zone manual. `collectSpatialTurnCandidates` (shared/vtt) is the
+placement's `turnTriggers` `START_OF_TURN` and `END_OF_TURN`, and `START_OF_SOURCE_TURN` (D144) is the
+`START_OF_SOURCE_TURN` turn trigger, in that order (`SPATIAL_TURN_TRIGGERS`). A zone may have either set or both;
+a kind the System does not model keeps the whole zone manual. A zone outcome may have no save (D144, SPELLS-20
+T6a): a behavior whose invocation is not `SAVING_THROW` and whose entries are `ON_USE` damage compiles, through
+`unsavedZonePlacementPlan`, to one unmodified damage dice row dealt in full: a frozen graph of plain
+`evidence.integer-range` dice and a `proposal-on_use` node, no d20 or `test` node, no adapter facts and no pinned
+DC. It acts only at turn boundaries (a movement trigger, a halved or modified roll, a stop or any other outcome is
+refused), since only the turn path answers dice with no d20 policy: `isDamageDieRequest` accepts a plain integer
+range, the executor resumes a damage die with `d20: null` when the effect has no policy, and
+`awaitsSpatialDamageDice` routes those dice to the zone's source as roller.
+The turn stage (`selectTurnZoneContacts`) gathers contacts over every bound token: the boundary creature's own
+zones at its boundary, and, at the start of its turn, each other creature standing in a zone it is the source of
+that acts at `START_OF_SOURCE_TURN`. Contacts run in canonical zone turn order (`followsInZoneTurnOrder`: target
+actor id, then effect id), each creature gets its own execution through the existing candidate, execution and
+persistence path, and the stored zone phase holds one chained mechanics batch per caught creature (at most
+`MAX_ENCOUNTER_ACTORS` transitions). `persistEncounterTurnZoneEffects` reads the Scene's token bindings through
+`readEncounterActorTokenBindings` (the `ACTOR_TOKEN_BINDINGS` capture on the Worker) and settles caught creatures
+in the order a spatial prefix does (`orderSpatialSettlementActors`: Characters by source id, then creatures by id). `collectSpatialTurnCandidates` (shared/vtt) is the
 containment seam for turn triggers: it applies `spatialEffectAffects` and the per-turn limit, as movement does.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch

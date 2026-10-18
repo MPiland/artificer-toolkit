@@ -33,7 +33,7 @@ import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { readBasicActionScopeAdmission } from '@artificer-toolkit/encounter-persistence/basicActionScopeAdmission'
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
-import { readEncounterCleavingBindings } from '@artificer-toolkit/encounter-persistence/cleavingSceneInputs'
+import { readEncounterActorTokenBindings } from '@artificer-toolkit/encounter-persistence/actorTokenBindings'
 import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs
@@ -449,7 +449,7 @@ export async function readRoomEncounterTurnCapture(
       appRoll: movementAdmission.appRoll,
       save: movementAdmission.save,
       header: movementAdmission.header,
-      bindings: await readEncounterCleavingBindings(ctx, state, movementAdmission.header.id)
+      bindings: await readEncounterActorTokenBindings(ctx, state, movementAdmission.header.id)
     }
   } else if (request.kind === 'INPUTS') {
     response = {
@@ -457,10 +457,10 @@ export async function readRoomEncounterTurnCapture(
       state,
       system: await ctx.ports.requireSystem(state.gameSystemId)
     }
-  } else if (request.kind === 'CLEAVING_BINDINGS') {
+  } else if (request.kind === 'ACTOR_TOKEN_BINDINGS') {
     response = {
-      kind: 'CLEAVING_BINDINGS',
-      bindings: await readEncounterCleavingBindings(ctx, state)
+      kind: 'ACTOR_TOKEN_BINDINGS',
+      bindings: await readEncounterActorTokenBindings(ctx, state)
     }
   } else if (request.kind === 'ACTION_SCENE') {
     const actorId = request.command.actorId.toLowerCase()

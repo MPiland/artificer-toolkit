@@ -215,6 +215,10 @@ The user cut these from pre-alpha scope for time to market (D145 amendment). The
 - **QUALITY-3.T1c2 (lint).** Root-barrel ban: codemod the 1,072 root @artificer-toolkit/schema and @artificer-toolkit/shared imports in non-test code to their narrow subpaths, then make the root barrel import a lint error.
 - **QUALITY-3.T1d (lint).** Large-file flag (D145): a non-test file over 1,500 lines fails lint unless it is in a reviewed allowlist. Each of the 18 current files gets a responsibility review: split at a real seam, or stays allowlisted with a one-line reason. The allowlist may only shrink.
 
+### Pit Fiend Fear Aura as a passive zone (D147)
+
+The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELLS-20.T6b) needs four generic zone options: a placement filter by disposition relative to the source, a zone condition that ends at the start of the target's next turn, per-zone, per-target immunity for the rest of the Encounter after a made save, and suppression while the source is incapacitated (generalizing the defeated rule).
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.

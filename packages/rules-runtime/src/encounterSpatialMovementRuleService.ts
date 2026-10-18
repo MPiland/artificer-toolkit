@@ -973,7 +973,7 @@ async function resumeSpatial(input: {
   random: (maxExclusive: number) => number
 }): Promise<{
   result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
-  d20: SpatialD20Roll
+  d20: SpatialD20Roll | null
 }> {
   const {
     optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,

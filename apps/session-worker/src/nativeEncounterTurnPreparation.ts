@@ -122,6 +122,15 @@ export function createNativeLiveTurnStages(
             sceneVersion: loaded.version,
             definitionSaveId: loaded.definitionSaveId
           })
+          // A zone acting at its source's turn catches every creature token in the Scene (D144).
+          const bindings = await capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
+          if (
+            bindings.kind !== 'ACTOR_TOKEN_BINDINGS' ||
+            !bindings.bindings.some(
+              (binding) => binding.actorId === actorId && binding.tokenId === loaded.subjectTokenId
+            )
+          )
+            throw new Error('Turn zone token bindings are unavailable.')
           return {
             effects: await readNativeLiveSpatialEffects({
               encounterId: state.id,
@@ -130,7 +139,9 @@ export function createNativeLiveTurnStages(
               capture
             }),
             tokens: loaded.scene.tokens,
-            actorIdByTokenId: new Map([[loaded.subjectTokenId, actorId]])
+            actorIdByTokenId: new Map(
+              bindings.bindings.map((binding) => [binding.tokenId, binding.actorId])
+            )
           }
         },
         loadTarget,
