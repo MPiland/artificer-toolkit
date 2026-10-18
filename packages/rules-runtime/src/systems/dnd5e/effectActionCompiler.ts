@@ -2807,11 +2807,11 @@ function repeatingDirectFollowUpSavePlan(
       ? conditionDurationTurns(leadEntry.duration)
       : null
   const pinnedDc = pinnedSaveDc(save.savingThrow)
-  const grantContribution =
+  const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
       ? modifierGrantEntryPlan({ action, entry: leadEntry, attack: false, untilEndEvent: false })
-          ?.modifierGrantContribution
-      : undefined
+      : null
+  const grantContribution = grantPlan?.modifierGrantContribution
   const contribution =
     lead.effectKind === 'CONDITION' &&
     UUID.test(lead.conditionId) &&
@@ -2825,8 +2825,11 @@ function repeatingDirectFollowUpSavePlan(
             }
           ]
         }
-      : grantContribution
-        ? { modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true } }
+      : grantPlan && grantContribution
+        ? {
+            tickAnchor: grantPlan.tickAnchor,
+            modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
+          }
         : null
   if (
     !contribution ||

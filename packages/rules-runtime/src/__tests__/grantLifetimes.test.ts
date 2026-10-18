@@ -31,6 +31,7 @@ import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
+import { youngGoldDragon } from '@artificer-toolkit/source-data/srd/creatures/young-gold-dragon.js'
 import {
   SRD_CONCENTRATION_DEFINITIONS,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
@@ -320,6 +321,22 @@ describe('grant plans', () => {
       initialRemaining: 1,
       tickAnchor: 'SOURCE'
     })
+  })
+
+  it('keeps a source anchor on a grant its holder repeats a save against (Weakening Breath)', () => {
+    const breath = youngGoldDragon.features
+      ?.find(({ label }) => label.startsWith('Breath Weapons'))
+      ?.effects?.find(({ paths }) =>
+        paths.some(
+          (path) =>
+            path.selectionKind === 'FIXED' &&
+            path.resultBlock.outcomes.some(({ effectKind }) => effectKind === 'FOLLOW_UP_SAVE')
+        )
+      )
+    if (!breath) throw new Error('The Young Gold Dragon has no Weakening Breath.')
+    expect(
+      srdPlan(breath, { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } })
+    ).toMatchObject({ frozenGraphNodeId: 'repeat-save-test', tickAnchor: 'SOURCE' })
   })
 })
 
