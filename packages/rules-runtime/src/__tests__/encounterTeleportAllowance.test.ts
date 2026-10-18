@@ -28,7 +28,9 @@ function authoredEffect(spell: { effects?: readonly object[] }) {
   return effect
 }
 
-function teleportFeature(creature: { features: readonly { label: string }[] }) {
+function teleportFeature<Feature extends { label: string }>(creature: {
+  features: readonly Feature[]
+}) {
   const feature = creature.features.find(({ label }) => label === 'Teleport')
   if (!feature) throw new Error('The creature has no Teleport feature.')
   return feature
