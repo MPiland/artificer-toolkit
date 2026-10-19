@@ -416,10 +416,10 @@ export function encounterAttackAgainstContributors(input: {
   const fromEffects = listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) => {
     const effect = effects.find(({ id }) => id === effectId)
     const eventScope = effect ? effectEventScope(effect, holderActorId) : null
+    if (eventScope === null) return []
     return modifiers.flatMap((modifier) => {
       const entry =
         modifier.scope !== 'GLOBAL' ||
-        eventScope === null ||
         !holderStateRestrictionsHold(modifier.restrictions, holderState)
           ? null
           : attacksAgainstEntry(modifier, (influence) =>
