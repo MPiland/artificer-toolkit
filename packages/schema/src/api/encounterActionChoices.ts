@@ -159,6 +159,20 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
       ])
     ),
     /**
+     * Present when the held creatures fill the hands the action's carried weapon needs to be drawn:
+     * the actor must release one of these holds (the existing RELEASE_RELATIONSHIP, free) before
+     * the attack, and the room refuses the attack until it does. Absent when the weapon draws
+     * itself, needs no draw, or the action is refused for another reason.
+     */
+    handRelease: z.optional(
+      z.strictObject({
+        holds: z
+          .array(z.strictObject({ activeEffectId: postgresUuidSchema, heldActorId: postgresUuidSchema }))
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+    ),
+    /**
      * Soft-rule warnings that already apply before a target is chosen (no allowance left, item not
      * equipped, not enough uses). The drawer shows the action dimmed with these reasons; resolving it
      * still asks "Do it anyway".

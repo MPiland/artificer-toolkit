@@ -15,6 +15,7 @@ import {
   nextEquipSlot,
   promotesOffHandItem,
   swapHeldItems,
+  type HandSlotCode,
   type HeldItem
 } from '@artificer-toolkit/shared/core'
 
@@ -255,6 +256,25 @@ export function unequipCharacterItem(
       }
     }
   })
+}
+
+/** Equips a carried item into a hand the caller has already chosen (an attack's draw, D107). */
+export function drawCharacterItem(
+  character: CharacterAuthored,
+  itemId: string,
+  slot: HandSlotCode
+): CharacterAuthored {
+  ensureInventoryItem(character, itemId)
+  return {
+    ...character,
+    state: {
+      ...character.state,
+      equipment: {
+        ...character.state.equipment,
+        equipped: [...character.state.equipment.equipped, { itemId, slot }]
+      }
+    }
+  }
 }
 
 export function updateSpellSlotUsage(

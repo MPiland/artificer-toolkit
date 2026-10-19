@@ -44,7 +44,8 @@ import {
   encounterActionEconomyTransitionDtoSchema,
   encounterAreaActionApplicationOutputDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema,
-  escapeCheckApplicationOutputDtoSchema
+  escapeCheckApplicationOutputDtoSchema,
+  sourceItemDrawDtoSchema
 } from './ruleExecutionEncounterApplications.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
@@ -98,6 +99,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
+      /** The carried weapon the source's attack drew into a hand; undo puts it back. */
+      sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
       /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
       targetItemUseStateTransition: z._default(
@@ -471,11 +474,13 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           value.targetTransition.before.conditionIds.length !==
             value.targetTransition.after.conditionIds.length
         const stow = value.sourceItemUseStateTransition
+        const draw = value.sourceItemDraw
         const consumption = value.sourceItemConsumption
         const spell = value.spellCastConsumption
         const hasSourceMutation =
           value.resourceConsumption !== null ||
           stow !== null ||
+          draw?.kind === 'CHARACTER_ITEM_DRAW' ||
           consumption !== null ||
           spell !== null ||
           sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
@@ -539,6 +544,23 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['sourceItemUseStateTransition'],
             message: 'Source item state transition must match the source Character version.'
+          })
+        if (
+          draw &&
+          (draw.kind === 'CHARACTER_ITEM_DRAW'
+            ? value.sourceCharacterId === null ||
+              draw.characterId !== value.sourceCharacterId ||
+              stow !== null ||
+              draw.afterStreamVersion !==
+                (value.sourceActorId === value.targetActorId
+                  ? value.targetCharacterStreamVersion
+                  : value.sourceCharacterStreamVersion)
+            : draw.actorId !== value.sourceActorId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemDraw'],
+            message: 'Source item draw must match the source and its version.'
           })
         if (
           value.targetCharacterStreamVersion !==

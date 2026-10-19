@@ -320,6 +320,62 @@ export type CharacterItemUseStateTransitionDto = z.infer<
   typeof characterItemUseStateTransitionDtoSchema
 >
 
+/**
+ * A Character's carried weapon an attack drew into a hand (D107): the Character version that
+ * equipped it, with the equipment checksums either side. Undo takes the weapon back to carried.
+ */
+export const characterItemDrawTransitionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('CHARACTER_ITEM_DRAW'),
+      characterId: uuidSchema,
+      itemInstanceId: uuidSchema,
+      slot: z.enum(['MAIN_HAND', 'OFF_HAND']),
+      beforeStreamVersion: aggregateVersionSchema,
+      afterStreamVersion: aggregateVersionSchema,
+      beforeStateChecksum: checksumSchema,
+      afterStateChecksum: checksumSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (
+          value.afterStreamVersion !== value.beforeStreamVersion + 1 ||
+          value.beforeStateChecksum === value.afterStateChecksum
+        )
+          context.addIssue({ code: 'custom', message: 'Character item draw is invalid.' })
+      })
+    )
+)
+
+/** A Creature's carried loadout weapon an attack drew into a hand (D107). */
+export const encounterActorItemDrawTransitionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_ACTOR_ITEM_DRAW'),
+      actorId: uuidSchema,
+      loadoutEntryId: uuidSchema,
+      equipmentId: uuidSchema,
+      slot: z.enum(['MAIN_HAND', 'OFF_HAND']),
+      beforeStateChecksum: checksumSchema,
+      afterStateChecksum: checksumSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.beforeStateChecksum === value.afterStateChecksum)
+          context.addIssue({ code: 'custom', message: 'Creature item draw is invalid.' })
+      })
+    )
+)
+
+/** The weapon the source's attack drew into a hand: a Character's equip, or a Creature's loadout. */
+export const sourceItemDrawDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    characterItemDrawTransitionDtoSchema,
+    encounterActorItemDrawTransitionDtoSchema
+  ])
+)
+export type SourceItemDrawDto = z.infer<typeof sourceItemDrawDtoSchema>
+
 /** One single-use item used up by an Assisted action: the holder's quantity falls by one. */
 export type CharacterItemConsumptionReceiptDto = {
   characterId: string
@@ -467,6 +523,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
+      /** The carried weapon the source's attack drew into a hand; undo puts it back. */
+      sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
       /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
       targetItemUseStateTransition: z._default(
@@ -833,6 +891,21 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             path: ['sourceItemUseStateTransition'],
             message: 'Source item state transition must match the source Character version.'
           })
+        const draw = value.sourceItemDraw
+        if (
+          draw &&
+          (draw.kind === 'CHARACTER_ITEM_DRAW'
+            ? value.sourceCharacterId == null ||
+              draw.characterId !== value.sourceCharacterId ||
+              stow !== null ||
+              draw.afterStreamVersion !== value.sourceCharacterStreamVersion
+            : draw.actorId !== value.sourceActorId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemDraw'],
+            message: 'Source item draw must match the source and its version.'
+          })
         const consumption = value.sourceItemConsumption
         if (
           consumption &&
@@ -1174,6 +1247,7 @@ export const sourceSpendReceiptShape = () => ({
   resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
   featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
   sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
+  sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
   sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
   spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
   actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
@@ -1185,6 +1259,7 @@ export type SourceSpendReceipts = Pick<
   | 'resourceConsumption'
   | 'featureResourceConsumption'
   | 'sourceItemUseStateTransition'
+  | 'sourceItemDraw'
   | 'sourceItemConsumption'
   | 'spellCastConsumption'
   | 'actionEconomyTransition'
@@ -1211,12 +1286,17 @@ export function validateSourceSpendReceipts(
       message: 'Resource receipt is invalid.'
     })
   const stow = value.sourceItemUseStateTransition
+  const draw = value.sourceItemDraw
   const consumption = value.sourceItemConsumption
   const spell = value.spellCastConsumption
   if (
     (stow &&
       (stow.characterId !== value.sourceCharacterId ||
         stow.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
+    (draw?.kind === 'CHARACTER_ITEM_DRAW' &&
+      (draw.characterId !== value.sourceCharacterId ||
+        draw.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
+    (draw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW' && draw.actorId !== value.sourceActorId) ||
     (consumption && consumption.characterId !== value.sourceCharacterId) ||
     (spell && spell.characterId !== value.sourceCharacterId)
   )

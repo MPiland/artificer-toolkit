@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   nextEquipSlot,
+  planHandDraw,
   promotesOffHandItem,
   resolveHandOccupancy,
   swapHeldItems,
@@ -175,6 +176,60 @@ describe('Character hand swap', () => {
     expect(swapHeldItems([held('greatclub', 'MAIN_HAND', true)])).toEqual({
       conflict: 'TWO_HANDED_IN_OFF_HAND'
     })
+  })
+})
+
+describe('hand draw plan', () => {
+  it('draws into the main hand, then the off hand, while a hand is free', () => {
+    expect(planHandDraw({ id: 'axe', twoHanded: false }, [], 0)).toEqual({
+      kind: 'DRAW',
+      slot: 'MAIN_HAND'
+    })
+    expect(
+      planHandDraw({ id: 'dagger', twoHanded: false }, [item('sword', 'MAIN_HAND')], 0)
+    ).toEqual({ kind: 'DRAW', slot: 'OFF_HAND' })
+  })
+
+  it('draws nothing when items fill the hands: swaps stay free', () => {
+    expect(
+      planHandDraw(
+        { id: 'axe', twoHanded: false },
+        [item('sword', 'MAIN_HAND'), item('shield', 'OFF_HAND')],
+        0
+      )
+    ).toEqual({ kind: 'NO_HAND' })
+  })
+
+  it('counts a held creature as occupying a hand', () => {
+    expect(planHandDraw({ id: 'axe', twoHanded: false }, [], 1)).toEqual({
+      kind: 'DRAW',
+      slot: 'MAIN_HAND'
+    })
+    expect(
+      planHandDraw({ id: 'dagger', twoHanded: false }, [item('sword', 'MAIN_HAND')], 1)
+    ).toEqual({ kind: 'RELEASE_REQUIRED', slot: 'OFF_HAND' })
+    expect(planHandDraw({ id: 'axe', twoHanded: false }, [], 2)).toEqual({
+      kind: 'RELEASE_REQUIRED',
+      slot: 'MAIN_HAND'
+    })
+  })
+
+  it('needs both hands for a two-handed weapon', () => {
+    expect(planHandDraw({ id: 'maul', twoHanded: true }, [], 0)).toEqual({
+      kind: 'DRAW',
+      slot: 'MAIN_HAND'
+    })
+    expect(planHandDraw({ id: 'maul', twoHanded: true }, [], 1)).toEqual({
+      kind: 'RELEASE_REQUIRED',
+      slot: 'MAIN_HAND'
+    })
+    expect(planHandDraw({ id: 'maul', twoHanded: true }, [], 2)).toEqual({
+      kind: 'RELEASE_REQUIRED',
+      slot: 'MAIN_HAND'
+    })
+    expect(
+      planHandDraw({ id: 'maul', twoHanded: true }, [item('shield', 'OFF_HAND')], 0)
+    ).toEqual({ kind: 'NO_HAND' })
   })
 })
 

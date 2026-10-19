@@ -16,10 +16,15 @@ type EncounterWieldConflict =
 
 /**
  * Whether an action path asks its submitter about wield conflicts. Only a directly resolved
- * action prompts; unprompted paths (declared, reactive and follow-up attacks) never stow.
+ * action prompts; unprompted paths (declared, reactive and follow-up attacks) never stow or draw.
+ * `handHolds` is how many of the actor's hands the creatures it holds fill, which a draw needs.
  */
 export type EncounterWieldConflictAcceptance =
-  | { kind: 'PROMPTED'; accepted: EncounterAcceptedWieldConflictDto | null }
+  | {
+      kind: 'PROMPTED'
+      accepted: EncounterAcceptedWieldConflictDto | null
+      handHolds: number
+    }
   | { kind: 'UNPROMPTED' }
 
 /** The item an accepted wield conflict stows: the shield, or the held weapon (D152). */
