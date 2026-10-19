@@ -2,9 +2,20 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-18 (Q25 answered).
+> Updated: 2026-10-18 (Q26 added).
 
 ## Open
+
+### Q26 (2026-10-18) Model the core "two sizes apart" rule for moving through hostile creatures?
+
+**Context:** SPELLS-33.T6k1 found that the engine never lets a mover pass through a hostile creature's space by size: today a crossing offers only an Overrun or Tumble contest (when neither can be offered the crossing is currently free, a bug T6k1 fixes by refusing it). The core 5e rule lets a creature move through a hostile space when the other creature is at least two sizes larger or smaller. T6k1 adds a `MOVEMENT_PASSAGE` modifier grant (Halfling Nimbleness, Incorporeal Movement, Air/Water Form), so the rule could be authored as a System default through the same grant. No acceptance criterion covers it.
+
+**Options:**
+
+- A (recommended): register a MOVE PBI, "Movers pass hostile creatures two or more sizes apart", authored as a System default `MOVEMENT_PASSAGE` grant with a parity proof, after T6k1 merges (size 2). Players moving past a much bigger or smaller enemy is common at the table.
+- B: leave it to the GM until after beta, recorded in future-enhancements.
+
+**Answer:**
 
 ### Q25 (2026-10-18) Convert class, race and creature closed rules before alpha?
 
