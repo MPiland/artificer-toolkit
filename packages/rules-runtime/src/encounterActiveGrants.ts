@@ -125,7 +125,8 @@ export function withCharacterActiveGrants(
 export function withCreatureActiveGrantSaves(
   savingThrowDefinitions: readonly unknown[],
   holderActorId: string,
-  effects: readonly ActiveRuleEffectRecord[]
+  effects: readonly ActiveRuleEffectRecord[],
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
 ): unknown[] {
   const scoped = new Map<
     string,
@@ -136,36 +137,50 @@ export function withCreatureActiveGrantSaves(
     }
   >()
   const plain = new Map<string, EncounterRelationshipD20Contributor[]>()
-  for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
-      const { domain } = modifier
-      const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
-      const { conditionTypeId } = domain
-      if (
-        (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
-        modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
-        abilityDefinitionId === undefined ||
-        modifier.scope !== 'GLOBAL'
-      )
-        continue
-      const contributor: EncounterRelationshipD20Contributor = activeGrantContributor(
-        effectId,
-        holderActorId,
-        modifier.grantId,
-        modifier.modifierKind
-      )
-      if (conditionTypeId !== undefined) {
-        const key = `${abilityDefinitionId}:${conditionTypeId}`
-        const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
-        entry.contributors.push(contributor)
-        scoped.set(key, entry)
-      } else if (
-        domain.ruleDefinitionId === undefined &&
-        !hasHolderStateRestriction(modifier.restrictions) &&
-        !dnd5eSaveRequiresSourceSight(modifier)
-      ) {
-        plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
-      }
+  const grants = [
+    ...listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
+      modifiers.map((modifier) => ({
+        modifier,
+        restrictions: modifier.restrictions,
+        contributor: (influence: EncounterRelationshipD20Contributor['influence']) =>
+          activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
+      }))
+    ),
+    ...featureModifiers.map((modifier) => ({
+      modifier,
+      restrictions: modifier.deferredRequirements,
+      contributor: (influence: EncounterRelationshipD20Contributor['influence']) => ({
+        sourceId: modifier.sourceId,
+        grantId: modifier.grantId,
+        domainKey: modifier.domainKey,
+        influence,
+        source: rollModeContributorSourceOfMechanicSource(modifier.source, holderActorId)
+      })
+    }))
+  ]
+  for (const { modifier, restrictions, contributor: contributorOf } of grants) {
+    const { domain } = modifier
+    const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
+    const { conditionTypeId } = domain
+    if (
+      (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
+      modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
+      abilityDefinitionId === undefined ||
+      modifier.scope !== 'GLOBAL'
+    )
+      continue
+    const contributor = contributorOf(modifier.modifierKind)
+    if (conditionTypeId !== undefined) {
+      const key = `${abilityDefinitionId}:${conditionTypeId}`
+      const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
+      entry.contributors.push(contributor)
+      scoped.set(key, entry)
+    } else if (
+      domain.ruleDefinitionId === undefined &&
+      !hasHolderStateRestriction(restrictions) &&
+      !dnd5eSaveRequiresSourceSight(modifier)
+    ) {
+      plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
     }
   }
   const rows = [

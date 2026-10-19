@@ -48,18 +48,10 @@ export const deathDog: CreatureAuthored = {
       label: 'Two-Headed',
       description:
         'Two-Headed. The dog has advantage on Wisdom (Perception) checks and on saving throws against being blinded, charmed, deafened, frightened, stunned, or knocked unconscious.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(77, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(77, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEATH_DOG_TWO_HEADED
-        })
-      ],
+      grants: S.advantageGrants(77, 1, {
+        skills: ['PERCEPTION'],
+        savesAgainst: ['BLINDED', 'CHARMED', 'DEAFENED', 'FRIGHTENED', 'STUNNED', 'UNCONSCIOUS']
+      }),
       order: 1
     },
     {

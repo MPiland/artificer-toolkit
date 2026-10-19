@@ -160,8 +160,8 @@ export function characterTotalLevel(characterFacts: CharacterMovementFacts): num
   )
 }
 
-/** A Creature snapshot's ability scores, by ability definition id. */
-function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record<string, number> {
+/** A Creature snapshot's pinned rule facts. */
+function creatureRuleFacts(snapshot: unknown, gameSystemId: string) {
   if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot))
     throw new Error('Encounter actor scalar facts are stale.')
   const facts = encounterCreatureRuleFactsSnapshotSchema.parse(
@@ -169,7 +169,7 @@ function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record
   )
   if (facts.gameSystemId !== gameSystemId)
     throw new Error('Encounter actor scalar facts are stale.')
-  return { ...facts.abilityScores }
+  return facts
 }
 
 /** The Character's policy output with its armor class replaced by the form's. */
@@ -270,7 +270,9 @@ export function buildMovementTarget<
     // In a form the physical scores are the form's and the mental ones the Character's, baked into
     // the snapshot when the form was entered (D130 amendment).
     const targetScalarValues =
-      form === null ? baseScalarValues : creatureAbilityScalars(form.snapshot, gameSystemId)
+      form === null
+        ? baseScalarValues
+        : { ...creatureRuleFacts(form.snapshot, gameSystemId).abilityScores }
     const effectiveScalarValues = foldActiveScalarReductions({
       baseScalarValues: targetScalarValues,
       effects: activeEffects
@@ -467,8 +469,9 @@ export function buildMovementTarget<
       conditionMechanics: []
     }
   }
-  const baseScalarValues: Record<string, number> =
-    actor.kind === 'CREATURE' ? creatureAbilityScalars(actor.snapshot, gameSystemId) : {}
+  const creatureFacts =
+    actor.kind === 'CREATURE' ? creatureRuleFacts(actor.snapshot, gameSystemId) : null
+  const baseScalarValues: Record<string, number> = { ...creatureFacts?.abilityScores }
   const effectiveScalarValues = foldActiveScalarReductions({
     baseScalarValues,
     effects: activeEffects
@@ -520,7 +523,8 @@ export function buildMovementTarget<
       savingThrowDefinitions: withCreatureActiveGrantSaves(
         actorRule.savingThrowDefinitions ?? [],
         actor.id,
-        activeEffects
+        activeEffects,
+        creatureFacts?.modifiers ?? []
       ),
       savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
       featureResources: actorRule.featureResources,

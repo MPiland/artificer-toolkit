@@ -1822,6 +1822,13 @@ the server from the same prepared targets, and the room's Scene read model marks
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
 validation (`sceneTokenMovementIndex`) cannot drift from it.
 
+**Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
+`SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the
+same feature-grant fold into `ruleFacts.modifiers`. The Encounter target build passes them to
+`withCreatureActiveGrantSaves`, which adds each as a contributor, sourced from its feature, to the
+condition-scoped save rows beside the active-effect ones. A `SKILL_MODIFIER` grant folds the same way, but
+no Creature check reads roll modes yet.
+
 **Combat Perception.** `encounterCombatPerception` is a pure resolver over pinned sense capabilities
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
