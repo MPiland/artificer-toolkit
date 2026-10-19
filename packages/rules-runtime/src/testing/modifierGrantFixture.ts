@@ -127,6 +127,8 @@ export function plannedModifierGrant(input: {
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
   /** Set for a grant authored on a hit path (an attack's on-hit rider): the attack's resolved path. */
   hitPath?: 'ON_HIT' | 'ON_CRIT'
+  /** The slot level a spell's grant was cast at, for a grant that scales by it (Branding Smite). */
+  spellCastLevel?: number
 }) {
   const authored = input.effect ?? antitoxinVial.effects?.[0]
   if (!authored) throw new Error('The SRD Antitoxin has no effect.')
@@ -152,7 +154,10 @@ export function plannedModifierGrant(input: {
         : []
     )
   }
-  const action = characterActionDescriptor(compileEffect({ ...grantPath, id: ACTION_EFFECT_ID }))
+  const action = characterActionDescriptor(
+    compileEffect({ ...grantPath, id: ACTION_EFFECT_ID }),
+    input.spellCastLevel
+  )
   const published = grantPublishedIdentity()
   const [activeEffectPlan] =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []

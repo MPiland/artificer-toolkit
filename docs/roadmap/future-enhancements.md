@@ -93,6 +93,13 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 - **Choosing when to spend a rolled die (D156, SPELLS-4.T2c):** Guidance and Resistance are used up on the holder's first matching test. The player can't save them for a later roll or decide after seeing the d20. Most Guidance casts happen right before the check they're cast for.
 - **Rolled dice on initiative (D156, SPELLS-4.T2c):** Guidance doesn't apply to initiative, which is a Dexterity check. Using it there is a table trick.
+- **Added damage dice outside the single-target attack (D156, SPELLS-4.T2d):** Branding Smite ends on the first hit of a single-target attack; area and multi-target attack outcomes don't consume it, and outcome branches that return early add no damage dice. Smites and marks are nearly always used on one weapon attack.
+- **Reduce's damage floor (D156, SPELLS-4.T2d):** a reduced creature's damage floors at 0 (the System floor), where the SRD says 1. It only matters when a 1-damage hit rolls high on the d4.
+- **Bestow Curse's wasted action (D156, SPELLS-4.T2d):** the start-of-turn save that loses the turn's action is a GM ruling. It needs a held effect's turn-start save that repeats every turn and loses that turn's action on a failure. The other curse options resolve on their own.
+
+### Enlarge/Reduce size change (D156)
+
+Enlarge/Reduce's damage die, Strength checks and Strength saves ship in SPELLS-4.T2d. The size category change (and its reach, space and equipment) stays in the description, because effects can't change a creature's size yet.
 
 - **Intimidating Presence extension and range end (D156, SPELLS-31.T5l):** the barbarian can't spend an action to extend the fear, and it doesn't end when the creature ends its turn beyond 60 feet or out of sight. Only a 14th-level Berserker has it, and the shipped turn of fear is the common case.
 - **Chains of Carceri lockout on a carried Character (D156, SPELLS-31.T5l):** the lockout is an Encounter-scoped effect, so a Character it reaches is free of it after the Run instead of at the warlock's next long rest. A warlock meeting the same Character twice between long rests is rare.

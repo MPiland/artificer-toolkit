@@ -17,6 +17,8 @@ export function seedModifierGrant(input: {
   ownedConditionId?: string
   /** The effect also ends on its holder's spell cast, as Invisibility does; a timed grant cannot author it. */
   endsOnCast?: true
+  /** The slot level a spell's grant was cast at, for a grant that scales by it (Branding Smite). */
+  spellCastLevel?: number
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
     const { ownedConditionId, endsOnCast, ...grant } = input

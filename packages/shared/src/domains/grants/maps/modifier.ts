@@ -6,6 +6,7 @@ import {
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
   CHARGE_SCALING_OPTIONS,
+  DAMAGE_DIE_RECIPIENT_OPTIONS,
   DURATION_OPTIONS,
   LENGTH_UNIT_OPTIONS,
   MODIFIER_KIND_OPTIONS,
@@ -28,6 +29,9 @@ type ModifierDomain = ModifierGrantUnion['domain']
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
+type DamageDieCastLevelScaling = NonNullable<
+  AllUnionFields<ModifierPayload>['countPerCastLevelAbove']
+>
 
 const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 
@@ -129,6 +133,18 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         })
       )
       .set(
+        'againstEffectSource',
+        toggle(['againstEffectSource'], 'Only Attacks Against The Effect Source', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+            or([
+              parent.field(['modifierKind']).eq('ADVANTAGE'),
+              parent.field(['modifierKind']).eq('DISADVANTAGE')
+            ])
+          ])
+        })
+      )
+      .set(
         'requiresHolderSeesSource',
         toggle(['requiresHolderSeesSource'], 'Only Effects Whose Source The Holder Can See', {
           showIf: and([
@@ -211,12 +227,33 @@ const MODIFIER_CHARGE_LIMIT_LEVEL_NODE_MAP = chargeLimitLevel.define(
   }
 )
 
+const damageDieCastLevelScaling = buildNodeMap<DamageDieCastLevelScaling>()
+
+const DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP = damageDieCastLevelScaling.define(
+  'damageDieCastLevelScaling',
+  ({ map, nodes }) => {
+    const { number } = nodes
+
+    map
+      .set(
+        'level',
+        number(['level'], 'Above Spell Level', { constraints: { minimum: 1, maximum: 9 } })
+      )
+      .set(
+        'count',
+        number(['count'], 'Dice Per Level', {
+          constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT }
+        })
+      )
+  }
+)
+
 const modifierPayload = buildNodeMap<ModifierPayload>()
 
 const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
   'modifierGrantPayload',
   ({ map, nodes, cond, data, logic }) => {
-    const { text, number, selectSingle, selectMulti, groupArray } = nodes
+    const { text, number, selectSingle, selectMulti, groupArray, groupObject } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const local = cond.local()
     const { and, or, not } = logic
@@ -225,6 +262,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
     const isMultiply = parent.field(['modifierKind']).eq('MULTIPLY')
     const isRolledDie = parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
+    const isDamageDie = and([parent.field(['valueDomainCode']).eq('DAMAGE'), isRolledDie])
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -352,6 +390,42 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'recipient',
+        selectSingle(
+          ['recipient'],
+          'Joins The Damage',
+          { kind: 'INLINE_OPTIONS', options: DAMAGE_DIE_RECIPIENT_OPTIONS },
+          { showIf: isDamageDie }
+        )
+      )
+      .set(
+        'damageDieTypeSource',
+        selectSingle(
+          ['damageTypeSource'],
+          'Damage Type From',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              {
+                code: 'ATTACK',
+                label: 'The damage it joins',
+                description: 'Takes the attack’s damage type; a subtracted die always does.'
+              }
+            ]
+          },
+          { showIf: isDamageDie }
+        )
+      )
+      .set(
+        'countPerCastLevelAbove',
+        groupObject(
+          ['countPerCastLevelAbove'],
+          'Dice Per Higher Spell Level',
+          () => DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP,
+          { presentation: 'inline', showIf: isDamageDie }
+        )
+      )
+      .set(
         'damageTypeId',
         selectSingle(
           ['damageTypeId'],
@@ -365,6 +439,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             showIf: or([
               parent.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
+              and([isDamageDie, not(local.field(['damageTypeSource']).eq('ATTACK'))]),
               and([
                 parent.field(['valueDomainCode']).eq('DAMAGE_RESISTANCE'),
                 not(local.field(['damageTypeSource']).eq('TRIGGER'))

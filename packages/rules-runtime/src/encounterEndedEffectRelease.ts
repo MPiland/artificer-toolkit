@@ -246,6 +246,30 @@ export function actionEndedEffects(input: {
 }
 
 /**
+ * What the holder's attack uses up once it hits: the grants consumed `ON_HIT` (an extra damage die
+ * on the next hit), after they added to that attack, with the conditions only they held. `held`
+ * leaves out what the action already ended; a miss ends nothing.
+ */
+export function attackHitEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  resultPath: string | undefined
+}) {
+  const consumedGrants =
+    input.resultPath === 'ON_HIT' || input.resultPath === 'ON_CRIT'
+      ? effectsEndedBy(input.held, 'ON_HIT')
+      : []
+  return {
+    consumedGrants,
+    sourceReleases: endedEffectReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: consumedGrants
+    })
+  }
+}
+
+/**
  * The applications an effect produces, with the temporary hit points it gives marked as its own when
  * it owns them (D156), so its end releases them while it is still the pool's source.
  */
