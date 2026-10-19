@@ -474,8 +474,11 @@ export const balor: CreatureAuthored = {
             },
             range: {
               id: S.actionId(2128, 11),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
           paths: [
             {
@@ -491,8 +494,9 @@ export const balor: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(2128, 12),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.BALOR_TELEPORT
+                    effectKind: S.EFFECT_KIND.TELEPORT,
+                    targetKind: 'SELF',
+                    destinationKind: 'VISIBLE'
                   }
                 ]
               }
