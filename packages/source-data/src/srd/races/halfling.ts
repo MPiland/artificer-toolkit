@@ -156,12 +156,26 @@ export const halfling: RaceAuthored = {
         'You can move through the space of any creature that is of a size larger than yours.',
       availableAtLevel: 1,
       order: 3,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(3, 4, entry),
-          CLOSED_RULE_KIND.RACE_HALFLING_NIMBLENESS
-        )
-      ]
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(3, 4, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: {
+              creatures: 'LARGER_THAN_SELF' as const,
+              mayEndInCreature: false,
+              blockingBarriers: false,
+              costMultiplier: 1 as const
+            },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(3, 5, 1),

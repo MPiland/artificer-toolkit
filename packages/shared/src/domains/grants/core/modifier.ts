@@ -9,6 +9,7 @@ import type {
   ValueDomainCode,
   CoreMeta,
   LengthUnitCode,
+  MovementPassageOption,
   ValueDomainOptionPayloadByDomain,
   ValueDomainParam
 } from '#core'
@@ -293,6 +294,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
+  MOVEMENT_PASSAGE: [MODIFIER_KIND.ADD_OPTION],
+
   SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
   /* ──────────────────────────────────────────────
@@ -372,6 +375,8 @@ export type ModifierValueDomainOptionPayloadByDomain = {
   ATTRIBUTE: { attributeId: string }
 
   MOVEMENT_MODE: { movementModeId: string }
+
+  MOVEMENT_PASSAGE: MovementPassageOption
 }
 
 export const MODIFIER_VALUE_SOURCE_CODE = {

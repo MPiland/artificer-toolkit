@@ -120,6 +120,7 @@ export function resolveSceneActorVision<T extends Pick<CampaignSceneState, 'toke
       const { light } = actorVision
       return {
         ...token,
+        ...(actorVision.passesBlockingBarriers ? { passesBlockingBarriers: true as const } : {}),
         senses: actorVision.senses.flatMap(({ range, ...sense }) => {
           const sceneRange = senseRangeInSceneUnits(range, state.grid)
           return sceneRange.rangeKind === 'DISTANCE' && sceneRange.amount <= 0

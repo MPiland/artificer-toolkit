@@ -32,16 +32,18 @@ function compareText(left: string, right: string): number {
 }
 
 /**
- * Finds the ordered hostile full-footprint passage boundaries for voluntary movement.
- * The caller supplies already-locked relationship facts; no actor state is read
- * or inferred here. A final occupied hostile footprint is rejected rather than
- * converted into a passage attempt.
+ * Finds the ordered blocking full-footprint passage boundaries for voluntary movement.
+ * The caller supplies already-locked relationship and passage facts through `blocks`; no actor
+ * state is read or inferred here. A final footprint that blocks the mover ending inside it is
+ * rejected rather than converted into a passage attempt.
  */
 export function discoverEncounterMovementPassageContact(input: {
   readonly actorIdByTokenId: ReadonlyMap<string, string>
-  readonly isHostile: (input: {
+  /** Whether the blocker's footprint stops the mover crossing it, or ending inside it. */
+  readonly blocks: (input: {
     readonly blockerActorId: string
     readonly movingActorId: string
+    readonly endsInside: boolean
   }) => boolean
   readonly movementKind: SpatialMovementKind
   readonly movingTokenId: string
@@ -53,15 +55,18 @@ export function discoverEncounterMovementPassageContact(input: {
   const movingActorId = movingToken ? input.actorIdByTokenId.get(movingToken.id) : null
   if (!movingToken || !movingActorId) return { kind: 'NONE' }
   const stationary = input.tokens.filter((token) => token.id !== movingToken.id)
-  const hostile = stationary.filter((token) => {
-    const blockerActorId = input.actorIdByTokenId.get(token.id)
-    return blockerActorId !== undefined && input.isHostile({ blockerActorId, movingActorId })
-  })
+  const blocking = (endsInside: boolean) =>
+    stationary.filter((token) => {
+      const blockerActorId = input.actorIdByTokenId.get(token.id)
+      return (
+        blockerActorId !== undefined && input.blocks({ blockerActorId, movingActorId, endsInside })
+      )
+    })
   const endpoint = input.path.at(-1)
   if (!endpoint) return { kind: 'NONE' }
   const endpointBlockers = [
     ...new Set(
-      hostile
+      blocking(true)
         .filter((token) =>
           sceneTokenFootprintsOverlap({ ...movingToken, position: endpoint }, token)
         )
@@ -74,7 +79,7 @@ export function discoverEncounterMovementPassageContact(input: {
   const crossings = collectTokenFootprintPathCrossings({
     movingToken,
     path: input.path,
-    stationaryTokens: hostile
+    stationaryTokens: blocking(false)
   })
     .map((crossing) => {
       const blockerActorId = input.actorIdByTokenId.get(crossing.stationaryTokenId)

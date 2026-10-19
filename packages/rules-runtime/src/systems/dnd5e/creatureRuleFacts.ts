@@ -13,6 +13,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 
 import { abilityModifier } from './abilityModifier.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { foldDnd5eCreatureFeatureGrants } from './creatureFeatureGrantFold.js'
 
 function scaleProficiency(input: { bonus: number; level: string; rounding?: string }): number {
   switch (input.level) {
@@ -152,6 +153,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
     checkTotals,
     saveProficiencyBonuses,
     resourceAbilityScores: creature.abilityScores,
-    initiativeAbilityDefinitionId: initiativeAbility.id
+    initiativeAbilityDefinitionId: initiativeAbility.id,
+    modifiers: foldDnd5eCreatureFeatureGrants(creature)
   })
 }

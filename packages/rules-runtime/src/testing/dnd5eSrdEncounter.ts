@@ -237,7 +237,8 @@ export function creatureRuleFacts(scores: Record<Ability, number>) {
     ),
     saveProficiencyBonuses: {},
     resourceAbilityScores: {},
-    initiativeAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+    initiativeAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+    modifiers: []
   }
 }
 

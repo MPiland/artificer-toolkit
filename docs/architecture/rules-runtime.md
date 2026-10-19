@@ -1808,6 +1808,20 @@ only a numeric selection; the application holds the issued option identities. Ho
 (`encounterMovementPassage*`). Reaction policy, eligibility and perception are System policy over
 authoritative actor and Scene facts.
 
+**Movement passage (current, SPELLS-33.T6k1).** What a mover may pass is authored data: a `MOVEMENT_PASSAGE`
+`ADD_OPTION` modifier grant (`creatures`: `NONE`, `LARGER_THAN_SELF` or `ANY`; `mayEndInCreature`;
+`blockingBarriers`; `costMultiplier`). A Character's grants come from its rule policy; a Creature's feature grants
+fold through the same grant fold with holder kind `CREATURE` (`foldDnd5eCreatureFeatureGrants`) into
+`ruleFacts.modifiers` on its snapshot, and a Character in a creature form moves with the form's.
+`encounterActorMovementPassage` combines the grants as one union (widest relation, highest multiplier).
+A hostile footprint the passage admits is crossed without a contest; one it does not admits only an
+offered contest (Overrun, Tumble), and with none the move is refused `MOVEMENT_BLOCKED`, like ending inside.
+The room prices each passed creature's footprint as a token-anchored zone at the passage multiplier, so
+D154's highest-of terrain, zones and passage applies. A passage through blocking barriers is checked by
+the server from the same prepared targets, and the room's Scene read model marks the token
+`passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
+validation (`sceneTokenMovementIndex`) cannot drift from it.
+
 **Combat Perception.** `encounterCombatPerception` is a pure resolver over pinned sense capabilities
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
