@@ -8164,7 +8164,7 @@
             },
             {
               "id": "SPELLS-4.T1h",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -8174,7 +8174,7 @@
                 "after": ["SPELLS-4.T1g"]
               },
               "text": "Spike Growth from core options (D156 T1h amendment): a zone component option perDistanceMoved emits one movement candidate per whole 5 ft moved inside the area, each running the compiled 2d4 behavior at the step where it completes; Spike Growth authors it with a ×2 movement cost; CLOSED_RULE SPIKE_GROWTH deleted. Room journey, including forced movement. Its camouflage stays with MOVE-3.4.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m201 (0cec9da27)."
             },
             {
               "id": "SPELLS-4.T1i",
