@@ -234,6 +234,54 @@ export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   }
 }
 
+/**
+ * A passive Effect by which the creature sheds light around itself: bright light, then dim light
+ * for the additional distance. It is the same MANIFEST light a torch carries; the Effect's range,
+ * path and outcome ids follow the Effect's own local index.
+ */
+export function shedLightEffect(
+  creatureIndex: number,
+  localIndex: number,
+  brightFeet: number,
+  dimAdditionalFeet: number
+): EffectAuthored {
+  const pathId = actionId(creatureIndex, localIndex + 200)
+  return {
+    id: actionId(creatureIndex, localIndex),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: actionId(creatureIndex, localIndex + 100), rangeKind: RANGE_KIND.SELF }
+    },
+    paths: [
+      {
+        id: pathId,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${pathId}__result`,
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: actionId(creatureIndex, localIndex + 300),
+              effectKind: EFFECT_KIND.MANIFEST,
+              manifestKind: 'OBJECT',
+              attachmentKind: 'SOURCE',
+              light: {
+                bright: { amount: brightFeet, unit: MEASUREMENT_UNIT_CODE.FEET },
+                dimAdditional: { amount: dimAdditionalFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 /** A breath weapon's line: a Self area that starts at the creature and catches everyone in it. */
 export function selfLine(rangeId: string, shapeId: string, lengthFeet: number, widthFeet: number) {
   return {

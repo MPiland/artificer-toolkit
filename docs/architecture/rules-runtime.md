@@ -1782,6 +1782,14 @@ authoritative actor and Scene facts.
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
 
+Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
+(the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
+sheds that light from its token. `creatureLight` reads it from the actor snapshot; nothing stores it on the
+Scene. The Worker composes it onto bound tokens (`withSceneTokenLights`) for the Scene perception capture,
+movement reactions and the room's vision display, and `resolveSceneIlluminationAt` treats each token light
+as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the
+renderer. Activated item and spell lights are not consumed yet.
+
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`
 (`packages/rules-runtime/src/encounterAttackPerception.ts`). For attack rolls it resolves requirement SEE both

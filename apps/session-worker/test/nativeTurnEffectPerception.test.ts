@@ -75,6 +75,11 @@ const header = sceneLiveStateHeaderSchema.parse({
   visionRevealMode: 'ON_DRAG'
 })
 
+const shedLight = {
+  bright: { amount: 10, unit: 'FEET' as const },
+  dim: { amount: 20, unit: 'FEET' as const }
+}
+
 it('reads BASE then multiple APPENDED pages and returns the complete Scene fence', async () => {
   const requests: LiveSessionEncounterRulesRequest[] = []
   const loaded = await readNativeLivePerceptionScene({
@@ -90,7 +95,8 @@ it('reads BASE then multiple APPENDED pages and returns the complete Scene fence
           context: {
             header,
             observerTokenId: tokens[0]!.id,
-            subjectTokenId: tokens[1]!.id
+            subjectTokenId: tokens[1]!.id,
+            tokenLights: [{ tokenId: tokens[2]!.id, light: shedLight }]
           }
         })
       if (request.kind !== 'SCENE_PERCEPTION_ENTITIES')
@@ -139,4 +145,11 @@ it('reads BASE then multiple APPENDED pages and returns the complete Scene fence
     definitionSaveId: saveId,
     scene: { tokens }
   })
+  // SPELLS-33 T6j: the light the bound actor sheds lands on its token, in Scene units.
+  expect(loaded.scene.tokens.map(({ light }) => light)).toEqual([
+    undefined,
+    undefined,
+    { brightRadius: 10, dimRadius: 20 },
+    ...Array.from({ length: 7 }, () => undefined)
+  ])
 })

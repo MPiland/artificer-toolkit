@@ -1,4 +1,4 @@
-import { lengthMeasurementInFeet, type LengthUnitCode } from '../core/measurement.js'
+import { lengthMeasurementInFeet } from '../core/measurement.js'
 import type { CombatPerceptionRange } from '../rules/combatPerception.js'
 import type {
   CampaignSceneState,
@@ -10,8 +10,10 @@ import type {
   SceneEntity,
   SceneFogLayer,
   SceneGrid,
+  SceneLength,
   ScenePoint,
   SceneSenseLength,
+  SceneTokenLight,
   SceneTransientReveal,
   SceneViewer
 } from './scene.js'
@@ -37,8 +39,6 @@ function upsertById<T extends { id: string }>(values: T[], value: T): T[] {
 function removeById<T extends { id: string }>(values: T[], id: string): T[] {
   return values.filter((value) => value.id !== id)
 }
-
-type SceneLength = { amount: number; unit: LengthUnitCode }
 
 /** Feet in a Scene's distance unit; a SQUARES Scene counts base squares. */
 export function feetInSceneUnit(feet: number, unit: SceneGrid['unit']): number {
@@ -75,9 +75,34 @@ export function sceneLengthInFeet(amount: number, grid: CampaignSceneState['grid
   return amount * FEET_PER_SCENE_UNIT[grid.unit]
 }
 
+/** The light an actor sheds, in the Scene's units, as its token carries it. */
+function sceneTokenLight(
+  light: NonNullable<SceneActorVision['light']>,
+  grid: CampaignSceneState['grid']
+): SceneTokenLight {
+  return {
+    brightRadius: lengthMeasurementInSceneUnits(light.bright, grid),
+    dimRadius: lengthMeasurementInSceneUnits(light.dim, grid)
+  }
+}
+/** Composes the light each bound actor sheds onto its token; other tokens are unchanged. */
+export function withSceneTokenLights<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
+  state: T,
+  tokenLights: readonly { tokenId: string; light: NonNullable<SceneActorVision['light']> }[]
+): T {
+  if (!tokenLights.length) return state
+  const lightByTokenId = new Map(tokenLights.map(({ tokenId, light }) => [tokenId, light]))
+  return {
+    ...state,
+    tokens: state.tokens.map((token) => {
+      const light = lightByTokenId.get(token.id)
+      return light ? { ...token, light: sceneTokenLight(light, state.grid) } : token
+    })
+  }
+}
 /**
- * Presents the bound actor's senses (a Character's or a Creature's) on its token. An unlimited
- * sense stays unlimited; a ranged sense whose range is empty is dropped.
+ * Presents the bound actor's senses (a Character's or a Creature's) and the light it sheds on its
+ * token. An unlimited sense stays unlimited; a ranged sense whose range is empty is dropped.
  */
 export function resolveSceneActorVision<T extends Pick<CampaignSceneState, 'tokens' | 'grid'>>(
   state: T,
@@ -92,6 +117,7 @@ export function resolveSceneActorVision<T extends Pick<CampaignSceneState, 'toke
       const actorId = actorIdByTokenId.get(token.id)
       const actorVision = actorId ? visionByActorId.get(actorId) : undefined
       if (!actorVision) return token
+      const { light } = actorVision
       return {
         ...token,
         senses: actorVision.senses.flatMap(({ range, ...sense }) => {
@@ -99,7 +125,8 @@ export function resolveSceneActorVision<T extends Pick<CampaignSceneState, 'toke
           return sceneRange.rangeKind === 'DISTANCE' && sceneRange.amount <= 0
             ? []
             : [{ ...sense, range: sceneRange }]
-        })
+        }),
+        ...(light && { light: sceneTokenLight(light, state.grid) })
       }
     })
   }

@@ -431,6 +431,10 @@ Open points for the ruling:
 4. Night Hag Etherealness moves from C to T4gh with Ghost Etherealness, because decision 256 recorded Succubus Etherealness as a mechanics follow-up rather than description-only. Ruling needed if planes stay out of scope (then all three are C).
 5. Flyby joins the opportunity-attack qualifier that SPELLS-31.T4k2 introduces instead of a new SPELLS-33 group.
 
+## T6j token light (implemented)
+
+No LIGHT_EMISSION kind: the MANIFEST OBJECT `light` (SOURCE attachment) that equipment torches and lanterns and the Light, Continual Flame and Prismatic Wall spells already author is the one home. The Nightmare and Will-o'-wisp author it (`shedLightEffect`), their two closed rule kinds are deleted, and passive creature light is composed onto tokens at runtime for D108 illumination and drawing (see [rules-runtime](../architecture/rules-runtime.md)). The wisp is fixed at bright 20 / dim 20 more (orchestrator ruling); no setter. Activated torches, lanterns and spell lights are still not consumed by the runtime. Proofs: `creatureLightAuthoringParity.test.ts`, `creatureLight.test.ts`, `turnCaptureTokenLights.test.ts`, the token-light cases in `vtt-scene-combat-perception.test.ts`, `vtt-scene.test.ts`, `vtt-scene-contracts.test.ts` and `nativeTurnEffectPerception.test.ts`.
+
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.

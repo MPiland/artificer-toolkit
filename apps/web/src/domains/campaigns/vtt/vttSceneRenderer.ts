@@ -11,6 +11,7 @@ import {
   extendSceneMovementPath,
   isSceneMovementPathValid,
   resolveSceneIlluminationAt,
+  sceneTokenLights,
   SceneBarrierIndex,
   visibilityPolygon,
   visibilityPolygonForLight,
@@ -442,6 +443,8 @@ export async function createVttSceneRenderer(
   let renderedGrid: CampaignSceneStateDto['grid'] | null = null
   let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedLights: CampaignSceneStateDto['lights'] | null = null
+  /** The token lights last drawn, by value: a token move that keeps them never redraws lighting. */
+  let renderedTokenLightsKey = ''
   let renderedAmbient: CampaignSceneStateDto['ambientIllumination'] | null = null
   let renderedLightingMap: CampaignSceneStateDto['map'] | null = null
   let darknessClassMap: Container | null = null
@@ -1010,12 +1013,15 @@ export async function createVttSceneRenderer(
    * magical darkness forces black. The result is one black texture whose alpha is the class.
    */
   function drawLighting(scene: CampaignSceneStateDto): void {
+    const tokenLights = sceneTokenLights(scene)
+    const tokenLightsKey = JSON.stringify(tokenLights)
     if (
       renderedAmbient === scene.ambientIllumination &&
       renderedLightingMap === scene.map &&
       renderedLightingBarriers === scene.barriers &&
       renderedLightingDoorStates === scene.doorStates &&
       renderedLights === scene.lights &&
+      renderedTokenLightsKey === tokenLightsKey &&
       renderedDarknessZones === scene.darknessZones
     ) {
       return
@@ -1025,6 +1031,7 @@ export async function createVttSceneRenderer(
     renderedLightingBarriers = scene.barriers
     renderedLightingDoorStates = scene.doorStates
     renderedLights = scene.lights
+    renderedTokenLightsKey = tokenLightsKey
     renderedDarknessZones = scene.darknessZones
     const barrierIndex = new SceneBarrierIndex(scene.barriers)
     lightingBarrierIndex = barrierIndex
@@ -1059,7 +1066,7 @@ export async function createVttSceneRenderer(
         )
       }
     }
-    for (const light of scene.lights) {
+    for (const light of [...scene.lights, ...tokenLights]) {
       const polygon = visibilityPolygonForLight(
         light,
         scene.barriers,
