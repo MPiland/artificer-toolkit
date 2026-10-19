@@ -1,3 +1,4 @@
+import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   encounterCommandResultDtoSchema,
   revertLastEncounterActionInputDtoSchema,
@@ -133,6 +134,12 @@ function unavailable(message: string): never {
   return rejectDomain('REVERT_UNAVAILABLE', message)
 }
 
+/** The command a rule-raised action was raised by, or null for an action a player took. */
+function storedSystemTriggerParentId(root: { commandJson: string }) {
+  const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(root.commandJson))
+  return command.systemTrigger?.parentCommandId.toLowerCase() ?? null
+}
+
 /**
  * GM-only exact undo of the Run's last committed RESOLVE_ACTION and its committed children, or of
  * its last basic action or concealment-observer change (ADR 0034 decision 2, D45). Every change is inverted from the before-states
@@ -235,23 +242,578 @@ export async function revertLastEncounterAction(
     return revertCheckAction(ctx, { ...scope, root, checkReceipt: root.root.checkReceipt })
   }
   const { ruleOccurrenceId } = root.root
+  // A rule-raised action (a defeat trigger) goes back with the action that raised it, system first.
+  const parentCommandId = storedSystemTriggerParentId(root)
+  const groupRoots: Omit<RevertGroup, 'receipts'>[] = [
+    { root, ruleOccurrenceId, laterEntries: recent.slice(0, rootIndex) }
+  ]
+  if (parentCommandId) {
+    const parentIndex = recent.findIndex(
+      (entry, index) => index > rootIndex && entry.commandType !== 'RESOLVE_RULE_OCCURRENCE'
+    )
+    const parent = recent[parentIndex]
+    if (parent?.commandType !== 'RESOLVE_ACTION' || parent.root.kind !== 'RULE_OCCURRENCE')
+      unavailable('The action that raised this one changed after it; adjust manually.')
+    groupRoots.push({
+      root: parent,
+      ruleOccurrenceId: parent.root.ruleOccurrenceId,
+      laterEntries: recent.slice(rootIndex + 1, parentIndex)
+    })
+  }
+
+  // Every receipt committed since the earliest action belongs to one of the groups.
+  const receipts = await ctx.db
+    .query('encounterRuleReceipts')
+    .withIndex('by_encounterId_encounterVersion', (q) =>
+      q.eq('encounterId', run.id).gte('encounterVersion', groupRoots.at(-1)!.root.version)
+    )
+    .take(RECEIPT_SCAN_LIMIT)
+  if (receipts.length === RECEIPT_SCAN_LIMIT)
+    unavailable('This action has too many follow-up results to undo; adjust manually.')
+  // The raising command is the parent's own, or an answer that settled it (one receipt, no Run row).
+  const raisingRoot = groupRoots[1]?.root
+  if (
+    raisingRoot &&
+    raisingRoot.commandId !== parentCommandId &&
+    !receipts.some((receipt) => receipt.commandId === parentCommandId)
+  )
+    unavailable('The action that raised this one changed after it; adjust manually.')
+  const plans = groupRoots.map((group, index) =>
+    planRevertRoot({
+      ...group,
+      receipts: receipts.filter(
+        (receipt) =>
+          receipt.encounterVersion >= group.root.version &&
+          (index === 0 || receipt.encounterVersion < groupRoots[index - 1]!.root.version)
+      )
+    })
+  )
+
+  const store = createActiveRuleEffectStore(ctx)
+  // A cast's creature form ends first: ending its effect restores the origin the cast swapped out
+  // (D130), so the inverses below read the actor as it stood before the cast.
+  const endedFormEffectIds = new Set<string>()
+  for (const action of plans.flatMap((plan) => plan.targetBatches)) {
+    // A Character's form is held by an effect on the Character, found through its Run actor.
+    const wearer =
+      action.kind === 'CHARACTER_MECHANICS_BATCH'
+        ? (await readRunActorWithRow(ctx, state, action.targetActorId)).actor
+        : null
+    if (wearer && wearer.kind !== 'CHARACTER')
+      throw new Error('Stored Character action target is invalid.')
+    const owner =
+      wearer?.kind === 'CHARACTER'
+        ? { kind: 'CHARACTER' as const, characterId: wearer.sourceId }
+        : {
+            kind: 'ENCOUNTER_ACTOR' as const,
+            encounterId: state.id,
+            targetActorId: action.targetActorId
+          }
+    for (const transition of action.activeEffectTransitions) {
+      const effect = await store.findById(owner, transition.activeEffectId)
+      if (!effect || !holdsActorForm(effect.definition)) continue
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: transition.afterVersion })
+      endedFormEffectIds.add(effect.id)
+    }
+  }
+
+  const actors = await readRunActors(ctx, state)
+  const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
+  // Each inverse reads the actor as earlier inverses left it; the schema validates every change.
+  const updateActor = (actorId: string, change: Record<string, unknown>) => {
+    const next = encounterRunActorStateSchema.parse({ ...actorsById.get(actorId), ...change })
+    actorsById.set(actorId, next)
+  }
+  // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
+  const characterInverses = new Map<string, CharacterInverse>()
+  const characterInverse = (characterId: string, streamVersion: number) => {
+    const current = characterInverses.get(characterId)
+    const next: CharacterInverse = current
+      ? {
+          ...current,
+          expectedStreamVersion: Math.max(current.expectedStreamVersion, streamVersion)
+        }
+      : {
+          hitPoints: null,
+          removedConditionIds: new Set(),
+          restoredConditionIds: new Set(),
+          resource: null,
+          unequipped: null,
+          item: null,
+          spells: [],
+          expectedStreamVersion: streamVersion
+        }
+    characterInverses.set(characterId, next)
+    return next
+  }
+  /** Inverts one root's outcomes onto the shared actors and Character inverses. */
+  const invertRoot = async ({
+    root,
+    batch,
+    areaRoot,
+    lostRoot,
+    cleaving,
+    retaliation,
+    targetBatches,
+    spend
+  }: (typeof plans)[number]) => {
+    const source = actorsById.get(spend.sourceActorId)
+    if (!source) throw new Error('Stored Encounter action actors are unavailable.')
+    const restoreHitPoints = (actorId: string, transition: ActionBatch['targetTransition']) => {
+      const actor = actorsById.get(actorId)!
+      if (actor.kind === 'CHARACTER') throw new Error('Character hit points are not Run state.')
+      if (
+        actor.currentHitPoints !== transition.after.currentHitPoints ||
+        actor.tempHitPoints !== transition.after.temporaryHitPoints ||
+        actor.maxHitPoints !== transition.after.maximumHitPoints
+      )
+        unavailable(`${actor.label}'s hit points changed after this action; adjust manually.`)
+      const next = encounterRunActorStateSchema.parse(
+        withActorTemporaryHitPoints(
+          {
+            ...actor,
+            currentHitPoints: transition.before.currentHitPoints,
+            maxHitPoints: transition.before.maximumHitPoints,
+            defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
+          },
+          targetTemporaryHitPoints(transition.before)
+        )
+      )
+      actorsById.set(actorId, next)
+    }
+
+    // Cleaving children are undone first, in reverse order of application.
+    for (const damage of cleaving.toReversed()) {
+      const cleaved = damage.targetActorId ? actorsById.get(damage.targetActorId) : undefined
+      if (!cleaved || !damage.targetTransition)
+        throw new Error('Stored Cleaving receipt is invalid.')
+      if (cleaved.kind === 'CHARACTER')
+        unavailable("Undo can't restore Cleaving damage to a Character.")
+      restoreHitPoints(cleaved.id, damage.targetTransition)
+    }
+    const [firstRetaliation] = retaliation
+    if (firstRetaliation)
+      restoreHitPoints(firstRetaliation.candidate.candidate.targetActorId, {
+        ...firstRetaliation.targetTransition,
+        after: retaliation.at(-1)!.targetTransition.after
+      })
+    // The timed grants the attacker's own passive triggers made from that damage go with it.
+    for (const grant of batch?.meleeRetaliation?.grantEffectTransitions ?? [])
+      await store.deleteCas({
+        id: grant.activeEffectId,
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: state.id,
+          targetActorId: grant.targetActorId
+        },
+        expectedVersion: grant.afterVersion
+      })
+
+    const createdStates = new Map<
+      string,
+      NonNullable<ActionBatch['maintenanceTransition']>['createdState']
+    >()
+    /** Gives back what an ended effect released from `actor`: on the Sheet for a Character, in the Run otherwise. */
+    const restoreReleasedConditions = (
+      actor: NonNullable<typeof source>,
+      conditionIds: readonly string[],
+      streamVersion: number | null
+    ) => {
+      if (!conditionIds.length) return
+      if (actor.kind === 'CHARACTER') {
+        if (actor.sourceId === null || streamVersion === null)
+          throw new Error('Stored source Character version is missing.')
+        characterInverse(actor.sourceId, streamVersion).restoredConditionIds = new Set(conditionIds)
+        return
+      }
+      const conditions = readEncounterActorConditionState(actor.conditions ?? [])
+      if (conditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
+        unavailable(`${actor.label}'s conditions changed after this action; adjust manually.`)
+      updateActor(actor.id, {
+        conditions: [
+          ...conditions.values,
+          ...conditionIds.map((conditionTypeId) => ({ conditionTypeId }))
+        ]
+      })
+    }
+
+    /** One creature's outcome: its hit points, conditions, charges, effects and maintenance. */
+    const invertTarget = async (action: ActionBatch) => {
+      const target = actorsById.get(action.targetActorId)
+      if (!target) throw new Error('Stored Encounter action actors are unavailable.')
+      const addedConditionIds = new Set(
+        action.applications.flatMap((application) =>
+          application.kind === 'CONDITION_APPLY' && application.applied
+            ? [application.conditionId]
+            : []
+        )
+      )
+      // A departure puts the target back unless the table already returned or removed it (D128).
+      if (
+        action.applications.some(
+          (application) => application.kind === 'DEPART' && application.applied
+        )
+      ) {
+        if (target.absence !== 'DEPARTED')
+          unavailable(
+            `${target.label} was returned to the Scene after this action; adjust manually.`
+          )
+        updateActor(target.id, { absence: null })
+      }
+      // A reaction the target used spent its slot and allowance and created its effect with this outcome.
+      const reaction = action.reaction
+      if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
+        if (target.kind !== 'CHARACTER' || target.sourceId === null)
+          throw new Error('Stored Character action target is invalid.')
+        // A reapplied condition may have moved from Campaign context into the Sheet; that is not recorded.
+        if (
+          action.applications.some(
+            (application) => application.kind === 'CONDITION_APPLY' && !application.applied
+          )
+        )
+          unavailable("Undo can't restore a reapplied condition; adjust manually.")
+        // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
+        const { before, after } = action.targetTransition
+        const zeroHitPointsConditionId = characterZeroHitPointsConditionId(state.gameSystemId)
+        const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
+        if (
+          zeroHitPointsConditionId !== undefined &&
+          before.currentHitPoints === 0 &&
+          after.currentHitPoints > 0 &&
+          before.conditionIds.includes(zeroHitPointsConditionId)
+        )
+          unavailable("Undo can't restore a removed condition; adjust manually.")
+        if (action.targetCharacterStreamVersion !== null) {
+          const inverse = characterInverse(target.sourceId, action.targetCharacterStreamVersion)
+          inverse.hitPoints = before
+          inverse.removedConditionIds = new Set([
+            ...addedConditionIds,
+            ...(zeroHitPointsConditionId !== undefined &&
+            droppedToZero &&
+            !before.conditionIds.includes(zeroHitPointsConditionId)
+              ? [zeroHitPointsConditionId]
+              : [])
+          ])
+          if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
+          if (action.targetItemUseStateTransition)
+            inverse.unequipped = action.targetItemUseStateTransition
+        }
+      } else {
+        if (target.kind === 'CHARACTER')
+          throw new Error('Stored Encounter actor target is invalid.')
+        restoreHitPoints(target.id, action.targetTransition)
+        // An item the target dropped goes back in the hand it left.
+        const release = action.targetItemUseStateTransition
+        if (release) {
+          const held = revertEncounterActorItemRelease({
+            actor: actorsById.get(target.id)!,
+            transition: release
+          })
+          if (!held)
+            unavailable(`${target.label}'s equipment changed after this action; adjust manually.`)
+          updateActor(target.id, { snapshot: held.snapshot })
+        }
+        const conditions = readEncounterActorConditionState(target.conditions ?? [])
+        updateActor(target.id, {
+          conditions: conditions.values.filter(
+            (_, index) => !addedConditionIds.has(conditions.ids[index]!)
+          )
+        })
+      }
+      // A creature that ended its own effects (it cast, or was caught by its own area) gets them back.
+      restoreReleasedConditions(
+        actorsById.get(target.id)!,
+        endedConditionReleases(action.applications),
+        action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.targetCharacterStreamVersion : null
+      )
+      for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
+        characterInverse(owner.characterId, owner.afterStreamVersion)
+      const targetFeature = action.targetFeatureResourceConsumption
+      if (targetFeature) {
+        const owner = actorsById.get(targetFeature.ownerActorId)
+        if (
+          !owner ||
+          featureChargeUsed(owner, targetFeature.ownerFeatureId) !== targetFeature.afterUsed
+        )
+          unavailable("The target's feature charges changed after this action; adjust manually.")
+        updateActor(owner.id, {
+          resources: withFeatureChargeUsed(
+            owner,
+            targetFeature.ownerFeatureId,
+            targetFeature.beforeUsed
+          )
+        })
+      }
+      const reactionEconomy = reaction?.actionEconomyTransition
+      if (reactionEconomy) {
+        const reactor = actorsById.get(target.id)!
+        if (
+          encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !==
+          reactionEconomy.afterUsed
+        )
+          unavailable("The target's reactions changed after this action; adjust manually.")
+        updateActor(reactor.id, {
+          resources: withEncounterRuleUsageUsed(
+            reactor,
+            reactionEconomy.definitionId,
+            reactionEconomy.beforeUsed
+          )
+        })
+      }
+      // Created effects and the maintained state go away; their versions prove nothing touched them.
+      const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
+      for (const effect of [
+        ...action.activeEffectTransitions,
+        ...(reaction?.activeEffectTransitions ?? []),
+        ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : []),
+        ...(action.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? action.grantEffectTransitions : [])
+      ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
+        await store.deleteCas({
+          id: effect.activeEffectId,
+          owner: characterOwnerId
+            ? { kind: 'CHARACTER', characterId: characterOwnerId }
+            : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: target.id },
+          expectedVersion: effect.afterVersion
+        })
+      for (const effect of action.stateEffectTransitions)
+        await store.deleteCas({
+          id: effect.activeEffectId,
+          owner: effect.owner,
+          expectedVersion: effect.afterVersion
+        })
+      const created = action.maintenanceTransition?.createdState
+      if (created) createdStates.set(created.id, created)
+    }
+    for (const action of targetBatches.toReversed()) await invertTarget(action)
+    const rootCreated = areaRoot?.maintenanceTransition?.createdState
+    if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
+    // The timed grant the placed zone gave its placer goes with the zone; its version proves it untouched.
+    const sourceGrant = areaRoot?.sourceGrantTransition
+    if (areaRoot && sourceGrant)
+      await store.deleteCas({
+        id: sourceGrant.activeEffectId,
+        owner: areaRoot.sourceCharacterId
+          ? { kind: 'CHARACTER', characterId: areaRoot.sourceCharacterId }
+          : {
+              kind: 'ENCOUNTER_ACTOR',
+              encounterId: state.id,
+              targetActorId: areaRoot.sourceActorId
+            },
+        expectedVersion: sourceGrant.afterVersion
+      })
+    // Every record an area action placed (a zone's own and its bands) leaves the Scene with it,
+    // before the state they depend on goes.
+    for (const id of areaRoot?.placedSpatialEffectIds ?? [])
+      await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id })
+    // Every creature of an area shares the one state, so it goes once, after the last dependent.
+    for (const created of createdStates.values())
+      await store.deleteMaintainedStateCas({
+        id: created.id,
+        encounterId: state.id,
+        ownerActorId: created.sourceActorId,
+        expectedVersion: created.version
+      })
+
+    // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
+    const sourceCharacterId =
+      source.kind === 'CHARACTER' && source.sourceId !== null ? source.sourceId : null
+    if (
+      (spend.resourceConsumption ||
+        spend.sourceItemUseStateTransition ||
+        spend.sourceItemConsumption ||
+        spend.spellCastConsumption) &&
+      sourceCharacterId
+    ) {
+      if (spend.sourceCharacterStreamVersion === null)
+        throw new Error('Stored source Character version is missing.')
+      const inverse = characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion)
+      inverse.resource = spend.resourceConsumption
+      if (spend.sourceItemUseStateTransition)
+        inverse.unequipped = spend.sourceItemUseStateTransition
+      inverse.item = spend.sourceItemConsumption
+      if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
+    }
+    // The conditions the source's ended effects released (Invisibility) come back with the effects.
+    restoreReleasedConditions(
+      source,
+      endedConditionReleases(spend.sourceApplications),
+      spend.sourceCharacterStreamVersion
+    )
+    // So do the ones the retaliation's damage released from the attacker; the effects themselves
+    // come back with the root's consumed grants, after the grants that damage made are deleted.
+    restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
+    const feature = spend.featureResourceConsumption
+    if (feature) {
+      const owner = actorsById.get(feature.ownerActorId)
+      if (!owner || featureChargeUsed(owner, feature.ownerFeatureId) !== feature.afterUsed)
+        unavailable("The actor's feature charges changed after this action; adjust manually.")
+      updateActor(owner.id, {
+        resources: withFeatureChargeUsed(owner, feature.ownerFeatureId, feature.beforeUsed)
+      })
+    }
+    const economy = spend.actionEconomyTransition
+    if (economy) {
+      const owner = actorsById.get(source.id)!
+      if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
+        unavailable("The actor's action economy changed after this action; adjust manually.")
+      updateActor(owner.id, {
+        resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
+      })
+    }
+    const attackAction = spend.attackActionTransition
+    if (attackAction) {
+      const restored = revertEncounterAttackActionTransition(
+        actorsById.get(source.id)!,
+        attackAction
+      )
+      if (!restored)
+        unavailable("The actor's Attack action changed after this action; adjust manually.")
+      updateActor(source.id, { resources: restored.resources })
+    }
+    // Each mark this action armed or engaged goes back to what it was; an actor engaged earlier stays so.
+    for (const { actorId, before } of root.idleTurnMarkChanges) {
+      const marked = actorsById.get(actorId)
+      if (marked)
+        updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
+    }
+    // The creature that countered the cast, and each that failed to, spent its own slot and reaction.
+    const invertReactorSpend = (
+      spend: Pick<
+        CounteredRoot['counter'],
+        | 'reaction'
+        | 'spellCastConsumption'
+        | 'applications'
+        | 'characterStreamVersion'
+        | 'actionEconomyTransition'
+      >
+    ) => {
+      const reactor = actorsById.get(spend.reaction.reactorActorId)
+      if (reactor?.kind !== 'CHARACTER')
+        throw new Error('Stored Encounter action actors are unavailable.')
+      if (spend.spellCastConsumption) {
+        if (spend.characterStreamVersion === null)
+          throw new Error('Stored reactor Character version is missing.')
+        characterInverse(reactor.sourceId, spend.characterStreamVersion).spells.push(
+          spend.spellCastConsumption
+        )
+      }
+      restoreReleasedConditions(
+        reactor,
+        endedConditionReleases(spend.applications),
+        spend.characterStreamVersion
+      )
+      const reaction = spend.actionEconomyTransition
+      if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
+        unavailable("The reacting creature's reactions changed after this action; adjust manually.")
+      updateActor(reactor.id, {
+        resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
+      })
+    }
+    if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
+    for (const failed of root.failedCounters) invertReactorSpend(failed)
+
+    // A Dash's speed bonus leaves the turn's movement record.
+    if (root.speedBonusTurn)
+      await removeTurnSpeedBonus(ctx, {
+        encounterId: state.id,
+        ...root.speedBonusTurn,
+        actorId: source.id
+      })
+    // A teleport cast's allowance leaves the record unless a move already spent it (undo that move first).
+    if (root.teleportAllowanceTurn)
+      await removeTurnTeleportAllowance(ctx, {
+        encounterId: state.id,
+        ...root.teleportAllowanceTurn,
+        actorId: source.id,
+        castCommandId: root.commandId
+      })
+    // D139: the creatures the action pushed or pulled return, last move first; a token moved since refuses.
+    if (root.forcedMovements.length) {
+      if (!ctx.ports.restoreActionForcedMovements)
+        unavailable('This action moved creatures on the Scene; adjust manually.')
+      await ctx.ports.restoreActionForcedMovements({
+        encounterId: state.id,
+        commandId: root.commandId,
+        movements: root.forcedMovements
+      })
+    }
+    // The once-per-turn uses the attack spent return to the attacker's turn record.
+    if (root.turnUses)
+      await restoreTurnUses(ctx, {
+        encounterId: state.id,
+        round: root.turnUses.round,
+        turnActorId: root.turnUses.turnActorId,
+        actorId: source.id,
+        keys: root.turnUses.keys
+      })
+    // D99: only the command that added the Character to the Run's Concentration casters removes it.
+    if (root.addedConcentrationCasterId)
+      await ctx.db.patch(run._id, {
+        concentrationCasterCharacterIds: run.concentrationCasterCharacterIds.filter(
+          (id) => id !== root.addedConcentrationCasterId
+        )
+      })
+    // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
+    await restoreEndedMaintainedStates(ctx, root.endedMaintainedStates)
+    await restoreConsumedGrants(ctx, root.consumedGrants)
+  }
+  for (const plan of plans) await invertRoot(plan)
+  const updatedAt = new Date().toISOString()
+  for (const [characterId, inverse] of characterInverses)
+    await restoreCharacter(ctx, {
+      characterId,
+      inverse,
+      userId,
+      updatedAt,
+      gameSystemId: state.gameSystemId
+    })
+
+  return commitRevert(ctx, {
+    run,
+    state,
+    campaign,
+    input,
+    fingerprint,
+    userId,
+    root,
+    actors,
+    nextActors: actors.map((actor) => actorsById.get(actor.id)!),
+    updatedAt
+  })
+}
+
+type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
+type RevertScope = {
+  run: EncounterDocument<'encounterRuns'>
+  state: EncounterRunState
+  campaign: EncounterDocument<'campaigns'>
+  input: RevertLastEncounterActionInputDto
+  fingerprint: string
+  userId: string
+  root: Extract<
+    StoredCommand,
+    { commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' }
+  >
+}
+
+type RevertGroup = {
+  root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }>
+  ruleOccurrenceId: string
+  /** The answers committed after the root; each must settle one of the root's own children. */
+  laterEntries: readonly StoredCommand[]
+  /** The receipts committed from this root's version until the next group's root. */
+  receipts: readonly EncounterDocument<'encounterRuleReceipts'>[]
+}
+
+/** What one root's receipts say to invert, or a refusal naming what undo can't restore. */
+function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: RevertGroup) {
   const laterOccurrenceIds = new Set(
-    recent.slice(0, rootIndex).map((entry) => {
+    laterEntries.map((entry) => {
       if (entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
         throw new Error('Stored Encounter command scan is invalid.')
       return entry.ruleOccurrenceId
     })
   )
-
-  // Every receipt committed since the action belongs to it: the root, its evidence and children.
-  const receipts = await ctx.db
-    .query('encounterRuleReceipts')
-    .withIndex('by_encounterId_encounterVersion', (q) =>
-      q.eq('encounterId', run.id).gte('encounterVersion', root.version)
-    )
-    .take(RECEIPT_SCAN_LIMIT)
-  if (receipts.length === RECEIPT_SCAN_LIMIT)
-    unavailable('This action has too many follow-up results to undo; adjust manually.')
   let batch: ActionBatch | null = null
   let areaRoot: AreaRoot | null = null
   let lostRoot: CounteredRoot | GatedRoot | null = null
@@ -370,481 +932,7 @@ export async function revertLastEncounterAction(
     })
   if (unsupported.size || !spend)
     unavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
-
-  const store = createActiveRuleEffectStore(ctx)
-  // A cast's creature form ends first: ending its effect restores the origin the cast swapped out
-  // (D130), so the inverses below read the actor as it stood before the cast.
-  const endedFormEffectIds = new Set<string>()
-  for (const action of targetBatches) {
-    // A Character's form is held by an effect on the Character, found through its Run actor.
-    const wearer =
-      action.kind === 'CHARACTER_MECHANICS_BATCH'
-        ? (await readRunActorWithRow(ctx, state, action.targetActorId)).actor
-        : null
-    if (wearer && wearer.kind !== 'CHARACTER')
-      throw new Error('Stored Character action target is invalid.')
-    const owner =
-      wearer?.kind === 'CHARACTER'
-        ? { kind: 'CHARACTER' as const, characterId: wearer.sourceId }
-        : {
-            kind: 'ENCOUNTER_ACTOR' as const,
-            encounterId: state.id,
-            targetActorId: action.targetActorId
-          }
-    for (const transition of action.activeEffectTransitions) {
-      const effect = await store.findById(owner, transition.activeEffectId)
-      if (!effect || !holdsActorForm(effect.definition)) continue
-      await store.deleteCas({ id: effect.id, owner, expectedVersion: transition.afterVersion })
-      endedFormEffectIds.add(effect.id)
-    }
-  }
-
-  const actors = await readRunActors(ctx, state)
-  const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
-  const source = actorsById.get(spend.sourceActorId)
-  if (!source) throw new Error('Stored Encounter action actors are unavailable.')
-  // Each inverse reads the actor as earlier inverses left it; the schema validates every change.
-  const updateActor = (actorId: string, change: Record<string, unknown>) => {
-    const next = encounterRunActorStateSchema.parse({ ...actorsById.get(actorId), ...change })
-    actorsById.set(actorId, next)
-  }
-  const restoreHitPoints = (actorId: string, transition: ActionBatch['targetTransition']) => {
-    const actor = actorsById.get(actorId)!
-    if (actor.kind === 'CHARACTER') throw new Error('Character hit points are not Run state.')
-    if (
-      actor.currentHitPoints !== transition.after.currentHitPoints ||
-      actor.tempHitPoints !== transition.after.temporaryHitPoints ||
-      actor.maxHitPoints !== transition.after.maximumHitPoints
-    )
-      unavailable(`${actor.label}'s hit points changed after this action; adjust manually.`)
-    const next = encounterRunActorStateSchema.parse(
-      withActorTemporaryHitPoints(
-        {
-          ...actor,
-          currentHitPoints: transition.before.currentHitPoints,
-          maxHitPoints: transition.before.maximumHitPoints,
-          defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
-        },
-        targetTemporaryHitPoints(transition.before)
-      )
-    )
-    actorsById.set(actorId, next)
-  }
-
-  // Cleaving children are undone first, in reverse order of application.
-  for (const damage of cleaving.toReversed()) {
-    const cleaved = damage.targetActorId ? actorsById.get(damage.targetActorId) : undefined
-    if (!cleaved || !damage.targetTransition) throw new Error('Stored Cleaving receipt is invalid.')
-    if (cleaved.kind === 'CHARACTER')
-      unavailable("Undo can't restore Cleaving damage to a Character.")
-    restoreHitPoints(cleaved.id, damage.targetTransition)
-  }
-  const [firstRetaliation] = retaliation
-  if (firstRetaliation)
-    restoreHitPoints(firstRetaliation.candidate.candidate.targetActorId, {
-      ...firstRetaliation.targetTransition,
-      after: retaliation.at(-1)!.targetTransition.after
-    })
-  // The timed grants the attacker's own passive triggers made from that damage go with it.
-  for (const grant of batch?.meleeRetaliation?.grantEffectTransitions ?? [])
-    await store.deleteCas({
-      id: grant.activeEffectId,
-      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: grant.targetActorId },
-      expectedVersion: grant.afterVersion
-    })
-
-  // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
-  const characterInverses = new Map<string, CharacterInverse>()
-  const characterInverse = (characterId: string, streamVersion: number) => {
-    const current = characterInverses.get(characterId)
-    const next: CharacterInverse = current
-      ? {
-          ...current,
-          expectedStreamVersion: Math.max(current.expectedStreamVersion, streamVersion)
-        }
-      : {
-          hitPoints: null,
-          removedConditionIds: new Set(),
-          restoredConditionIds: new Set(),
-          resource: null,
-          unequipped: null,
-          item: null,
-          spells: [],
-          expectedStreamVersion: streamVersion
-        }
-    characterInverses.set(characterId, next)
-    return next
-  }
-  const createdStates = new Map<
-    string,
-    NonNullable<ActionBatch['maintenanceTransition']>['createdState']
-  >()
-  /** Gives back what an ended effect released from `actor`: on the Sheet for a Character, in the Run otherwise. */
-  const restoreReleasedConditions = (
-    actor: NonNullable<typeof source>,
-    conditionIds: readonly string[],
-    streamVersion: number | null
-  ) => {
-    if (!conditionIds.length) return
-    if (actor.kind === 'CHARACTER') {
-      if (actor.sourceId === null || streamVersion === null)
-        throw new Error('Stored source Character version is missing.')
-      characterInverse(actor.sourceId, streamVersion).restoredConditionIds = new Set(conditionIds)
-      return
-    }
-    const conditions = readEncounterActorConditionState(actor.conditions ?? [])
-    if (conditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
-      unavailable(`${actor.label}'s conditions changed after this action; adjust manually.`)
-    updateActor(actor.id, {
-      conditions: [
-        ...conditions.values,
-        ...conditionIds.map((conditionTypeId) => ({ conditionTypeId }))
-      ]
-    })
-  }
-
-  /** One creature's outcome: its hit points, conditions, charges, effects and maintenance. */
-  const invertTarget = async (action: ActionBatch) => {
-    const target = actorsById.get(action.targetActorId)
-    if (!target) throw new Error('Stored Encounter action actors are unavailable.')
-    const addedConditionIds = new Set(
-      action.applications.flatMap((application) =>
-        application.kind === 'CONDITION_APPLY' && application.applied
-          ? [application.conditionId]
-          : []
-      )
-    )
-    // A departure puts the target back unless the table already returned or removed it (D128).
-    if (
-      action.applications.some(
-        (application) => application.kind === 'DEPART' && application.applied
-      )
-    ) {
-      if (target.absence !== 'DEPARTED')
-        unavailable(`${target.label} was returned to the Scene after this action; adjust manually.`)
-      updateActor(target.id, { absence: null })
-    }
-    // A reaction the target used spent its slot and allowance and created its effect with this outcome.
-    const reaction = action.reaction
-    if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
-      if (target.kind !== 'CHARACTER' || target.sourceId === null)
-        throw new Error('Stored Character action target is invalid.')
-      // A reapplied condition may have moved from Campaign context into the Sheet; that is not recorded.
-      if (
-        action.applications.some(
-          (application) => application.kind === 'CONDITION_APPLY' && !application.applied
-        )
-      )
-        unavailable("Undo can't restore a reapplied condition; adjust manually.")
-      // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
-      const { before, after } = action.targetTransition
-      const zeroHitPointsConditionId = characterZeroHitPointsConditionId(state.gameSystemId)
-      const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
-      if (
-        zeroHitPointsConditionId !== undefined &&
-        before.currentHitPoints === 0 &&
-        after.currentHitPoints > 0 &&
-        before.conditionIds.includes(zeroHitPointsConditionId)
-      )
-        unavailable("Undo can't restore a removed condition; adjust manually.")
-      if (action.targetCharacterStreamVersion !== null) {
-        const inverse = characterInverse(target.sourceId, action.targetCharacterStreamVersion)
-        inverse.hitPoints = before
-        inverse.removedConditionIds = new Set([
-          ...addedConditionIds,
-          ...(zeroHitPointsConditionId !== undefined &&
-          droppedToZero &&
-          !before.conditionIds.includes(zeroHitPointsConditionId)
-            ? [zeroHitPointsConditionId]
-            : [])
-        ])
-        if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
-        if (action.targetItemUseStateTransition)
-          inverse.unequipped = action.targetItemUseStateTransition
-      }
-    } else {
-      if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
-      restoreHitPoints(target.id, action.targetTransition)
-      // An item the target dropped goes back in the hand it left.
-      const release = action.targetItemUseStateTransition
-      if (release) {
-        const held = revertEncounterActorItemRelease({
-          actor: actorsById.get(target.id)!,
-          transition: release
-        })
-        if (!held)
-          unavailable(`${target.label}'s equipment changed after this action; adjust manually.`)
-        updateActor(target.id, { snapshot: held.snapshot })
-      }
-      const conditions = readEncounterActorConditionState(target.conditions ?? [])
-      updateActor(target.id, {
-        conditions: conditions.values.filter(
-          (_, index) => !addedConditionIds.has(conditions.ids[index]!)
-        )
-      })
-    }
-    // A creature that ended its own effects (it cast, or was caught by its own area) gets them back.
-    restoreReleasedConditions(
-      actorsById.get(target.id)!,
-      endedConditionReleases(action.applications),
-      action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.targetCharacterStreamVersion : null
-    )
-    for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
-      characterInverse(owner.characterId, owner.afterStreamVersion)
-    const targetFeature = action.targetFeatureResourceConsumption
-    if (targetFeature) {
-      const owner = actorsById.get(targetFeature.ownerActorId)
-      if (
-        !owner ||
-        featureChargeUsed(owner, targetFeature.ownerFeatureId) !== targetFeature.afterUsed
-      )
-        unavailable("The target's feature charges changed after this action; adjust manually.")
-      updateActor(owner.id, {
-        resources: withFeatureChargeUsed(
-          owner,
-          targetFeature.ownerFeatureId,
-          targetFeature.beforeUsed
-        )
-      })
-    }
-    const reactionEconomy = reaction?.actionEconomyTransition
-    if (reactionEconomy) {
-      const reactor = actorsById.get(target.id)!
-      if (
-        encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !== reactionEconomy.afterUsed
-      )
-        unavailable("The target's reactions changed after this action; adjust manually.")
-      updateActor(reactor.id, {
-        resources: withEncounterRuleUsageUsed(
-          reactor,
-          reactionEconomy.definitionId,
-          reactionEconomy.beforeUsed
-        )
-      })
-    }
-    // Created effects and the maintained state go away; their versions prove nothing touched them.
-    const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
-    for (const effect of [
-      ...action.activeEffectTransitions,
-      ...(reaction?.activeEffectTransitions ?? []),
-      ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : []),
-      ...(action.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? action.grantEffectTransitions : [])
-    ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
-      await store.deleteCas({
-        id: effect.activeEffectId,
-        owner: characterOwnerId
-          ? { kind: 'CHARACTER', characterId: characterOwnerId }
-          : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: target.id },
-        expectedVersion: effect.afterVersion
-      })
-    for (const effect of action.stateEffectTransitions)
-      await store.deleteCas({
-        id: effect.activeEffectId,
-        owner: effect.owner,
-        expectedVersion: effect.afterVersion
-      })
-    const created = action.maintenanceTransition?.createdState
-    if (created) createdStates.set(created.id, created)
-  }
-  for (const action of targetBatches.toReversed()) await invertTarget(action)
-  const rootCreated = areaRoot?.maintenanceTransition?.createdState
-  if (rootCreated) createdStates.set(rootCreated.id, rootCreated)
-  // The timed grant the placed zone gave its placer goes with the zone; its version proves it untouched.
-  const sourceGrant = areaRoot?.sourceGrantTransition
-  if (areaRoot && sourceGrant)
-    await store.deleteCas({
-      id: sourceGrant.activeEffectId,
-      owner: areaRoot.sourceCharacterId
-        ? { kind: 'CHARACTER', characterId: areaRoot.sourceCharacterId }
-        : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: areaRoot.sourceActorId },
-      expectedVersion: sourceGrant.afterVersion
-    })
-  // Every record an area action placed (a zone's own and its bands) leaves the Scene with it,
-  // before the state they depend on goes.
-  for (const id of areaRoot?.placedSpatialEffectIds ?? [])
-    await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id })
-  // Every creature of an area shares the one state, so it goes once, after the last dependent.
-  for (const created of createdStates.values())
-    await store.deleteMaintainedStateCas({
-      id: created.id,
-      encounterId: state.id,
-      ownerActorId: created.sourceActorId,
-      expectedVersion: created.version
-    })
-
-  // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
-  const sourceCharacterId =
-    source.kind === 'CHARACTER' && source.sourceId !== null ? source.sourceId : null
-  if (
-    (spend.resourceConsumption ||
-      spend.sourceItemUseStateTransition ||
-      spend.sourceItemConsumption ||
-      spend.spellCastConsumption) &&
-    sourceCharacterId
-  ) {
-    if (spend.sourceCharacterStreamVersion === null)
-      throw new Error('Stored source Character version is missing.')
-    const inverse = characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion)
-    inverse.resource = spend.resourceConsumption
-    if (spend.sourceItemUseStateTransition) inverse.unequipped = spend.sourceItemUseStateTransition
-    inverse.item = spend.sourceItemConsumption
-    if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
-  }
-  // The conditions the source's ended effects released (Invisibility) come back with the effects.
-  restoreReleasedConditions(
-    source,
-    endedConditionReleases(spend.sourceApplications),
-    spend.sourceCharacterStreamVersion
-  )
-  // So do the ones the retaliation's damage released from the attacker; the effects themselves
-  // come back with the root's consumed grants, after the grants that damage made are deleted.
-  restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
-  const feature = spend.featureResourceConsumption
-  if (feature) {
-    const owner = actorsById.get(feature.ownerActorId)
-    if (!owner || featureChargeUsed(owner, feature.ownerFeatureId) !== feature.afterUsed)
-      unavailable("The actor's feature charges changed after this action; adjust manually.")
-    updateActor(owner.id, {
-      resources: withFeatureChargeUsed(owner, feature.ownerFeatureId, feature.beforeUsed)
-    })
-  }
-  const economy = spend.actionEconomyTransition
-  if (economy) {
-    const owner = actorsById.get(source.id)!
-    if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
-      unavailable("The actor's action economy changed after this action; adjust manually.")
-    updateActor(owner.id, {
-      resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
-    })
-  }
-  const attackAction = spend.attackActionTransition
-  if (attackAction) {
-    const restored = revertEncounterAttackActionTransition(actorsById.get(source.id)!, attackAction)
-    if (!restored)
-      unavailable("The actor's Attack action changed after this action; adjust manually.")
-    updateActor(source.id, { resources: restored.resources })
-  }
-  // Each mark this action armed or engaged goes back to what it was; an actor engaged earlier stays so.
-  for (const { actorId, before } of root.idleTurnMarkChanges) {
-    const marked = actorsById.get(actorId)
-    if (marked) updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
-  }
-  // The creature that countered the cast, and each that failed to, spent its own slot and reaction.
-  const invertReactorSpend = (
-    spend: Pick<
-      CounteredRoot['counter'],
-      | 'reaction'
-      | 'spellCastConsumption'
-      | 'applications'
-      | 'characterStreamVersion'
-      | 'actionEconomyTransition'
-    >
-  ) => {
-    const reactor = actorsById.get(spend.reaction.reactorActorId)
-    if (reactor?.kind !== 'CHARACTER')
-      throw new Error('Stored Encounter action actors are unavailable.')
-    if (spend.spellCastConsumption) {
-      if (spend.characterStreamVersion === null)
-        throw new Error('Stored reactor Character version is missing.')
-      characterInverse(reactor.sourceId, spend.characterStreamVersion).spells.push(
-        spend.spellCastConsumption
-      )
-    }
-    restoreReleasedConditions(
-      reactor,
-      endedConditionReleases(spend.applications),
-      spend.characterStreamVersion
-    )
-    const reaction = spend.actionEconomyTransition
-    if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
-      unavailable("The reacting creature's reactions changed after this action; adjust manually.")
-    updateActor(reactor.id, {
-      resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
-    })
-  }
-  if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
-  for (const failed of root.failedCounters) invertReactorSpend(failed)
-
-  // A Dash's speed bonus leaves the turn's movement record.
-  if (root.speedBonusTurn)
-    await removeTurnSpeedBonus(ctx, {
-      encounterId: state.id,
-      ...root.speedBonusTurn,
-      actorId: source.id
-    })
-  // A teleport cast's allowance leaves the record unless a move already spent it (undo that move first).
-  if (root.teleportAllowanceTurn)
-    await removeTurnTeleportAllowance(ctx, {
-      encounterId: state.id,
-      ...root.teleportAllowanceTurn,
-      actorId: source.id,
-      castCommandId: root.commandId
-    })
-  // D139: the creatures the action pushed or pulled return, last move first; a token moved since refuses.
-  if (root.forcedMovements.length) {
-    if (!ctx.ports.restoreActionForcedMovements)
-      unavailable('This action moved creatures on the Scene; adjust manually.')
-    await ctx.ports.restoreActionForcedMovements({
-      encounterId: state.id,
-      commandId: root.commandId,
-      movements: root.forcedMovements
-    })
-  }
-  // The once-per-turn uses the attack spent return to the attacker's turn record.
-  if (root.turnUses)
-    await restoreTurnUses(ctx, {
-      encounterId: state.id,
-      round: root.turnUses.round,
-      turnActorId: root.turnUses.turnActorId,
-      actorId: source.id,
-      keys: root.turnUses.keys
-    })
-  // D99: only the command that added the Character to the Run's Concentration casters removes it.
-  if (root.addedConcentrationCasterId)
-    await ctx.db.patch(run._id, {
-      concentrationCasterCharacterIds: run.concentrationCasterCharacterIds.filter(
-        (id) => id !== root.addedConcentrationCasterId
-      )
-    })
-  // The grants the action used up or ended (rolls, an incapacitation, a heal) come back with their remaining count.
-  await restoreEndedMaintainedStates(ctx, root.endedMaintainedStates)
-  await restoreConsumedGrants(ctx, root.consumedGrants)
-  const updatedAt = new Date().toISOString()
-  for (const [characterId, inverse] of characterInverses)
-    await restoreCharacter(ctx, {
-      characterId,
-      inverse,
-      userId,
-      updatedAt,
-      gameSystemId: state.gameSystemId
-    })
-
-  return commitRevert(ctx, {
-    run,
-    state,
-    campaign,
-    input,
-    fingerprint,
-    userId,
-    root,
-    actors,
-    nextActors: actors.map((actor) => actorsById.get(actor.id)!),
-    updatedAt
-  })
-}
-
-type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
-type RevertScope = {
-  run: EncounterDocument<'encounterRuns'>
-  state: EncounterRunState
-  campaign: EncounterDocument<'campaigns'>
-  input: RevertLastEncounterActionInputDto
-  fingerprint: string
-  userId: string
-  root: Extract<
-    StoredCommand,
-    { commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' }
-  >
+  return { root, batch, areaRoot, lostRoot, cleaving, retaliation, targetBatches, spend }
 }
 
 /** Writes the restored actors, the next Run version and the undo's own timeline entry. */

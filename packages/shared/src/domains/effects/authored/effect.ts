@@ -128,7 +128,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
         }
       | {
           kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE'>
+          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE' | 'HP_ZERO'>
           activation: ActivationAuthored
           resourceUse?: ResourceUseAuthored
           range: RangeAuthored
@@ -152,7 +152,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
 export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
   | {
       kind: typeof EFFECT_INVOCATION_KIND.PASSIVE
-      triggerCode: Extract<TTrigger, 'SAVING_THROW'>
+      triggerCode: Extract<TTrigger, 'SAVING_THROW' | 'HP_ZERO'>
       savingThrow: SavingThrowAuthored
       range: RangeAuthored
       shape?: ShapeAuthored
@@ -160,7 +160,7 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
     }
   | {
       kind: typeof EFFECT_INVOCATION_KIND.PASSIVE
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE'>
+      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE' | 'HP_ZERO'>
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored

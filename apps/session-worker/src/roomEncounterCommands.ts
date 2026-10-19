@@ -39,6 +39,7 @@ import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
+import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
@@ -226,10 +227,14 @@ export async function executeRoomEncounterCommand(input: {
     }
   }
   const state = readRunState(beforeRun)
+  const actorsBefore = await readRunActors(context, state)
   const characters = new Set(
-    (await readRunActors(context, state)).flatMap((actor) =>
+    actorsBefore.flatMap((actor) =>
       actor.kind === 'CHARACTER' && !actor.frozenState ? [actor.sourceId] : []
     )
+  )
+  const defeatedBefore = new Set(
+    actorsBefore.flatMap((actor) => (actor.kind === 'CREATURE' && actor.defeated ? [actor.id] : []))
   )
   for (const characterId of characters) {
     if (inputs.characterIsCurrent(characterId, observed, transaction)) continue
@@ -324,6 +329,27 @@ export async function executeRoomEncounterCommand(input: {
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
     (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
+  const raisedHpZeroEffects =
+    currentRun.status === 'ACTIVE' && input.turnExecution
+      ? await raiseRoomHpZeroEffects({
+          ctx: context,
+          transaction,
+          encounterId: currentRun.id,
+          parentCommandId: command.commandId.toLowerCase(),
+          defeatedBefore,
+          execute: executeAction
+        })
+      : false
+  const raisedRun = raisedHpZeroEffects
+    ? await context.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (query) => query.eq('id', state.id))
+        .unique()
+    : null
+  if (raisedHpZeroEffects && !raisedRun) throw new Error('Committed room Encounter is unavailable.')
+  const presented = raisedRun
+    ? { ...result, projection: await readEncounterGmProjection(context, readRunState(raisedRun)) }
+    : result
   const recipients = new Map<string, EncounterCommandResultDto>()
   for (const recipient of new Set([userId, ...input.recipientUserIds])) {
     const { campaign, membership } = await context.ports.requireCampaignAuthority(
@@ -336,10 +362,10 @@ export async function executeRoomEncounterCommand(input: {
         campaign,
         membership,
         result: {
-          ...result,
-          roll: recipient === userId ? result.roll : null,
+          ...presented,
+          roll: recipient === userId ? presented.roll : null,
           // The roll and its evidence are the presser's own, as on the Convex route.
-          evidenceRoll: recipient === userId ? result.evidenceRoll : null
+          evidenceRoll: recipient === userId ? presented.evidenceRoll : null
         }
       })
     )

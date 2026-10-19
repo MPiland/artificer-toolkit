@@ -99,7 +99,8 @@ export const triggerCodeSchema = lazySchema(() =>
     'SAVING_THROW',
     'CHECK',
     'ENTER_AREA',
-    'INCOMING_DAMAGE'
+    'INCOMING_DAMAGE',
+    'HP_ZERO'
   ])
 )
 

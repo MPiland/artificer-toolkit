@@ -230,6 +230,36 @@ export function casterCenteredAreaWolf(
   return selfAreaWolf(shape, damage)
 }
 
+/**
+ * `casterCenteredAreaWolf` whose burst is a passive effect that fires when the Wolf reaches 0 hit
+ * points (a death burst) rather than an action it takes.
+ */
+export function deathBurstWolf(radiusFeet: number, damage = 1): CreatureAuthored {
+  const burst = casterCenteredAreaWolf(
+    { shapeKind: 'SPHERE', radius: { amount: radiusFeet, unit: 'FEET' } },
+    damage
+  )
+  return creatureAuthoredDtoSchema.parse({
+    ...burst,
+    features: burst.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map(({ invocation, ...effect }) => {
+              const { activation: _activation, ...passive } = invocation as typeof invocation & {
+                activation?: unknown
+              }
+              return {
+                ...effect,
+                invocation: { ...passive, kind: 'PASSIVE', triggerCode: 'HP_ZERO' }
+              }
+            })
+          }
+    )
+  })
+}
+
 function selfAreaWolf(
   shape: Record<string, unknown> & { shapeKind: string },
   damage = 1

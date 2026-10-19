@@ -123,7 +123,15 @@ export function resolveEncounterActionSource(
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: systemAbilityDefinitions(system)
   })
-  const capability = actions.available.find((value) => value.actionId === input.actionId)
+  // A passive effect that fires on reaching 0 hit points is a source only for the creature it
+  // defeated; admission lets only a rule-raised root name a defeated actor.
+  const capability =
+    actions.available.find((value) => value.actionId === input.actionId) ??
+    (creature.defeated
+      ? actions.passiveHpZeroEffects
+          .map((effect) => effect.capability)
+          .find((value) => value.actionId === input.actionId)
+      : undefined)
   if (!capability) {
     const unavailable = actions.unavailable.find((value) => value.actionId === input.actionId)
     if (unavailable) throw new UnavailableCreatureActionError(unavailable.label, unavailable.reason)

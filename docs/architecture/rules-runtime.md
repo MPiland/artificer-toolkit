@@ -363,6 +363,19 @@ the caught set to equal the sealed one). An immediate list (heals, projectiles) 
 room; `executeEncounterActorsAction` refuses an outcome that asks for evidence. A spell that takes a list is refused when sent at one creature
 (`TARGET_UNAVAILABLE`).
 
+### Passive effect on reaching 0 hit points (current, SPELLS-33.T6e1)
+
+An authored Effect with invocation `{ kind: PASSIVE, triggerCode: HP_ZERO }` and a saving throw is a creature
+trait that fires when the holder is defeated (Balor Death Throes). Discovery normalizes it to a
+`SAVING_THROW` area action but lists it in `passiveHpZeroEffects`, never in `available`, so it is not an
+ordinary action. After a command commits, `raiseRoomHpZeroEffects` (`roomEncounterHpZeroTriggers.ts`, called
+once at the room's `executeRoomEncounterCommand` funnel, not per root) diffs the newly defeated creatures and
+raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admission described in
+[persistence](persistence.md). Auto-roll victims settle in the commit that raised it; a manual roller gets an
+`AREA_PENDING` in that commit. The burst is centred on the defeated token's footprint and catches every
+actor in range, allies included, except the holder. It never recurses: the burst's own defeats raise nothing
+(deferred edge case in the SPELLS-33 workbook).
+
 ### Caster-centered radius areas (current, SPELLS-22)
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth

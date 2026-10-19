@@ -1,0 +1,41 @@
+import { v5 as uuidv5 } from 'uuid'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+
+const NAMESPACE = '6b0c2f0e-3d0a-5c1e-9f55-0a7f1d9a4c21'
+
+/** One trigger per parent command, holder and effect, so a replayed parent never raises it twice. */
+export function systemTriggerCommandId(
+  parentCommandId: string,
+  holderActorId: string,
+  actionId: string
+) {
+  return uuidv5(`${parentCommandId}:${holderActorId}:${actionId}:system-trigger`, NAMESPACE)
+}
+
+/**
+ * The root command for a rule the Encounter raises on a creature's behalf, such as a passive effect
+ * on reaching 0 hit points. It aims at the holder's own space: the committed parent command is the
+ * only caller of this builder, and admission proves the link against that command's receipt.
+ */
+export function systemTriggerAreaCommand(input: {
+  encounterId: string
+  expectedVersion: number
+  parentCommandId: string
+  holderActorId: string
+  actionId: string
+  scene: { sceneId: string; expectedSceneVersion: number }
+}): ResolveEncounterActionInputDto {
+  return {
+    type: 'RESOLVE_ACTION',
+    encounterId: input.encounterId,
+    expectedVersion: input.expectedVersion,
+    commandId: systemTriggerCommandId(input.parentCommandId, input.holderActorId, input.actionId),
+    actorId: input.holderActorId,
+    actionId: input.actionId,
+    target: { kind: 'CASTER_CENTERED', ...input.scene },
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
+    sceneContext: null,
+    systemTrigger: { parentCommandId: input.parentCommandId }
+  }
+}
