@@ -30,6 +30,7 @@ import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
 import {
   resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
+  savingThrowAbility,
   selectEncounterActionD20Natural,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
@@ -502,6 +503,7 @@ function d20EvidenceForCompletion(input: {
     total: execution.outputs.total,
     defenseOrDc: policy.dc,
     resultPath: execution.outputs.resultPath,
+    ...savingThrowAbility(policy),
     ...(addedDice.length > 0 ? { addedDice: [...addedDice] } : {})
   }
 }

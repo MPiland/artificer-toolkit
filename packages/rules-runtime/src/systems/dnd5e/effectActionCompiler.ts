@@ -9914,7 +9914,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           contributorChecksum,
           modifier: matches[0]!.modifier,
           defenseOrDc: dc,
-          addedDice
+          addedDice,
+          savingThrowAbilityDefinitionId: nestedSaveAbilityDefinitionId
         }
       }
     }
@@ -10058,7 +10059,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           contributorChecksum,
           modifier,
           defenseOrDc: save.dc,
-          addedDice
+          addedDice,
+          savingThrowAbilityDefinitionId: save.abilityDefinitionId
         }
       }
     }
@@ -10252,6 +10254,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         contributorChecksum,
         modifier: matches[0]!.modifier,
         dc: saveDc,
+        savingThrowAbilityDefinitionId: abilityDefinitionId,
         ...(addedDice.length > 0 ? { addedDice } : {})
       }
     }

@@ -47,45 +47,48 @@ export function ownsCondition(effect: ActiveRuleEffectRecord) {
 }
 
 /**
- * An ability check that spends dice, with the ability it was made with (null when it has none). Only the effects whose die
- * applied to this check are spent (D156).
+ * An ability check or saving throw that spends dice, with the ability it was made with (null when
+ * it has none: a death save). Only the effects whose die applied to this test are spent (D156).
  */
-export type ScopedAbilityCheck = {
-  event: 'ON_ABILITY_CHECK'
+export type ScopedD20Test = {
+  event: 'ON_ABILITY_CHECK' | 'ON_SAVING_THROW'
   abilityCode: string | null
 }
 
-function abilityCheckGrants(effect: ActiveRuleEffectRecord) {
+const TEST_VALUE_DOMAIN = {
+  ON_ABILITY_CHECK: 'ABILITY_CHECK',
+  ON_SAVING_THROW: 'SAVING_THROW_MODIFIER'
+} as const
+
+function testGrants(effect: ActiveRuleEffectRecord, event: ScopedD20Test['event']) {
   return listActiveEffectGrants([effect])
     .flatMap(({ modifiers }) => modifiers)
-    .filter((modifier) => modifier.valueDomainCode === 'ABILITY_CHECK')
+    .filter((modifier) => modifier.valueDomainCode === TEST_VALUE_DOMAIN[event])
 }
 
 /**
- * Whether a bare ability-check event spends the effect: it is a check that adds no dice (a
- * contest's), so it never spends a held die that waits for one that does.
+ * Whether a bare ability-check or saving-throw event spends the effect: it is a test that adds no
+ * dice (a contest's), so it never spends a held die that waits for one that does.
  */
 function bareTestApplies(
   effect: ActiveRuleEffectRecord,
   event: ActiveEffectConsumeEvent | ActiveEffectEndEvent
 ) {
   return (
-    event !== 'ON_ABILITY_CHECK' ||
-    !abilityCheckGrants(effect).some(({ modifierKind }) => modifierKind === 'ADD_BONUS_DIE')
+    (event !== 'ON_ABILITY_CHECK' && event !== 'ON_SAVING_THROW') ||
+    !testGrants(effect, event).some(({ modifierKind }) => modifierKind === 'ADD_BONUS_DIE')
   )
 }
 
 /**
- * Whether a scoped check spent the effect's grants: it has no ability-check grants (the event alone
- * ends it), or one of them applied to the check's ability.
+ * Whether a scoped test spent the effect's grants: it has no grants to the test's value domain (the
+ * event alone ends it), or one of them applied to the test's ability.
  */
-function scopedCheckApplies(effect: ActiveRuleEffectRecord, check: ScopedAbilityCheck) {
-  const grants = abilityCheckGrants(effect)
+function scopedTestApplies(effect: ActiveRuleEffectRecord, test: ScopedD20Test) {
+  const grants = testGrants(effect, test.event)
   return (
     grants.length === 0 ||
-    grants.some(
-      ({ domain }) => domain.ability === undefined || domain.ability === check.abilityCode
-    )
+    grants.some(({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode)
   )
 }
 
@@ -95,12 +98,12 @@ function scopedCheckApplies(effect: ActiveRuleEffectRecord, check: ScopedAbility
  * then the effect is gone, restored by the same receipt); the caller releases any condition an
  * ended effect alone held (`endedMaintenanceConditions`). An action can be several events at once (a
  * spell attack is an attack roll and a cast); an effect listing more than one ends once. An ability
- * check is passed as a `ScopedAbilityCheck` and spends only the effects whose grants
+ * check or saving throw is passed as a `ScopedD20Test` and spends only the effects whose grants
  * applied to its ability.
  */
 export function effectsEndedBy(
   effects: readonly ActiveRuleEffectRecord[],
-  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent | ScopedAbilityCheck)[]
+  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent | ScopedD20Test)[]
 ) {
   return effects.filter(
     (effect) =>
@@ -112,7 +115,7 @@ export function effectsEndedBy(
         events.some((event) =>
           typeof event === 'string'
             ? event === listed && bareTestApplies(effect, event)
-            : event.event === listed && scopedCheckApplies(effect, event)
+            : event.event === listed && scopedTestApplies(effect, event)
         )
       )
   )
