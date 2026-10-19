@@ -24,7 +24,7 @@ const evidence = {
 describe('a d20 floor on a check (SPELLS-4.T2c3)', () => {
   it('counts the kept face as the floor when it is lower, with the modifier and added dice', () => {
     const addedDice = [
-      { label: 'Bless', count: 1, faces: 4, sign: 'ADD' as const, rolledFaces: [2] }
+      { label: 'Bless', count: 1, faces: 4 as const, sign: 'ADD' as const, rolledFaces: [2] }
     ]
     expect(d20CheckTotal({ selectedNatural: 4, modifier: 3 })).toBe(7)
     expect(d20CheckTotal({ selectedNatural: 4, modifier: 3, minimumRoll: floor })).toBe(18)
