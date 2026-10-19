@@ -72,7 +72,7 @@ describe('a save that makes its target immune to the source (SPELLS-33.T7a, ADR 
       ({ pathCode }) => pathCode === 'ON_SAVE_SUCCESS'
     )
     if (!successPath) throw new Error('The Moan has no success path.')
-    const [effect] = structuredClone(holdPerson.effects)
+    const effect = structuredClone(holdPerson.effects?.[0])
     if (!effect) throw new Error('Hold Person has no effect.')
     const authored = {
       ...structuredClone(caltropsBagOf20),
