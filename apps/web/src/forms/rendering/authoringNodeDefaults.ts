@@ -684,6 +684,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { amount: 1 }
     case 'targeting':
       return createTargeting('SELF') as AuthoringGroupValues
+    case 'damageDieCastLevelScaling':
+      return { level: 1, count: 1 }
     case 'damageLevelScalingEntry':
       return {
         id: crypto.randomUUID(),

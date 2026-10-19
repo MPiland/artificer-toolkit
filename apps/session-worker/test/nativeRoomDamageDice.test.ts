@@ -26,7 +26,12 @@ afterEach(() => {
  * `holderActorId` holds the real planned grant of `spell`, placed by the biter. `rolls` follow the
  * d20 with the added dice, as raw dice (a face less one).
  */
-async function biteUnder(spell: SpellAuthored, holderActorId: string, rolls: readonly number[]) {
+async function biteUnder(
+  spell: SpellAuthored,
+  holderActorId: string,
+  rolls: readonly number[],
+  spellCastLevel?: number
+) {
   const biter = biteWolf('ATTACK')
   const room = await actionRoom({
     actors: [
@@ -41,7 +46,8 @@ async function biteUnder(spell: SpellAuthored, holderActorId: string, rolls: rea
       holderActorId,
       lifecycle: {},
       effect: spell.effects?.[0],
-      sourceLabel: spell.label
+      sourceLabel: spell.label,
+      spellCastLevel
     })
   })
   const before = readActorHitPoints(await readRoomHistory(room.room.base.stub), TARGET_ID)
@@ -72,7 +78,7 @@ describe('a rolled damage die on an Encounter attack (SPELLS-4.T2d, D156)', () =
   })
 
   it('deals Branding Smite’s 2d6 radiant on the hit and ends it', async () => {
-    const bitten = await biteUnder(brandingSmite, BITER_ID, [1, 4])
+    const bitten = await biteUnder(brandingSmite, BITER_ID, [1, 4], 2)
     expect(bitten.lost).toBe(1 + 2 + 5)
     expect(bitten.damageCards).toEqual(
       expect.arrayContaining([{ label: 'Branding Smite: Radiant damage', total: 7 }])

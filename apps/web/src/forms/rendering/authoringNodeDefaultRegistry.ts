@@ -135,6 +135,7 @@ type AuthoringDefaultKind =
   | 'hitPointPool'
   | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
+  | 'damageDieCastLevelScaling'
   | 'damageLevelScalingEntry'
   | 'weight'
 
@@ -288,6 +289,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targeting: ['targeting'],
+  damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
   weight: ['weight']
 }
