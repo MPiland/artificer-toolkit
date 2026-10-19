@@ -179,7 +179,7 @@ function actorConditionStatuses(conditions: unknown): VttTokenPresentation['stat
     if (!label) return []
     const id = firstString(record.id, record.conditionTypeId) ?? `condition:${index}`
     const kind = statusKind(record.kind ?? record.category)
-    return [statusFromValues(id, kind, label)]
+    return [statusFromValues(id, kind, record.innate === true ? `${label} (innate)` : label)]
   })
 }
 

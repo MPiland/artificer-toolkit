@@ -1077,7 +1077,7 @@ function unsupportedModifierMessage(value: {
     value.modifierKind === 'REPLACE_DAMAGE_TYPE' ||
     value.valueDomainCode === 'MOVEMENT_MODE' ||
     value.valueDomainCode === 'ATTRIBUTE' ||
-    value.valueDomainCode === 'CONDITION'
+    (value.valueDomainCode === 'CONDITION' && value.modifierKind === 'REMOVE_OPTION')
   )
     return `${label} modifiers are not supported yet.`
   return null

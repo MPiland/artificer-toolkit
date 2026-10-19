@@ -28,8 +28,8 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
   CHECKS_AGAINST_HOLDER: 'BENEFICIAL',
   MOVEMENT_MODE: 'BENEFICIAL',
   MOVEMENT_PASSAGE: 'BENEFICIAL',
-  DAMAGE_VULNERABILITY: 'HARMFUL',
-  CONDITION: 'HARMFUL'
+  CONDITION: 'BENEFICIAL',
+  DAMAGE_VULNERABILITY: 'HARMFUL'
 }
 
 /** What enabling something does for the holder; any other enabled domain is neutral. */

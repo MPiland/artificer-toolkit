@@ -54,18 +54,7 @@ export const invisibleStalker: CreatureAuthored = {
       id: S.featureId(174, 1),
       label: 'Invisibility',
       description: 'Invisibility. The stalker is invisible.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(174, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(174, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_INVISIBLE_STALKER_INVISIBILITY
-        })
-      ],
+      grants: S.innateConditionGrants(174, 201, 'INVISIBLE'),
       order: 1
     },
     {

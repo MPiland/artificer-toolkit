@@ -167,7 +167,9 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       attackAgainstContributors: [],
       sourceSightSaves: [],
       conditionDefinitions: [],
-      conditionMechanics: []
+      conditionMechanics: [],
+      grantModifiers: [],
+      innateConditionIds: []
     }
   }
 

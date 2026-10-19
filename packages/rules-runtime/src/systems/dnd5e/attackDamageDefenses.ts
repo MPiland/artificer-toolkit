@@ -1,4 +1,5 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
@@ -6,7 +7,8 @@ import { isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   dnd5eAcceptedModifierApplicability,
   dnd5eCharacterActionTarget,
-  dnd5eModifierApplies
+  dnd5eModifierApplies,
+  type Dnd5eModifierTarget
 } from './modifierApplicability.js'
 
 type DamageDefense = {
@@ -62,6 +64,22 @@ export function dnd5eAttackDamageDefenses(
   return [...applicable.values()]
 }
 
+/** The traits an `ATTACK_TRAIT` grant among the modifiers gives the attack it applies to. */
+export function dnd5eGrantedAttackTraits(
+  modifiers: readonly CharacterGrantFoldModifier[],
+  target: Dnd5eModifierTarget
+): ReadonlySet<DamageDefenseBypassCode> {
+  return new Set(
+    modifiers.flatMap((modifier) =>
+      modifier.valueDomainCode === 'ATTACK_TRAIT' &&
+      modifier.domain.trait !== undefined &&
+      dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
+        ? [modifier.domain.trait]
+        : []
+    )
+  )
+}
+
 /**
  * A Character attack is magical when it is a spell attack or made with a magic item; silvered and
  * adamantine come from the item's Sheet properties. An ATTACK_TRAIT grant that applies to the
@@ -82,15 +100,9 @@ export function dnd5eCharacterAttackTraits(input: {
       : input.policy.itemMechanics.find(
           (entry) => entry.itemInstanceId === equipment.itemInstanceId
         )
-  const target = dnd5eCharacterActionTarget(input.candidate)
-  const granted = new Set(
-    input.policy.grantFold.modifiers.flatMap((modifier) =>
-      modifier.valueDomainCode === 'ATTACK_TRAIT' &&
-      modifier.domain.trait !== undefined &&
-      dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
-        ? [modifier.domain.trait]
-        : []
-    )
+  const granted = dnd5eGrantedAttackTraits(
+    input.policy.grantFold.modifiers,
+    dnd5eCharacterActionTarget(input.candidate)
   )
   return {
     magical:

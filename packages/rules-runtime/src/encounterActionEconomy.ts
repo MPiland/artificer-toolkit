@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   EncounterRunActorState,
@@ -134,7 +135,7 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
   const capabilityState = await resolveRuleCapabilityState({
     definitions: input.definitions,
     gameSystemId: input.state.gameSystemId,
-    activeConditionDefinitionIds: target.state.conditions,
+    activeConditionDefinitionIds: heldConditionIds(target),
     capabilityDefinitionIds: [binding.capabilityDefinitionId],
     activeEffectSuppressions: activeEffectCapabilitySuppressions(target.activeEffects)
   })

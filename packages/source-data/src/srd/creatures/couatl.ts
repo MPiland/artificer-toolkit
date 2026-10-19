@@ -75,18 +75,7 @@ export const couatl: CreatureAuthored = {
       id: S.featureId(71, 2),
       label: 'Magic Weapons',
       description: "Magic Weapons. The couatl's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(71, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(71, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(71, 202),
       order: 2
     },
     {
