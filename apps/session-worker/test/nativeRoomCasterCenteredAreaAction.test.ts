@@ -240,6 +240,22 @@ describe('room radius centered on the caster that excludes a creature type (SPEL
   const cloaker = srdCreatureRecords.find((record) => record.label === 'Cloaker')
   const moanId = cloaker?.features.find((feature) => feature.label === 'Moan')?.id
   if (!cloaker || !moanId) throw new Error('The SRD Cloaker must author its Moan.')
+  // The Moan's after-save immunity is still a closed rule until SPELLS-33.T7a, so this caster
+  // moans without its success path.
+  const moaningCloaker = {
+    ...cloaker,
+    features: cloaker.features.map((feature) =>
+      feature.id === moanId
+        ? {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              paths: effect.paths.filter(({ pathCode }) => pathCode !== 'ON_SAVE_SUCCESS')
+            }))
+          }
+        : feature
+    )
+  }
 
   /**
    * The Cloaker moans with two Wolves and a second Cloaker beside it, all within its 60 ft, and a
@@ -249,7 +265,7 @@ describe('room radius centered on the caster that excludes a creature type (SPEL
   const moanRoom = () =>
     actionRoom({
       actors: [
-        srdCreatureActor({ id: CASTER_ID, creature: cloaker }),
+        srdCreatureActor({ id: CASTER_ID, creature: moaningCloaker }),
         srdCreatureActor({ id: FIRST_ID, creature: plainWolf }),
         srdCreatureActor({ id: SECOND_ID, creature: plainWolf }),
         srdCreatureActor({ id: THIRD_ID, creature: cloaker }),
