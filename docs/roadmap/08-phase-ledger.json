@@ -8317,7 +8317,7 @@
             },
             {
               "id": "SPELLS-4.T2k2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8327,11 +8327,24 @@
                 "after": ["SPELLS-4.T2k"]
               },
               "text": "Mirror Image runtime: server-rolled decoy d20 sealed in the pending context, the attack resolved against decoy AC, hit suppression, remainingUses spend and undo, a decoy receipt. Converts MIRROR_IMAGE with its authoring-parity proof and deletes the kind (2026-10-19 ruling on the T2k split; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m178 (7f65fc0fa)."
+            },
+            {
+              "id": "SPELLS-4.T2k2b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2k2"]
+              },
+              "text": "new: Mirror Image ATTACK_DECOYS on the remaining attack paths: opportunity and reaction attacks and legendary-action attacks intercept through the same decoy planner, and an attacker with blindsight or truesight (or that cannot see) is exempt; room proof per path (2026-10-19 ruling on the T2k2 gaps; workbook slice-spells-4.md)."
             },
             {
               "id": "SPELLS-4.T2k3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8340,7 +8353,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2k"]
               },
-              "text": "Sanctuary: INCOMING_ATTACK_GATE with the attacker save (player Characters follow their save roll preference, creatures server-rolled), the ATTACK_RETARGET pause answered through RESOLVE_RULE_OCCURRENCE with replay fences, an incomingGate receipt and its duration. Converts SANCTUARY with its authoring-parity proof and deletes the kind (2026-10-18 and 2026-10-19 rulings; workbook slice-spells-4.md)."
+              "text": "Sanctuary: INCOMING_ATTACK_GATE with the attacker save (player Characters follow their save roll preference, creatures server-rolled), the ATTACK_RETARGET pause answered through RESOLVE_RULE_OCCURRENCE with replay fences, an incomingGate receipt and its duration. Converts SANCTUARY with its authoring-parity proof and deletes the kind (2026-10-18 and 2026-10-19 rulings; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -11276,7 +11290,7 @@
                 "size": 5,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add."
             },
             {
               "id": "SPELLS-31.T5d",
@@ -12373,11 +12387,37 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T6k2b"]
               },
-              "text": "new: Whirlwind collision part 3 (D159): the struck creature's Dex save as a second compiled plan and sealed pending step (rolled ray plus struck save; player rolls their own) with damage and PRONE, answer routing through the snapshot schema, actionAreaPending and areaCommitPersistence, replay/revert fences and snapshot determinism; the two-mover landing-order test with actor-id tie-break; deletes CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with the authoring-parity proof (2026-10-19 split; workbook slice-spells-33.md). Also: the forced-movement schema refuses unknown keys inside collision (strict collision schema on the intersection path), with a schema test that fails before the fix.",
+              "text": "Whirlwind collision part 3 (D159): the forced-movement schema refuses unknown keys inside collision (discriminated union), with a schema test that fails before the fix (2026-10-19 split; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6k2b3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T6k2b2"]
+              },
+              "text": "new: Whirlwind collision part 4 (D159): RANDOM forced-movement rays rolled once on the server and sealed in the pending-context snapshot (a replan keeps the ray), the landing preview from readRoomForcedMovementPick, and the mover's own collision damage as ordinal kept entries, proved on an authored fixture; the Whirlwind stays on its old kind (2026-10-19 split; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6k2b4",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T6k2b3"]
+              },
+              "text": "new: Whirlwind collision part 5 (D159): the struck creature's Dex save on the existing AREA_PENDING pattern (player rolls their own, creatures server-rolled) with a collision-target entry in context.targets, damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the two-mover landing-order test with actor-id tie-break, the Whirlwind switch to the authored block and deletion of CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with its parity proof, and the room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6k3",

@@ -10,6 +10,7 @@ import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
 import { magicWeapon } from '@artificer-toolkit/source-data/srd/spells/magic-weapon.js'
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
+import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { sequester } from '@artificer-toolkit/source-data/srd/spells/sequester.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
@@ -30,6 +31,7 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['Light', light],
     ['Mage Armor', mageArmor],
     ['Mind Blank', mindBlank],
+    ['Mirror Image', mirrorImage],
     ['Pass without Trace', passWithoutTrace],
     ['Sequester', sequester],
     ['Shillelagh', shillelagh],
