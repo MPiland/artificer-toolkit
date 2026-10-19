@@ -38,6 +38,12 @@ const choiceOptionsSchema = lazySchema(() =>
   )
 )
 
+/**
+ * The action is used on an item its creature has equipped (Shillelagh's club, Heat Metal's armor):
+ * once the creature is picked the client reads the items it may pick from.
+ */
+const choosesItemSchema = lazySchema(() => z.optional(z.literal(true)))
+
 /** The caster designates creatures at cast that the zone it places never affects. */
 const choosesUnaffectedShape = lazySchemaParts(() => ({
   choosesUnaffected: z.optional(z.literal(true))
@@ -64,12 +70,16 @@ const pointTargetSchema = lazySchema(() =>
 
 /**
  * A radius centered on the caster, measured from the edge of their space (a Self sphere, cylinder
- * or circle): the client asks for no aim and only fences the Scene version.
+ * or circle), or the caster's own space (a Self area that names no shape): the client asks for no
+ * aim and only fences the Scene version.
  */
 const casterCenteredTargetSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CASTER_CENTERED'),
-    area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+    area: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+      z.strictObject({ kind: z.literal('OWN_SPACE') })
+    ])
   })
 )
 
@@ -168,7 +178,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         /** As authored: the client lists the user among the creatures unless it is `REFUSED` (Help, First Aid). */
         self: targetingSelfDtoSchema,
         /** The options the caster picks one of at cast (D148); absent for an action with none. */
-        choiceOptions: choiceOptionsSchema
+        choiceOptions: choiceOptionsSchema,
+        choosesItem: choosesItemSchema
       }),
       /**
        * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word), or
@@ -391,6 +402,30 @@ export const encounterActionChoicesResponseDtoSchema = lazySchema(() =>
   z.nullable(encounterActionChoicesDtoSchema)
 )
 
+/** The target's items an action that `choosesItem` may be used on, by the picked creature. */
+export const getEncounterActionItemChoicesInputDtoSchema = lazySchema(() =>
+  z.extend(
+    z.pick(resolveEncounterActionInputDtoSchema, {
+      encounterId: true,
+      expectedVersion: true,
+      actorId: true,
+      actionId: true
+    }),
+    {
+      encounterId: postgresUuidSchema,
+      actorId: postgresUuidSchema,
+      targetActorId: postgresUuidSchema
+    }
+  )
+)
+
+/** Each item the client may send as the command's `boundItemInstanceId`, with its label. */
+export const encounterActionItemChoicesDtoSchema = lazySchema(() =>
+  z.strictObject({
+    items: z.array(z.strictObject({ id: postgresUuidSchema, label: labelSchema }))
+  })
+)
+
 export const getEncounterOptionalActionChoicesInputDtoSchema = lazySchema(() =>
   z.extend(
     z.pick(resolveEncounterActionInputDtoSchema, {
@@ -444,6 +479,10 @@ export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDto
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema
 >
+export type GetEncounterActionItemChoicesInputDto = z.infer<
+  typeof getEncounterActionItemChoicesInputDtoSchema
+>
+export type EncounterActionItemChoicesDto = z.infer<typeof encounterActionItemChoicesDtoSchema>
 export type GetEncounterOptionalActionChoicesInputDto = z.infer<
   typeof getEncounterOptionalActionChoicesInputDtoSchema
 >

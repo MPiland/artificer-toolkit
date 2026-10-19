@@ -131,6 +131,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemConsumption: settled.itemConsumptionReceipt,
+            targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions: activeEffectTransitions.map((transition) =>
@@ -194,6 +195,7 @@ export function buildEncounterActionStoredExecution(input: {
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemConsumption: settled.itemConsumptionReceipt,
+            targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions,

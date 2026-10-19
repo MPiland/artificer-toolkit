@@ -2,7 +2,11 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
+import {
+  equipmentInstanceMechanicSourceSchema,
+  modifierOperationSchema,
+  senseOperationSchema
+} from '../api/characterGrantFoldRules.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
@@ -20,6 +24,7 @@ import {
   pathLifecycleEndEventSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
+  pathLifecycleEndTriggerOfSchema,
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
@@ -78,7 +83,8 @@ const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
   'ON_ABILITY_CHECK',
   'ON_SAVING_THROW',
   'ON_HIT_POINTS_REGAINED',
-  'ON_INCAPACITATED'
+  'ON_INCAPACITATED',
+  'ON_CHOSEN_ITEM_RELEASED'
 ])
 
 const activeEffectOriginDtoSchema = lazySchema(() =>
@@ -129,7 +135,9 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
  * `ATTACK_ROLL` and `SPELL_CAST` end it when its holder attacks or casts at an enemy (Sanctuary).
  * `ACTION_USED_ON_HOLDER` ends it when another creature uses one of the named actions on the holder
- * (rousing a sleeper); the ids are basic-action definitions, sorted and unique.
+ * (rousing a sleeper); the ids are basic-action definitions, sorted and unique. `INCAPACITATED` ends
+ * it when the effect's source is incapacitated or defeated (`of: 'SOURCE'`, Knight Leadership),
+ * wherever the effect sits; the holder's own incapacitation is the `ON_INCAPACITATED` end event.
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
@@ -145,6 +153,10 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
     z.strictObject({
       event: z.literal('ACTION_USED_ON_HOLDER'),
       actionDefinitionIds: basicActionFilterDtoSchema
+    }),
+    z.strictObject({
+      event: z.literal('INCAPACITATED'),
+      of: pathLifecycleEndTriggerOfSchema
     })
   ])
 )
@@ -338,6 +350,11 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
       /** Whether the source was hidden from players when the grant was created. */
       sourceHidden: z.boolean(),
       /**
+       * The holder's item the cast chose and bound the grant to (Shillelagh's staff): its
+       * SOURCE-scoped modifiers apply to that item. Absent for an unbound grant.
+       */
+      boundItem: z.optional(equipmentInstanceMechanicSourceSchema),
+      /**
        * Only on the template a placed zone carries: the events that end the grant the zone leaves
        * on a creature. A created grant reads them from its own `recurrence.endOnEvents`.
        */
@@ -495,7 +512,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
         }
         if (
           definition.recurrence.endOnTriggers.some(
-            (trigger) => 'by' in trigger && trigger.by === 'SOURCE_SIDE'
+            (trigger) =>
+              ('by' in trigger && trigger.by === 'SOURCE_SIDE') || trigger.event === 'INCAPACITATED'
           ) &&
           (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
         ) {

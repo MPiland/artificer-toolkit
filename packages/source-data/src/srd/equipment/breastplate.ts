@@ -8,7 +8,7 @@ export const breastplate: EquipmentAuthored = {
   description:
     "This armor consists of a fitted metal chest piece worn with supple leather. Although it leaves the legs and arms relatively unprotected, this armor provides good protection for the wearer's vital organs while leaving the wearer relatively unencumbered.",
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
+  properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM, S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 14,
   cost: S.gp(400),
   weight: S.lbs(20),

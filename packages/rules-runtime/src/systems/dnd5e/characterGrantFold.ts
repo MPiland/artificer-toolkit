@@ -314,7 +314,8 @@ export function evaluateDnd5e2014CharacterGrantFold(
     modifiers: CharacterGrantFoldSource['modifiers'],
     sourceId: string,
     mechanicSource: CharacterGrantFoldSource['mechanicSource'],
-    sourceState: SourceState | undefined
+    sourceState: SourceState | undefined,
+    boundSourceId?: string
   ): void => {
     for (const modifier of modifiers) {
       const deferredRequirements = modifierDeferredRequirements(
@@ -336,6 +337,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
         domain: modifier.domain,
         ...(modifier.payload === undefined ? {} : { payload: modifier.payload }),
         sourceId,
+        ...(boundSourceId !== undefined && { boundSourceId }),
         source: mechanicSource,
         ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),
         ...(modifier.scopeResourceIds.length > 0
@@ -407,7 +409,13 @@ export function evaluateDnd5e2014CharacterGrantFold(
         acc.senses.push(sense)
       }
     }
-    applyModifiers(source.modifiers, source.sourceId, source.mechanicSource, undefined)
+    applyModifiers(
+      source.modifiers,
+      source.sourceId,
+      source.mechanicSource,
+      undefined,
+      source.boundSourceId
+    )
     const grantLevel = activeLevel ?? 0
     for (const operation of source.feats)
       applyScalingTargets(operation, grantLevel, acc.unlockedFeatIds)

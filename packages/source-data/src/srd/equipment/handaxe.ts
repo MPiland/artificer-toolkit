@@ -11,7 +11,8 @@ export const handaxe: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
     S.EQUIPMENT_PROPERTY_CODE.LIGHT,
-    S.EQUIPMENT_PROPERTY_CODE.THROWN
+    S.EQUIPMENT_PROPERTY_CODE.THROWN,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.withOffHandDamage(S.equipId(4), S.thrownWeaponAbilityModifiers(S.equipId(4))),
   effects: S.withOffHandAttack(

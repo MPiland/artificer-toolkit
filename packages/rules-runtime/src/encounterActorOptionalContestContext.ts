@@ -185,3 +185,42 @@ export function applyEncounterActorOptionalContestSuccess<
     beforeStateChecksum: current.stateChecksum
   }
 }
+
+/**
+ * Puts a dropped item back in the hand it left (the undo of a release), or null when the loadout
+ * entry no longer reproduces the held state the transition recorded.
+ */
+export function revertEncounterActorItemRelease<
+  TActor extends EncounterActorOptionalContestActor
+>(input: {
+  actor: TActor
+  transition: {
+    loadoutEntryId: string
+    equipmentId: string
+    fromState: HandSlotCode
+    beforeStateChecksum: string
+  }
+}): TActor | null {
+  const { actor, transition } = input
+  const snapshot = snapshotRecord(actor)
+  if (!snapshot) return null
+  const loadout = snapshotCreatureEquipmentLoadout(actor)
+  const entry = loadout.find((candidate) => candidate.id === transition.loadoutEntryId)
+  if (entry?.useState !== 'CARRIED' || entry.equipmentId !== transition.equipmentId) return null
+  const nextActor = {
+    ...actor,
+    snapshot: {
+      ...snapshot,
+      equipmentLoadoutOverride: loadout.map((candidate) =>
+        candidate.id === transition.loadoutEntryId
+          ? { ...candidate, useState: transition.fromState }
+          : candidate
+      )
+    }
+  }
+  const restored = readEncounterActorOptionalContestContext({
+    actor: nextActor,
+    loadoutEntryId: transition.loadoutEntryId
+  })
+  return restored?.stateChecksum === transition.beforeStateChecksum ? nextActor : null
+}

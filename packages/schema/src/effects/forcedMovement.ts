@@ -7,6 +7,17 @@ import {
   lengthUnitCodeSchema
 } from '../shared/enums.js'
 import { authoredIdentifierSchema, authoredLengthAmountSchema } from '../shared/authoredLimits.js'
+import { savingThrowDtoSchema } from '../shared/savingThrow.js'
+
+export const forcedMovementCollisionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: authoredIdentifierSchema,
+    damageTypeId: authoredIdentifierSchema,
+    diceConfig: authoredIdentifierSchema,
+    savingThrow: savingThrowDtoSchema,
+    conditionId: authoredIdentifierSchema
+  })
+)
 
 export const forcedMovementDtoSchema = lazySchema(() =>
   z.intersection(
@@ -14,7 +25,8 @@ export const forcedMovementDtoSchema = lazySchema(() =>
       id: authoredIdentifierSchema,
       effectKind: z.literal(effectKindSchema._zod.def.entries.FORCED_MOVEMENT),
       direction: forcedMovementDirectionSchema,
-      actionEconomy: forcedMovementActionEconomySchema
+      actionEconomy: forcedMovementActionEconomySchema,
+      collision: z.optional(forcedMovementCollisionDtoSchema)
     }),
     z.discriminatedUnion('distanceMode', [
       z.object({

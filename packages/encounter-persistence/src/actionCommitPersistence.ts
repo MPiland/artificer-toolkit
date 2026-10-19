@@ -287,10 +287,20 @@ export async function persistEncounterActionCommit(
           ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
         })
       : null
+  // The item the outcome made the target drop (Heat Metal), applied again from the room's receipt.
+  const targetRelease = batch.targetItemUseStateTransition
   const mechanics = await callbacks.applyMechanics({
     ...common,
     targetActorId: target.id,
     commandId: command.commandId,
+    ...(targetRelease
+      ? {
+          releaseHeldItemInstanceId:
+            targetRelease.kind === 'CHARACTER_ITEM_USE_STATE'
+              ? targetRelease.itemInstanceId
+              : targetRelease.loadoutEntryId
+        }
+      : {}),
     applications: batch.applications.map((application) => ({
       ...application,
       targetActorId: target.id
@@ -317,6 +327,8 @@ export async function persistEncounterActionCommit(
       checksumCanonicalJson(batch.applications) ||
     checksumCanonicalJson(mechanics.targetTransition) !==
       checksumCanonicalJson(batch.targetTransition) ||
+    checksumCanonicalJson(mechanics.itemReleaseTransition) !==
+      checksumCanonicalJson(targetRelease) ||
     checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(batch.sourceApplications) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
@@ -513,14 +525,14 @@ export async function persistEncounterActionCommit(
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   // A push or pull moves its target's token on the Scene in this commit (D139).
-  const forcedMovements = input.forcedMovements.length
+  const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
         state,
         sourceActorId: source.id,
         commandId: command.commandId,
         movements: input.forcedMovements
       })
-    : []
+    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,
@@ -543,7 +555,8 @@ export async function persistEncounterActionCommit(
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
       teleportAllowanceTurn,
-      forcedMovements,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

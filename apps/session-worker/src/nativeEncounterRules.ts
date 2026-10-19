@@ -37,6 +37,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
@@ -130,6 +131,7 @@ import {
   encounterActorEffectiveSize,
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
@@ -650,6 +652,18 @@ export async function planNativeLiveEncounterAction(
     })
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
+  if (
+    encounterSpellSchoolImmunity({
+      source: prepared.source,
+      sourceFacts: actorTarget,
+      target: prepared.targetFacts
+    })
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Immune to spells of this school'
+    })
   await refuseUnmetBasicActionRestrictions(
     { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
     {
@@ -661,6 +675,24 @@ export async function planNativeLiveEncounterAction(
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
+  // A Character action's item choice is known before it rolls; a Creature's plan follows its roll.
+  const chosenItemInstanceId =
+    command.target.kind === 'ACTOR' ? command.target.boundItemInstanceId : undefined
+  const chosenItemTarget = movementTargets.get(prepared.target.id)
+  const chosenItemRefusal =
+    prepared.source.kind === 'CHARACTER_ACTION' && chosenItemTarget
+      ? encounterChosenItemRefusal({
+          plan: prepared.source.entry.compilation.activeEffectPlan?.chosenItem,
+          target: chosenItemTarget,
+          itemInstanceId: chosenItemInstanceId
+        })
+      : null
+  if (chosenItemRefusal !== null)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: chosenItemRefusal
+    })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const { activationCode, economy, suppressed, attackAction } =
@@ -1182,7 +1214,8 @@ export async function planNativeLiveEncounterAction(
     execution,
     occurrenceId,
     commandId: command.commandId,
-    activeEffectsByActorId
+    activeEffectsByActorId,
+    chosenItemInstanceId
   })
   const reactionUse =
     reaction?.audit.selection === 'USE' && reaction.applied
@@ -1324,6 +1357,7 @@ export async function planNativeLiveEncounterAction(
       sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
+      releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||

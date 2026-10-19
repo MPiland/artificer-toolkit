@@ -6,6 +6,7 @@ import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import {
   abilityModifierReferenceSchema,
   pathLifecycleEndTriggerAgainstSchema,
+  pathLifecycleEndTriggerOfSchema,
   pathLifecycleEndTriggerBySchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -95,6 +96,10 @@ export const pathLifecycleEndTriggersDtoSchema = lazySchema(() =>
       z.strictObject({
         event: z.literal('ACTION_USED_ON_HOLDER'),
         actionDefinitionIds: basicActionFilterDtoSchema
+      }),
+      z.strictObject({
+        event: z.literal('INCAPACITATED'),
+        of: pathLifecycleEndTriggerOfSchema
       })
     ])
   )

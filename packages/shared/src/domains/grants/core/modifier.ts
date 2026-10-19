@@ -1,6 +1,7 @@
 import type { ChargeLimitPayload } from '#authored'
 import type {
   AbilityCode,
+  AbilityModifierReference,
   AttackDomainCode,
   ChargeResetKind,
   DurationKind,
@@ -257,6 +258,10 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   ATTACKS_AGAINST: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
 
+  ATTACK_TRAIT: [MODIFIER_KIND.ENABLE],
+
+  WEAPON_DAMAGE_DIE: [MODIFIER_KIND.SET_VALUE],
+
   CRITICAL_HIT_THRESHOLD: [MODIFIER_KIND.CAP_VALUE],
 
   CRITICAL_EXTRA_DICE: [MODIFIER_KIND.BONUS],
@@ -366,6 +371,10 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   CONDITION_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
+  SPELL_SCHOOL_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
+  CHECKS_AGAINST_HOLDER: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
   ATTRIBUTE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION]
 } as const satisfies Record<ValueDomainCode, readonly ModifierKind[]>
 
@@ -389,6 +398,10 @@ export type ModifierValueDomainOptionPayloadByDomain = {
   CONDITION: { conditionTypeId: string }
 
   CONDITION_IMMUNITY: { conditionTypeId: string }
+
+  SPELL_SCHOOL_IMMUNITY: { magicSchoolId: string }
+
+  CHECKS_AGAINST_HOLDER: { skillId: string }
 
   ATTRIBUTE: { attributeId: string }
 
@@ -466,7 +479,14 @@ export type ModifierScalarValueAuthored =
   | { valueKind: 'CHARACTER_LEVEL'; multiplier?: number }
   | { valueKind: 'CLASS_LEVEL'; classId: string; multiplier?: number }
   // NOTE: slot/spell level is contextual; keep it scalar-only if needed
-  | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number; subtractLevels?: number }
+  | {
+      valueKind: 'SPELL_SLOT_LEVEL'
+      multiplier?: number
+      subtractLevels?: number
+      /** Slot levels per step of `multiplier` (Magic Weapon's +1 per two levels); default 1. */
+      levelsPerStep?: number
+      maximum?: number
+    }
 
 /** A speed or sense range modifier is a typed length, never a bare number (D112). */
 export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
@@ -585,27 +605,26 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
             ? ChargeLimitPayload
             : K extends 'MINIMUM_ROLL'
               ? { amount: number }
-              : K extends 'ADD_BONUS_DIE'
-                ? V extends 'DAMAGE'
-                  ? ModifierDamageDieAuthored
-                  : ModifierRolledDieAuthored
-                : K extends 'REPLACE_DAMAGE_TYPE'
-                  ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-                  : K extends 'REPLACE_RANGE_KIND'
-                    ? { rangeKind: RangeKind }
-                    : K extends 'REPLACE_DURATION_KIND'
-                      ? { durationKind: DurationKind }
-                      : K extends 'REPLACE_SHAPE_KIND'
-                        ? { shapeKind: ShapeKind }
-                        : K extends 'REPLACE_CHARGE_RESET_KIND'
-                          ? { resetKind: ChargeResetKind }
-                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                            ? undefined
-                            : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                              ? { abilities: AbilityCode[]; min?: number; max?: number }
-                              : // option-like operations must be domain-supported
-                                K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                                ? V extends keyof ValueDomainOptionPayloadByDomain
-                                  ? ValueDomainOptionPayloadByDomain[V]
-                                  : never
+            : K extends 'ADD_BONUS_DIE'
+              ? V extends 'DAMAGE'
+                ? ModifierDamageDieAuthored
+                : ModifierRolledDieAuthored
+              : K extends 'REPLACE_DAMAGE_TYPE'
+                ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+                : K extends 'REPLACE_RANGE_KIND'
+                  ? { rangeKind: RangeKind }
+                  : K extends 'REPLACE_DURATION_KIND'
+                    ? { durationKind: DurationKind }
+                    : K extends 'REPLACE_SHAPE_KIND'
+                      ? { shapeKind: ShapeKind }
+                      : K extends 'REPLACE_CHARGE_RESET_KIND'
+                        ? { resetKind: ChargeResetKind }
+                        : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                          ? undefined
+                          : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                            ? { abilities: AbilityModifierReference[]; min?: number; max?: number }
+                            : // option-like operations must be domain-supported
+                              K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                              ? V extends keyof ValueDomainOptionPayloadByDomain
+                                ? ValueDomainOptionPayloadByDomain[V]
                                 : never

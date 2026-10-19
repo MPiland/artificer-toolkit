@@ -1,8 +1,20 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import { type CreatureAuthored } from '@artificer-toolkit/shared'
+import {
+  DURATION_KIND,
+  MANIFEST_KIND,
+  SHAPE_KIND,
+  type CreatureAuthored
+} from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 
 import * as S from './shared.js'
+
+/** The 30-foot sphere around the devil that its Unnerving Mask covers. */
+const unnervingMaskShape = (offset: number) => ({
+  id: S.actionId(61, offset),
+  shapeKind: SHAPE_KIND.SPHERE,
+  radius: { amount: 30, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+})
 
 export const chainDevil: CreatureAuthored = {
   id: S.CREATURE_IDS.CHAIN_DEVIL,
@@ -245,29 +257,19 @@ export const chainDevil: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(61, 123),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 14
-            },
-            range: {
-              id: S.actionId(61, 124),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(61, 124), rangeKind: S.RANGE_KIND.SELF },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            },
+            shape: unnervingMaskShape(128)
           },
           paths: [
             {
               id: S.actionId(61, 125),
               order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              pathCode: S.PATH_CODE.ON_USE,
               groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
@@ -276,15 +278,69 @@ export const chainDevil: CreatureAuthored = {
                 resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(61, 126),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED'),
-                    recordsSource: true
-                  },
-                  {
                     id: S.actionId(61, 127),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHAIN_DEVIL_UNNERVING_MASK
+                    effectKind: S.EFFECT_KIND.MANIFEST,
+                    manifestKind: MANIFEST_KIND.ZONE,
+                    attachmentKind: 'SOURCE',
+                    label: 'Unnerving Mask',
+                    shape: unnervingMaskShape(129),
+                    components: [
+                      {
+                        id: S.actionId(61, 130),
+                        order: 1,
+                        label: 'A creature starts its turn in view',
+                        interactionKinds: ['START_TURN_IN_SPACE'],
+                        requiredSight: ['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'],
+                        behaviors: [
+                          {
+                            id: S.actionId(61, 131),
+                            order: 1,
+                            invocation: {
+                              kind: 'PASSIVE',
+                              triggerCode: S.TRIGGER.SAVING_THROW,
+                              savingThrow: {
+                                id: S.actionId(61, 123),
+                                dcMethod: 'FIXED_DC',
+                                abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                                baseDc: 14
+                              },
+                              range: { id: S.actionId(61, 132), rangeKind: S.RANGE_KIND.SELF }
+                            },
+                            paths: [
+                              {
+                                id: S.actionId(61, 133),
+                                order: 1,
+                                pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+                                groupType: S.PATH_GROUP_TYPE.SINGLE,
+                                originKind: 'SOURCE',
+                                selectionKind: 'FIXED',
+                                resultBlock: {
+                                  id: `${S.actionId(61, 133)}__result`,
+                                  resultKind: 'SINGLE',
+                                  duration: {
+                                    id: S.actionId(61, 134),
+                                    durationKind: DURATION_KIND.ROUND,
+                                    amount: 1
+                                  },
+                                  // "Until the end of its turn."
+                                  lifecycle: {
+                                    turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
+                                  },
+                                  outcomes: [
+                                    {
+                                      id: S.actionId(61, 126),
+                                      effectKind: S.EFFECT_KIND.CONDITION,
+                                      conditionId: conditionTypeId('FRIGHTENED'),
+                                      recordsSource: true
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }

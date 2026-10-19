@@ -111,6 +111,8 @@ export type MovementTarget<
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
+  /** Magic schools whose spells have no effect on the actor. */
+  spellSchoolImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
   /**
    * Contributors attack rolls against the actor gain from its active `ATTACKS_AGAINST` grants
@@ -160,8 +162,8 @@ export function characterTotalLevel(characterFacts: CharacterMovementFacts): num
   )
 }
 
-/** A Creature snapshot's ability scores, by ability definition id. */
-function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record<string, number> {
+/** A Creature snapshot's pinned rule facts. */
+function creatureRuleFacts(snapshot: unknown, gameSystemId: string) {
   if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot))
     throw new Error('Encounter actor scalar facts are stale.')
   const facts = encounterCreatureRuleFactsSnapshotSchema.parse(
@@ -169,7 +171,7 @@ function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record
   )
   if (facts.gameSystemId !== gameSystemId)
     throw new Error('Encounter actor scalar facts are stale.')
-  return { ...facts.abilityScores }
+  return facts
 }
 
 /** The Character's policy output with its armor class replaced by the form's. */
@@ -270,7 +272,9 @@ export function buildMovementTarget<
     // In a form the physical scores are the form's and the mental ones the Character's, baked into
     // the snapshot when the form was entered (D130 amendment).
     const targetScalarValues =
-      form === null ? baseScalarValues : creatureAbilityScalars(form.snapshot, gameSystemId)
+      form === null
+        ? baseScalarValues
+        : { ...creatureRuleFacts(form.snapshot, gameSystemId).abilityScores }
     const effectiveScalarValues = foldActiveScalarReductions({
       baseScalarValues: targetScalarValues,
       effects: activeEffects
@@ -355,10 +359,20 @@ export function buildMovementTarget<
           decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
           compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
             executableActionIds.has(entry.actionId)
+          ),
+          magicSchoolIdBySpellId: new Map(
+            [...(characterFacts.prepared.context.spellDocumentsById ?? [])].map(
+              ([spellId, spell]) => [spellId, spell.magicSchoolId]
+            )
           )
         }
       : input.includeReactionSources
-        ? { candidates: [], decisions: [], compiledActionEntryPoints: [] }
+        ? {
+            candidates: [],
+            decisions: [],
+            compiledActionEntryPoints: [],
+            magicSchoolIdBySpellId: new Map()
+          }
         : null
     return {
       actor,
@@ -455,20 +469,23 @@ export function buildMovementTarget<
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
           qualifiedDefenses: [],
-          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds
+          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+          spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
       },
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+      spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }
   }
-  const baseScalarValues: Record<string, number> =
-    actor.kind === 'CREATURE' ? creatureAbilityScalars(actor.snapshot, gameSystemId) : {}
+  const creatureFacts =
+    actor.kind === 'CREATURE' ? creatureRuleFacts(actor.snapshot, gameSystemId) : null
+  const baseScalarValues: Record<string, number> = { ...creatureFacts?.abilityScores }
   const effectiveScalarValues = foldActiveScalarReductions({
     baseScalarValues,
     effects: activeEffects
@@ -489,7 +506,8 @@ export function buildMovementTarget<
     throw new Error('Encounter actor spatial protections are not normalized.')
   const targetProtection = withCreatureActiveGrantProtection(
     actorRule.targetProtection,
-    activeEffects
+    activeEffects,
+    creatureFacts?.modifiers ?? []
   )
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
@@ -520,7 +538,8 @@ export function buildMovementTarget<
       savingThrowDefinitions: withCreatureActiveGrantSaves(
         actorRule.savingThrowDefinitions ?? [],
         actor.id,
-        activeEffects
+        activeEffects,
+        creatureFacts?.modifiers ?? []
       ),
       savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
       featureResources: actorRule.featureResources,
@@ -535,6 +554,7 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
+    spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],
     conditionDefinitions: [],

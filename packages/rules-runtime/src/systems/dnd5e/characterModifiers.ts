@@ -3,6 +3,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 
 import { isLengthModifierDomain, modifierLengthFeet } from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
@@ -151,6 +152,11 @@ export function evaluateDnd5eCharacterModifiers(
           .reduce((sum, group) => sum + group.effective, 0)
     }
   })
+  // A modifier naming the spellcasting ability (Shillelagh's) reads the Character's own; with none it
+  // adds nothing.
+  const spellcastingAbilityId = input.derivedBaseFacts.spellcasting?.abilityId ?? null
+  const concreteAbility = (ability: string): string | null =>
+    ability === SPELLCASTING_ABILITY_REFERENCE ? spellcastingAbilityId : ability
   const abilityModifierOf = (ability: unknown) => {
     const score =
       abilityScores.find(
@@ -174,13 +180,15 @@ export function evaluateDnd5eCharacterModifiers(
           }
           if (payload === undefined || !('abilities' in payload) || 'amount' in payload)
             return { ...contribution, ability: null, resolvedValue: 0 }
-          const best = payload.abilities.reduce<string | undefined>(
-            (chosen, candidate) =>
-              chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
-                ? candidate
-                : chosen,
-            undefined
-          )
+          const best = payload.abilities
+            .flatMap((reference) => concreteAbility(reference) ?? [])
+            .reduce<string | undefined>(
+              (chosen, candidate) =>
+                chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
+                  ? candidate
+                  : chosen,
+              undefined
+            )
           return {
             ...contribution,
             ability: canonicalCharacterAbility(best),

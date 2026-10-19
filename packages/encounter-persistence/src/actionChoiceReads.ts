@@ -30,12 +30,16 @@ import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/en
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
+import { listEncounterChosenItems } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
 import { projectCharacterTurnActions } from '@artificer-toolkit/rules-runtime/character/turnFacts'
 import {
   encounterActionChoicesDtoSchema,
+  encounterActionItemChoicesDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
+  type EncounterActionItemChoicesDto,
+  type GetEncounterActionItemChoicesInputDto,
   type EncounterActionChoiceDto,
   type EncounterActionChoicesDto,
   type EncounterActionChoicesResponseDto,
@@ -50,6 +54,7 @@ import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/share
 import { readEncounterControlledActorIds, requireEncounterActorControl } from './actorController.js'
 import {
   evaluateActionAttackAction,
+  prepareActionMechanics,
   readActionHolderState,
   readDisarmSelection
 } from './actionPreparationReads.js'
@@ -215,6 +220,12 @@ export async function readEncounterActionChoices(
             value.effectId === candidate?.effectId
         )
         const targetPolicy = entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
+        const activeEffectPlan =
+          entry?.kind === 'CHARACTER_ACTION' &&
+          entry.schemaVersion !== 1 &&
+          entry.compilation.kind === 'COMPILED'
+            ? entry.compilation.activeEffectPlan
+            : undefined
         const wieldConflict = candidate
           ? evaluateEncounterCharacterActionWieldConflict({
               candidate,
@@ -267,17 +278,14 @@ export async function readEncounterActionChoices(
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,
-            entry?.kind === 'CHARACTER_ACTION' &&
-              entry.schemaVersion !== 1 &&
-              entry.compilation.kind === 'COMPILED'
-              ? entry.compilation.activeEffectPlan?.creatureFormContribution
-              : undefined,
+            activeEffectPlan?.creatureFormContribution,
             entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
               ? entry.compilation.zonePlacement
               : undefined,
             entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
               ? entry.compilation.choice
-              : undefined
+              : undefined,
+            Boolean(activeEffectPlan?.chosenItem)
           ),
           warnings: [
             ...economy.warnings,
@@ -617,6 +625,56 @@ export async function readEncounterHeldRelationships(
         }
       : null
   }))
+}
+
+/** The items of one target the Run's acting actor may use a chosen-item action on. */
+export async function readEncounterActionItemChoices(
+  tx: EncounterTurnReadTransaction,
+  input: ActionChoiceReadInput<GetEncounterActionItemChoicesInputDto>
+): Promise<EncounterActionItemChoicesDto> {
+  const { request } = input
+  const current = await readActionChoicesRun(tx, input)
+  if (!current) throw new Error('Encounter action choices are stale or unavailable.')
+  const { state, actor, campaign, membership } = current
+  const [actors, target] = await Promise.all([
+    readRunActors(tx, state),
+    readRunActor(tx, state, request.targetActorId)
+  ])
+  await requireTargetSeenByMember(tx, { encounterId: state.id, target, membership })
+  const prepared = await prepareActionMechanics(tx, {
+    state,
+    campaign,
+    actors,
+    actor,
+    target,
+    actionId: request.actionId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+    overridable: true
+  })
+  const plan =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.entry.compilation.activeEffectPlan?.chosenItem
+      : null
+  if (!plan) throw new Error('This action is not used on an item.')
+  const facts = prepared.targetFacts.characterFacts
+  const creatureItems = target.kind === 'CHARACTER' ? [] : snapshotCreatureEquipmentSources(target)
+  return encounterActionItemChoicesDtoSchema.parse({
+    items: listEncounterChosenItems({ plan, target: prepared.targetFacts }).map(({ item }) => {
+      const owned = facts?.prepared.character.state.equipment.inventory.find(
+        ({ id }) => id === item.itemInstanceId
+      )
+      return {
+        id: item.itemInstanceId,
+        label:
+          owned?.customName ??
+          facts?.prepared.resolution.registry.equipment.find(({ id }) => id === item.equipmentId)
+            ?.label ??
+          creatureItems.find(({ loadoutEntryId }) => loadoutEntryId === item.itemInstanceId)
+            ?.payload.label ??
+          'Unknown item'
+      }
+    })
+  })
 }
 
 /** The current Disarm choices for one target of the Run's acting actor. */

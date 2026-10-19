@@ -1,3 +1,7 @@
+import {
+  FORCED_MOVEMENT_DIRECTION,
+  type ForcedMovementDirection
+} from '@artificer-toolkit/shared/core'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
@@ -30,6 +34,7 @@ import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/s
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type {
+  CompiledActionActiveEffectPlan,
   CompiledActionCompilerSource,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -114,6 +119,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
     uses?: number
   }
+  /**
+   * The item the action is used on, chosen at use from what its target holds or wears; null for
+   * none. See the compiled plan schema for each field.
+   */
+  chosenItem?: CompiledActionActiveEffectPlan['chosenItem']
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it
    * (Hide). The settled check total and the observers it beats are added when the effect is created.
@@ -450,17 +460,30 @@ export interface CharacterRuleActionSpatialDirective {
   feet: number
   /** The target moves at most `feet`, its source choosing how far (D157). */
   upTo: boolean
+  /** What the move does where it strikes an object or a creature (D159); null for a move that does nothing there. */
+  collision: CharacterRuleActionForcedMovementCollision | null
   targetStateChecksum: string
 }
 
-const FORCED_MOVEMENT_DIRECTIONS = ['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'] as const
+/**
+ * The collision an authored forced movement carries (D159): the mover takes `diceConfig` of
+ * `damageTypeId` for every full 10 feet it travelled, and a creature it strikes makes the
+ * `abilityDefinitionId` save against `dc` or takes the same damage and `conditionId`.
+ */
+export type CharacterRuleActionForcedMovementCollision = {
+  diceConfig: string
+  damageTypeId: string
+  abilityDefinitionId: string
+  dc: number
+  conditionId: string
+}
 
-export type CharacterRuleActionForcedMovementDirection = (typeof FORCED_MOVEMENT_DIRECTIONS)[number]
+export type CharacterRuleActionForcedMovementDirection = ForcedMovementDirection
 
 export function isCharacterRuleActionForcedMovementDirection(
   value: unknown
 ): value is CharacterRuleActionForcedMovementDirection {
-  return FORCED_MOVEMENT_DIRECTIONS.some((direction) => direction === value)
+  return Object.values(FORCED_MOVEMENT_DIRECTION).some((direction) => direction === value)
 }
 
 /**
