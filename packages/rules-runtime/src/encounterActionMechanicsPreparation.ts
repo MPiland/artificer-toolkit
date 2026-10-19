@@ -486,7 +486,7 @@ export async function prepareEncounterActionMechanics<
       ? characterActionState!.actionMechanic
       : featureActionMechanic(source.capability)
   const attackKind =
-    typeof actionMechanic.attackKind === 'string' ? actionMechanic.attackKind : null
+    actionMechanic.attackKind == null ? null : attackKindSchema.parse(actionMechanic.attackKind)
   // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
   // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
   const creatureGranted = dnd5eGrantedAttackTraits(
@@ -665,10 +665,7 @@ export async function prepareEncounterActionMechanics<
           dealerActorId: actor.id,
           dealerEffects: sourceFacts.activeEffects,
           targetEffects: targetFacts.activeEffects,
-          attackDomain:
-            attackKind === null
-              ? null
-              : dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind))
+          attackDomain: attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
         }),
         // The critical range and extra critical dice the attacker's grants give this attack.
         ...(attackKind === null
@@ -678,7 +675,7 @@ export async function prepareEncounterActionMechanics<
                 source.kind === 'CHARACTER_ACTION'
                   ? dnd5eAttackCriticalRules(
                       source.effectivePolicyOutput,
-                      dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind)),
+                      dnd5eAttackModifierDomain(attackKind),
                       {
                         ...dnd5eCharacterActionTarget(source.candidate),
                         attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
@@ -686,7 +683,7 @@ export async function prepareEncounterActionMechanics<
                     )
                   : activeAttackCriticalRules(
                       sourceFacts.activeEffects,
-                      dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind))
+                      dnd5eAttackModifierDomain(attackKind)
                     )
             }),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
