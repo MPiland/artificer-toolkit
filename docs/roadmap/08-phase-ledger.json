@@ -8353,8 +8353,21 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2k"]
               },
-              "text": "Sanctuary: INCOMING_ATTACK_GATE with the attacker save (player Characters follow their save roll preference, creatures server-rolled), the ATTACK_RETARGET pause answered through RESOLVE_RULE_OCCURRENCE with replay fences, an incomingGate receipt and its duration. Converts SANCTUARY with its authoring-parity proof and deletes the kind (2026-10-18 and 2026-10-19 rulings; workbook slice-spells-4.md).",
+              "text": "Sanctuary part 1: INCOMING_ATTACK_GATE on attacks and harmful spells that target the warded creature (not area effects), the attacker's Wisdom save (player Characters follow their save roll preference, creatures server-rolled), a failed save loses the attack or spell with the action spent, the incomingGate receipt, 1-minute duration, end on the warded creature's attack or spell affecting an enemy, undo and a room journey. Converts SANCTUARY with its authoring-parity proof and deletes the kind (2026-10-18 and 2026-10-19 rulings; T2k3b adds the retarget choice; workbook slice-spells-4.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2k3b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2k3"]
+              },
+              "text": "new: Sanctuary part 2: the ATTACK_RETARGET pause offering the attacker a new target before a gated attack or spell is lost, answered through RESOLVE_RULE_OCCURRENCE with replay fences; the currentness fence re-validates the new target's range and line of sight at answer time (2026-10-19 split; workbook slice-spells-4.md)."
             },
             {
               "status": "TODO",
