@@ -1,7 +1,7 @@
 import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { castChoiceOptions } from '../encounterCastChoice.js'
+import { castChoiceOptions, pickedCastChoiceEffect } from '../encounterCastChoice.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -54,5 +54,14 @@ describe('Creature discovery compiles a cast pick per option (SPELLS-33.T3a6, D1
     const { capability, unavailable } = discoveredClaws({ selectionKind: 'SELF' })
     expect(capability).toBeUndefined()
     expect(unavailable?.reason).toBeTruthy()
+  })
+
+  it('runs the first authored option of a pick a no-prompt flow (a Legendary Action) cannot ask for', () => {
+    const { compiledEffect } = discoveredClaws().capability!
+    const options = castChoiceOptions(compiledEffect)!
+    expect(pickedCastChoiceEffect(compiledEffect, undefined, true)).toEqual(
+      options[0]!.compiledEffect
+    )
+    expect(() => pickedCastChoiceEffect(compiledEffect, undefined)).toThrow()
   })
 })

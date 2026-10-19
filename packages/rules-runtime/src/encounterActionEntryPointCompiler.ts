@@ -195,7 +195,7 @@ function assertDescriptorAlignment(input: {
 /** The plans that run an action: its execution plan and its at most one active-effect plan. */
 function compileActionPlans(
   adapter: CharacterRuleActionSystemAdapter,
-  descriptor: CharacterActionCapabilityDescriptor
+  descriptor: EffectActionCapabilityDescriptor
 ) {
   const source = buildCompiledActionCompilerSource(descriptor)
   const executionPlan = adapter.compileExecutionPlan?.({
@@ -239,14 +239,13 @@ function compileActionPlans(
  */
 function sharedTestKey(
   adapter: CharacterRuleActionSystemAdapter,
-  descriptor: CharacterActionCapabilityDescriptor,
+  descriptor: EffectActionCapabilityDescriptor,
   executionPlan: ReturnType<typeof compileActionPlans>['executionPlan']
 ) {
   if (executionPlan.kind === 'TEST_OUTCOME') return executionPlan.test
   try {
     return (
       adapter.compileTestTemplate?.({
-        action: descriptor,
         compilerSource: buildCompiledActionCompilerSource(descriptor)
       }) ?? null
     )
@@ -264,7 +263,7 @@ function sharedTestKey(
  */
 export function compileCastChoicePlans(
   adapter: CharacterRuleActionSystemAdapter,
-  descriptor: CharacterActionCapabilityDescriptor,
+  descriptor: EffectActionCapabilityDescriptor,
   targetPolicy: ReturnType<typeof buildCompiledActionTargetPolicy>
 ) {
   const compiled = castChoiceOptions(descriptor.compiledEffect)?.map((option) => {
@@ -283,7 +282,7 @@ export function compileCastChoicePlans(
       'Only a cast at chosen creatures carries a pick.'
     )
   if (
-    options &&
+    compiled &&
     new Set(
       compiled.map(({ option, sharedTest }) =>
         checksumCanonicalJson([sharedTest, option.activeEffectPlan?.maintenance ?? null])

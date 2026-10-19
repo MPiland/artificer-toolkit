@@ -436,3 +436,4 @@ Open points for the ruling:
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
 
 **T3a6 (done on `ci/spells-33-t3a6`):** the two rows above are now CHOICE paths (Damage / Grapple); creature discovery and the drawer compile and offer the options through `compileCastChoicePlans`; both kinds are deleted. No-prompt flows take the first authored option.
+Deferred edge cases for the orchestrator to move at merge: "Grapple on an opportunity attack" (added to future-enhancements) and "Legendary cast pick (Vampire legendary Unarmed Strike grapple)": a Legendary use of a CHOICE action runs its first authored option because the `LEGENDARY_OPTION` command carries no pick; pinned in `creatureCastChoiceDiscovery.test.ts`.
