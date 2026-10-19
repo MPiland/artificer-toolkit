@@ -607,7 +607,7 @@ export function prepareCasterActionOnTarget(
   action: {
     caster: EncounterRunActorState
     target: EncounterRunActorState
-    movementTargets: Awaited<ReturnType<typeof prepareAreaScene>>['movementTargets']
+    movementTargets: ReadonlyMap<string, MovementTargets>
     sceneContext: Parameters<typeof prepareEncounterActionMechanics>[0]['sceneContext']
     /** Where an area starts: its saves are made against what each creature sees of this point. */
     origin?: { point: ScenePoint; sceneId: string; sceneVersion: number }
