@@ -122987,6 +122987,9 @@ export declare const api: {
               attackKey: string;
               value: "ONE_HANDED" | "TWO_HANDED";
             } | null;
+            handRelease?: {
+              holds: Array<{ activeEffectId: string; heldActorId: string }>;
+            };
             id: string;
             label: string;
             range?:
@@ -124731,6 +124734,9 @@ export declare const api: {
               attackKey: string;
               value: "ONE_HANDED" | "TWO_HANDED";
             } | null;
+            handRelease?: {
+              holds: Array<{ activeEffectId: string; heldActorId: string }>;
+            };
             id: string;
             label: string;
             range?:
