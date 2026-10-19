@@ -267,8 +267,7 @@ describe('Campaign shared child parent prerequisites', () => {
 
     // A fresh module graph has an empty memo: the cold parse and every warm hit agree.
     vi.resetModules()
-    const fresh =
-      await import('@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules')
+    const fresh = await import('@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules')
     const { acquiredEquipmentRulesSchema } =
       await import('@artificer-toolkit/schema/projections/acquiredEquipmentRules')
     const parse = vi.spyOn(acquiredEquipmentRulesSchema, 'parse')

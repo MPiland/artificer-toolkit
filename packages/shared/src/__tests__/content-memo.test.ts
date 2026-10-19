@@ -3,7 +3,10 @@ import { createContentMemo } from '../utils/contentMemo.js'
 
 const parseJson = (content: string) => {
   const parsed = JSON.parse(content) as { items: number[] }
-  return { items: parsed.items, byIndex: new Map(parsed.items.map((item, index) => [index, { item }])) }
+  return {
+    items: parsed.items,
+    byIndex: new Map(parsed.items.map((item, index) => [index, { item }]))
+  }
 }
 
 describe('content memo', () => {
