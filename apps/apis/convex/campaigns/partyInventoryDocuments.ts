@@ -17,10 +17,11 @@ import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/cha
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
+import { createContentMemo } from '@artificer-toolkit/shared/contentMemo'
 import {
   canReadAuthoredRoot,
   readAuthoredVersion,
-  readPublishedDocument
+  readPublishedDocumentPayload
 } from '../content/documents'
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
 import { readCampaignSharedRootPublication } from './contentAccess'
@@ -48,6 +49,9 @@ import {
   readVehicleCleanupProgress
 } from './vehicleCleanupDocuments'
 
+// The Equipment DTO parse of a verified stored document, by its exact JSON (every page re-reads it).
+const publishedEquipment = createContentMemo<EquipmentAuthoredDto>()
+
 /** Party custody grants no access to a member's unshared Homebrew. */
 export async function readPartyEquipmentSource(
   ctx: QueryCtx,
@@ -74,8 +78,13 @@ export async function readPartyEquipmentSource(
     sourceIds.has(root.contentSourceId) &&
     (await canReadAuthoredRoot(ctx, root, null))
   ) {
-    document = equipmentAuthoredDtoSchema.parse(
-      await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
+    const published = await readPublishedDocumentPayload(
+      ctx,
+      root,
+      await readAuthoredVersion(ctx, root)
+    )
+    document = publishedEquipment(published.documentJson, () =>
+      equipmentAuthoredDtoSchema.parse(published.document)
     )
   } else {
     const publication = await shared(root)

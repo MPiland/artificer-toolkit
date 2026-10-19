@@ -761,7 +761,7 @@
             },
             {
               "id": "PLATFORM-13.T17",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 3,
@@ -770,7 +770,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18."
+              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18.",
+              "note": "Merged m152 (86d12d1d2). Convex 3-worker trial clean 3 of 3 (39184861302, 39185817174, 39186776489) but not faster (slowest shard 8.6-8.7 min vs 7.6-10.4; run 10.7-12.5 vs 10.5-12.2 min); config stays at 2."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -6411,7 +6412,7 @@
             },
             {
               "id": "ATTACK-7.T7b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.5"],
               "wsjf": {
                 "bv": 3,
@@ -6421,7 +6422,7 @@
                 "after": ["ATTACK-7.T7"]
               },
               "text": "The web route preview prices a grapple drag at single cost because the session projection carries no actor size. Carry each actor's size on the projection so the preview shows the D105 ×2 drag cost (×4 in difficult terrain, no ×2 when the held creature is two or more sizes smaller), from the same pure rule the room uses, with a preview test. Found in T7, 2026-10-18.",
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "note": "Merged m153 (aaccd0779)."
             },
             {
               "id": "ATTACK-7.T8",
@@ -7550,7 +7551,7 @@
                 "size": 3,
                 "after": ["ATTACK-19.T1", "SPELLS-4.T2e"]
               },
-              "text": "Ammunition per attack (D4): the Campaign tracking option, stack choice per weapon, one piece drawn per ammunition attack in the attack transaction (reverted with it), refusal at zero, and a room journey firing a Longbow to empty. Found in the SPELLS-31.T5s design: no attack draws ammunition today."
+              "text": "Ammunition per attack (D4): the Campaign tracking option, stack choice per weapon, one piece drawn per ammunition attack in the attack transaction (reverted with it), refusal at zero, and a room journey firing a Longbow to empty. Found in the SPELLS-31.T5s design: no attack draws ammunition today. Also converts EQUIPMENT_MAGIC_AMMUNITION: the drawn stack feeds SPELLS-4.T2e’s bound-source rule so its bonus reaches only the attack that fires it; the kind is deleted (moved from SPELLS-4.T2e, 2026-10-18 ruling)."
             }
           ],
           "wsjf": {
@@ -8164,7 +8165,7 @@
               "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2d",
               "wsjf": {
@@ -8174,10 +8175,24 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: An executable typed extra damage die, optionally consumed on hit or limited to a marked target. Converts DIVINE_FAVOR, BRANDING_SMITE, HUNTERS_MARK, ENLARGE_REDUCE, BESTOW_CURSE, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: An executable typed extra damage die, optionally consumed on hit or limited to a marked target. Converts DIVINE_FAVOR, BRANDING_SMITE, HUNTERS_MARK, ENLARGE_REDUCE, BESTOW_CURSE, with parity proofs; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
+              "id": "SPELLS-4.T2d2",
               "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2d", "SPELLS-4.T2l"]
+              },
+              "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling)."
+            },
+            {
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2e",
               "wsjf": {
@@ -8187,7 +8202,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: A weapon-scoped modifier on a chosen held weapon. Converts SHILLELAGH, MAGIC_WEAPON, HEAT_METAL, EQUIPMENT_MAGIC_AMMUNITION, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: A weapon-scoped modifier on a chosen held weapon. Converts SHILLELAGH, MAGIC_WEAPON, HEAT_METAL (its later-turn bonus-action repeat moves to SPELLS-4.T2l), with parity proofs; each kind deleted. EQUIPMENT_MAGIC_AMMUNITION moved to ATTACK-19.T4 (2026-10-18 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -8255,6 +8271,20 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Attacker or source qualifiers on grants. Converts PROTECTION_FROM_EVIL_AND_GOOD, HOLY_AURA, DISPEL_EVIL_AND_GOOD, STONESKIN, WIND_WALK, with parity proofs; each kind deleted."
             },
             {
+              "id": "SPELLS-4.T2k1",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-4.1"],
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Incoming-attack roll modes from existing options: BLUR (ATTACKS_AGAINST with exemptAttackerSenses), TRUE_STRIKE (PATH_TARGET-scoped advantage from the holder’s next turn), ENTHRALL (Perception disadvantage; two clauses MANUAL_ADJUDICATION), with parity proofs; each kind deleted. Split from SPELLS-4.T2k (2026-10-18 ruling)."
+            },
+            {
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2k",
@@ -8263,9 +8293,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T1"]
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2k1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Incoming-attack gates and decoys. Converts SANCTUARY, BLUR, TRUE_STRIKE, MIRROR_IMAGE, ENTHRALL, with parity proofs; each kind deleted."
+              "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1."
             },
             {
               "status": "TODO",
@@ -8278,7 +8308,7 @@
                 "size": 8,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, COMPULSION (compelled move on the target's own turn, shared with Confusion; T2a1 ruling), with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, COMPULSION (compelled move on the target's own turn, shared with Confusion; T2a1 ruling), and the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -11596,7 +11626,7 @@
             },
             {
               "id": "SPELLS-33.T3a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11606,7 +11636,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2a5"]
               },
               "text": "A: self teleports (Balor, Marilith), Giant Frog Bite, Darkmantle Attach (4 kinds; the Teleport spell stays with SPELLS-4.T2a5; the rest moved to T3a2-T3a6 and T4s3 by the D156 SPELLS-33.T3a ruling). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m151 (e02d0ddbf)."
             },
             {
               "id": "SPELLS-33.T3a2",
@@ -11844,7 +11874,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2p", "SPELLS-4.T2r"]
               },
-              "text": "Siege Monster, fear and darkness auras, Web Walker, Create Whirlwind (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Siege Monster, fear and darkness auras (with Hezrou Stench and Sea Hag Horrific Appearance from SPELLS-33.T7a: one creature start-of-turn aura option), Web Walker, Create Whirlwind (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T4s1",
@@ -12147,7 +12177,7 @@
             },
             {
               "id": "SPELLS-33.T6j",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12156,7 +12186,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: token light emission (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: token light emission (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k1",
@@ -12213,7 +12244,7 @@
             },
             {
               "id": "SPELLS-33.T7a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12222,7 +12253,21 @@
                 "size": 3,
                 "after": ["SPELLS-31.T5l"]
               },
-              "text": "Data-only: creature after-save immunities (the dragons’ Frightful Presence, the Tarrasque and the rest of the T5l survey) authored with SOURCE_IMMUNITY. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md)."
+              "text": "Data-only: creature after-save immunities authored with SOURCE_IMMUNITY: Cloaker Moan, the 20 dragons’ Frightful Presence, Tarrasque and Nalfeshnee (4 kinds). Hezrou Stench and Sea Hag Horrific Appearance moved to SPELLS-33.T4pr; the Mummies’ Dreadful Glare to SPELLS-33.T7b. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T7b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T7a"]
+              },
+              "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md)."
             }
           ]
         }

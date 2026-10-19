@@ -116221,6 +116221,7 @@ export declare const api: {
               | { itemInstanceId: string; kind: "STOW_HELD_WEAPON" }
               | null;
           }>;
+          defaultActionId: string | null;
           encounterId: string;
           encounterVersion: number;
           escapes: Array<{
