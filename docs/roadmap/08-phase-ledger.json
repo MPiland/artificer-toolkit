@@ -12277,7 +12277,7 @@
             },
             {
               "id": "SPELLS-33.T7a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12287,7 +12287,7 @@
                 "after": ["SPELLS-31.T5l"]
               },
               "text": "Data-only: creature after-save immunities authored with SOURCE_IMMUNITY: Cloaker Moan, the 20 dragons’ Frightful Presence, Tarrasque and Nalfeshnee (4 kinds). Hezrou Stench and Sea Hag Horrific Appearance moved to SPELLS-33.T4pr; the Mummies’ Dreadful Glare to SPELLS-33.T7b. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m159 (9cbca7efb)."
             },
             {
               "id": "SPELLS-33.T7b",
