@@ -11857,7 +11857,7 @@
             },
             {
               "id": "SPELLS-33.T4c2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11867,7 +11867,7 @@
                 "after": ["SPELLS-33.T4c"]
               },
               "text": "new (bug): encounterActiveGrantCapabilitySuppressions keys suppressions by authored grantId, so resolveRuleCapabilityAvailability throws on overlapping contributions for a Character such as the D99 room fixture when its capability state is read off the holder path. Confirm the cause of the ~130 failures from T4c's committed-reason gate, key suppressions by grant instance with a regression test that fails before the fix, then restore the persistence gate (a commit that incapacitates a source must end every holder's source-bound grant, including when the plan sends none) and its test (2026-10-19 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m191 (0ce1d2f6b)."
             },
             {
               "id": "SPELLS-33.T4de",
