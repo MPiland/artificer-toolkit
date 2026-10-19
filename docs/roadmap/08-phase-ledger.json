@@ -12124,11 +12124,24 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: event triggers (holder takes a damage type, another creature starts its turn in range): Chain Devil Unnerving Mask, Flesh Golem Aversion of Fire, Water Elemental Freeze (3 kinds); the DAMAGE_TAKEN hook also reaches turn-zone, retaliation and aura damage. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 rulings: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2, Balor to T6e1; workbook slice-spells-33.md).",
+              "text": "new: Chain Devil Unnerving Mask, a visibility gate on the passive zone occupant-turn trigger (1 kind); also wires targetEndedEffects into the turn-zone, retaliation and aura damage roots with a regression test that fails before the fix. Authoring-parity proof; deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 rulings: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2, Balor to T6e1; 2026-10-19 ruling: Flesh Golem and Water Elemental move to T6e3 because the Absorb Elements reaction path is Character- and attack-only; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6e3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T6e"]
+              },
+              "text": "Flesh Golem Aversion of Fire and Water Elemental Freeze (2 kinds): a passive damage-type trigger that creates a timed self grant on every damage root (attack, save area, turn-zone, retaliation, aura), each root gaining an effect-creation slot with receipt, persistence and revert. Needs a design send-off before code. Authoring-parity proofs; deletes its kinds (2026-10-19 ruling on the T6e split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6e1",
