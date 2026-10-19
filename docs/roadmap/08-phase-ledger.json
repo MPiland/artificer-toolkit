@@ -12126,8 +12126,21 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: event triggers (holder defeated, holder takes a damage type, another creature starts its turn in range): Balor Death Throes, Chain Devil Unnerving Mask, Flesh Golem Aversion of Fire, Water Elemental Freeze (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 ruling: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2; workbook slice-spells-33.md).",
+              "text": "new: event triggers (holder takes a damage type, another creature starts its turn in range): Chain Devil Unnerving Mask, Flesh Golem Aversion of Fire, Water Elemental Freeze (3 kinds); the DAMAGE_TAKEN hook also reaches turn-zone, retaliation and aura damage. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 rulings: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2, Balor to T6e1; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6e1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T6e"]
+              },
+              "text": "Balor Death Throes: runtime for the existing ON_HP_ZERO passive trigger. Auto-roll victims settle in the defeating commit; manual rollers get an area-save pending created in that same commit, queued behind Concentration as deferredCleaving is (2026-10-18 ruling, option A; 1 kind). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6e2",
