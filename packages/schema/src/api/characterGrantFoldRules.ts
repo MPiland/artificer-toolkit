@@ -434,6 +434,4 @@ export type CharacterGrantFoldRestriction = z.infer<typeof characterGrantFoldRes
 export type CharacterGrantFoldSource = z.infer<typeof characterGrantFoldSourceSchema>
 export type CharacterGrantFoldModifier = z.infer<typeof modifierOperationSchema>
 export type CharacterGrantFoldSense = z.infer<typeof senseOperationSchema>
-export type EquipmentInstanceMechanicSource = z.infer<
-  typeof equipmentInstanceMechanicSourceSchema
->
+export type EquipmentInstanceMechanicSource = z.infer<typeof equipmentInstanceMechanicSourceSchema>

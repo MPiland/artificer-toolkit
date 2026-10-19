@@ -50,9 +50,7 @@ export function dnd5eAttackDamageDefenses(
         ({ sourceEffectIds }) =>
           !sourceEffectIds?.length || (sourceId !== null && sourceEffectIds.includes(sourceId))
       )
-      .map(
-        ({ kind, damageTypeId }) => [`${kind}:${damageTypeId}`, { kind, damageTypeId }] as const
-      )
+      .map(({ kind, damageTypeId }) => [`${kind}:${damageTypeId}`, { kind, damageTypeId }] as const)
   )
   if (traits !== null)
     for (const defense of qualified)

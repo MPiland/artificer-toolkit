@@ -234,7 +234,10 @@ function reachesAuthoredPath(
   resultPath: string | undefined,
   outcome: 'grant' | 'relationship'
 ): boolean {
-  if (outcome === 'grant' && (authoredPath === 'ON_SAVE_FAIL' || authoredPath === 'ON_SAVE_SUCCESS'))
+  if (
+    outcome === 'grant' &&
+    (authoredPath === 'ON_SAVE_FAIL' || authoredPath === 'ON_SAVE_SUCCESS')
+  )
     return resultPath === authoredPath
   if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
     return resultPath === 'ON_CHECK_SUCCESS'

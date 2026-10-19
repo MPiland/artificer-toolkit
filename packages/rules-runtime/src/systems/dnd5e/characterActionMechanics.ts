@@ -282,7 +282,8 @@ export function resolveDnd5eActionMechanic(
     const used =
       own.find((contribution) => contribution.ability === target.attackAbility) ??
       own.reduce<ModifierContribution | null>(
-        (best, contribution) => (best === null || contribution.value > best.value ? contribution : best),
+        (best, contribution) =>
+          best === null || contribution.value > best.value ? contribution : best,
         null
       )
     return (

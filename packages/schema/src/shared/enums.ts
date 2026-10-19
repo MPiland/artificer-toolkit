@@ -387,9 +387,7 @@ export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
     'ON_INCAPACITATED',
     'ON_IDLE_TURN',
     'ON_CHOSEN_ITEM_RELEASED'
-  ] satisfies z.infer<
-    typeof pathLifecycleEndEventSchema
-  >[])
+  ] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
 )
 export const forcedMovementDirectionSchema = lazySchema(() =>
   z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'])

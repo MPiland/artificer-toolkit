@@ -697,20 +697,32 @@ describe('a Rage made on the Barbarian’s own turn', () => {
     expect(
       grantsEndedByHolderState([record], {
         reason: null,
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID], heldItemInstanceIds: []
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       }).map(({ id }) => id)
     ).toEqual([record.id])
     expect(
-      grantsEndedByHolderState([record], { reason: 'INCAPACITATED', conditionIds: [stunned], heldItemInstanceIds: [] })
+      grantsEndedByHolderState([record], {
+        reason: 'INCAPACITATED',
+        conditionIds: [stunned],
+        heldItemInstanceIds: []
+      })
     ).toEqual([])
-    expect(grantsEndedByHolderState([record], { reason: 'DEFEATED', conditionIds: [], heldItemInstanceIds: [] })).toEqual([])
+    expect(
+      grantsEndedByHolderState([record], {
+        reason: 'DEFEATED',
+        conditionIds: [],
+        heldItemInstanceIds: []
+      })
+    ).toEqual([])
   })
 
   it('reads no conditions from a defeated holder, as persistence does', () => {
     expect(
       grantsEndedByHolderState([record], {
         reason: 'DEFEATED',
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID], heldItemInstanceIds: []
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       })
     ).toEqual([])
   })
@@ -827,7 +839,11 @@ describe('a grant that ends on incapacitation', () => {
     'ends when its holder is %s, whatever conditions it has',
     (reason) => {
       expect(
-        grantsEndedByHolderState([incapacitation], { reason, conditionIds: [], heldItemInstanceIds: [] }).map(({ id }) => id)
+        grantsEndedByHolderState([incapacitation], {
+          reason,
+          conditionIds: [],
+          heldItemInstanceIds: []
+        }).map(({ id }) => id)
       ).toEqual([incapacitation.id])
     }
   )
@@ -836,7 +852,8 @@ describe('a grant that ends on incapacitation', () => {
     expect(
       grantsEndedByHolderState([incapacitation], {
         reason,
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID], heldItemInstanceIds: []
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       })
     ).toEqual([])
   })

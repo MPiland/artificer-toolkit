@@ -119,7 +119,9 @@ const loadOptionalChoices = fn(
   ): Promise<EncounterOptionalActionChoicesDto> => optionalChoices
 )
 const loadItemChoices = fn(
-  async (_request: GetEncounterActionItemChoicesInputDto): Promise<EncounterActionItemChoicesDto> => ({
+  async (
+    _request: GetEncounterActionItemChoicesInputDto
+  ): Promise<EncounterActionItemChoicesDto> => ({
     items: []
   })
 )
