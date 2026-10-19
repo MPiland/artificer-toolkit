@@ -879,9 +879,10 @@ describe('effectsEndedBy for an ability check (D156)', () => {
   function dieEffect(spell: SpellAuthored, ability?: 'STRENGTH') {
     const effect = structuredClone(onlyEffect(spell.effects))
     for (const path of effect.paths)
-      for (const outcome of path.resultBlock.outcomes)
-        if (outcome.effectKind === 'APPLY_GRANT' && ability)
-          for (const modifier of outcome.grants.modifiers) modifier.domain = { ability }
+      if (path.selectionKind === 'FIXED')
+        for (const outcome of path.resultBlock.outcomes)
+          if (outcome.effectKind === 'APPLY_GRANT' && ability)
+            for (const modifier of outcome.grants.modifiers) modifier.domain = { ability }
     return effect
   }
   const heldDie = (id: number, spell: SpellAuthored, ability?: 'STRENGTH') =>
