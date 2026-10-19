@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -537,7 +538,9 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 })
 
 describe('CampaignTabletopDecisionDrawer attack retarget', () => {
-  function renderRetarget(onResolve: ReturnType<typeof vi.fn>) {
+  function renderRetarget(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve']
+  ) {
     renderWithAppProviders(
       <CampaignTabletopDecisionDrawer
         skipped={null}
