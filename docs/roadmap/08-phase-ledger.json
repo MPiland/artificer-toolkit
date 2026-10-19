@@ -7525,8 +7525,9 @@
             {
               "id": "ATTACK-19.T1",
               "text": "Default attack weapon by hand and the off-hand damage rule, reading the existing Two-Weapon Fighting closed rules.",
-              "status": "IN_PROGRESS",
-              "closes": ["ATTACK-19.1"]
+              "status": "DONE",
+              "closes": ["ATTACK-19.1"],
+              "note": "Merged m154 (2cfa9e843)."
             },
             {
               "id": "ATTACK-19.T2",
