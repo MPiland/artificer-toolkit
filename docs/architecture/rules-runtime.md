@@ -523,7 +523,7 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (`effectsEndedBy`). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
+application heals at least 1 hit point (`effectsEndedBy`). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A timed condition whose duration is `UNTIL_DISPELLED` (Sequester, SPELLS-4 T2a4) counts no turns and lasts until the GM ends it or an authored end trigger does. A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
 DTO advertises `choosesUnaffected` on its zone target (`POINT`, `CASTER_CENTERED`, `WALL`, `RING` or `ZONE_OPTIONS`), the cast command carries optional
 `unaffectedActorIds` on the zone's target (the Worker refuses it for an action whose zone does not offer it, or for an id
 that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
@@ -920,6 +920,24 @@ encounter planner then creates a second active effect, the rider's, with the par
 rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
 parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
 the parent: ending the parent early leaves the rider for the GM to end. Only a follow-up save takes a rider. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author it.
+
+**Source immunity (SPELLS-31.T5l, D156).** A creature can be immune to one source's use of one action.
+Two authored forms compile to the plan's `sourceImmunity` (`sourceImmunityPlan`). A `SOURCE_IMMUNITY` outcome
+on `ON_SAVE_SUCCESS` gives `appliesTo: SAVE_SUCCESS`, keyed by the action's effect id, lasting its result
+block's `conditionDurationTurns`. `perTargetLockout` on an at-will `SPELL_GRANT` gives `appliesTo: EVERY_TARGET`,
+keyed by the grant id, and is `INDEFINITE` (the source's long rest; a Run holds no rest, so it lasts the Run).
+The encounter planner creates the immunity as a second effect on the holder in the plan's `riderEffect` slot
+(`riderMaintained: false`, so it outlives the source's Concentration). It holds one `SOURCE_IMMUNITY` state
+contribution `{ immuneToId, sourceCharacterId, sourceLabel }`. The compiler refuses a save immunity under
+Concentration and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
+single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out: the pending
+area seals it as `immuneActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
+by source actor, or for a Character by source Character, since a carried effect outlives the Encounter actor.
+A spell grant's `allowedCreatureTypeIds` narrows the targets of its casts (`targetingExcludesCreatureType`).
+A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end
+event can fall inside that round. SRD Intimidating Presence (save immunity) and Chains of Carceri (lockout
+and creature types) author it. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
+spell access (SPELLS-31.T5t).
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
@@ -1693,8 +1711,9 @@ the attribute alone.
 helper, `pinnedSaveDc`: a fixed DC is stored in the plan's `dnd5e.save-dc` fact, and `SOURCE_SAVE_DC` sets
 `castSaveDcFactKey`, so `prepareRecurringActiveEffect` stores the cast's own save DC (`d20.defenseOrDc`, from the
 same `resolveSave` path every save-trigger plan uses) under that fact when the active effect is created. The repeat
-graph's threshold reads the fact either way. Hold Person authors the SRD repeat save as a `FOLLOW_UP_SAVE`
-after its Paralyzed condition, and its condition lasts the `conditionDurationTurns` of its duration.
+graph's threshold reads the fact either way. Hold Person and Hold Monster author the SRD repeat save as a
+`FOLLOW_UP_SAVE` after their Paralyzed condition, and the condition lasts the `conditionDurationTurns` of its
+duration.
 
 `repeatingDirectFollowUpSavePlan` takes a `CONDITION` or an `APPLY_GRANT` as its lead entry. A grant lead plans
 its contribution through `modifierGrantEntryPlan` and marks it `countedByTurnEffects`: the repeat-save kernel

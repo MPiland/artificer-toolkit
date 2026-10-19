@@ -64,7 +64,8 @@ export const dnd5eCharacterActionCapabilityAdapter: CharacterActionCapabilityAda
           : { spellCastLevel: entryPoint.spellCastLevel }),
         ...(entryPoint.characterLevel === undefined
           ? {}
-          : { characterLevel: entryPoint.characterLevel })
+          : { characterLevel: entryPoint.characterLevel }),
+        ...(entryPoint.perTargetLockout && { perTargetLockout: entryPoint.perTargetLockout })
       }
     })
 }

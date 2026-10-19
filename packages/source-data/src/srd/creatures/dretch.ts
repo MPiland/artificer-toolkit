@@ -225,6 +225,8 @@ export const dretch: CreatureAuthored = {
                   durationKind: DURATION_KIND.ROUND,
                   amount: 1
                 },
+                // "Until the start of its next turn."
+                lifecycle: { turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' } },
                 outcomes: [
                   {
                     id: S.actionId(86, 13),
