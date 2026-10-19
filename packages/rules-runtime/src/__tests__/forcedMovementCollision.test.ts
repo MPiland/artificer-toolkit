@@ -63,7 +63,7 @@ function breatherWith(withCollision: ForcedMovementCollisionAuthored | undefined
                 ...path.resultBlock,
                 outcomes: path.resultBlock.outcomes.map((outcome) =>
                   outcome.effectKind === EFFECT_KIND.FORCED_MOVEMENT
-                    ? { ...outcome, collision: withCollision }
+                    ? { ...outcome, ...(withCollision ? { collision: withCollision } : {}) }
                     : outcome
                 )
               }
