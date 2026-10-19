@@ -244,7 +244,8 @@ describe('SRD Creature attack sweep', () => {
             movementTargets,
             loadSource: async (input) =>
               resolveEncounterActionSource({ ...input, system: srdSystemRecord }),
-            loadRelationshipFacts: async () => []
+            loadRelationshipFacts: async () => [],
+            loadTurnUses: async () => []
           })
           stage = 'EXECUTE'
           const execution = {

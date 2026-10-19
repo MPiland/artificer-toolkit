@@ -94,6 +94,8 @@ export function planNativeLiveEncounterSettlement(input: {
   prepared: Awaited<ReturnType<typeof prepareEncounterActionMechanics<CharacterFacts>>>
   mechanics: ReturnType<typeof planNativeEncounterActionMechanics>
   effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
+  /** The id the action's lasting effect takes, minted before its applications name it (D156). */
+  recurringEffectId: string
   /** The effect plan of the reaction the target used against this action, when it used one. */
   reactionEffect: {
     id: string
@@ -143,7 +145,11 @@ export function planNativeLiveEncounterSettlement(input: {
     return record
   }
   const stateEffect = create(effects.stateEffect)
-  const recurringEffect = create(effects.recurringEffect, maintainedState?.id)
+  const recurringEffect = create(
+    effects.recurringEffect,
+    maintainedState?.id,
+    input.recurringEffectId
+  )
   const riderEffect = create(effects.riderEffect, maintainedState?.id)
   // The effect of the reaction the target used lands on the target after the attack's own effects.
   const reactionEffect =

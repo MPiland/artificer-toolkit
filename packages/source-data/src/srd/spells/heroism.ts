@@ -104,7 +104,7 @@ export const heroism: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.HEROISM, 0x215, 1) + '__result',
+            id: spellChildId(SPELL_IDS.HEROISM, 0x218, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.HEROISM, 0x216, 1),

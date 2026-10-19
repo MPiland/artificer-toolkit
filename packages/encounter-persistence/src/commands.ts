@@ -1,4 +1,8 @@
 import { insertRunCommand } from './timelineEntries.js'
+import {
+  temporaryHitPointsSet,
+  withActorTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import type { z } from 'zod'
 import {
   encounterCommandResultDtoSchema,
@@ -437,7 +441,10 @@ async function recordEncounterToolCommand(
             updatedAt
           }
         : {
-            ...actor,
+            // A GM temporary hit point edit belongs to no effect (D156).
+            ...(input.tempHitPoints === undefined || actor.kind === 'CHARACTER'
+              ? actor
+              : withActorTemporaryHitPoints(actor, temporaryHitPointsSet(input.tempHitPoints))),
             // A GM hit point edit revives a defeated actor above 0 and defeats one taken to 0 (D63).
             ...(input.currentHitPoints === undefined || actor.kind === 'CHARACTER'
               ? {}

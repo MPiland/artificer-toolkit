@@ -11744,6 +11744,7 @@ export declare const api: {
               };
               hitDice: Array<{ die: number; total: number; used: number }>;
               temp: number;
+              tempSourceEffectId?: string;
             };
             inspiration?: boolean;
             noteGroups?: Array<{
@@ -12124,6 +12125,7 @@ export declare const api: {
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp: number;
+                tempSourceEffectId?: string;
               };
               inspiration?: boolean;
               noteGroups?: Array<{
@@ -12503,6 +12505,7 @@ export declare const api: {
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp: number;
+                tempSourceEffectId?: string;
               };
               inspiration?: boolean;
               noteGroups?: Array<{
@@ -13208,6 +13211,7 @@ export declare const api: {
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp: number;
+                  tempSourceEffectId?: string;
                 };
                 inspiration?: boolean;
                 noteGroups?: Array<{
@@ -13921,6 +13925,7 @@ export declare const api: {
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp: number;
+                  tempSourceEffectId?: string;
                 };
                 inspiration?: boolean;
                 noteGroups?: Array<{
@@ -14646,6 +14651,7 @@ export declare const api: {
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp: number;
+                tempSourceEffectId?: string;
               };
               inspiration?: boolean;
               noteGroups?: Array<{
@@ -15345,6 +15351,7 @@ export declare const api: {
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp: number;
+                  tempSourceEffectId?: string;
                 };
                 inspiration?: boolean;
                 noteGroups?: Array<{
@@ -125656,6 +125663,12 @@ export declare const internal: {
               passives?: Array<
                 Record<string, string | number | boolean | null>
               >;
+              proficiency_grant_equipment?: Array<
+                Record<string, string | number | boolean | null>
+              >;
+              proficiency_grant_equipment_properties?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               proficiency_grant_languages?: Array<
                 Record<string, string | number | boolean | null>
               >;
@@ -125740,6 +125753,8 @@ export declare const internal: {
             option_proficiency_grants?: string;
             options?: string;
             passives?: string;
+            proficiency_grant_equipment?: string;
+            proficiency_grant_equipment_properties?: string;
             proficiency_grant_languages?: string;
             proficiency_grant_skills?: string;
             race_ancestries?: string;

@@ -84,8 +84,10 @@ export type EncounterActorFormCreature = {
  */
 export function enterActorForm(actor: FormableActor, input: FormInput): FormableActor {
   if (actor.form !== null) throw new Error('The actor already has a form.')
+  // The origin keeps its amount but not its source: a form origin's pool belongs to no effect.
+  const { tempHitPointsSourceEffectId: _originSource, ...own } = actor
   return {
-    ...actor,
+    ...own,
     sourceId: input.creature.sourceId,
     sourceRevision: input.creature.sourceRevision,
     snapshot: input.creature.snapshot,
@@ -245,8 +247,9 @@ export function revertActorForm(
   const carried = form.excessDamageCarriesOver ? excessDamage : 0
   const temporaryLost = Math.min(origin.tempHitPoints, carried)
   const currentHitPoints = Math.max(0, origin.currentHitPoints - (carried - temporaryLost))
+  const { tempHitPointsSourceEffectId: _formSource, ...own } = actor
   return {
-    ...actor,
+    ...own,
     sourceId: origin.sourceId,
     sourceRevision: origin.sourceRevision,
     snapshot: origin.snapshot,

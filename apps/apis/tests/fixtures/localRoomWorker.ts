@@ -612,8 +612,9 @@ export function checkpointLiveRoom(campaignId: string) {
 }
 
 /**
- * The notice Convex's scheduler sends after a transaction changes a Campaign's inputs. convex-test
- * runs no scheduler, so a test that edits a held Character delivers it here.
+ * The notice Convex's scheduler sends after a transaction changes a Campaign's inputs, for a test
+ * that writes them directly (`t.run`), which queues none. After a product mutation, which queues its
+ * own, use `deliverQueuedRoomControl` instead so the scheduler's copy cannot race the next command.
  */
 export function invalidateRoomInputs(campaignId: string, scopes: LiveSessionInputScope[]) {
   return postToWorker(campaignId, LIVE_SESSION_CONTROL_PATH, {

@@ -19,8 +19,14 @@ on:
   workflow_dispatch:
     inputs:
       convex_workers:
-        description: Vitest workers per Convex shard (trial; pushes use 1)
-        default: '1'
+        description: Vitest workers per Convex shard (pushes use 2; PLATFORM-13.T4)
+        default: '2'
+      worker_workers:
+        description: Vitest workers for the Worker suite (pushes use 4; PLATFORM-13.T4)
+        default: '4'
+      web_workers:
+        description: Vitest workers for the web suite (trial; empty uses the config's 50%)
+        default: ''
       full:
         description: Run every test file instead of the affected ones
         type: boolean
@@ -100,7 +106,7 @@ jobs:
       - name: Convex tests
         id: tests
         env:
-          CONVEX_WORKERS: ${{ inputs.convex_workers || '1' }}
+          CONVEX_WORKERS: ${{ inputs.convex_workers || '2' }}
           FILES: ${{ needs.build.outputs.convex-files }}
           SHARD: --shard=${{ matrix.shard }}/${{ strategy.job-total }}
           REPORT: --reporter=default --reporter=json --outputFile.json=local-validation/vitest-convex.json
@@ -112,6 +118,15 @@ jobs:
           else
             yarn workspace @artificer-toolkit/apis test:convex $FILES $SHARD --fileParallelism --maxWorkers=$CONVEX_WORKERS $REPORT
           fi
+      # A full run's per-file durations refresh apps/apis/tests/convexFileDurations.json, which balances the
+      # shards (scripts/convexShards.mjs).
+      - uses: actions/upload-artifact@v4
+        if: always() && needs.build.outputs.full == 'true' && steps.tests.outcome != 'skipped'
+        with:
+          name: convex-report-${{ matrix.shard }}
+          path: local-validation/vitest-convex.json
+          retention-days: 7
+          if-no-files-found: ignore
       - uses: ./.github/actions/regenerate-snapshots
         if: failure() && steps.tests.outcome == 'failure'
         with:
@@ -166,11 +181,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - env:
+          WORKER_WORKERS: ${{ inputs.worker_workers || '4' }}
           FILES: ${{ needs.build.outputs.worker-files }}
         run: |
           set -f
           yarn workspace @artificer-toolkit/session-worker types
-          yarn workspace @artificer-toolkit/session-worker test $FILES
+          if [ "$WORKER_WORKERS" = "1" ]; then
+            yarn workspace @artificer-toolkit/session-worker test $FILES
+          else
+            yarn workspace @artificer-toolkit/session-worker vitest run --config vitest.config.ts --maxWorkers=$WORKER_WORKERS --no-isolate $FILES
+          fi
 
   web:
     name: Web tests
@@ -182,10 +202,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - env:
+          WORKERS: ${{ inputs.web_workers && format('--maxWorkers={0}', inputs.web_workers) || '' }}
           FILES: ${{ needs.build.outputs.web-files }}
         run: |
           set -f
-          yarn workspace @artificer-toolkit/web test $FILES
+          yarn workspace @artificer-toolkit/web test $WORKERS $FILES
 
   # The account runs at most 20 jobs at once, so typechecks share two sequential jobs instead of one job
   # each; both finish inside the Convex and web test critical path. Every step runs even after a failure,
@@ -250,6 +271,13 @@ jobs:
         env:
           MERGE_BASE: ${{ needs.build.outputs.merge-base }}
         run: node scripts/formatChanged.mjs --base "$MERGE_BASE" --check
+      # The ledger is the orchestrator's, edited on the phase branch; a slice that rewrote it would revert
+      # those edits at merge (PLATFORM-13.T14). A merge batch carries no slice commits of its own.
+      - name: Slice leaves the phase ledger alone
+        if: (success() || failure()) && !startsWith(github.ref_name, 'ci/merge-')
+        env:
+          MERGE_BASE: ${{ needs.build.outputs.merge-base }}
+        run: node scripts/ledgerUntouched.mjs --base "$MERGE_BASE"
 
   # Proves fail-before in the same run: the slice's new and changed test files run against the production
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
@@ -292,7 +320,7 @@ jobs:
           set -f
           node "$RUNNER_TEMP/redProof.mjs" run $RED_FILES
 
-  # A type error ends the run once both typecheck jobs have reported, instead of after the ~15-minute test
+  # A type error ends the run once both typecheck jobs have reported, instead of after the ~10-minute test
   # jobs. It cancels only this run; the cancelled run keeps the failed typecheck jobs, which
   # scripts/watchCi.ps1 reports. A green run never waits on this job.
   cancel-on-type-error:
@@ -352,6 +380,8 @@ jobs:
         env:
           MERGE_BASE: ${{ needs.build.outputs.merge-base }}
         run: |
+          # A slice that changed the ledger is not a format fix: formatting it would hide the change.
+          node scripts/ledgerUntouched.mjs --base "$MERGE_BASE"
           # oxlint applies only its safe fixes; a finding it cannot fix fails the `yarn lint` check below.
           yarn oxlint --fix || true
           node scripts/formatChanged.mjs --base "$MERGE_BASE"

@@ -4,6 +4,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { playerControlFixture, storeRunAutomationMode } from '../../tests/fixtures/playerControl'
 import {
   checkpointLiveRoom,
+  deliverQueuedRoomControl,
   executeSheetInRoom,
   expectRedactedRoomRefusal,
   invalidateRoomInputs,
@@ -87,8 +88,9 @@ async function heldCharacter(
       mode: 'edit',
       character: change(characterAuthoredDtoSchema.parse(readCharacterRecord(row)))
     })
-    // convex-test runs no scheduler, so the notice Convex sends the room about the edit goes here.
-    await invalidateRoomInputs(base.campaign.id, ['CHARACTER'])
+    // The commit queued its own notice to the room; delivering it now keeps the scheduler's timer
+    // from landing it in the middle of the next room command.
+    await deliverQueuedRoomControl(base.t)
   }
   return { ...base, characterId, play, storage, settled, adjust, builderEdit }
 }

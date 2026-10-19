@@ -6,7 +6,7 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
-  SPELL_ATTRIBUTE,
+  SCALING,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -28,7 +28,7 @@ export const regenerate: SpellAuthored = {
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
   materialDescription: 'a prayer wheel and holy water',
   magicSchoolId: schoolId('TRANSMUTATION'),
-  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
+  attributes: [],
   effects: [
     {
       id: spellChildId(SPELL_IDS.REGENERATE, 0x210, 1),
@@ -54,21 +54,53 @@ export const regenerate: SpellAuthored = {
           id: spellChildId(SPELL_IDS.REGENERATE, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.REGENERATE, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.REGENERATE, 0x213, 1),
-              durationKind: DURATION_KIND.INSTANTANEOUS
+              durationKind: DURATION_KIND.HOUR,
+              amount: 1
             },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REGENERATE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'REGENERATE' as const
+                effectKind: EFFECT_KIND.HEAL,
+                scalingKind: SCALING.NONE,
+                valueKind: 'DICE' as const,
+                diceConfig: '4d8+15'
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.REGENERATE, 0x215, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.REGENERATE, 0x217, 1),
+            resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.REGENERATE, 0x216, 1),
+              durationKind: DURATION_KIND.HOUR,
+              amount: 1
+            },
+            lifecycle: {
+              recurringKind: 'START_OF_TURN' as const
+            },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.REGENERATE, 0x215, 1),
+                effectKind: EFFECT_KIND.HEAL,
+                scalingKind: SCALING.NONE,
+                valueKind: 'FIXED' as const,
+                amount: 1
               }
             ]
           }

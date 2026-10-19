@@ -47,7 +47,10 @@ import {
   turnZoneEffectsEvidenceFields
 } from './ruleExecutionTurnPhaseEvidence.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from './ruleExecutionMechanics.js'
+import {
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  isEndedEffectRelease
+} from './ruleExecutionMechanics.js'
 
 const MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS = MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2
 const completedTurnLifecyclePhaseEvidenceDtoSchema = lazySchema(() =>
@@ -432,10 +435,10 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
               })
             continue
           }
-          if (application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY) {
-            // A condition an effect that ended with this action released from its own holder follows
-            // from the effect's end, not from a trace of the action's execution (SPELLS-27.T2).
-            if (application.kind !== 'CONDITION_REMOVE')
+          if (application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY) {
+            // What an effect that ended with this action released from its own holder follows from the
+            // effect's end, not from a trace of the action's execution (SPELLS-27.T2, D156).
+            if (!isEndedEffectRelease(application))
               context.addIssue({
                 code: 'custom',
                 message: 'Character mechanics application trace binding is invalid.'
@@ -469,6 +472,7 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
               )
                 return false
               if ('authorized' in trace.outputs && trace.outputs.authorized !== true) return false
+              if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') return false
               if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE')
                 return trace.outputs.conditionId === application.conditionId
               if (application.kind === 'SCALAR_REDUCTION')

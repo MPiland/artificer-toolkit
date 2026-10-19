@@ -692,8 +692,8 @@
             },
             {
               "id": "PLATFORM-13.T4",
-              "text": "End of phase: Convex parallelism trial (2, 4, then 8 file workers, one run each, then three consecutive clean runs for the kept setting; wall time, failures, peak memory and paging recorded; a run that swaps or times out rejects the setting; no per-test timeout raised) and the full-suite timing record (Convex, worker, root), including a loaded root run proving import.test.ts passes at the default 5 s.",
-              "status": "IN_PROGRESS",
+              "text": "CI parallelism trial (pulled forward 2026-10-18): Convex 2 and Worker 4 file workers per job, Convex shards balanced by recorded file duration, no added jobs; Convex 4 rejected (developmentCustody timeouts); three clean full dispatches, no timeout raised. Tests wall time 18.4-19.8 to 10.5-12.2 min (docs/validation/platform-13-t4-ci-parallelism-2026-10-18.md).",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 1,
@@ -702,7 +702,75 @@
                 "size": 3,
                 "finalSource": true
               },
-              "note": "Pulled forward 2026-10-18 (speed to done): Convex and Worker file-worker trials, shard balancing, no added jobs (20-concurrent-job cap)."
+              "note": "Merged by hand c03efd047 (workflow change). End-of-phase timing and the import.test.ts proof moved to T4b."
+            },
+            {
+              "id": "PLATFORM-13.T4b",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "finalSource": true
+              },
+              "text": "End of phase, on the final source: the full-suite timing record (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (one test there carries a 20 s timeout). Split from T4 when the CI parallelism trial landed early."
+            },
+            {
+              "id": "PLATFORM-13.T14",
+              "status": "DONE",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 3,
+                "size": 1,
+                "after": []
+              },
+              "text": "Lint changed-files format check flagged docs/roadmap/08-phase-ledger.json on ci/platform-13-t4, whose own diff touched only tests.yml, and the tests auto-fix reformatted the whole ledger (fa3f5f0bb). Find why formatChanged.mjs or the Lint job sees an unchanged file (merge-base vs tip, or a slice commit that rewrote it), fix the cause, with a regression test. Found 2026-10-18.",
+              "note": "Merged by hand f78c5d437 (workflow change). Cause: slice commit 22b554967 really rewrote the ledger and the auto-fix hid it; ledgerUntouched.mjs now fails such a slice and gates the auto-fix."
+            },
+            {
+              "id": "PLATFORM-13.T15",
+              "status": "DONE",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 5,
+                "rr": 3,
+                "size": 2,
+                "after": ["PLATFORM-13.T4"]
+              },
+              "text": "CI wall under 10 min with no added jobs, first lever: web unit maxWorkers 50% to 3, still isolated. Gate: three clean full dispatches, no timeout raised. isolate:false was rejected 2026-10-18 (42 files leak mock and module state; the hygiene migration is in future-enhancements). Hosting test shards inside typecheck jobs was rejected because it couples type-error cancellation to test failures. The Convex lever is T17.",
+              "note": "Merged by hand 57b80707f (workflow change). isolate:false rejected (42 files leak); maxWorkers 3 clean 3 of 3 but not faster (426-574 s vs 340-553 s), so the config stays at 50%; a web_workers dispatch input remains for trials."
+            },
+            {
+              "id": "PLATFORM-13.T16",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 5,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              },
+              "text": "Flake: nativeRoomAdmission.test.ts \"renews the authorization lease with one read per half-lease while a member is connected, and not before\" saw 4 authorization reads, expected 3 (line 407), on merge batch ci/merge-m139 c227b16a6 (Tests 39172295228), whose diff does not touch the Worker. Find the timing source (clock vs alarm vs resume ordering), make the test deterministic on the fake clock without weakening the read-count assertion, with a repeat-run proof. Found 2026-10-18.",
+              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+            },
+            {
+              "id": "PLATFORM-13.T17",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-13.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -805,7 +873,7 @@
             },
             {
               "id": "PLATFORM-13.T13",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 3,
@@ -815,7 +883,7 @@
                 "after": []
               },
               "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test. Also the Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" flake: its console.error spy catches a stray room alarm log (seen on ci/spells-4-t2t twice); fix the leak at its source, not the spy.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Merged m147 (1a07eb060)."
             }
           ]
         },
@@ -6330,15 +6398,29 @@
             {
               "id": "ATTACK-7.T6b",
               "text": "Rename the Disarm-named contest seam that now settles every basic action contest (nativeDisarm, disarmSettlement, disarmPersistence, roomEncounterDisarm, liveSessionEncounterDisarm and its commit input) to a contest domain name, with no behavior change and no compatibility aliases; docs updated.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.6"],
-              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
+              "note": "Merged m140 (43d436cbc)."
             },
             {
               "id": "ATTACK-7.T7",
               "text": "Slice G: drag at double movement cost unless two or more sizes smaller; blocked destinations refused; no opportunity attacks.",
+              "status": "DONE",
+              "closes": ["ATTACK-7.5"],
+              "note": "Merged m144 (ca268807d)."
+            },
+            {
+              "id": "ATTACK-7.T7b",
               "status": "TODO",
-              "closes": ["ATTACK-7.5"]
+              "closes": ["ATTACK-7.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 2,
+                "size": 1,
+                "after": ["ATTACK-7.T7"]
+              },
+              "text": "The web route preview prices a grapple drag at single cost because the session projection carries no actor size. Carry each actor's size on the projection so the preview shows the D105 ×2 drag cost (×4 in difficult terrain, no ×2 when the held creature is two or more sizes smaller), from the same pure rule the room uses, with a preview test. Found in T7, 2026-10-18."
             },
             {
               "id": "ATTACK-7.T8",
@@ -8014,7 +8096,7 @@
               "note": "Increment landed (See Invisibility, perception senses fix, Plant Growth lastingZoneEntry): ci/spells-4-t2a4 52c0ea36d; batch ci/merge-m128 4ae37ea04 green (Tests 39154431682, Live 39154431693); phase merge 0c9cd2299. Sequester and Plant Growth exclusions remain, after T2a3."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a5",
               "wsjf": {
@@ -8025,7 +8107,7 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Convert closed rules with existing options (D156 T2 split, class A): SILENT_IMAGE, SLOW, TELEPORT, TRUE_SEEING. Parity proof per spell, plus a room test where it shows in combat; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m142 (7ff1ab392). Fable trial slice, redo green with no second correction."
             },
             {
               "status": "DONE",
@@ -8290,7 +8372,7 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2t",
               "wsjf": {
@@ -8301,7 +8383,7 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), and REGENERATE (an immediate heal beside a recurring one; fix its SRD data: no Concentration, a 1-minute cast, a 1-hour duration), with parity proofs; each kind deleted. T2t ruling: temporary hit points record their source effect; the compiler accepts SEQUENTIAL entries with one effect-bearing entry; Heroism becomes castable.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m146 (fac2cf216)."
             },
             {
               "status": "TODO",
@@ -10868,8 +10950,7 @@
             },
             {
               "id": "SPELLS-31.T3d",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 8,
@@ -10878,7 +10959,8 @@
                 "size": 2,
                 "after": ["SPELLS-31.T3c"]
               },
-              "text": "Bug: normalizing the full SRD Cleric through the class node map throws \"Untrusted node runtime table: proficiency_grant_equipment\" (starting-equipment eligibility). Trust the table where the node runtime reads it, add a regression test that normalizes every SRD class record unchanged and fails before the fix, and remove the parity test’s emptied starting-equipment workaround."
+              "text": "Bug: normalizing the full SRD Cleric through the class node map throws \"Untrusted node runtime table: proficiency_grant_equipment\" (starting-equipment eligibility). Trust the table where the node runtime reads it, add a regression test that normalizes every SRD class record unchanged and fails before the fix, and remove the parity test’s emptied starting-equipment workaround.",
+              "note": "Merged m141 (b066f0945)."
             },
             {
               "id": "SPELLS-31.T4c",
@@ -11541,20 +11623,21 @@
             },
             {
               "id": "SPELLS-33.T3a3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1"]
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5l"]
               },
-              "text": "Lift the compiler refusal of AREA_CONTENTS saves with excluded creature types generically, then convert Cloaker Moan as a 60-foot self-centered sphere excluding aberrations; its after-save immunity stays in T7a (1 kind). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Lift the compiler refusal of AREA_CONTENTS saves with excluded creature types generically, then convert Cloaker Moan as a 60-foot self-centered sphere excluding aberrations; its after-save immunity stays in T7a (1 kind). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md). Excluded types are sealed in the T5l pending-area list, renamed unaffectedActorIds (D156 T3a3 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3a4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11563,11 +11646,12 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "note": "Merged m145 (d50a136d5)."
             },
             {
               "id": "SPELLS-33.T3a5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11576,7 +11660,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "Fold creature passive ON_HIT riders from other features into creature attacks through the Character collect, merge and reduce path; convert Assassin and Spy Sneak Attack (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Fold creature passive ON_HIT riders from other features into creature attacks through the Character collect, merge and reduce path; convert Assassin and Spy Sneak Attack (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "note": "Merged m143 (6f3847ff4)."
             },
             {
               "id": "SPELLS-33.T3a6",

@@ -22,7 +22,14 @@ import {
   type PendingCompletedTurnPhaseDto,
   type StoredRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  isEndedEffectRelease
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  endedEffectReleaseKey,
+  expiredEffectReleases
+} from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -189,7 +196,7 @@ export async function persistEncounterTurnEffects(
       execution.applications.some(
         (application, index) =>
           application.ordinal !== index ||
-          (application.sourceOperationKey !== ENDED_EFFECT_CONDITION_OPERATION_KEY &&
+          (application.sourceOperationKey !== ENDED_EFFECT_RELEASE_OPERATION_KEY &&
             (application.sourceNodeId !== definition.frozenGraphNodeId ||
               ![
                 'HEAL',
@@ -204,7 +211,8 @@ export async function persistEncounterTurnEffects(
     )
       throw new Error('Staged turn effect target transition is invalid.')
     // The damage this execution dealt ends the holder's other damage-triggered effects; the plan
-    // must have released exactly the conditions only they held.
+    // must have released exactly the conditions only they held, and an expiring effect's own
+    // temporary hit points (D156).
     const ended = turnEffectDamageEnded({
       effect,
       holderActorId: actor.id,
@@ -219,17 +227,18 @@ export async function persistEncounterTurnEffects(
       })),
       dispositions
     })
-    const releaseKey = (application: { sourceActiveEffectId: string; conditionId: string }) =>
-      `${application.sourceActiveEffectId}:${application.conditionId}`
     if (
       !same(
         execution.applications.flatMap((application) =>
-          application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY &&
-          application.kind === 'CONDITION_REMOVE'
-            ? [releaseKey(application)]
+          application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY &&
+          isEndedEffectRelease(application)
+            ? [endedEffectReleaseKey(application)]
             : []
         ),
-        ended.releases.map(releaseKey)
+        [
+          ...ended.releases,
+          ...(lifecycle.kind === 'EXPIRE' ? expiredEffectReleases(effect, actor.id) : [])
+        ].map(endedEffectReleaseKey)
       )
     )
       throw new Error('Staged turn effect damage release is stale.')

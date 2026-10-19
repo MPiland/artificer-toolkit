@@ -5,9 +5,11 @@ import { compileEffect, type CompiledEffectGroup } from '@artificer-toolkit/shar
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
+import { collectOnHitRiders, mergeOnHitRiders } from './character/characterOnHitRiders.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import { placedSpaceManifest } from './encounterZonePlacement.js'
 import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
+import { reduceEffectRestrictions } from './systems/dnd5e/attackRestrictions.js'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -398,7 +400,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!entry || (entry.actionFeature?.id ?? null) !== capability.actionFeatureId)
     throw new Error('Encounter feature action capability Effect is stale.')
   const { effect } = entry
-  const compiledEffect = compileEffect(effect)
+  const compiledEffect = creatureActionEffect(effect, features)
   if (
     capability.entryPointDefinitionId !== effect.id ||
     capability.actionId !==
@@ -432,6 +434,26 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   ) {
     throw new Error('Encounter feature action attack roll is stale.')
   }
+}
+
+/**
+ * A Creature action's effective mechanics, as a Character's are: its compiled Effect with the
+ * `ON_HIT` riders of the Creature's passive Features merged in, then its path restrictions
+ * settled. A Creature attack has no Equipment facts here, so a rider's weapon checks never hold.
+ */
+function creatureActionEffect(
+  effect: EncounterFeatureEffect,
+  features: readonly FeatureDto[]
+): CompiledEffectGroup {
+  const riders = features.flatMap((feature) =>
+    featureEffectEntries(feature, features).flatMap((entry) =>
+      collectOnHitRiders(
+        [compileEffect(entry.effect)],
+        entry.featureOption?.id ?? entry.ownerFeature.id
+      )
+    )
+  )
+  return reduceEffectRestrictions(mergeOnHitRiders(compileEffect(effect), riders), null)
 }
 
 function featureEffectEntries(
@@ -583,7 +605,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           const label = entry.featureOption?.label ?? entry.ownerFeature.label
           // One action's invalid authored mechanics make only that action unavailable (D54).
           try {
-            const compiledEffect = compileEffect(effect)
+            const compiledEffect = creatureActionEffect(effect, features)
             if (passive && !placedSpaceManifest(compiledEffect)) continue
             const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
             const normalized = bindEffect(adapter, {
