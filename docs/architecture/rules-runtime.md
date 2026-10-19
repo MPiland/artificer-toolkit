@@ -1052,6 +1052,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
   result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
   `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
+- **Negated advantage and attack occasions (SPELLS-31.T4k2a, D156).** An `ATTACKS_AGAINST` `NEGATE_ADVANTAGE`
+  modifier (Elusive) carries no contributor: while it holds, the sight contributors drop `ADVANTAGE` and preparation
+  publishes `attackAdvantageNegated`, so the compiler drops every advantage from the final attack roll, the attacker's
+  own grants and flanking included. An optional `attackOccasion` (`OPPORTUNITY`, Escape the Horde) limits a modifier to
+  attacks made on that occasion; `prepareEncounterActionMechanics` takes the occasion as input, and a movement reaction
+  attack is prepared as `OPPORTUNITY`. A Character holder's feature grants come from its grant fold (holder-state
+  restrictions such as `CAN_ACT` apply), beside its active effects.
 - **Attack decoys (SPELLS-4.T2k2, D156).** An `ATTACK_DECOYS` `ENABLE` modifier (`{armorClass: {amount, abilities}, thresholds: [{id, remaining, minimumRoll}]}`)
   with a path lifecycle `uses` counts the holder's decoys in `lifecycle.remainingUses`. `attackDecoyFor` derives the
   decoy d20 from the minted occurrence id; at or above the minimum for the decoys left the attack is prepared again against

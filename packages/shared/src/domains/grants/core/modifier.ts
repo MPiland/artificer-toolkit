@@ -32,6 +32,7 @@ export const MODIFIER_KIND = {
   // Roll state
   ADVANTAGE: 'ADVANTAGE',
   DISADVANTAGE: 'DISADVANTAGE',
+  NEGATE_ADVANTAGE: 'NEGATE_ADVANTAGE',
   MINIMUM_ROLL: 'MINIMUM_ROLL',
 
   // Switches a domain's rule on; the domain says what it enables
@@ -115,6 +116,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.DISADVANTAGE,
     label: 'Disadvantage',
     description: 'Grant disadvantage on the roll.'
+  },
+
+  NEGATE_ADVANTAGE: {
+    code: MODIFIER_KIND.NEGATE_ADVANTAGE,
+    label: 'Negate Advantage',
+    description: 'The roll cannot have advantage; disadvantage still applies.'
   },
 
   MINIMUM_ROLL: {
@@ -256,7 +263,11 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
-  ATTACKS_AGAINST: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
+  ATTACKS_AGAINST: [
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.NEGATE_ADVANTAGE
+  ],
 
   ATTACK_TRAIT: [MODIFIER_KIND.ENABLE],
 
@@ -643,7 +654,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                         ? { shapeKind: ShapeKind }
                         : K extends 'REPLACE_CHARGE_RESET_KIND'
                           ? { resetKind: ChargeResetKind }
-                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'NEGATE_ADVANTAGE' | 'ENABLE'
                             ? undefined
                             : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
                               ? {

@@ -73,6 +73,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
     case 'ADVANTAGE':
       return domain === 'ATTACKS_AGAINST' ? 'HARMFUL' : 'BENEFICIAL'
     case 'DISADVANTAGE':
+    case 'NEGATE_ADVANTAGE':
       return domain === 'ATTACKS_AGAINST' ? 'BENEFICIAL' : 'HARMFUL'
     case 'BONUS':
     case 'PENALTY': {

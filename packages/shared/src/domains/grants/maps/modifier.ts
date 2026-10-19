@@ -3,6 +3,7 @@ import {
   ABILITY_MODIFIER_REFERENCE_OPTIONS,
   ABILITY_OPTIONS,
   ATTACK_DOMAIN_OPTIONS,
+  ATTACK_OCCASION_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
@@ -162,6 +163,18 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
             kind: 'DATA',
             relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
           },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'attackOccasion',
+        selectSingle(
+          ['attackOccasion'],
+          'Only Attacks Made On This Occasion',
+          { kind: 'INLINE_OPTIONS', options: ATTACK_OCCASION_OPTIONS },
           {
             showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
             hiddenBehavior: 'CLEAR'

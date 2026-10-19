@@ -11,6 +11,7 @@ import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/lif
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -21,7 +22,8 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 /**
  * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
  * Divine Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
- * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e) resolve from the
+ * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e), Elusive and Escape
+ * the Horde (T4k2a) resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options.
  */
@@ -256,6 +258,38 @@ const CASES: ReadonlyArray<{
         min: 2,
         max: 5
       }
+      return record
+    }
+  },
+  {
+    record: rogue,
+    label: 'Elusive',
+    variant: () => {
+      const record = structuredClone(rogue)
+      const grants = feature(record, 'Elusive').grants?.modifiers ?? []
+      if (grants.some((grant) => grant.modifierKind !== 'NEGATE_ADVANTAGE'))
+        throw new Error('Elusive must negate advantage on attacks against the holder.')
+      // A homebrew variant that holds only against melee attacks.
+      feature(record, 'Elusive').grants = { modifiers: grants.slice(0, 1) }
+      return record
+    }
+  },
+  {
+    record: hunterConclave,
+    label: 'Escape the Horde',
+    parent: 'Defensive Tactics',
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      const escape = option(record, 'Defensive Tactics', 'Escape the Horde')
+      const grants = escape.grants?.modifiers ?? []
+      if (
+        grants.some(
+          (grant) => grant.valueDomainCode !== 'ATTACKS_AGAINST' || !grant.domain.attackOccasion
+        )
+      )
+        throw new Error('Escape the Horde must qualify attacks against the holder by occasion.')
+      // A homebrew variant that holds only against melee opportunity attacks.
+      escape.grants = { modifiers: grants.slice(0, 1) }
       return record
     }
   }

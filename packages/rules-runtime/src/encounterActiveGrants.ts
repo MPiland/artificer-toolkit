@@ -13,6 +13,7 @@ import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/char
 import {
   feetInLengthUnit,
   type AttackDomainCode,
+  type AttackOccasionCode,
   type ValueDomainCode
 } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
@@ -332,56 +333,112 @@ export function encounterGrantsEnabledDomain(
   )
 }
 
-/** An attack-roll contributor the target's active grants give attacks of one attack domain against it. */
+/** An `ATTACKS_AGAINST` grant the target holds, for attacks of one attack domain against it. */
 export type EncounterAttackAgainstContributor = {
   attackDomain: AttackDomainCode
   /** Holds only while the holder can see the attacker (D100). */
   requiresHolderSeesAttacker: boolean
   /** System Senses through which an attacker that sees the holder is unaffected. */
   exemptAttackerSenseDefinitionIds: readonly string[]
-  /** The attackers, and the turn, the grant's effect admits. */
+  /** Holds only for attacks made on this occasion (an opportunity attack); absent for every attack. */
+  attackOccasion?: AttackOccasionCode
+  /** The attackers, and the turn, the grant's effect admits; a feature's grant admits every one. */
   eventScope: EffectEventScope
-  contributor: EncounterRelationshipD20Contributor
+  /** The advantage or disadvantage the grant gives, or null when it negates advantage (Elusive). */
+  contributor: EncounterRelationshipD20Contributor | null
 }
 
+type AttacksAgainstModifier = Pick<
+  CharacterGrantFoldModifier,
+  'valueDomainCode' | 'modifierKind' | 'domain'
+>
+
+/** The grant's part of an attacks-against entry, or null when it is no `ATTACKS_AGAINST` grant. */
+function attacksAgainstEntry(
+  modifier: AttacksAgainstModifier,
+  contributor: (
+    influence: EncounterRelationshipD20Contributor['influence']
+  ) => EncounterRelationshipD20Contributor
+): Omit<EncounterAttackAgainstContributor, 'eventScope'> | null {
+  const { attackDomain, requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds } =
+    modifier.domain
+  const { modifierKind } = modifier
+  if (
+    modifier.valueDomainCode !== 'ATTACKS_AGAINST' ||
+    attackDomain === undefined ||
+    (modifierKind !== 'ADVANTAGE' &&
+      modifierKind !== 'DISADVANTAGE' &&
+      modifierKind !== 'NEGATE_ADVANTAGE')
+  )
+    return null
+  return {
+    attackDomain,
+    requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
+    exemptAttackerSenseDefinitionIds: exemptAttackerSenseDefinitionIds ?? [],
+    ...(modifier.domain.attackOccasion && { attackOccasion: modifier.domain.attackOccasion }),
+    contributor: modifierKind === 'NEGATE_ADVANTAGE' ? null : contributor(modifierKind)
+  }
+}
+
+/** A Character feature's grants admit every attacker, on every turn. */
+const EVERY_EVENT: EffectEventScope = { actorId: null, turnActorId: null }
+
 /**
- * The advantage and disadvantage a holder's active `ATTACKS_AGAINST` grants give attack rolls made
- * against it, for the grants whose holder-state restrictions hold now.
+ * The `ATTACKS_AGAINST` grants a holder's active effects and, for a Character, its own features
+ * (Elusive) apply to attack rolls made against it, for the grants whose holder-state restrictions
+ * hold now. The Character fold also carries its active effects' grants; those are read from the
+ * effects, which scope them to their attackers and turns.
  */
-export function encounterAttackAgainstContributors(
-  holderActorId: string,
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[],
+export function encounterAttackAgainstContributors(input: {
+  holderActorId: string
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[]
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
   holderState: EncounterHolderState
-): EncounterAttackAgainstContributor[] {
-  return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) => {
+}): EncounterAttackAgainstContributor[] {
+  const { holderActorId, effects, grantFold, holderState } = input
+  const fromFeatures = (grantFold?.modifierGroups ?? []).flatMap(({ contributions }) =>
+    contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
+      const modifier = grantFold!.modifiers[acceptedModifierIndex]!
+      const entry =
+        modifier.source.kind === 'ACTIVE_EFFECT' ||
+        !holderStateRestrictionsHold(modifier.deferredRequirements, holderState)
+          ? null
+          : attacksAgainstEntry(modifier, (influence) => ({
+              sourceId: modifier.sourceId,
+              grantId,
+              domainKey: modifier.domainKey,
+              influence,
+              source: rollModeContributorSourceOfMechanicSource(modifier.source, holderActorId)
+            }))
+      return entry ? [{ ...entry, eventScope: EVERY_EVENT }] : []
+    })
+  )
+  const fromEffects = listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) => {
     const effect = effects.find(({ id }) => id === effectId)
     const eventScope = effect ? effectEventScope(effect, holderActorId) : null
     return modifiers.flatMap((modifier) => {
-      const { attackDomain, requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds } =
-        modifier.domain
-      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
-        modifier.valueDomainCode === 'ATTACKS_AGAINST' &&
-        attackDomain !== undefined &&
-        modifier.scope === 'GLOBAL' &&
-        eventScope !== null &&
-        holderStateRestrictionsHold(modifier.restrictions, holderState)
-        ? [
-            {
-              attackDomain,
-              requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
-              exemptAttackerSenseDefinitionIds: exemptAttackerSenseDefinitionIds ?? [],
-              eventScope,
-              contributor: activeGrantContributor(
-                effectId,
-                holderActorId,
-                modifier.grantId,
-                modifier.modifierKind
-              )
-            }
-          ]
-        : []
+      const entry =
+        modifier.scope !== 'GLOBAL' ||
+        eventScope === null ||
+        !holderStateRestrictionsHold(modifier.restrictions, holderState)
+          ? null
+          : attacksAgainstEntry(modifier, (influence) =>
+              activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
+            )
+      return entry ? [{ ...entry, eventScope }] : []
     })
   })
+  return [...fromFeatures, ...fromEffects]
+}
+
+/** Whether a Character's own features carry an `ATTACKS_AGAINST` grant. */
+export function hasFeatureAttacksAgainstGrants(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+): boolean {
+  return (grantFold?.modifiers ?? []).some(
+    (modifier) =>
+      modifier.valueDomainCode === 'ATTACKS_AGAINST' && modifier.source.kind !== 'ACTIVE_EFFECT'
+  )
 }
 
 /**
