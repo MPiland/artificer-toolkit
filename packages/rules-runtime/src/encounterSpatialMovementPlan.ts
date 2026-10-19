@@ -13,6 +13,9 @@ import {
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import { prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
+import { incomingDamageGrantRecords } from './encounterEndedEffectRelease.js'
+import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { spatialDamageEnds, targetStateAfterEndedEffects } from './encounterSpatialDamageEnds.js'
 
 type MovementSpatialExecution =
@@ -47,6 +50,8 @@ type Settlement = {
   plan: EncounterMechanicsBatchPlan
   /** The target's effects its zones' damage ended, whose releases the batch applies last. */
   endedEffects: ActiveRuleEffectRecord[]
+  /** The timed grants the target's passive features owe the zones' damage, made after the batch. */
+  grants: ActiveRuleEffectRecord[]
 }
 
 /** Plans a verified completed spatial prefix without publishing target or effect state. */
@@ -78,6 +83,8 @@ export function planNativeSpatialMovementPrefix<
   damageEnds?: {
     turnActorId: string | null
     dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+    /** Whether the zones' damage also gives the target the timed grants its passive features owe. */
+    incomingDamageGrants?: boolean
   }
 }): {
   projectedTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -127,7 +134,26 @@ export function planNativeSpatialMovementPrefix<
           holderActorId: targetActorId,
           held: target.activeEffects,
           executions,
-          ...input.damageEnds
+          turnActorId: input.damageEnds.turnActorId,
+          dispositions: input.damageEnds.dispositions,
+          ...(input.damageEnds.incomingDamageGrants
+            ? {
+                grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+                  encounter: {
+                    id: input.encounterId,
+                    currentActorId: input.damageEnds.turnActorId
+                  },
+                  holder: target.actor,
+                  held: target.activeEffects,
+                  occurrenceId: input.occurrenceId,
+                  commandId: input.sourceCommandId,
+                  ordinal: input.commandId?.phase ?? 'SPATIAL_EFFECT',
+                  activeEffectsByActorId: new Map(
+                    [...input.targets].map(([actorId, entry]) => [actorId, entry.activeEffects])
+                  )
+                })
+              }
+            : {})
         })
       : null
     const applications = [
@@ -177,16 +203,20 @@ export function planNativeSpatialMovementPrefix<
     )
       throw new Error('Spatial target plan does not match evaluated outcomes.')
     const endedEffects = ends?.endedEffects ?? []
+    const kept = target.activeEffects.filter(
+      ({ id }) => !endedEffects.some((ended) => ended.id === id)
+    )
+    const grants = incomingDamageGrantRecords({
+      grants: ends?.grants ?? [],
+      owner: turnEffectOwner(target.actor, input.encounterId),
+      current: kept,
+      occurredAt: input.occurredAt
+    })
     if (input.projectTargets !== false)
       projectedTargets.set(
         targetActorId,
         projectEncounterActionTarget({
-          target: {
-            ...target,
-            activeEffects: target.activeEffects.filter(
-              ({ id }) => !endedEffects.some((ended) => ended.id === id)
-            )
-          },
+          target: { ...target, activeEffects: [...kept, ...grants] },
           actor: plan.updatedActor,
           plan,
           campaignId: input.campaignId,
@@ -194,7 +224,7 @@ export function planNativeSpatialMovementPrefix<
           occurredAt: input.occurredAt
         })
       )
-    settlements.push({ batch, plan, endedEffects })
+    settlements.push({ batch, plan, endedEffects, grants })
   }
   return { projectedTargets, settlements }
 }

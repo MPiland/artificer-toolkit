@@ -15,6 +15,7 @@ import {
 import {
   encounterCastReactionOfferDtoSchema,
   encounterFailedCounterDtoSchema,
+  encounterIncomingGateOfferDtoSchema,
   encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
@@ -86,6 +87,17 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * the cast replays from the command, and the declined reactors keep the replay deterministic.
        */
       castReaction: z.optional(encounterCastReactionOfferDtoSchema),
+      /**
+       * Set while an attack or harmful spell aimed at a warded creature waits, before it does anything, on
+       * its attacker's save against the ward. The roller is the attacker and the snapshot's continuation is
+       * that one d20; no action state is held, the action replays from the command once the save is rolled.
+       */
+      incomingGate: z.optional(encounterIncomingGateOfferDtoSchema),
+      /**
+       * The ward effect whose save the attacker already passed, carried by every later pause of the action
+       * so its replay does not ask for the save again.
+       */
+      passedIncomingGate: z.optional(ruleExecutionUuidSchema),
       /**
        * The counters reactors attempted and failed against this cast, carried by every pending of the
        * cast to its terminal commit, which spends them with the cast (D127).
@@ -167,6 +179,26 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['castReaction'],
               message: 'A cast reaction offer belongs to a cast held before it executes.'
+            })
+        }
+        if (value.incomingGate) {
+          if (
+            value.legendaryResistance ||
+            value.reactionChoice ||
+            value.castReaction ||
+            value.onHitChoice ||
+            value.forcedMovementDestination ||
+            value.twoPhase !== null ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20 ||
+            value.passedIncomingGate !== undefined ||
+            value.incomingGate.holderActorId === value.rollerActorId
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['incomingGate'],
+              message: 'An incoming gate save belongs to an action held before it executes.'
             })
         }
         const chain = value.castReaction?.chain?.counters ?? []

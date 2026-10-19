@@ -37,6 +37,7 @@ import {
 import {
   actionEndedEffects,
   actsAgainstEnemy,
+  effectsReplacedByGrants,
   endedEffectReleaseKey,
   savingThrowSpentEffects,
   targetEndedEffects
@@ -250,11 +251,12 @@ export async function persistEncounterTurnResources(
     await deleteGrants(ctx, consumedGrants)
     // Damage the action dealt ends the target's effects that end on damage, with the conditions
     // only they held, which the planned target batch already released.
+    const targetHeld = (
+      await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))
+    ).filter(({ id }) => !consumedGrants.some((ended) => ended.id === id))
     const damageEnded = targetEndedEffects({
       holderActorId: targetActorId,
-      held: (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).filter(
-        ({ id }) => !consumedGrants.some((ended) => ended.id === id)
-      ),
+      held: targetHeld,
       attacked: attackRoll,
       testEvidence: [application.d20, application.nestedD20],
       turnActorId: state.currentActorId,
@@ -278,7 +280,20 @@ export async function persistEncounterTurnResources(
       )
     )
       throw new Error('Live Session Legendary Action damage release is stale.')
-    await deleteGrants(ctx, damageEnded.endedEffects)
+    // A timed grant the target's damage triggers made replaces the one it already held.
+    const grantIds = new Set(
+      application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+        ? application.grantEffectTransitions.map(({ activeEffectId }) => activeEffectId)
+        : []
+    )
+    const replaced = effectsReplacedByGrants(
+      targetHeld,
+      createdEffects.filter(({ id }) => grantIds.has(id)).map(({ definition }) => definition)
+    )
+    await deleteGrants(ctx, [
+      ...damageEnded.endedEffects,
+      ...replaced.filter(({ id }) => !damageEnded.endedEffects.some((ended) => ended.id === id))
+    ])
     const feature = snapshotFeatureDefinitions(owner).find(
       (entry) => entry.id === option.ownerFeatureId
     )

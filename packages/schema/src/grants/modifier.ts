@@ -8,6 +8,7 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
+import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
 import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
@@ -274,6 +275,11 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** The save an attacker makes against the holder's source before a single-target attack or harmful spell lands. */
+export const incomingAttackGatePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ savingThrow: savingThrowDtoSchema })
+)
+
 /** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
 export const rolledDiePayloadDtoSchema = lazySchema(() => z.strictObject(rolledDieShape()))
 
@@ -421,6 +427,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     amountPayloadDtoSchema,
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
+    incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
     rolledDiePayloadDtoSchema,
@@ -672,6 +679,12 @@ const buildModifierGrantVariants = () =>
       'ENABLE',
       emptyDomainDtoSchema,
       attackDecoysPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'INCOMING_ATTACK_GATE',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      incomingAttackGatePayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',

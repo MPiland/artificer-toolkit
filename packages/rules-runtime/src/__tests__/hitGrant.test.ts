@@ -3,6 +3,7 @@ import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/sh
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { resolveRuleCapabilityAvailability } from '@artificer-toolkit/shared/rules'
 import { describe, expect, it } from 'vitest'
 
 import { evaluateEncounterActionEconomy } from '../encounterActionEconomy.js'
@@ -175,10 +176,31 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
     expect(encounterActiveGrantCapabilitySuppressions([effect])).toEqual([
       {
         activeEffectId: effect.id,
-        contributionId: testUuid(0xf43),
+        contributionId: expect.any(String),
         capabilityDefinitionIds: [DND5E_REACTION_ALLOWANCE_DEFINITION_ID]
       }
     ])
+  })
+
+  it('suppresses by grant instance, so two holders of one authored grant both resolve (D99)', () => {
+    const grant = plannedGrant('ON_HIT')
+    if (!grant) throw new Error('No grant was planned.')
+    const effects = [testUuid(0xf55), testUuid(0xf56)].map((id) => ({
+      id,
+      definition: grant.definition
+    }))
+
+    const suppressions = encounterActiveGrantCapabilitySuppressions(effects)
+    const availability = resolveRuleCapabilityAvailability({
+      gameSystemId: SRD_SYSTEM_ID,
+      capabilityDefinitionId: DND5E_REACTION_ALLOWANCE_DEFINITION_ID,
+      conditions: [],
+      activeEffectSuppressions: suppressions
+    })
+
+    expect(new Set(suppressions.map(({ contributionId }) => contributionId)).size).toBe(2)
+    expect(availability.available).toBe(false)
+    expect(availability.suppressingActiveEffectIds).toEqual(effects.map(({ id }) => id))
   })
 
   it('keeps its reactions under a REACTION_COUNT grant that leaves it one', () => {

@@ -435,7 +435,8 @@ export async function prepareEncounterTurnZoneEffects<
     settleUnchanged: true,
     damageEnds: {
       turnActorId: state.currentActorId,
-      dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
+      dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
+      incomingDamageGrants: true
     }
   })
   const spendLostActions = (targetActorId: string, settledActor: EncounterRunActorState) =>
