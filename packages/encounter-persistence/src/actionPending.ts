@@ -357,6 +357,10 @@ export function projectNativeActionPending(
     : (context.d20Policy ?? castCheck?.d20 ?? null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
+  // The roller rolls the test's added dice with the d20 that settles it (D156); contest checks
+  // carry none yet.
+  const testAddedDice = context.contest ? undefined : context.d20Policy?.addedDice
+  const addedDice = testAddedDice?.length ? { addedDice: testAddedDice } : {}
   if (d20Policy && context.heldD20)
     return {
       ...common,
@@ -370,7 +374,8 @@ export function projectNativeActionPending(
         heldD20: {
           faces: context.heldD20.faces,
           caption: isOwner ? context.heldD20.gmReason : context.heldD20.playerCaption
-        }
+        },
+        ...addedDice
       },
       allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
     }
@@ -387,7 +392,8 @@ export function projectNativeActionPending(
           derivedRollModeReasons: reasons({
             rollMode: shown.rollMode,
             contributors: shown.contributors
-          })
+          }),
+          ...addedDice
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
       }

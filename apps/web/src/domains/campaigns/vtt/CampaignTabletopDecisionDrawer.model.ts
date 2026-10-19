@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { concentrationPromptText, deathSavePromptText } from '../ruleCheckCopy'
 
@@ -41,6 +42,21 @@ export function keptFaceIndex(
   const [first, second] = faces
   if (typeof first !== 'number' || typeof second !== 'number') return null
   return (rollMode === 'ADVANTAGE' ? second > first : second < first) ? 1 : 0
+}
+
+/**
+ * One entry per added die a d20 row rolls (D156), in the request's order, labelled "+d4 Bless" or
+ * "−d4 Bane" with the die's size. A source adding several dice repeats once per die.
+ */
+export function addedDieEntries(
+  addedDice: readonly D20AddedDieDto[]
+): { label: string; faces: number }[] {
+  return addedDice.flatMap(({ count, faces, sign, label }) =>
+    Array.from({ length: count }, () => ({
+      label: `${sign === 'ADD' ? '+' : '−'}d${faces} ${label}`,
+      faces
+    }))
+  )
 }
 
 export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {

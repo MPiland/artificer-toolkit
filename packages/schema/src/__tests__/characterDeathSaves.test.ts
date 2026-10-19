@@ -151,6 +151,34 @@ describe('Character death saves (D96)', () => {
       })
     })
 
+    it('totals the added dice (D156) with the die, keeping the natural 1 and 20 rules', () => {
+      // Bless lifts a 9 to a success; Bane drops a 10 to a failure.
+      expect(deathSavesAfterRoll(NO_DEATH_SAVES, 9, 1).deathSaves).toEqual({
+        successes: 1,
+        failures: 0,
+        stable: false
+      })
+      expect(deathSavesAfterRoll(NO_DEATH_SAVES, 10, -3).deathSaves).toEqual({
+        successes: 0,
+        failures: 1,
+        stable: false
+      })
+      // A natural 1 is still two failures, and only a natural 20 regains a hit point.
+      expect(deathSavesAfterRoll(NO_DEATH_SAVES, 1, 4).deathSaves).toEqual({
+        successes: 0,
+        failures: 2,
+        stable: false
+      })
+      expect(deathSavesAfterRoll(dying, 20, -4)).toEqual({
+        deathSaves: NO_DEATH_SAVES,
+        regainsHitPoint: true
+      })
+      expect(deathSavesAfterRoll(dying, 19, 4)).toEqual({
+        deathSaves: { successes: 2, failures: 1, stable: false },
+        regainsHitPoint: false
+      })
+    })
+
     it('stabilizes on the third success with the counts reset', () => {
       expect(deathSavesAfterRoll({ successes: 2, failures: 2, stable: false }, 12)).toEqual({
         deathSaves: { successes: 0, failures: 0, stable: true },

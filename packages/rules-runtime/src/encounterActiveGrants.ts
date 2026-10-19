@@ -5,6 +5,8 @@ import type {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
@@ -19,7 +21,9 @@ import {
 } from '@artificer-toolkit/shared/rules'
 
 import {
+  activeAttackRollDice,
   activeFixedGrantTotal,
+  activeSavingThrowDice,
   activeSpeedGrantFeet,
   listActiveEffectGrants,
   record
@@ -591,6 +595,39 @@ export function creatureAttackAbility(outcomes: readonly unknown[]): string | nu
   const bonuses = Array.isArray(damage?.bonuses) ? damage.bonuses.map(record) : []
   const ability = bonuses.find((bonus) => bonus?.bonusKind === 'ABILITY_BONUS')?.ability
   return typeof ability === 'string' ? ability : null
+}
+
+/**
+ * A holder's added attack-roll dice (D156) by attack domain, for attacks made with `attackAbility`:
+ * the `attackAddedDice` source fact its attack graphs read. Domains with no dice are omitted.
+ */
+export function encounterAttackAddedDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackAbility: string | null
+): Record<string, D20AddedDieDto[]> {
+  return Object.fromEntries(
+    attackDomainCodeSchema.options.flatMap((attackDomain) => {
+      const dice = activeAttackRollDice(effects, attackDomain, attackAbility)
+      return dice.length > 0 ? [[attackDomain, dice]] : []
+    })
+  )
+}
+
+/**
+ * A holder's added saving-throw dice (D156) by D&D ability definition id: the
+ * `savingThrowAddedDice` target fact its save graphs read. Abilities with no dice are omitted.
+ */
+export function encounterSavingThrowAddedDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): Record<string, D20AddedDieDto[]> {
+  return Object.fromEntries(
+    Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).flatMap(
+      ([ability, abilityDefinitionId]) => {
+        const dice = activeSavingThrowDice(effects, ability)
+        return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
+      }
+    )
+  )
 }
 
 /**

@@ -54,6 +54,24 @@ describe('dice presentation utilities', () => {
     }
   })
 
+  it('writes added dice after the d20, subtracting a marked term, and adjusts only the d20', () => {
+    const roll = addedAdvantageRoll()
+    if (roll.ruleCheck?.kind !== 'D20_MODE_ADJUSTED') throw new Error('expected an adjusted roll')
+    const text = formatRollEvidence(
+      {
+        ...roll.evidence,
+        terms: [
+          ...roll.evidence.terms,
+          { count: 2, die: 4, rolls: [2, 4], subtotal: -6, subtracted: true },
+          { count: 1, die: 4, rolls: [3], subtotal: 3 }
+        ]
+      },
+      roll.ruleCheck
+    )
+    expect(text).toContain('12 dropped, 17 added, kept')
+    expect(text).toContain(' - d4 [2, 4] + d4 [3]')
+  })
+
   it('stages rerolled dice before revealing the dropped result', () => {
     const roll = {
       id: 'ability-roll',

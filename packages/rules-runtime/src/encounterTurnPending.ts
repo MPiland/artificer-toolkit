@@ -102,7 +102,8 @@ function projectNativeDeathSavePending(input: {
       min: 1,
       max: 20,
       rollMode: 'NORMAL',
-      derivedRollModeReasons: []
+      derivedRollModeReasons: [],
+      ...(context.candidate.addedDice.length ? { addedDice: context.candidate.addedDice } : {})
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })
@@ -194,7 +195,8 @@ export function projectNativeLegendaryPending(input: {
             derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
               rollMode: d20Policy.rollMode,
               contributors: d20Policy.contributors
-            })
+            }),
+            ...(d20Policy.addedDice?.length ? { addedDice: d20Policy.addedDice } : {})
           },
           allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
         }
@@ -233,7 +235,10 @@ export function projectNativeTurnPending(
         derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
           rollMode: context.currentCandidate.d20Policy.rollMode,
           contributors: context.currentCandidate.d20Policy.contributors
-        })
+        }),
+        ...(context.currentCandidate.d20Policy.addedDice?.length
+          ? { addedDice: context.currentCandidate.d20Policy.addedDice }
+          : {})
       },
       allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
     })
@@ -272,7 +277,10 @@ export function projectNativeTurnPending(
               derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
                 rollMode: candidate.d20Policy.rollMode,
                 contributors: candidate.d20Policy.contributors
-              })
+              }),
+              ...(candidate.d20Policy.addedDice?.length
+                ? { addedDice: candidate.d20Policy.addedDice }
+                : {})
             },
             allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
           }
