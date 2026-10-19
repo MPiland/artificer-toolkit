@@ -32,7 +32,7 @@ function normalize(mapId: 'creature' | 'feat', values: object) {
 
 function parry(creature: CreatureAuthored) {
   const effect = creature.features?.find((feature) => feature.label === 'Parry')?.effects?.[0]
-  if (!effect) throw new Error(`${creature.name} must author Parry.`)
+  if (!effect) throw new Error(`${creature.label} must author Parry.`)
   return effect
 }
 
