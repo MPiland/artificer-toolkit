@@ -659,11 +659,48 @@ export function creatureActiveGrantAttackContributors(
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         modifier.valueDomainCode === 'ATTACK_ROLL' &&
         modifier.domain.attackDomain === attackDomain &&
+        modifier.domain.againstEffectSource !== true &&
         (grantAbility === null || grantAbility === attackAbility) &&
         modifier.scope === 'GLOBAL'
         ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)]
         : []
     })
+  )
+}
+
+/**
+ * The advantage and disadvantage an attacker's active grants give only its attacks against the
+ * source of the effect holding them (Bestow Curse's disadvantage against the caster), for a
+ * Character and a Creature alike.
+ */
+export function activeEffectSourceAttackContributors(input: {
+  attackerActorId: string
+  targetActorId: string
+  attackDomain: string
+  effects: readonly ActiveRuleEffectRecord[]
+}): EncounterRelationshipD20Contributor[] {
+  const fromTarget = input.effects.filter(
+    ({ definition }) =>
+      definition.schemaVersion === 2 &&
+      definition.origin.kind === 'ENCOUNTER' &&
+      definition.origin.sourceActorId === input.targetActorId
+  )
+  return listActiveEffectGrants(fromTarget).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) =>
+      (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+      modifier.valueDomainCode === 'ATTACK_ROLL' &&
+      modifier.domain.attackDomain === input.attackDomain &&
+      modifier.domain.againstEffectSource === true
+        ? [
+            activeGrantContributor(
+              effectId,
+              input.attackerActorId,
+              modifier.grantId,
+              modifier.modifierKind
+            )
+          ]
+        : []
+    )
   )
 }
 

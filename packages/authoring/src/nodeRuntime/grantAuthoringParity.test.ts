@@ -4,8 +4,13 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
+import { bestowCurse } from '@artificer-toolkit/source-data/srd/spells/bestow-curse.js'
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
+import { brandingSmite } from '@artificer-toolkit/source-data/srd/spells/branding-smite.js'
+import { divineFavor } from '@artificer-toolkit/source-data/srd/spells/divine-favor.js'
+import { enlargeReduce } from '@artificer-toolkit/source-data/srd/spells/enlarge-reduce.js'
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
+import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -19,7 +24,13 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Bane', bane],
     ['Bless', bless],
     ['Foresight', foresight],
-    ['Slow', slow]
+    ['Slow', slow],
+    // SPELLS-4.T2d: rolled damage dice, a mark, a hit-consumed die and a cast choice.
+    ['Divine Favor', divineFavor],
+    ['Branding Smite', brandingSmite],
+    ["Hunter's Mark", huntersMark],
+    ['Enlarge/Reduce', enlargeReduce],
+    ['Bestow Curse', bestowCurse]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

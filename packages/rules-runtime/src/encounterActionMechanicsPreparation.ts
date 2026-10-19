@@ -14,6 +14,7 @@ import {
   compileEncounterFeatureActionPlan
 } from './encounterActionEntryPointCompiler.js'
 import {
+  activeEffectSourceAttackContributors,
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
   encounterAttackAddedDice,
@@ -53,7 +54,8 @@ import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
-import { isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
+import { activeDamageDice } from './character/activeEffectGrantTotals.js'
+import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   effectReadsEnemyProximity,
   effectReadsTurnUses,
@@ -63,7 +65,7 @@ import {
 import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
-import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type {
@@ -557,6 +559,14 @@ export async function prepareEncounterActionMechanics<
       ? attackSight.trueSight
       : attacksAgainst.map(({ contributor }) => contributor),
     longRange ? [longRange] : [],
+    attackDomain === null
+      ? []
+      : activeEffectSourceAttackContributors({
+          attackerActorId: actor.id,
+          targetActorId: target.id,
+          attackDomain,
+          effects: sourceFacts.activeEffects
+        }),
     attackKind === null
       ? []
       : encounterConditionAttackContributors({
@@ -604,6 +614,16 @@ export async function prepareEncounterActionMechanics<
             ? (characterActionState?.actionMechanic.attackAbility ?? null)
             : creatureAttackAbility(source.capability.mechanicFacts.outcomes)
         ),
+        // The dice active grants add to, or take from, this source's damage to this target (D156).
+        damageAddedDice: activeDamageDice({
+          dealerActorId: actor.id,
+          dealerEffects: sourceFacts.activeEffects,
+          targetEffects: targetFacts.activeEffects,
+          attackDomain:
+            attackKind === null
+              ? null
+              : dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind))
+        }),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(

@@ -19,6 +19,8 @@ export function seedModifierGrant(input: {
   endsOnCast?: true
   /** The d20 path a result-gated grant holds on (a failed save's grant), as its planner reads it. */
   resultPath?: 'ON_HIT' | 'ON_CRIT' | 'ON_SAVE_FAIL'
+  /** The slot level a spell's grant was cast at, for a grant that scales by it (Branding Smite). */
+  spellCastLevel?: number
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
     const { ownedConditionId, endsOnCast, ...grant } = input
