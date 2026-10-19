@@ -61,7 +61,7 @@ export function encounterCommandRefusal(error: unknown): {
   // Convex ran out of time (503): nothing changed and the same command can be retried.
   if (status === 503) return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   return {
-    code: status === 401 || status === 403 ? 'FORBIDDEN' : 'UNAVAILABLE',
+    code: 'STALE_STATE', // TEMP
     message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 1500) // TEMP
   }
 }
