@@ -5,7 +5,8 @@ import type { CampaignSceneState, SceneToken } from '../domains/vtt/scene.js'
 import {
   measureSceneTokenFootprintDistance,
   resolveSceneCombatPerceptionEnvironment,
-  resolveSceneIlluminationAt
+  resolveSceneIlluminationAt,
+  sceneTokenLights
 } from '../domains/vtt/sceneCombatPerception.js'
 
 const grid = {
@@ -34,14 +35,12 @@ function token(position: { x: number; y: number }, size = 100): SceneToken {
   }
 }
 
-function scene(
-  overrides: Partial<
-    Pick<
-      CampaignSceneState,
-      'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights'
-    >
-  > = {}
-) {
+type PerceptionScene = Pick<
+  CampaignSceneState,
+  'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights' | 'tokens'
+>
+
+function scene(overrides: Partial<PerceptionScene> = {}): PerceptionScene {
   return {
     ambientIllumination: 'BRIGHT',
     barriers: [],
@@ -49,11 +48,9 @@ function scene(
     doorStates: {},
     grid,
     lights: [],
+    tokens: [],
     ...overrides
-  } satisfies Pick<
-    CampaignSceneState,
-    'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights'
-  >
+  }
 }
 
 function resolve(observer: SceneToken, subject: SceneToken, environment = scene()) {
@@ -301,6 +298,70 @@ describe('Scene combat-perception environment', () => {
           new SceneBarrierIndex(environment.barriers)
         )
       ).toEqual({ illumination: 'BRIGHT', obscurement: 'LIGHT' })
+    })
+  })
+
+  describe('light a token sheds (D108, SPELLS-33.T6j)', () => {
+    // A 1-square token centred at (50, 50) shedding bright light 10 feet and dim light to 20
+    // feet, measured from its edge: 20 coordinates a foot, so bright reaches 250 and dim 450.
+    const lantern = { ...token({ x: 50, y: 50 }), light: { brightRadius: 10, dimRadius: 20 } }
+    const illuminationAt = (x: number, environment: PerceptionScene) =>
+      resolveSceneIlluminationAt(
+        environment,
+        { x, y: 50 },
+        new SceneBarrierIndex(environment.barriers)
+      ).illumination
+
+    it('lights the dark around the token from its footprint edge', () => {
+      const environment = scene({ ambientIllumination: 'ORDINARY_DARKNESS', tokens: [lantern] })
+
+      expect(sceneTokenLights(environment)).toEqual([
+        expect.objectContaining({ brightRadius: 250, dimRadius: 450, position: lantern.position })
+      ])
+      expect(illuminationAt(290, environment)).toBe('BRIGHT')
+      expect(illuminationAt(480, environment)).toBe('DIM')
+      expect(illuminationAt(560, environment)).toBe('ORDINARY_DARKNESS')
+    })
+
+    it('moves with the token', () => {
+      const moved = { ...lantern, position: { x: 450, y: 50 } }
+      const environment = scene({ ambientIllumination: 'ORDINARY_DARKNESS', tokens: [moved] })
+
+      expect(illuminationAt(560, environment)).toBe('BRIGHT')
+      expect(illuminationAt(50, environment)).toBe('DIM')
+    })
+
+    it('is stopped by a wall like any other light', () => {
+      const wall = {
+        a: { x: 150, y: 0 },
+        b: { x: 150, y: 100 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: crypto.randomUUID(),
+        kind: 'WALL'
+      } as const
+      const environment = scene({
+        ambientIllumination: 'ORDINARY_DARKNESS',
+        barriers: [wall],
+        tokens: [lantern]
+      })
+
+      expect(illuminationAt(290, environment)).toBe('ORDINARY_DARKNESS')
+    })
+
+    it('never darkens a brighter Scene, and a token without light sheds none', () => {
+      expect(illuminationAt(480, scene({ tokens: [lantern] }))).toBe('BRIGHT')
+      expect(sceneTokenLights(scene({ tokens: [token({ x: 50, y: 50 })] }))).toEqual([])
+    })
+
+    it('lights a creature it stands near for combat perception', () => {
+      const subject = token({ x: 450, y: 50 })
+      const environment = scene({
+        ambientIllumination: 'ORDINARY_DARKNESS',
+        tokens: [lantern, subject]
+      })
+
+      expect(resolve(token({ x: 50, y: 850 }), subject, environment).illumination).toBe('DIM')
     })
   })
 

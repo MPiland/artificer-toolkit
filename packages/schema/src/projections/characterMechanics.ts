@@ -51,7 +51,10 @@ import {
   activeGrantHolderEndSchema
 } from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
-import { MAX_ACTIVE_EFFECT_TURNS } from '../shared/activeRuleEffectLifecycle.js'
+import {
+  MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectUsesSchema
+} from '../shared/activeRuleEffectLifecycle.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
@@ -226,7 +229,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             endOnEvents: activeGrantEndEventsSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,
-            holderEnd: z.nullable(activeGrantHolderEndSchema)
+            holderEnd: z.nullable(activeGrantHolderEndSchema),
+            fromSourceOnly: z.optional(z.literal(true)),
+            activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
+            uses: z.optional(activeEffectUsesSchema)
           })
           .check(
             z.refine(

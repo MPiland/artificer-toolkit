@@ -334,28 +334,44 @@ export const vampire: CreatureAuthored = {
               id: S.actionId(277, 226),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.CHOICE,
               originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(277, 227),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(277, 228),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d8+4'
-                  },
-                  {
-                    id: S.actionId(277, 229),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_UNARMED_STRIKE
+              selectionKind: 'CHOICE',
+              options: [
+                {
+                  id: S.actionId(277, 229),
+                  order: 1,
+                  label: 'Damage',
+                  description: 'Deals 8 (1d8 + 4) bludgeoning damage.',
+                  resultBlock: {
+                    id: S.actionId(277, 227),
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: S.actionId(277, 228),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '1d8+4'
+                      }
+                    ]
                   }
-                ]
-              }
+                },
+                {
+                  id: S.actionId(277, 258),
+                  order: 2,
+                  label: 'Grapple',
+                  description: 'Instead of dealing damage, grapples the target (escape DC 18).',
+                  resultBlock: {
+                    id: S.actionId(277, 259),
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      S.grappledOutcome(277, { localIndex: 1, escapeDc: 18, heldAtOnce: 1 })
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

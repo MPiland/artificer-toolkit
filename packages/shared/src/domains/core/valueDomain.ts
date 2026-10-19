@@ -13,9 +13,12 @@ export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
+  CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
+  CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
+  ATTACK_DECOYS: 'ATTACK_DECOYS',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -34,6 +37,7 @@ export const VALUE_DOMAIN_CODE = {
   SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
+  MOVEMENT_PASSAGE: 'MOVEMENT_PASSAGE',
   SENSE_RANGE: 'SENSE_RANGE',
   SPELL_SLOT_COUNT: 'SPELL_SLOT_COUNT',
   SPELL_SLOT_LEVEL_MAX: 'SPELL_SLOT_LEVEL_MAX',
@@ -97,6 +101,19 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: 'Advantage or disadvantage on attack rolls made against the holder.'
   },
 
+  [VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD]: {
+    code: VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD,
+    label: 'Critical Hit Threshold',
+    description:
+      'The lowest natural d20 that scores a critical hit with an attack; the lowest source applies.'
+  },
+
+  [VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE]: {
+    code: VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE,
+    label: 'Critical Extra Dice',
+    description: "Extra rolls of an attack's own damage die when it scores a critical hit."
+  },
+
   [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
     label: 'Opportunity Attack Immunity',
@@ -114,6 +131,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ACTION_BONUS_ACTION_EXCLUSIVITY,
     label: 'Action or Bonus Action Exclusivity',
     description: 'The holder can take an action or a bonus action on its turn, not both.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACK_DECOYS]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_DECOYS,
+    label: 'Attack Decoys',
+    description:
+      'Decoys of the holder that a d20 roll can redirect an attack to; the effect spends one use per decoy destroyed.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -156,6 +180,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.MOVEMENT_MODE,
     label: 'Movement Mode',
     description: 'A type of movement.'
+  },
+
+  [VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE]: {
+    code: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+    label: 'Movement Passage',
+    description: 'Moving through hostile creatures and objects.'
   },
 
   [VALUE_DOMAIN_CODE.SENSE_RANGE]: {
@@ -343,12 +373,24 @@ export type ValueDomainParamByCode = {
    * ────────────────────────────────────────────── */
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed. Only advantage and
-  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength).
-  ATTACK_ROLL: { attackDomain: AttackDomainCode; ability?: AbilityCode }
+  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength), or
+  // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse).
+  ATTACK_ROLL: {
+    attackDomain: AttackDomainCode
+    ability?: AbilityCode
+    againstEffectSource?: boolean
+  }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
-  // holder can see (D100).
-  ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
+  // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
+  // holder through one of those System Senses (Blur's Blindsight and Truesight).
+  ATTACKS_AGAINST: {
+    attackDomain: AttackDomainCode
+    requiresHolderSeesAttacker: boolean
+    exemptAttackerSenseDefinitionIds?: string[]
+  }
+  CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
+  CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
@@ -358,6 +400,9 @@ export type ValueDomainParamByCode = {
 
   // The holder can take an action or a bonus action on its turn, not both (Slowing Breath).
   ACTION_BONUS_ACTION_EXCLUSIVITY: EmptyObject
+
+  // Decoys an attack against the holder may target instead (Mirror Image).
+  ATTACK_DECOYS: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }
@@ -395,6 +440,9 @@ export type ValueDomainParamByCode = {
 
   // Set-like: movement modes (fly, swim...). Treat as per-mode set, no param needed.
   MOVEMENT_MODE: EmptyObject
+
+  // Passage through creatures and objects: one domain, the payload says what may be passed.
+  MOVEMENT_PASSAGE: EmptyObject
 
   // Sense range is per UUID-backed sense definition.
   SENSE_RANGE: { senseDefinitionId: string }
@@ -465,6 +513,17 @@ export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueD
  * - Keep modifier kinds the same.
  */
 
+/**
+ * What a holder's voluntary movement may pass: hostile creatures (any, or only larger ones), ending
+ * inside them, blocking barriers, and the cost multiplier for each foot inside what it passes.
+ */
+export type MovementPassageOption = {
+  creatures: 'NONE' | 'ANY' | 'LARGER_THAN_SELF'
+  mayEndInCreature: boolean
+  blockingBarriers: boolean
+  costMultiplier: 1 | 2
+}
+
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
   DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
@@ -484,6 +543,8 @@ export type ValueDomainOptionPayloadByDomain = {
 
   // Movement mode is a registry
   MOVEMENT_MODE: { movementModeId: string }
+
+  MOVEMENT_PASSAGE: MovementPassageOption
 
   // Replace option for charge reset should use the actual enum/kind, not a random id
   CHARGE_RESET: { resetKind: ChargeResetKind }

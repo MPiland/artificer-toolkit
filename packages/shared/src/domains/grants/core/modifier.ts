@@ -1,6 +1,7 @@
 import type { ChargeLimitPayload } from '#authored'
 import type {
   AbilityCode,
+  AttackDomainCode,
   ChargeResetKind,
   DurationKind,
   RangeKind,
@@ -8,6 +9,7 @@ import type {
   ValueDomainCode,
   CoreMeta,
   LengthUnitCode,
+  MovementPassageOption,
   ValueDomainOptionPayloadByDomain,
   ValueDomainParam
 } from '#core'
@@ -92,7 +94,7 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
   ADD_BONUS_DIE: {
     code: MODIFIER_KIND.ADD_BONUS_DIE,
     label: 'Add Rolled Die',
-    description: 'Roll dice and add them to, or subtract them from, the d20 test.'
+    description: 'Roll dice and add them to, or subtract them from, the d20 test or the damage.'
   },
 
   REPLACE_DAMAGE_TYPE: {
@@ -219,7 +221,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.DISADVANTAGE
   ],
 
-  ABILITY_CHECK: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
+  ABILITY_CHECK: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE, MODIFIER_KIND.ADD_BONUS_DIE],
 
   SAVE_DC: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
@@ -243,11 +245,17 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   ATTACKS_AGAINST: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
 
+  CRITICAL_HIT_THRESHOLD: [MODIFIER_KIND.CAP_VALUE],
+
+  CRITICAL_EXTRA_DICE: [MODIFIER_KIND.BONUS],
+
   OPPORTUNITY_ATTACK_IMMUNITY: [MODIFIER_KIND.ENABLE],
 
   SPELLCASTING_LOCK: [MODIFIER_KIND.ENABLE],
 
   ACTION_BONUS_ACTION_EXCLUSIVITY: [MODIFIER_KIND.ENABLE],
+
+  ATTACK_DECOYS: [MODIFIER_KIND.ENABLE],
 
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
@@ -267,6 +275,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   DAMAGE: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.ADD_BONUS_DIE,
     MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
     MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
@@ -290,6 +299,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   ],
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
+  MOVEMENT_PASSAGE: [MODIFIER_KIND.ADD_OPTION],
 
   SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
@@ -370,6 +381,8 @@ export type ModifierValueDomainOptionPayloadByDomain = {
   ATTRIBUTE: { attributeId: string }
 
   MOVEMENT_MODE: { movementModeId: string }
+
+  MOVEMENT_PASSAGE: MovementPassageOption
 }
 
 export const MODIFIER_VALUE_SOURCE_CODE = {
@@ -471,62 +484,114 @@ export type ModifierRolledDieAuthored = {
   sign: RolledDieSign
 }
 
+/** Who deals the damage a rolled damage die joins: the holder, or the effect's source to the holder. */
+export const DAMAGE_DIE_RECIPIENT = {
+  HOLDER_DEALS: 'HOLDER_DEALS',
+  SOURCE_DEALS_TO_HOLDER: 'SOURCE_DEALS_TO_HOLDER'
+} as const
+export type DamageDieRecipient = (typeof DAMAGE_DIE_RECIPIENT)[keyof typeof DAMAGE_DIE_RECIPIENT]
+
+export const DAMAGE_DIE_RECIPIENT_OPTIONS: readonly CoreMeta<DamageDieRecipient>[] = [
+  {
+    code: DAMAGE_DIE_RECIPIENT.HOLDER_DEALS,
+    label: 'Damage the holder deals',
+    description: 'Joins the damage of the holder’s attacks (Divine Favor).'
+  },
+  {
+    code: DAMAGE_DIE_RECIPIENT.SOURCE_DEALS_TO_HOLDER,
+    label: 'Damage the source deals to the holder',
+    description: 'Joins the damage the effect’s source deals to the marked holder (Hunter’s Mark).'
+  }
+]
+
+/**
+ * Dice a damage roll adds (Divine Favor's 1d4 radiant) or subtracts (Reduce's 1d4), doubled on a
+ * critical hit. An added die names its damage type or takes the attack's; a subtracted die always
+ * lowers the attack's damage. A slot-scaled die adds `countPerCastLevelAbove.count` dice per cast
+ * level above `level`, fixed at the cast (Branding Smite).
+ */
+export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign'> & {
+  recipient: DamageDieRecipient
+  countPerCastLevelAbove?: { level: number; count: number }
+} & (
+    | { sign: typeof ROLLED_DIE_SIGN.ADD; damageTypeId: string }
+    | { sign: RolledDieSign; damageTypeSource: 'ATTACK' }
+  )
+
 /**
  * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
- * one grant covers every save, death saves included (D156).
+ * one grant covers every save, death saves included (D156); a rolled damage die may omit the attack
+ * domain, so it joins every damage its recipient deals, spells included (Bestow Curse).
  */
 export type ModifierDomainFor<
   V extends ValueDomainCode,
   K extends ModifierKind
-> = V extends 'SAVING_THROW_MODIFIER'
-  ? K extends 'ADD_BONUS_DIE'
+> = K extends 'ADD_BONUS_DIE'
+  ? V extends 'SAVING_THROW_MODIFIER'
     ? { ability?: AbilityCode }
-    : ValueDomainParam<V>
+    : V extends 'DAMAGE'
+      ? { attackDomain?: AttackDomainCode }
+      : ValueDomainParam<V>
   : ValueDomainParam<V>
 
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
 
+/**
+ * The decoys an attack against the holder may target instead (Mirror Image): each decoy's armor
+ * class formula, and the d20 roll an attack needs to target one while that many remain.
+ */
+export type ModifierAttackDecoysAuthored = {
+  armorClass: { amount: number; abilities: AbilityCode[] }
+  thresholds: { id: string; remaining: number; minimumRoll: number }[]
+}
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  K extends 'MULTIPLY'
-    ? ModifierFractionAuthored
-    : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
-      ? V extends 'SPEED' | 'SENSE_RANGE'
-        ? ModifierLengthAuthored
-        : K extends 'SET_VALUE' | 'CAP_VALUE'
-          ? V extends 'DURATION'
-            ?
-                | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
-                | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
-            : V extends 'ARMOR_CLASS'
-              ? // An armor class formula: the amount plus each listed ability modifier.
-                { amount: number; abilities: AbilityCode[] }
-              : { amount: number }
-          : ModifierScalarValueAuthored
-      : K extends 'ABILITY_MODIFIER_BONUS'
-        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
-        : K extends 'MODIFY_CHARGE_LIMIT'
-          ? ChargeLimitPayload
-          : K extends 'ADD_BONUS_DIE'
-            ? ModifierRolledDieAuthored
-            : K extends 'REPLACE_DAMAGE_TYPE'
-              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'REPLACE_RANGE_KIND'
-                ? { rangeKind: RangeKind }
-                : K extends 'REPLACE_DURATION_KIND'
-                  ? { durationKind: DurationKind }
-                  : K extends 'REPLACE_SHAPE_KIND'
-                    ? { shapeKind: ShapeKind }
-                    : K extends 'REPLACE_CHARGE_RESET_KIND'
-                      ? { resetKind: ChargeResetKind }
-                      : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                        ? undefined
-                        : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                          ? { abilities: AbilityCode[]; min?: number; max?: number }
-                          : // option-like operations must be domain-supported
-                            K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                            ? V extends keyof ValueDomainOptionPayloadByDomain
-                              ? ValueDomainOptionPayloadByDomain[V]
+  K extends 'ENABLE'
+    ? V extends 'ATTACK_DECOYS'
+      ? ModifierAttackDecoysAuthored
+      : undefined
+    : K extends 'MULTIPLY'
+      ? ModifierFractionAuthored
+      : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
+        ? V extends 'SPEED' | 'SENSE_RANGE'
+          ? ModifierLengthAuthored
+          : K extends 'SET_VALUE' | 'CAP_VALUE'
+            ? V extends 'DURATION'
+              ?
+                  | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
+                  | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
+              : V extends 'ARMOR_CLASS'
+                ? // An armor class formula: the amount plus each listed ability modifier.
+                  { amount: number; abilities: AbilityCode[] }
+                : { amount: number }
+            : ModifierScalarValueAuthored
+        : K extends 'ABILITY_MODIFIER_BONUS'
+          ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+          : K extends 'MODIFY_CHARGE_LIMIT'
+            ? ChargeLimitPayload
+            : K extends 'ADD_BONUS_DIE'
+              ? V extends 'DAMAGE'
+                ? ModifierDamageDieAuthored
+                : ModifierRolledDieAuthored
+              : K extends 'REPLACE_DAMAGE_TYPE'
+                ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+                : K extends 'REPLACE_RANGE_KIND'
+                  ? { rangeKind: RangeKind }
+                  : K extends 'REPLACE_DURATION_KIND'
+                    ? { durationKind: DurationKind }
+                    : K extends 'REPLACE_SHAPE_KIND'
+                      ? { shapeKind: ShapeKind }
+                      : K extends 'REPLACE_CHARGE_RESET_KIND'
+                        ? { resetKind: ChargeResetKind }
+                        : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                          ? undefined
+                          : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                            ? { abilities: AbilityCode[]; min?: number; max?: number }
+                            : // option-like operations must be domain-supported
+                              K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                              ? V extends keyof ValueDomainOptionPayloadByDomain
+                                ? ValueDomainOptionPayloadByDomain[V]
+                                : never
                               : never
-                            : never

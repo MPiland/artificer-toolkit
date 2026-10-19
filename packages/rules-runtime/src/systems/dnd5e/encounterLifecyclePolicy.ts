@@ -265,24 +265,6 @@ export function createDnd5eRechargeDefinition(threshold: 4 | 5 | 6) {
   })
 }
 
-/** A graph whose one evidence request is a d20; its output is the die. */
-function plainD20Definition(id: string) {
-  return published({
-    schemaVersion: 1,
-    id,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'd20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
-      }
-    ],
-    outputs: { rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' } }
-  })
-}
-
 /**
  * A death save is a d20 with no modifier (SRD 5.1), plus the dice a Character's effects add to its
  * saves (D156): the d20 request, then the added-dice request when the save rolls any.
@@ -309,11 +291,29 @@ export function createDnd5eDeathSaveDefinition() {
 }
 
 /**
- * A basic action's check is one d20 request; its modifier and DC come from the action's catalogue
- * entry and the actor's check facts, so the graph carries only the die.
+ * A basic action's check is one d20 request, then the dice the roller's effects add to its ability
+ * checks (D156); its modifier and DC come from the action's catalogue entry and the actor's check
+ * facts, so the graph carries only the dice.
  */
 export function createDnd5eBasicActionCheckDefinition() {
-  return plainD20Definition(DND5E_BASIC_ACTION_CHECK_GRAPH_DEFINITION_ID)
+  return published({
+    schemaVersion: 1,
+    id: DND5E_BASIC_ACTION_CHECK_GRAPH_DEFINITION_ID,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+    nodes: [
+      {
+        id: 'd20',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+      },
+      dnd5eAddedDiceNode('d20')
+    ],
+    outputs: {
+      rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+      addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' }
+    }
+  })
 }
 
 export function createDnd5eRechargeLifecycleDefinition(threshold: 4 | 5 | 6) {

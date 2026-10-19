@@ -107,6 +107,12 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
     holderEnd: ActiveGrantHolderEnd | null
+    /** Only the effect's source meets its attacker grants and attack consume. */
+    fromSourceOnly?: true
+    /** The grant is active only during its tick anchor's turn while one tick remains. */
+    activeOnlyOnFinalAnchorTurn?: true
+    /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
+    uses?: number
   }
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it
@@ -656,6 +662,8 @@ export interface CharacterRuleActionSystemAdapter {
       defenseOrDc: number
       /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
       addedDice: readonly D20AddedDieDto[]
+      /** The ability a saving throw is made with; absent on an attack roll. */
+      savingThrowAbilityDefinitionId?: string
     }
   }
   /**

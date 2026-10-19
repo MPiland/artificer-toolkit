@@ -120673,7 +120673,9 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
@@ -120967,7 +120969,9 @@ export declare const api: {
                   hidden: boolean;
                   id: string;
                   label: string;
+                  light?: { brightRadius: number; dimRadius: number };
                   locked: boolean;
+                  passesBlockingBarriers?: true;
                   position: { x: number; y: number };
                   rotationDegrees: number;
                   senses: Array<{
@@ -121304,7 +121308,9 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
@@ -121600,7 +121606,9 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
@@ -121830,7 +121838,9 @@ export declare const api: {
               hidden: boolean;
               id: string;
               label: string;
+              light?: { brightRadius: number; dimRadius: number };
               locked: boolean;
+              passesBlockingBarriers?: true;
               position: { x: number; y: number };
               rotationDegrees: number;
               senses: Array<{
@@ -130238,7 +130248,9 @@ export declare const internal: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{

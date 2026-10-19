@@ -60,18 +60,12 @@ export const specter: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         'Incorporeal Movement. The specter can move through other creatures and objects as if they were difficult terrain.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(257, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(257, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPECTER_INCORPOREAL_MOVEMENT
-        })
-      ],
+      grants: S.movementPassageGrants(S.actionId(257, 200), {
+        creatures: 'ANY',
+        mayEndInCreature: false,
+        blockingBarriers: true,
+        costMultiplier: 2
+      }),
       order: 1
     },
     {

@@ -27,7 +27,7 @@ import {
 import { EncounterValidationError } from './encounterErrors.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
-import { actorContestFacts } from './encounterMovementPassagePreparation.js'
+import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 
@@ -134,10 +134,18 @@ export function prepareEncounterConcealmentCheck<
       rollMode: facts.rollMode,
       contributors: facts.contributors,
       contributorChecksum: checksumRuleDocument(facts.contributors),
-      modifier: facts.modifier
+      modifier: facts.modifier,
+      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice })
     },
     resolution,
-    consumedGrants: effectsEndedBy(roller.activeEffects, 'ON_ABILITY_CHECK')
+    consumedGrants: effectsEndedBy(roller.activeEffects, {
+      event: 'ON_ABILITY_CHECK',
+      abilityCode: checkAbilityCode(
+        input.system,
+        input.check.checkKind,
+        input.check.checkDefinitionId
+      )
+    })
   })
 }
 

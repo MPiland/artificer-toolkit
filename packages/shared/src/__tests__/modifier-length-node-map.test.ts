@@ -84,3 +84,14 @@ describe('the action-economy limits the Slowing Breath grants (SPELLS-19.T3d)', 
     expect(shown('amount', exclusive)).toBe(false)
   })
 })
+
+describe('the attack decoys Mirror Image grants', () => {
+  it('enables decoys and asks for their armor class and targeting rolls only there', () => {
+    const decoys = { valueDomainCode: 'ATTACK_DECOYS', modifierKind: 'ENABLE' }
+    const exclusive = { valueDomainCode: 'ACTION_BONUS_ACTION_EXCLUSIVITY', modifierKind: 'ENABLE' }
+    expect(MODIFIER_KINDS_BY_DOMAIN.ATTACK_DECOYS).toEqual(['ENABLE'])
+    expect(shown('armorClass', decoys)).toBe(true)
+    expect(shown('thresholds', decoys)).toBe(true)
+    expect(shown('thresholds', exclusive)).toBe(false)
+  })
+})

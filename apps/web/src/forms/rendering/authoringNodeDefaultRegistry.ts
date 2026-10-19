@@ -82,6 +82,8 @@ type AuthoringDefaultKind =
   | 'manifestProximityRule'
   | 'measurement'
   | 'measurementScalingBreakpoint'
+  | 'modifierAttackDecoyArmorClass'
+  | 'modifierAttackDecoyThreshold'
   | 'modifierChargeLimitLevel'
   | 'modifierGrant'
   | 'modifierGrantDomain'
@@ -136,6 +138,7 @@ type AuthoringDefaultKind =
   | 'hitPointPool'
   | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
+  | 'damageDieCastLevelScaling'
   | 'damageLevelScalingEntry'
   | 'weight'
 
@@ -232,6 +235,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],
+  modifierAttackDecoyArmorClass: ['modifierAttackDecoyArmorClass'],
+  modifierAttackDecoyThreshold: ['modifierAttackDecoyThreshold'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],
   modifierGrant: ['modifierGrant'],
   modifierGrantDomain: ['modifierGrantDomain'],
@@ -290,6 +295,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targeting: ['targeting'],
+  damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
   weight: ['weight']
 }

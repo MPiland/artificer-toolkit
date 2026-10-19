@@ -316,6 +316,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     const moved = await fixture.room.room.move(
       [
         { x: 150, y: 150 },
+        { x: 150, y: 300 },
         { x: 320, y: 300 }
       ],
       await fixture.room.version()
@@ -612,6 +613,7 @@ describe('hiding again, in the room', () => {
     const moved = await fixture.room.room.move(
       [
         { x: 150, y: 150 },
+        { x: 150, y: 300 },
         { x: 320, y: 300 }
       ],
       await fixture.room.version()

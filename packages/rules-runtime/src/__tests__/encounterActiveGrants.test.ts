@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { bestowCurse } from '@artificer-toolkit/source-data/srd/spells/bestow-curse.js'
 import {
   SRD_ABILITIES,
   SRD_ABILITY_DEFINITION_IDS,
@@ -53,6 +54,7 @@ import {
   heroismEffect,
   longstriderEffect,
   passWithoutTraceEffect,
+  plannedGrantEffect,
   protectionFromEnergyEffect,
   shimmeringShieldEffect,
   speedFractionEffect,
@@ -621,6 +623,27 @@ describe('Character holder of an active grant', () => {
       SPELL: 'DISADVANTAGE',
       UNARMED: 'DISADVANTAGE'
     })
+  })
+
+  it('leaves its attacks normal under Bestow Curse, whose disadvantage waits for its caster as the target', () => {
+    const curse = plannedGrantEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      effect: bestowCurse.effects?.[0],
+      sourceLabel: bestowCurse.label,
+      choiceLabel: 'Attacks Against You',
+      sourceActorId: OTHER_EFFECT_ID
+    })
+    const policy = evaluateDnd5e2014CharacterPolicy(
+      withCharacterActiveGrants(fighter.facts, [curse])
+    )
+    expect(policy.rollModes.attacks).toEqual({
+      MELEE: 'NORMAL',
+      RANGED: 'NORMAL',
+      SPELL: 'NORMAL',
+      UNARMED: 'NORMAL'
+    })
+    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', null, [curse])).toEqual([])
   })
 
   it('rolls Strength attacks, checks and saves at disadvantage under Weakening Breath only', () => {

@@ -160,6 +160,8 @@ export function turnEffectDamageEnded(input: {
   held: readonly ActiveRuleEffectRecord[]
   /** The turn's executed candidates and the effects its earlier executions ended. */
   excluded: ReadonlySet<string>
+  /** The turn effect's own d20 evidence: a repeat save spends the holder's dice (D156). */
+  testEvidence: Parameters<typeof targetEndedEffects>[0]['testEvidence']
   applications: readonly CharacterRuleActionApplication[]
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
@@ -168,6 +170,8 @@ export function turnEffectDamageEnded(input: {
     holderActorId: input.holderActorId,
     held: input.held.filter(({ id }) => !input.excluded.has(id)),
     attacked: false,
+    testEvidence: input.testEvidence,
+    turnActorId: null,
     applications: input.applications,
     damagerActorId: origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null,
     dispositions: input.dispositions

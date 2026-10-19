@@ -19,6 +19,7 @@ import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass
 import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 
+import { castChoiceOptions } from '../encounterCastChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -56,15 +57,28 @@ export function grantOnly(
   }
 }
 
-/** The grant effect the real compiler plans for one authored Effect, held by the actor. */
+/**
+ * The grant effect the real compiler plans for one authored Effect, held by the actor: cast at
+ * `spellCastLevel`, as the cast-choice option labelled `choiceLabel`, by `sourceActorId`.
+ */
 export function plannedGrantEffect(input: {
   id: string
   holderActorId: string
   effect: EffectAuthored | undefined
   sourceLabel: string
+  spellCastLevel?: number
+  choiceLabel?: string
+  sourceActorId?: string
 }) {
   if (!input.effect) throw new Error(`${input.sourceLabel} has no effect.`)
-  const action = characterActionDescriptor(compileEffect({ ...input.effect, id: ACTION_EFFECT_ID }))
+  const compiled = compileEffect({ ...input.effect, id: ACTION_EFFECT_ID })
+  const picked =
+    input.choiceLabel === undefined
+      ? compiled
+      : castChoiceOptions(compiled)?.find(({ label }) => label === input.choiceLabel)
+          ?.compiledEffect
+  if (!picked) throw new Error(`${input.sourceLabel} offers no "${input.choiceLabel}".`)
+  const action = characterActionDescriptor(picked, input.spellCastLevel)
   const published = grantPublishedIdentity()
   const [plan] =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []
@@ -77,6 +91,7 @@ export function plannedGrantEffect(input: {
       targetActorId: input.holderActorId
     },
     createdOrdinal: 1,
+    sourceActorId: input.sourceActorId ?? null,
     consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
     endOnEvents: plan.modifierGrantContribution.endOnEvents,
     endOnTriggers: [],

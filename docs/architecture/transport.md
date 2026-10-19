@@ -366,6 +366,15 @@ dice add after advantage keeps one d20. `ENTER_DICE` carries the added dice's fa
 request's order, and "Roll dice" (`ROLL_RULE_EVIDENCE`) rolls them with the d20 and stores them on the held roll, so
 `SYSTEM_ROLL` settles both. The receipt's d20 evidence records each die's `rolledFaces`, and the roll card appends one
 term per added die after the d20, a subtracted one marked `subtracted`. Contest checks carry no added dice yet (T2c2).
+Saving-throw d20 evidence (resultPath `ON_SAVE_SUCCESS` or `ON_SAVE_FAIL`) also carries `savingThrowAbilityDefinitionId` (SPELLS-4.T2c2b), the ability the save was rolled with, so the settled commit can spend the roller's saving-throw dice by ability; the schema refuses it on any other result path, and a save with no ability (a death save) omits it.
+
+Added damage dice (D156, SPELLS-4.T2d): `ADD_BONUS_DIE` on `DAMAGE` adds rolled dice to a hit's damage (Divine Favor,
+Branding Smite, Hunter's Mark, Enlarge/Reduce, Bestow Curse). Each die is its own damage node (`added-<k>-`), of a fixed
+damage type or the attack's, rolled with the hit's damage dice (doubled on a critical hit); a subtracted die reduces
+the attack's damage, floored at 0. The mechanics batch output records them as `damageAddedDice` (`label`, `count`,
+`faces`, `sign`, `damageTypeId`, null for the attack's own type), absent when there are none, and the roll card labels each die's damage
+with its source ("Hunter's Mark: Piercing damage"). A holder's die applies to damage it deals (`HOLDER_DEALS`), or, on
+a mark, only to damage the effect's source deals to the holder (`SOURCE_DEALS_TO_HOLDER`).
 
 Contest outcomes (D105, ATTACK-7.6): a basic action whose win is a picked outcome (Shove) lists the options as
 `target.choiceOptions` in the action choices, and `RESOLVE_ACTION` names one with `target.choiceOptionId`; an attempt

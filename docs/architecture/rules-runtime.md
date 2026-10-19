@@ -546,6 +546,10 @@ manual. The top-level plans hold the first option. The choice DTO lists the opti
 `ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
 kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
 modifiers) passes `readsSharedTest` and reads the top-level option.
+Creature feature actions compile the same way: discovery calls `compileCastChoicePlans` for any compiled effect with
+`castChoiceOptions` (Vampire Spawn Claws and the Vampire's Unarmed Strike are damage-or-grapple picks, SPELLS-33 T3a6),
+and a failing option makes only that action unavailable (D54). A flow that cannot prompt (opportunity attacks, reactions,
+Legendary actions, turn flows) prepares with `firstOptionByDefault`: the first authored option is the no-prompt default.
 `prepareEncounterActionSource` is the one place the picked option's plans replace the top-level ones. It refuses
 a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`
@@ -1011,6 +1015,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   to the target facts for attack and save resolution, and the target keeps the holder state it found (`holderState`), so
   `rebuildEncounterTurnTarget` re-applies the grants as they stand at each turn stage (SPELLS-20 T5d); the D100 sight rule drops the attack contributor only when the holder
   definitively can't see the attacker (`UNSEEN`). GM undo removes the grant and refunds the Action like any authored action.
+- **Exempt senses and save-failure grants (SPELLS-4.T2k1, D156).** An `ATTACKS_AGAINST` modifier's
+  `exemptAttackerSenseDefinitionIds` names the System Senses through which an attacker that sees the holder is unaffected
+  (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
+  result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
+  `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1477,12 +1486,17 @@ such effect anchored to the boundary actor, whoever holds it, and an expired one
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
-grant that carries both events. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
+grant that carries both events. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check passes `effectsEndedBy` a `ScopedD20Test` (`{event: 'ON_ABILITY_CHECK', abilityCode}`), which spends only the effects whose ability-check grant applied to that ability; a bare `ON_ABILITY_CHECK` spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedTestDice`). **Saving throws (SPELLS-4.T2c2b, D156):** `ON_SAVING_THROW` is the same scoped test over `SAVING_THROW_MODIFIER` grants (Resistance, any ability; a death save has `abilityCode: null` and spends an unfiltered die). `savingThrowSpentEffects` (`encounterEndedEffectRelease`) is the one spend rule: `targetEndedEffects` calls it for the saves an action settled (the d20 evidence names the save's `savingThrowAbilityDefinitionId`, set where the compiler builds the save policy), the Concentration plan and its persistence call it for the Constitution check, the turn-start death save and the Sheet's `carriedTestDice` call it with their own ability. Persistence re-derives the spent set and refuses a plan that omits or adds a die. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
 roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads the grant's modifiers first; the target's
 `targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
 each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or
 chosen-creature attack (once per creature, however many rays name it), the movement reaction attack and the Legendary window;
-turn effects pass `false`. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
+turn effects pass `false`. **Event scope (SPELLS-4.T2k1, D156):** `effectEventScope` (`encounterGrantLifetimes`) is the one
+home of whose events an effect meets and on whose turn: only its Encounter source's when the lifecycle sets
+`fromSourceOnly`, and only during its tick anchor's turn while one tick remains when it sets `activeOnlyOnFinalAnchorTurn`
+(null while dormant, or source-only with no source in the Run). The `ATTACKS_AGAINST` contributors carry it and the attack
+filters them by attacker and current turn actor; `targetEndedEffects` (`turnActorId`) consumes an `ON_ATTACKED` effect only
+within it. True Strike is authored with both; Hunter's Mark and Hex can reuse the same scope for their damage. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
@@ -1801,10 +1815,32 @@ only a numeric selection; the application holds the issued option identities. Ho
 (`encounterMovementPassage*`). Reaction policy, eligibility and perception are System policy over
 authoritative actor and Scene facts.
 
+**Movement passage (current, SPELLS-33.T6k1).** What a mover may pass is authored data: a `MOVEMENT_PASSAGE`
+`ADD_OPTION` modifier grant (`creatures`: `NONE`, `LARGER_THAN_SELF` or `ANY`; `mayEndInCreature`;
+`blockingBarriers`; `costMultiplier`). A Character's grants come from its rule policy; a Creature's feature grants
+fold through the same grant fold with holder kind `CREATURE` (`foldDnd5eCreatureFeatureGrants`) into
+`ruleFacts.modifiers` on its snapshot, and a Character in a creature form moves with the form's.
+`encounterActorMovementPassage` combines the grants as one union (widest relation, highest multiplier).
+A hostile footprint the passage admits is crossed without a contest; one it does not admits only an
+offered contest (Overrun, Tumble), and with none the move is refused `MOVEMENT_BLOCKED`, like ending inside.
+The room prices each passed creature's footprint as a token-anchored zone at the passage multiplier, so
+D154's highest-of terrain, zones and passage applies. A passage through blocking barriers is checked by
+the server from the same prepared targets, and the room's Scene read model marks the token
+`passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
+validation (`sceneTokenMovementIndex`) cannot drift from it.
+
 **Combat Perception.** `encounterCombatPerception` is a pure resolver over pinned sense capabilities
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
+
+Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
+(the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
+sheds that light from its token. `creatureLight` reads it from the actor snapshot; nothing stores it on the
+Scene. The Worker composes it onto bound tokens (`withSceneTokenLights`) for the Scene perception capture,
+movement reactions and the room's vision display, and `resolveSceneIlluminationAt` treats each token light
+as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the
+renderer. Activated item and spell lights are not consumed yet.
 
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`
@@ -1851,3 +1887,5 @@ These are not current behavior:
 The architect owns product behavior, public and persisted contracts, security, concurrency, load-bearing
 ownership and frozen acceptance. Implementers decide ordinary internal details. The complete routing rule
 is in the repository root `AGENTS.md`.
+
+**Critical hit rules (SPELLS-31.T5d, D158).** Two modifier domains change an attack's critical hits: `CRITICAL_HIT_THRESHOLD` (`CAP_VALUE`, the lowest natural d20 that crits, default 20, lowest source wins) and `CRITICAL_EXTRA_DICE` (`BONUS`, extra rolls of the attack's own damage die, so a crit rolls `2n + k`). Both carry an `attackDomain`; Improved and Superior Critical grant the first for melee, ranged and unarmed attacks, Brutal Critical grants the second for melee at Barbarian levels 9, 13 and 17. A Character reads accepted grants (`dnd5eAttackCriticalRules`), a Creature reads its held effects (`activeAttackCriticalRules`); Encounter prep passes the result as the `attackCriticalRules` source fact. The attack test operation (contract version 4) takes a required `criticalThreshold`, and commit-time verification checks it against the evidence fact. A roll at or above it is `ON_CRIT` whatever the target's AC; a natural 1 always misses. Added damage dice (D156) still only double.

@@ -289,6 +289,16 @@ export function isSceneMovementPathValid(
   )
 }
 
+const NO_BARRIERS = new SceneBarrierIndex([])
+
+/** The barriers a token's movement respects: none when its passage passes blocking barriers. */
+export function sceneTokenMovementIndex(
+  token: Pick<CampaignSceneState['tokens'][number], 'passesBlockingBarriers'>,
+  index: SceneBarrierIndex
+): SceneBarrierIndex {
+  return token.passesBlockingBarriers ? NO_BARRIERS : index
+}
+
 /** Returns the canonical movement failure for callers that own their error boundary. */
 export function sceneTokenMovementFailure(
   state: Pick<CampaignSceneState, 'map' | 'tokens' | 'barriers' | 'doorStates'>,
@@ -316,7 +326,7 @@ export function sceneTokenMovementFailure(
   }
   // A teleport crosses nothing between its endpoints.
   if (movementKind === 'TELEPORT') return null
-  const index = new SceneBarrierIndex(state.barriers)
+  const index = sceneTokenMovementIndex(token, new SceneBarrierIndex(state.barriers))
   for (let pathIndex = 1; pathIndex < path.length; pathIndex += 1) {
     if (!canMoveBetween(state, path[pathIndex - 1]!, path[pathIndex]!, index))
       return 'Token movement crosses a blocking barrier.'

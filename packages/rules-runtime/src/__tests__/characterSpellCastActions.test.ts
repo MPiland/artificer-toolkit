@@ -17,9 +17,12 @@ import {
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   SRD_ABILITIES,
+  SRD_BLINDSIGHT_SENSE_ID,
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES,
-  SRD_SYSTEM_ID
+  SRD_PERCEPTION_SKILL_ID,
+  SRD_SYSTEM_ID,
+  SRD_TRUESIGHT_SENSE_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
@@ -36,6 +39,7 @@ import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../enc
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { attackDecoysSpell } from '../testing/attackDecoysSpell.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
@@ -2174,5 +2178,95 @@ describe('a cast that departs its travelers beside a GM ruling (SPELLS-4.T2a5, D
     expect(keys).toContain('dnd5e.depart-proposal')
     expect(keys).toContain('dnd5e.manual-adjudication-proposal')
     expect(compiled.activeEffectPlan).toBeNull()
+  })
+})
+
+describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1, D156)', () => {
+  it('holds Blur’s disadvantage on attacks against the caster for a minute under Concentration, except for Blindsight and Truesight', () => {
+    const plan = compiledCast(spell('Blur'))?.activeEffectPlan
+    expect(plan).toMatchObject({ recurrenceStage: 'END_OF_TURN', initialRemaining: 10 })
+    expect(plan?.modifierGrantContribution?.modifiers).toHaveLength(4)
+    for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
+      expect(modifier).toMatchObject({
+        valueDomainCode: 'ATTACKS_AGAINST',
+        modifierKind: 'DISADVANTAGE',
+        domain: {
+          requiresHolderSeesAttacker: false,
+          exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
+        }
+      })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+
+  it('gives each creature that fails Enthrall’s save disadvantage on Perception checks for a minute', () => {
+    const plan = compiledCast(spell('Enthrall'))?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 10,
+      modifierGrantContribution: {
+        modifiers: [
+          {
+            valueDomainCode: 'SKILL_MODIFIER',
+            modifierKind: 'DISADVANTAGE',
+            domain: { skillId: SRD_PERCEPTION_SKILL_ID }
+          }
+        ]
+      }
+    })
+    expect(plan?.maintenance).toBeNull()
+  })
+
+  it('gives True Strike’s target advantage against the caster’s first attack on the caster’s next turn, under Concentration', () => {
+    const plan = compiledCast(spell('True Strike'))?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 1,
+      tickAnchor: 'SOURCE',
+      modifierGrantContribution: {
+        consumeOnFirstEvents: ['ON_ATTACKED'],
+        fromSourceOnly: true,
+        activeOnlyOnFinalAnchorTurn: true
+      }
+    })
+    expect(plan?.modifierGrantContribution?.modifiers).toHaveLength(4)
+    for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
+      expect(modifier).toMatchObject({
+        valueDomainCode: 'ATTACKS_AGAINST',
+        modifierKind: 'ADVANTAGE',
+        domain: { requiresHolderSeesAttacker: false }
+      })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+
+  it('compiles three attack decoys that end the effect after three uses, which the caster can dismiss with an Action', () => {
+    const decoySpell = attackDecoysSpell()
+    const plan = compiledCast(decoySpell)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 10,
+      modifierGrantContribution: { uses: 3, holderEnd: { activation: 'ACTION' } }
+    })
+    const [decoys, ...others] = plan?.modifierGrantContribution?.modifiers ?? []
+    expect(others).toEqual([])
+    expect(decoys).toMatchObject({
+      valueDomainCode: 'ATTACK_DECOYS',
+      modifierKind: 'ENABLE',
+      payload: {
+        armorClass: { amount: 10, abilities: ['DEXTERITY'] },
+        thresholds: [
+          { remaining: 3, minimumRoll: 6 },
+          { remaining: 2, minimumRoll: 8 },
+          { remaining: 1, minimumRoll: 11 }
+        ]
+      }
+    })
+    const effect = plannedTimedCondition({
+      encounterId: testUuid(0xd921),
+      sourceActorId: testUuid(0xd922),
+      holderActorId: testUuid(0xd922),
+      spell: decoySpell,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    expect(effect.definition.recurrence).toMatchObject({ uses: 3 })
+    expect(effect.lifecycle).toMatchObject({ remainingTicks: 10, remainingUses: 3 })
   })
 })

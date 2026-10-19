@@ -23,12 +23,15 @@ import { createEncounterMovementReactionPerception } from '@artificer-toolkit/ru
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
+import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneTokenMovementFailure,
   selectTeleportAllowance,
+  withSceneTokenLights,
   type CampaignSceneState,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
@@ -170,18 +173,11 @@ export async function readNativeLiveMovementInputs(input: {
     )
   )
     throw new Error('Movement actor bindings are inconsistent.')
-  if (!save.movementResolution) {
-    if (checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position))
-      throw new Error('Movement path does not begin at the current token position.')
-    const failure = sceneTokenMovementFailure(
-      scene,
-      token.id,
-      command.path.at(-1)!,
-      command.path,
-      command.movementKind
-    )
-    if (failure) throw new Error(failure)
-  }
+  if (
+    !save.movementResolution &&
+    checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position)
+  )
+    throw new Error('Movement path does not begin at the current token position.')
   const teleportCastCommandId =
     !save.movementResolution && command.movementKind === 'TELEPORT'
       ? await teleportAllowanceToSpend({
@@ -244,22 +240,44 @@ export async function readNativeLiveMovementInputs(input: {
     state,
     capture
   })
-  const prepared =
-    state.automationMode === 'MANUAL'
-      ? []
-      : await Promise.all(
-          actors.map((actor) =>
-            prepareNativeLiveMovementTarget({
-              scope,
-              state,
-              actor,
-              activeEffectsByActorId,
-              captures
-            })
-          )
-        )
+  // Manual automation runs no rules but the mover's own passage, which walls still answer to.
+  const moverActorId = actorIdByTokenId.get(token.id)!
+  const prepared = await Promise.all(
+    actors
+      .filter((actor) => state.automationMode !== 'MANUAL' || actor.id === moverActorId)
+      .map((actor) =>
+        prepareNativeLiveMovementTarget({
+          scope,
+          state,
+          actor,
+          activeEffectsByActorId,
+          captures
+        })
+      )
+  )
   for (const target of prepared) revisions = mergeNativeRulesRevisions(revisions, target.revisions)
-  const targets = new Map(prepared.map(({ target }) => [target.actor.id, target]))
+  const preparedTargets = new Map(prepared.map(({ target }) => [target.actor.id, target]))
+  if (!save.movementResolution) {
+    // The mover passes blocking barriers by its own resolved passage, as the composed token shows.
+    const passesBlockingBarriers = encounterMovementPassageFacts(preparedTargets, moverActorId)
+      .mover.throughBarriers
+    const failure = sceneTokenMovementFailure(
+      {
+        ...scene,
+        tokens: scene.tokens.map((entry) => {
+          if (entry.id !== token.id) return entry
+          const { passesBlockingBarriers: _composed, ...mover } = entry
+          return passesBlockingBarriers ? { ...mover, passesBlockingBarriers } : mover
+        })
+      },
+      token.id,
+      command.path.at(-1)!,
+      command.path,
+      command.movementKind
+    )
+    if (failure) throw new Error(failure)
+  }
+  const targets = new Map(state.automationMode === 'MANUAL' ? [] : preparedTargets)
   const definitions = {
     requireCurrent: async (definitionId: string) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
@@ -359,6 +377,14 @@ export async function readNativeLiveMovementInputs(input: {
           }),
           runtime: capturedRuntime
         }
+  // Perception sees the light each bound Creature sheds, as the room's Scene vision draws it.
+  const perceptionScene = withSceneTokenLights(
+    scene,
+    creatureTokenLights(
+      [...actorIdByTokenId].map(([tokenId, actorId]) => ({ tokenId, actorId })),
+      actors
+    )
+  )
   const resolvePerception =
     facts === null
       ? null
@@ -370,7 +396,7 @@ export async function readNativeLiveMovementInputs(input: {
           sceneId: scene.id,
           sceneVersion: scene.version,
           sceneGrid: scene.grid,
-          scene,
+          scene: perceptionScene,
           loadSystem: async () => system,
           loadDefinition: async (id) => {
             const current = await definitions.requireCurrent(id)
@@ -418,6 +444,7 @@ export async function readNativeLiveMovementInputs(input: {
     targets,
     actorIdByTokenId,
     token,
+    perceptionScene,
     spatialEffects,
     drag,
     facts,

@@ -1,5 +1,6 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type {
   CharacterEndedEffectReleaseApplication,
@@ -7,7 +8,12 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import {
+  effectEventScope,
+  effectsEndedBy,
+  isInEffectEventScope
+} from './encounterGrantLifetimes.js'
+import { dnd5eAbilityCode } from './systems/dnd5e/identity.js'
 
 /**
  * What event-ended effects release from their holder: the conditions they alone held, then the
@@ -90,6 +96,18 @@ export function endedEffectReleaseKey(
 }
 
 /**
+ * The effects a holder's saving throw spends (D156): those whose die applied to a save with this
+ * ability (null for a save with none, a death save). The one place the rule lives; an action's
+ * saves, a Concentration save and a death save all spend through it.
+ */
+export function savingThrowSpentEffects(
+  held: readonly ActiveRuleEffectRecord[],
+  abilityCode: string | null
+) {
+  return effectsEndedBy(held, { event: 'ON_SAVING_THROW', abilityCode })
+}
+
+/**
  * What an action ends on its target: the effects used up by an attack roll against the holder
  * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
  * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
@@ -101,6 +119,10 @@ export function targetEndedEffects(input: {
   held: readonly ActiveRuleEffectRecord[]
   /** Whether the action made an attack roll against the holder. */
   attacked: boolean
+  /** The d20 evidence the action settled for the holder, whose saving throws spend their dice. */
+  testEvidence: readonly (ServerRuleExecutionD20EvidenceDto | null | undefined)[]
+  /** The actor whose turn it is, which an effect active only on one turn compares. */
+  turnActorId: string | null
   /** The outcome applications this action settles on the holder. */
   applications: readonly CharacterRuleActionApplication[]
   /** Who dealt the damage; null when nobody did, so only `ANYONE` triggers meet it. */
@@ -122,10 +144,28 @@ export function targetEndedEffects(input: {
         input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
         input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
       ) === 'ALLIED')
-  const attackConsumed = input.attacked ? effectsEndedBy(input.held, 'ON_ATTACKED') : []
+  // An attack consumes only the effects whose event scope admits the attacker on this turn.
+  const attackConsumed = input.attacked
+    ? effectsEndedBy(input.held, 'ON_ATTACKED').filter((effect) => {
+        const scope = effectEventScope(effect, input.holderActorId)
+        return (
+          scope !== null &&
+          isInEffectEventScope(scope, {
+            actorId: input.damagerActorId,
+            turnActorId: input.turnActorId
+          })
+        )
+      })
+    : []
+  const saveConsumed = input.testEvidence.flatMap((evidence) => {
+    const abilityDefinitionId = evidence?.savingThrowAbilityDefinitionId
+    return abilityDefinitionId === undefined
+      ? []
+      : savingThrowSpentEffects(input.held, dnd5eAbilityCode(abilityDefinitionId))
+  })
   const endedEffects = input.held.filter((effect) => {
     const { definition } = effect
-    if (attackConsumed.includes(effect)) return true
+    if (attackConsumed.includes(effect) || saveConsumed.includes(effect)) return true
     if (!dealt.length || definition.schemaVersion !== 2) return false
     const sourceActorId =
       definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
@@ -235,6 +275,30 @@ export function actionEndedEffects(input: {
     )
       ended.add(id)
   const consumedGrants = input.held.filter(({ id }) => ended.has(id))
+  return {
+    consumedGrants,
+    sourceReleases: endedEffectReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: consumedGrants
+    })
+  }
+}
+
+/**
+ * What the holder's attack uses up once it hits: the grants consumed `ON_HIT` (an extra damage die
+ * on the next hit), after they added to that attack, with the conditions only they held. `held`
+ * leaves out what the action already ended; a miss ends nothing.
+ */
+export function attackHitEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  resultPath: string | undefined
+}) {
+  const consumedGrants =
+    input.resultPath === 'ON_HIT' || input.resultPath === 'ON_CRIT'
+      ? effectsEndedBy(input.held, 'ON_HIT')
+      : []
   return {
     consumedGrants,
     sourceReleases: endedEffectReleases({

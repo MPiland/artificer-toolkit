@@ -52,18 +52,12 @@ export const waterElemental: CreatureAuthored = {
       label: 'Water Form',
       description:
         'Water Form. The elemental can enter a hostile creature’s space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(285, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(285, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_WATER_FORM
-        })
-      ],
+      grants: S.movementPassageGrants(S.actionId(285, 200), {
+        creatures: 'ANY',
+        mayEndInCreature: true,
+        blockingBarriers: false,
+        costMultiplier: 1
+      }),
       order: 1
     },
     {

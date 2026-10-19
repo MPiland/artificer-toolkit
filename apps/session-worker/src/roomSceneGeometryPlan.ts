@@ -25,6 +25,7 @@ import {
   preparedMovementSegment,
   preparedMoverSceneDelta
 } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
+import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import {
@@ -211,6 +212,7 @@ export async function prepareStagedSceneCommit(input: {
         y: point.y + from.y - start.y
       }))
     }))
+    const moverActorId = movement?.planned.actorIdByTokenId.get(staged.tokenId)
     movementCost = preparedMovementCost({
       ...walk,
       grid: scene.grid,
@@ -218,12 +220,19 @@ export async function prepareStagedSceneCommit(input: {
       mover: movement
         ? {
             tokenId: staged.tokenId,
-            actorId: movement.planned.actorIdByTokenId.get(staged.tokenId)!,
+            actorId: moverActorId!,
             tokens: scene.tokens,
             effects: toSpatialInstances(movement.planned.spatialEffects, movement.planned.actors),
             carefully: staged.carefully === true,
             dragDoublesCost:
-              draggedTokens !== undefined && movement.planned.drag?.doublesCost === true
+              draggedTokens !== undefined && movement.planned.drag?.doublesCost === true,
+            passage: {
+              costMultiplier: encounterMovementPassageFacts(movement.planned.targets, moverActorId)
+                .mover.costMultiplier,
+              creatureTokenIds: [...movement.planned.actorIdByTokenId.keys()].filter(
+                (id) => id !== staged.tokenId
+              )
+            }
           }
         : undefined
     })
