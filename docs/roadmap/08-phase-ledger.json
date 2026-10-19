@@ -11160,18 +11160,31 @@
               "note": "Merged m187 (4c68bae09)."
             },
             {
-              "id": "SPELLS-31.T4k2",
+              "id": "SPELLS-31.T4k2a",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2k3", "SPELLS-31.T5l"]
+                "size": 2,
+                "after": ["SPELLS-31.T1", "SPELLS-31.T5l"]
               },
-              "text": "Join SPELLS-4.T2k: Elusive, Escape the Horde, Nature's Sanctuary, Tranquility. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "Join SPELLS-4.T2k on ATTACKS_AGAINST: Elusive as a new ADVANTAGE_NEGATED effect (attack rolls against the holder cannot have advantage; disadvantage still applies; gated by the existing CAN_ACT restriction facet), and Escape the Horde as an optional attackOccasion: 'OPPORTUNITY' qualifier fed from the opportunity-attack flow's attack facts. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19).",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4k2b",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4k2a", "SPELLS-4.T2k3b"]
+              },
+              "text": "Join SPELLS-4.T2k on INCOMING_ATTACK_GATE. Gate runtime: accept a holder-owned passive grant with the holder as the DC owner, and dcMethod DERIVED_DC for that holder. Nature's Sanctuary: optional attackerCreatureTypeIds; on a failed save the attacker picks another target through T2k3b's ATTACK_RETARGET or the attack misses; optional successImmunity {duration} reusing T5l SOURCE_IMMUNITY (24 h). Tranquility: the existing long-rest event also works as an invocation trigger (one event, no second rest hook); when it fires, the old effect's ON_LONG_REST end runs before the new invocation; Sanctuary-style endOnTriggers. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19)."
             },
             {
               "id": "SPELLS-31.T4l1",
@@ -12074,7 +12087,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-33.T1", "SPELLS-31.T4k2"]
+                "after": ["SPELLS-33.T1", "SPELLS-31.T4k2a"]
               },
               "text": "Flyby (opportunity-attack qualifier) (1 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
