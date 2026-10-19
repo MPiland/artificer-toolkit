@@ -14,6 +14,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2c1 (rolled-die grants on attacks and saves, D156)
+
+- Contract: `ADD_BONUS_DIE` is a rolled-die modifier (`{count, faces, sign}`) on `ATTACK_ROLL` and `SAVING_THROW_MODIFIER` (and `ABILITY_CHECK`, read in T2c2). Bless and Bane author it from that option alone; `grantAuthoringParity` proves it. One pure evaluation (the D20 added-dice graph) adds the dice after advantage keeps one d20, at every Encounter attack and save: action, area, chosen creatures, movement reaction, turn effects, concentration and the turn-start death save (successes and failures read the added total; a natural 1 or 20 still decides).
+- Transport: `addedDice` on the d20 request, `addedFaces` on `ENTER_DICE` and the held app roll, `rolledFaces` on the receipt (see `docs/architecture/transport.md`). The tabletop roll row shows one entry per added die ("+d4 Bless", "−d4 Bane") and the roll card a subtracted term.
+- Proofs: `encounterAddedDiceAttacks.test.ts` (Bless turns a miss into a hit; Bless and Bane together), `encounterActionSaves.test.ts` (Bless saves, Bane fails, advantage keeps one d20 before Bless), `encounterAddedDiceRollRecord.test.ts`, `encounterActiveGrants.test.ts` (keyed facts), `characterDeathSaves.test.ts` (added totals and naturals), `nativeRoomAddedDice.test.ts` (room journey: an entered Bless d4 saves; an app-rolled Bane d4 fails, held and carded as a subtracted term), web `dice.utils.test.ts` and `CampaignTabletopDecisionDrawer.model.test.ts`.
+- Not here: checks, contests, `ON_SAVING_THROW` and the Sheet (T2c2); `MINIMUM_ROLL` (T2c3).
+
 ### T2a5 (closed rules with existing options, D156 T2 class A)
 
 - True Seeing grants the willing creature it touches truesight, the SRD sense Creatures already use, to 120 feet for 1 hour (`SRD_TRUESIGHT_SENSE_ID`; precise, sees through magical darkness and perceives invisible creatures). Secret doors hidden by magic and seeing into the Ethereal Plane stay description-only. SPELLS-31.T5m (Witch Sight) can reuse the same grant shape. `TRUE_SEEING` leaves `CLOSED_RULE_KIND`.

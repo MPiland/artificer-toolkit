@@ -1424,7 +1424,11 @@ describe('0 hit points (D63)', () => {
       describe('a turn-start death save', () => {
         const save = (rawDie: number, deathSaves = dying as CharacterDeathSaves) =>
           planEncounterMechanicsBatch({
-            batch: { ...characterBatch([]), deathSave: { rawDie }, forceVersionAdvance: true },
+            batch: {
+              ...characterBatch([]),
+              deathSave: { rawDie, addedTotal: 0 },
+              forceVersionAdvance: true
+            },
             actor,
             userId: USER_ID,
             characterFacts: facts(0, [{ conditionTypeId: UNCONSCIOUS }], deathSaves)

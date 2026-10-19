@@ -1,17 +1,24 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
@@ -72,8 +79,66 @@ export const bless: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BLESS, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'BLESS' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.BLESS, 0x215, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.BLESS, 0x215, 2),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                      order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.BLESS, 0x215, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.SPELL },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                      order: 3
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.BLESS, 0x215, 4),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.UNARMED },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                      order: 4
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.BLESS, 0x215, 5),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                      order: 5
+                    }
+                  ]
+                }
               }
             ]
           }
