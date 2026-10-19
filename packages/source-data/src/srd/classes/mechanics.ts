@@ -118,6 +118,28 @@ export function attacksPerAttackActionGrant(id: string, amount: number): Modifie
 }
 
 /**
+ * "Your weapon attacks score a critical hit on a roll of `threshold`-20" (Champion): the lowest
+ * natural d20 that crits, for melee, ranged and unarmed weapon attacks. The lowest source wins, so
+ * Superior Critical's 18 replaces Improved Critical's 19 without restating it. Uses `makeId(0..2)`.
+ */
+export function criticalHitThresholdGrants(
+  makeId: (entry: number) => string,
+  threshold: number
+): ModifierGrantAuthored[] {
+  return (['MELEE', 'RANGED', 'UNARMED'] as const).map((attackDomain, index) => ({
+    id: makeId(index),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD,
+    domain: { attackDomain },
+    modifierKind: MODIFIER_KIND.CAP_VALUE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { amount: threshold },
+    order: index
+  }))
+}
+
+/**
  * Dueling: "wielding a melee weapon in one hand and no other weapons". The attacking item is a
  * melee weapon, not wielded two-handed, and no other weapon is equipped. Uses ids `makeId(0..5)`.
  */

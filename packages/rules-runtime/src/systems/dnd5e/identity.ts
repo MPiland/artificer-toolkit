@@ -16,5 +16,13 @@ export const DND5E_ABILITY_DEFINITION_ID_BY_CODE: Readonly<Record<string, string
   WISDOM: '00000000-0000-0000-0011-000500000000',
   CHARISMA: '00000000-0000-0000-0011-000600000000'
 }
+/** The authored ability code of an SRD ability definition id. */
+export function dnd5eAbilityCode(abilityDefinitionId: string) {
+  const code = Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).find(
+    ([, id]) => id === abilityDefinitionId
+  )?.[0]
+  if (code === undefined) throw new Error('The ability definition is not a D&D ability.')
+  return code
+}
 /** The SRD Exhaustion condition, whose level a Character's exhaustion records. */
 export const DND5E_EXHAUSTION_CONDITION_DEFINITION_ID = '00000000-0000-0000-0002-000400000000'

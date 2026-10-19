@@ -317,6 +317,7 @@ export const PATH_LIFECYCLE_CONSUME_EVENT = {
   ON_HIT: 'ON_HIT',
   ON_ATTACKED: 'ON_ATTACKED',
   ON_ABILITY_CHECK: 'ON_ABILITY_CHECK',
+  ON_SAVING_THROW: 'ON_SAVING_THROW',
   ON_CAST_SPELL: 'ON_CAST_SPELL'
 } as const
 
@@ -347,6 +348,11 @@ export const PATH_LIFECYCLE_CONSUME_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ABILITY_CHECK,
     label: 'On Ability Check',
     description: 'Consumed by first ability check.'
+  },
+  [PATH_LIFECYCLE_CONSUME_EVENT.ON_SAVING_THROW]: {
+    code: PATH_LIFECYCLE_CONSUME_EVENT.ON_SAVING_THROW,
+    label: 'On Saving Throw',
+    description: 'Consumed by first saving throw the die applied to.'
   },
   [PATH_LIFECYCLE_CONSUME_EVENT.ON_CAST_SPELL]: {
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_CAST_SPELL,

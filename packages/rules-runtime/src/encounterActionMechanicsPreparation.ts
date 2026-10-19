@@ -54,7 +54,7 @@ import {
   dnd5eAttackDamageDefenses,
   dnd5eCharacterAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
-import { activeDamageDice } from './character/activeEffectGrantTotals.js'
+import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
 import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   effectReadsEnemyProximity,
@@ -64,6 +64,7 @@ import {
 } from './systems/dnd5e/attackRestrictions.js'
 import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
+import { dnd5eAttackCriticalRules } from './systems/dnd5e/characterCriticalRules.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
@@ -635,6 +636,25 @@ export async function prepareEncounterActionMechanics<
               ? null
               : dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind))
         }),
+        // The critical range and extra critical dice the attacker's grants give this attack.
+        ...(attackKind === null
+          ? {}
+          : {
+              attackCriticalRules:
+                source.kind === 'CHARACTER_ACTION'
+                  ? dnd5eAttackCriticalRules(
+                      source.effectivePolicyOutput,
+                      dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind)),
+                      {
+                        ...dnd5eCharacterActionTarget(source.candidate),
+                        attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
+                      }
+                    )
+                  : activeAttackCriticalRules(
+                      sourceFacts.activeEffects,
+                      dnd5eAttackModifierDomain(attackKindSchema.parse(attackKind))
+                    )
+            }),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(

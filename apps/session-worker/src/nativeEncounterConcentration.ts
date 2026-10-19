@@ -30,6 +30,9 @@ import {
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
+import { encounterSavingThrowAddedDice } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import {
   grantsEndedByHolderState,
   stateBoundGrants
@@ -362,14 +365,30 @@ export async function planNativeLiveConcentration(input: {
   )
     throw new Error('The concentration damage does not match its finalized parent receipt.')
   let correlationId = input.parentOccurrenceId
+  const spentDiceIds = new Set<string>()
   while (remaining.length) {
     const { maintainedStateId, ...application } = remaining[0]!
     remaining = remaining.slice(1)
     const loaded = await current(application.targetActorId)
     if (!loaded || loaded.maintained.id !== maintainedStateId)
       throw new Error('The concentration state changed before its check.')
+    // A die an earlier check of this batch spent (D156) is gone for this one.
+    const unspent = spentDiceIds.size
+      ? {
+          ...loaded,
+          target: {
+            ...loaded.target,
+            targetDerivedFacts: {
+              ...loaded.target.targetDerivedFacts,
+              savingThrowAddedDice: encounterSavingThrowAddedDice(
+                loaded.target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
+              )
+            }
+          }
+        }
+      : loaded
     const { context, facts } = createNativeConcentrationContext({
-      current: loaded,
+      current: unspent,
       parentOccurrenceId: input.parentOccurrenceId,
       parentCommandFingerprint: input.parentCommandFingerprint,
       application,
@@ -442,6 +461,13 @@ export async function planNativeLiveConcentration(input: {
       random: input.random ?? nextRollInt
     })
     if (evidence.failed) failed = true
+    for (const die of savingThrowSpentEffects(
+      unspent.target.activeEffects,
+      dnd5eAbilityCode(context.save.savingThrowAbilityDefinitionId)
+    )) {
+      spentDiceIds.add(die.id)
+      endedGrants.push(die)
+    }
     const cleanup = evidence.failed ? await loseConcentration(loaded.maintained) : null
     const result = completeNativeConcentrationResult({
       context,

@@ -668,6 +668,8 @@ export interface CharacterRuleActionSystemAdapter {
       defenseOrDc: number
       /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
       addedDice: readonly D20AddedDieDto[]
+      /** The ability a saving throw is made with; absent on an attack roll. */
+      savingThrowAbilityDefinitionId?: string
     }
   }
   /**

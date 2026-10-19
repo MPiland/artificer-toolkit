@@ -16,6 +16,8 @@ export const VALUE_DOMAIN_CODE = {
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
   ATTACK_TRAIT: 'ATTACK_TRAIT',
   WEAPON_DAMAGE_DIE: 'WEAPON_DAMAGE_DIE',
+  CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
+  CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
@@ -113,6 +115,19 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
     label: 'Weapon Damage Die',
     description: "The die a weapon's damage is rolled with, by its number of faces."
+  },
+
+  [VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD]: {
+    code: VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD,
+    label: 'Critical Hit Threshold',
+    description:
+      'The lowest natural d20 that scores a critical hit with an attack; the lowest source applies.'
+  },
+
+  [VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE]: {
+    code: VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE,
+    label: 'Critical Extra Dice',
+    description: "Extra rolls of an attack's own damage die when it scores a critical hit."
   },
 
   [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
@@ -390,6 +405,8 @@ export type ValueDomainParamByCode = {
     requiresHolderSeesAttacker: boolean
     exemptAttackerSenseDefinitionIds?: string[]
   }
+  CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
+  CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
 
   // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks").
   ATTACK_TRAIT: { trait: DamageDefenseBypassCode }

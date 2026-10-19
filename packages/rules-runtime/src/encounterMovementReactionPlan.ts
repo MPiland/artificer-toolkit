@@ -231,17 +231,16 @@ function reactionEndedEffects<
       dispositions
     })
   })
+  const completed = requireCompletedMovementReaction(input)
   const mover = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
       ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
     ),
     attacked: makesAttackRoll,
+    testEvidence: [completed.d20, completed.nestedD20],
     turnActorId: prepared.state.currentActorId,
-    applications: [
-      ...requireCompletedMovementReaction(input).applications,
-      ...effects.effects.relationshipConditionApplications
-    ],
+    applications: [...completed.applications, ...effects.effects.relationshipConditionApplications],
     damagerActorId: prepared.actor.id,
     dispositions
   })

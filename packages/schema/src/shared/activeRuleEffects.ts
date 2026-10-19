@@ -80,6 +80,7 @@ const activeEffectFactsSchema = lazySchema(() =>
  */
 const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
   'ON_ABILITY_CHECK',
+  'ON_SAVING_THROW',
   'ON_HIT_POINTS_REGAINED',
   'ON_INCAPACITATED',
   'ON_CHOSEN_ITEM_RELEASED'
