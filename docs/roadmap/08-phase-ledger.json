@@ -771,7 +771,7 @@
                 "after": []
               },
               "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18.",
-              "note": "Merged m152 (86d12d1d2). Convex 3-worker trial clean 3 of 3 (39184861302, 39185817174, 39186776489) but not faster (slowest shard 8.6-8.7 min vs 7.6-10.4; run 10.7-12.5 vs 10.5-12.2 min); config stays at 2."
+              "note": "Merged m152 (86d12d1d2). Convex 3-worker trial clean 3 of 3 (39184861302, 39185817174, 39186776489) but not faster (slowest shard 8.6-8.7 min vs 7.6-10.4; run 10.7-12.5 vs 10.5-12.2 min); config stays at 2. Trial record merged m157 (1cb431574)."
             },
             {
               "id": "PLATFORM-13.T5",
