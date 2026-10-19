@@ -1070,7 +1070,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   decoy d20 from the minted occurrence id; at or above the minimum for the decoys left the attack is prepared again against
   the decoy's armor class and the binding carries `absorbedByDecoy`, which makes the TEST `TEST_ONLY` and skips reactions and on-hit holds. A hit
   or critical spends a use (`spentUseGrants`, a lifecycle CAS at commit) or, on the last, ends the effect (`consumedGrants`); the root
-  receipt keeps both so an undo restores them. Single-target attack actions only; see the T2k2 handoff for the gaps.
+  receipt keeps both so an undo restores them. Every attack path goes through `prepareAttackBehindDecoys` (SPELLS-4.T2k2b): the action,
+  an opportunity attack (salted `${occurrenceId}:${reactorActorId}`, settled through `spentUseGrants` on the REACTION arm) and a Legendary
+  attack (salted `${occurrenceId}:legendary:${ordinal}`, `decoyEffectId` in its evidence). An attacker that cannot see the target or has a
+  sense in the payload's `exemptAttackerSenseDefinitionIds` (blindsight, truesight) never meets a decoy.
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
@@ -1082,6 +1085,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
   the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
   currentness checksum is exempt for that one transition.
+  Holder-owned wards (SPELLS-31.T4k2b, D156): the gate also reads the holder's own feature grants from its grant fold
+  (`heldIncomingGate`; Active Effect wards first, lowest id, then fold grants), where the ward id is the grant id and the
+  holder owns the DC. `savingThrow` may be `DERIVED_DC` (`incomingGateSaveDc`: `baseDc` + the owner's ability modifier,
+  proficiency bonus and static bonuses, as they stand now). An optional `attackerCreatureTypeIds` limits the ward to attackers
+  of those Creature types (a Character has none, so it is never covered). Nature's Sanctuary is authored this way. The
+  payload's `successImmunity {duration}` is authored and node-mapped but **not yet enforced**: runtime immunity needs the
+  Character-target receipt to carry a SOURCE_IMMUNITY effect (T4k2c), so until then a passing attacker saves again on each attack.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).

@@ -16,6 +16,7 @@ import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runt
 import { prepareEncounterInitiativeDeclarationSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationSources'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { prepareAttackBehindDecoys } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -282,7 +283,7 @@ export function createNativeLiveTurnStages(
               return new Map(entries)
             }
           }),
-        prepareMechanics: async (mechanics) => {
+        prepareMechanics: async ({ decoyOccurrenceId, ...mechanics }) => {
           const targets = new Map(mechanics.movementTargets)
           for (const actor of [mechanics.actor, mechanics.target]) {
             if (targets.has(actor.id)) continue
@@ -290,17 +291,54 @@ export function createNativeLiveTurnStages(
             if (!target) throw new Error('Legendary Action target is unavailable.')
             targets.set(actor.id, target)
           }
-          return prepareEncounterActionMechanics<CharacterFacts>({
-            ...mechanics,
-            state,
-            overridable: false,
-            movementTargets: targets,
-            loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
-            loadRelationshipFacts: async (relation) =>
-              lockedRelationshipActionFacts({
-                ...relation,
-                targets: { activeEffectsByActorId }
+          return prepareAttackBehindDecoys({
+            occurrenceId: decoyOccurrenceId,
+            effects: targets.get(mechanics.target.id)?.activeEffects ?? [],
+            abilities: system.abilities,
+            prepare: (attackDecoy) =>
+              prepareEncounterActionMechanics<CharacterFacts>({
+                ...mechanics,
+                attackDecoy,
+                state,
+                overridable: false,
+                movementTargets: targets,
+                loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+                loadRelationshipFacts: async (relation) =>
+                  lockedRelationshipActionFacts({
+                    ...relation,
+                    targets: { activeEffectsByActorId }
+                  })
+              }),
+            // The window falls on another creature's turn, so the attacker's sight of its target
+            // is read from the Scene they share, not from the action's own preparation.
+            perceive: async ({ sourceFacts, targetFacts }) => {
+              const loaded = await readNativeLivePerceptionScene({
+                observerActorId: targetFacts.actor.id,
+                subjectActorId: sourceFacts.actor.id,
+                campaignId: state.campaignId,
+                capture
               })
+              if (loaded)
+                inputs.onSceneRead({
+                  sceneId: loaded.id,
+                  sceneVersion: loaded.version,
+                  definitionSaveId: loaded.definitionSaveId
+                })
+              const { actual } = await readNativeLiveAttackPerception({
+                state,
+                system,
+                attacker: sourceFacts,
+                target: targetFacts,
+                roller: 'ATTACKER',
+                sceneContext: loaded && {
+                  sceneId: loaded.id,
+                  sceneVersion: loaded.version,
+                  grid: loaded.scene.grid
+                },
+                capture
+              })
+              return actual
+            }
           })
         }
       }),

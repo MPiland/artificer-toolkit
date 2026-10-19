@@ -5,6 +5,21 @@ import { readEncounterPlayerViewer } from './playerViewer.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
+/** The creatures the member's list shows, by the same rule as `requireTargetSeenByMember`; the GM sees all. */
+export async function readMemberSeenActorIds(
+  ctx: EncounterReadTransaction,
+  input: {
+    encounterId: string
+    actors: readonly EncounterRunActorState[]
+    membership: Pick<EncounterDocument<'campaignMemberships'>, 'role' | 'userId'>
+  }
+): Promise<string[]> {
+  const { encounterId, actors, membership } = input
+  if (membership.role === 'OWNER') return actors.map((actor) => actor.id)
+  const viewer = await readEncounterPlayerViewer(ctx, { id: encounterId, actors }, membership)
+  return actors.filter((actor) => playerSeesActor(actor, viewer)).map((actor) => actor.id)
+}
+
 /**
  * A player names only the creatures their list shows (ATTACK-17.3), by the one rule the player
  * projection lists by; any other target reads as unavailable, as a non-public one does. The GM

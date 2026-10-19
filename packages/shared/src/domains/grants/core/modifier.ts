@@ -1,4 +1,4 @@
-import type { ChargeLimitPayload, SavingThrowAuthored } from '#authored'
+import type { ChargeLimitPayload, DurationAuthored, SavingThrowAuthored } from '#authored'
 import type {
   AbilityCode,
   AbilityModifierReference,
@@ -603,13 +603,20 @@ export type ModifierFractionAuthored = { numerator: number; denominator: number 
 export type ModifierAttackDecoysAuthored = {
   armorClass: { amount: number; abilities: AbilityCode[] }
   thresholds: { id: string; remaining: number; minimumRoll: number }[]
+  exemptAttackerSenseDefinitionIds?: string[]
 }
 
 /**
  * While held, a creature that targets the holder with a single-target attack or harmful spell must
  * first make this save against the holder's source; on a failure the attack or spell is lost.
  */
-export type ModifierIncomingAttackGateAuthored = { savingThrow: SavingThrowAuthored }
+export type ModifierIncomingAttackGateAuthored = {
+  savingThrow: SavingThrowAuthored
+  /** Only attackers of these Creature types owe the save (Nature's Sanctuary: beasts and plants). */
+  attackerCreatureTypeIds?: string[]
+  /** An attacker who passes is free of this ward for the duration. */
+  successImmunity?: { duration: DurationAuthored }
+}
 
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like

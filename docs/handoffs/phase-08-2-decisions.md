@@ -1003,6 +1003,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Direction:** "a random direction" is a server-rolled `RANDOM` forced-movement direction, so Kraken Fling can reuse it. "Up to" still lets the mover stop early only when the path is blocked.
   - **Transaction:** the room's landing reports, for each mover, the feet it travelled and what stopped it. The collision is settled inside the same action commit and receipt, with the same replay and revert fences, never as a follow-up action.
   - **Split:** the Bulette's Deadly Leap (saving-throw ability choice, landing in an occupied space) moves to SPELLS-33.T6k3, after SPELLS-33.T5n adds jump tracking.
+* **D160** (2026-10-19) Granted actions, compelled turns and extra turns (SPELLS-4.T2l; [slice-spells-4.md](slice-spells-4.md)). Orchestrator ruling.
+  - **Split:** T2l adds granted actions (an extra restricted allowance on APPLY_GRANT: cost, uses per turn, allowed basic actions with an attack limit, or a repeat of a source path) and converts Haste, Expeditious Retreat, the Heat Metal later-turn repeat and Eyebite's per-turn retarget. T2l2 adds compelled turns and converts Confusion, Compulsion, Eyebite Panicked and Sickened, and Contagion's Mindfire. T2l3 adds extra turns for Time Stop. A kind is deleted only once it is fully converted.
+  - **End-of-effect grants:** a generic `onEnd` grant list on the result block (Haste's lethargy first), unless an existing end-of-effect transition can carry it.
+  - **Compelled movement:** Confusion's d10 behavior and d8 direction are rolled by the server with the room's seeded dice (the actor's auto or manual roll setting applies), reusing D159's `RANDOM` direction. The creature then moves itself through the normal movement planner, so opportunity attacks fire. It is not forced movement (T2a1 ruling).
+  - **Time Stop:** it ends on any committed outcome that targets or affects a creature other than the caster, or an object the caster is not wearing or carrying, or when the caster moves more than 1,000 feet from where it was cast. Ambiguous objects fall to manual adjudication. Inserting turns into the initiative order needs its own design ruling at the start of T2l3.
 
 ## Approved implementation decisions
 

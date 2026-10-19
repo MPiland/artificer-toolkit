@@ -19,7 +19,7 @@ import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
-import { deleteGrants } from './consumedGrantPersistence.js'
+import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
@@ -386,6 +386,7 @@ export async function persistLiveMovementReaction(
   )
     throw new Error('Live movement reaction Character transition receipt is incomplete.')
   await deleteGrants(ctx, step.consumedGrants)
+  await spendEffectUses(ctx, step.spentUseGrants)
   await spendTurnUses(ctx, { state, actorId: source.id, keys: step.turnUses })
   if (!batch.meleeRetaliation) return actors
   // The zones the opportunity attack's melee hit set off burn the reactor, with the mover where

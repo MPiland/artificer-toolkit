@@ -1,6 +1,7 @@
 import { attackDecoysPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EncounterAttackPerception } from './encounterAttackPerception.js'
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 
@@ -52,7 +53,9 @@ function decoyRoll(occurrenceId: string, effectId: string): number {
 /**
  * Whether an attack against the holder targets one of its decoys instead: the holder's decoys must
  * remain, and the attack's d20 must reach the minimum its threshold names for the decoys left. The
- * decoy's armor class adds the holder's ability modifiers to its base amount.
+ * decoy's armor class adds the holder's ability modifiers to its base amount. An attacker that
+ * cannot see the holder, or perceives it through one of the payload's exempt Senses (blindsight,
+ * truesight), is unaffected; with no perception loaded the attacker is taken to see the holder.
  */
 export function attackDecoyFor(input: {
   occurrenceId: string
@@ -60,9 +63,20 @@ export function attackDecoyFor(input: {
   /** The holder's ability scores by ability definition id. */
   scalarValues: Readonly<Record<string, number>>
   abilities: readonly { id: string; code: string }[]
+  /** The attacker's true perception of the holder. */
+  perception: EncounterAttackPerception | null
 }): EncounterAttackDecoy | null {
   const held = heldDecoys(input.effects)
   if (!held) return null
+  const { perception } = input
+  if (
+    perception &&
+    (perception.attackerSeesTarget === 'UNSEEN' ||
+      held.payload.exemptAttackerSenseDefinitionIds?.some((senseId) =>
+        perception.attackerSenseDefinitionIds.includes(senseId)
+      ))
+  )
+    return null
   const threshold = held.payload.thresholds.find(({ remaining }) => remaining === held.remaining)
   if (!threshold) return null
   const roll = decoyRoll(input.occurrenceId, held.effect.id)
@@ -109,12 +123,91 @@ function record(value: unknown): Record<string, unknown> | null {
     : null
 }
 
+/**
+ * Prepares an attack against a holder that may carry decoys: unshielded first, which reads the
+ * attacker's true perception of the holder, then again against the decoy's armor class when the
+ * attack targets one. The result echoes the decoy it was prepared against (`attackDecoy`).
+ */
+export async function prepareAttackBehindDecoys<
+  TPrepared extends {
+    makesAttackRoll: boolean
+    targetFacts: { effectiveScalarValues: Readonly<Record<string, number>> }
+    attackSight: { actual: EncounterAttackPerception } | null
+  }
+>(input: {
+  /** Distinct per attack: a reaction shares its move's occurrence, so it salts it. */
+  occurrenceId: string
+  /** The holder's active effects. */
+  effects: readonly ActiveRuleEffectRecord[]
+  abilities: readonly { id: string; code: string }[]
+  prepare: (attackDecoy: EncounterAttackDecoy | null) => Promise<TPrepared>
+  /**
+   * The attacker's true perception of the holder, for a flow whose preparation does not read it
+   * (a Legendary Action's); by default the unshielded preparation's own.
+   */
+  perceive?: (unshielded: TPrepared) => Promise<EncounterAttackPerception | null>
+}): Promise<TPrepared> {
+  const unshielded = await input.prepare(null)
+  const attackDecoy = unshielded.makesAttackRoll
+    ? attackDecoyFor({
+        occurrenceId: input.occurrenceId,
+        effects: input.effects,
+        scalarValues: unshielded.targetFacts.effectiveScalarValues,
+        abilities: input.abilities,
+        perception: input.perceive
+          ? await input.perceive(unshielded)
+          : (unshielded.attackSight?.actual ?? null)
+      })
+    : null
+  return attackDecoy ? input.prepare(attackDecoy) : unshielded
+}
+
 /** Whether an attack that targeted a decoy struck it, which destroys the decoy. */
 export function decoyStruck(resultPath: string | null | undefined): boolean {
   return resultPath === 'ON_HIT' || resultPath === 'ON_CRIT'
 }
 
 /** Whether the struck decoy was the effect's last, so the effect ends instead of spending a use. */
-export function decoyIsLast(decoy: EncounterAttackDecoy) {
+export function decoyIsLast(decoy: Pick<EncounterAttackDecoy, 'remaining'>) {
   return decoy.remaining <= 1
+}
+
+export type DecoyStrikeEffects = {
+  spentUseGrants: ActiveRuleEffectRecord[]
+  endedGrants: ActiveRuleEffectRecord[]
+}
+
+/**
+ * What a settled attack does to the decoy it was rolled against: a hit destroys it, so the last
+ * decoy ends its effect and any other spends one of the effect's uses.
+ */
+export function decoyStrikeEffects(
+  decoy: Pick<EncounterAttackDecoy, 'effect' | 'remaining'> | null | undefined,
+  resultPath: string | null | undefined
+): DecoyStrikeEffects {
+  if (!decoy || !decoyStruck(resultPath)) return { spentUseGrants: [], endedGrants: [] }
+  return decoyIsLast(decoy)
+    ? { spentUseGrants: [], endedGrants: [decoy.effect] }
+    : { spentUseGrants: [decoy.effect], endedGrants: [] }
+}
+
+/**
+ * The holder's effects as the commit leaves them after a decoy strike, for an attack later in the
+ * same move or turn to read: the ended effect gone, the spent one a use lower at its next version.
+ */
+export function withDecoyStrikeApplied(
+  effects: readonly ActiveRuleEffectRecord[],
+  strike: DecoyStrikeEffects
+): ActiveRuleEffectRecord[] {
+  return effects.flatMap((effect) => {
+    if (strike.endedGrants.some(({ id }) => id === effect.id)) return []
+    if (!strike.spentUseGrants.some(({ id }) => id === effect.id)) return [effect]
+    return [
+      {
+        ...effect,
+        version: effect.version + 1,
+        lifecycle: { ...effect.lifecycle, remainingUses: (effect.lifecycle.remainingUses ?? 1) - 1 }
+      }
+    ]
+  })
 }

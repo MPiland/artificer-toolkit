@@ -992,6 +992,7 @@ export async function continueNativeActionAfterTest(
       onHit: input.onHit ?? null
     }),
     testRollMode: input.boundary.d20.rollMode,
+    absorbedByDecoy: input.binding.absorbedByDecoy,
     ...(effectivePath === undefined ? {} : { effectivePath })
   })
   if (outcome.kind === 'TEST_ONLY')

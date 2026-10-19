@@ -2,10 +2,14 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
 import {
   SRD_ABILITIES,
-  SRD_ABILITY_DEFINITION_IDS
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_BLINDSIGHT_SENSE_ID,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_TRUESIGHT_SENSE_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import type { EncounterAttackPerception } from '../encounterAttackPerception.js'
 import {
   attackDecoyFor,
   decoyIsLast,
@@ -51,7 +55,13 @@ function heldMirrorImage(remaining: number, idSeed = 0xd100): ActiveRuleEffectRe
 function occurrenceRolling(predicate: (roll: number) => boolean, effect: ActiveRuleEffectRecord) {
   for (let seed = 1; seed < 10_000; seed++) {
     const occurrenceId = testUuid(seed)
-    const decoy = attackDecoyFor({ occurrenceId, effects: [effect], scalarValues, abilities })
+    const decoy = attackDecoyFor({
+      occurrenceId,
+      effects: [effect],
+      scalarValues,
+      abilities,
+      perception: null
+    })
     const roll = decoy?.roll
     if (decoy && roll !== undefined && predicate(roll)) return { occurrenceId, decoy }
   }
@@ -68,7 +78,8 @@ describe('attack decoys (Mirror Image)', () => {
         occurrenceId: testUuid(seed),
         effects: [effect],
         scalarValues,
-        abilities
+        abilities,
+        perception: null
       })
       if (decoy) hits.add(decoy.roll)
       else misses.add(seed)
@@ -83,10 +94,13 @@ describe('attack decoys (Mirror Image)', () => {
     const one = heldMirrorImage(1)
     const { occurrenceId, decoy } = occurrenceRolling((roll) => roll >= 6 && roll < 11, three)
     expect(decoy.minimumRoll).toBe(6)
-    expect(attackDecoyFor({ occurrenceId, effects: [three], scalarValues, abilities })?.roll).toBe(
-      decoy.roll
-    )
-    expect(attackDecoyFor({ occurrenceId, effects: [one], scalarValues, abilities })).toBeNull()
+    expect(
+      attackDecoyFor({ occurrenceId, effects: [three], scalarValues, abilities, perception: null })
+        ?.roll
+    ).toBe(decoy.roll)
+    expect(
+      attackDecoyFor({ occurrenceId, effects: [one], scalarValues, abilities, perception: null })
+    ).toBeNull()
   })
 
   it('rolls against 10 plus the holder Dexterity modifier', () => {
@@ -104,14 +118,61 @@ describe('attack decoys (Mirror Image)', () => {
 
   it('holds no decoy for a holder without the effect, or one with no uses left', () => {
     expect(
-      attackDecoyFor({ occurrenceId: testUuid(1), effects: [], scalarValues, abilities })
+      attackDecoyFor({
+        occurrenceId: testUuid(1),
+        effects: [],
+        scalarValues,
+        abilities,
+        perception: null
+      })
     ).toBeNull()
     const { lifecycle } = heldMirrorImage(3)
     const { remainingUses: _spent, ...rest } = lifecycle
     const spent = { ...heldMirrorImage(3), lifecycle: rest }
     expect(
-      attackDecoyFor({ occurrenceId: testUuid(1), effects: [spent], scalarValues, abilities })
+      attackDecoyFor({
+        occurrenceId: testUuid(1),
+        effects: [spent],
+        scalarValues,
+        abilities,
+        perception: null
+      })
     ).toBeNull()
+  })
+
+  describe('an attacker that is unaffected', () => {
+    const effect = heldMirrorImage(3)
+    const { occurrenceId } = occurrenceRolling(() => true, effect)
+    const decoyFor = (perception: Partial<EncounterAttackPerception>) =>
+      attackDecoyFor({
+        occurrenceId,
+        effects: [effect],
+        scalarValues,
+        abilities,
+        perception: {
+          targetSeesAttacker: 'SEES',
+          attackerSeesTarget: 'SEES',
+          targetSenseLabels: [],
+          attackerSenseLabels: [],
+          attackerSenseDefinitionIds: [],
+          ...perception
+        }
+      })
+
+    it('still meets a decoy when it sees the holder through other senses', () => {
+      expect(decoyFor({ attackerSenseDefinitionIds: [SRD_DARKVISION_SENSE_ID] })).not.toBeNull()
+    })
+
+    it('is exempt when it cannot see the holder', () => {
+      expect(decoyFor({ attackerSeesTarget: 'UNSEEN' })).toBeNull()
+    })
+
+    it.each([SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID])(
+      'is exempt when it perceives the holder through sense %s',
+      (senseId) => {
+        expect(decoyFor({ attackerSenseDefinitionIds: [senseId] })).toBeNull()
+      }
+    )
   })
 
   it('destroys a decoy only on a hit', () => {

@@ -6433,8 +6433,9 @@
             {
               "id": "ATTACK-7.T9",
               "text": "A rescuer within reach of the grappled creature escapes for it when the module's actorKinds include CREATURE_WITHIN_REACH: offer, reach check, the rescuer rolls, success ends the grapple. After slice B.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.9"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.9"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             }
           ],
           "wsjf": {
@@ -7532,8 +7533,9 @@
             {
               "id": "ATTACK-19.T2",
               "text": "Auto-draw on attack and the release-on-draw prompt, both on the hand-occupancy function.",
-              "status": "TODO",
-              "closes": ["ATTACK-19.2"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-19.2"],
+              "activeWorkbook": "docs/handoffs/slice-attack-19.md"
             },
             {
               "id": "ATTACK-19.T3",
@@ -8331,7 +8333,7 @@
             },
             {
               "id": "SPELLS-4.T2k2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8341,7 +8343,7 @@
                 "after": ["SPELLS-4.T2k2"]
               },
               "text": "new: Mirror Image ATTACK_DECOYS on the remaining attack paths: opportunity and reaction attacks and legendary-action attacks intercept through the same decoy planner, and an attacker with blindsight or truesight (or that cannot see) is exempt; room proof per path (2026-10-19 ruling on the T2k2 gaps; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m198 (f7cc24f65)."
             },
             {
               "id": "SPELLS-4.T2k3",
@@ -8373,7 +8375,7 @@
             },
             {
               "id": "SPELLS-4.T2k3c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -8383,20 +8385,60 @@
                 "after": ["SPELLS-4.T2k3b"]
               },
               "text": "new (redaction): ATTACK_RETARGET offers list only creatures the attacker's side can perceive, so hidden or unseen creatures' ids never reach the offer (found in T2k3b review, 2026-10-19). Regression test that fails before the fix: a hidden creature is absent from the offer and a pick naming it is refused. Range and sight pre-filtering stays deferred.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m196 (7f177504e)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2l",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Granted actions and action-economy grants. Converts HASTE, EXPEDITIOUS_RETREAT, EYEBITE, TIME_STOP, CONFUSION, COMPULSION (compelled move on the target's own turn, shared with Confusion; T2a1 ruling), and the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e), with parity proofs; each kind deleted."
+              "text": "Haste (D160, split 2026-10-19): restricted extra action, speed multiply, and a generic onEnd grant list fired from one shared effect-release seam used by every end path (expiry, Concentration drop, early end, spatial end), delivering lethargy. Parity proof; HASTE deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2lb",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2l"]
+              },
+              "text": "Granted-action offers (D160, split from T2l): a later action offered while an effect is held, which converts EXPEDITIOUS_RETREAT, the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; each fully converted kind deleted."
+            },
+            {
+              "id": "SPELLS-4.T2l2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2l"]
+              },
+              "text": "Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases."
+            },
+            {
+              "id": "SPELLS-4.T2l3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-4.T2l"]
+              },
+              "text": "Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted."
             },
             {
               "status": "TODO",
@@ -8407,9 +8449,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, CONTAGION (Encounter compiler runs THRESHOLDS repeat saves; Slimy Doom stunned when damaged; Mindfire reuses T2l; T2a1 ruling), with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, CONTAGION (Encounter compiler runs THRESHOLDS repeat saves; Slimy Doom stunned when damaged; Mindfire moved to T2l2 per D160; T2a1 ruling), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -11190,7 +11232,7 @@
             },
             {
               "id": "SPELLS-31.T4k2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11200,11 +11242,11 @@
                 "after": ["SPELLS-31.T4k2a", "SPELLS-4.T2k3b"]
               },
               "text": "Join SPELLS-4.T2k on INCOMING_ATTACK_GATE. Gate runtime: accept a holder-owned passive grant with the holder as the DC owner, and dcMethod DERIVED_DC for that holder. Nature's Sanctuary: optional attackerCreatureTypeIds; on a failed save the attacker picks another target through T2k3b's ATTACK_RETARGET or the attack misses; optional successImmunity {duration} reusing T5l SOURCE_IMMUNITY (24 h). Tranquility: the existing long-rest event also works as an invocation trigger (one event, no second rest hook); when it fires, the old effect's ON_LONG_REST end runs before the new invocation; Sanctuary-style endOnTriggers. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19). Rulings 2026-10-19: Tranquility adds LONG_REST_FINISHED to TRIGGER, fired only from the COMPLETE_REST site after the ON_LONG_REST ends (ordering test); runtime successImmunity split to T4k2c (field accepted, inert until then).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m199 (54a079a23)."
             },
             {
               "id": "SPELLS-31.T4k2c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 3,
@@ -11213,7 +11255,21 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4k2b"]
               },
-              "text": "new (split from T4k2b, 2026-10-19): Nature's Sanctuary successImmunity at runtime. Extend the Character-target action receipt (CHARACTER_MECHANICS_BATCH) with grantEffectTransitions, classifyCreatedEffects and its checksums, and revert, so a successful save persists a 24h SOURCE_IMMUNITY Active Rule Effect (T5l) with a frozen graph; the attacker then stops re-saving."
+              "text": "new (split from T4k2b, 2026-10-19): Nature's Sanctuary successImmunity at runtime. Extend the Character-target action receipt (CHARACTER_MECHANICS_BATCH) with grantEffectTransitions, classifyCreatedEffects and its checksums, and revert, so a successful save persists a 24h SOURCE_IMMUNITY Active Rule Effect (T5l) with a frozen graph; the attacker then stops re-saving.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4k2d",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-31.T4k2b"]
+              },
+              "text": "new (user ruling 2026-10-19): Tranquility spends its use when the long rest finishes; the ward turns on at that moment, and the charge stays spent if the ward ends early (an attack or forced save breaks it). The sheet shows the ward as active or ended. Use an existing Character-side active status (as concentration or other long-lasting features do); build it generically only if none fits."
             },
             {
               "id": "SPELLS-31.T4l1",
@@ -11844,7 +11900,7 @@
             },
             {
               "id": "SPELLS-33.T3b",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11853,8 +11909,7 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T4c",
@@ -11939,7 +11994,7 @@
             },
             {
               "id": "SPELLS-33.T4k",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11949,7 +12004,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2k"]
               },
               "text": "four Parry reactions (4 kinds), part 1: generic creature reaction discovery on the Character pin/choice path (GM decides for creatures), ATTACKED_SELF qualifiers attackRange MELEE and requiresSight (existing perception seam), the AC bonus on Shield's one-attack ARMOR_CLASS BONUS with per-creature amounts; parity proof per kind, a room journey (parried hit becomes a miss; ranged and unseen attackers not offered), each kind deleted (2026-10-19 ruling; T4k2 has Heated Body; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged as SPELLS-33.T4k1 m187 (4c68bae09)."
             },
             {
               "id": "SPELLS-33.T4k2",
@@ -12109,7 +12164,7 @@
             },
             {
               "id": "SPELLS-33.T5k",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12119,7 +12174,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-31.T4k2a"]
               },
               "text": "Flyby (opportunity-attack qualifier) (1 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m197 (5f6a4866e)."
             },
             {
               "id": "SPELLS-33.T5l",
@@ -12349,16 +12404,30 @@
             },
             {
               "id": "SPELLS-33.T6e1",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T6e"]
+              },
+              "text": "Balor Death Throes: runtime for the existing ON_HP_ZERO passive trigger. Auto-roll victims settle in the defeating commit; manual rollers get an area-save pending created in that same commit, queued behind Concentration as deferredCleaving is (2026-10-18 ruling, option A; 1 kind). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6e1b",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
-                "after": ["SPELLS-33.T6e"]
+                "size": 3,
+                "after": ["SPELLS-33.T6e1"]
               },
-              "text": "Balor Death Throes: runtime for the existing ON_HP_ZERO passive trigger. Auto-roll victims settle in the defeating commit; manual rollers get an area-save pending created in that same commit, queued behind Concentration as deferredCleaving is (2026-10-18 ruling, option A; 1 kind). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
+              "text": "Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact)."
             },
             {
               "id": "SPELLS-33.T6e2",
