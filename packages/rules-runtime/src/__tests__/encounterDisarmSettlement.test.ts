@@ -1,3 +1,4 @@
+import type { CompiledActionActiveEffectPlan } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { describe, expect, it } from 'vitest'
 import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { baseEquipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
@@ -648,13 +649,13 @@ describe('Disarm receipt outputs', () => {
 })
 
 describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
-  const metalItem = {
+  const metalItem: NonNullable<CompiledActionActiveEffectPlan['chosenItem']> = {
     category: null,
     requiredProperties: ['METAL'],
     excludedProperties: [],
     equipmentIds: [],
     bindsGrant: false,
-    releasedOn: 'ON_SAVE_FAIL' as const,
+    releasedOn: 'ON_SAVE_FAIL',
     grantUnlessReleased: true
   }
   const daggerItem = {
@@ -731,20 +732,20 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
         contest: creatureContest(heldState),
         character: null
       })
-      if (planned.kind !== 'CREATURE') throw new Error('Expected a Creature settlement.')
-      const reverted = revertEncounterActorItemRelease({
-        actor: planned.actor,
-        transition: planned.stateTransition
-      })
+      if (
+        planned.kind !== 'CREATURE' ||
+        planned.stateTransition.kind !== 'ENCOUNTER_ACTOR_ITEM_USE_STATE'
+      )
+        throw new Error('Expected a Creature loadout change.')
+      const transition = planned.stateTransition
+      const reverted = revertEncounterActorItemRelease({ actor: planned.actor, transition })
       if (!reverted) throw new Error('The release must revert.')
       expect(
         readEncounterActorOptionalContestContext({ actor: reverted, loadoutEntryId: HELD_ENTRY_ID })
           ?.stateChecksum
       ).toBe(before?.stateChecksum)
       // Nothing to undo on an actor that still holds the item.
-      expect(
-        revertEncounterActorItemRelease({ actor: target, transition: planned.stateTransition })
-      ).toBeNull()
+      expect(revertEncounterActorItemRelease({ actor: target, transition })).toBeNull()
     }
   )
 })

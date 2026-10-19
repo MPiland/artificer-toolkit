@@ -1,3 +1,5 @@
+import { runInDurableObject } from 'cloudflare:test'
+import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import {
@@ -24,6 +26,7 @@ import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
@@ -431,11 +434,20 @@ describe('room Heat Metal (SPELLS-4.T2e)', () => {
   }
 
   async function ogreItemState(room: ActionRoom, itemEntryId: string) {
-    const row = (await readRoomHistory(room.room.base.stub)).actors.find(({ id }) => id === OGRE_ID)
-    if (!row) throw new Error('The Ogre is not in the stored Run.')
-    return snapshotCreatureEquipmentLoadout(readStoredRunActor(row)).find(
-      (entry) => entry.id === itemEntryId
-    )?.useState
+    const { stub } = room.room.base
+    const row = (await readRoomHistory(stub)).actors.find(({ id }) => id === OGRE_ID)
+    const ogre = row && readStoredRunActor(row)
+    if (ogre?.kind !== 'CREATURE') throw new Error('The Ogre is not in the stored Run.')
+    const snapshotRow = await runInDurableObject(stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === ogre.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The Ogre’s snapshot is not stored.')
+    return snapshotCreatureEquipmentLoadout({
+      ...ogre,
+      snapshot: readStoredActorSnapshot(snapshotRow)
+    }).find((entry) => entry.id === itemEntryId)?.useState
   }
 
   const ogreGrants = async (room: ActionRoom) =>
