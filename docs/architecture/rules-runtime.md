@@ -1064,6 +1064,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   d20 pause (`incomingGate` on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
   `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
   source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
+  Before a failed save loses the action (SPELLS-4.T2k3b) the attacker is offered another creature: `attackRetarget`
+  `{gate, options}` on the `ENCOUNTER_ACTION` context (`ATTACK_RETARGET_CHOICE` summary). `DECLINE` commits the same gated action;
+  `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
+  the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
+  currentness checksum is exempt for that one transition.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).

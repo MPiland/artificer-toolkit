@@ -109,6 +109,8 @@ type CastPendingContext = {
   failedCounters?: readonly PendingCounter[]
   /** The ward whose save the attacker owes; the pause is held on that roll. */
   incomingGate?: { effectId: string } | null
+  /** The failed ward save whose attacker is offered another creature to turn the action on. */
+  attackRetarget?: { gate: { effectId: string } } | null
   /** The ward whose save the attacker already passed. */
   passedIncomingGate?: string
 }
@@ -165,14 +167,33 @@ export function castPendingContinues(
   next: CastPendingContext
 ): boolean {
   const { castReaction } = previous
+  const failedPrevious = failedReactorIds(previous)
+  const failedNext = failedReactorIds(next)
+  // A ward the attacker failed offers a retarget: from the roll that failed it, or from a retargeted
+  // action's own ward. Nothing else is carried.
+  if (next.attackRetarget)
+    return (
+      next.passedIncomingGate === undefined &&
+      failedNext.length === 0 &&
+      (previous.incomingGate
+        ? previous.incomingGate.effectId === next.attackRetarget.gate.effectId
+        : previous.attackRetarget != null && response?.resolution.kind === 'OPTION')
+    )
+  // A retargeted action begins afresh against its new creature: only the answer that chose it may follow.
+  if (previous.attackRetarget)
+    return (
+      response?.resolution.kind === 'OPTION' &&
+      failedNext.length === 0 &&
+      chainReactorIds(next).length === 0 &&
+      (next.castReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
+      !(next.incomingGate && next.passedIncomingGate !== undefined)
+    )
   // A passed ward stays passed for the rest of the action, and only the gate's own answer passes it.
   if (
     next.incomingGate ||
     next.passedIncomingGate !== (previous.incomingGate?.effectId ?? previous.passedIncomingGate)
   )
     return false
-  const failedPrevious = failedReactorIds(previous)
-  const failedNext = failedReactorIds(next)
   if (!castReaction) return sameMembers(failedNext, failedPrevious)
   const answer = castAnswer(previous, response)
   const roller = previous.rollerActorId
@@ -257,8 +278,11 @@ export function offeredDecisionOptionIds(context: {
   reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
   castReaction?: { reactions: readonly { useOptionId: string }[]; check?: unknown } | null
   onHitChoice?: { options: readonly { useOptionId: string }[] } | null
+  attackRetarget?: { options: readonly { useOptionId: string }[] } | null
 }): string[] {
   if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
+  if (context.attackRetarget)
+    return context.attackRetarget.options.map((option) => option.useOptionId)
   if (context.onHitChoice) return context.onHitChoice.options.map((option) => option.useOptionId)
   if (context.castReaction?.check) return []
   return (
@@ -315,6 +339,19 @@ export function projectNativeActionPending(
         optionId: useOptionId,
         riderId,
         slotLevel
+      })),
+      allowedResponses: ['DECLINE', 'OPTION']
+    }
+  if (context.attackRetarget)
+    return {
+      kind: 'ATTACK_RETARGET_CHOICE',
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      encounterVersion: occurrence.expectedEncounterVersion,
+      attackerActorId: context.rollerActorId,
+      options: context.attackRetarget.options.map(({ useOptionId, targetActorId }) => ({
+        optionId: useOptionId,
+        targetActorId
       })),
       allowedResponses: ['DECLINE', 'OPTION']
     }
