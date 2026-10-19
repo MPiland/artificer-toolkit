@@ -721,7 +721,10 @@ describe('CampaignTabletopActionDrawer releases (D152)', () => {
           heldActorId: secondHold.heldActorId,
           activeEffectId: secondHold.activeEffectId
         }),
-        releases: validated(encounterActionChoicesDtoSchema.shape.releases)([wolf, secondHold]),
+        releases: validated(encounterActionChoicesDtoSchema.shape.releases)([
+          releaseChoices[0],
+          secondHold
+        ]),
         onRelease
       })
 
