@@ -434,3 +434,5 @@ Open points for the ruling:
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
+
+**T3a6 (done on `ci/spells-33-t3a6`):** the two rows above are now CHOICE paths (Damage / Grapple); creature discovery and the drawer compile and offer the options through `compileCastChoicePlans`; both kinds are deleted. No-prompt flows take the first authored option.

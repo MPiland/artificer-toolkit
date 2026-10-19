@@ -546,6 +546,10 @@ manual. The top-level plans hold the first option. The choice DTO lists the opti
 `ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
 kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
 modifiers) passes `readsSharedTest` and reads the top-level option.
+Creature feature actions compile the same way: discovery calls `compileCastChoicePlans` for any compiled effect with
+`castChoiceOptions` (Vampire Spawn Claws and the Vampire's Unarmed Strike are damage-or-grapple picks, SPELLS-33 T3a6),
+and a failing option makes only that action unavailable (D54). A flow that cannot prompt (opportunity attacks, reactions,
+Legendary actions, turn flows) prepares with `firstOptionByDefault`: the first authored option is the no-prompt default.
 `prepareEncounterActionSource` is the one place the picked option's plans replace the top-level ones. It refuses
 a missing or unknown pick (`CastChoiceUnavailableError`, `TARGET_UNAVAILABLE`) before any roll. A zone whose component authors `maxApplicationsPerTurn` (Spirit Guardians "first time on a turn", SPELLS-20 T4b1) is compiled onto the placement and instance, and `collectSpatialMovementCandidates` drops a candidate whose `effectId:actorId` entry in the run's `zoneApplications` already holds the limit for the current `turnSequence`; the terminal movement publications record the settled executions with `recordZoneApplications` (see persistence.md). A zone whose component authors `bypassAtHalfSpeed`
 (SRD "through the area at half speed") can be crossed carefully (decision Q2): the voluntary `MOVE_SCENE_TOKEN`

@@ -203,28 +203,44 @@ export const vampireSpawn: CreatureAuthored = {
               id: S.actionId(1668, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.CHOICE,
               originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(1668, 3) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(1668, 3),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('SLASHING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d4+3'
-                  },
-                  {
-                    id: S.actionId(1668, 4),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_SPAWN_CLAWS
+              selectionKind: 'CHOICE' as const,
+              options: [
+                {
+                  id: S.actionId(1668, 4),
+                  order: 1,
+                  label: 'Damage',
+                  description: 'Deals 8 (2d4 + 3) slashing damage.',
+                  resultBlock: {
+                    id: S.actionId(1668, 3) + '__result',
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [
+                      {
+                        id: S.actionId(1668, 3),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('SLASHING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '2d4+3'
+                      }
+                    ]
                   }
-                ]
-              }
+                },
+                {
+                  id: S.actionId(1668, 5),
+                  order: 2,
+                  label: 'Grapple',
+                  description: 'Instead of dealing damage, grapples the target (escape DC 13).',
+                  resultBlock: {
+                    id: S.actionId(1668, 6),
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [
+                      S.grappledOutcome(1668, { localIndex: 1, escapeDc: 13, heldAtOnce: 1 })
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

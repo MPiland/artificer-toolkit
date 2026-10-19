@@ -278,6 +278,10 @@ The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELL
 
 The failure-margin rider is wired only on follow-up saves. Direct-save actions that author one (Medusa, Mummy and Ghost gazes, Homunculus) fail closed at compile until the direct save path learns the same margin node.
 
+### Grapple on an opportunity attack (SPELLS-33 T3a6)
+
+An opportunity attack cannot prompt for a cast choice, so a damage-or-grapple attack (Vampire Spawn Claws, Vampire Unarmed Strike) takes its first authored option, damage. Letting the attacker pick grapple would need a pick on the reaction prompt.
+
 ### Release a grapple to draw (D152)
 
 Drawing a weapon while every hand holds a weapon or a grappled creature is refused today, so the grappler releases first. D107's prompt to release a grapple as part of the draw would save that step.
