@@ -50,11 +50,17 @@ function compiledAction(creatureLabel: string, featureLabel: string) {
     throw new Error(
       `${creatureLabel} ${featureLabel} is not offered: ${JSON.stringify(discovered.unavailable)}`
     )
-  compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
+  const executionPlan = compileEncounterFeatureActionPlan(
+    dnd5eCharacterRuleActionSystemAdapter,
+    capability
+  )
   const plans =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
       action: capability,
-      published: dnd5eCharacterRuleActionSystemAdapter.compile({ action: capability })
+      published:
+        executionPlan.kind === 'SINGLE_GRAPH'
+          ? executionPlan.published
+          : executionPlan.test.published
     }) ?? []
   return { effectId: feature.effects?.[0]?.id, plans }
 }
@@ -82,8 +88,8 @@ describe('SRD creature save immunities (SPELLS-33.T7a, D156)', () => {
     }
   )
 
-  it('frightens the Ogre that fails the Adult Red Dragon’s Frightful Presence and makes the one that succeeds immune', async () => {
-    const dragon = srdByLabel(SRD.creatures, 'Adult Red Dragon')
+  it('frightens the Ogre that fails the Adult White Dragon’s Frightful Presence and makes the one that succeeds immune', async () => {
+    const dragon = srdByLabel(SRD.creatures, 'Adult White Dragon')
     const presence = creatureFeature(dragon, 'Frightful Presence')
     const settle = async (face: number) => {
       const prepared = await prepareCreatureAction({
@@ -99,6 +105,7 @@ describe('SRD creature save immunities (SPELLS-33.T7a, D156)', () => {
       const target = mechanics.targetPlan.updatedActor
       if (target.kind === 'CHARACTER') throw new Error('Expected the Ogre target.')
       return {
+        d20: execution.d20,
         conditionIds: readEncounterActorConditionState(target.conditions).ids,
         effects: prepareNativeActionEffectsPlan({
           prepared,
@@ -113,6 +120,7 @@ describe('SRD creature save immunities (SPELLS-33.T7a, D156)', () => {
     expect(failed.conditionIds).toEqual([FRIGHTENED])
     expect(failed.effects.riderEffect).toBeNull()
     const saved = await settle(19)
+    expect(saved.d20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
     expect(saved.conditionIds).toEqual([])
     expect(saved.effects.riderEffect?.definition).toMatchObject({
       recurrence: { expiration: { initialRemaining: 14_400 } },

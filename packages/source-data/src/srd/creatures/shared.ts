@@ -387,7 +387,7 @@ export function saveImmunityPath(
  * the end of each of its turns, and one that succeeds is immune to this source's use of it for 24
  * hours. It reaches the creatures the source chooses within `chosenWithinFeet`, or everyone in a
  * sphere of `radiusFeet` around it. "Aware of it", "that can see the light" and "or the effect ends
- * for it" stay in the description. It takes the IDs `actionId(creatureIndex, localIndex + 0..11)`.
+ * for it" stay in the description. It takes the IDs `actionId(creatureIndex, localIndex + 0..12)`.
  */
 export function minuteFearSaveEffect(
   creatureIndex: number,
@@ -448,7 +448,7 @@ export function minuteFearSaveEffect(
         originKind: 'SOURCE',
         selectionKind: 'FIXED',
         resultBlock: {
-          id: `${id(3)}__result`,
+          id: id(12),
           resultKind: 'SEQUENCE',
           duration: { id: id(4), durationKind: DURATION_KIND.MINUTE, amount: 1 },
           outcomes: [

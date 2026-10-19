@@ -2014,10 +2014,7 @@ function timedImmediateConditionPlan(
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  // A successful save's immunity is planned beside the conditions, not held by their effect.
-  const entries = action.compiledEffect.entries.filter(
-    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY')
-  )
+  const entries = entriesBesideSourceImmunity(action)
   const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
   const conditionEntries = outcomeEntries.flatMap((entry) =>
     entry.outcome.effectKind === 'CONDITION' ? [{ entry, outcome: entry.outcome }] : []
@@ -2136,6 +2133,13 @@ function ownsTimedSaveCondition(
       (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
       (turns !== null && turns <= 1)) &&
     timedConditionPlan(action) !== null
+  )
+}
+
+/** The action's entries without a successful save's immunity, which is planned beside the effect it rides, not held by it. */
+function entriesBesideSourceImmunity(action: Dnd5eCompiledEffectActionSource) {
+  return action.compiledEffect.entries.filter(
+    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY')
   )
 }
 
@@ -3143,7 +3147,8 @@ function unsavedZonePlacementPlan(
 function repeatingDirectFollowUpSavePlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { invocation, entries } = action.compiledEffect
+  const { invocation } = action.compiledEffect
+  const entries = entriesBesideSourceImmunity(action)
   const leadEntry = entries[0]
   const saveEntry = entries[1]
   if (
