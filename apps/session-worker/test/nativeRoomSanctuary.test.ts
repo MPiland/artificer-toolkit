@@ -44,9 +44,7 @@ afterEach(() => {
 })
 
 /** The request id of the d20 evidence a decision is waiting on. */
-function diceRequestId(
-  decision: Awaited<ReturnType<typeof readPendingActionDecision>>
-): string {
+function diceRequestId(decision: Awaited<ReturnType<typeof readPendingActionDecision>>): string {
   if (decision?.pending.kind !== 'D20_EVIDENCE') throw new Error('No d20 request is pending.')
   return decision.pending.request.requestId
 }
