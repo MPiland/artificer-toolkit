@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Parry and Heated Body (SPELLS-33.T4k, T4k2):** Parry is offered without checking that the creature wields a melee weapon (a disarmed parrier still parries), and Heated Body triggers on melee hits only, not on a creature touching or grappling the Remorhaz. Both are rare; the GM can decline the reaction or apply the damage by hand.
+
 - **Movement-contact damage (SPELLS-33.T6e4, T6e3b):** damage a creature takes from a zone it moves or is moved into (`encounterSpatialMovementPreparation`, `encounterMovementActionResponse`) does not end its "until it takes damage" effects or create damage-triggered grants; the turn-zone and melee-retaliation roots do. An until-damaged holder being moved into a damaging zone is rare, and the GM can end the effect by hand.
 
 - **Bound-item spells (D156, SPELLS-4.T2e):** Shillelagh recast on a new club does not end the first; a Magic Weapon handed to another creature keeps its bonus with the creature it was cast on; a fire-immune creature still gets Heat Metal's disadvantage; unattended objects can't be chosen; Shillelagh on an off-hand club is not modeled apart from the main hand; a Sheet-side unequip ends a bound grant only at the next Encounter action; a Creature can't bind a grant to an item. Each is rare, and the GM can end or adjust the effect by hand.
@@ -478,3 +480,7 @@ lifecycle and Encounter Blueprint model are accepted.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
 - **Creature forms, later pieces (SPELLS-28):** the form's defenses, speeds, senses and proficiency merge (rest of T4d), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.
+
+- **Innate conditions on Character actors in the Encounter list (SPELLS-33.T4de).** A Character's innate
+  condition (a custom feature's `CONDITION` option) is read by every rule through `heldConditionIds`, but
+  the Encounter projection appends innate rows for Creature actors only; a Character's shows on its Sheet.

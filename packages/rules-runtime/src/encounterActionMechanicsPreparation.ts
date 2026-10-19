@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
@@ -53,8 +54,10 @@ import {
 } from './encounterActionTargetPolicy.js'
 import {
   dnd5eAttackDamageDefenses,
-  dnd5eCharacterAttackTraits
+  dnd5eCharacterAttackTraits,
+  dnd5eGrantedAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
+import { DND5E_CHARACTER_WIDE_TARGET } from './systems/dnd5e/modifierApplicability.js'
 import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
 import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
@@ -480,7 +483,12 @@ export async function prepareEncounterActionMechanics<
       : featureActionMechanic(source.capability)
   const attackKind =
     typeof actionMechanic.attackKind === 'string' ? actionMechanic.attackKind : null
-  // Only attack damage meets "from nonmagical attacks" defenses; Creature weapons are nonmagical.
+  // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
+  // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
+  const creatureGranted = dnd5eGrantedAttackTraits(
+    sourceFacts.attackTraitGrants,
+    DND5E_CHARACTER_WIDE_TARGET
+  )
   const attackTraits =
     attackKind === null
       ? null
@@ -490,7 +498,11 @@ export async function prepareEncounterActionMechanics<
             attackKind,
             policy: source.effectivePolicyOutput
           })
-        : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
+        : {
+            magical: isDnd5eSpellAttackKind(attackKind) || creatureGranted.has('MAGICAL'),
+            silvered: creatureGranted.has('SILVERED'),
+            adamantine: creatureGranted.has('ADAMANTINE')
+          }
   // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
   // their advantage or disadvantage, those that require the holder to see the attacker only when it
   // can and only from the attackers and on the turn their effect admits, and so does a target
@@ -704,7 +716,7 @@ export async function prepareEncounterActionMechanics<
             )
           : targetFacts.targetDerivedFacts,
       ...(attackDecoy ? { absorbedByDecoy: true } : {}),
-      targetConditionIds: targetFacts.state.conditions,
+      targetConditionIds: heldConditionIds(targetFacts),
       conditionOutcomeRules: {
         hitIsCritical:
           attackKind !== null &&

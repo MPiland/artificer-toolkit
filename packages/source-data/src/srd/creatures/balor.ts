@@ -510,18 +510,7 @@ export const balor: CreatureAuthored = {
       id: S.featureId(36, 9),
       label: 'Magic Weapons',
       description: "Magic Weapons. The balor's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(36, 901),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(36, 902), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(36, 901),
       order: 9
     }
   ]

@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import {
   EQUIPMENT_PROPERTY_CODE,
   resolveHandOccupancy,
@@ -55,7 +56,7 @@ export async function encounterHolderState(input: {
     kind: target.actor.kind,
     creatureTypeIds: creatureTypeId === null ? [] : [creatureTypeId],
     canAct: !(await encounterActorCannotAct({
-      conditionIds: target.state.conditions,
+      conditionIds: heldConditionIds(target),
       activeEffects: target.activeEffects,
       gameSystemId: input.gameSystemId,
       definitions: input.definitions

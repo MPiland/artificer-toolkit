@@ -164,7 +164,9 @@ function target(
     attackAgainstContributors: [],
     sourceSightSaves: [],
     conditionDefinitions: [],
-    conditionMechanics: []
+    conditionMechanics: [],
+    attackTraitGrants: [],
+    innateConditionIds: []
   }
 }
 
