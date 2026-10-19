@@ -10,8 +10,14 @@ export const DIVINE_FAVOR_EFFECT = divineFavor.effects?.[0] as EffectAuthored
  * holder that crits on a lowered natural roll and has an added damage die to double.
  */
 export function criticalThresholdEffect(threshold: number): EffectAuthored {
-  const [path] = DIVINE_FAVOR_EFFECT.paths
-  const [outcome] = path?.resultBlock.outcomes ?? []
+  const path = DIVINE_FAVOR_EFFECT.paths.find(
+    (candidate): candidate is Extract<typeof candidate, { resultBlock: unknown }> =>
+      'resultBlock' in candidate
+  )
+  const outcome = path?.resultBlock.outcomes.find(
+    (candidate): candidate is Extract<typeof candidate, { effectKind: 'APPLY_GRANT' }> =>
+      candidate.effectKind === 'APPLY_GRANT'
+  )
   if (!path || !outcome) throw new Error('Divine Favor has no grant path.')
   return {
     ...DIVINE_FAVOR_EFFECT,
@@ -25,7 +31,7 @@ export function criticalThresholdEffect(threshold: number): EffectAuthored {
               ...outcome,
               grants: {
                 modifiers: [
-                  ...(outcome.grants?.modifiers ?? []),
+                  ...(outcome.grants.modifiers ?? []),
                   ...criticalHitThresholdGrants(
                     (entry) => `00000000-0000-4000-8000-0000000000f${entry}`,
                     threshold
