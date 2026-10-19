@@ -22,7 +22,7 @@ type SpatialExecution = Pick<
   MovementSpatialExecution,
   'ordinal' | 'targetTransition' | 'applications'
 > & {
-  candidate: { candidate: { targetActorId: string; sourceActorId: string } }
+  candidate: { candidate: { targetActorId: string; sourceActorId: string | null } }
 }
 
 /**

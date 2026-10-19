@@ -11,7 +11,7 @@ import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared
 type DamagingSpatialExecution = Pick<
   FrozenMovementReactionRemainder['completedSpatialExecutions'][number],
   'applications'
-> & { candidate: { candidate: { sourceActorId: string } } }
+> & { candidate: { candidate: { sourceActorId: string | null } } }
 
 /**
  * What the damage a creature takes from zones ends on it (the turn zone, a melee retaliation):
