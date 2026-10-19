@@ -347,6 +347,11 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
       })
     ),
     actions: z.array(encounterActionChoiceDtoSchema),
+    /**
+     * The action the drawer starts on (D107): the open Attack action's last weapon, else the
+     * main-hand weapon's Action attack, else the off-hand weapon's bonus attack. Null for none.
+     */
+    defaultActionId: z.nullable(characterSheetActionDtoSchema.shape.id),
     /** Creature actions whose authored mechanics cannot run, with the reason. They never resolve. */
     unavailableActions: z.array(
       z.strictObject({

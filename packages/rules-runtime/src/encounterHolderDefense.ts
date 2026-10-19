@@ -48,7 +48,7 @@ export async function encounterHolderState(input: {
     encounterConditionSpeed({ mechanics: target.conditionMechanics, speed: speedFeet })
   )
   const creatureTypeId = snapshotCreatureTypeId(target.actor)
-  const items = heldItems(target)
+  const items = encounterActorHeldItems(target)
   const holds = encounterSourceHandHolds(input.runEffectsByActorId, target.actor.id)
   const freeHand = resolveHandOccupancy(items).emptyHands > holds
   return {
@@ -89,8 +89,10 @@ function stowableHeldWeapon(
   )
 }
 
-/** What the holder's hands hold now: a Character's equipped items or a Creature's loadout. */
-function heldItems(target: MovementTarget): HandOccupancyItem[] {
+/** What the actor's hands hold now: a Character's equipped items or a Creature's loadout. */
+export function encounterActorHeldItems(
+  target: Pick<MovementTarget, 'actor' | 'characterFacts'>
+): HandOccupancyItem[] {
   switch (target.actor.kind) {
     case 'CHARACTER':
       return (target.characterFacts?.ruleEvaluation.facts.handFacts?.items ?? []).map(
