@@ -19,6 +19,7 @@ import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encount
 import {
   encounterAreaTargetCommandId,
   encounterChosenActorEntries,
+  encounterCollisionSaveOccurrenceId,
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
@@ -134,8 +135,15 @@ function carriesCasterSpend(batch: TargetBatch, root: AreaRoot, merged: boolean)
 
 /** What a commit is verified against: the creatures it keeps and the scope the root sealed. */
 type CommitScope = {
-  /** The kept creatures in commit order, and whether the caster perceives each. */
-  targets: readonly { actorId: string; perceivedByCaster: boolean }[]
+  /**
+   * The kept creatures in commit order, and whether the caster perceives each. One a forced mover
+   * struck (D159) rather than the area caught names that mover.
+   */
+  targets: readonly {
+    actorId: string
+    perceivedByCaster: boolean
+    collision?: { moverActorId: string }
+  }[]
   caughtChecksum: string
   removedActorIds: readonly string[]
   /** The caught creatures the action had no effect on, which took no save. */
@@ -363,23 +371,34 @@ export async function persistEncounterAreaCommit(
       zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
     }
   }
-  // A mover's collision damage (D159) settles as one more entry per mover, after the caught creatures'.
-  const caughtActorIds = scope.targets.map(({ actorId }) => actorId)
-  const collisionActorIds = input.targets.slice(caughtActorIds.length).map(({ actorId }) => actorId)
+  // A mover's collision damage (D159) settles as one more entry per mover, after the caught creatures',
+  // and a creature a mover struck as one more after those, under the occurrence its sealed save ran.
+  const caughtActorIds = scope.targets.flatMap(({ actorId, collision }) =>
+    collision ? [] : [actorId]
+  )
+  const struck = scope.targets.flatMap(({ actorId, collision }) =>
+    collision ? [{ actorId, moverActorId: collision.moverActorId }] : []
+  )
+  const collisionActorIds = input.targets
+    .slice(caughtActorIds.length, input.targets.length - struck.length)
+    .map(({ actorId }) => actorId)
+  const movedWithCollision = (actorId: string) =>
+    input.forcedMovements.some(
+      (movement) => movement.targetActorId === actorId && movement.collision
+    )
   if (
     new Set(collisionActorIds).size !== collisionActorIds.length ||
-    collisionActorIds.some(
-      (actorId) =>
-        !input.forcedMovements.some(
-          (movement) => movement.targetActorId === actorId && movement.collision
-        )
-    )
+    !collisionActorIds.every(movedWithCollision) ||
+    !struck.every(({ moverActorId }) => movedWithCollision(moverActorId))
   )
     throw new Error('Live Session area forced movement collision mismatch.')
-  const kept = encounterChosenActorEntries(areaOccurrenceId, [
-    ...caughtActorIds,
-    ...collisionActorIds
-  ])
+  const kept = [
+    ...encounterChosenActorEntries(areaOccurrenceId, [...caughtActorIds, ...collisionActorIds]),
+    ...struck.map(({ actorId, moverActorId }) => ({
+      actorId,
+      occurrenceId: encounterCollisionSaveOccurrenceId(areaOccurrenceId, moverActorId, actorId)
+    }))
+  ]
   if (
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== scope.caughtChecksum ||

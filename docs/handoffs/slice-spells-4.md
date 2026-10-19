@@ -58,6 +58,12 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Proofs: `encounterAttackRetarget.test.ts` (option derivation, offer contract, choice, retargeted command), `actionPendingOffers.test.ts` (continuity), `nativeRoomSanctuary.test.ts` (room journeys: offer lists the other creatures, retarget lands on the new creature, retarget passes or fails the second ward and offers again, decline loses the action), `CampaignTabletopDecisionDrawer.test.tsx`.
 - Scope gaps are in [future-enhancements](../roadmap/future-enhancements.md#deferred-edge-cases-watch-for-in-real-use).
 
+### T2k3c (retarget offer redaction, D156 T2 class B)
+
+- Ruling: the retarget offer lists only creatures the attacker's own list shows (a GM-side attacker sees every creature), so a hidden or unseen creature's id never reaches the sealed offer. A pick naming a creature outside the offer is refused (`chosenEncounterAttackRetarget`). Range and sight pre-filtering stays deferred.
+- Runtime: the room turn capture gains an internal `SEEN_ACTORS` request, answered by `readMemberSeenActorIds` (`targetVisibility.ts`), the same `playerSeesActor` rule `requireTargetSeenByMember` applies. `planNativeEncounterAction` filters the retarget candidates by it.
+- Proof: `nativeRoomSanctuary.test.ts` (a player's creature with a hidden bystander: absent from the offer, and a pick naming it is refused).
+
 ### T2d (rolled damage dice, D156)
 
 - Contract: `ADD_BONUS_DIE` on `DAMAGE` (`{count, faces, sign, recipient, damageTypeId | damageTypeSource: 'ATTACK', countPerCastLevelAbove?}`). `recipient` is `HOLDER_DEALS` or `SOURCE_DEALS_TO_HOLDER` (a mark: only the effect's source gains the die against its holder). An effect's `lifecycle.consumeOnFirstEvents: ['ON_HIT']` ends it on the holder's first hit. `againstEffectSource` on an `ATTACK_ROLL` modifier limits it to attacks against the effect's source. Divine Favor, Branding Smite, Hunter's Mark, Enlarge/Reduce (a cast choice) and Bestow Curse (a cast choice on a failed save) author it from those options; their five closed kinds are deleted, and `grantAuthoringParity` proves each spell.

@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { rangeDtoSchema, type RangeDto } from './range.js'
 import {
   MAX_FORCED_MOVEMENT_DESTINATIONS,
@@ -552,6 +552,19 @@ export type EncounterAreaActionPendingContextDto = {
     testedJson?: string
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
+    /**
+     * Marks the save of a creature a forced mover struck (D159) rather than one the area caught: the
+     * mover, and the authored collision it makes, with the damage dice the mover travelled for (null
+     * when it travelled under 10 feet).
+     */
+    collision?: {
+      moverActorId: string
+      damageDiceConfig: string | null
+      damageTypeId: string
+      abilityDefinitionId: string
+      dc: number
+      conditionId: string
+    }
   }[]
 }
 
@@ -655,7 +668,22 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             perceivedByCaster: z.boolean(),
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
             testedJson: z.optional(z.string()),
-            legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema)
+            legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
+            /**
+             * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
+             * the mover, and the authored collision it makes, with the damage dice the mover travelled
+             * for (null when it travelled under 10 feet).
+             */
+            collision: z.optional(
+              z.strictObject({
+                moverActorId: uuidSchema,
+                damageDiceConfig: z.nullable(authoredIdentifierSchema),
+                damageTypeId: uuidSchema,
+                abilityDefinitionId: uuidSchema,
+                dc: z.number().check(z.int()),
+                conditionId: uuidSchema
+              })
+            )
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -694,23 +722,27 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           // caster, and a creature several rays are aimed at has an entry for each.
           const casterRolls =
             inner.kind === 'ENCOUNTER_ACTION' && inner.rollerActorId === value.casterActorId
+          // A creature a mover struck makes its own save besides any the area caught it for, and may
+          // be one the area never kept.
+          const struck = target.collision !== undefined
           if (
             inner.kind !== 'ENCOUNTER_ACTION' ||
             seenOccurrences.has(target.snapshot.occurrenceId) ||
-            (seen.has(target.actorId) && !casterRolls) ||
-            value.removedActorIds.includes(target.actorId) ||
-            value.unaffectedActorIds?.includes(target.actorId) ||
+            (!struck &&
+              ((seen.has(target.actorId) && !casterRolls) ||
+                value.removedActorIds.includes(target.actorId) ||
+                value.unaffectedActorIds?.includes(target.actorId))) ||
             inner.commandFingerprint !== value.commandFingerprint ||
             inner.initiatorUserId !== value.initiatorUserId ||
-            (inner.rollerActorId !== target.actorId && !casterRolls)
+            (inner.rollerActorId !== target.actorId && (struck || !casterRolls))
           )
             context.addIssue({
               code: 'custom',
               path: ['targets', index],
               message:
-                'Each area roll must be a distinct, kept creature whose sealed continuation shares the area root and is rolled by the creature or the caster.'
+                'Each area roll must be a distinct, kept creature whose sealed continuation shares the area root and is rolled by the creature or the caster; a struck creature rolls its own save.'
             })
-          seen.add(target.actorId)
+          if (!struck) seen.add(target.actorId)
           seenOccurrences.add(target.snapshot.occurrenceId)
           if (target.legendaryResistance) {
             if (

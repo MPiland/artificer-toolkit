@@ -213,13 +213,21 @@ describe('a forced movement’s collision damage to its mover (SPELLS-33.T6k2b3,
   )
 })
 
-describe('the Air Elemental’s Whirlwind (SPELLS-33.T6k2b4a)', () => {
-  it('throws a creature into another and hurts the thrown one, leaving the struck creature’s save and prone for T6k2b4b', async () => {
+describe('the Air Elemental’s Whirlwind (SPELLS-33.T6k2b4a, T6k2b4b)', () => {
+  /**
+   * The thrown wolf stands in the elemental's space and is thrown east, stopped after 10 feet by FAR.
+   * The commit plans the area again once FAR's save is sealed, so its dice are drawn twice: the first
+   * plan's 3d8 (1 + 1 + 1), the random ray (east) and the thrower's 1d6 (5) are discarded when the
+   * area holds for FAR's save, and the replan draws its 3d8, the thrower's 1d6 and FAR's own 1d6.
+   * The ray is sealed with the held area, so the replan draws none.
+   */
+  async function whirlwindRoom(autoRoll?: 'GAME_MASTER') {
     const elemental = installedSrdCreature(airElemental)
     const featureId = elemental.features?.find(({ label }) => label.startsWith('Whirlwind'))?.id
-    // The thrown wolf stands in the elemental's space and is thrown east, stopped after 10 feet by FAR.
+    // An auto-rolled save draws its d20 when it is sealed: the thrown wolf's, then the struck wolf's.
     const room = await actionRoom({
-      rolls: [0, 0, 0, EAST, 4],
+      rolls: autoRoll ? [0, 0, 0, 0, EAST, 4, 0, 0, 0, 0, 4, 2] : [0, 0, 0, EAST, 4, 0, 0, 0, 4, 2],
+      autoRoll,
       actors: [
         srdCreatureActor({ id: SOURCE_ID, creature: elemental }),
         srdCreatureActor({ id: NEAR_ID, creature: plainWolf }),
@@ -229,14 +237,85 @@ describe('the Air Elemental’s Whirlwind (SPELLS-33.T6k2b4a)', () => {
       ownerFeatureId: featureId
     })
     committed((await room.startCasterCenteredAreaAction()).answer)
+    return room
+  }
+
+  it('throws a creature into another: the thrown one is hurt, and the struck one saves, takes the same damage and falls prone', async () => {
+    const room = await whirlwindRoom()
     await answerAllSaves(room)
 
+    // The ray rolled for the first plan held across the struck save: the replan kept it.
     expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 350, y: 150 })
     // 3d8 (1 + 1 + 1) + 2, then the 1d6 collision of 10 feet.
     expect(await hitPointsOf(room, NEAR_ID)).toBe(1)
-    expect(await childTargets(room)).toContain(NEAR_ID)
-    // The struck creature is not yet asked to save: T6k2b4b flips these to its save, damage and prone.
+    // The struck wolf failed its save (face 1): the same 1d6 (3), then prone.
+    expect(await hitPointsOf(room, FAR_ID)).toBe(8)
+    expect(readActorConditionIds(await readRoomHistory(room.room.base.stub), FAR_ID)).toEqual([
+      srdSystemRecord.conditionTypes.find(({ code }) => code === 'PRONE')!.id
+    ])
+    expect(await childTargets(room)).toEqual([NEAR_ID, NEAR_ID, FAR_ID])
+  })
+
+  it('holds the area for the struck creature’s own save once the thrown one has answered, which the GM cannot remove', async () => {
+    const room = await whirlwindRoom()
+    const savers = (decision: Awaited<ReturnType<typeof room.pendingDecision>>) =>
+      decision?.pending.kind === 'AREA_SAVES'
+        ? decision.pending.saves.map(({ actorId }) => actorId)
+        : []
+    const caught = await room.pendingDecision()
+    expect(savers(caught)).toEqual([NEAR_ID])
+    const [save] = caught?.pending.kind === 'AREA_SAVES' ? caught.pending.saves : []
+    committed(
+      await room.send(
+        room.resolveCommand(caught!, {
+          kind: 'ENTER_DICE',
+          requestId: save!.request.requestId,
+          rawFaces: [1],
+          rollMode: save!.request.rollMode
+        })
+      )
+    )
+
+    const held = await room.pendingDecision()
+    expect(savers(held)).toEqual([FAR_ID])
+    expect(await room.send(room.removeAreaTargetCommand(held!, FAR_ID))).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'TARGET_UNAVAILABLE'
+    })
+    expect(savers(await room.pendingDecision())).toEqual([FAR_ID])
+  })
+
+  it('gives the struck creature its hit points, condition and place back on undo', async () => {
+    const room = await whirlwindRoom()
+    await answerAllSaves(room)
+    committed(
+      await room.send({
+        type: 'REVERT_LAST_ACTION',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version()
+      })
+    )
+
+    expect(await hitPointsOf(room, FAR_ID)).toBe(11)
+    expect(await hitPointsOf(room, NEAR_ID)).toBe(11)
+    expect(readActorConditionIds(await readRoomHistory(room.room.base.stub), FAR_ID)).toEqual([])
+    expect(tokenPositions(room)(NEAR_ID)).toEqual(SOURCE_AT)
+  })
+
+  it('leaves the struck creature standing when it passes its save', async () => {
+    const room = await whirlwindRoom()
+    await answerAllSaves(room, { [FAR_ID]: 20 })
+
     expect(await hitPointsOf(room, FAR_ID)).toBe(11)
     expect(readActorConditionIds(await readRoomHistory(room.room.base.stub), FAR_ID)).toEqual([])
+    expect(await childTargets(room)).toEqual([NEAR_ID, NEAR_ID, FAR_ID])
+  })
+
+  it('rolls the struck creature’s save for it when its roller auto-rolls', async () => {
+    const room = await whirlwindRoom('GAME_MASTER')
+
+    expect(await hitPointsOf(room, FAR_ID)).toBe(8)
+    expect(await childTargets(room)).toEqual([NEAR_ID, NEAR_ID, FAR_ID])
   })
 })
