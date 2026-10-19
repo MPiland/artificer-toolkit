@@ -68,7 +68,7 @@ describe('Haste authored from core options (SPELLS-4.T2l-a)', () => {
 describe('the lethargy an ended Haste leaves (SPELLS-4.T2l-a)', () => {
   it('is a one-tick grant on the same holder, with its own deterministic id', () => {
     const ended = hasteRecord()
-    const follow = onEndGrantEffect(ended as never)
+    const follow = onEndGrantEffect(ended)
 
     expect(follow).toMatchObject({
       id: onEndGrantEffectId(EFFECT_ID),
@@ -80,7 +80,7 @@ describe('the lethargy an ended Haste leaves (SPELLS-4.T2l-a)', () => {
   })
 
   it('stops the holder’s Action, Bonus Action and Reaction, lists as harmful, and leaves no follow-on of its own', () => {
-    const follow = onEndGrantEffect(hasteRecord() as never)
+    const follow = onEndGrantEffect(hasteRecord())
     if (!follow) throw new Error('Haste leaves no follow-on.')
     const effect = { id: follow.id, definition: follow.definition }
 
@@ -97,7 +97,7 @@ describe('the lethargy an ended Haste leaves (SPELLS-4.T2l-a)', () => {
       )
     ).toEqual(['HARMFUL'])
     expect(
-      onEndGrantEffect({ ...hasteRecord(), definition: follow.definition, id: follow.id } as never)
+      onEndGrantEffect({ ...hasteRecord(), definition: follow.definition, id: follow.id })
     ).toBeNull()
   })
 })

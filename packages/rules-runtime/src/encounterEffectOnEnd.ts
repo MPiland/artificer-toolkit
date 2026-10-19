@@ -23,7 +23,9 @@ export function onEndGrantEffectId(endedEffectId: string) {
  * modifiers, held under the ended effect's origin and counted in the holder's own turns. Null when
  * the effect leaves nothing behind. The effect store creates it at the one place an effect is removed.
  */
-export function onEndGrantEffect(ended: ActiveRuleEffectRecord) {
+export function onEndGrantEffect(
+  ended: Pick<ActiveRuleEffectRecord, 'id' | 'owner' | 'definition'>
+) {
   const { definition } = ended
   if (definition.schemaVersion !== 2 || definition.origin.kind !== 'ENCOUNTER') return null
   const template = definition.stateContributions.find(
