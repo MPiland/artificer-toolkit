@@ -8,12 +8,13 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { interpretForcedMovements } from '../src/nativeEncounterActionInputs.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, directedAreaWolf, forceOnFailedSave } from './actionRoomFixture.js'
 import { answerAllSaves, areaReceipts, tokenPositions, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
+import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-33.T6k2b3 (D159): a forced movement that carries an authored collision damages its mover
@@ -103,33 +104,53 @@ const childTargets = async (room: Room) =>
     ({ outputs }) => outputs.targetActorId
   )
 
-describe('a random push’s ray in an area that holds a pick (SPELLS-33.T6k2b3)', () => {
-  it('keeps the ray rolled when the pick was held, never rolling again when the area plans its commit', async () => {
-    // A second draw would serve WEST, and the east square the pick offered would no longer be free.
-    const room = await lineRoom({
-      direction: 'RANDOM',
-      feet: 10,
-      distanceMode: 'UP_TO',
-      reachFeet: 5,
-      others: [{ id: NEAR_ID, at: NEAR_AT }],
-      rolls: [EAST, WEST, WEST]
+describe('a random push’s sealed ray (SPELLS-33.T6k2b3)', () => {
+  type Interpreted = Parameters<typeof interpretForcedMovements>
+  const randomPush = {
+    kind: 'FORCED_MOVEMENT',
+    targetActorId: NEAR_ID,
+    sourceNodeId: 'node',
+    sourceOperationKey: 'operation',
+    direction: 'RANDOM',
+    feet: 10,
+    upTo: false,
+    collision: null,
+    targetStateChecksum: 'checksum'
+  } as const
+  const prepared = {
+    adapter: { interpretSpatial: () => [randomPush] },
+    targetPolicy: {} as Interpreted[0]['targetPolicy']
+  }
+  const interpret = (input: Partial<Interpreted[1]>) =>
+    interpretForcedMovements(prepared, {
+      execution: {} as Interpreted[1]['execution'],
+      published: {} as Interpreted[1]['published'],
+      occurrenceId: testUuid(0xb50),
+      targetActorId: NEAR_ID,
+      ...input
     })
-    const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'FORCED_MOVEMENT_DESTINATION')
-      throw new Error(`Expected the destination pick, got ${decision.pending.kind}.`)
-    committed(
-      await room.resolve(decision, {
-        kind: 'FORCED_MOVEMENT',
-        requestId: decision.pending.requestId,
-        position: { x: 450, y: 150 }
-      })
-    )
 
-    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
-    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 450, y: 150 })
+  it('rolls the ray once when none is sealed', () => {
+    const random = vi.fn(() => EAST)
+    expect(interpret({ random })).toEqual([expect.objectContaining({ ray: expect.anything() })])
+    expect(random).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the ray sealed for its target when the area plans again, never rolling a second', () => {
+    const sealed = interpret({ random: () => EAST })[0]!.ray!
+    const random = vi.fn(() => WEST)
+    expect(
+      interpret({ random, sealedRays: [{ targetActorId: NEAR_ID, ray: sealed }] })[0]!.ray
+    ).toEqual(sealed)
+    expect(random).not.toHaveBeenCalled()
+  })
+
+  it('rolls for a target that has no sealed ray', () => {
+    const random = vi.fn(() => WEST)
+    interpret({ random, sealedRays: [{ targetActorId: FAR_ID, ray: SOURCE_AT }] })
+    expect(random).toHaveBeenCalledTimes(1)
   })
 })
-
 describe('a forced movement’s collision damage to its mover (SPELLS-33.T6k2b3, D159)', () => {
   it('damages the mover for every full 10 feet it travelled, as one more entry after the caught creature’s, and gives it back on undo', async () => {
     // The mover's wolf has 11 hit points; 2d6 draws 3 and 4.

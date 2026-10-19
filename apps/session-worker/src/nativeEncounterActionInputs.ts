@@ -126,7 +126,10 @@ export function refuseUnmetItemActionRequirements(
  * creature) is kept, never rerolled.
  */
 export function interpretForcedMovements(
-  prepared: Pick<Prepared, 'adapter' | 'targetPolicy'>,
+  prepared: { adapter: Pick<Prepared['adapter'], 'interpretSpatial'> } & Pick<
+    Prepared,
+    'targetPolicy'
+  >,
   input: {
     execution: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['execution']
     occurrenceId: string
