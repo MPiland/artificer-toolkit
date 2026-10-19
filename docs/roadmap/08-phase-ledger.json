@@ -8287,7 +8287,7 @@
               "text": "Incoming-attack roll modes from existing options: BLUR (ATTACKS_AGAINST with exemptAttackerSenses), TRUE_STRIKE (PATH_TARGET-scoped advantage from the holder’s next turn), ENTHRALL (Perception disadvantage; two clauses MANUAL_ADJUDICATION), with parity proofs; each kind deleted. Split from SPELLS-4.T2k (2026-10-18 ruling)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2k",
               "wsjf": {
@@ -8297,7 +8297,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2k1"]
               },
-              "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1."
+              "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
