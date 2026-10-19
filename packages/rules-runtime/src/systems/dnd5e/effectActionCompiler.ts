@@ -18,6 +18,7 @@ import {
 } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
+  compileConditionEffect,
   compileModifierGrant,
   type CompiledDamageEffect,
   type CompiledDuration,
@@ -6780,16 +6781,18 @@ function failureMarginRiderGroups(
   if (input.facts.saveFailedBy === undefined)
     unsupported('D&D failure margin riders need the completed saving throw’s total.')
   if (input.facts.saveFailedBy < rider.failedBy) return []
-  return rider.outcomes.map((outcome) => [
-    {
-      ...lead,
-      entryId: outcome.id,
-      outcome,
-      duration: undefined,
-      lifecycle: undefined,
-      failureMarginRider: undefined
-    }
-  ])
+  return rider.outcomes.flatMap((authored) =>
+    compileConditionEffect(authored).map((outcome) => [
+      {
+        ...lead,
+        entryId: outcome.id,
+        outcome,
+        duration: undefined,
+        lifecycle: undefined,
+        failureMarginRider: undefined
+      }
+    ])
+  )
 }
 
 function specializeDnd5eEffectActionOutcomeBody(input: {
