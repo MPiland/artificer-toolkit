@@ -19,6 +19,22 @@ type SceneToken = CampaignSceneState['tokens'][number]
 /** A token the mover drags, with the creature it binds. */
 export type EncounterDraggedToken = { tokenId: string; actorId: string }
 
+/**
+ * Whether a drag costs double (D105): unless every dragged creature is two or more sizes smaller
+ * than the mover. An unknown size counts as not smaller. Settlement and the route preview's
+ * held-relationship read both decide it here.
+ */
+export function encounterDragDoublesCost(
+  moverSize: string | null,
+  draggedSizes: readonly (string | null)[]
+): boolean {
+  const moverRank = sizeRank(moverSize)
+  return draggedSizes.some((size) => {
+    const rank = sizeRank(size)
+    return moverRank === null || rank === null || moverRank - rank < 2
+  })
+}
+
 const translated = (path: readonly ScenePoint[], offset: ScenePoint) =>
   path.map((point) => ({ x: point.x + offset.x, y: point.y + offset.y }))
 
@@ -52,11 +68,10 @@ export function encounterMovementDrag(input: {
     .filter(([tokenId, actorId]) => tokenId !== mover.tokenId && heldActorIds.has(actorId))
     .map(([tokenId, actorId]) => ({ tokenId, actorId }))
     .sort((left, right) => left.tokenId.localeCompare(right.tokenId))
-  const moverRank = sizeRank(input.sizeOf(mover.actorId))
-  const doublesCost = tokens.some(({ actorId }) => {
-    const rank = sizeRank(input.sizeOf(actorId))
-    return moverRank === null || rank === null || moverRank - rank < 2
-  })
+  const doublesCost = encounterDragDoublesCost(
+    input.sizeOf(mover.actorId),
+    tokens.map(({ actorId }) => input.sizeOf(actorId))
+  )
   const { path } = input
   if (!path || tokens.length === 0) return { kind: 'DRAG', tokens, doublesCost }
 

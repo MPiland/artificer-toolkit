@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
 import type {
   CampaignContentRemovalReceiptDto,
@@ -22,11 +22,13 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
+import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { parsePublicationDocument } from '../content/publicationDocument'
 import { requireDefaultUserContentSource } from '../content/sources'
+import { readPartyEquipmentSource } from './partyInventoryDocuments'
 
 const families = [
   { kind: 'CLASS', parent: fighter, child: championMartialArchetype, field: 'parentClassId' },
@@ -262,6 +264,56 @@ describe('Campaign shared child parent prerequisites', () => {
     )
     expect(after.inventories).toHaveLength(1)
     expect(after.inventories[0]).toMatchObject({ campaignId: campaign.id, version: 2 })
+
+    // A fresh module graph has an empty memo: the cold parse and every warm hit agree.
+    vi.resetModules()
+    const fresh = await import('@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules')
+    const { acquiredEquipmentRulesSchema } =
+      await import('@artificer-toolkit/schema/projections/acquiredEquipmentRules')
+    const parse = vi.spyOn(acquiredEquipmentRulesSchema, 'parse')
+    const json = item.retainedRulesJson
+    const cold = fresh.readAcquiredEquipmentRules(json, child, srdSystemRecord.id)
+    const warm = fresh.readAcquiredEquipmentRules(json, child, srdSystemRecord.id)
+    expect(parse).toHaveBeenCalledTimes(1)
+    parse.mockRestore()
+    expect(warm).toEqual(cold)
+    expect(cold).toEqual(retained)
+    expect(() => fresh.readAcquiredEquipmentRules(json, base, srdSystemRecord.id)).toThrow(
+      'Acquired Equipment scope mismatch.'
+    )
+  })
+  it('parses published Equipment once per document and serves identical warm reads', async () => {
+    const { t, campaign } = await setup()
+    // A fresh id makes the document string new to the memo, so the first read is cold.
+    const equipmentId = crypto.randomUUID()
+    await t.mutation(internal.content.import.importSubjects, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [
+        importedSubject({
+          subjectKind: 'EQUIPMENT',
+          ...club,
+          id: equipmentId,
+          document: { ...club, id: equipmentId }
+        })
+      ]
+    })
+    const parse = vi.spyOn(equipmentAuthoredDtoSchema, 'parse')
+    const read = () =>
+      t.run(async (ctx) => {
+        const stored = await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+          .unique()
+        if (!stored) throw new Error('Missing Campaign.')
+        return (await readPartyEquipmentSource(ctx, stored, equipmentId))?.document
+      })
+    const cold = await read()
+    expect(parse).toHaveBeenCalledTimes(1)
+    const warm = await read()
+    expect(parse).toHaveBeenCalledTimes(1)
+    parse.mockRestore()
+    expect(cold?.id).toBe(equipmentId)
+    expect(warm).toEqual(cold)
   })
   it('does not treat Equipment held by another Campaign as local custody', async () => {
     const { t, owner, other, campaign, store } = await setup()

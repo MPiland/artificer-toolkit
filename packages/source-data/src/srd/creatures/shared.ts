@@ -27,6 +27,7 @@ import {
   TRIGGER,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
+  DURATION_KIND,
   type ActorRelationshipAuthored,
   type ActorRelationshipModuleAuthored,
   type CreatureAuthored,
@@ -401,6 +402,128 @@ export function grappledOutcome(
     }))
   }
 }
+/**
+ * A successful save's 24 hours of immunity to this source's use of the action ("the creature is
+ * immune to the cloaker's moan for the next 24 hours"): one SOURCE_IMMUNITY on the success path,
+ * keyed by the action and its source (D156). It takes the IDs `actionId(creatureIndex, localIndex +
+ * 0..2)`.
+ */
+export function saveImmunityPath(
+  creatureIndex: number,
+  localIndex: number
+): EffectAuthored['paths'][number] {
+  const id = (offset: number) => actionId(creatureIndex, localIndex + offset)
+  return {
+    id: id(0),
+    order: 2,
+    pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+    groupType: PATH_GROUP_TYPE.SINGLE,
+    originKind: 'SOURCE',
+    selectionKind: 'FIXED',
+    resultBlock: {
+      id: `${id(0)}__result`,
+      resultKind: 'SINGLE',
+      duration: { id: id(1), durationKind: DURATION_KIND.HOUR, amount: 24 },
+      outcomes: [{ id: id(2), effectKind: EFFECT_KIND.SOURCE_IMMUNITY }]
+    }
+  }
+}
+
+/**
+ * A minute of fear with a repeated save (Frightful Presence, Horror Nimbus): each creature it
+ * reaches makes a Wisdom save or is frightened of the source for 1 minute, repeating the save at
+ * the end of each of its turns, and one that succeeds is immune to this source's use of it for 24
+ * hours. It reaches the creatures the source chooses within `chosenWithinFeet`, or everyone in a
+ * sphere of `radiusFeet` around it. "Aware of it", "that can see the light" and "or the effect ends
+ * for it" stay in the description. It takes the IDs `actionId(creatureIndex, localIndex + 0..12)`.
+ */
+export function minuteFearSaveEffect(
+  creatureIndex: number,
+  input: {
+    localIndex: number
+    dc: number
+    reach: { chosenWithinFeet: number } | { radiusFeet: number }
+    repeatRollInfluence?: FollowUpSaveAuthored['repeatRollInfluence']
+  }
+): EffectAuthored {
+  const id = (offset: number) => actionId(creatureIndex, input.localIndex + offset)
+  const savingThrow = (offset: number) => ({
+    id: id(offset),
+    dcMethod: 'FIXED_DC' as const,
+    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
+    baseDc: input.dc
+  })
+  return {
+    id: id(0),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.SAVING_THROW,
+      savingThrow: savingThrow(1),
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      ...('chosenWithinFeet' in input.reach
+        ? {
+            range: {
+              id: id(2),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: input.reach.chosenWithinFeet,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        : {
+            range: { id: id(2), rangeKind: RANGE_KIND.SELF },
+            shape: {
+              id: id(11),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: input.reach.radiusFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          })
+    },
+    paths: [
+      {
+        id: id(3),
+        order: 1,
+        pathCode: PATH_CODE.ON_SAVE_FAIL,
+        groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: id(12),
+          resultKind: 'SEQUENCE',
+          duration: { id: id(4), durationKind: DURATION_KIND.MINUTE, amount: 1 },
+          outcomes: [
+            {
+              id: id(5),
+              effectKind: EFFECT_KIND.CONDITION,
+              conditionId: vocabularyId(SRD_CONDITION_TYPES, 'FRIGHTENED'),
+              recordsSource: true
+            },
+            {
+              id: id(6),
+              effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+              timing: FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+              savingThrow: savingThrow(7),
+              attempts: { kind: 'ONCE', repeatOnFailure: true },
+              ...(input.repeatRollInfluence && { repeatRollInfluence: input.repeatRollInfluence }),
+              onSuccess: { kind: 'END' },
+              onFailure: { kind: 'CONTINUE' }
+            }
+          ]
+        }
+      },
+      saveImmunityPath(creatureIndex, input.localIndex + 8)
+    ]
+  }
+}
+
 /**
  * The printed creature Sneak Attack ("once per turn ... when it hits a target with a weapon
  * attack"): a once-per-turn `ON_HIT` rider of the weapon's damage type, gated as the Rogue's is

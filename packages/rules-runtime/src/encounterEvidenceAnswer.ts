@@ -14,6 +14,8 @@ export type EncounterAppRollAnswer = Extract<ApiResolution, { kind: 'SYSTEM_ROLL
   faces: readonly number[]
   /** The mode a d20 was rolled with; null for any other roll. */
   rollMode: EncounterD20RollMode | null
+  /** The faces of a d20 test's added dice (D156), rolled with the d20. */
+  addedFaces?: readonly number[]
 }
 
 /** A response as the rules consume it: the command's answer, with an app roll's recorded faces. */
@@ -44,7 +46,12 @@ export function withEncounterAppRoll(
   }
   if (appRoll?.rollId !== resolution.rollId.toLowerCase())
     throw new EncounterValidationError('The app roll does not match the answer.')
-  return { ...resolution, faces: appRoll.faces, rollMode: appRoll.rollMode }
+  return {
+    ...resolution,
+    faces: appRoll.faces,
+    rollMode: appRoll.rollMode,
+    ...(appRoll.addedFaces ? { addedFaces: appRoll.addedFaces } : {})
+  }
 }
 
 /**

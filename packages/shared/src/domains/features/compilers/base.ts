@@ -1,4 +1,9 @@
-import type { FacetAuthored, FeatureBaseAuthored, FeatureRollDefinitionAuthored } from '#authored'
+import type {
+  FacetAuthored,
+  FeatureBaseAuthored,
+  FeatureRollDefinitionAuthored,
+  FeatureWeaponAttackAuthored
+} from '#authored'
 import {
   type CompiledFeatGrant,
   type CompiledModifierGrant,
@@ -17,13 +22,18 @@ import {
 } from '#compilers'
 import type { FeatureAttribute } from '#core'
 
+/** A Feature effect; one made with the wielded weapons keeps that (D156). */
+export type CompiledFeatureEffectGroup = CompiledEffectGroup & {
+  weaponAttack?: FeatureWeaponAttackAuthored
+}
+
 export type CompiledFeatureBase = {
   id: string
   /** Retained for bounded play-surface projections; historical snapshots may omit it. */
   label?: string
   attributes?: FeatureAttribute[]
   restrictions?: FacetAuthored
-  effects?: CompiledEffectGroup[]
+  effects?: CompiledFeatureEffectGroup[]
   rollDefinitions?: FeatureRollDefinitionAuthored[]
   ruleDefinitionIds?: string[]
   charges?: CompiledChargeUse
@@ -38,7 +48,12 @@ export type CompiledFeatureBase = {
 export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatureBase {
   const charges = authored.charges ? compileChargeUse(authored.charges) : undefined
 
-  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
+  const effects = authored.effects?.length
+    ? authored.effects.map((effect): CompiledFeatureEffectGroup => ({
+        ...compileEffect(effect),
+        ...(effect.weaponAttack ? { weaponAttack: effect.weaponAttack } : {})
+      }))
+    : undefined
 
   const feats = authored.grants?.feats?.length
     ? authored.grants.feats.map(compileFeatGrant)

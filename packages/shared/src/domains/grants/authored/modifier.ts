@@ -4,7 +4,7 @@ import type {
   ValueDomainCode,
   ModifierKindsByDomain,
   AUTHORING_SELECTION_KIND,
-  ValueDomainParam,
+  ModifierDomainFor,
   ModifierPayloadFor,
   NodeSubjectCode
 } from '#core'
@@ -20,7 +20,7 @@ export type ModifierGrantAuthoredFor<
       ? {
           grantKind: typeof GRANT_KIND.MODIFIER_GRANT
           valueDomainCode: V
-          domain: ValueDomainParam<V>
+          domain: ModifierDomainFor<V, K>
           modifierKind: K
           scope: ModifierScopeKind
         } & (ModifierPayloadFor<V, K> extends infer P

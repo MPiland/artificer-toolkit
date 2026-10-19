@@ -40,6 +40,10 @@
       "types": "./dist/utils/canonicalJson.d.ts",
       "default": "./dist/utils/canonicalJson.js"
     },
+    "./contentMemo": {
+      "types": "./dist/utils/contentMemo.d.ts",
+      "default": "./dist/utils/contentMemo.js"
+    },
     "./sha256": {
       "types": "./dist/utils/sha256.d.ts",
       "default": "./dist/utils/sha256.js"

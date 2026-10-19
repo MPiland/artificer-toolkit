@@ -24,6 +24,21 @@ const repeatPerceptionDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * Conditions a save failed by at least `failedBy` also applies, for the save's duration. They end
+ * on their own triggers, independently of the failure's outcomes.
+ */
+export const failureMarginRiderDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: authoredIdentifierSchema,
+    failedBy: z.number().check(z.int()).check(z.gte(1)).check(z.lte(30)),
+    outcomes: authoredNestedCollectionSchema(conditionDtoSchema).check(z.minLength(1)),
+    lifecycle: z.strictObject({
+      endOnTriggers: z.optional(pathLifecycleEndTriggersDtoSchema)
+    })
+  })
+)
+
 export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
   const branchDtoSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('END') }),
@@ -67,20 +82,7 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       onSuccess: branchDtoSchema,
       onFailure: branchDtoSchema,
       onDurationComplete: z.optional(branchDtoSchema),
-      /**
-       * Conditions a save failed by at least `failedBy` also applies, for the save's duration. They
-       * end on their own triggers, independently of the failure's outcomes.
-       */
-      failureMarginRider: z.optional(
-        z.strictObject({
-          id: authoredIdentifierSchema,
-          failedBy: z.number().check(z.int()).check(z.gte(1)).check(z.lte(30)),
-          outcomes: authoredNestedCollectionSchema(conditionDtoSchema).check(z.minLength(1)),
-          lifecycle: z.strictObject({
-            endOnTriggers: z.optional(pathLifecycleEndTriggersDtoSchema)
-          })
-        })
-      )
+      failureMarginRider: z.optional(failureMarginRiderDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

@@ -21,8 +21,10 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
       <div className={diceStyles.staticDiceList}>
         {roll.evidence.terms.flatMap((term, termIndex) =>
           term.rolls.map((value, rollIndex) => {
-            const cancelled = Boolean(adjustment?.cancelledRollIndexes.includes(rollIndex))
-            const added = Boolean(adjustment?.addedRollIndexes.includes(rollIndex))
+            // The adjustment names the d20's rolls, the first term; added dice (D156) follow it.
+            const termAdjustment = termIndex === 0 ? adjustment : undefined
+            const cancelled = Boolean(termAdjustment?.cancelledRollIndexes.includes(rollIndex))
+            const added = Boolean(termAdjustment?.addedRollIndexes.includes(rollIndex))
             const kept = term.keptRollIndexes
               ? term.keptRollIndexes.includes(rollIndex)
               : term.keptRollIndex == null || term.keptRollIndex === rollIndex
@@ -34,7 +36,7 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
                 key={`${termIndex}:${rollIndex}`}
               >
                 <small>
-                  d{term.die}
+                  {term.subtracted ? '−' : ''}d{term.die}
                   {cancelled
                     ? ''
                     : term.keptRollIndex == null

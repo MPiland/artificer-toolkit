@@ -223,6 +223,7 @@ const meta = {
     heldGrantEnds: [],
     releases: [],
     openAttackAction: null,
+    defaultActionId: null,
     areaAim: null,
     onAreaAimChange: fn(),
     onAreaSizeChange: fn(),
@@ -600,7 +601,8 @@ export const SecondAttackPreselected: Story = {
       total: 2,
       lastActionId: actions[0].id,
       lastTargetIds: [targetActor.id]
-    }
+    },
+    defaultActionId: actions[0].id
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
