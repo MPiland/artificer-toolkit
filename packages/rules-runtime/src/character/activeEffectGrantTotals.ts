@@ -3,6 +3,10 @@ import type {
   CharacterGrantFoldSense
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import {
+  attackCriticalRules,
+  type AttackCriticalRulesDto
+} from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import type {
   D20AddedDieDto,
   DamageAddedDieDto
@@ -303,6 +307,23 @@ export function activeCapValueGrantMinimum(
 ): number | null {
   const amounts = activeGlobalAmounts(effects, valueDomainCode, 'CAP_VALUE')
   return amounts.length === 0 ? null : Math.min(...amounts)
+}
+
+/**
+ * The critical-hit rules a Creature holder's active grants give its attacks of one attack domain:
+ * the lowest threshold and the sum of the extra damage dice. A Character folds the same grants
+ * through its policy instead.
+ */
+export function activeAttackCriticalRules(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackDomain: string
+): AttackCriticalRulesDto {
+  const applying = listActiveEffectGrants(effects)
+    .flatMap(({ modifiers }) => modifiers)
+    .filter(
+      (modifier) => modifier.scope === 'GLOBAL' && modifier.domain.attackDomain === attackDomain
+    )
+  return attackCriticalRules(applying)
 }
 
 /**
