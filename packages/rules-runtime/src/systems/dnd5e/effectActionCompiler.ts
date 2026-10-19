@@ -793,7 +793,8 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
   // A resolved list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
-  // creature, and it has no area.
+  // creature; one that names each creature once may be bounded by a round area at a point
+  // (Volley, D156), which a repeating list is not.
   if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
     const attacks = dnd5eAttackKind(invocation.triggerCode) !== null
     if (
@@ -802,7 +803,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
         (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
       !chosenCreaturesListResolves(targeting) ||
       (invocation.shape !== undefined &&
-        (attacks ||
+        (targeting.allowRepeatedTargets === true ||
           !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
     )
       return false
@@ -2053,10 +2054,12 @@ function timedConditionPlan(
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
   // With no duration the conditions last until their Concentration ends (Imp Invisibility) or an
-  // authored event ends them (Contact Other Plane's long rest): one of them must bound them.
+  // authored event ends them (Contact Other Plane's long rest): one of them must bound them. Until
+  // dispelled, they last until the GM ends them or an authored trigger does (Sequester).
   const { duration } = lead.entry
-  const initialRemaining = duration ? conditionDurationTurns(duration) : null
-  const indefinite = !duration
+  const untilDispelled = duration?.durationKind === 'UNTIL_DISPELLED'
+  const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
+  const indefinite = !duration || untilDispelled
   const grantEntry = grantEntries[0]
   // The grant joins the conditions' lifecycle, so it is planned without one of its own and counted
   // by the turn-effect kernel with them.
@@ -2069,7 +2072,9 @@ function timedConditionPlan(
       })?.modifierGrantContribution
     : null
   if (
-    (indefinite ? !maintenance && endOnEvents.length === 0 : initialRemaining === null) ||
+    (indefinite
+      ? !untilDispelled && !maintenance && endOnEvents.length === 0
+      : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.

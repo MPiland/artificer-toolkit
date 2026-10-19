@@ -2,9 +2,20 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-18 (Q26 added).
+> Updated: 2026-10-18 (Q27 added).
 
 ## Open
+
+### Q27 (2026-10-18) Should spells cast from the Sheet outside an Encounter create their effects?
+
+**Context:** SPELLS-4.T2c2 (Guidance, Resistance) found that a Sheet cast outside an Encounter only spends the slot; it creates no active effect. So an out-of-combat Guidance never becomes a held d4 on the target's next check, which is where Guidance is mostly used. Inside an Encounter, and for effects carried out of a Run (D151), it works. Fixing it needs rules for touch-targeting another Character from the Sheet and a duration clock outside Encounter time. No acceptance criterion covers it.
+
+**Options:**
+
+- A (recommended): register a SPELLS PBI, "Sheet casts outside an Encounter create their effects on the caster or a chosen party Character, with a wall-clock or GM-advanced duration", after SPELLS-4.T2c2 (size about 5). It closes the most common use of buff spells between fights.
+- B: leave out-of-combat buffs to the players and GM until after beta, recorded in future-enhancements.
+
+**Answer:**
 
 ### Q26 (2026-10-18) Model the core "two sizes apart" rule for moving through hostile creatures?
 

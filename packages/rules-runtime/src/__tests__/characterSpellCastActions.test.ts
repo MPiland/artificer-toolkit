@@ -2121,6 +2121,24 @@ describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, 
   })
 })
 
+describe('a condition until dispelled that damage ends, beside a GM ruling (SPELLS-4.T2a4, D156)', () => {
+  it('owns Sequester’s invisible on a willing creature with no end of turns, ending on anyone’s damage', () => {
+    const entry = compiledCastEntry(spell('Sequester'))
+    expect(entry?.targetPolicy?.targeting).toMatchObject({ dispositionKind: 'WILLING' })
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: null,
+      conditionContributions: [{ conditionId: conditionId('INVISIBLE') }],
+      lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
+      maintenance: null
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    expect(plan.published.definition.nodes.map((node) => node.operation.key)).toContain(
+      'dnd5e.manual-adjudication-proposal'
+    )
+  })
+})
+
 describe('a save cast that owns a bundle of modifiers, repeated at the end of each turn (SPELLS-4.T2a5, D156)', () => {
   it('owns Slow’s six modifiers for a minute under Concentration, with a plain-d20 turn-end save', () => {
     const plan = compiledCast(spell('Slow'))?.activeEffectPlan

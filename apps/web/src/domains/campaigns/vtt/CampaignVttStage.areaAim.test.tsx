@@ -151,6 +151,7 @@ const roomChoices = validatedChoices({
   encounterVersion: tabletopGmEncounter.version,
   actorId: emberActor.id,
   openAttackAction: null,
+  defaultActionId: null,
   actions: [
     {
       ...baseChoice,

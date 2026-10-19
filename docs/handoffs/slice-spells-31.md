@@ -4,7 +4,7 @@ Living handoff for SPELLS-31 (class feature and subclass feature closed rules be
 
 ## Current task
 
-SPELLS-31.T2, T3a, T3b and T3c (accepted T1 ruling, D156 amendment of 2026-10-18), one `ci/spells-31-<task>` push each, in order.
+SPELLS-31.T2, T3a, T3b, T3c and T5s (accepted T1 ruling, D156 amendments of 2026-10-18), one `ci/spells-31-<task>` push each, in order.
 
 ## T1 classification (D156)
 
@@ -311,3 +311,24 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - `sourceImmunity.test.ts` covers the homebrew Roar from core options, Intimidating Presence and Chains.
     - `encounterAreaActionCompilation.test.ts` and `characterSpellCastActions.test.ts` cover Hold Monster.
     - Session-worker tests cover the room's single-target refusal and the area exclusion.
+- **T5s (class B, Volley and Whirlwind Attack), 2026-10-18:** both kinds deleted. Ruling: D156 amendment (T5s).
+  - **Option:** `weaponAttack` on a Feature effect. It takes an optional `requiredPropertyCodes`, and its node is "Attacks with each wielded weapon".
+    - Deviation from the ruling's "invocation field": `weaponAttack` sits on the Feature effect beside `grip`, not inside the invocation. The invocation node map is shared with items and spells, so this keeps the option Feature-only.
+    - A Creature refuses the option, since it wields no items.
+    - An effect with the option may author no paths of its own. Without it, an effect still needs one path.
+    - The option is refused on an effect that is not a weapon attack, and alongside a grip.
+  - **Candidates:**
+    - There is one candidate per item weapon-attack effect (an effect with a grip) that matches the Feature effect's trigger and activation, on an item with every required property. Matching the activation keeps the Dagger's bonus-action off-hand attack out of Whirlwind Attack.
+    - Kind `ACTIVE_SOURCE_AND_EQUIPMENT`: a candidate is available only while both the Feature and that item are active.
+    - The candidate's equipment is the item's own, with the weapon effect's grip. So Encounter wield conflicts read the same state the plain weapon attack reads: a carried weapon counts as drawn, and a two-handed bow stows the shield.
+    - The candidate's modifier target adds the item's source. So ability, proficiency and magic bonuses apply exactly as they do on the plain attack.
+    - Outcomes: the weapon's entries, then the Feature's, plus the on-hit riders.
+    - Range: the weapon's, held to the Feature's own DISTANCE when that is shorter (Whirlwind Attack: 5 ft even with a Glaive). Volley authors a SPECIAL range, so it uses the bow's 150/600 ft.
+    - The action identity is a 32-hex sha256 of the Feature effect, item instance and weapon effect, so it fits wherever the Feature's own action id fits. A plain identity was over 240 characters for option sources.
+    - Capability discovery keys uniqueness by action id for this kind.
+  - **Compiler:** a CHOSEN_CREATURES attack list may name a point area when it does not repeat targets. Volley compiles to ACTORS with a 10 ft radius.
+  - **Ammunition:** deferred to ATTACK-19.4 / ATTACK-19.T4. Volley requires the AMMUNITION property but spends none, so it behaves like a plain Longbow attack.
+  - **Proofs:**
+    - `hunterWieldedWeaponAttacks.test.ts`: candidates, damage, the +1 bow, property and activation filtering, the availability matrix, wield conflicts, the Encounter compile, and the reach range cap.
+    - `feature-weapon-attack-contracts.test.ts` and `creature-attack-rolls.test.ts`: the schema refusals.
+    - The parity file: the SRD options and homebrew variants.

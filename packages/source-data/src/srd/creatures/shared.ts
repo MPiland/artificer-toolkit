@@ -288,12 +288,15 @@ export type GrappleRider = {
   largestTarget?: SizeCode
   /** The printed "until this grapple ends" conditions besides Grappled. */
   untilEnds?: readonly SrdConditionCode[]
+  /** The printed "can't bite another target": these actions may target only the held creature. */
+  restrictedActionEffectIds?: readonly string[]
 }
 
 /**
  * A Grappled outcome (D105): the target escapes with its Action by an Athletics or Acrobatics
  * check against the printed escape DC, and the grappler drags it when it moves. It takes the IDs
- * `grappleId(creatureIndex, localIndex)` through `localIndex + 4 + untilEnds.length`.
+ * `grappleId(creatureIndex, localIndex)` through `localIndex + 4 + untilEnds.length`, and one more
+ * for an action restriction.
  */
 export function grappledOutcome(
   creatureIndex: number,
@@ -323,7 +326,17 @@ export function grappledOutcome(
       dc: { kind: 'FIXED', value: rider.escapeDc },
       actorKinds: ['TARGET']
     },
-    { id: id(4 + (rider.untilEnds?.length ?? 0)), order: 0, kind: 'TARGET_DRAGGED' }
+    { id: id(4 + (rider.untilEnds?.length ?? 0)), order: 0, kind: 'TARGET_DRAGGED' },
+    ...(rider.restrictedActionEffectIds
+      ? [
+          {
+            id: id(5 + (rider.untilEnds?.length ?? 0)),
+            order: 0,
+            kind: 'SOURCE_ACTION_TARGET_RESTRICTION' as const,
+            actionEffectIds: [...rider.restrictedActionEffectIds]
+          }
+        ]
+      : [])
   ]
   return {
     id: id(0),

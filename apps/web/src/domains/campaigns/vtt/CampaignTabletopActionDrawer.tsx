@@ -117,6 +117,7 @@ export function CampaignTabletopActionDrawer({
   heldGrantEnds,
   releases,
   openAttackAction,
+  defaultActionId,
   actionsLoading,
   actionChoicesError,
   unavailableActions,
@@ -151,8 +152,10 @@ export function CampaignTabletopActionDrawer({
   escapes: EncounterEscapeChoiceDto[]
   heldGrantEnds: EncounterHeldGrantEndChoiceDto[]
   releases: EncounterReleaseChoiceDto[]
-  /** The Attack action opened this turn; its last weapon and target are preselected for the next attack. */
+  /** The Attack action opened this turn; its last target is preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
+  /** The action the server picks to start on: the open Attack action's weapon, else the held weapon's (D107). */
+  defaultActionId: EncounterActionChoicesDto['defaultActionId']
   actionsLoading: boolean
   actionChoicesError: string | null
   unavailableActions: EncounterActionChoicesDto['unavailableActions']
@@ -200,7 +203,7 @@ export function CampaignTabletopActionDrawer({
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
 }) {
-  // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
+  // `undefined` is untouched (the server's default action and the open Attack action's last target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
@@ -233,11 +236,7 @@ export function CampaignTabletopActionDrawer({
   const currentActor =
     encounter.actors.find((actor) => actor.id === encounter.currentActorId) ?? null
   const currentActorId = currentActor?.id ?? null
-  // The server marks a weapon that still fits the open Attack action with an `attackSlot`.
-  const preselectedActionId =
-    actions.find(
-      (action) => action.id === openAttackAction?.lastActionId && action.attackSlot !== null
-    )?.id ?? null
+  const preselectedActionId = actions.find((action) => action.id === defaultActionId)?.id ?? null
   const preselectedTargetActorId =
     openAttackAction?.lastTargetIds.find((id) =>
       encounter.actors.some((actor) => actor.id === id && !actor.defeated)
