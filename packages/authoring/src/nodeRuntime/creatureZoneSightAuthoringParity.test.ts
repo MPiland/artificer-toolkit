@@ -54,10 +54,14 @@ describe('a creature’s sight-gated passive zone through the creature node map'
     const authored = structuredClone(chainDevil)
     const { component } = maskComponent(authored)
     component.requiredSight = ['OCCUPANT_SEES_SOURCE']
-    const saving = component.behaviors?.[0]?.invocation.savingThrow
-    if (!saving || saving.dcMethod !== 'FIXED_DC')
+    const invocation = component.behaviors?.[0]?.invocation
+    if (
+      !invocation ||
+      !('savingThrow' in invocation) ||
+      invocation.savingThrow.dcMethod !== 'FIXED_DC'
+    )
       throw new Error('The mask must save at a fixed DC.')
-    saving.baseDc = 16
+    invocation.savingThrow.baseDc = 16
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
