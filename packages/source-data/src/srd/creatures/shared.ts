@@ -302,10 +302,16 @@ export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
 
 const SRD_INCOMING_DAMAGE_GRANT_NAMESPACE = '5d1f0f1e-8a4b-4c63-9b52-3e7a2c9d4b10'
 
-type IncomingDamageGrant = Pick<
-  NonNullable<NonNullable<FeatureAuthored['grants']>['modifiers']>[number],
-  'valueDomainCode' | 'domain' | 'modifierKind' | 'payload'
->
+type AuthoredModifierGrant = NonNullable<
+  NonNullable<FeatureAuthored['grants']>['modifiers']
+>[number]
+
+/** A modifier grant minus the fields the Effect supplies; distributes so each value domain keeps its own shape. */
+type IncomingDamageGrant = AuthoredModifierGrant extends infer Grant
+  ? Grant extends unknown
+    ? Omit<Grant, 'id' | 'grantKind' | 'scope' | 'selectionKind' | 'order'>
+    : never
+  : never
 
 /**
  * A passive Effect by which the creature, on taking damage of the given types, gains modifier
