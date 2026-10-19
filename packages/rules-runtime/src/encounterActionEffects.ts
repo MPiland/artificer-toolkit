@@ -9,12 +9,14 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
+import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -85,35 +87,44 @@ export function prepareNativeZoneSourceGrantEffect<
 const INCOMING_DAMAGE_GRANT_NAMESPACE = '8c1d4e0a-6b7f-4d2e-9a35-f0e2b7c41d68'
 
 /**
- * The grants the action's target gives itself when it takes damage, from its Creature's passive
+ * The grants a creature gives itself when it takes damage, from its Creature's passive
  * damage-trigger features: each made now as the effect it would hold, for `targetEndedEffects` to
- * select by the damage dealt. A Character target has no such features.
+ * select by the damage dealt. A Character holder has no such features. It reads only the holder's
+ * stored actor and held effects, so planning and persisting prepare the same triggers.
  */
-export function prepareNativeIncomingDamageGrantTriggers<
-  TCharacterFacts extends CharacterActionMovementFacts
->(input: {
-  prepared: Pick<PreparedMechanics<TCharacterFacts>, 'state' | 'target' | 'movementTargets'>
+export function prepareNativeIncomingDamageGrantTriggers(input: {
+  encounter: { id: string; currentActorId: string | null }
+  holder: EncounterRunActorState
+  /** The effects the holder carries before the damage. */
+  held: readonly ActiveRuleEffectRecord[]
   occurrenceId: string
   commandId: string
+  /** Tells apart the settlements of one occurrence that damage the same creature (Legendary Actions). */
+  ordinal?: number | string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }): IncomingDamageGrantTrigger[] {
-  const { prepared } = input
-  const holder = prepared.movementTargets.get(prepared.target.id)
-  if (prepared.target.kind !== 'CREATURE' || !holder) return []
+  const { holder } = input
+  if (holder.kind !== 'CREATURE') return []
   return discoverEncounterFeatureActions({
-    actor: prepared.target,
+    actor: holder,
     conditionDefinitionIds: [],
     abilityDefinitions: []
   }).passiveDamageGrants.map(({ capability, damageTypeIds, plan }) => {
     const effect = prepareRecurringActiveEffect({
-      encounterId: prepared.state.id,
+      encounterId: input.encounter.id,
       occurrenceId: input.occurrenceId,
       commandId: input.commandId,
-      sourceActorId: prepared.target.id,
+      sourceActorId: holder.id,
       sourceLabel: capability.label,
-      sourceHidden: !prepared.target.public,
-      currentActorId: prepared.state.currentActorId,
-      target: effectTarget(holder),
+      sourceHidden: !holder.public,
+      currentActorId: input.encounter.currentActorId,
+      target: {
+        actorId: holder.id,
+        conditionIds: readEncounterActorConditionState(holder.conditions ?? []).ids,
+        effectiveSize: creatureSnapshotSize(holder),
+        lifetimeScope: 'ENCOUNTER',
+        activeEffects: input.held
+      },
       activeEffectsByActorId: input.activeEffectsByActorId,
       activeEffectPlan: plan,
       published: plan.frozenGraph,
@@ -122,7 +133,7 @@ export function prepareNativeIncomingDamageGrantTriggers<
     if (!effect) throw new Error('A passive damage trigger yields no effect.')
     return {
       id: uuidv5(
-        `${input.occurrenceId}:${prepared.target.id}:${capability.effectId}`,
+        `${input.occurrenceId}:${input.ordinal ?? ''}:${holder.id}:${capability.effectId}`,
         INCOMING_DAMAGE_GRANT_NAMESPACE
       ),
       authoredEffectId: capability.effectId,
@@ -148,21 +159,23 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
+function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
+  const snapshot = actor.snapshot
+  const payload =
+    snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null
+  return payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    typeof payload.size === 'string'
+    ? payload.size
+    : null
+}
+
 /** An actor's size now: a Creature's snapshot size, or a Character's effective size from its facts. */
 export function encounterActorEffectiveSize(
   target: MovementTarget<CharacterActionMovementFacts>
 ): string | null {
-  if (target.actor.kind !== 'CHARACTER') {
-    const snapshot = target.actor.snapshot
-    const payload =
-      snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null
-    return payload &&
-      typeof payload === 'object' &&
-      !Array.isArray(payload) &&
-      typeof payload.size === 'string'
-      ? payload.size
-      : null
-  }
+  if (target.actor.kind !== 'CHARACTER') return creatureSnapshotSize(target.actor)
   const facts = target.characterFacts
   return facts
     ? toCharacterInitiativeActorFacts({

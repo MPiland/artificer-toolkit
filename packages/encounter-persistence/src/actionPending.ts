@@ -107,6 +107,10 @@ type CastPendingContext = {
     }
   } | null
   failedCounters?: readonly PendingCounter[]
+  /** The ward whose save the attacker owes; the pause is held on that roll. */
+  incomingGate?: { effectId: string } | null
+  /** The ward whose save the attacker already passed. */
+  passedIncomingGate?: string
 }
 
 const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
@@ -161,6 +165,12 @@ export function castPendingContinues(
   next: CastPendingContext
 ): boolean {
   const { castReaction } = previous
+  // A passed ward stays passed for the rest of the action, and only the gate's own answer passes it.
+  if (
+    next.incomingGate ||
+    next.passedIncomingGate !== (previous.incomingGate?.effectId ?? previous.passedIncomingGate)
+  )
+    return false
   const failedPrevious = failedReactorIds(previous)
   const failedNext = failedReactorIds(next)
   if (!castReaction) return sameMembers(failedNext, failedPrevious)
@@ -354,7 +364,7 @@ export function projectNativeActionPending(
       : snapshot.request.nodeId === 'target_d20'
         ? contestDefenderPolicy(context.contest.defender, null)
         : null
-    : (context.d20Policy ?? castCheck?.d20 ?? null)
+    : (context.d20Policy ?? castCheck?.d20 ?? context.incomingGate?.d20 ?? null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
   // The roller rolls the test's added dice with the d20 that settles it (D156); contest checks

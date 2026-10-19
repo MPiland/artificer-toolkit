@@ -1,7 +1,8 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type {
   EncounterCastReactionOfferDto,
-  EncounterFailedCounterDto
+  EncounterFailedCounterDto,
+  EncounterIncomingGateOfferDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
@@ -62,6 +63,7 @@ export function buildEncounterActionPendingSnapshot(input: {
   targetActorId: string
   currentnessChecksum: string
   failedCounters?: readonly EncounterFailedCounterDto[]
+  passedIncomingGate?: string
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   const { execution } = input
   return {
@@ -88,7 +90,8 @@ export function buildEncounterActionPendingSnapshot(input: {
       ...(execution.forcedMovementDestination
         ? { forcedMovementDestination: execution.forcedMovementDestination }
         : {}),
-      ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {})
+      ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {}),
+      ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }
@@ -109,6 +112,7 @@ export function buildEncounterCastReactionPendingSnapshot(input: {
   initiatorUserId: string
   currentnessChecksum: string
   failedCounters: readonly EncounterFailedCounterDto[]
+  passedIncomingGate?: string
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
@@ -125,7 +129,42 @@ export function buildEncounterCastReactionPendingSnapshot(input: {
       d20Policy: null,
       twoPhase: null,
       castReaction: input.castReaction,
-      ...(input.failedCounters.length ? { failedCounters: [...input.failedCounters] } : {})
+      ...(input.failedCounters.length ? { failedCounters: [...input.failedCounters] } : {}),
+      ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
+    }
+  }
+}
+
+/**
+ * The sealed pending snapshot of an action held before it executes, for the attacker who owes the save
+ * against a warded target's gate. The continuation is that one d20; the action itself is not held, it
+ * replays from the command once the save is rolled.
+ */
+export function buildEncounterIncomingGatePendingSnapshot(input: {
+  continuation: ServerRuleExecutionContinuationDto
+  incomingGate: EncounterIncomingGateOfferDto
+  rollerActorId: string
+  optionalCombatSnapshotChecksum: string | null | undefined
+  commandJson: string
+  commandFingerprint: string
+  initiatorUserId: string
+  currentnessChecksum: string
+}): ServerKernelRuleExecutionPendingSnapshotDto {
+  return {
+    ...input.continuation,
+    snapshotKind: 'KERNEL_EVIDENCE',
+    optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum,
+    applicationContext: {
+      kind: 'ENCOUNTER_ACTION',
+      schemaVersion: 1,
+      commandJson: input.commandJson,
+      commandFingerprint: input.commandFingerprint,
+      initiatorUserId: input.initiatorUserId,
+      rollerActorId: input.rollerActorId,
+      currentnessChecksum: input.currentnessChecksum,
+      d20Policy: null,
+      twoPhase: null,
+      incomingGate: input.incomingGate
     }
   }
 }
