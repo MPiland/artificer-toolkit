@@ -4,6 +4,7 @@ import {
   encounterAreaCaughtChecksum,
   encounterChosenActorEntries,
   encounterChosenActorsChecksum,
+  encounterCollisionSaveOccurrenceId,
   removeEncounterAreaTarget
 } from '../encounterAreaPending.js'
 
@@ -82,6 +83,61 @@ describe('removing a creature that several rays are aimed at', () => {
   it('refuses the creature once any ray aimed at it has been answered', () => {
     const before = context([{ actorId: FIRST }, { actorId: FIRST, testedJson: '{}' }])
     expect(removeEncounterAreaTarget(before, FIRST)).toEqual({ kind: 'ANSWERED' })
+  })
+})
+
+describe('a creature a forced-movement collision struck (D159)', () => {
+  const MOVER = '00000000-0000-4000-8000-0000000000a9'
+  const AREA = '00000000-0000-4000-8000-0000000000d1'
+  const struckMarker = {
+    moverActorId: MOVER,
+    damageDiceConfig: '1d6',
+    damageTypeId: '00000000-0000-4000-8000-0000000000e1',
+    abilityDefinitionId: '00000000-0000-4000-8000-0000000000e2',
+    dc: 13,
+    conditionId: '00000000-0000-4000-8000-0000000000e3'
+  }
+  const withStruck = (actorId: string) => {
+    const before = context([{ actorId: FIRST }, { actorId: SECOND }])
+    return {
+      ...before,
+      targets: [...before.targets, { ...token('x', 0), actorId, collision: struckMarker }]
+    }
+  }
+
+  it('gives each mover’s strike on a creature its own save occurrence', () => {
+    const own = encounterCollisionSaveOccurrenceId(AREA, MOVER, SECOND)
+    expect(encounterCollisionSaveOccurrenceId(AREA, MOVER, SECOND)).toBe(own)
+    expect(encounterCollisionSaveOccurrenceId(AREA, MOVER, THIRD)).not.toBe(own)
+    expect(encounterCollisionSaveOccurrenceId(AREA, FIRST, SECOND)).not.toBe(own)
+    expect(
+      encounterChosenActorEntries(AREA, [FIRST, SECOND]).map((entry) => entry.occurrenceId)
+    ).not.toContain(own)
+  })
+
+  it('is never part of what the area caught', () => {
+    const { scene: sealedScene, area: sealedArea, targets } = withStruck(SECOND)
+    expect(
+      encounterAreaCaughtChecksum({ scene: sealedScene, area: sealedArea, caught: targets })
+    ).toBe(
+      encounterAreaCaughtChecksum({
+        scene: sealedScene,
+        area: sealedArea,
+        caught: targets.filter(({ collision }) => !collision)
+      })
+    )
+  })
+
+  it('is kept when the GM removes the creature it was also caught as', () => {
+    const removed = removeEncounterAreaTarget(withStruck(SECOND), SECOND)
+    if (removed.kind !== 'REMOVED') throw new Error('Expected the caught creature to be removed.')
+    expect(removed.removedActorIds).toEqual([SECOND])
+    expect(removed.targets.map(({ actorId }) => actorId)).toEqual([FIRST, SECOND])
+    expect(removed.targets.at(-1)?.collision).toEqual(struckMarker)
+  })
+
+  it('cannot be removed by itself, for the area never caught the creature', () => {
+    expect(removeEncounterAreaTarget(withStruck(THIRD), THIRD)).toEqual({ kind: 'NOT_CAUGHT' })
   })
 })
 

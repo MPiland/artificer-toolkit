@@ -11,7 +11,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { encounterAreaSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { encounterAreaCaughtSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
   requireAreaActionAnswer,
   requireAreaActionForcedMovement,
@@ -164,13 +164,14 @@ export async function persistEncounterActionPending(
         callbacks.readAreaSceneInputs
       )
       const failedCounters = area.failedCounters ?? []
-      // An area whose saves all settled as it opened may hold its first push pick, nothing landed.
+      // An area whose saves all settled as it opened may hold its first push pick or the saves of the
+      // creatures its movers struck, nothing picked.
       const opened = area.forcedMovement
       if (
         (opened &&
           (opened.landed.length > 0 ||
             snapshot.snapshotKind !== 'AGGREGATE_CHOICE' ||
-            !encounterAreaSettled(snapshot))) ||
+            !encounterAreaCaughtSettled(snapshot))) ||
         (resume
           ? snapshot.occurrenceId !== resume.occurrence.id ||
             !castPendingContinues(resume.pending.context, input.response, { failedCounters })
