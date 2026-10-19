@@ -25726,7 +25726,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -36735,7 +36735,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -47753,7 +47753,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -58762,7 +58762,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -69806,7 +69806,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -80815,7 +80815,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -91793,7 +91793,7 @@ export declare const api: {
                                   };
                               selectionKind: "AREA_CONTENTS";
                             };
-                        triggerCode: "SAVING_THROW";
+                        triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
                         kind: "PASSIVE";
@@ -102693,7 +102693,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
@@ -113702,7 +113702,7 @@ export declare const api: {
                                     };
                                 selectionKind: "AREA_CONTENTS";
                               };
-                          triggerCode: "SAVING_THROW";
+                          triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
                           kind: "PASSIVE";
