@@ -11654,7 +11654,7 @@
             },
             {
               "id": "SPELLS-33.T3a3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11664,7 +11664,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5l"]
               },
               "text": "Lift the compiler refusal of AREA_CONTENTS saves with excluded creature types generically, then convert Cloaker Moan as a 60-foot self-centered sphere excluding aberrations; its after-save immunity stays in T7a (1 kind). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md). Excluded types are sealed in the T5l pending-area list, renamed unaffectedActorIds (D156 T3a3 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m156 (f12f07685)."
             },
             {
               "id": "SPELLS-33.T3a4",
