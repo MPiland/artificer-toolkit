@@ -190,7 +190,7 @@ Totals: **C 28, A 13, B 123** (B: 58 join a SPELLS-4.T2 group, 65 need a class-o
 ### Authoring gaps found (fixed inside the owning subtask)
 
 - No `resourceUse` on Bardic Inspiration, Cutting Words, Peerless Skill, Turn the Unholy, Preserve Life or Draconic Presence.
-- Sacred Weapon spends Holy Nimbus's charge (`oath-of-devotion.ts`): a likely bug, regression test in T4e.
+- Sacred Weapon spends Holy Nimbus's charge (`oath-of-devotion.ts`): a likely bug, regression test in T4e. Fixed in T4e: Oath of Devotion now has a Channel Divinity feature with one short-rest charge that Sacred Weapon and Turn the Unholy both spend; `classFeatureCoreOptions.test.ts` pins both.
 - No charges authored for Divine Sense, Lay on Hands, Cleansing Touch, Stroke of Luck or Eldritch Master.
 - Aura of Courage and Aura of Devotion lack the 18th-level 30 ft range.
 - College of Lore's Additional Magical Secrets rule sits on the Bonus Proficiencies feature (deleted in T2; the 6th-level feature already grants the spells).

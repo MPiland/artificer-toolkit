@@ -11079,7 +11079,7 @@
             },
             {
               "id": "SPELLS-31.T4e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11089,6 +11089,20 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2e"]
               },
               "text": "Join SPELLS-4.T2e: Sacred Weapon (regression test for its Holy Nimbus charge bug), Ki-Empowered Strikes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "Merged m184 (891afa689)."
+            },
+            {
+              "id": "SPELLS-31.T4e2",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["SPELLS-31.T4e"]
+              },
+              "text": "new: review follow-ups from T4e and T4k1 (2026-10-19): type the attack-trait input as AttackKind instead of the `as AttackKind` cast in attackDamageDefenses.ts, and make the typecheck lane of scripts/withValidationLock.ps1 fail (with a node_modules preflight) instead of reporting a false green when every yarn command fails.",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
@@ -12247,7 +12261,7 @@
             },
             {
               "id": "SPELLS-33.T6e3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12257,11 +12271,11 @@
                 "after": ["SPELLS-33.T6e"]
               },
               "text": "Flesh Golem Aversion of Fire (disadvantage on attacks and checks) and Water Elemental Freeze (-20 ft speed), part a: a passive damage-type trigger whose outcome is a generic timed self grant, returned by the one damage-taken seam alongside ended effects ({endedEffects, releases, grants}; releases first, then grants), refreshed by source feature rather than stacked, wired end to end on the action damage root with receipt, persistence verify, revert and a room journey. Authoring-parity proofs for both grant kinds; deletes its kinds (2026-10-19 ruling; T6e3b wires the other roots; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m183 (197fa6c03)."
             },
             {
               "id": "SPELLS-33.T6e3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12270,7 +12284,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6e3"]
               },
-              "text": "new: wire the turn-zone, melee-retaliation, legendary and movement-reaction damage roots through T6e3's one damage-taken seam ({endedEffects, releases, grants}), so damage-triggered timed self grants are created, verified, receipted and reverted on every root; spatial movement contacts stay deferred with T6e4's gap (2026-10-19 split; workbook slice-spells-33.md)."
+              "text": "new: wire the turn-zone, melee-retaliation, legendary and movement-reaction damage roots through T6e3's one damage-taken seam ({endedEffects, releases, grants}), so damage-triggered timed self grants are created, verified, receipted and reverted on every root; spatial movement contacts stay deferred with T6e4's gap (2026-10-19 split; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e1",
@@ -12445,7 +12460,7 @@
                 "size": 5,
                 "after": ["SPELLS-33.T6k2b3"]
               },
-              "text": "new: Whirlwind collision part 5 (D159): the struck creature's Dex save on the existing AREA_PENDING pattern (player rolls their own, creatures server-rolled) with a collision-target entry in context.targets, damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the two-mover landing-order test with actor-id tie-break, the Whirlwind switch to the authored block and deletion of CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with its parity proof, and the room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split; workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 5 (D159): the struck creature's Dex save on the existing AREA_PENDING pattern (player rolls their own, creatures server-rolled) with a collision-target entry in context.targets, damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the two-mover landing-order test with actor-id tie-break, the Whirlwind switch to the authored block and deletion of CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with its parity proof, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19), and the room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6k3",

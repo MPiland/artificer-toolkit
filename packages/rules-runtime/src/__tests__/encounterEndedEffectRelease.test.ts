@@ -330,15 +330,20 @@ describe('what an action ends on its target', () => {
 
   it('ends nothing when no damage is dealt or all of it is resisted away', () => {
     const held = sleeper(FIRST_ID, anyDamage)
-    expect(taken([held], [])).toEqual({ endedEffects: [], releases: [] })
-    expect(taken([held], [damage(FIRE, 0)])).toEqual({ endedEffects: [], releases: [] })
+    expect(taken([held], [])).toEqual({ endedEffects: [], releases: [], grants: [] })
+    expect(taken([held], [damage(FIRE, 0)])).toEqual({
+      endedEffects: [],
+      releases: [],
+      grants: []
+    })
   })
 
   it('ignores damage dealt to another actor', () => {
     const held = sleeper(FIRST_ID, anyDamage)
     expect(taken([held], [{ ...damage(FIRE), targetActorId: STRANGER_ID }])).toEqual({
       endedEffects: [],
-      releases: []
+      releases: [],
+      grants: []
     })
   })
 
@@ -411,11 +416,13 @@ describe('what an action ends on its target', () => {
     it('leaves the effect for an action without an attack roll, or one the holder makes', () => {
       expect(attackedBy([marked(['ON_ATTACKED'])], false)).toEqual({
         endedEffects: [],
-        releases: []
+        releases: [],
+        grants: []
       })
       expect(attackedBy([marked(['ON_ATTACK_ROLL'])], true)).toEqual({
         endedEffects: [],
-        releases: []
+        releases: [],
+        grants: []
       })
     })
   })

@@ -98,7 +98,8 @@ export const triggerCodeSchema = lazySchema(() =>
     'INCOMING_SAVING_THROW',
     'SAVING_THROW',
     'CHECK',
-    'ENTER_AREA'
+    'ENTER_AREA',
+    'INCOMING_DAMAGE'
   ])
 )
 
@@ -429,6 +430,7 @@ export const modifierValueKindSchema = lazySchema(() =>
   z.enum([
     'FIXED',
     'PROFICIENCY_BONUS',
+    'ABILITY_MODIFIER',
     'SKILL_BONUS',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
