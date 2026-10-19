@@ -7,7 +7,7 @@ import { damageDtoSchema } from './damage.js'
 import { hitPointMaximumReductionDtoSchema } from './hitPointMaximumReduction.js'
 import { scalarReductionDtoSchema } from './scalarReduction.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
-import { createFollowUpSaveDtoSchema } from './followUpSave.js'
+import { createFollowUpSaveDtoSchema, failureMarginRiderDtoSchema } from './followUpSave.js'
 import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
@@ -31,6 +31,7 @@ import { sourceImmunityDtoSchema } from './sourceImmunity.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
+import { activeEffectUsesSchema } from '../shared/activeRuleEffectLifecycle.js'
 import {
   activationCodeSchema,
   pathCodeSchema,
@@ -142,6 +143,12 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
+    /** See `PathLifecycleAuthored.fromSourceOnly`. */
+    fromSourceOnly: z.optional(z.boolean()),
+    /** See `PathLifecycleAuthored.uses`. */
+    uses: z.optional(activeEffectUsesSchema),
+    /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */
+    activeOnlyOnFinalAnchorTurn: z.optional(z.boolean()),
     /** The zone holds the condition (D146); see `PathLifecycleAuthored.heldBySource`. */
     heldBySource: z.optional(z.boolean()),
     /** The check a creature the zone holds may make to free itself. */
@@ -169,6 +176,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     maintenanceDefinitionId: z.optional(postgresUuidSchema),
     duration: z.optional(durationDtoSchema),
     lifecycle: z.optional(pathLifecycleDtoSchema),
+    failureMarginRider: z.optional(failureMarginRiderDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 

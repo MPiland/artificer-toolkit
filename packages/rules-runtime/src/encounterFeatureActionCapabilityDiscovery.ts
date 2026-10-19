@@ -221,7 +221,10 @@ function snapshotProvenance(
   }
 }
 
-function snapshotFeatures(actor: EncounterProjectionActorInput): readonly FeatureDto[] {
+/** The Features of a Creature's immutable snapshot, parsed; empty when it holds none. */
+export function snapshotFeatures(
+  actor: Pick<EncounterProjectionActorInput, 'snapshot'>
+): readonly FeatureDto[] {
   if (
     typeof actor.snapshot !== 'object' ||
     actor.snapshot === null ||

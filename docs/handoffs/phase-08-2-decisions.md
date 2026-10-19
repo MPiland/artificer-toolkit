@@ -995,6 +995,15 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rejected:** choosing up front on the action or cast command, because the player would pick before knowing whether the push happens, and area picks conflict while farther creatures land first.
   - **Deferred:** Whirlwind's random direction is chosen by its controller, not rolled.
 
+* **D158** (2026-10-18) An expanded critical range (SPELLS-31.T5d; [slice-spells-31.md](slice-spells-31.md)). Orchestrator ruling.
+  - **Rule:** an attack scores a critical hit when its natural d20 is at or above the holder's critical threshold (default 20, lowest grant wins), unless it is a natural 1. A critical hit always hits, whatever the target's AC, following the published designer ruling for Improved Critical. Review if you prefer that a 19 below AC misses.
+  - **Contract:** the threshold is a `CRITICAL_HIT_THRESHOLD` CAP_VALUE grant per attack domain, and Brutal Critical's extra weapon dice are a `CRITICAL_EXTRA_DICE` BONUS grant per attack domain. Characters and Creatures share one fact builder. The d20 test operation takes `criticalThreshold` as a required input. Pre-launch, so traces committed before it carry no compatibility default; local review data is reseeded.
+* **D159** (2026-10-19) Thrown-target collisions (SPELLS-33.T6k2; [slice-spells-33.md](slice-spells-33.md)). Orchestrator ruling.
+  - **Rule:** "strikes an object, such as a wall or floor" includes the floor, so every thrown target takes the collision dice once for each full 10 feet it actually travelled, whether it lands at full distance or is stopped by a wall or obstacle. If its path reaches another creature, it stops in the last free square before that creature, and that creature makes the authored save or takes the same collision damage and the authored condition.
+  - **Direction:** "a random direction" is a server-rolled `RANDOM` forced-movement direction, so Kraken Fling can reuse it. "Up to" still lets the mover stop early only when the path is blocked.
+  - **Transaction:** the room's landing reports, for each mover, the feet it travelled and what stopped it. The collision is settled inside the same action commit and receipt, with the same replay and revert fences, never as a follow-up action.
+  - **Split:** the Bulette's Deadly Leap (saving-throw ability choice, landing in an occupied space) moves to SPELLS-33.T6k3, after SPELLS-33.T5n adds jump tracking.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

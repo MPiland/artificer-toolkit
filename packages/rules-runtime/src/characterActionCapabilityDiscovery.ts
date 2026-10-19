@@ -127,7 +127,12 @@ function assertExactCandidateMapping(input: {
     if (actionIds.has(descriptor.actionId)) {
       throw new Error('Character action capability discovery produced a duplicate action identity.')
     }
-    const sourceEffectKey = `${descriptor.sourceId}\u0000${descriptor.effectId}`
+    // A Feature attack made with the wielded weapons is one action per weapon attack (D156), each
+    // its own action identity.
+    const sourceEffectKey =
+      candidate.activationSourceKind === 'ACTIVE_SOURCE_AND_EQUIPMENT'
+        ? descriptor.actionId
+        : `${descriptor.sourceId}\u0000${descriptor.effectId}`
     if (sourceEffectKeys.has(sourceEffectKey)) {
       throw new Error(
         'Character action capability discovery produced a duplicate source/Effect identity.'

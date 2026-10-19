@@ -5,6 +5,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
+import { d20AddedDiceDtoSchema } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
 
 const uuidSchema = lazySchema(() =>
@@ -148,6 +149,11 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
       derivedRollModeReasons: z
         .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
         .check(z.maxLength(32)),
+      /**
+       * Dice the roller rolls with the d20 and adds or subtracts after the mode keeps one d20
+       * (D156), such as "+1d4 Bless". Absent when the test has none.
+       */
+      addedDice: z.optional(d20AddedDiceDtoSchema),
       /**
        * The d20 already rolled when the server needs one more to settle the true mode
        * (ATTACK-10.1): the roller enters one more d20, or asks the app to roll it.

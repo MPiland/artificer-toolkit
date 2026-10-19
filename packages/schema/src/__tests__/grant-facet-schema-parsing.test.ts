@@ -192,13 +192,6 @@ describe('grant and facet schema parsing', () => {
       {
         ...base,
         valueDomainCode: 'DAMAGE',
-        modifierKind: 'ADD_BONUS_DIE',
-        domain: { attackDomain: 'MELEE' },
-        payload: { dice: '1d4' }
-      },
-      {
-        ...base,
-        valueDomainCode: 'DAMAGE',
         modifierKind: 'REPLACE_DAMAGE_TYPE',
         domain: { attackDomain: 'MELEE' },
         payload: { damageTypeId: 'fire' }
@@ -240,6 +233,26 @@ describe('grant and facet schema parsing', () => {
         payload
       }))
     ]
+    // A rolled die is a d20-test modifier: it parses on attack rolls and saves, never on damage.
+    const rolledDie = (valueDomainCode: string, domain: object, payload: object) =>
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode,
+        modifierKind: 'ADD_BONUS_DIE',
+        domain,
+        payload
+      }).success
+    const d4 = { count: 1, faces: 4, sign: 'ADD' }
+    expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, d4)).toBe(true)
+    expect(
+      rolledDie('SAVING_THROW_MODIFIER', { ability: 'WISDOM' }, { ...d4, sign: 'SUBTRACT' })
+    ).toBe(true)
+    // A rolled die naming no ability covers every saving throw, death saves included (D156).
+    expect(rolledDie('SAVING_THROW_MODIFIER', {}, d4)).toBe(true)
+    expect(rolledDie('DAMAGE', { attackDomain: 'MELEE' }, d4)).toBe(false)
+    expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { ...d4, faces: 20 })).toBe(false)
+    expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { ...d4, count: 0 })).toBe(false)
+    expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { dice: '1d4' })).toBe(false)
     for (const grant of unsupported) {
       const parsed = modifierGrantDtoSchema.safeParse(grant)
       expect(parsed.success).toBe(false)

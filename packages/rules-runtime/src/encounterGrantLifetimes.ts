@@ -11,6 +11,7 @@ import type {
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
 import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
@@ -46,21 +47,73 @@ export function ownsCondition(effect: ActiveRuleEffectRecord) {
 }
 
 /**
+ * An ability check that spends dice, with the ability it was made with (null when it has none). Only the effects whose die
+ * applied to this check are spent (D156).
+ */
+export type ScopedAbilityCheck = {
+  event: 'ON_ABILITY_CHECK'
+  abilityCode: string | null
+}
+
+function abilityCheckGrants(effect: ActiveRuleEffectRecord) {
+  return listActiveEffectGrants([effect])
+    .flatMap(({ modifiers }) => modifiers)
+    .filter((modifier) => modifier.valueDomainCode === 'ABILITY_CHECK')
+}
+
+/**
+ * Whether a bare ability-check event spends the effect: it is a check that adds no dice (a
+ * contest's), so it never spends a held die that waits for one that does.
+ */
+function bareTestApplies(
+  effect: ActiveRuleEffectRecord,
+  event: ActiveEffectConsumeEvent | ActiveEffectEndEvent
+) {
+  return (
+    event !== 'ON_ABILITY_CHECK' ||
+    !abilityCheckGrants(effect).some(({ modifierKind }) => modifierKind === 'ADD_BONUS_DIE')
+  )
+}
+
+/**
+ * Whether a scoped check spent the effect's grants: it has no ability-check grants (the event alone
+ * ends it), or one of them applied to the check's ability.
+ */
+function scopedCheckApplies(effect: ActiveRuleEffectRecord, check: ScopedAbilityCheck) {
+  const grants = abilityCheckGrants(effect)
+  return (
+    grants.length === 0 ||
+    grants.some(
+      ({ domain }) => domain.ability === undefined || domain.ability === check.abilityCode
+    )
+  )
+}
+
+/**
  * The effects the first occurrence of the event, by their holder, uses up or ends: those that list
  * it in `consumeOnFirstEvents` or `endOnEvents`. Both lists mean the same here (the event applies,
  * then the effect is gone, restored by the same receipt); the caller releases any condition an
  * ended effect alone held (`endedMaintenanceConditions`). An action can be several events at once (a
- * spell attack is an attack roll and a cast); an effect listing more than one ends once.
+ * spell attack is an attack roll and a cast); an effect listing more than one ends once. An ability
+ * check is passed as a `ScopedAbilityCheck` and spends only the effects whose grants
+ * applied to its ability.
  */
 export function effectsEndedBy(
   effects: readonly ActiveRuleEffectRecord[],
-  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent)[]
+  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent | ScopedAbilityCheck)[]
 ) {
   return effects.filter(
-    ({ definition }) =>
-      definition.schemaVersion === 2 &&
-      [...definition.recurrence.consumeOnFirstEvents, ...definition.recurrence.endOnEvents].some(
-        (listed) => events.includes(listed)
+    (effect) =>
+      effect.definition.schemaVersion === 2 &&
+      [
+        ...effect.definition.recurrence.consumeOnFirstEvents,
+        ...effect.definition.recurrence.endOnEvents
+      ].some((listed) =>
+        events.some((event) =>
+          typeof event === 'string'
+            ? event === listed && bareTestApplies(effect, event)
+            : event.event === listed && scopedCheckApplies(effect, event)
+        )
       )
   )
 }
@@ -118,6 +171,41 @@ function grantAnchorActorId(
     origin.sourceAggregateId === encounterId
     ? origin.sourceActorId
     : holderActorId
+}
+
+/** The actor an event comes from and the actor whose turn it is; null when there is none. */
+export type EffectEventScope = { actorId: string | null; turnActorId: string | null }
+
+/**
+ * Whose events an effect meets, and on whose turn, for its grants about attackers and its attack
+ * consume: only its Encounter source's when `fromSourceOnly`, and only during its tick anchor's turn
+ * while one tick remains when `activeOnlyOnFinalAnchorTurn`; a null field admits anyone. Null while
+ * the effect meets no event: dormant before that final turn, or source-only with no source here.
+ */
+export function effectEventScope(
+  effect: Pick<ActiveRuleEffectRecord, 'definition' | 'lifecycle'>,
+  holderActorId: string
+): EffectEventScope | null {
+  const { recurrence, origin } = effect.definition
+  const sourceActorId = origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null
+  if (recurrence.fromSourceOnly && sourceActorId === null) return null
+  const actorId = recurrence.fromSourceOnly ? sourceActorId : null
+  if (!recurrence.activeOnlyOnFinalAnchorTurn) return { actorId, turnActorId: null }
+  const { expiration } = recurrence
+  if (expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
+  return {
+    actorId,
+    turnActorId:
+      expiration.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
+  }
+}
+
+/** Whether an event falls within an effect's scope (see `effectEventScope`). */
+export function isInEffectEventScope(scope: EffectEventScope, event: EffectEventScope): boolean {
+  return (
+    (scope.actorId === null || scope.actorId === event.actorId) &&
+    (scope.turnActorId === null || scope.turnActorId === event.turnActorId)
+  )
 }
 
 /**

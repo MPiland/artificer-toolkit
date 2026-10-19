@@ -10,6 +10,7 @@ import { manifestBehaviorPathDtoSchema, pathDtoSchema } from './path.js'
 import {
   activationCodeSchema,
   equipmentGripSchema,
+  equipmentPropertyCodeSchema,
   invocationKindSchema,
   triggerCodeSchema
 } from '../shared/enums.js'
@@ -215,10 +216,41 @@ function checkPathRestrictions(
   })
 }
 
+/**
+ * A failure-margin rider reads the margin of the saving throw the Effect itself makes, so only the
+ * fixed ON_SAVE_FAIL result of a saving-throw action carries one (a follow-up save carries its own).
+ */
+function checkFailureMarginRiders(
+  effect: Pick<EffectAuthored, 'invocation' | 'paths'>,
+  context: z.core.$RefinementCtx
+) {
+  effect.paths.forEach((path, index) => {
+    const resultBlocks =
+      path.selectionKind === 'FIXED'
+        ? [path.resultBlock]
+        : path.selectionKind === 'CHOICE'
+          ? path.options.map((option) => option.resultBlock)
+          : path.rows.flatMap((row) => (row.resolutionKind === 'RESULT' ? [row.resultBlock] : []))
+    const allowed =
+      path.selectionKind === 'FIXED' &&
+      path.pathCode === 'ON_SAVE_FAIL' &&
+      effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE &&
+      effect.invocation.triggerCode === 'SAVING_THROW'
+    if (!allowed && resultBlocks.some((block) => block.failureMarginRider))
+      context.addIssue({
+        code: 'custom',
+        path: ['paths', index],
+        message:
+          'Only the fixed ON_SAVE_FAIL result of a saving-throw action can carry a failure margin rider.'
+      })
+  })
+}
+
 export const effectDtoSchema = lazySchema(() =>
   (createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>).check(
     z.superRefine(checkWeaponDamageTypeChoices),
-    z.superRefine(checkPathRestrictions)
+    z.superRefine(checkPathRestrictions),
+    z.superRefine(checkFailureMarginRiders)
   )
 )
 
@@ -248,19 +280,35 @@ const featureSpellCastDtoSchema = lazySchema(() =>
   z.object({ castLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)) })
 )
 
+/** An attack made with each wielded weapon that has these properties (D156). */
+const featureWeaponAttackDtoSchema = lazySchema(() =>
+  z.object({
+    requiredPropertyCodes: z.optional(z.array(equipmentPropertyCodeSchema).check(z.maxLength(20)))
+  })
+)
+
 /**
  * Feature effects name a grip only for a versatile weapon attack, which authors one effect per grip
- * so each grip is its own action (D57 ruling 1).
+ * so each grip is its own action (D57 ruling 1). A weapon attack made with the wielded weapons
+ * takes each weapon's own grip and outcomes, so it names no grip and its own paths are optional.
  */
 export const featureEffectDtoSchema = lazySchema(() =>
   (
     z
       .extend(createEffectDtoSchema(pathDtoSchema), {
+        paths: authoredNestedCollectionSchema(pathDtoSchema),
         grip: z.optional(equipmentGripSchema),
-        spellCast: z.optional(featureSpellCastDtoSchema)
+        spellCast: z.optional(featureSpellCastDtoSchema),
+        weaponAttack: z.optional(featureWeaponAttackDtoSchema)
       })
       .check(
         z.superRefine((effect, context) => {
+          if (effect.paths.length === 0 && effect.weaponAttack === undefined)
+            context.addIssue({
+              code: 'custom',
+              path: ['paths'],
+              message: 'An effect needs at least one outcome path.'
+            })
           if (effect.grip !== undefined && !isWeaponAttack(effect))
             context.addIssue({
               code: 'custom',
@@ -276,9 +324,25 @@ export const featureEffectDtoSchema = lazySchema(() =>
               path: ['spellCast'],
               message: 'Only an action can cast a spell.'
             })
+          if (effect.weaponAttack !== undefined && !isWeaponAttack(effect))
+            context.addIssue({
+              code: 'custom',
+              path: ['weaponAttack'],
+              message: 'Only a weapon attack action attacks with the wielded weapons.'
+            })
+          if (effect.weaponAttack !== undefined && effect.grip !== undefined)
+            context.addIssue({
+              code: 'custom',
+              path: ['grip'],
+              message: "An attack with the wielded weapons uses each weapon's own grip."
+            })
         })
       ) as z.ZodMiniType<FeatureEffectAuthored>
-  ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
+  ).check(
+    z.superRefine(checkWeaponDamageTypeChoices),
+    z.superRefine(checkPathRestrictions),
+    z.superRefine(checkFailureMarginRiders)
+  )
 )
 
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
@@ -303,7 +367,11 @@ export const equipmentEffectDtoSchema = lazySchema(() =>
             })
         })
       ) as z.ZodMiniType<EquipmentEffectAuthored>
-  ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
+  ).check(
+    z.superRefine(checkWeaponDamageTypeChoices),
+    z.superRefine(checkPathRestrictions),
+    z.superRefine(checkFailureMarginRiders)
+  )
 )
 
 export const manifestNestedBehaviorDtoSchema = lazySchema(() =>

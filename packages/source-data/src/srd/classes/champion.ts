@@ -20,6 +20,7 @@ import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
   attackingItemPropertyRestriction,
   closedRuleEffect,
+  criticalHitThresholdGrants,
   duelingRestriction,
   twoWeaponFightingGrants
 } from './mechanics.js'
@@ -50,36 +51,9 @@ export const championMartialArchetype: ClassAuthored = {
         'Beginning when you choose this archetype at 3rd level, your weapon attacks score a critical hit on a roll of 19 or 20.',
       availableAtLevel: 3,
       order: 0,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(F, 20, 1),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(F, 21, 1), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_ATTACK,
-          ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_IMPROVED_CRITICAL
-        }),
-        closedRuleEffect({
-          id: classRowId(F, 20, 9),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(F, 21, 9), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_ATTACK,
-          ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_IMPROVED_CRITICAL
-        })
-      ]
+      grants: {
+        modifiers: criticalHitThresholdGrants((entry) => classRowId(F, 0x30, entry), 19)
+      }
     },
     {
       id: classRowId(F, 11, 2),
@@ -281,36 +255,9 @@ export const championMartialArchetype: ClassAuthored = {
         'Starting at 15th level, your weapon attacks score a critical hit on a roll of 18-20.',
       availableAtLevel: 15,
       order: 3,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(F, 20, 7),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(F, 21, 7), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_ATTACK,
-          ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_SUPERIOR_CRITICAL
-        }),
-        closedRuleEffect({
-          id: classRowId(F, 20, 10),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(F, 21, 10), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_ATTACK,
-          ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_SUPERIOR_CRITICAL
-        })
-      ]
+      grants: {
+        modifiers: criticalHitThresholdGrants((entry) => classRowId(F, 0x31, entry), 18)
+      }
     },
     {
       id: classRowId(F, 11, 5),

@@ -1,3 +1,7 @@
+import {
+  d20AddedDiceTotal,
+  type D20AddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
@@ -17,15 +21,17 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterStabilizeOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
+import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
   resolveEncounterD20Answer,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
-import { actorContestFacts } from './encounterMovementPassagePreparation.js'
+import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import { dnd5eAddedDiceFacts } from './systems/dnd5e/d20AddedDiceGraph.js'
 import { createDnd5eBasicActionCheckDefinition } from './systems/dnd5e/encounterLifecyclePolicy.js'
 import { DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
 
@@ -43,11 +49,16 @@ type EncounterD20CheckContext = Pick<EncounterBasicActionCheckPendingContextDto,
   check: Pick<EncounterBasicActionCheckPendingContextDto['check'], 'dc'>
 }
 
-/** Each System's basic action check graph: its one d20 request and no other evidence. */
-const basicActionCheckDefinitionBySystemId: ReadonlyMap<
+/** Each System's basic action check graph: its d20 request, then its added dice (D156). */
+const basicActionCheckBySystemId: ReadonlyMap<
   string,
-  typeof createDnd5eBasicActionCheckDefinition
-> = new Map([[DND5E_SYSTEM_ID, createDnd5eBasicActionCheckDefinition]])
+  { definition: typeof createDnd5eBasicActionCheckDefinition; facts: typeof dnd5eAddedDiceFacts }
+> = new Map([
+  [
+    DND5E_SYSTEM_ID,
+    { definition: createDnd5eBasicActionCheckDefinition, facts: dnd5eAddedDiceFacts }
+  ]
+])
 
 /** The mechanics application of a check that reached its DC: the target becomes stable. */
 export function encounterBasicActionStabilizeApplication(
@@ -132,9 +143,17 @@ export function prepareEncounterBasicActionCheck<
         rollMode: facts.rollMode,
         contributors: facts.contributors,
         contributorChecksum: checksumRuleDocument(facts.contributors),
-        modifier: facts.modifier
+        modifier: facts.modifier,
+        ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice })
       },
-      consumedGrants: effectsEndedBy(helper.activeEffects, 'ON_ABILITY_CHECK')
+      consumedGrants: effectsEndedBy(helper.activeEffects, {
+        event: 'ON_ABILITY_CHECK',
+        abilityCode: checkAbilityCode(
+          input.system,
+          input.check.checkKind,
+          input.check.checkDefinitionId
+        )
+      })
     })
   }
 }
@@ -148,16 +167,23 @@ function requireD20Request(continuation: ServerRuleExecutionContinuationDto) {
     throw new EncounterValidationError('The basic action check requested unsupported evidence.')
 }
 
-/** Starts the System's check graph, which asks for the one d20. */
+/** Starts the System's check graph, which asks for the d20 and, when the check rolls any, its added dice. */
 export async function startEncounterBasicActionCheck(input: {
   runtime: RulesRuntimeService
   gameSystemId: string
   occurrenceId: string
+  /** The frozen check's added dice; absent when it rolls none. */
+  addedDice?: readonly D20AddedDieDto[]
 }): Promise<ServerRuleExecutionContinuationDto> {
-  const published = basicActionCheckDefinitionBySystemId.get(input.gameSystemId)?.()
-  if (!published) throw new EncounterValidationError('This System has no basic action check.')
+  const system = basicActionCheckBySystemId.get(input.gameSystemId)
+  if (!system) throw new EncounterValidationError('This System has no basic action check.')
+  const published = system.definition()
   const started = await input.runtime.executeResolved({
-    command: { definitionId: published.id, occurrenceId: input.occurrenceId, facts: {} },
+    command: {
+      definitionId: published.id,
+      occurrenceId: input.occurrenceId,
+      facts: system.facts(input.addedDice ?? [])
+    },
     published
   })
   if (started.status === 'COMPLETE')
@@ -190,6 +216,8 @@ export async function rollEncounterCheck(input: {
   continuation: ServerRuleExecutionContinuationDto
   answer: EncounterEvidenceAnswer
   rollD20: () => number
+  /** Rolls the check's added dice for an auto-roll; a check that has none needs no source. */
+  random?: (maxExclusive: number) => number
   expectedOccurrenceId: string
 }) {
   const { context, continuation, answer } = input
@@ -204,12 +232,28 @@ export async function rollEncounterCheck(input: {
     answer,
     rollD20: input.rollD20
   })
-  const execution = await input.runtime.resume({
-    continuation,
-    response: { requestId: answer.requestId, value: resolved.natural }
+  const addedDice = resolveEncounterAddedDice({
+    dice: context.d20.addedDice ?? [],
+    answer,
+    random:
+      input.random ??
+      (() => {
+        throw new EncounterValidationError('This check cannot roll added dice.')
+      })
   })
-  if (execution.status !== 'COMPLETE' || execution.outputs.rawDie !== resolved.natural)
-    throw new EncounterValidationError('The basic action check requested more than one die.')
+  const execution = await resumeEncounterD20({
+    continuation,
+    natural: resolved.natural,
+    addedDice,
+    resume: (step) => input.runtime.resume(step)
+  })
+  const addedTotal = d20AddedDiceTotal(addedDice)
+  if (
+    execution.status !== 'COMPLETE' ||
+    execution.outputs.rawDie !== resolved.natural ||
+    execution.outputs.addedTotal !== addedTotal
+  )
+    throw new EncounterValidationError('The basic action check requested more than its dice.')
   return {
     execution,
     d20: {
@@ -219,9 +263,10 @@ export async function rollEncounterCheck(input: {
       rawFaces: resolved.faces,
       selectedNatural: resolved.natural,
       modifier: context.d20.modifier,
-      total: resolved.natural + context.d20.modifier,
+      total: resolved.natural + context.d20.modifier + addedTotal,
       contributors: context.d20.contributors,
-      contributorChecksum: context.d20.contributorChecksum
+      contributorChecksum: context.d20.contributorChecksum,
+      ...(addedDice.length > 0 && { addedDice })
     }
   }
 }

@@ -809,6 +809,50 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     )
   })
 
+  it('asks for each added die beside the d20 and submits its faces with the entered d20 (D156)', async () => {
+    const user = userEvent.setup()
+    const onResolve = rollingResolver([])
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+          ...d20Pending,
+          request: {
+            ...d20Pending.request,
+            addedDice: [
+              { label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' as const },
+              { label: 'Bless', count: 1, faces: 4, sign: 'ADD' as const }
+            ]
+          }
+        })}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.type(screen.getByLabelText('Die 1'), '11')
+    await user.type(screen.getByLabelText('−d4 Bane'), '2')
+    expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
+    await user.type(screen.getByLabelText('+d4 Bless'), '3')
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'attack-roll',
+          rawFaces: [11],
+          rollMode: 'NORMAL',
+          addedFaces: [2, 3]
+        }
+      })
+    )
+  })
+
   it('asks for one more d20 beside the held die and submits only the new face', async () => {
     const user = userEvent.setup()
     const onResolve = rollingResolver([])

@@ -428,13 +428,22 @@ export function parsePublishedDocument(
   return document
 }
 
-export async function readPublishedDocument(
+/** The verified stored document with the exact JSON it was read from, the key for content memos. */
+export async function readPublishedDocumentPayload(
   ctx: QueryCtx,
   root: Doc<'authoredRoots'>,
   version: Doc<'authoredVersions'>
 ) {
   const { documentJson } = await loadVersionPayload(ctx, version)
-  return parsePublishedDocument(root, version, documentJson)
+  return { documentJson, document: parsePublishedDocument(root, version, documentJson) }
+}
+
+export async function readPublishedDocument(
+  ctx: QueryCtx,
+  root: Doc<'authoredRoots'>,
+  version: Doc<'authoredVersions'>
+) {
+  return (await readPublishedDocumentPayload(ctx, root, version)).document
 }
 
 /** Stored published documents by root id, read earlier in one transaction (commit reads each once). */

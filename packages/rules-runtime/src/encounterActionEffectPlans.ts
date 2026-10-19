@@ -285,7 +285,12 @@ function bindTriggerDamageTypes(
   damageTypeIds: readonly string[]
 ): CharacterGrantFoldModifier[] {
   const { payload } = modifier
-  if (payload === undefined || !('damageTypeSource' in payload)) return [modifier]
+  if (
+    payload === undefined ||
+    !('damageTypeSource' in payload) ||
+    payload.damageTypeSource !== 'TRIGGER'
+  )
+    return [modifier]
   if (damageTypeIds.length === 0)
     throw new EncounterActionEffectPlanError(
       'A resistance to the triggering damage type needs the damage that triggered the reaction.'
@@ -500,6 +505,9 @@ export function prepareRecurringActiveEffect(
       endOnTriggers: endLifecycle?.endOnTriggers ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
+      ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),
+      ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
+      ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.
@@ -620,6 +628,7 @@ export function prepareRecurringActiveEffect(
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
       remainingTicks: initialRemaining,
+      ...(grantContribution?.uses !== undefined && { remainingUses: grantContribution.uses }),
       ...(concealment
         ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }
         : {})

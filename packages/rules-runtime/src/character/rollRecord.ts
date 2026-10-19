@@ -1,5 +1,8 @@
 import { rollRecordDtoSchema, type RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
+
+import { withAddedDiceTerms } from '../encounterRuleCheckRolls.js'
 
 /**
  * The retained record of one Campaign or Character roll, shared by Convex and the live room. The
@@ -15,6 +18,8 @@ export function createRollRecord(input: {
     rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
     source: RollSourceDto
   }
+  /** Dice the roll adds beside its d20, rolled after advantage keeps one (D156). */
+  addedDice?: readonly D20AddedDieDto[]
   nextInt: (maxExclusive: number) => number
 }) {
   const { system, resolved } = input
@@ -24,10 +29,16 @@ export function createRollRecord(input: {
     characterLabel: input.label,
     source: resolved.source,
     ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
-    ...evaluateRollExpression(
-      parseRollExpression(resolved.expression),
-      { nextInt: input.nextInt },
-      resolved.rollMode
+    ...withAddedDiceTerms(
+      evaluateRollExpression(
+        parseRollExpression(resolved.expression),
+        { nextInt: input.nextInt },
+        resolved.rollMode
+      ),
+      input.addedDice?.map((die) => ({
+        ...die,
+        rolledFaces: Array.from({ length: die.count }, () => input.nextInt(die.faces) + 1)
+      }))
     ),
     createdAt: new Date().toISOString()
   })

@@ -68,3 +68,18 @@ Full dispatches on `ci/platform-13-t15` at the T4 settings (Convex 2, Worker 4).
 - **`isolate:false` rejected.** Reusing one jsdom environment and module cache per worker halves the step, but `vi.mock` registrations and module state leak between files: missing Convex and QueryClient providers, mocks called 0 times, duplicate alerts. Making the suite isolation-safe is a test-hygiene migration across about 42 files, deferred to future enhancements.
 - **3 workers not kept.** All three runs were clean, but the step (426–574 s) and job (8.2–10.7 min) times sit in or above the 2-worker range: on 4 vCPUs (2 physical cores) the third worker shares a core, as the config comment predicts. The config stays at `50%`. The `web_workers` dispatch input stays for future trials.
 - **Convex 3 workers** waits on PLATFORM-13.T17. The two 30 s `developmentCustody` tests spend their time in the shared public drivers, not in test code, and 56% of that CPU is Zod parsing of the same few retained-rules and published Equipment documents on every query.
+
+## PLATFORM-13.T17: parse memo and Convex 3 workers
+
+T17 memoizes the parsed retained rules and the parsed published Equipment by their exact stored JSON ([persistence.md](../architecture/persistence.md)). Measured locally on `developmentCustody.test.ts` alone (light lane, same machine, back to back), test time fell from 112.1 s to 88.8 s (−21%).
+
+Full dispatches on `ci/platform-13-t17` (tip `8f43aa22d`) with `convex_workers=3`, Worker 4, web 50%:
+
+| Run                                                                                  | Convex shards 1/2/3/4 (min) | Worker (min) | Web (min) | Run wall (min) | Result    |
+| ------------------------------------------------------------------------------------ | --------------------------- | ------------ | --------- | -------------- | --------- |
+| [39184861302](https://github.com/MPiland/artificer-toolkit/actions/runs/39184861302) | 8.6 / 6.6 / 8.1 / 5.4       | 5.6          | 6.0       | 10.7           | clean 1/3 |
+| [39185817174](https://github.com/MPiland/artificer-toolkit/actions/runs/39185817174) | 8.7 / 8.3 / 7.7 / 8.0       | 7.1          | 10.1      | 12.2           | clean 2/3 |
+| [39186776489](https://github.com/MPiland/artificer-toolkit/actions/runs/39186776489) | 8.5 / 8.0 / 8.6 / 8.4       | 7.0          | 10.4      | 12.5           | clean 3/3 |
+
+- **Convex 3 workers passes the gate** (three clean full runs, no timeout, no timeout raised) but is **not kept**. The slowest shard (8.6–8.7 min) is only slightly under the 2-worker range (7.6–10.4 min), and run wall time (10.7–12.5 min) matches the 2-worker runs (10.5–12.2 min): the Web job (6–10.4 min) and fixed job overhead set the wall time. A third worker adds contention on 4 vCPUs for no wall-time gain, so the default stays at `2`.
+- The memo is kept on its own merits: it cuts parse CPU per query, which counts against the Convex free tier in production.

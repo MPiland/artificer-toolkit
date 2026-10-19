@@ -10,7 +10,8 @@ import { checkChoiceDtoSchema } from '../effects/check.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
   activeRuleEffectLifecycleDtoSchema,
-  MAX_ACTIVE_EFFECT_STORED_TICKS
+  MAX_ACTIVE_EFFECT_STORED_TICKS,
+  activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
@@ -214,6 +215,12 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
       endOnConditionIds: activeGrantEndConditionIdsSchema,
       holderEnd: z.nullable(activeGrantHolderEndSchema),
+      /** Only the effect's Encounter source meets its attacker grants and attack consume. */
+      fromSourceOnly: z.optional(z.literal(true)),
+      /** The effect is active only during its tick anchor's turn while one tick remains. */
+      activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
+      /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
+      uses: z.optional(activeEffectUsesSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),

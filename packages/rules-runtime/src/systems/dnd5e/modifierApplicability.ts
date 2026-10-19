@@ -4,6 +4,7 @@ import type {
   CharacterGrantFoldOutput,
   CharacterGrantFoldRestriction
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 type AttackFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation'>
@@ -136,6 +137,16 @@ export function dnd5eSaveRequiresSourceSight(
 }
 
 /**
+ * Whether an attack roll grant holds only against the source of the effect holding it (Bestow
+ * Curse). The holder's policy leaves it out; the attack reads it once its target is known.
+ */
+export function dnd5eAttackRequiresEffectSource(
+  modifier: Pick<CharacterGrantFoldModifier, 'valueDomainCode' | 'domain'>
+): boolean {
+  return modifier.valueDomainCode === 'ATTACK_ROLL' && modifier.domain.againstEffectSource === true
+}
+
+/**
  * The single D&D modifier scope rule: a GLOBAL modifier applies Character-wide and a SOURCE
  * modifier only while its own source is evaluated (an attack with that item, that item's armor
  * class). Item and spell facets then narrow either kind to the attacking item and the spell.
@@ -176,15 +187,29 @@ export function dnd5eFoldedModifierApplicability(
   return dnd5eAcceptedModifierApplicability(modifier)
 }
 
-/** A Character action evaluates its own source and, for an item action, the item it attacks with. */
+/**
+ * A Character action evaluates its own source and, for an item action, the item it attacks with. A
+ * Feature attack made with a wielded weapon also takes that weapon's own modifiers (D156).
+ */
 export function dnd5eCharacterActionTarget(
   candidate: Pick<
     CharacterActionCandidate,
-    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts'
+    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
   >
 ): Dnd5eModifierTarget {
+  const weapon = candidate.equipment
   return {
-    sourceIds: [candidate.sourceId],
+    sourceIds:
+      candidate.activationSourceKind === 'ACTIVE_SOURCE_AND_EQUIPMENT' && weapon?.equipmentId
+        ? [
+            candidate.sourceId,
+            createCharacterMechanicSourceKey({
+              kind: 'EQUIPMENT_INSTANCE',
+              equipmentId: weapon.equipmentId,
+              itemInstanceId: weapon.itemInstanceId
+            })
+          ]
+        : [candidate.sourceId],
     item: dnd5eAttackingItem(candidate.equipment),
     attackAbility: null,
     activation: candidate.mechanicFacts.invocation.activation?.code ?? null,

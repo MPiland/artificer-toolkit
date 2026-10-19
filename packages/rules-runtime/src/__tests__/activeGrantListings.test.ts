@@ -212,11 +212,7 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     expect(polarityOf([{ domain: 'ARMOR_CLASS', kind: 'PENALTY', payload: fixed(2) }])).toBe(
       'HARMFUL'
     )
-    for (const kind of [
-      'ABILITY_MODIFIER_BONUS',
-      'OPTIONAL_ABILITY_MODIFIER_BONUS',
-      'ADD_BONUS_DIE'
-    ])
+    for (const kind of ['ABILITY_MODIFIER_BONUS', 'OPTIONAL_ABILITY_MODIFIER_BONUS'])
       expect(polarityOf([{ domain: 'DAMAGE', kind }])).toBe('BENEFICIAL')
   })
 
@@ -326,10 +322,14 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     expect(polarityOf([abilityBonus(0)])).toBe('NEUTRAL')
   })
 
-  it('reads a bonus die as beneficial', () => {
-    expect(
-      polarityOf([{ domain: 'DAMAGE', kind: 'ADD_BONUS_DIE', payload: { dice: '1d4' } }])
-    ).toBe('BENEFICIAL')
+  it('reads an added rolled die as beneficial and a subtracted one as harmful', () => {
+    const rolledDie = (sign: string) => ({
+      domain: 'ATTACK_ROLL',
+      kind: 'ADD_BONUS_DIE',
+      payload: { count: 1, faces: 4, sign }
+    })
+    expect(polarityOf([rolledDie('ADD')])).toBe('BENEFICIAL')
+    expect(polarityOf([rolledDie('SUBTRACT')])).toBe('HARMFUL')
   })
 
   it('reads enabling a domain with no polarity as neutral', () => {
@@ -366,7 +366,7 @@ describe('polarity of real SRD grants (D110)', () => {
   function srdPolarity(
     effect: EffectAuthored | undefined,
     lifecycle: PathLifecycleAuthored = {},
-    hitPath?: 'ON_HIT'
+    resultPath?: 'ON_HIT' | 'ON_SAVE_FAIL'
   ) {
     if (!effect) throw new Error('The SRD source has no effect.')
     const planned = plannedModifierGrant({
@@ -374,7 +374,7 @@ describe('polarity of real SRD grants (D110)', () => {
       sourceActorId: testUuid(0xd001),
       holderActorId: testUuid(0xd002),
       lifecycle,
-      hitPath,
+      resultPath,
       effect
     })
     return listActiveGrantListings([
@@ -419,9 +419,14 @@ describe('polarity of real SRD grants (D110)', () => {
 
   it('reads Vicious Mockery (disadvantage on attacks) as harmful', () => {
     expect(
-      srdPolarity(viciousMockery.effects?.[0], {
-        turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
-      })
+      srdPolarity(
+        viciousMockery.effects?.[0],
+        {
+          turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
+        },
+        // The grant is the failed save's; it holds only on that path.
+        'ON_SAVE_FAIL'
+      )
     ).toEqual(['HARMFUL'])
   })
 

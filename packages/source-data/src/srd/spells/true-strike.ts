@@ -1,5 +1,12 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  SPELL_ATTRIBUTE,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -27,6 +34,7 @@ export const trueStrike: SpellAuthored = {
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
   components: [SPELL_COMPONENT.SOMATIC],
   magicSchoolId: schoolId('DIVINATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   effects: [
     {
       id: spellChildId(SPELL_IDS.TRUE_STRIKE, 0x210, 1),
@@ -65,11 +73,31 @@ export const trueStrike: SpellAuthored = {
               durationKind: DURATION_KIND.ROUND,
               amount: 1
             },
+            // The target holds the advantage for the caster's next turn: counted on the caster's
+            // turns, dormant until that turn, met only by the caster's attacks, and used up by the
+            // first of them.
+            lifecycle: {
+              turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' },
+              consumeOnFirstEvents: ['ON_ATTACKED'],
+              fromSourceOnly: true,
+              activeOnlyOnFinalAnchorTurn: true
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TRUE_STRIKE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TRUE_STRIKE' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+                    id: spellChildId(SPELL_IDS.TRUE_STRIKE, 0x214, index + 1),
+                    grantKind: GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+                    domain: { attackDomain, requiresHolderSeesAttacker: false },
+                    modifierKind: MODIFIER_KIND.ADVANTAGE,
+                    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    order: index + 1
+                  }))
+                }
               }
             ]
           }

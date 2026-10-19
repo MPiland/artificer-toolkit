@@ -24,6 +24,10 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  dnd5eAddedDiceFacts,
+  dnd5eAddedDiceNode
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/d20AddedDiceGraph'
 
 type EffectStore = ReturnType<typeof createActiveRuleEffectStore>
 
@@ -59,12 +63,14 @@ export async function seedTurnSaveEffect(input: {
         operation: { key: 'evidence.integer-range', contractVersion: 1 },
         inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
       },
+      dnd5eAddedDiceNode('d20'),
       {
         id: 'test',
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 2 },
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
           modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
           threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
           contributorChecksum: { kind: 'FACT', factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY },
@@ -101,6 +107,7 @@ export async function seedTurnSaveEffect(input: {
       facts: {
         [DND5E_TARGET_ACTOR_FACT_KEY]: actor.id,
         [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
+        ...dnd5eAddedDiceFacts([]),
         [DND5E_SAVE_DC_FACT_KEY]: 30,
         [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
         [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE',

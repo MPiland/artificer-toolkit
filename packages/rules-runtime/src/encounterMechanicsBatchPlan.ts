@@ -76,7 +76,7 @@ export type EncounterMechanicsBatchInput = {
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
-  deathSave?: { rawDie: number }
+  deathSave?: { rawDie: number; addedTotal: number }
   /** The Creature form this outcome swaps the actor into, held by `effectId` (D130). */
   enterForm?: {
     effectId: string

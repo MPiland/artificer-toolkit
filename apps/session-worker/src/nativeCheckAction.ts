@@ -157,7 +157,8 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
     const continuation = await startEncounterBasicActionCheck({
       runtime: input.runtime,
       gameSystemId: state.gameSystemId,
-      occurrenceId
+      occurrenceId,
+      addedDice: context.d20.addedDice
     })
     const { autoRoll } = input
     if (!autoRoll)
@@ -176,6 +177,7 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
         continuation,
         answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
         rollD20: () => autoRoll(20) + 1,
+        random: autoRoll,
         expectedOccurrenceId: occurrenceId
       })
       const stabilized = evaluated.reachesDc

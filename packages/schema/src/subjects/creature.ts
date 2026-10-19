@@ -269,9 +269,10 @@ function validateCreatureAttackRolls(
 /**
  * A versatile weapon attack authors one effect per grip, each its own action (D57 ruling 1): a
  * Feature or option whose effects name a grip for a trigger authors exactly one one-handed and one
- * two-handed effect of that trigger, and no gripless one.
+ * two-handed effect of that trigger, and no gripless one. A Creature carries no items, so none of
+ * its attacks is made with the weapons it wields (D156).
  */
-function validateCreatureVersatileAttacks(
+function validateCreatureWeaponAttacks(
   creature: { features: z.infer<typeof featureDtoSchema>[] },
   context: z.core.$RefinementCtx
 ) {
@@ -285,6 +286,13 @@ function validateCreatureVersatileAttacks(
     ]
     for (const { source, path } of sources) {
       const effects = source.effects ?? []
+      for (const [effectIndex, effect] of effects.entries())
+        if (effect.weaponAttack !== undefined)
+          context.addIssue({
+            code: 'custom',
+            path: [...path, 'effects', effectIndex, 'weaponAttack'],
+            message: `"${source.label}" belongs to a Creature, which wields no items to attack with.`
+          })
       const gripped = new Set(
         effects.flatMap((effect) =>
           effect.grip === undefined ? [] : [effect.invocation.triggerCode]
@@ -397,7 +405,7 @@ const creatureAuthoredDtoObject = lazySchema(() =>
 const creatureAuthoredDtoSchemaBase = lazySchema(() =>
   creatureAuthoredDtoObject.check(
     z.superRefine(validateCreatureEquipmentLoadout),
-    z.superRefine(validateCreatureVersatileAttacks),
+    z.superRefine(validateCreatureWeaponAttacks),
     z.superRefine(validateCreatureActionReferences)
   )
 )
@@ -415,7 +423,7 @@ export const creatureAuthoringInputDtoSchema = lazySchema(() =>
     .extend(creatureAuthoredDtoObject, { userId: z.optional(authoredIdentifierSchema) })
     .check(
       z.superRefine(validateCreatureEquipmentLoadout),
-      z.superRefine(validateCreatureVersatileAttacks),
+      z.superRefine(validateCreatureWeaponAttacks),
       z.superRefine(validateCreatureActionReferences)
     )
 )

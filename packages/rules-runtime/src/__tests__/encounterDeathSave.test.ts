@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 
+import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { prepareEncounterTurnDeathSave } from '../encounterTurnDeathSave.js'
+import { dnd5eAddedDiceFacts } from '../systems/dnd5e/d20AddedDiceGraph.js'
 import { createDnd5eDeathSaveDefinition } from '../systems/dnd5e/encounterLifecyclePolicy.js'
 import {
   characterActor,
@@ -36,9 +38,9 @@ function root(currentActorId: string | null) {
 function prepare(input: {
   currentActorId: string | null
   automationMode?: AutomationModeDto
-  rollD20?: () => number
+  random?: (maxExclusive: number) => number
   pending?: Parameters<typeof prepareEncounterTurnDeathSave>[0]['pending']
-  rawDie?: number
+  resolution?: EncounterResponseAnswer
 }) {
   const actors = [aria, wolf]
   const loadTarget = vi.fn(async () => undefined)
@@ -58,9 +60,9 @@ function prepare(input: {
       loadTarget,
       autoRoll: true,
       createRuntime: async () => createSrdRulesRuntime(),
-      rollD20: input.rollD20 ?? (() => 20),
+      random: input.random ?? ((maxExclusive) => maxExclusive - 1),
       ...(input.pending ? { pending: input.pending } : {}),
-      ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })
+      ...(input.resolution ? { resolution: input.resolution } : {})
     })
   }
 }
@@ -68,30 +70,38 @@ function prepare(input: {
 describe('start-of-turn death save stage', () => {
   it('makes no save at a Creature’s turn start or at the end of combat', async () => {
     for (const currentActorId of [WOLF_ID, null]) {
-      const rollD20 = vi.fn(() => 12)
-      const { result, loadTarget } = prepare({ currentActorId, rollD20 })
+      const random = vi.fn(() => 11)
+      const { result, loadTarget } = prepare({ currentActorId, random })
       expect(await result).toEqual({ kind: 'COMPLETE', plan: null, target: null })
       expect(loadTarget).not.toHaveBeenCalled()
-      expect(rollD20).not.toHaveBeenCalled()
+      expect(random).not.toHaveBeenCalled()
     }
   })
 
   it('makes no save in a Manual Encounter', async () => {
-    const rollD20 = vi.fn(() => 1)
+    const random = vi.fn(() => 0)
     const { result, loadTarget } = prepare({
       currentActorId: ARIA_ID,
       automationMode: 'MANUAL',
-      rollD20
+      random
     })
     expect(await result).toEqual({ kind: 'COMPLETE', plan: null, target: null })
     expect(loadTarget).not.toHaveBeenCalled()
-    expect(rollD20).not.toHaveBeenCalled()
+    expect(random).not.toHaveBeenCalled()
   })
 
   it('refuses a die entered without a pending request', async () => {
-    await expect(prepare({ currentActorId: ARIA_ID, rawDie: 12 }).result).rejects.toThrow(
-      'Death save evidence has no pending request.'
-    )
+    await expect(
+      prepare({
+        currentActorId: ARIA_ID,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: `${OCCURRENCE_ID}:0:d20`,
+          rawFaces: [12],
+          rollMode: 'NORMAL'
+        }
+      }).result
+    ).rejects.toThrow('Death save evidence has no pending request.')
   })
 })
 
@@ -100,7 +110,11 @@ describe('death save graph', () => {
     const published = createDnd5eDeathSaveDefinition()
     const runtime = createSrdRulesRuntime()
     const started = await runtime.executeResolved({
-      command: { definitionId: published.id, occurrenceId: OCCURRENCE_ID, facts: {} },
+      command: {
+        definitionId: published.id,
+        occurrenceId: OCCURRENCE_ID,
+        facts: dnd5eAddedDiceFacts([])
+      },
       published
     })
     if (started.status !== 'PAUSED') throw new Error('The death save graph must ask for a d20.')
@@ -115,7 +129,10 @@ describe('death save graph', () => {
         continuation,
         response: { requestId: continuation.request.requestId, value: die }
       })
-      expect(execution).toMatchObject({ status: 'COMPLETE', outputs: { rawDie: die } })
+      expect(execution).toMatchObject({
+        status: 'COMPLETE',
+        outputs: { rawDie: die, addedTotal: 0 }
+      })
     }
   })
 
