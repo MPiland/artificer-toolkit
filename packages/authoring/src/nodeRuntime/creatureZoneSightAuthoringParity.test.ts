@@ -31,7 +31,10 @@ function maskComponent(creature: CreatureAuthored) {
   const feature = creature.features?.find(({ label }) => label === 'Unnerving Mask')
   const path = feature?.effects?.[0]?.paths[0]
   const zone = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
-  const component = zone?.effectKind === 'MANIFEST' ? zone.components?.[0] : undefined
+  const component =
+    zone?.effectKind === 'MANIFEST' && zone.manifestKind === 'ZONE'
+      ? zone.components?.[0]
+      : undefined
   if (!feature || !component) throw new Error('The Chain Devil must author its Unnerving Mask.')
   return { feature, component }
 }

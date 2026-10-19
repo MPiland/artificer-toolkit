@@ -139,8 +139,8 @@ export function createNativeLiveTurnStages(
             capture
           })
           return {
-            occupantSeesSource: actual.targetSeesAttacker,
-            sourceSeesOccupant: actual.attackerSeesTarget
+            occupantSeesSource: actual.targetSeesAttacker === 'SEES',
+            sourceSeesOccupant: actual.attackerSeesTarget === 'SEES'
           }
         },
         loadScene: async () => {
