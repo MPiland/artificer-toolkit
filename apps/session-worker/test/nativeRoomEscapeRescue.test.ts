@@ -65,7 +65,7 @@ function rescuerWolf() {
 
 const NEAR = { x: 150, y: 150 }
 const HELD_AT = { x: 250, y: 150 }
-const GRAPPLER_AT = { x: 450, y: 150 }
+const GRAPPLER_AT = { x: 350, y: 150 }
 const FAR = { x: 850, y: 150 }
 
 function rescueRoom(options: {
