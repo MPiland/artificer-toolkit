@@ -1,3 +1,4 @@
+import { appendFileSync } from 'node:fs' // TEMP
 import {
   LIVE_SESSION_TRY_AGAIN_MESSAGE,
   type LiveSessionCommandRejectionCodeDto
@@ -47,6 +48,9 @@ export function encounterCommandRefusal(error: unknown): {
   code: LiveSessionCommandRejectionCodeDto
   message: string
 } {
+  appendFileSync('D:/dev/artificer-toolkit/.claude/worktrees/clever-meitner-4a9776/local-validation/t4c2/cause.log', `${error instanceof Error ? error.stack : String(error)}
+---
+`) // TEMP
   if (error instanceof RetryableCommandError)
     return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   if (!(error instanceof LiveSessionRouteError))
