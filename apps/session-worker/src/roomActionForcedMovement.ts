@@ -1,3 +1,4 @@
+import type { z } from 'zod'
 import type { ApplyEncounterForcedMovements } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
@@ -6,12 +7,15 @@ import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSp
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type { encounterForcedMovementLandingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
 import {
   collectSpatialMovementCandidates,
+  convertSceneDistance,
   deriveSquareGridForcedMovementDestinations,
   feetInSceneUnit,
   measureSceneDistance,
+  traceSquareGridForcedMovementRay,
   type CampaignSceneState,
   type ScenePoint,
   type SceneToken
@@ -19,6 +23,8 @@ import {
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
+
+type EncounterForcedMovementLanding = z.infer<typeof encounterForcedMovementLandingSchema>
 
 const MISSING_TOKENS =
   "A forced movement needs the source's and target's tokens on the Encounter's Scene."
@@ -56,15 +62,19 @@ const tokenOf = (scene: Pick<CampaignSceneState, 'tokens'>, tokenId: string) => 
   return token
 }
 
-/** The squares a forced movement may leave its target on, staying put first when that is legal. */
+/**
+ * The squares a forced movement may leave its target on, staying put first when that is legal, and
+ * what stops it where it travels a straight line: its distance, an object, or the creature (by
+ * token) in its way. A move that picks its square (aside, any) is stopped by nothing.
+ */
 function forcedMovementDestinations(
   scene: CampaignSceneState,
   source: SceneToken,
   token: SceneToken,
   movement: LiveSessionForcedMovement
-): ScenePoint[] {
-  const destinations = deriveSquareGridForcedMovementDestinations({
-    direction: movement.direction,
+) {
+  const occupants = scene.tokens.filter(({ id }) => id !== token.id)
+  const input = {
     distance: feetInSceneUnit(movement.feet, scene.grid.unit),
     upTo: movement.upTo,
     sourceReach:
@@ -73,12 +83,30 @@ function forcedMovementDestinations(
         : feetInSceneUnit(movement.sourceReachFeet, scene.grid.unit),
     source,
     target: token,
-    occupants: scene.tokens.filter(({ id }) => id !== token.id),
+    occupants,
     state: scene
+  }
+  if (movement.direction === 'RANDOM' && !movement.ray)
+    throw new Error('A random forced movement needs the direction rolled for it.')
+  const straight =
+    movement.direction === 'RANDOM'
+      ? { direction: 'RAY' as const, ray: movement.ray ?? undefined }
+      : movement.direction === 'AWAY_FROM_SOURCE' || movement.direction === 'TOWARD_SOURCE'
+        ? { direction: movement.direction }
+        : null
+  const destinations = deriveSquareGridForcedMovementDestinations({
+    ...input,
+    ...(straight ?? { direction: movement.direction as 'ASIDE' | 'ANY' })
   })
   if (!destinations?.length)
     throw new Error('A forced movement needs a square grid its tokens fill.')
-  return destinations
+  const traced = straight && traceSquareGridForcedMovementRay({ ...input, ...straight })
+  return {
+    destinations,
+    occupants,
+    end: traced?.reached.at(-1) ?? null,
+    stop: traced?.stop ?? null
+  }
 }
 
 /**
@@ -92,6 +120,7 @@ function landForcedMovements(
   scene: CampaignSceneState,
   sourceTokenId: string,
   tokenIdByActorId: ReadonlyMap<string, string>,
+  actorIdByTokenId: ReadonlyMap<string, string>,
   movements: readonly LiveSessionForcedMovement[]
 ) {
   const source = tokenOf(scene, sourceTokenId)
@@ -117,11 +146,17 @@ function landForcedMovements(
     movement: LiveSessionForcedMovement
     tokenId: string
     destination: ScenePoint
+    report: EncounterForcedMovementLanding
   }[] = []
   let landed = scene
   for (const { movement, tokenId } of ordered) {
     const token = tokenOf(landed, tokenId)
-    const legal = forcedMovementDestinations(landed, source, token, movement)
+    const {
+      destinations: legal,
+      occupants,
+      end,
+      stop
+    } = forcedMovementDestinations(landed, source, token, movement)
     const chosen = movement.position
     if (!chosen && legal.length > 1) {
       if (new Set(movements.map(({ targetActorId }) => targetActorId)).size !== movements.length)
@@ -132,7 +167,29 @@ function landForcedMovements(
       ? legal.find(({ x, y }) => x === chosen.x && y === chosen.y)
       : legal[0]
     if (!destination) throw new Error('The chosen forced-movement destination is no longer free.')
-    landings.push({ movement, tokenId, destination })
+    // Only a move that ran its whole line reports what stopped it; a square its source picked short
+    // of the line end was the source's choice.
+    const blocked = end && destination.x === end.x && destination.y === end.y ? stop : null
+    landings.push({
+      movement,
+      tokenId,
+      destination,
+      report: {
+        targetActorId: movement.targetActorId,
+        feet: convertSceneDistance(
+          measureSceneDistance(landed.grid, token.position, destination),
+          landed.grid.unit,
+          'FEET'
+        ),
+        stoppedBy:
+          blocked?.kind === 'OBJECT'
+            ? 'OBJECT'
+            : blocked?.kind === 'CREATURE'
+              ? (actorIdByTokenId.get(occupants[blocked.occupantIndex]!.id) ?? 'OBJECT')
+              : 'NONE',
+        ray: movement.ray
+      }
+    })
     landed = {
       ...landed,
       tokens: landed.tokens.map((entry) =>
@@ -155,14 +212,21 @@ export async function readRoomForcedMovementPick(input: {
   movements: readonly LiveSessionForcedMovement[]
 }): Promise<{ targetActorId: string; positions: ScenePoint[] } | null> {
   if (input.movements.length === 0) return null
-  const { sceneId, sourceTokenId, tokenIdByActorId } = await readForcedMovementTokens(
-    input.ctx,
-    input.encounterId,
-    input.sourceActorId,
-    input.movements.map(({ targetActorId }) => targetActorId)
-  )
+  const { sceneId, sourceTokenId, tokenIdByActorId, actorIdByTokenId } =
+    await readForcedMovementTokens(
+      input.ctx,
+      input.encounterId,
+      input.sourceActorId,
+      input.movements.map(({ targetActorId }) => targetActorId)
+    )
   const { scene } = await readRoomSceneState(input.transaction, sceneId)
-  return landForcedMovements(scene, sourceTokenId, tokenIdByActorId, input.movements).owed
+  return landForcedMovements(
+    scene,
+    sourceTokenId,
+    tokenIdByActorId,
+    actorIdByTokenId,
+    input.movements
+  ).owed
 }
 
 /**
@@ -207,11 +271,12 @@ export async function applyRoomForcedMovements(input: {
     (await readRoomSceneState(transaction, sceneId)).scene,
     sourceTokenId,
     tokenIdByActorId,
+    actorIdByTokenId,
     movements
   )
   if (owed)
     throw new Error('A forced movement with several destinations needs its source to pick one.')
-  const moves: Awaited<ReturnType<ApplyEncounterForcedMovements>> = []
+  const moves: Awaited<ReturnType<ApplyEncounterForcedMovements>>['moves'] = []
   for (const { tokenId, destination } of landings) {
     const { scene, baseOrdinals } = await readRoomSceneState(transaction, sceneId)
     const token = tokenOf(scene, tokenId)
@@ -263,5 +328,5 @@ export async function applyRoomForcedMovements(input: {
     })
     moves.push({ sceneId, sceneCommandId })
   }
-  return moves
+  return { moves, landings: landings.map(({ report }) => report) }
 }

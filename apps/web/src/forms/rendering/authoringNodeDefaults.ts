@@ -488,6 +488,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         order,
         bonusKind: 'PROFICIENCY_BONUS'
       }
+    case 'forcedMovementCollision':
+      return {
+        id: crypto.randomUUID(),
+        diceConfig: '1d6',
+        damageTypeId: '',
+        savingThrow: createDefaultAuthoringNodeValue('savingThrow'),
+        conditionId: ''
+      }
     case 'followUpSaveBranch':
       return { kind: 'END' }
     case 'followUpSaveAttempts':

@@ -133,11 +133,14 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     defenses: [],
     qualifiedDefenses: [],
     conditionImmunityIds: [],
+    spellSchoolImmunityIds: [],
     characterCurrentness: null,
     attackAgainstContributors: [],
     sourceSightSaves: [],
     conditionDefinitions: [],
-    conditionMechanics: []
+    conditionMechanics: [],
+    attackTraitGrants: [],
+    innateConditionIds: []
   }
   return movementTarget
 }

@@ -1,4 +1,9 @@
-import { LENGTH_UNIT_CODES, MODIFIER_KIND, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
+import {
+  FORCED_MOVEMENT_DIRECTION,
+  LENGTH_UNIT_CODES,
+  MODIFIER_KIND,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared/core'
 
 import { z, lazySchema } from '../zod.js'
 
@@ -409,9 +414,7 @@ export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
     'ON_CHOSEN_ITEM_RELEASED'
   ] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
 )
-export const forcedMovementDirectionSchema = lazySchema(() =>
-  z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'])
-)
+export const forcedMovementDirectionSchema = lazySchema(() => z.enum(FORCED_MOVEMENT_DIRECTION))
 export const forcedMovementDistanceModeSchema = lazySchema(() =>
   z.enum(['UP_TO_SPEED', 'EXACT', 'UP_TO'])
 )

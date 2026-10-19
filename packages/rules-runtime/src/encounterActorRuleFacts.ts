@@ -101,7 +101,8 @@ function snapshotTargetProtection(actor: EncounterActorRuleFactActor) {
       status: 'NORMALIZED' as const,
       defenses: [],
       qualifiedDefenses: [],
-      conditionImmunityIds: []
+      conditionImmunityIds: [],
+      spellSchoolImmunityIds: []
     }
   }
   if (actor.kind !== 'CREATURE') return { status: 'NOT_NORMALIZED' as const }
@@ -131,7 +132,14 @@ function snapshotTargetProtection(actor: EncounterActorRuleFactActor) {
       ? left.kind.localeCompare(right.kind)
       : left.damageTypeId.localeCompare(right.damageTypeId)
   )
-  return { status: 'NORMALIZED' as const, defenses, qualifiedDefenses, conditionImmunityIds }
+  // A stat block carries no spell school immunities; its features grant them (folded elsewhere).
+  return {
+    status: 'NORMALIZED' as const,
+    defenses,
+    qualifiedDefenses,
+    conditionImmunityIds,
+    spellSchoolImmunityIds: []
+  }
 }
 
 export function buildEncounterActorRuleFacts(

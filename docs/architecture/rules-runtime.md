@@ -587,6 +587,11 @@ A component's `requiredSight` (`OCCUPANT_SEES_SOURCE`, `SOURCE_SEES_OCCUPANT`; S
 gates a save-bearing turn trigger on mutual sight: the Worker's turn preparation reads live perception through
 `loadSourceSight` and `prepareEncounterTurnZoneEffects` injects `zoneSightRequirementMet` into the contact's derived facts, and
 the compiled save evaluator treats a false value as an unrolled success. Convex persistence trusts the planned executions.
+Damage a turn zone or a melee retaliation deals ends the target's effects that end on damage (SPELLS-33.T6e4): the planner
+passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persistence call `spatialDamageEnds` over the same
+held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
+the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
+`deleteGrants`. Occupant save auras lend bonuses and deal no damage; spatial movement contacts do not pass `damageEnds` yet.
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
@@ -1020,6 +1025,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
   result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
   `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
+- **Attack decoys (SPELLS-4.T2k2, D156).** An `ATTACK_DECOYS` `ENABLE` modifier (`{armorClass: {amount, abilities}, thresholds: [{id, remaining, minimumRoll}]}`)
+  with a path lifecycle `uses` counts the holder's decoys in `lifecycle.remainingUses`. `attackDecoyFor` derives the
+  decoy d20 from the minted occurrence id; at or above the minimum for the decoys left the attack is prepared again against
+  the decoy's armor class and the binding carries `absorbedByDecoy`, which makes the TEST `TEST_ONLY` and skips reactions and on-hit holds. A hit
+  or critical spends a use (`spentUseGrants`, a lifecycle CAS at commit) or, on the last, ends the effect (`consumedGrants`); the root
+  receipt keeps both so an undo restores them. Single-target attack actions only; see the T2k2 handoff for the gaps.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1052,6 +1063,20 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (the same `landForcedMovements` simulation `applyRoomForcedMovements` commits with) and offers the next one's legal
   squares; each answer lands it (`landEncounterAreaForcedMovement`) and the planner re-plans the commit, which runs after
   the last answer. Exact away/toward and a movement with one legal square never pause.
+  `RANDOM` (SPELLS-33.T6k2a, D159; the Air Elemental's Whirlwind) is rolled once per plan: `interpretForcedMovements` draws
+  one of the eight `SQUARE_GRID_COMPASS_RAYS` and the room walks it with `traceSquareGridForcedMovementRay`, the same trace
+  away/toward use. It never owes a pick (`upTo` is forced off), so no held area outlives its roll, and it stops short only
+  when blocked. The trace returns what ended each walk (`DISTANCE`, `OBJECT`, or the creature in the way), from which
+  `landForcedMovements` builds the per-mover landing report: feet travelled, `stoppedBy` (`NONE`, `OBJECT` or the struck
+  creature's actor ID) and the rolled ray. A mover stops in the last free square before a creature; movers land farthest
+  first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
+  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
+  passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
+  collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
+  kind until T6k2b2. T6k2b1 adds the authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
+  creature save, a condition). It rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
+  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; nothing at runtime reads it yet, and a
+  collision the System cannot settle (non-fixed-DC save, bonuses, non-UUID id, bad dice) fails closed.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
   legendary and reaction actions still refuse spatial directives; an area pick after a GM removal, on an area with no
@@ -1486,7 +1511,7 @@ such effect anchored to the boundary actor, whoever holds it, and an expired one
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
-grant that carries both events. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check passes `effectsEndedBy` a `ScopedD20Test` (`{event: 'ON_ABILITY_CHECK', abilityCode}`), which spends only the effects whose ability-check grant applied to that ability; a bare `ON_ABILITY_CHECK` spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedTestDice`). **Saving throws (SPELLS-4.T2c2b, D156):** `ON_SAVING_THROW` is the same scoped test over `SAVING_THROW_MODIFIER` grants (Resistance, any ability; a death save has `abilityCode: null` and spends an unfiltered die). `savingThrowSpentEffects` (`encounterEndedEffectRelease`) is the one spend rule: `targetEndedEffects` calls it for the saves an action settled (the d20 evidence names the save's `savingThrowAbilityDefinitionId`, set where the compiler builds the save policy), the Concentration plan and its persistence call it for the Constitution check, the turn-start death save and the Sheet's `carriedTestDice` call it with their own ability. Persistence re-derives the spent set and refuses a plan that omits or adds a die. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
+grant that carries both events. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check passes `effectsEndedBy` a `ScopedD20Test` (`{event: 'ON_ABILITY_CHECK', abilityCode}`), which spends only the effects whose ability-check grant applied to that ability; a bare `ON_ABILITY_CHECK` spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedTestDice`). **D20 floor (SPELLS-4.T2c3, D156):** `MINIMUM_ROLL` on `ABILITY_CHECK` (a payload `amount` of 2 to 20; Glibness) floors the d20 a check counts. It is automatic: the roller replaces only a lower face, so the option needs no choice. `activeAbilityCheckMinimumRoll` reads the highest floor the holder's effects give an ability (an ungated grant covers every check; the lowest effect id breaks a tie), and `ContestFacts.minimumRoll`, the Sheet's `carriedTestDice` and the roll records take it from there. The kernel graph still outputs the raw die: `d20CheckTotal` applies the floor to the kept face (which commutes with advantage and disadvantage) beside the modifier and added dice, so every site shares one total and `selectedNatural` stays the face kept. The floor is not spent. Reliable Talent stays `CLASS_ROGUE_RELIABLE_TALENT` (SPELLS-31.T5c): the option expresses its floor of 10, but its "proficient check" narrowing is not yet a grant condition. **Saving throws (SPELLS-4.T2c2b, D156):** `ON_SAVING_THROW` is the same scoped test over `SAVING_THROW_MODIFIER` grants (Resistance, any ability; a death save has `abilityCode: null` and spends an unfiltered die). `savingThrowSpentEffects` (`encounterEndedEffectRelease`) is the one spend rule: `targetEndedEffects` calls it for the saves an action settled (the d20 evidence names the save's `savingThrowAbilityDefinitionId`, set where the compiler builds the save policy), the Concentration plan and its persistence call it for the Constitution check, the turn-start death save and the Sheet's `carriedTestDice` call it with their own ability. Persistence re-derives the spent set and refuses a plan that omits or adds a die. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
 roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads the grant's modifiers first; the target's
 `targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
 each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or
@@ -1829,6 +1854,38 @@ D154's highest-of terrain, zones and passage applies. A passage through blocking
 the server from the same prepared targets, and the room's Scene read model marks the token
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
 validation (`sceneTokenMovementIndex`) cannot drift from it.
+
+**Spell school immunity and checks against the holder (current, SPELLS-33.T6m1).** Two authored `ADD_OPTION`
+modifier grants. `SPELL_SCHOOL_IMMUNITY` (`magicSchoolId`) folds into `spellSchoolImmunityIds`, a required
+field of the folded target protection: a Character's from its rule policy (`characterDefenses`), a Creature's
+from its feature grants and its active effects (`withCreatureActiveGrantProtection`). A Character's spell
+cast carries the school of each spell it can cast (`CharacterSpellCastActions.magicSchoolIdBySpellId`), and
+`encounterSpellSchoolImmunity` compares it with the target's. An area action leaves an immune creature out
+with the creature-type exclusions (caught, no save, "was unaffected" in the GM's line); the other creatures
+resolve. One target or a list of chosen creatures that includes an immune one is refused, like a source
+immunity. A Creature's spell actions carry no school and are not gated. `CHECKS_AGAINST_HOLDER` (`skillId`)
+folds into a Creature's feature modifiers and lists beneficially on the holder; it implies disadvantage on
+the named skill's checks made against the holder, and is not enforced, since a check has no subject. The
+Gynosphinx and Androsphinx Inscrutable and Mind Blank's divination clause are authored with them.
+
+**Innate conditions and Magic Weapons (current, SPELLS-33.T4de).** A global `CONDITION` `ADD_OPTION`
+(`conditionTypeId`) is a condition the holder always has: authored on a Creature feature (Invisible
+Stalker's Invisibility) or any grant owner, beneficial on the holder's grant listing. `innateConditionIds`
+folds the holder's features and active grants into `MovementTarget.innateConditionIds`; `state.conditions`
+keeps only the conditions applied to it, so nothing removes or restores an innate one (there is no GM
+command that removes a Creature's conditions). Every rule that reads what a condition does reads
+`heldConditionIds(target)` (persisted plus innate): condition mechanics and perception, the action economy,
+the target's condition ids in the action mechanics, holder defense (`canAct`), the occupant save auras and
+the turn-effect perception. Reads deliberately left on the persisted `state.conditions` are state
+transitions and baselines: the condition and flee sources in `encounterConditionMechanics`, the effect-plan
+baseline in `encounterActionEffects`, and the before/after states, checksums and expected-state checks of
+movement, turn effects and spatial execution. The Creature projection appends one `{conditionTypeId,
+innate: true}` row per innate condition to `conditions`, so the GM and players see it (labelled by the
+session reads, "(innate)" on the token) and the player `unseenReason` treats it like an applied one.
+Magic Weapons is an `ATTACK_TRAIT` `ENABLE` grant (`trait: MAGICAL`): `dnd5eGrantedAttackTraits` is the one
+reader, over a Character's folded modifiers and a Creature's feature modifiers alike, so a Creature's
+attack is magical when it is a spell attack or an applicable grant says so. Both kinds are gone from the
+closed rules.
 
 **Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
 `SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the

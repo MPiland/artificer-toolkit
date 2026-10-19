@@ -36,7 +36,8 @@ const normalizedEncounterActorTargetProtectionSchema = lazySchema(() =>
       status: z.literal('NORMALIZED'),
       defenses: z.array(encounterActorTargetDefenseSchema).check(z.maxLength(100)),
       qualifiedDefenses: z.array(encounterActorQualifiedDefenseSchema).check(z.maxLength(100)),
-      conditionImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))
+      conditionImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100)),
+      spellSchoolImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))
     })
     .check(
       z.superRefine((protection, ctx) => {
@@ -62,6 +63,17 @@ const normalizedEncounterActorTargetProtectionSchema = lazySchema(() =>
             })
           }
           conditionIds.add(conditionId)
+        })
+        const schoolIds = new Set<string>()
+        protection.spellSchoolImmunityIds.forEach((schoolId, index) => {
+          if (schoolIds.has(schoolId)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Encounter spell school immunity identities must be unique.',
+              path: ['spellSchoolImmunityIds', index]
+            })
+          }
+          schoolIds.add(schoolId)
         })
       })
     )

@@ -219,7 +219,8 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       contributors: facts.contributors,
       contributorChecksum: checksumRuleDocument(facts.contributors),
       modifier: facts.modifier,
-      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice })
+      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
+      ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
     },
     consumedGrants: effectsEndedBy(holder.activeEffects, {
       event: 'ON_ABILITY_CHECK',

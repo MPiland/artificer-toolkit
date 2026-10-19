@@ -101,6 +101,17 @@ export const mindBlank: SpellAuthored = {
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       payload: { conditionTypeId: conditionTypeId('CHARMED') },
                       order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.MIND_BLANK, 0x214, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ADD_OPTION,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { magicSchoolId: schoolId('DIVINATION') },
+                      order: 3
                     }
                   ]
                 }

@@ -11,15 +11,23 @@ export function CampaignRuleCheckRoll({
   evidence: RollRecordDto['evidence']
   ruleCheck: RollRuleCheckDto
 }) {
-  if (ruleCheck.kind === 'D20_MODE_ADJUSTED') {
+  if (ruleCheck.kind === 'D20_MODE_ADJUSTED' || ruleCheck.kind === 'D20_MINIMUM_ROLL') {
     return (
       <div>
         <Text>
           Rolled <strong>{evidence.total}</strong>
         </Text>
         <Text c='dimmed' size='xs'>
-          {formatRollEvidence(evidence, ruleCheck)}
+          {formatRollEvidence(
+            evidence,
+            ruleCheck.kind === 'D20_MODE_ADJUSTED' ? ruleCheck : undefined
+          )}
         </Text>
+        {ruleCheck.kind === 'D20_MINIMUM_ROLL' ? (
+          <Text c='dimmed' size='xs'>
+            {ruleCheck.label}: the d20 counts as at least {ruleCheck.amount}
+          </Text>
+        ) : null}
       </div>
     )
   }

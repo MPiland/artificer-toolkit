@@ -13,6 +13,7 @@ import {
   characterActor,
   createSrdRulesRuntime,
   ENCOUNTER_ID,
+  srdCreatureActor,
   srdCreatureTarget,
   SRD_SYSTEM_ID,
   srdDefinitions,
@@ -60,6 +61,12 @@ import {
   lostActionOutcome,
   noSave
 } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
+import { createActiveRuleEffectStore } from '../effectStore.js'
+import {
+  SLEEP_CONDITION_ID,
+  sleepEffectOn
+} from '@artificer-toolkit/rules-runtime/testing/sleepEffectFixture'
+import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { insertRunActor, readRunActor, readRunActorWithRow, writeRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import {
@@ -302,6 +309,45 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
         after: expect.objectContaining({ currentHitPoints: stored.currentHitPoints })
       }
     ])
+  })
+
+  it('deletes the sleep the zone’s damage ends and releases the condition it held (SPELLS-33.T6e4)', async () => {
+    const asleep = srdCreatureActor({
+      id: GOBLIN_ID,
+      creature: srdByLabel(SRD.creatures, 'Goblin'),
+      conditionIds: [SLEEP_CONDITION_ID]
+    })
+    const runActors = [asleep, source]
+    const scene = await seededScene(undefined, { runActors })
+    const store = createActiveRuleEffectStore(scene.ctx)
+    const sleeper = sleepEffectOn({
+      encounterId: ENCOUNTER_ID,
+      id: testUuid(0x3d1),
+      sourceActorId: SOURCE_ID,
+      holder: asleep
+    })
+    await store.create({
+      id: sleeper.id,
+      owner: sleeper.owner,
+      definition: sleeper.definition,
+      lifecycle: sleeper.lifecycle
+    })
+    const plan = await stagedPlan(scene, {
+      runActors,
+      state: runState({}, { runActors }),
+      loadTarget: async (actorId) =>
+        srdCreatureTarget(
+          runActors.find((actor) => actor.id === actorId)!,
+          actorId === GOBLIN_ID ? await store.list(sleeper.owner) : []
+        )
+    })
+    const { result } = persist(scene, { plan, state: runState({}, { runActors }) })
+    const settled = await result
+
+    expect(await store.list(sleeper.owner)).toEqual([])
+    const stored = creature(await readRunActor(scene.ctx, runState(), GOBLIN_ID))
+    expect(stored.conditions).toEqual([])
+    expect(settled?.phase.encounterActorTransitions[0]?.after.conditionIds).toEqual([])
   })
 
   it('refuses a plan made before the creature left the zone, without settling', async () => {
