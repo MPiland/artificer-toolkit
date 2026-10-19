@@ -351,3 +351,10 @@ Design B (ruled): no rest hook, no planner, no schema relaxation.
 - It is active only while a LONG_REST-reset feature charge (FIXED 1) is unspent, so a long rest restores it and the ward lasts from one long rest to the next.
 - It ends early when the holder makes an attack roll or casts a spell against an enemy (Sanctuary's end triggers): that act spends the charge.
 - Needed as generic core options with an authoring-parity proof, if absent: (a) a modifier grant gated on an unspent resource; (b) spending a resource on a hostile act. No Tranquility branch in code. Then delete the kind and add a room test (the ward stops an attacker; the holder's attack ends it; a long rest restores it).
+
+**Product ruling (user, 2026-10-19) supersedes Design B's "unspent charge" activation:**
+
+- Tranquility spends its one use automatically at the end of a long rest, which turns the ward on.
+- The use stays spent if the ward ends early (the monk attacks or casts at an enemy).
+- The Sheet shows the use as spent and the ward as active or ended.
+- This needs a real Character-side active status outside encounters. Reuse an existing Character activation path if one exists; otherwise add a generic one (no Tranquility branch). The three findings above are why the encounter-planner path cannot carry it.
