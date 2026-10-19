@@ -431,6 +431,22 @@ Open points for the ruling:
 4. Night Hag Etherealness moves from C to T4gh with Ghost Etherealness, because decision 256 recorded Succubus Etherealness as a mechanics follow-up rather than description-only. Ruling needed if planes stay out of scope (then all three are C).
 5. Flyby joins the opportunity-attack qualifier that SPELLS-31.T4k2 introduces instead of a new SPELLS-33 group.
 
+## T6k1: movement passage
+
+Done on `ci/spells-33-t6k1` (ruling: union combination, highest multiplier, combined with terrain and zones per D154).
+
+- New `MOVEMENT_PASSAGE` value domain and modifier payload (authorable from the modifier grant form).
+- Creature feature grants fold through the Character grant fold (holder kind `CREATURE`), stored as `ruleFacts.modifiers`.
+- Ghost, Specter, Wraith and Will-o'-Wisp Incorporeal Movement (`ANY`, may not end inside, passes barriers, ×2), Air and Water Form (`ANY`, may end inside, ×1) and Halfling Nimbleness (`LARGER_THAN_SELF`) are grants; their seven closed-rule kinds are deleted (D156). Will-o'-Wisp's 1d10 force effect is removed with its kind.
+- Gap 1 fixed: walking through a hostile creature with no passage and no offered contest is refused `MOVEMENT_BLOCKED` (regression test in `nativeMovementPlanning.test.ts`). Four `nativeMovementEvidence` fixtures walked through hostile reactors and now place them one cell off the path.
+- Barrier passage: the server checks barriers after preparing targets, from the mover's resolved passage; the read model marks the token `passesBlockingBarriers` from the same passage.
+
+### Deferred edge cases
+
+- The 1d10 force damage for ending a turn inside an object (Incorporeal Movement) stays in the description (Q2 ruling). Barrier crossings cost nothing extra.
+- A Tiny creature or one two sizes apart crossing a hostile creature is not yet allowed (Q4 gap 1 ruling); no size-difference relation exists.
+- The tabletop drag-route label prices zones from `movementCostZones` and does not show the passage multiplier inside a passed creature; the room charges it.
+
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.

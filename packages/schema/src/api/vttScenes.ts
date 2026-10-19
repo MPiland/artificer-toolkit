@@ -183,6 +183,7 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
       position: scenePointDtoSchema,
       rotationDegrees: degreesSchema,
       senses: z.array(sceneTokenSenseDtoSchema).check(z.maxLength(100)),
+      passesBlockingBarriers: z.optional(z.literal(true)),
       vision: z.nullable(sceneTokenVisionDtoSchema),
       width: positiveDistanceSchema
     })

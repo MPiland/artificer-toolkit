@@ -172,7 +172,8 @@ describe('native movement target facts', () => {
             checkTotals: {},
             saveProficiencyBonuses: {},
             resourceAbilityScores: {},
-            initiativeAbilityDefinitionId: abilityId
+            initiativeAbilityDefinitionId: abilityId,
+            modifiers: []
           }
         }
       })

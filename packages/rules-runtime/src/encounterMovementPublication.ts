@@ -129,7 +129,8 @@ export function preparedMoverSceneDelta(input: {
  * segment's end less its cost to the segment's start. Measuring from the path's origin keeps grid
  * rounding consistent, so a move's segments sum to its whole walk across decision pauses.
  * A careful mover (SPELLS-17) pays double for the stretch its footprint spends inside a field that
- * allows passage at half speed, and a zone's movement cost applies to the movers it catches (D154).
+ * allows passage at half speed, and a zone's movement cost applies to the movers it catches (D154);
+ * a mover whose passage takes it through other creatures pays its passage multiplier inside them.
  * A drag doubles the whole cost on top (D105).
  */
 export function preparedMovementCost(input: {
@@ -148,20 +149,53 @@ export function preparedMovementCost(input: {
     carefully: boolean
     /** A grappler dragging a creature not two sizes smaller pays double (D105). */
     dragDoublesCost?: boolean
+    /** What each foot inside another creature's space costs a mover whose passage takes it through. */
+    passage?: { costMultiplier: number; creatureTokenIds: readonly string[] }
   }
 }): number {
   const { mover } = input
-  // The highest of the terrain, zone and careful multipliers applies (D154).
+  // A passed creature's space is a zone of the passage multiplier, its footprint around the token.
+  const passage = mover?.passage
+  const creatureZones = (passage?.creatureTokenIds ?? []).flatMap((tokenId) => {
+    const token = mover?.tokens.find(({ id }) => id === tokenId)
+    if (!token || !passage) return []
+    const [x, y] = [token.width / 2, token.height / 2]
+    return [
+      {
+        anchorKind: 'TOKEN' as const,
+        sourceTokenId: tokenId,
+        geometry: {
+          frame: 'TOKEN_LOCAL' as const,
+          shape: {
+            kind: 'POLYGON' as const,
+            points: [
+              { x: -x, y: -y },
+              { x, y: -y },
+              { x, y },
+              { x: -x, y }
+            ]
+          }
+        },
+        unaffectedActorIds: [],
+        suppressed: false,
+        multiplier: passage.costMultiplier
+      }
+    ]
+  })
+  // The highest of the terrain, zone, passage and careful multipliers applies (D154).
   const zoneMultiplier =
     mover &&
     zoneMovementSegmentMultiplier({
-      zones: mover.effects.map((effect) => ({
-        ...effect,
-        multiplier: Math.max(
-          effect.movementCostMultiplier ?? 1,
-          mover.carefully && effect.bypassAtHalfSpeed ? 2 : 1
-        )
-      })),
+      zones: [
+        ...mover.effects.map((effect) => ({
+          ...effect,
+          multiplier: Math.max(
+            effect.movementCostMultiplier ?? 1,
+            mover.carefully && effect.bypassAtHalfSpeed ? 2 : 1
+          )
+        })),
+        ...creatureZones
+      ],
       mover,
       tokens: mover.tokens
     })

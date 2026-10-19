@@ -15,6 +15,8 @@ import {
   FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -25,6 +27,7 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   type ActorRelationshipAuthored,
@@ -34,6 +37,7 @@ import {
   type EffectAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
+  type MovementPassageOption,
   type SizeCode
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
@@ -216,6 +220,28 @@ export function featureId(creatureIndex: number, localIndex: number) {
 
 export function actionId(creatureIndex: number, localIndex: number) {
   return localId(2, creatureIndex, localIndex)
+}
+
+/** A feature's grant of where the Creature may move: through creatures, objects, or both. */
+export function movementPassageGrants(
+  id: string,
+  passage: MovementPassageOption
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        id,
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        valueDomainCode: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+        domain: {},
+        modifierKind: MODIFIER_KIND.ADD_OPTION,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        payload: passage,
+        order: 0
+      }
+    ]
+  }
 }
 
 /** A breath weapon's cone: a Self area that starts at the creature and catches everyone in it. */

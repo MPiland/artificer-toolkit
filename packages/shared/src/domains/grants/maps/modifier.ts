@@ -213,7 +213,7 @@ const modifierPayload = buildNodeMap<ModifierPayload>()
 const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
   'modifierGrantPayload',
   ({ map, nodes, cond, data, logic }) => {
-    const { text, number, selectSingle, selectMulti, groupArray } = nodes
+    const { text, number, toggle, selectSingle, selectMulti, groupArray } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const local = cond.local()
     const { and, or, not } = logic
@@ -221,6 +221,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isBonus = parent.field(['modifierKind']).eq('BONUS')
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
     const isMultiply = parent.field(['modifierKind']).eq('MULTIPLY')
+    const isMovementPassage = parent.field(['valueDomainCode']).eq('MOVEMENT_PASSAGE')
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -417,6 +418,50 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'movementModeId',
         text(['movementModeId'], 'Movement Mode ID', {
           showIf: parent.field(['valueDomainCode']).eq('MOVEMENT_MODE')
+        })
+      )
+      .set(
+        'creatures',
+        selectSingle(
+          ['creatures'],
+          'Hostile Creatures',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'NONE', label: 'None', description: 'Hostile creatures block the holder.' },
+              {
+                code: 'ANY',
+                label: 'Any',
+                description: 'The holder may move through any hostile creature.'
+              },
+              {
+                code: 'LARGER_THAN_SELF',
+                label: 'Larger than the holder',
+                description: 'The holder may move through hostile creatures larger than itself.'
+              }
+            ]
+          },
+          { showIf: isMovementPassage, requiredIf: true }
+        )
+      )
+      .set(
+        'mayEndInCreature',
+        toggle(['mayEndInCreature'], 'May End Its Move Inside A Creature', {
+          showIf: isMovementPassage
+        })
+      )
+      .set(
+        'blockingBarriers',
+        toggle(['blockingBarriers'], 'Moves Through Walls And Objects', {
+          showIf: isMovementPassage
+        })
+      )
+      .set(
+        'costMultiplier',
+        number(['costMultiplier'], 'Cost Multiplier Inside What It Passes', {
+          constraints: { minimum: 1, maximum: 2 },
+          showIf: isMovementPassage,
+          requiredIf: true
         })
       )
       .set(
