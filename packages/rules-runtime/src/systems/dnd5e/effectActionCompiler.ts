@@ -32,6 +32,7 @@ import type {
   HitPointMaximumReductionAuthored,
   OptionalOnHitAuthored,
   FailureMarginRiderAuthored,
+  ForcedMovementCollisionAuthored,
   PathLifecycleAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
@@ -75,6 +76,7 @@ import type {
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
+  type CharacterRuleActionForcedMovementCollision,
   CharacterRuleActionTargetDefenseUnavailableError,
   CharacterRuleActionUnsupportedCompilationError,
   isCharacterRuleActionForcedMovementDirection
@@ -92,6 +94,7 @@ import {
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
   placedSpaceZone,
+  ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY,
   zoneTriggers,
   type PlacedSpaceZone
 } from '../../encounterZonePlacement.js'
@@ -332,7 +335,13 @@ type Outcome =
       destinationKind: TeleportAllowanceDestinationKind
     }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
-  | { kind: 'FORCED_MOVEMENT'; direction: ForcedMovementDirection; feet: number; upTo: boolean }
+  | {
+      kind: 'FORCED_MOVEMENT'
+      direction: ForcedMovementDirection
+      feet: number
+      upTo: boolean
+      collision: CharacterRuleActionForcedMovementCollision | null
+    }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -776,8 +785,9 @@ function isSupportedTestActivation(
  * that rolls a pool and tests no one. Either may filter by creature type: the area still catches a
  * creature of a type it has no effect on, which takes no save. Either a sphere, cylinder, circle or cube
  * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
- * the caster (a Self range). Walls, domes, a Self sphere, Touch origins and breakpoint-scaled sizes
- * stay refused. The area only decides who is caught: each caught creature runs the same
+ * the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
+ * domes, a Self sphere, Touch origins and breakpoint-scaled sizes stay refused. The area only
+ * decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does.
  */
 function isSupportedArea(
@@ -786,7 +796,7 @@ function isSupportedArea(
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { shape, targeting, range } = invocation
-  if (!shape || targeting?.selectionKind !== 'AREA_CONTENTS') return false
+  if (targeting?.selectionKind !== 'AREA_CONTENTS') return false
   const pooled = hitPointPoolIsAuthored(targeting)
   if (
     targeting.dispositionKind !== 'ANY' ||
@@ -801,6 +811,8 @@ function isSupportedArea(
     invocation.activation.amount !== 1
   )
     return false
+  // A Self action that names no shape reaches the creatures in the caster's own space.
+  if (!shape) return range.rangeKind === 'SELF' && !overZone
   // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
   if (
     !(overZone && shape.shapeKind === 'WALL') &&
@@ -1677,6 +1689,7 @@ function settledForcedMovement(outcome: {
   distanceMode: string
   amount?: number
   unit?: string
+  collision?: ForcedMovementCollisionAuthored
 }): Extract<Outcome, { kind: 'FORCED_MOVEMENT' }> | null {
   if (
     !isCharacterRuleActionForcedMovementDirection(outcome.direction) ||
@@ -1688,12 +1701,85 @@ function settledForcedMovement(outcome: {
     outcome.amount <= 0
   )
     return null
+  const collision = outcome.collision ? settledForcedMovementCollision(outcome.collision) : null
+  if (outcome.collision && !collision) return null
   return {
     kind: 'FORCED_MOVEMENT',
     direction: outcome.direction,
     feet: outcome.amount,
-    upTo: outcome.distanceMode === 'UP_TO'
+    upTo: outcome.distanceMode === 'UP_TO',
+    collision
   }
+}
+
+/** One die size per damage roll, as a single dice term such as `1d6`. */
+const COLLISION_DICE_CONFIG = /^[1-9]\d?d[1-9]\d{0,2}$/
+
+/**
+ * The collision of an authored forced movement (D159), flat for the proposal. Null for one the System
+ * cannot settle: a save that is not a fixed DC, or a damage or condition identity that is not a UUID.
+ */
+function settledForcedMovementCollision(
+  collision: ForcedMovementCollisionAuthored
+): CharacterRuleActionForcedMovementCollision | null {
+  const { savingThrow } = collision
+  if (
+    savingThrow.dcMethod !== 'FIXED_DC' ||
+    savingThrow.bonuses?.length ||
+    !Number.isSafeInteger(savingThrow.baseDc) ||
+    !COLLISION_DICE_CONFIG.test(collision.diceConfig) ||
+    !UUID.test(collision.damageTypeId) ||
+    !UUID.test(savingThrow.abilityDefinitionId) ||
+    !UUID.test(collision.conditionId)
+  )
+    return null
+  return {
+    diceConfig: collision.diceConfig,
+    damageTypeId: collision.damageTypeId,
+    abilityDefinitionId: savingThrow.abilityDefinitionId,
+    dc: savingThrow.baseDc,
+    conditionId: collision.conditionId
+  }
+}
+
+/** The collision as the proposal carries it: canonical JSON, or empty when the move has none. */
+function encodeForcedMovementCollision(
+  collision: CharacterRuleActionForcedMovementCollision | null
+) {
+  return collision ? JSON.stringify(collision) : ''
+}
+
+/** The collision a proposal carries; null when it carries none, and a rejection for text that is not one. */
+function decodeForcedMovementCollision(
+  encoded: unknown
+): CharacterRuleActionForcedMovementCollision | null {
+  if (encoded === '') return null
+  const invalid = () =>
+    new Dnd5eEffectActionCompilerError('D&D forced movement collision is invalid.')
+  if (typeof encoded !== 'string') throw invalid()
+  let parsed: Partial<CharacterRuleActionForcedMovementCollision>
+  try {
+    parsed = JSON.parse(encoded)
+  } catch {
+    throw invalid()
+  }
+  const { diceConfig, damageTypeId, abilityDefinitionId, dc, conditionId } = parsed
+  if (
+    typeof diceConfig !== 'string' ||
+    !COLLISION_DICE_CONFIG.test(diceConfig) ||
+    typeof damageTypeId !== 'string' ||
+    !UUID.test(damageTypeId) ||
+    typeof abilityDefinitionId !== 'string' ||
+    !UUID.test(abilityDefinitionId) ||
+    typeof dc !== 'number' ||
+    !Number.isSafeInteger(dc) ||
+    typeof conditionId !== 'string' ||
+    !UUID.test(conditionId)
+  )
+    throw invalid()
+  const collision = { diceConfig, damageTypeId, abilityDefinitionId, dc, conditionId }
+  if (encodeForcedMovementCollision(collision) !== encoded) throw invalid()
+  return collision
 }
 
 /**
@@ -2547,6 +2633,7 @@ function modifierGrantEntryPlan(input: {
     turnAnchor,
     consumeOnFirstEvents = [],
     endOnEvents = [],
+    endOnTriggers = [],
     endOnConditionIds = [],
     holderEnd = null,
     fromSourceOnly = false,
@@ -2590,6 +2677,7 @@ function modifierGrantEntryPlan(input: {
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
+    endOnTriggers.some(({ event }) => event !== 'INCAPACITATED') ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -2597,6 +2685,9 @@ function modifierGrantEntryPlan(input: {
     authoredEffectId: action.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'modifier-grant',
+    ...(endOnTriggers.length > 0 && {
+      lifecycle: { endOnTriggers: canonicalEndTriggers(endOnTriggers) }
+    }),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
@@ -2998,6 +3089,7 @@ function occupantBonusZonePlacementPlan(
     component.choosesUnaffected ||
     component.maxApplicationsPerTurn !== undefined ||
     component.requiresFullyWithin ||
+    component.requiredSight?.length ||
     component.movementCostMultiplier !== undefined ||
     component.blockingRules?.length ||
     component.automaticSaveSuccessImmunityDamageTypeId !== undefined ||
@@ -3074,6 +3166,7 @@ function zoneComponentPlan(
     unsupported('Only a zone’s own component lends an occupant save bonus.')
   const {
     requiresFullyWithin,
+    requiredSight,
     movementCostMultiplier,
     blockingRules,
     automaticSaveSuccessImmunityDamageTypeId: successImmunity
@@ -3100,6 +3193,7 @@ function zoneComponentPlan(
       ? { maxApplicationsPerTurn: component.maxApplicationsPerTurn }
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(requiredSight?.length ? { requiredSight: [...new Set(requiredSight)].sort() } : {}),
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
     ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
@@ -3107,6 +3201,8 @@ function zoneComponentPlan(
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const pinnedDc = pinnedSaveDc(savingThrow)
+  if (requiredSight?.length && invocation.triggerCode !== 'SAVING_THROW')
+    unsupported('A zone that needs sight of its source gates a saving throw.')
   if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
@@ -3126,6 +3222,8 @@ function zoneComponentPlan(
     unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
   const failEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_FAIL')
   const madeEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
+  if (requiredSight?.length && madeEntries.length)
+    unsupported('A zone that needs sight of its source has no outcome for a made save.')
   // D142: a failed save composes damage rows with at most one of each other outcome kind.
   const outcomeEntries = (effectKind: string, ruleKind?: string) =>
     failEntries.filter(
@@ -3248,7 +3346,7 @@ function zoneComponentPlan(
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
   // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
-  if (heldCondition && !maintenance)
+  if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance)
     unsupported('A zone-held condition needs a zone that Concentration maintains.')
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
@@ -3290,12 +3388,37 @@ function zoneHeldCondition(
 ): NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']> | null {
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'CONDITION')
     unsupported('A placed zone condition is a direct condition outcome.')
-  const { heldBySource, endOnEvents = [], escape, ...otherLifecycle } = entry.lifecycle ?? {}
-  const unread = Object.values(otherLifecycle).some((value) => value !== undefined)
+  const {
+    heldBySource,
+    endOnEvents = [],
+    escape,
+    turnAnchor,
+    ...otherLifecycle
+  } = entry.lifecycle ?? {}
+  const unread =
+    turnAnchor !== undefined || Object.values(otherLifecycle).some((value) => value !== undefined)
   if (!heldBySource) {
     if (endOnEvents.includes('ON_LEAVING_AREA') || escape)
       unsupported('A placed zone condition that its zone does not hold has no leave or escape.')
-    return null
+    if (!turnAnchor) return null
+    // The one timed form: until the end of the holder's turn, which the occupant's own turn
+    // boundary counts, so it neither outlasts the turn nor depends on the zone's lifetime.
+    if (
+      turnAnchor.actor !== 'TARGET' ||
+      turnAnchor.boundary !== 'END_OF_TURN' ||
+      !entry.duration ||
+      conditionDurationTurns(entry.duration) !== 1 ||
+      endOnEvents.length > 0 ||
+      Object.values(otherLifecycle).some((value) => value !== undefined)
+    )
+      unsupported(
+        'A placed zone condition that its zone does not hold lasts until the end of its holder turn.'
+      )
+    return {
+      conditionId: entry.outcome.conditionId,
+      endsAtEndOfHolderTurn: true as const,
+      ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
+    }
   }
   if (unread || endOnEvents.some((event) => event !== 'ON_LEAVING_AREA'))
     unsupported(
@@ -4968,6 +5091,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     direction: RULE_VALUE_KIND.TEXT,
     feet: RULE_VALUE_KIND.NUMBER,
     upTo: RULE_VALUE_KIND.BOOLEAN,
+    collision: RULE_VALUE_KIND.TEXT,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
   },
   outputs: {
@@ -4978,6 +5102,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     direction: RULE_VALUE_KIND.TEXT,
     feet: RULE_VALUE_KIND.NUMBER,
     upTo: RULE_VALUE_KIND.BOOLEAN,
+    collision: RULE_VALUE_KIND.TEXT,
     applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
     authorized: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
@@ -4991,8 +5116,10 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       direction,
       feet,
       upTo,
+      collision,
       targetStateChecksum
     } = inputs
+    decodeForcedMovementCollision(collision)
     if (
       typeof targetActorId !== 'string' ||
       !UUID.test(targetActorId) ||
@@ -5018,6 +5145,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       direction,
       feet,
       upTo,
+      collision,
       applicationCandidate: true,
       authorized: resultPath === authoredPath,
       targetStateChecksum
@@ -5044,6 +5172,10 @@ function forcedMovementProposalNode(input: {
       direction: { kind: 'LITERAL' as const, value: input.outcome.direction },
       feet: { kind: 'LITERAL' as const, value: input.outcome.feet },
       upTo: { kind: 'LITERAL' as const, value: input.outcome.upTo },
+      collision: {
+        kind: 'LITERAL' as const,
+        value: encodeForcedMovementCollision(input.outcome.collision)
+      },
       targetStateChecksum: { kind: 'FACT' as const, factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
     }
   }
@@ -9185,20 +9317,23 @@ function interpretSpatial(
   const direction = value('direction')
   const feet = value('feet')
   const upTo = value('upTo')
+  const collision = decodeForcedMovementCollision(value('collision'))
   const bindings = input.published.definition.sourceEntryBindings?.filter(
     (binding) => binding.nodeId === trace.nodeId
   )
   // The trace must echo the published node's literals: the evidence moves only what was authored.
   const literalsEchoed =
     node !== undefined &&
-    (['sourceEntryId', 'authoredPath', 'direction', 'feet', 'upTo'] as const).every((port) => {
-      const binding = node.inputs[port]
-      return (
-        binding?.kind === 'LITERAL' &&
-        binding.value === trace.inputs[port] &&
-        trace.inputs[port] === value(port)
-      )
-    })
+    (['sourceEntryId', 'authoredPath', 'direction', 'feet', 'upTo', 'collision'] as const).every(
+      (port) => {
+        const binding = node.inputs[port]
+        return (
+          binding?.kind === 'LITERAL' &&
+          binding.value === trace.inputs[port] &&
+          trace.inputs[port] === value(port)
+        )
+      }
+    )
   if (
     !node ||
     !literalsEchoed ||
@@ -9236,6 +9371,7 @@ function interpretSpatial(
       direction,
       feet,
       upTo,
+      collision,
       targetStateChecksum: String(value('targetStateChecksum'))
     }
   ]
@@ -9519,9 +9655,14 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
       }
     })
   }
-  // A TEST whose every outcome its active-effect plan carries (a creature form or a timed grant
-  // after a failed save) selects no OUTCOME graph: the plan runs from the TEST's result path.
-  if (outcomes.length === 0 && creatureFormPlan(action) === null && saveGrantPlan(action) === null)
+  // A TEST whose every outcome its active-effect plan carries (a creature form, or a timed grant
+  // after a failed save or on an attack's hit) selects no OUTCOME graph: the plan runs from the
+  // TEST's result path.
+  if (
+    outcomes.length === 0 &&
+    creatureFormPlan(action) === null &&
+    modifierGrantPlan(action) === null
+  )
     unsupported('D&D test action has no specialized outcome path.')
   return outcomes
 }
@@ -10368,9 +10509,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const attemptAllowed = !gate || perception?.satisfied === (gate.allow === 'WHEN_MET')
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
-    const succeedsUnrolled = defenses.some(
-      (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
-    )
+    // A zone that needs sight of its source is saved against unrolled by an occupant without it.
+    const succeedsUnrolled =
+      defenses.some(
+        (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
+      ) || targetDerivedFacts[ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY] === false
     const addedDice = derivedAddedDice(targetDerivedFacts.savingThrowAddedDice, abilityDefinitionId)
     const facts = {
       ...baseFacts,

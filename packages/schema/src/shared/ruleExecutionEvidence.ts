@@ -16,6 +16,7 @@ import {
   ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import { d20MinimumRollDtoSchema } from './d20MinimumRoll.js'
 import {
   d20AddedDiceDtoSchema,
   d20AddedDiceTotal,
@@ -94,7 +95,9 @@ export const frozenCheckD20DtoSchema = lazySchema(() =>
     contributorChecksum: checksumSchema,
     modifier: integerSchema,
     /** Dice the check rolls beside its d20 (D156), from the roller's active effects. */
-    addedDice: z.optional(d20AddedDiceDtoSchema)
+    addedDice: z.optional(d20AddedDiceDtoSchema),
+    /** The floor the roller's active effects put on the d20 the check counts. */
+    minimumRoll: z.optional(d20MinimumRollDtoSchema)
   })
 )
 

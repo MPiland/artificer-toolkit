@@ -11,6 +11,7 @@ import {
   d20RolledAddedDiceDtoSchema,
   type D20AddedDieDto
 } from './d20AddedDice.js'
+import type { D20MinimumRollDto } from './d20MinimumRoll.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
@@ -578,6 +579,7 @@ export type EncounterConcealmentCheckPendingContextDto = {
     contributorChecksum: z.infer<typeof checksumSchema>
     modifier: z.infer<typeof integerSchema>
     addedDice?: D20AddedDieDto[]
+    minimumRoll?: D20MinimumRollDto
   }
   resolution:
     | {

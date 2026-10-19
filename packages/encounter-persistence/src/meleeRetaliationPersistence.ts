@@ -9,9 +9,16 @@ import {
   selectMeleeRetaliationContacts,
   type MeleeRetaliationToken
 } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
+import {
+  spatialDamageEnds,
+  targetStateAfterEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
+import { deleteGrants } from './consumedGrantPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -125,6 +132,14 @@ export async function persistEncounterMeleeRetaliation(
   const applications = executions.flatMap((execution) =>
     execution.applications.map((application) => ({ ...application, targetActorId: attacker.id }))
   )
+  // The zones' damage ends the effects that end on damage, as the plan released them.
+  const ends = spatialDamageEnds({
+    holderActorId: attacker.id,
+    held: await createActiveRuleEffectStore(ctx).list(turnEffectOwner(attacker, state.id)),
+    executions,
+    turnActorId: state.currentActorId,
+    dispositions: new Map(input.initialActors.map(({ id, disposition }) => [id, disposition]))
+  })
   const applied = await callbacks.applyMechanics({
     encounterId: state.id,
     targetActorId: attacker.id,
@@ -142,7 +157,7 @@ export async function persistEncounterMeleeRetaliation(
           })
         : input.sourceCommandId,
     occurredAt: input.occurredAt,
-    applications,
+    applications: [...applications, ...ends.releases],
     effectiveMaximumHitPoints: before.maximumHitPoints,
     effectiveScalarValues: before.scalarValues,
     forceVersionAdvance: attacker.kind === 'CHARACTER'
@@ -150,8 +165,11 @@ export async function persistEncounterMeleeRetaliation(
   if (
     checksumRuleDocument(applied.targetTransition.before) !== checksumRuleDocument(before) ||
     checksumRuleDocument(applied.targetTransition.after) !==
-      checksumRuleDocument(last.targetTransition.after) ||
-    checksumRuleDocument(applied.receiptApplications) !==
+      checksumRuleDocument(
+        targetStateAfterEndedEffects(last.targetTransition.after, ends.releases)
+      ) ||
+    applied.receiptApplications.length !== applications.length + ends.releases.length ||
+    checksumRuleDocument(applied.receiptApplications.slice(0, applications.length)) !==
       checksumRuleDocument(
         applications.map(({ targetActorId: _id, ...application }, index) => ({
           ...application,
@@ -163,5 +181,6 @@ export async function persistEncounterMeleeRetaliation(
       : applied.characterStreamVersion !== beforeStreamVersion + 1)
   )
     throw new Error('Melee retaliation settlement differs from its plan.')
+  await deleteGrants(ctx, ends.endedEffects)
   return applied.updatedActor
 }

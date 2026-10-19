@@ -121,7 +121,8 @@ describe('native movement target scalar facts', () => {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,
         qualifiedDefenses: [],
-        conditionImmunityIds: after.effectiveRulePolicyOutput!.conditionImmunityIds
+        conditionImmunityIds: after.effectiveRulePolicyOutput!.conditionImmunityIds,
+        spellSchoolImmunityIds: []
       }
     })
     expect(after.defenses).toEqual(after.effectiveRulePolicyOutput!.defenses)

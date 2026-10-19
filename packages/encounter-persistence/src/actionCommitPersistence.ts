@@ -31,7 +31,7 @@ import {
   recordActionRoot,
   type ApplyEncounterForcedMovements
 } from './actionCommitRecords.js'
-import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -407,6 +407,7 @@ export async function persistEncounterActionCommit(
   })
   // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
+  await spendEffectUses(ctx, input.spentUseGrants)
   // The zones the melee hit set off burn the attacker after the hit lands (D153).
   if (batch.meleeRetaliation) {
     const retaliated = await persistEncounterMeleeRetaliation(
@@ -525,14 +526,14 @@ export async function persistEncounterActionCommit(
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   // A push or pull moves its target's token on the Scene in this commit (D139).
-  const forcedMovements = input.forcedMovements.length
+  const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
         state,
         sourceActorId: source.id,
         commandId: command.commandId,
         movements: input.forcedMovements
       })
-    : []
+    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,
@@ -548,14 +549,15 @@ export async function persistEncounterActionCommit(
       label: input.label,
       ruleOverrides: input.ruleOverrides,
       consumedGrants: receiptConsumedGrants({
-        consumedGrants: input.consumedGrants,
+        consumedGrants: [...input.consumedGrants, ...input.spentUseGrants],
         endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
       }),
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
       teleportAllowanceTurn,
-      forcedMovements,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

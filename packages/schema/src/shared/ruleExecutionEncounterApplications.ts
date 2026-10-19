@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { forcedMovementDirectionSchema } from './enums.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
   deathSavesAfterDamage,
@@ -27,11 +28,8 @@ import {
 } from '@artificer-toolkit/shared/rules/contributors'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
-import {
-  d20AddedDiceTotal,
-  d20RolledAddedDiceDtoSchema,
-  type D20RolledAddedDieDto
-} from './d20AddedDice.js'
+import { d20RolledAddedDiceDtoSchema, type D20RolledAddedDieDto } from './d20AddedDice.js'
+import { d20CheckTotal, d20MinimumRollDtoSchema, type D20MinimumRollDto } from './d20MinimumRoll.js'
 
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
@@ -152,7 +150,12 @@ const ruleCheckRollFields = () => ({
   contributors: canonicalConcentrationContributorsDtoSchema,
   contributorChecksum: checksumSchema,
   /** The added dice (D156) with their rolled faces; `total` includes their signed sum. */
-  addedDice: z.optional(d20RolledAddedDiceDtoSchema)
+  addedDice: z.optional(d20RolledAddedDiceDtoSchema),
+  /**
+   * The floor the roller's effects put on the d20; `selectedNatural` stays the face kept and
+   * `total` counts the higher of it and the floor.
+   */
+  minimumRoll: z.optional(d20MinimumRollDtoSchema)
 })
 
 const checkRollMatchesRollMode = (
@@ -163,6 +166,7 @@ const checkRollMatchesRollMode = (
     modifier: number
     total: number
     addedDice?: D20RolledAddedDieDto[]
+    minimumRoll?: D20MinimumRollDto
   },
   context: { addIssue: (issue: { code: 'custom'; path: string[]; message: string }) => void }
 ) => {
@@ -174,7 +178,7 @@ const checkRollMatchesRollMode = (
         : value.rollMode === 'DISADVANTAGE'
           ? Math.min(...value.rawFaces)
           : value.rawFaces[0]) ||
-    value.total !== value.selectedNatural + value.modifier + d20AddedDiceTotal(value.addedDice)
+    value.total !== d20CheckTotal(value)
   )
     context.addIssue({
       code: 'custom',
@@ -1053,7 +1057,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
         /** The push a won contest's picked outcome settles on the target (Shove, D105, D157). */
         z.strictObject({
           kind: z.literal('FORCED_MOVEMENT'),
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          direction: forcedMovementDirectionSchema,
           feet: z.number().check(z.positive()),
           upTo: z.boolean()
         }),

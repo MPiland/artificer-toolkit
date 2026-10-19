@@ -32,6 +32,7 @@ import {
   lostActionOutcome,
   noSave
 } from '../testing/authoredZoneFixture.js'
+import { SLEEP_CONDITION_ID, sleepEffectOn } from '../testing/sleepEffectFixture.js'
 import { roundAt } from './encounterInitiativeFixtures.js'
 import {
   actorIdByTokenId,
@@ -68,6 +69,10 @@ function prepare(input: {
   tokens?: typeof tokens
   actors?: typeof actors
   actorIdByTokenId?: typeof actorIdByTokenId
+  /** Whether the occupant and the zone's source see each other; both do by default. */
+  sight?: { occupantSeesSource: boolean; sourceSeesOccupant: boolean }
+  /** The effects the goblin carries when the boundary starts. */
+  goblinEffects?: Parameters<typeof srdCreatureTarget>[1]
 }) {
   const sceneActors = input.actors ?? actors
   return prepareEncounterTurnZoneEffects({
@@ -85,7 +90,12 @@ function prepare(input: {
       actorIdByTokenId: input.actorIdByTokenId ?? actorIdByTokenId
     }),
     loadTarget: async (actorId) =>
-      srdCreatureTarget(sceneActors.find((actor) => actor.id === actorId)!),
+      srdCreatureTarget(
+        sceneActors.find((actor) => actor.id === actorId)!,
+        actorId === GOBLIN_ID ? input.goblinEffects : undefined
+      ),
+    loadSourceSight: async () =>
+      input.sight ?? { occupantSeesSource: true, sourceSeesOccupant: true },
     createRuntime: async () => runtime,
     definitions: srdDefinitions,
     random: () => 0,
@@ -139,6 +149,33 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
       execution!.targetTransition.after.currentHitPoints
     )
     expect(hitPoints(phase.actors, SOURCE_ID)).toBe(hitPoints(actors, SOURCE_ID))
+  })
+
+  it('wakes a creature whose sleep the zone’s damage ends, and releases the condition it held (SPELLS-33.T6e4)', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const sleeper = sleepEffectOn({
+      encounterId: ENCOUNTER_ID,
+      id: testUuid(0x3d1),
+      sourceActorId: SOURCE_ID,
+      holder: goblin
+    })
+    const asleep = srdCreatureActor({
+      id: GOBLIN_ID,
+      creature: srdByLabel(SRD.creatures, 'Goblin'),
+      conditionIds: [SLEEP_CONDITION_ID]
+    })
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        actors: [asleep, source],
+        goblinEffects: [sleeper]
+      })
+    )
+    expect(phase.plan?.executions).toHaveLength(1)
+    const woken = phase.actors.find(({ id }) => id === GOBLIN_ID)
+    expect(woken && woken.kind !== 'CHARACTER' ? woken.conditions : null).toEqual([])
+    expect(phase.movementTargets.get(GOBLIN_ID)?.activeEffects).toEqual([])
   })
 
   it('acts only at the boundary it names', async () => {
@@ -310,6 +347,62 @@ describe('a zone that catches only some creatures (SPELLS-20 T4b3a)', () => {
     expect(failed!.targetTransition.after.currentHitPoints).toBe(
       failed!.targetTransition.before.currentHitPoints - 1
     )
+  })
+})
+
+describe('a zone that needs sight of its source (SPELLS-33.T6e)', () => {
+  const sightZone = (requiredSight: ('OCCUPANT_SEES_SOURCE' | 'SOURCE_SEES_OCCUPANT')[]) =>
+    placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE'], undefined, { requiredSight }), 1)
+  const saved = (phase: Awaited<ReturnType<typeof complete>>) => {
+    const [execution] = phase.plan!.executions
+    return (
+      execution!.targetTransition.after.currentHitPoints ===
+      execution!.targetTransition.before.currentHitPoints
+    )
+  }
+
+  it('rolls the save of an occupant that sees the source, which the lowest face fails', async () => {
+    const zone = sightZone(['OCCUPANT_SEES_SOURCE'])
+    expect(saved(await complete(prepare({ zones: [zone], boundary: START })))).toBe(false)
+  })
+
+  it('lets an occupant that cannot see the source succeed on the save unrolled', async () => {
+    const zone = sightZone(['OCCUPANT_SEES_SOURCE'])
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        sight: { occupantSeesSource: false, sourceSeesOccupant: true }
+      })
+    )
+    expect(saved(phase)).toBe(true)
+    expect(phase.plan!.executions[0]!.execution.outputs.resultPath).toBe('ON_SAVE_SUCCESS')
+  })
+
+  it('needs each sight the zone names, and ignores one it does not', async () => {
+    const both = sightZone(['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'])
+    const unseenBySource = { occupantSeesSource: true, sourceSeesOccupant: false }
+    expect(
+      saved(await complete(prepare({ zones: [both], boundary: START, sight: unseenBySource })))
+    ).toBe(true)
+    const occupantOnly = sightZone(['OCCUPANT_SEES_SOURCE'])
+    expect(
+      saved(
+        await complete(prepare({ zones: [occupantOnly], boundary: START, sight: unseenBySource }))
+      )
+    ).toBe(false)
+  })
+
+  it('reads no sight for a zone that needs none', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        sight: { occupantSeesSource: false, sourceSeesOccupant: false }
+      })
+    )
+    expect(saved(phase)).toBe(false)
   })
 })
 

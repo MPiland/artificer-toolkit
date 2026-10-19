@@ -54,7 +54,7 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
 }
 
 /** The facts of one folded modifier that decide where it applies. */
-type Dnd5eModifierApplicability = {
+export type Dnd5eModifierApplicability = {
   readonly sourceId: string
   /** The item a SOURCE modifier is bound to; it applies while that item is evaluated instead. */
   readonly boundSourceId?: string

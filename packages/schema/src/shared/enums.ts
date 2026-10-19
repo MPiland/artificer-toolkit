@@ -1,4 +1,9 @@
-import { LENGTH_UNIT_CODES, MODIFIER_KIND, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
+import {
+  FORCED_MOVEMENT_DIRECTION,
+  LENGTH_UNIT_CODES,
+  MODIFIER_KIND,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared/core'
 
 import { z, lazySchema } from '../zod.js'
 
@@ -40,6 +45,11 @@ export const manifestBlockingRuleSchema = lazySchema(() =>
     'THREE_QUARTERS_COVER',
     'BLOCKS_SIGHT'
   ])
+)
+
+/** The sight a zone's occupant must have, between itself and the zone's source, to be put through the zone. */
+export const manifestRequiredSightSchema = lazySchema(() =>
+  z.enum(['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'])
 )
 
 export const creatureCategoryCodeSchema = lazySchema(() =>
@@ -378,6 +388,8 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
 export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
 /** Whom an action must be aimed at to end an effect: only enemies of its holder (Sanctuary). */
 export const pathLifecycleEndTriggerAgainstSchema = lazySchema(() => z.enum(['ENEMY']))
+/** Whose incapacitation ends an effect: that of the creature that applied it (Knight Leadership). */
+export const pathLifecycleEndTriggerOfSchema = lazySchema(() => z.enum(['SOURCE']))
 /**
  * The consume events a timed grant can carry (a cast does not use a grant up). ON_HIT is the
  * holder's first attack that hits: the grant counts toward that attack's damage, then is used up.
@@ -402,9 +414,7 @@ export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
     'ON_CHOSEN_ITEM_RELEASED'
   ] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
 )
-export const forcedMovementDirectionSchema = lazySchema(() =>
-  z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'])
-)
+export const forcedMovementDirectionSchema = lazySchema(() => z.enum(FORCED_MOVEMENT_DIRECTION))
 export const forcedMovementDistanceModeSchema = lazySchema(() =>
   z.enum(['UP_TO_SPEED', 'EXACT', 'UP_TO'])
 )

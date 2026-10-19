@@ -4,7 +4,11 @@ import {
   withCreatureActiveGrantSkillTotal
 } from './encounterActiveGrants.js'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import { activeAbilityCheckDice } from './character/activeEffectGrantTotals.js'
+import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
+import {
+  activeAbilityCheckDice,
+  activeAbilityCheckMinimumRoll
+} from './character/activeEffectGrantTotals.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
@@ -60,6 +64,8 @@ export type ContestFacts = {
   size: string | null
   /** The dice the actor's active effects add to this check (D156). */
   addedDice: D20AddedDieDto[]
+  /** The floor the actor's active effects put on this check's d20; null when it has none. */
+  minimumRoll: D20MinimumRollDto | null
 }
 
 type PassagePreparationInput<TCharacterFacts extends CharacterMovementFacts> = {
@@ -140,12 +146,13 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
   const target = input.targets.get(input.actorId)
   if (!target || target.actor.id !== input.actorId || target.actor.systemId !== input.gameSystemId)
     throw new Error('Movement passage actor facts are stale.')
-  const withConditions = (facts: Omit<ContestFacts, 'addedDice'>): ContestFacts => ({
+  const abilityCode = checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId)
+  const withConditions = (
+    facts: Omit<ContestFacts, 'addedDice' | 'minimumRoll'>
+  ): ContestFacts => ({
     ...facts,
-    addedDice: activeAbilityCheckDice(
-      target.activeEffects,
-      checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId)
-    ),
+    addedDice: activeAbilityCheckDice(target.activeEffects, abilityCode),
+    minimumRoll: activeAbilityCheckMinimumRoll(target.activeEffects, abilityCode),
     ...withEncounterConditionCheckContributors({
       holderActorId: target.actor.id,
       mechanics: target.conditionMechanics,

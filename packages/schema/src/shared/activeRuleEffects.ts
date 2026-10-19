@@ -24,6 +24,7 @@ import {
   pathLifecycleEndEventSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
+  pathLifecycleEndTriggerOfSchema,
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
@@ -134,7 +135,9 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
  * `ATTACK_ROLL` and `SPELL_CAST` end it when its holder attacks or casts at an enemy (Sanctuary).
  * `ACTION_USED_ON_HOLDER` ends it when another creature uses one of the named actions on the holder
- * (rousing a sleeper); the ids are basic-action definitions, sorted and unique.
+ * (rousing a sleeper); the ids are basic-action definitions, sorted and unique. `INCAPACITATED` ends
+ * it when the effect's source is incapacitated or defeated (`of: 'SOURCE'`, Knight Leadership),
+ * wherever the effect sits; the holder's own incapacitation is the `ON_INCAPACITATED` end event.
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
@@ -150,6 +153,10 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
     z.strictObject({
       event: z.literal('ACTION_USED_ON_HOLDER'),
       actionDefinitionIds: basicActionFilterDtoSchema
+    }),
+    z.strictObject({
+      event: z.literal('INCAPACITATED'),
+      of: pathLifecycleEndTriggerOfSchema
     })
   ])
 )
@@ -505,7 +512,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
         }
         if (
           definition.recurrence.endOnTriggers.some(
-            (trigger) => 'by' in trigger && trigger.by === 'SOURCE_SIDE'
+            (trigger) =>
+              ('by' in trigger && trigger.by === 'SOURCE_SIDE') || trigger.event === 'INCAPACITATED'
           ) &&
           (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
         ) {

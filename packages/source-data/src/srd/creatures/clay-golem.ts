@@ -98,18 +98,7 @@ export const clayGolem: CreatureAuthored = {
       id: S.featureId(64, 4),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(64, 107),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(64, 108), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(64, 107),
       order: 4
     },
     {

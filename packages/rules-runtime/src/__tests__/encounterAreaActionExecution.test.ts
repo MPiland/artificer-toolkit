@@ -451,6 +451,19 @@ describe('catching the creatures in a radius centered on the caster', () => {
     ).toEqual([CASTER_ID])
   })
 
+  it('catches the creatures sharing the caster’s own space, never the caster (SPELLS-33.T6k2b)', () => {
+    // The caster’s space is x -1..1: the ally at 1 overlaps it, the foe at 2 only touches it.
+    expect(
+      catchEncounterAreaActorIds({
+        origin: { x: 0, y: 0 },
+        shape: { kind: 'CUBE', edgeLength: 2 },
+        casterActorId: CASTER_ID,
+        tokens: tokens({ foe: 2, ally: 1 }),
+        fromCasterSpace: true
+      })
+    ).toEqual([ALLY_ID])
+  })
+
   it('needs the caster’s token: a centered area without one is an invariant, not an empty catch', () => {
     expect(() =>
       catchEncounterAreaActorIds({
