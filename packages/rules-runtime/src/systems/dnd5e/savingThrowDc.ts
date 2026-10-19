@@ -18,14 +18,14 @@ type SavingThrowDcBonus =
 export function resolveSavingThrowDc(
   savingThrow: {
     dcMethod: string
-    baseDc: number | string
+    baseDc?: number | null
     bonuses?: readonly SavingThrowDcBonus[]
   },
   facts: SavingThrowDcFacts
 ): number | null {
   if (savingThrow.dcMethod === 'SOURCE_SAVE_DC') return facts.spellSaveDc
-  let dc = Number(savingThrow.baseDc)
-  if (savingThrow.dcMethod === 'FIXED_DC') return dc
+  if (savingThrow.dcMethod === 'FIXED_DC') return savingThrow.baseDc ?? null
+  let dc = savingThrow.baseDc ?? 0
   for (const bonus of savingThrow.bonuses ?? []) {
     const amount =
       bonus.bonusKind === 'STATIC_BONUS'
