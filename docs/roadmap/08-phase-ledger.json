@@ -12394,7 +12394,7 @@
             },
             {
               "id": "SPELLS-33.T6k2b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12404,11 +12404,11 @@
                 "after": ["SPELLS-33.T6k2b"]
               },
               "text": "Whirlwind collision part 3 (D159): the forced-movement schema refuses unknown keys inside collision (discriminated union), with a schema test that fails before the fix (2026-10-19 split; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m179 (9428f2eb2)."
             },
             {
               "id": "SPELLS-33.T6k2b3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12417,7 +12417,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6k2b2"]
               },
-              "text": "new: Whirlwind collision part 4 (D159): RANDOM forced-movement rays rolled once on the server and sealed in the pending-context snapshot (a replan keeps the ray), the landing preview from readRoomForcedMovementPick, and the mover's own collision damage as ordinal kept entries, proved on an authored fixture; the Whirlwind stays on its old kind (2026-10-19 split; workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 4 (D159): RANDOM forced-movement rays rolled once on the server and sealed in the pending-context snapshot (a replan keeps the ray), the landing preview from readRoomForcedMovementPick, and the mover's own collision damage as ordinal kept entries, proved on an authored fixture; the Whirlwind stays on its old kind (2026-10-19 split; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k2b4",
