@@ -121,9 +121,7 @@ async function seedMovingSpatialEffect(
 ) {
   const seeded = await seedSpatialEffect(
     { ...value.base, sceneId: value.sceneId },
-    { x: 900, y: 900 },
-    // Wide enough to reach a target standing one cell off the mover's path.
-    55
+    { x: 900, y: 900 }
   )
   return value.base.t.run(async (ctx) => {
     const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
@@ -146,7 +144,8 @@ async function seedMovingSpatialEffect(
         sourceTokenId: value.moverTokenId,
         geometry: {
           frame: 'TOKEN_LOCAL',
-          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 }
+          // Wide enough to reach a target standing one cell off the mover's path.
+          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 55 }
         },
         triggerModes: ['CROSS'],
         movementKinds: ['VOLUNTARY'],
