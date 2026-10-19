@@ -20,7 +20,10 @@ import {
   encounterRelationships,
   type EncounterRelationshipActiveEffectsByActorId
 } from './encounterRelationshipActionFacts.js'
-import { encounterActorsWithinReach, type EncounterReachScene } from './encounterRelationshipEnds.js'
+import {
+  encounterActorsWithinReach,
+  type EncounterReachScene
+} from './encounterRelationshipEnds.js'
 import {
   actorContestFacts,
   checkAbilityCode,

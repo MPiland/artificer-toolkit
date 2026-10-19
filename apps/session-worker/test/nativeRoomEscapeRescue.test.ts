@@ -111,10 +111,7 @@ function rescueRoom(options: {
 
 type RescueRoom = Awaited<ReturnType<typeof rescueRoom>>
 
-async function free(
-  room: RescueRoom,
-  input: { actorId?: string; heldActorId?: string } = {}
-) {
+async function free(room: RescueRoom, input: { actorId?: string; heldActorId?: string } = {}) {
   return room.send({
     type: 'ESCAPE',
     encounterId: room.room.encounterId,
@@ -152,11 +149,15 @@ async function rescueState(room: RescueRoom) {
     const row = history.actors.find((actor) => actor.id === actorId)
     if (!row) throw new Error('The actor left the Run.')
     const actor = readStoredRunActor(row)
-    if (actor.kind === 'CHARACTER') throw new Error('A Character keeps its conditions on its Sheet.')
+    if (actor.kind === 'CHARACTER')
+      throw new Error('A Character keeps its conditions on its Sheet.')
     return actor
   }
   const spent = (actorId: string) =>
-    Object.values(encounterRuleUsageSnapshot(creature(actorId))).reduce((sum, used) => sum + used, 0)
+    Object.values(encounterRuleUsageSnapshot(creature(actorId))).reduce(
+      (sum, used) => sum + used,
+      0
+    )
   return {
     outputs,
     effectIds: history.activeEffects.map((effect) => effect.id),
@@ -259,11 +260,9 @@ describe('an ally within reach frees a held creature (ATTACK-7.9), in the room',
     expect((await near.actionChoices()).escapes).toMatchObject([
       { heldActorId: HELD_ID, activeEffectId: EFFECT_ID, dc: DC, actionCost: 'ACTION' }
     ])
-    expect(
-      (await (await rescueRoom({ rescuerAt: FAR })).actionChoices()).escapes
-    ).toEqual([])
-    expect(
-      (await (await rescueRoom({ actorKinds: ['TARGET'] })).actionChoices()).escapes
-    ).toEqual([])
+    expect((await (await rescueRoom({ rescuerAt: FAR })).actionChoices()).escapes).toEqual([])
+    expect((await (await rescueRoom({ actorKinds: ['TARGET'] })).actionChoices()).escapes).toEqual(
+      []
+    )
   })
 })

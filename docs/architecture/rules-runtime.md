@@ -1765,6 +1765,22 @@ the activation; an escaper win ends the held effect through `endEncounterEscaped
 `RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
 applies. Undo refuses a contested escape like other contests.
 
+**Freeing another creature from a hold (ATTACK-7.9).** An `ESCAPE_CHECK` whose `actorKinds` include
+`CREATURE_WITHIN_REACH` lets a creature other than the held one attempt the escape. `ESCAPE` gains an optional
+`heldActorId` (the schema refuses `heldActorId === actorId`; absent, the actor escapes for itself), the escape
+choice DTO carries `heldActorId: string | null`, and the pending context and `ESCAPE_CHECK` output carry it when
+a rescuer rolls. `findEncounterRescues` lists the holds the actor may break: a `FIXED`-DC module allowing
+`CREATURE_WITHIN_REACH` on another creature that stands within the reach the hold sealed
+(`encounterActorsWithinReach`, the same footprint measure as `encounterEndedRelationships`, on the Run's bound
+Scene), excluding a hold the actor itself applied (letting go is a release) and a pair the Scene does not place.
+The planner resolves `activeEffectId` against the held creature's effects and refuses an effect not on
+`heldActorId`. The rescuer rolls its own check (`findEncounterHolderEscape(effect, 'CREATURE_WITHIN_REACH')`
+re-derives it at commit), spends its own activation, and a success ends the effect on the held creature through
+the one escape end path. A zone's `CONDITION_ESCAPE` is held-creature-only. A rescuer that is itself held may
+still free another creature. Undo follows the escape rule: a failure returns the activation, a success is refused.
+**Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
+held creature against its holder); `encounterRescues.test.ts` proves the omission.
+
 **Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
 condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the
 contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with

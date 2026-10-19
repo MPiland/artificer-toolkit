@@ -432,7 +432,8 @@ export async function readEncounterActionChoices(
   })
   const runActors = await readRunActors(tx, state)
   // The holds on creatures within reach that the actor may break for them (ATTACK-7.9).
-  const rescues = actor.kind === 'CUSTOM' ? [] : await readEncounterRescues(tx, state, actor, runActors)
+  const rescues =
+    actor.kind === 'CUSTOM' ? [] : await readEncounterRescues(tx, state, actor, runActors)
   const escapes: EncounterActionChoicesDto['escapes'] = []
   if (heldEscapes.length > 0 || rescues.length > 0) {
     const system = await tx.ports.requireSystem(state.gameSystemId)
