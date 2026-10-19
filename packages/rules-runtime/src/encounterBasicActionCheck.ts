@@ -1,6 +1,7 @@
 import {
   d20AddedDiceTotal,
-  type D20AddedDieDto
+  type D20AddedDieDto,
+  type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {
   d20CheckTotal,
@@ -225,7 +226,7 @@ export function settledCheckD20MatchesFrozen(
     contributorChecksum: string
     selectedNatural: number
     total: number
-    addedDice?: readonly D20AddedDieDto[]
+    addedDice?: readonly D20RolledAddedDieDto[]
     minimumRoll?: D20MinimumRollDto
   },
   frozen: EncounterD20CheckContext['d20']
