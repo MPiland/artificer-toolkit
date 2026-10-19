@@ -10,7 +10,10 @@ import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
-import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import {
+  conditionTypeId,
+  creatureTypeId
+} from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   SRD_ABILITIES,
@@ -1895,6 +1898,16 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
     if (!failure || !('resultBlock' in failure) || !failure.resultBlock)
       throw new Error('Grease must author its appear save.')
     failure.resultBlock.lifecycle = { heldBySource: true }
+
+    expect(compiledCast(grease)).toBeNull()
+  })
+
+  it('refuses a zone whose appear save excludes a creature type, which its entry saves cannot', () => {
+    const grease = structuredClone(spell('Grease'))
+    const invocation = grease.effects?.[0]?.invocation
+    if (invocation?.kind !== 'ACTION' || invocation.targeting?.selectionKind !== 'AREA_CONTENTS')
+      throw new Error('Grease must target the area it covers.')
+    invocation.targeting.excludedCreatureTypeIds = [creatureTypeId('UNDEAD')]
 
     expect(compiledCast(grease)).toBeNull()
   })

@@ -119,6 +119,7 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { targetingExcludesCreatureType } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/encounterHitPointPool'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -800,7 +801,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
 
   // A zone is entered later, by movement; placing it puts nobody through its entry save, only
   // through the save its cast authors for when it appears. A creature immune to this source's use
-  // of the action (D156) is caught but left out, with no save.
+  // of the action (D156), or of a creature type the action has no effect on, is caught but left
+  // out, with no save.
   const inArea =
     base.placement && !base.placement.appearSave
       ? []
@@ -811,20 +813,25 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
           fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
         })
-  const immuneActorIds = inArea.filter(
-    (actorId) =>
-      encounterSourceImmunityLabel({
-        source: base.source,
-        holderEffects: input.activeEffectsByActorId.get(actorId) ?? []
-      }) !== null
-  )
-  const caughtActorIds = inArea.filter((actorId) => !immuneActorIds.includes(actorId))
-  const caughtInArea = caughtActorIds.map((actorId) => {
+  const inAreaActors = inArea.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
     return { actor, token }
   })
+  const unaffectedActorIds = inAreaActors.flatMap(({ actor }) => {
+    const creatureTypeId = snapshotCreatureTypeId(actor)
+    return encounterSourceImmunityLabel({
+      source: base.source,
+      holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []
+    }) !== null ||
+      (creatureTypeId !== null &&
+        targetingExcludesCreatureType(targetPolicy.targeting, creatureTypeId))
+      ? [actor.id]
+      : []
+  })
+  const caughtInArea = inAreaActors.filter(({ actor }) => !unaffectedActorIds.includes(actor.id))
+  const caughtActorIds = caughtInArea.map(({ actor }) => actor.id)
   for (const { actor } of caughtInArea)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
   // An area with a hit-point pool affects the creatures the pool covers, lowest hit points first.
@@ -959,7 +966,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     reach: base,
     lead: lead.prepared,
     targets: reached,
-    immuneActorIds,
+    unaffectedActorIds,
     evaluation,
     ruleOverrides,
     window: opened.window
@@ -984,8 +991,11 @@ export async function sealReachSaves(
     reach: AreaReach
     lead: AreaPrepared
     targets: readonly ReachTarget[]
-    /** The caught creatures immune to this source's use of the action, which take no save (D156). */
-    immuneActorIds: readonly string[]
+    /**
+     * The caught creatures the action has no effect on, which take no save: immune to this source's
+     * use of it (D156), or of a creature type it excludes.
+     */
+    unaffectedActorIds: readonly string[]
     evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
     ruleOverrides: ReturnType<typeof reachRuleOverrides>
     window: ReachCastWindow
@@ -996,7 +1006,7 @@ export async function sealReachSaves(
     reach,
     lead,
     targets: reached,
-    immuneActorIds,
+    unaffectedActorIds,
     evaluation,
     ruleOverrides,
     window
@@ -1078,7 +1088,7 @@ export async function sealReachSaves(
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
     ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),
-    ...(immuneActorIds.length > 0 ? { immuneActorIds: [...immuneActorIds] } : {}),
+    ...(unaffectedActorIds.length > 0 ? { unaffectedActorIds: [...unaffectedActorIds] } : {}),
     targets
   })
   // An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its

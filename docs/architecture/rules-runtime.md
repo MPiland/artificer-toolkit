@@ -931,9 +931,13 @@ The encounter planner creates the immunity as a second effect on the holder in t
 contribution `{ immuneToId, sourceCharacterId, sourceLabel }`. The compiler refuses a save immunity under
 Concentration and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
 single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out: the pending
-area seals it as `immuneActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
+area seals it as `unaffectedActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
 by source actor, or for a Character by source Character, since a carried effect outlives the Encounter actor.
 A spell grant's `allowedCreatureTypeIds` narrows the targets of its casts (`targetingExcludesCreatureType`).
+An area save that allows or excludes creature types catches every actor in it, and the same filter seals the
+ones it rules out in `unaffectedActorIds` (D156, SPELLS-33.T3a3). The receipt's GM lines read "<label> was
+unaffected". A zone refuses the restriction, since its entry saves do not filter by type. SRD Cloaker Moan
+(excluding aberrations) authors it.
 A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end
 event can fall inside that round. SRD Intimidating Presence (save immunity) and Chains of Carceri (lockout
 and creature types) author it. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
