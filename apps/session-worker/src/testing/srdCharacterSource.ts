@@ -52,7 +52,8 @@ function buildRoots(
   extraClassFeatures: readonly ClassFeature[],
   extraEquipment: readonly EquipmentAuthored[],
   spells: ClassSpells | undefined,
-  creatures: readonly CreatureAuthored[] | undefined
+  creatures: readonly CreatureAuthored[] | undefined,
+  characterSubclass: ClassAuthored | undefined
 ) {
   if (characterClass.category !== 'BASE') throw new Error('The Character’s Class is a base Class.')
   const { spellcasting: _ownSpellcasting, ...classRoot } = structuredClone(characterClass)
@@ -154,6 +155,9 @@ function buildRoots(
         })
       }
     },
+    ...(characterSubclass
+      ? [{ subjectKind: 'CLASS' as const, document: structuredClone(characterSubclass) }]
+      : []),
     { subjectKind: 'BACKGROUND' as const, document: background },
     ...[club, ...extraEquipment].map((document) => ({
       subjectKind: 'EQUIPMENT' as const,
@@ -231,7 +235,8 @@ export function buildSrdSourceKinds(
   equipment: readonly EquipmentAuthored[] = [],
   spells?: ClassSpells,
   creatures?: readonly CreatureAuthored[],
-  characterClass: ClassAuthored = fighter
+  characterClass: ClassAuthored = fighter,
+  characterSubclass?: ClassAuthored
 ) {
   const kinds = [
     'RACE',
@@ -250,7 +255,15 @@ export function buildSrdSourceKinds(
     }
     const built = buildContentSnapshotKind(
       header,
-      buildRoots(characterClass, secondWind, classFeatures, equipment, spells, creatures)
+      buildRoots(
+        characterClass,
+        secondWind,
+        classFeatures,
+        equipment,
+        spells,
+        creatures,
+        characterSubclass
+      )
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'

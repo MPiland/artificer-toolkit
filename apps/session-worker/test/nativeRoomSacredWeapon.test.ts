@@ -38,12 +38,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const featureOf = (label: string) => {
-  const feature = oathOfDevotion.features?.find((entry) => entry.label === label)
-  if (!feature) throw new Error(`The Oath of Devotion has no "${label}" Feature.`)
-  return feature
-}
-
 /**
  * A 3rd-level Paladin (first in the order) holding a Club, the Gargoyle, then a Wolf whose Bite
  * deals 5 damage. The Paladin's d20 and d4 show 19 and 4; the Wolf's d20 shows 19.
@@ -62,10 +56,9 @@ async function paladinRoom(currentHitPoints?: number, abilityScores?: Record<str
       srdCreatureActor({ id: GARGOYLE_ID, creature: seededSrdCreature('Gargoyle') }),
       wolfActor
     ],
-    characterClassFeatures: [featureOf('Channel Divinity: Sacred Weapon')],
     characterPlay: {
-      // The Oath's Channel Divinity resource, on the class the Character levels in.
-      characterClass: { ...paladin, resources: oathOfDevotion.resources },
+      characterClass: paladin,
+      characterSubclass: oathOfDevotion,
       classLevel: 3,
       equipped: true,
       ...(currentHitPoints !== undefined ? { currentHitPoints } : {}),
