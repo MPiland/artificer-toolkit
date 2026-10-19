@@ -35,6 +35,7 @@ import { readBasicActionScopeAdmission } from '@artificer-toolkit/encounter-pers
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterActorTokenBindings } from '@artificer-toolkit/encounter-persistence/actorTokenBindings'
+import { readMemberSeenActorIds } from '@artificer-toolkit/encounter-persistence/targetVisibility'
 import { readEncounterOccupantSaveAuras } from '@artificer-toolkit/encounter-persistence/occupantSaveAuras'
 import {
   readRoomActionAreaSceneInputs,
@@ -463,6 +464,15 @@ export async function readRoomEncounterTurnCapture(
     response = {
       kind: 'ACTOR_TOKEN_BINDINGS',
       bindings: await readEncounterActorTokenBindings(ctx, state)
+    }
+  } else if (request.kind === 'SEEN_ACTORS') {
+    response = {
+      kind: 'SEEN_ACTORS',
+      actorIds: await readMemberSeenActorIds(ctx, {
+        encounterId: state.id,
+        actors: await readRunActors(ctx, state),
+        membership
+      })
     }
   } else if (request.kind === 'OCCUPANT_SAVE_AURAS') {
     const actorId = request.actorId.toLowerCase()
