@@ -2117,6 +2117,7 @@ export async function completeAreaCommit(args: {
         ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
       ),
       attacked: prepared.makesAttackRoll,
+      testEvidence: [complete.d20, complete.nestedD20],
       turnActorId: prepared.state.currentActorId,
       applications,
       damagerActorId: caster.id,

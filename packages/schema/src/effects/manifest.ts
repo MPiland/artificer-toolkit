@@ -7,6 +7,7 @@ import {
   abilityCodeSchema,
   lengthUnitCodeSchema,
   manifestBlockingRuleSchema,
+  manifestRequiredSightSchema,
   sizeCodeSchema
 } from '../shared/enums.js'
 import {
@@ -237,6 +238,9 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             choosesUnaffected: z.optional(z.boolean()),
             movementCostMultiplier: z.optional(z.number().check(z.positive())),
             requiresFullyWithin: z.optional(z.boolean()),
+            requiredSight: z.optional(
+              authoredReferenceCollectionSchema(manifestRequiredSightSchema)
+            ),
             automaticSaveSuccessImmunityDamageTypeId: z.optional(authoredIdentifierSchema),
             occupantSaveBonus: z.optional(manifestOccupantSaveBonusDtoSchema),
 

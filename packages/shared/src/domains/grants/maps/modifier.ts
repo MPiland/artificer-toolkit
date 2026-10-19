@@ -1,11 +1,13 @@
 import type { ModifierGrantAuthored } from '#authored'
 import {
+  ABILITY_MODIFIER_REFERENCE_OPTIONS,
   ABILITY_OPTIONS,
   ATTACK_DOMAIN_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
   CHARGE_SCALING_OPTIONS,
+  DAMAGE_DEFENSE_BYPASS_OPTIONS,
   DAMAGE_DIE_RECIPIENT_OPTIONS,
   DURATION_OPTIONS,
   LENGTH_UNIT_OPTIONS,
@@ -128,6 +130,18 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
               parent.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
+          }
+        )
+      )
+      .set(
+        'trait',
+        selectSingle(
+          ['trait'],
+          'Trait',
+          { kind: 'INLINE_OPTIONS', options: DAMAGE_DEFENSE_BYPASS_OPTIONS },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
+            requiredIf: true
           }
         )
       )
@@ -425,6 +439,19 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
+        'levelsPerStep',
+        number(['levelsPerStep'], 'Levels Per Step', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+        })
+      )
+      .set(
+        'maximum',
+        number(['maximum'], 'Maximum', {
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+        })
+      )
+      .set(
         'count',
         number(['count'], 'Dice', {
           constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT },
@@ -624,10 +651,11 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Abilities',
           {
             kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
           },
           {
-            // An armor class formula adds each listed ability modifier to its amount.
+            // An armor class formula adds each listed ability modifier to its amount; only the best-of
+            // bonus may name the spellcasting ability (the schema refuses it in a formula).
             showIf: or([
               parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
               and([
@@ -932,6 +960,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
           showIf: or([
             local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
             local.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            local.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
             local.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
             local.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),

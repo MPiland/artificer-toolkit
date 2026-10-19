@@ -287,10 +287,20 @@ export async function persistEncounterActionCommit(
           ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
         })
       : null
+  // The item the outcome made the target drop (Heat Metal), applied again from the room's receipt.
+  const targetRelease = batch.targetItemUseStateTransition
   const mechanics = await callbacks.applyMechanics({
     ...common,
     targetActorId: target.id,
     commandId: command.commandId,
+    ...(targetRelease
+      ? {
+          releaseHeldItemInstanceId:
+            targetRelease.kind === 'CHARACTER_ITEM_USE_STATE'
+              ? targetRelease.itemInstanceId
+              : targetRelease.loadoutEntryId
+        }
+      : {}),
     applications: batch.applications.map((application) => ({
       ...application,
       targetActorId: target.id
@@ -317,6 +327,8 @@ export async function persistEncounterActionCommit(
       checksumCanonicalJson(batch.applications) ||
     checksumCanonicalJson(mechanics.targetTransition) !==
       checksumCanonicalJson(batch.targetTransition) ||
+    checksumCanonicalJson(mechanics.itemReleaseTransition) !==
+      checksumCanonicalJson(targetRelease) ||
     checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(batch.sourceApplications) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&

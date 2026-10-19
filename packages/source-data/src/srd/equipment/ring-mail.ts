@@ -8,7 +8,7 @@ export const ringMail: EquipmentAuthored = {
   description:
     "This armor is leather armor with heavy rings sewn into it. The rings help reinforce the armor against blows from swords and axes. Ring mail is inferior to chain mail, and it's usually worn only by those who can't afford better armor.",
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
+  properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY, S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 14,
   cost: S.gp(30),
   weight: S.lbs(40),

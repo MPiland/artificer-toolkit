@@ -47,45 +47,48 @@ export function ownsCondition(effect: ActiveRuleEffectRecord) {
 }
 
 /**
- * An ability check that spends dice, with the ability it was made with (null when it has none). Only the effects whose die
- * applied to this check are spent (D156).
+ * An ability check or saving throw that spends dice, with the ability it was made with (null when
+ * it has none: a death save). Only the effects whose die applied to this test are spent (D156).
  */
-export type ScopedAbilityCheck = {
-  event: 'ON_ABILITY_CHECK'
+export type ScopedD20Test = {
+  event: 'ON_ABILITY_CHECK' | 'ON_SAVING_THROW'
   abilityCode: string | null
 }
 
-function abilityCheckGrants(effect: ActiveRuleEffectRecord) {
+const TEST_VALUE_DOMAIN = {
+  ON_ABILITY_CHECK: 'ABILITY_CHECK',
+  ON_SAVING_THROW: 'SAVING_THROW_MODIFIER'
+} as const
+
+function testGrants(effect: ActiveRuleEffectRecord, event: ScopedD20Test['event']) {
   return listActiveEffectGrants([effect])
     .flatMap(({ modifiers }) => modifiers)
-    .filter((modifier) => modifier.valueDomainCode === 'ABILITY_CHECK')
+    .filter((modifier) => modifier.valueDomainCode === TEST_VALUE_DOMAIN[event])
 }
 
 /**
- * Whether a bare ability-check event spends the effect: it is a check that adds no dice (a
- * contest's), so it never spends a held die that waits for one that does.
+ * Whether a bare ability-check or saving-throw event spends the effect: it is a test that adds no
+ * dice (a contest's), so it never spends a held die that waits for one that does.
  */
 function bareTestApplies(
   effect: ActiveRuleEffectRecord,
   event: ActiveEffectConsumeEvent | ActiveEffectEndEvent
 ) {
   return (
-    event !== 'ON_ABILITY_CHECK' ||
-    !abilityCheckGrants(effect).some(({ modifierKind }) => modifierKind === 'ADD_BONUS_DIE')
+    (event !== 'ON_ABILITY_CHECK' && event !== 'ON_SAVING_THROW') ||
+    !testGrants(effect, event).some(({ modifierKind }) => modifierKind === 'ADD_BONUS_DIE')
   )
 }
 
 /**
- * Whether a scoped check spent the effect's grants: it has no ability-check grants (the event alone
- * ends it), or one of them applied to the check's ability.
+ * Whether a scoped test spent the effect's grants: it has no grants to the test's value domain (the
+ * event alone ends it), or one of them applied to the test's ability.
  */
-function scopedCheckApplies(effect: ActiveRuleEffectRecord, check: ScopedAbilityCheck) {
-  const grants = abilityCheckGrants(effect)
+function scopedTestApplies(effect: ActiveRuleEffectRecord, test: ScopedD20Test) {
+  const grants = testGrants(effect, test.event)
   return (
     grants.length === 0 ||
-    grants.some(
-      ({ domain }) => domain.ability === undefined || domain.ability === check.abilityCode
-    )
+    grants.some(({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode)
   )
 }
 
@@ -95,12 +98,12 @@ function scopedCheckApplies(effect: ActiveRuleEffectRecord, check: ScopedAbility
  * then the effect is gone, restored by the same receipt); the caller releases any condition an
  * ended effect alone held (`endedMaintenanceConditions`). An action can be several events at once (a
  * spell attack is an attack roll and a cast); an effect listing more than one ends once. An ability
- * check is passed as a `ScopedAbilityCheck` and spends only the effects whose grants
+ * check or saving throw is passed as a `ScopedD20Test` and spends only the effects whose grants
  * applied to its ability.
  */
 export function effectsEndedBy(
   effects: readonly ActiveRuleEffectRecord[],
-  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent | ScopedAbilityCheck)[]
+  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent | ScopedD20Test)[]
 ) {
   return effects.filter(
     (effect) =>
@@ -112,13 +115,16 @@ export function effectsEndedBy(
         events.some((event) =>
           typeof event === 'string'
             ? event === listed && bareTestApplies(effect, event)
-            : event.event === listed && scopedCheckApplies(effect, event)
+            : event.event === listed && scopedTestApplies(effect, event)
         )
       )
   )
 }
 
-/** Grants whose lifetime follows their holder's state: they end on incapacitation or on a named condition. */
+/**
+ * Grants whose lifetime follows their holder's state: they end on incapacitation, on a named
+ * condition, or when the holder lets go of the item they are bound to.
+ */
 export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[]
 ) {
@@ -126,29 +132,45 @@ export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
     (effect) =>
       isModifierGrant(effect) &&
       (effect.definition.recurrence.endOnEvents.includes('ON_INCAPACITATED') ||
+        effect.definition.recurrence.endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') ||
         effect.definition.recurrence.endOnConditionIds.length > 0)
   )
 }
 
+/** The item a grant is bound to (Shillelagh's club); null for an unbound grant. */
+function boundItemInstanceId(effect: ActiveRuleEffectRecord) {
+  if (effect.definition.schemaVersion !== 2) return null
+  for (const contribution of effect.definition.stateContributions)
+    if (contribution.kind === 'MODIFIER_GRANT' && contribution.boundItem)
+      return contribution.boundItem.itemInstanceId
+  return null
+}
+
 /**
  * The holder's grants its state ends (D95): those that end on incapacitation when it is
- * incapacitated or defeated, and those that name a condition it has, whatever else is true of them.
+ * incapacitated or defeated, those that name a condition it has, and those that end on release
+ * when no hand of it holds their bound item, whatever else is true of them.
  */
 export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   state: {
     reason: Exclude<ConcentrationEndReason, 'CHOSEN'> | null
     conditionIds: readonly string[]
+    heldItemInstanceIds: readonly string[]
   }
 ) {
   const incapacitated = state.reason === 'INCAPACITATED' || state.reason === 'DEFEATED'
   // A defeated holder's conditions are not read (readHolderEndState), so none can end a grant.
   const conditionIds = state.reason === 'DEFEATED' ? [] : state.conditionIds
-  return stateBoundGrants(effects).filter(({ definition }) => {
-    const { endOnEvents, endOnConditionIds } = definition.recurrence
+  return stateBoundGrants(effects).filter((effect) => {
+    const { endOnEvents, endOnConditionIds } = effect.definition.recurrence
+    const boundItemId = boundItemInstanceId(effect)
     return (
       (incapacitated && endOnEvents.includes('ON_INCAPACITATED')) ||
-      endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId))
+      endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId)) ||
+      (endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') &&
+        boundItemId !== null &&
+        !state.heldItemInstanceIds.includes(boundItemId))
     )
   })
 }

@@ -1,4 +1,13 @@
 import {
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -54,6 +63,10 @@ export const magicWeapon: SpellAuthored = {
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
+          chosenItem: {
+            category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+            excludedProperties: [EQUIPMENT_PROPERTY_CODE.MAGIC]
+          },
           resultBlock: {
             id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
@@ -65,8 +78,66 @@ export const magicWeapon: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MAGIC_WEAPON' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                bindsChosenItem: true,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'SPELL_SLOT_LEVEL', levelsPerStep: 2, maximum: 3 },
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x214, 2),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'SPELL_SLOT_LEVEL', levelsPerStep: 2, maximum: 3 },
+                      order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x214, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'SPELL_SLOT_LEVEL', levelsPerStep: 2, maximum: 3 },
+                      order: 3
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x214, 4),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'SPELL_SLOT_LEVEL', levelsPerStep: 2, maximum: 3 },
+                      order: 4
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.MAGIC_WEAPON, 0x214, 5),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+                      domain: { trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL },
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 5
+                    }
+                  ]
+                }
               }
             ]
           }

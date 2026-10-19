@@ -221,6 +221,7 @@ export async function persistEncounterTurnEffects(
         ...damageEnded.keys(),
         ...candidates.slice(0, ordinal + 1).map(({ id }) => id)
       ]),
+      testEvidence: [execution.d20],
       applications: execution.applications.map((application) => ({
         ...application,
         targetActorId: actor.id

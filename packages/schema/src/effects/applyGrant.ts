@@ -11,6 +11,8 @@ export const applyGrantDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
     effectKind: z.literal('APPLY_GRANT'),
+    bindsChosenItem: z.optional(z.boolean()),
+    unlessChosenItemReleased: z.optional(z.boolean()),
     grants: z.object({
       modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
       proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema)),

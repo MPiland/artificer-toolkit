@@ -49,6 +49,11 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'wallThickness',
   'components'
 ])
+/**
+ * The target fact a planner pins `false` when an occupant lacks the sight a zone requires of it, so the
+ * zone's save succeeds unrolled. Absent for a zone that needs no sight.
+ */
+export const ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY = 'zoneSightRequirementMet'
 const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'id',
   'order',
@@ -59,6 +64,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'choosesUnaffected',
   'maxApplicationsPerTurn',
   'requiresFullyWithin',
+  'requiredSight',
   'movementCostMultiplier',
   'blockingRules',
   'automaticSaveSuccessImmunityDamageTypeId',

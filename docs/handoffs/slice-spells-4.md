@@ -14,6 +14,19 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2e (a grant bound to a chosen held item, D156 T2 class B)
+
+- New core options, generic and data-authored: a path's `chosenItem` (category, required and excluded properties, named equipment), `bindsChosenItem` on `APPLY_GRANT` (its SOURCE-scoped modifiers apply only to that item's attacks), `unlessChosenItemReleased` on `APPLY_GRANT`, and a `RELEASE_CHOSEN_ITEM` outcome that lets the item go through Disarm's equipment change (held items only; worn armor is never released). `WEAPON_DAMAGE_DIE` `SET_VALUE`, `ATTACK_TRAIT` `ENABLE` (MAGICAL bypass) and `SPELLCASTING` on `OPTIONAL_ABILITY_MODIFIER_BONUS` complete the grant vocabulary. Node-map fields: `pathChosenItem` group on the path, the two `APPLY_GRANT` toggles.
+- The release event is `ON_CHOSEN_ITEM_RELEASED` (the design called it `ON_BOUND_ITEM_RELEASED`): a bound grant whose `endOnEvents` names it ends when its item is no longer held (`grantsEndedByHolderState`, `heldItemInstanceIds`).
+- Room contract: the cast command target carries `boundItemInstanceId`; the `ACTION_ITEM_CHOICES` read lists the items a chosen-item action may be used on. A Character cast that needs an item and names none, or names one it does not take, is refused before it rolls (`TARGET_UNAVAILABLE`, "Choose the item this action is used on.", `encounterChosenItemRefusal`). Commit persistence re-applies the target's release from the room's `targetItemUseStateTransition` and checks it, so the drop is stored.
+- Damage: a grant-set weapon die rides the DAMAGE mechanic as `weaponDieFaces` and the `dnd5e.weapon-damage-die` fact, so the authored-dice check accepts the weapon's own dice with that die (Shillelagh's d8).
+- Other data: the Abilities field of `OPTIONAL_ABILITY_MODIFIER_BONUS` offers Spellcasting; METAL is in the weapon and armor property lists; Vicious Mockery's grant is gated to its failed save (`ON_SAVE_FAIL`).
+- Shillelagh: a minute on a club or quarterstaff, d8 damage die, spellcasting ability for attack and damage, magical, ending when it is let go. Magic Weapon: +1/+2/+3 by slot (levels 2/4/6) on a nonmagical weapon, magical; no release ends it. Heat Metal: Constitution save on a METAL item (METAL tags added to metal weapons and armor), 2d8 fire per slot either way; on a failure a held item is dropped, and disadvantage on attacks and ability checks applies until the source's next turn unless it was dropped. `SHILLELAGH`, `MAGIC_WEAPON` and `HEAT_METAL` leave `CLOSED_RULE_KIND`.
+- Moved out: EQUIPMENT_MAGIC_AMMUNITION to ATTACK-19.T4; Heat Metal's later-turn bonus-action repeat to T2l (MANUAL_ADJUDICATION).
+- Proofs: `coreOptionSpellAuthoringParity.test.ts` (three spells), `characterSpellCastActions.test.ts` (plans, Magic Weapon slot scaling, Shillelagh from core options only, refusals), `grantLifetimes.test.ts` (bound grant ends when its item is not held, stays when held or with no release event), `encounterDisarmSettlement.test.ts` (releasable means held; filters; revert), `coreOptionSpells.test.ts`, `apps/session-worker/test/nativeRoomCoreOptionSpells.test.ts` (Shillelagh's Club attack deals d8 + STR; Heat Metal on a held longsword drops it with no disadvantage and undo restores it, on worn Chain Mail it stays worn with disadvantage, on a success it stays held with disadvantage).
+- Pushed to `ci/spells-4-t2e` (latest fcce022); ledger untouched per the brief.
+- Known gaps (in future-enhancements, Deferred edge cases): a Creature acting with a bound grant lists no items, and its missing-item refusal reads UNAVAILABLE (its plan is known only after its roll) (Creatures have no chosen-item loadout yet); Magic Weapon's SRD data lacks the Concentration attribute (left as is, out of scope).
+
 ### T2k1 (Blur, True Strike, Enthrall; D156 T2 class B)
 
 - Blur: an `APPLY_GRANT` of `ATTACKS_AGAINST` `DISADVANTAGE` (every attack domain, `requiresHolderSeesAttacker: false`) on the caster for 1 minute under Concentration. The new `exemptAttackerSenseDefinitionIds` modifier facet exempts an attacker that sees the caster by Blindsight or Truesight; `resolveAttackSight` names only System Senses. `BLUR` leaves `CLOSED_RULE_KIND`.
@@ -38,7 +51,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ### T2c2 (ability-check dice and Guidance, D156; D156 ruling "T2c2a")
 
-- Scope (orchestrator ruling): ability checks, Guidance and the Sheet. Saves and Resistance moved to **SPELLS-4.T2c2b** (consumption narrowed by ability through one shared seam across every save commit site); `RESISTANCE` stays in `CLOSED_RULE_KIND` until then.
+- Scope (orchestrator ruling): ability checks, Guidance and the Sheet. Saves and Resistance moved to **SPELLS-4.T2c2b** (consumption narrowed by ability through one shared seam across every save commit site); `RESISTANCE` stays in `CLOSED_RULE_KIND` until then (removed in T2c2b).
 - Contract: `ABILITY_CHECK` accepts `ADD_BONUS_DIE` (`{count, faces, sign}`, optional `ability`). Guidance is an `APPLY_GRANT` of one d4 on ability checks with `consumeOnFirstEvents: ['ON_ABILITY_CHECK']`; `GUIDANCE` leaves `CLOSED_RULE_KIND`. `grantAuthoringParity` proves it.
 - Consumption narrowing: `effectsEndedBy` takes a `ScopedAbilityCheck` (`{event: 'ON_ABILITY_CHECK', abilityCode}`) and spends only the effects whose ability-check grant applied to that check; a bare `ON_ABILITY_CHECK` never spends a die-bearing effect (a contest rolls no dice yet). Effects with no ability-check grant (Help) are spent whenever they list the event. Regression: `grantLifetimes.test.ts` "effectsEndedBy for an ability check".
 - Encounter: First Aid, Hide/Search and Escape checks (basic-action, concealment, escape) add the die through the D20 added-dice graph (`dnd5eAddedDiceNode` in the basic-check definition) and spend only the dice that applied. The die auto-spends on the first qualifying check.
@@ -49,6 +62,16 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - The attack-roll `ON_ATTACK_ROLL` spend is not narrowed by attack domain or ability.
   - The Encounter cast-reaction check carries no dice.
   - A Sheet-consumed die whose Concentration belongs to another caster leaves that caster's Concentration standing.
+
+### T2c2b (saving-throw dice and Resistance, D156)
+
+- Contract: `SAVING_THROW_MODIFIER` takes `ADD_BONUS_DIE`. Resistance is an `APPLY_GRANT` of one d4 on saving throws (no ability filter) with `consumeOnFirstEvents: ['ON_SAVING_THROW']`; `RESISTANCE` leaves `CLOSED_RULE_KIND`. `grantAuthoringParity` proves it.
+- One seam: `effectsEndedBy` takes a `ScopedD20Test` for checks and saves; `savingThrowSpentEffects` is the single spend rule. `d20` evidence of a save carries the optional `savingThrowAbilityDefinitionId` (schema refinement: only on `ON_SAVE_SUCCESS`/`ON_SAVE_FAIL`, since the evidence has no kind discriminant), and `targetEndedEffects` takes `testEvidence` (the action's `d20` and `nestedD20`) to spend the die with the target's other ended effects, on the same receipt. Callers: native action, area, movement reaction, Legendary window, turn effects, recurring saves.
+- Concentration: the Constitution check spends the die (planner pushes it into `endedGrants`; a later check of the same batch sees no die); `persistEncounterConcentrationChildren` re-derives the spent set from the settled outputs and refuses a plan that omits or adds one (`answeredCheck` covers the response commit).
+- Death save: the turn-start save (`ability` null) spends an unfiltered die; `persistEncounterTurnDeathSave` checks the held dice match the plan's and deletes the spent effects; the projected target drops them.
+- Sheet: a saving throw adds and spends the carried die (`carriedTestDice`, generalized from `carriedCheckDice`). Proof: `rollsCarriedCheckDice.test.ts`.
+- Proofs: `grantLifetimes.test.ts` (scoped saves, `targetEndedEffects`), `attack-d20-belief-contracts.test.ts` (schema), `nativeRoomAddedDice.test.ts` (Encounter journey), `rollsCarriedCheckDice.test.ts` (Sheet), `grantAuthoringParity.test.ts`.
+- Deferred edge cases (rare, recoverable): the attack-roll spend is not narrowed by attack domain; contests roll no dice, so they spend none; the cast-reaction check carries no dice.
 
 ### T2a5 (closed rules with existing options, D156 T2 class A)
 
