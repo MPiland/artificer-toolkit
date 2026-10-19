@@ -271,7 +271,9 @@ const attackDecoyThresholdDtoSchema = lazySchema(() =>
 export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     armorClass: armorClassFormulaPayloadDtoSchema,
-    thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema)
+    thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema),
+    /** System Senses that free an attacker perceiving the holder through one of them (Mirror Image). */
+    exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema))
   })
 )
 

@@ -14,6 +14,7 @@ import {
   featureChargeUsed,
   withFeatureChargeUsed
 } from './encounterActorState.js'
+import { withDecoyStrikeApplied } from './encounterAttackDecoys.js'
 import { advanceNativeActionGraphs, executeNativeActionGraphs } from './encounterActionExecution.js'
 import { bindEncounterMovementReactionInterruption } from './encounterMovementReactionExecution.js'
 import type { resolveNativeMovementLegendaryResistance } from './encounterMovementLegendaryResistance.js'
@@ -130,6 +131,7 @@ function verifyCompletedMovementReactionPlan<
     adapter: input.prepared.prepared.adapter,
     facts: bound.facts,
     testRollMode: requireTestRollMode(input.execution.d20),
+    absorbedByDecoy: input.prepared.prepared.binding.absorbedByDecoy,
     ...(input.execution.resistance
       ? { effectivePath: input.execution.resistance.effectivePath }
       : {})
@@ -455,7 +457,10 @@ export function planEncounterMovementReactionAction<
           actor.id === prepared.target.id
             ? {
                 ...target,
-                activeEffects: [...target.activeEffects, ...effects.createdEffects]
+                activeEffects: [
+                  ...withDecoyStrikeApplied(target.activeEffects, effects.ended.decoyStrike),
+                  ...effects.createdEffects
+                ]
               }
             : target,
         actor,
@@ -487,6 +492,7 @@ export function planEncounterMovementReactionAction<
     ...result,
     effects,
     consumedGrants: effects.ended.consumedGrants,
+    spentUseGrants: effects.ended.decoyStrike.spentUseGrants,
     sourceResourcePlan: settled.sourceResourcePlan,
     targetPlan: settled.targetPlan,
     projectedTargets: maintenance?.targets ?? projectedTargets,

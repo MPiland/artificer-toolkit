@@ -36,9 +36,9 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  attackDecoyFor,
-  decoyIsLast,
-  decoyStruck
+  decoyStrikeEffects,
+  type EncounterAttackDecoy,
+  prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
@@ -608,7 +608,7 @@ export async function planNativeLiveEncounterAction(
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
-    attackDecoy: { armorClass: number } | null
+    attackDecoy: EncounterAttackDecoy | null
   ) =>
     prepareEncounterActionMechanics({
       attackDecoy,
@@ -660,20 +660,15 @@ export async function planNativeLiveEncounterAction(
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
-  const prepareAttack = (targets: typeof movementTargets) => prepareAttackAs(targets, null)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
-  const unshielded = await prepareAttack(movementTargets)
   // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
-  const attackDecoy = unshielded.makesAttackRoll
-    ? attackDecoyFor({
-        occurrenceId,
-        effects: activeEffectsByActorId.get(unshielded.target.id) ?? [],
-        scalarValues: unshielded.targetFacts.effectiveScalarValues,
-        abilities: system.abilities
-      })
-    : null
-  const prepared = attackDecoy ? await prepareAttackAs(movementTargets, attackDecoy) : unshielded
+  const prepared = await prepareAttackBehindDecoys({
+    occurrenceId,
+    effects: activeEffectsByActorId.get(targetActorId) ?? [],
+    abilities: system.abilities,
+    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
+  })
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
     throw new LiveSessionDomainRejectionError(422, {
@@ -1153,7 +1148,9 @@ export async function planNativeLiveEncounterAction(
           commandId: command.commandId,
           occurredAt,
           activeEffectsByActorId,
-          prepareAttack,
+          // The answered attack keeps the decoy it was rolled against.
+          prepareAttack: (reactedTargets: typeof movementTargets) =>
+            prepareAttackAs(reactedTargets, prepared.attackDecoy),
           loadTarget
         })
       : null
@@ -1428,8 +1425,7 @@ export async function planNativeLiveEncounterAction(
     resultPath: execution.d20?.resultPath
   })
   // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
-  const decoyStrike = attackDecoy && decoyStruck(execution.d20?.resultPath) ? attackDecoy : null
-  const spentUseGrants = decoyStrike && !decoyIsLast(decoyStrike) ? [decoyStrike.effect] : []
+  const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
@@ -1702,7 +1698,7 @@ export async function planNativeLiveEncounterAction(
     cleaving,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
-    spentUseGrants,
+    spentUseGrants: decoyStrike.spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
@@ -1710,7 +1706,7 @@ export async function planNativeLiveEncounterAction(
     consumedGrants: [
       ...consumedGrants,
       ...hitEnded.consumedGrants,
-      ...(decoyStrike && decoyIsLast(decoyStrike) ? [decoyStrike.effect] : []),
+      ...decoyStrike.endedGrants,
       ...damageEnded.endedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]

@@ -8341,6 +8341,7 @@
                 "after": ["SPELLS-4.T2k2"]
               },
               "text": "new: Mirror Image ATTACK_DECOYS on the remaining attack paths: opportunity and reaction attacks and legendary-action attacks intercept through the same decoy planner, and an attacker with blindsight or truesight (or that cannot see) is exempt; room proof per path (2026-10-19 ruling on the T2k2 gaps; workbook slice-spells-4.md).",
+              "note": "Proofs: nativeMovementAttackDecoys.test.ts and the Mirror Image block of nativeRoomLegendary.test.ts (intercept, last decoy, short roll, unseen attacker); sense exemption in encounterAttackDecoys.test.ts.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {

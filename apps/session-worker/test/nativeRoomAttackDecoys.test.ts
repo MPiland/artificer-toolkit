@@ -105,7 +105,8 @@ async function decoyRoom(remaining: number, attackFace: number) {
           occurrenceId,
           effects: [held],
           scalarValues: {},
-          abilities: []
+          abilities: [],
+          perception: null
         })
         if ((decoy !== null) === intercepts) return occurrenceId
       }
