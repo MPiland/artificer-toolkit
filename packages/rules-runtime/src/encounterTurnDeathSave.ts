@@ -14,11 +14,22 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  d20AddedDiceTotal,
+  type D20RolledAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { activeSavingThrowDice } from './character/activeEffectGrantTotals.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from './encounterCharacterMechanicsBatch.js'
+import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import {
+  resolveEncounterD20Answer,
+  type EncounterEvidenceAnswer,
+  type EncounterResponseAnswer
+} from './encounterEvidenceAnswer.js'
 import {
   projectEncounterActionTarget,
   type ProjectableCharacterFacts
@@ -28,11 +39,19 @@ import { buildMovementTarget, type MovementTarget } from './encounterMovementTar
 import { requireDeathSavePending } from './encounterTurnPending.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
+import { dnd5eAddedDiceFacts } from './systems/dnd5e/d20AddedDiceGraph.js'
 import { createDnd5eDeathSaveDefinition } from './systems/dnd5e/encounterLifecyclePolicy.js'
 
-/** Each System's death save graph: its one d20 request and no other evidence. */
-const deathSaveDefinitionBySystemId: ReadonlyMap<string, typeof createDnd5eDeathSaveDefinition> =
-  new Map([[DND5E_SYSTEM_ID, createDnd5eDeathSaveDefinition]])
+/** Each System's death save graph, its d20 then its added dice, and the facts the dice bind. */
+const deathSaveSystemById: ReadonlyMap<
+  string,
+  { definition: typeof createDnd5eDeathSaveDefinition; facts: typeof dnd5eAddedDiceFacts }
+> = new Map([
+  [DND5E_SYSTEM_ID, { definition: createDnd5eDeathSaveDefinition, facts: dnd5eAddedDiceFacts }]
+])
+
+/** A death save's kept d20 and its added dice with their faces. */
+type DeathSaveRoll = { rawDie: number; addedDice: D20RolledAddedDieDto[] }
 
 type DeathSaveCandidate = TurnDeathSaveExecutionDto['candidate']
 
@@ -69,7 +88,8 @@ function deathSaveCandidate<TCharacterFacts extends ProjectableCharacterFacts>(
     characterId: actor.sourceId,
     streamVersion: characterFacts.active.play.streamVersion,
     effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
-    deathSaves: state.deathSaves
+    deathSaves: state.deathSaves,
+    addedDice: activeSavingThrowDice(target.activeEffects, null)
   }
 }
 
@@ -81,7 +101,7 @@ function projectDeathSaveTarget<TCharacterFacts extends ProjectableCharacterFact
   occurrenceId: string
   target: MovementTarget<TCharacterFacts>
   candidate: DeathSaveCandidate
-  rawDie: number
+  plan: TurnDeathSaveExecutionDto
 }): MovementTarget<TCharacterFacts> {
   const { target, candidate } = input
   const characterFacts = target.characterFacts
@@ -107,7 +127,10 @@ function projectDeathSaveTarget<TCharacterFacts extends ProjectableCharacterFact
       effectiveMaximumHitPoints: candidate.effectiveMaximumHitPoints,
       effectiveScalarValues: target.effectiveScalarValues,
       forceVersionAdvance: true,
-      deathSave: { rawDie: input.rawDie }
+      deathSave: {
+        rawDie: input.plan.rawDie,
+        addedTotal: d20AddedDiceTotal(input.plan.addedDice)
+      }
     },
     actor: target.actor,
     userId: input.userId,
@@ -139,7 +162,7 @@ function projectDeathSaveTarget<TCharacterFacts extends ProjectableCharacterFact
 
 /**
  * Plans the entering Character's turn-start death save (D96) without mutating the Run: a d20 with
- * no modifiers, rolled by the Character's controller or auto-rolled. A Manual Run, and any
+ * no modifier plus the Character's added dice (D156), rolled by its controller or auto-rolled. A Manual Run, and any
  * Character that is not dying, makes none.
  */
 export async function prepareEncounterTurnDeathSave<
@@ -154,11 +177,12 @@ export async function prepareEncounterTurnDeathSave<
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   loadTarget: (actorId: string) => Promise<MovementTarget<TCharacterFacts> | undefined>
   pending?: ServerRuleExecutionPendingSnapshotDto
-  rawDie?: number
+  /** The answer to the pending save, with an app roll's recorded faces. */
+  resolution?: EncounterResponseAnswer
   /** The roller's auto-roll preference; the Character's controllers roll their own save. */
   autoRoll: boolean
   createRuntime(): Promise<RulesRuntimeService>
-  rollD20(): number
+  random(maxExclusive: number): number
 }): Promise<
   | { kind: 'PENDING'; snapshot: ServerKernelRuleExecutionPendingSnapshotDto }
   | {
@@ -172,7 +196,7 @@ export async function prepareEncounterTurnDeathSave<
   const completedPlan = root.completedDeathSavePlan ?? null
   if (completedPlan && input.pending)
     throw new Error('A death save cannot be both complete and pending.')
-  if (!input.pending && input.rawDie !== undefined)
+  if (!input.pending && input.resolution !== undefined)
     throw new Error('Death save evidence has no pending request.')
   if (input.pending && state.automationMode === 'MANUAL')
     throw new Error('Death save evidence cannot resume in a Manual Encounter.')
@@ -183,18 +207,22 @@ export async function prepareEncounterTurnDeathSave<
   }
   const actorId = root.proposedTerminalTransition.currentActorId
   const actor = input.actors.find((candidate) => candidate.id === actorId)
-  const definition = deathSaveDefinitionBySystemId.get(state.gameSystemId)
-  if (state.automationMode === 'MANUAL' || actor?.kind !== 'CHARACTER' || !definition) return none()
+  const system = deathSaveSystemById.get(state.gameSystemId)
+  if (state.automationMode === 'MANUAL' || actor?.kind !== 'CHARACTER' || !system) return none()
   const target = input.movementTargets.get(actor.id) ?? (await input.loadTarget(actor.id))
   if (!target) throw new Error('Death save target facts are unavailable.')
   const candidate = deathSaveCandidate(target)
   if (!candidate) return none()
 
-  const published = definition()
+  const published = system.definition()
   const runtime = await input.createRuntime()
   const start = async () => {
     const started = await runtime.executeResolved({
-      command: { definitionId: published.id, occurrenceId, facts: {} },
+      command: {
+        definitionId: published.id,
+        occurrenceId,
+        facts: system.facts(candidate.addedDice)
+      },
       published
     })
     if (started.status === 'COMPLETE')
@@ -202,9 +230,26 @@ export async function prepareEncounterTurnDeathSave<
     requireD20Request(started.continuation)
     return started.continuation
   }
+  const roll = (answer: EncounterEvidenceAnswer | EncounterResponseAnswer): DeathSaveRoll => {
+    const d20 = resolveEncounterD20Answer({
+      derivedRollMode: 'NORMAL',
+      answer,
+      rollD20: () => input.random(20) + 1
+    })
+    if (d20.rollMode !== 'NORMAL')
+      throw new EncounterValidationError('A death save is a single d20 roll.')
+    return {
+      rawDie: d20.natural,
+      addedDice: resolveEncounterAddedDice({
+        dice: candidate.addedDice,
+        answer,
+        random: input.random
+      })
+    }
+  }
   const settle = async (
     continuation: ServerRuleExecutionContinuationDto,
-    rawDie: number
+    { rawDie, addedDice }: DeathSaveRoll
   ): Promise<TurnDeathSaveExecutionDto> => {
     requireD20Request(continuation)
     if (!Number.isInteger(rawDie) || rawDie < 1 || rawDie > 20)
@@ -215,19 +260,27 @@ export async function prepareEncounterTurnDeathSave<
       continuation.graph.source.checksum !== published.checksum
     )
       throw new EncounterConflictError('Death save continuation is stale.')
-    const execution = await runtime.resume({
+    const addedTotal = d20AddedDiceTotal(addedDice)
+    const execution = await resumeEncounterD20({
       continuation,
-      response: { requestId: continuation.request.requestId, value: rawDie }
+      natural: rawDie,
+      addedDice,
+      resume: (step) => runtime.resume(step)
     })
-    if (execution.status !== 'COMPLETE' || execution.outputs.rawDie !== rawDie)
-      throw new EncounterValidationError('The death save graph requested more than one die.')
-    const roll = deathSavesAfterRoll(candidate.deathSaves, rawDie)
+    if (
+      execution.status !== 'COMPLETE' ||
+      execution.outputs.rawDie !== rawDie ||
+      execution.outputs.addedTotal !== addedTotal
+    )
+      throw new EncounterValidationError('The death save graph requested more than its dice.')
+    const after = deathSavesAfterRoll(candidate.deathSaves, rawDie, addedTotal)
     return {
       candidate,
       execution,
       rawDie,
-      afterDeathSaves: roll.deathSaves,
-      regainsHitPoint: roll.regainsHitPoint
+      addedDice,
+      afterDeathSaves: after.deathSaves,
+      regainsHitPoint: after.regainsHitPoint
     }
   }
   const complete = (plan: TurnDeathSaveExecutionDto) => ({
@@ -240,14 +293,14 @@ export async function prepareEncounterTurnDeathSave<
       occurrenceId,
       target,
       candidate,
-      rawDie: plan.rawDie
+      plan
     })
   })
 
   if (completedPlan) {
     // A retained save replays its recorded die against the live candidate; it never re-rolls.
     if (!same(completedPlan.candidate, candidate)) throw new Error('Retained death save is stale.')
-    const replayed = await settle(await start(), completedPlan.rawDie)
+    const replayed = await settle(await start(), completedPlan)
     if (!same(replayed, completedPlan)) throw new Error('Retained death save is stale.')
     return complete(completedPlan)
   }
@@ -259,14 +312,20 @@ export async function prepareEncounterTurnDeathSave<
       !same(context.candidate, candidate)
     )
       throw new Error('Death save evidence is stale.')
-    if (input.rawDie === undefined)
+    if (input.resolution === undefined)
       throw new EncounterValidationError('Assisted death save evidence is required.')
-    return complete(await settle(kernelContinuation(snapshot), input.rawDie))
+    return complete(await settle(kernelContinuation(snapshot), roll(input.resolution)))
   }
 
   const continuation = await start()
   const mode = encounterEvidenceMode(state.automationMode, input.autoRoll)
-  if (mode === 'AUTO_ROLL') return complete(await settle(continuation, input.rollD20()))
+  if (mode === 'AUTO_ROLL')
+    return complete(
+      await settle(
+        continuation,
+        roll({ kind: 'AUTO_ROLL', requestId: continuation.request.requestId })
+      )
+    )
   return {
     kind: 'PENDING',
     snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({

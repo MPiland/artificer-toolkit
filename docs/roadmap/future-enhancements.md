@@ -98,10 +98,14 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Chains of Carceri lockout on a carried Character (D156, SPELLS-31.T5l):** the lockout is an Encounter-scoped effect, so a Character it reaches is free of it after the Run instead of at the warlock's next long rest. A warlock meeting the same Character twice between long rests is rare.
 - **After-save immunity edge forms (D156, SPELLS-31.T5l):** a creature trait whose immunity also ends the effect on that creature, and the Mummy's immunity keyed to every Mummy rather than to one source, stay description-only.
 
+- **Will-o'-wisp light radius (D156, SPELLS-33.T6j):** the wisp always sheds its widest light (bright 20 feet, dim 20 more); it can't shrink the radius as a bonus action. A GM-run wisp shrinking its light is rare.
+- **Hidden token light (SPELLS-33.T6j):** a hidden Creature's token is withheld from players, so the light it sheds is missing from their view while perception still counts it.
+
 - **Area push picks outside the ordinary area flow (ATTACK-7.T5d, D157).** An area push that needs a destination pick fails closed when the area settles through a GM removal, through a hit-point-pool area or a chosen-creatures action with no saves, or when one creature is moved two ways by the same action. No SRD action does any of these with a choice; hold the pick on those paths if content needs it.
 
 - **Spell grants that spend a class resource pool (D156, SPELLS-31.T3b):** a spell grant's charges are its own pool or an item's charges, so Empty Body's Astral Projection (8 ki, 18th-level monk) stays description-only. To support it, add a class-pool cost to spell grants (SOURCE_CHARGES for class resources).
 
+- **Darkmantle engulfing a large head (D156, SPELLS-33.T3a):** the Darkmantle's Crush blinds the target it attaches to on an advantaged hit whatever its size; the SRD limits the engulfing to a Medium or smaller target. A relationship's conditional target state has no size limit; add one if a Large target comes up.
 - **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
 - **Mage Armor on a Creature (SPELLS-4.T2a3):** a Creature's armor class adds only fixed armor-class bonuses (`withCreatureActiveGrantArmorClass`), so Mage Armor's 13 + Dexterity formula does nothing on a Creature. Characters are the usual targets; fold formula grants into Creature facts when a table casts it on a Creature.
 - **Disarm does not use up an `ON_ATTACKED` grant (SPELLS-4.T2a3):** Disarm's attack roll reads the defender's grants but consumes only the defender's `ON_ABILITY_CHECK` grants, and it has no defender batch to release a condition in, so a Guiding Bolt mark survives a Disarm attempt for the next attack. Consume it with `targetEndedEffects` once Disarm settles the defender in its own batch.

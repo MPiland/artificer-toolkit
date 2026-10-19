@@ -35,6 +35,7 @@ import {
   unionScenePolygons,
   visibilityPolygon,
   visibilityPolygonForLight,
+  withSceneTokenLights,
   type SceneDefinition,
   type SceneExplorationState,
   type SceneEvent
@@ -441,6 +442,31 @@ describe('VTT scene replay and projection', () => {
         .tokens[0]
     expect(resolve({ passesBlockingBarriers: true })?.passesBlockingBarriers).toBe(true)
     expect(resolve({})).not.toHaveProperty('passesBlockingBarriers')
+  })
+
+  it('presents the light the bound actor sheds on its token, in Scene units', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
+    const light = {
+      bright: { amount: 10, unit: 'FEET' as const },
+      dim: { amount: 20, unit: 'FEET' as const }
+    }
+    const bindings = [{ actorId: ids.user, tokenId: ids.token }]
+
+    const presented = resolveSceneActorVision(state, bindings, [
+      { actorId: ids.user, senses: [], light }
+    ]).tokens[0]
+    expect(presented?.light).toEqual({
+      brightRadius: expect.closeTo(3.048),
+      dimRadius: expect.closeTo(6.096)
+    })
+    expect(
+      resolveSceneActorVision(state, bindings, [{ actorId: ids.user, senses: [] }]).tokens[0]
+    ).not.toHaveProperty('light')
+    expect(withSceneTokenLights(state, [{ tokenId: ids.token, light }]).tokens[0]?.light).toEqual(
+      presented?.light
+    )
+    expect(withSceneTokenLights(state, [])).toBe(state)
   })
 
   it('leaves unbound tokens without senses', () => {

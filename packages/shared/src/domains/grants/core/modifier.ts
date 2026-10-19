@@ -9,7 +9,8 @@ import type {
   CoreMeta,
   LengthUnitCode,
   MovementPassageOption,
-  ValueDomainOptionPayloadByDomain
+  ValueDomainOptionPayloadByDomain,
+  ValueDomainParam
 } from '#core'
 import { valuesOf } from '#utils'
 
@@ -91,8 +92,8 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
 
   ADD_BONUS_DIE: {
     code: MODIFIER_KIND.ADD_BONUS_DIE,
-    label: 'Add Bonus Die',
-    description: 'Add an additional die to the roll.'
+    label: 'Add Rolled Die',
+    description: 'Roll dice and add them to, or subtract them from, the d20 test.'
   },
 
   REPLACE_DAMAGE_TYPE: {
@@ -227,7 +228,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
     MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
   ATTACK_ROLL: [
@@ -236,7 +238,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.ADVANTAGE,
     MODIFIER_KIND.DISADVANTAGE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+    MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
   ATTACKS_AGAINST: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
@@ -265,7 +268,6 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   DAMAGE: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
-    MODIFIER_KIND.ADD_BONUS_DIE,
     MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
     MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
@@ -449,6 +451,44 @@ export type ModifierScalarValueAuthored =
 /** A speed or sense range modifier is a typed length, never a bare number (D112). */
 export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
 
+/** The die sizes a rolled-die modifier rolls. */
+export const ROLLED_DIE_FACES = [4, 6, 8, 10, 12] as const
+
+/** The most dice one rolled-die modifier rolls. */
+export const MAX_ROLLED_DIE_COUNT = 10
+
+/** Whether a rolled die adds to the d20 test's total or subtracts from it. */
+export const ROLLED_DIE_SIGN = { ADD: 'ADD', SUBTRACT: 'SUBTRACT' } as const
+export type RolledDieSign = (typeof ROLLED_DIE_SIGN)[keyof typeof ROLLED_DIE_SIGN]
+
+export const ROLLED_DIE_SIGN_OPTIONS: readonly CoreMeta<RolledDieSign>[] = [
+  { code: ROLLED_DIE_SIGN.ADD, label: 'Add' },
+  { code: ROLLED_DIE_SIGN.SUBTRACT, label: 'Subtract' }
+]
+
+/**
+ * Dice rolled with a d20 test and added to or subtracted from its total after advantage or
+ * disadvantage keeps one d20 (Bless's +1d4, Bane's -1d4).
+ */
+export type ModifierRolledDieAuthored = {
+  count: number
+  faces: (typeof ROLLED_DIE_FACES)[number]
+  sign: RolledDieSign
+}
+
+/**
+ * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
+ * one grant covers every save, death saves included (D156).
+ */
+export type ModifierDomainFor<
+  V extends ValueDomainCode,
+  K extends ModifierKind
+> = V extends 'SAVING_THROW_MODIFIER'
+  ? K extends 'ADD_BONUS_DIE'
+    ? { ability?: AbilityCode }
+    : ValueDomainParam<V>
+  : ValueDomainParam<V>
+
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
 
@@ -474,7 +514,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
         : K extends 'MODIFY_CHARGE_LIMIT'
           ? ChargeLimitPayload
           : K extends 'ADD_BONUS_DIE'
-            ? { dice: string }
+            ? ModifierRolledDieAuthored
             : K extends 'REPLACE_DAMAGE_TYPE'
               ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
               : K extends 'REPLACE_RANGE_KIND'

@@ -182,7 +182,7 @@ export function preparedMovementCost(input: {
       }
     ]
   })
-  // The highest of the terrain, zone, passage and careful multipliers applies (D154).
+  // The highest of the terrain, zone, passage and careful multipliers applies (D154); a drag doubles it (D105).
   const zoneMultiplier =
     mover &&
     zoneMovementSegmentMultiplier({
@@ -197,13 +197,11 @@ export function preparedMovementCost(input: {
         ...creatureZones
       ],
       mover,
-      tokens: mover.tokens
+      tokens: mover.tokens,
+      dragDoublesCost: mover.dragDoublesCost ?? false
     })
-  const segmentMultiplier: typeof zoneMultiplier = mover?.dragDoublesCost
-    ? (from, to, terrain) => (zoneMultiplier?.(from, to, terrain) ?? terrain) * 2
-    : zoneMultiplier
   const walked = (path: readonly Point[]) =>
-    measureScenePathMovementCost(input.grid, input.scene, path, segmentMultiplier)
+    measureScenePathMovementCost(input.grid, input.scene, path, zoneMultiplier)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path
   const toStart =
     input.startDistance > 0 ? walked(sliceMovementPath(input.path, 0, input.startDistance)) : 0

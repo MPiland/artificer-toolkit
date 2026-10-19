@@ -7,6 +7,8 @@ import {
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
+import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
+import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { copperDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/copper-dragon-wyrmling.js'
 import { goldDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/gold-dragon-wyrmling.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
@@ -100,6 +102,16 @@ export function antitoxinEffect(input: { id: string; holderActorId: string }) {
     effect: antitoxinVial.effects?.[0],
     sourceLabel: antitoxinVial.label
   })
+}
+
+/** The active effect the real compiler plans for the SRD Bless spell, held by a blessed creature. */
+export function blessEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({ ...input, effect: bless.effects?.[0], sourceLabel: bless.label })
+}
+
+/** The active effect the real compiler plans for a failed save against the SRD Bane spell. */
+export function baneEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({ ...input, effect: bane.effects?.[0], sourceLabel: bane.label })
 }
 
 /** The active effect the real compiler plans for the SRD Dodge action, held by the dodging actor. */

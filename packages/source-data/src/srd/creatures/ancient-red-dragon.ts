@@ -1,7 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
-import { conditionTypeId } from '../equipment/shared.js'
 export const ancientRedDragon: CreatureAuthored = {
   id: S.CREATURE_IDS.ANCIENT_RED_DRAGON,
   label: 'Ancient Red Dragon',
@@ -275,54 +274,11 @@ export const ancientRedDragon: CreatureAuthored = {
       description:
         "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 21 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
       effects: [
-        {
-          id: S.actionId(21, 26),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(21, 33),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 21
-            },
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(21, 27),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(21, 28),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(21, 28) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: S.actionId(21, 34),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: S.actionId(21, 28),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED'),
-                    recordsSource: true
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        S.minuteFearSaveEffect(21, {
+          localIndex: 2000,
+          dc: 21,
+          reach: { chosenWithinFeet: 120 }
+        })
       ],
       order: 6
     },

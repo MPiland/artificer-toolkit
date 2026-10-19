@@ -359,6 +359,14 @@ pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinit
 `ENTER_DICE` or `SYSTEM_ROLL`). "Roll dice" (`ROLL_RULE_EVIDENCE`) accepts the contest's one `requestId` in the
 picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it.
 
+Added dice (D156, SPELLS-4.T2c1): a d20 evidence request for an Encounter attack roll or saving throw (concentration
+and death saves included) carries `addedDice`, the rolled-die grants its roller holds (`label`, `count`, `faces`,
+`sign` `ADD` or `SUBTRACT`; Bless, Bane), absent when there are none; one die per spell, different spells stack. The
+dice add after advantage keeps one d20. `ENTER_DICE` carries the added dice's faces as `addedFaces`, flat in the
+request's order, and "Roll dice" (`ROLL_RULE_EVIDENCE`) rolls them with the d20 and stores them on the held roll, so
+`SYSTEM_ROLL` settles both. The receipt's d20 evidence records each die's `rolledFaces`, and the roll card appends one
+term per added die after the d20, a subtracted one marked `subtracted`. Contest checks carry no added dice yet (T2c2).
+
 Contest outcomes (D105, ATTACK-7.6): a basic action whose win is a picked outcome (Shove) lists the options as
 `target.choiceOptions` in the action choices, and `RESOLVE_ACTION` names one with `target.choiceOptionId`; an attempt
 without a pick, or with one the action does not offer, is rejected. The `CONTESTED_ACTION` output's `stateTransition`

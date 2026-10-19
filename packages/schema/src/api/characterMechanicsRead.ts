@@ -17,6 +17,18 @@ export const characterMechanicsReadInputSchema = lazySchema(() =>
   })
 )
 
+/** The light an actor sheds: its bright radius and the dim radius beyond it, outermost. */
+export const sceneActorLightSchema: z.ZodMiniType<NonNullable<SceneActorVision['light']>> =
+  lazySchema(() =>
+    z.strictObject({
+      bright: z.strictObject({
+        amount: z.number().check(z.nonnegative()),
+        unit: lengthUnitCodeSchema
+      }),
+      dim: z.strictObject({ amount: z.number().check(z.positive()), unit: lengthUnitCodeSchema })
+    })
+  )
+
 export const sceneActorVisionResultSchema: z.ZodMiniType<SceneActorVision> = lazySchema(() =>
   z.strictObject({
     actorId: z.string().check(z.uuid()),
@@ -38,6 +50,7 @@ export const sceneActorVisionResultSchema: z.ZodMiniType<SceneActorVision> = laz
         })
       )
       .check(z.maxLength(100)),
-    passesBlockingBarriers: z.optional(z.literal(true))
+    passesBlockingBarriers: z.optional(z.literal(true)),
+    light: z.optional(sceneActorLightSchema)
   })
 )

@@ -25,11 +25,13 @@ import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounte
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
+import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneTokenMovementFailure,
   selectTeleportAllowance,
+  withSceneTokenLights,
   type CampaignSceneState,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
@@ -375,6 +377,14 @@ export async function readNativeLiveMovementInputs(input: {
           }),
           runtime: capturedRuntime
         }
+  // Perception sees the light each bound Creature sheds, as the room's Scene vision draws it.
+  const perceptionScene = withSceneTokenLights(
+    scene,
+    creatureTokenLights(
+      [...actorIdByTokenId].map(([tokenId, actorId]) => ({ tokenId, actorId })),
+      actors
+    )
+  )
   const resolvePerception =
     facts === null
       ? null
@@ -386,7 +396,7 @@ export async function readNativeLiveMovementInputs(input: {
           sceneId: scene.id,
           sceneVersion: scene.version,
           sceneGrid: scene.grid,
-          scene,
+          scene: perceptionScene,
           loadSystem: async () => system,
           loadDefinition: async (id) => {
             const current = await definitions.requireCurrent(id)
@@ -434,6 +444,7 @@ export async function readNativeLiveMovementInputs(input: {
     targets,
     actorIdByTokenId,
     token,
+    perceptionScene,
     spatialEffects,
     drag,
     facts,

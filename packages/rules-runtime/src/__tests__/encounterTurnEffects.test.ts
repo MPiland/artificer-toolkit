@@ -177,7 +177,10 @@ function prepare(input: {
       calls.createRuntime += 1
       return runtime
     },
-    rollD20: d20.roll,
+    random: (maxExclusive) => {
+      expect(maxExclusive).toBe(20)
+      return d20.roll() - 1
+    },
     resolvePerception: async () => null,
     userId: GM_USER_ID,
     autoRoll: input.autoRoll ?? true,

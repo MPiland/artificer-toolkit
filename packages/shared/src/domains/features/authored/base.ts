@@ -9,7 +9,13 @@ import type {
   DetailAuthored,
   FacetAuthored
 } from '#authored'
-import type { DiceExpression, EquipmentGrip, FeatureAttribute, NodeSubjectCode } from '#core'
+import type {
+  DiceExpression,
+  EquipmentGrip,
+  EquipmentPropertyCode,
+  FeatureAttribute,
+  NodeSubjectCode
+} from '#core'
 
 /** The spell an action casts: the level it is cast at (D136). */
 export interface FeatureSpellCastAuthored {
@@ -17,12 +23,22 @@ export interface FeatureSpellCastAuthored {
 }
 
 /**
- * A Feature effect; a versatile weapon attack authors one effect per grip (D57 ruling 1), and an
- * action that casts a spell names it (D136).
+ * A Feature weapon attack made with each weapon its Character wields (D156, Volley and Whirlwind
+ * Attack): the action is offered once per wielded weapon that makes an attack of the effect's
+ * trigger and has every listed property, with that weapon's attack and damage.
+ */
+export interface FeatureWeaponAttackAuthored {
+  requiredPropertyCodes?: EquipmentPropertyCode[]
+}
+
+/**
+ * A Feature effect; a versatile weapon attack authors one effect per grip (D57 ruling 1), an
+ * action that casts a spell names it (D136), and an attack made with the wielded weapons says so.
  */
 export type FeatureEffectAuthored = EffectAuthored & {
   grip?: EquipmentGrip
   spellCast?: FeatureSpellCastAuthored
+  weaponAttack?: FeatureWeaponAttackAuthored
 }
 
 export interface FeatureRollDefinitionAuthored {

@@ -523,7 +523,7 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (`effectsEndedBy`). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
+application heals at least 1 hit point (`effectsEndedBy`). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A timed condition whose duration is `UNTIL_DISPELLED` (Sequester, SPELLS-4 T2a4) counts no turns and lasts until the GM ends it or an authored end trigger does. A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
 DTO advertises `choosesUnaffected` on its zone target (`POINT`, `CASTER_CENTERED`, `WALL`, `RING` or `ZONE_OPTIONS`), the cast command carries optional
 `unaffectedActorIds` on the zone's target (the Worker refuses it for an action whose zone does not offer it, or for an id
 that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
@@ -919,7 +919,7 @@ plan carries `marginRider` (required, nullable) with its own `rider-condition-du
 encounter planner then creates a second active effect, the rider's, with the parent's duration and the
 rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
 parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
-the parent: ending the parent early leaves the rider for the GM to end. Only a follow-up save takes a rider. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author it.
+the parent: ending the parent early leaves the rider for the GM to end. A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
 
 **Source immunity (SPELLS-31.T5l, D156).** A creature can be immune to one source's use of one action.
 Two authored forms compile to the plan's `sourceImmunity` (`sourceImmunityPlan`). A `SOURCE_IMMUNITY` outcome
@@ -931,12 +931,19 @@ The encounter planner creates the immunity as a second effect on the holder in t
 contribution `{ immuneToId, sourceCharacterId, sourceLabel }`. The compiler refuses a save immunity under
 Concentration and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
 single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out: the pending
-area seals it as `immuneActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
+area seals it as `unaffectedActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
 by source actor, or for a Character by source Character, since a carried effect outlives the Encounter actor.
 A spell grant's `allowedCreatureTypeIds` narrows the targets of its casts (`targetingExcludesCreatureType`).
+An area save that allows or excludes creature types catches every actor in it, and the same filter seals the
+ones it rules out in `unaffectedActorIds` (D156, SPELLS-33.T3a3). The receipt's GM lines read "<label> was
+unaffected". A zone refuses the restriction, since its entry saves do not filter by type. SRD Cloaker Moan
+(excluding aberrations) authors it.
 A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end
 event can fall inside that round. SRD Intimidating Presence (save immunity) and Chains of Carceri (lockout
-and creature types) author it. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
+and creature types) author it, as do the SRD Cloaker's Moan, the Nalfeshnee's Horror Nimbus, and the Frightful
+Presence of the Tarrasque and the 20 adult and ancient dragons (SPELLS-33.T7a). The creature fears share
+`minuteFearSaveEffect` in the source data: Frightened for a minute with a repeat save at the end of each of the
+target's turns. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
 spell access (SPELLS-31.T5t).
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
@@ -1292,6 +1299,16 @@ also read the Equipment's `TWO_HANDED` property because a two-handed main-hand i
 hand and a two-handed item cannot sit in the off hand. Disarm moves an item from either hand to
 `CARRIED` and records the hand in the transition's `fromState`. ATTACK-18 and ATTACK-19 reuse the
 function for Characters.
+
+**Default attack (ATTACK-19, D107).** `encounterDefaultAttackActionId` (`encounterDefaultAttack.ts`)
+picks the action the tabletop drawer starts on, reported as `defaultActionId` in the action choices
+(`readEncounterActionChoices`): the open Attack action's last weapon while it still has an attack
+left, otherwise the available `ACTION` weapon attack bound to the main-hand item, otherwise the
+available `BONUS_ACTION` weapon attack bound to the off-hand item. Hands come from
+`encounterActorHeldItems` (a Character's equipped items, a Creature's loadout) through
+`resolveHandOccupancy`; an action is bound by its Character item instance or Creature loadout entry.
+The off-hand damage and its Two-Weapon Fighting restore stay the `withOffHandDamage` clamp above; the
+drawer only reads the default and never derives it.
 
 **Character equipment hands (SHEET-8, D107).** `state.equipment.equipped` is
 `{ itemId, slot: MAIN_HAND | OFF_HAND | WORN }[]`; an unequipped item is carried. `nextEquipSlot`,
@@ -1795,6 +1812,14 @@ validation (`sceneTokenMovementIndex`) cannot drift from it.
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
+
+Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
+(the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
+sheds that light from its token. `creatureLight` reads it from the actor snapshot; nothing stores it on the
+Scene. The Worker composes it onto bound tokens (`withSceneTokenLights`) for the Scene perception capture,
+movement reactions and the room's vision display, and `resolveSceneIlluminationAt` treats each token light
+as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the
+renderer. Activated item and spell lights are not consumed yet.
 
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`

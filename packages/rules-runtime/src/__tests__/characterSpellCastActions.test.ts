@@ -10,7 +10,10 @@ import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
-import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import {
+  conditionTypeId,
+  creatureTypeId
+} from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   SRD_ABILITIES,
@@ -1898,6 +1901,16 @@ describe('the save each creature in the area makes as a zone appears (SPELLS-4.T
 
     expect(compiledCast(grease)).toBeNull()
   })
+
+  it('refuses a zone whose appear save excludes a creature type, which its entry saves cannot', () => {
+    const grease = structuredClone(spell('Grease'))
+    const invocation = grease.effects?.[0]?.invocation
+    if (invocation?.kind !== 'ACTION' || invocation.targeting?.selectionKind !== 'AREA_CONTENTS')
+      throw new Error('Grease must target the area it covers.')
+    invocation.targeting.excludedCreatureTypeIds = [creatureTypeId('UNDEAD')]
+
+    expect(compiledCast(grease)).toBeNull()
+  })
 })
 
 describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)', () => {
@@ -2105,6 +2118,24 @@ describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, 
     const placement = compiledCast(spell('Plant Growth'))?.zonePlacement
 
     expect(placement).toMatchObject({ maintenance: null, entry: { maintenance: null } })
+  })
+})
+
+describe('a condition until dispelled that damage ends, beside a GM ruling (SPELLS-4.T2a4, D156)', () => {
+  it('owns Sequester’s invisible on a willing creature with no end of turns, ending on anyone’s damage', () => {
+    const entry = compiledCastEntry(spell('Sequester'))
+    expect(entry?.targetPolicy?.targeting).toMatchObject({ dispositionKind: 'WILLING' })
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: null,
+      conditionContributions: [{ conditionId: conditionId('INVISIBLE') }],
+      lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
+      maintenance: null
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    expect(plan.published.definition.nodes.map((node) => node.operation.key)).toContain(
+      'dnd5e.manual-adjudication-proposal'
+    )
   })
 })
 

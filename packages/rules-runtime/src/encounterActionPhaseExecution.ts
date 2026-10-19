@@ -62,6 +62,7 @@ export function resolveEncounterActionPhaseExecution(input: {
     testTemplate: input.plan.test,
     selectedPath,
     facts: input.facts,
+    testOutputs: input.execution.outputs,
     testRollMode: input.testRollMode
   })
   if (!expectedTemplate) {

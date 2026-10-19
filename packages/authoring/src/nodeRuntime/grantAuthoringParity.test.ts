@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
+import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -14,6 +16,8 @@ const reader = createSrdNodeRuntimeReader()
 
 describe('a spell authored from core Modifier Grants through the effect node map (SPELLS-4.T2a2, ADR 0038)', () => {
   it.each([
+    ['Bane', bane],
+    ['Bless', bless],
     ['Foresight', foresight],
     ['Slow', slow]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
