@@ -506,7 +506,7 @@ export async function readEncounterActionChoices(
       hands: resolveHandOccupancy(
         encounterActorHeldItems({
           actor: creature ?? actor,
-          characterFacts: actorTarget?.characterFacts
+          characterFacts: actorTarget?.characterFacts ?? null
         })
       ),
       lastAttackActionId: lastAttack?.actionId ?? null
