@@ -4,6 +4,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterIncomingGateOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
+import { heldSourceImmunityLabel } from './encounterSourceImmunity.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
@@ -42,8 +43,17 @@ export function heldIncomingGate(input: {
   grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
   /** The attacker's Creature type; null for a Character, whose type is not in its facts. */
   attackerCreatureTypeId: string | null
+  /** The attacker, whom a ward it already passed (its success immunity) no longer stops. */
+  attacker: { actorId: string; characterId: string | null }
 }): HeldIncomingGate | null {
   const { attackerCreatureTypeId } = input
+  const passed = (wardId: string) =>
+    heldSourceImmunityLabel({
+      holderEffects: input.effects,
+      immuneToId: wardId,
+      sourceActorId: input.attacker.actorId,
+      sourceCharacterId: input.attacker.characterId
+    }) !== null
   for (const effect of [...input.effects].sort((left, right) => left.id.localeCompare(right.id))) {
     const { origin } = effect.definition
     for (const { modifiers } of listActiveEffectGrants([effect])) {
@@ -52,7 +62,7 @@ export function heldIncomingGate(input: {
         if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null)
           throw new EncounterValidationError('An incoming attack gate needs its caster.')
         const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
-        if (wardCoversAttacker(payload, attackerCreatureTypeId))
+        if (wardCoversAttacker(payload, attackerCreatureTypeId) && !passed(effect.id))
           return { wardId: effect.id, ownerActorId: origin.sourceActorId, payload }
       }
     }
@@ -67,7 +77,7 @@ export function heldIncomingGate(input: {
       )
         continue
       const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
-      if (wardCoversAttacker(payload, attackerCreatureTypeId))
+      if (wardCoversAttacker(payload, attackerCreatureTypeId) && !passed(grantId))
         return { wardId: grantId, ownerActorId: input.holderActorId, payload }
     }
   }

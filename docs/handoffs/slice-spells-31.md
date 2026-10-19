@@ -333,7 +333,8 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - `feature-weapon-attack-contracts.test.ts` and `creature-attack-rolls.test.ts`: the schema refusals.
     - The parity file: the SRD options and homebrew variants.
 
-- **T4k2b (2026-10-19):** Nature's Sanctuary is a holder-owned INCOMING_ATTACK_GATE fold grant with `attackerCreatureTypeIds`; a failed save goes through T2k3b ATTACK_RETARGET. `successImmunity` is authored and node-mapped but inert until T4k2c. Proofs: `encounterIncomingAttackGate.test.ts`, the parity file, `nativeRoomNaturesSanctuary.test.ts`.
+- **T4k2b (2026-10-19):** Nature's Sanctuary is a holder-owned INCOMING_ATTACK_GATE fold grant with `attackerCreatureTypeIds`; a failed save goes through T2k3b ATTACK_RETARGET. `successImmunity` is authored and node-mapped (enforced by T4k2c below). Proofs: `encounterIncomingAttackGate.test.ts`, the parity file, `nativeRoomNaturesSanctuary.test.ts`.
+- **T4k2c (2026-10-19):** a beast or plant that passes the Sanctuary save leaves a 24 h `SOURCE_IMMUNITY` Active Rule Effect (T5l) on the ward's holder, keyed by the ward's grant id (`immuneToId`), origin `sourceActorId` = the attacker, counted on the holder's turns (HOUR 24 = 14,400 turns). It rides the target receipt's `grantEffectTransitions`, now on `CHARACTER_MECHANICS_BATCH` too (created at the commit of the action that follows the pass; undo deletes it). `heldIncomingGate` skips a ward its attacker holds the immunity for (`heldSourceImmunityLabel`, shared with action admission). The frozen graph is `incomingGateImmunityPlan` (the grant id is its authored and compiled-entry id, like the Chains lockout). Proofs: `encounterIncomingAttackGate.test.ts`, `nativeRoomNaturesSanctuary.test.ts` (journey, undo, failed save).
 
 ### Tranquility resume (T4k2d, ruled 2026-10-19)
 

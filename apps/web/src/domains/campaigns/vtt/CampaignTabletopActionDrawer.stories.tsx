@@ -182,6 +182,7 @@ const endHeldGrantSent = fn()
 const releaseSent = fn()
 const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
+    heldActorId: null,
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
     label: 'Escape from Giant Toad',
     dc: 13,

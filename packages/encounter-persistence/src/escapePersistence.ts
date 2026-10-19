@@ -55,16 +55,22 @@ export async function persistEncounterEscape(
   const actors = await readRunActors(ctx, state)
   await callbacks.validateReadFence(state, actors, input)
   const actor = actors.find((entry) => entry.id === command.actorId)
+  // A rescuer rolls; the effect lives on the creature it frees.
+  const holder = command.heldActorId
+    ? actors.find((entry) => entry.id === command.heldActorId)
+    : actor
   const ruleActors = actors.filter((entry) => entry.kind !== 'CHARACTER')
   const { check } = input
   const context =
     check.kind === 'PENDING' ? check.snapshot.applicationContext : check.settlement.context
   if (
     !actor ||
+    !holder ||
     context.kind !== 'ENCOUNTER_ESCAPE_CHECK' ||
     context.commandId !== command.commandId ||
     context.commandFingerprint !== fingerprint ||
     context.actorId !== actor.id ||
+    context.heldActorId !== command.heldActorId ||
     context.activeEffectId !== command.activeEffectId ||
     context.check.checkDefinitionId !== command.checkDefinitionId ||
     input.rules.actors.length !== ruleActors.length ||
@@ -80,7 +86,7 @@ export async function persistEncounterEscape(
   // The relationship effect, not the room's plan, owns the DC, the allowed checks and the activation.
   const escape = await findStoredEscape(ctx, {
     encounterId: state.id,
-    holder: actor,
+    holder,
     context
   })
   if (!escape) throw new Error(ESCAPE_EFFECT_MISMATCH)

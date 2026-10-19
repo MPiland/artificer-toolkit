@@ -33,6 +33,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
   "result": {
     "characterStreamVersion": null,
     "endedGrants": [],
+    "itemDrawTransition": null,
     "itemReleaseTransition": null,
     "itemUseStateTransition": null,
     "receiptApplications": [

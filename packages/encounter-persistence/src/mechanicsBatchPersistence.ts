@@ -33,6 +33,8 @@ export type EncounterMechanicsBatchResult = {
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
   /** The item the target dropped (`releaseHeldItemInstanceId`); null when it dropped none. */
   itemReleaseTransition: EncounterMechanicsBatchPlan['itemReleaseTransition']
+  /** The carried weapon the actor drew (`drawHeldItem`); null when it drew none. */
+  itemDrawTransition: EncounterMechanicsBatchPlan['itemDrawTransition']
   /** The "until healed" grants a heal in this batch ended: the action's undo gives them back. */
   endedGrants: ActiveRuleEffectRecord[]
 }
@@ -177,7 +179,8 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       character ||
       plan.characterUpdate ||
       plan.characterStreamVersion !== null ||
-      plan.itemUseStateTransition
+      plan.itemUseStateTransition ||
+      plan.itemDrawTransition?.kind === 'CHARACTER_ITEM_DRAW'
     )
       throw new Error('Encounter non-Character plan contains Character state.')
     if (plan.stateChanged || updatedActor !== plan.updatedActor)
@@ -189,6 +192,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       characterStreamVersion: null,
       itemUseStateTransition: null,
       itemReleaseTransition: plan.itemReleaseTransition,
+      itemDrawTransition: plan.itemDrawTransition,
       endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
     }
   }
@@ -221,6 +225,11 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       (!plan.shouldAdvance ||
         plan.itemUseStateTransition.characterId !== character.id ||
         plan.itemUseStateTransition.beforeStreamVersion !== character.play.streamVersion)) ||
+    (plan.itemDrawTransition &&
+      (!plan.shouldAdvance ||
+        plan.itemDrawTransition.kind !== 'CHARACTER_ITEM_DRAW' ||
+        plan.itemDrawTransition.characterId !== character.id ||
+        plan.itemDrawTransition.beforeStreamVersion !== character.play.streamVersion)) ||
     (plan.characterUpdate &&
       (plan.characterUpdate.character.id !== character.id ||
         plan.characterUpdate.character.systemId !== character.systemId ||
@@ -247,6 +256,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     characterStreamVersion: plan.characterStreamVersion,
     itemUseStateTransition: plan.itemUseStateTransition,
     itemReleaseTransition: plan.itemReleaseTransition,
+    itemDrawTransition: plan.itemDrawTransition,
     endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
   }
 }

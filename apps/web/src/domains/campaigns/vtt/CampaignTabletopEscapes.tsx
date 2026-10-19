@@ -61,6 +61,7 @@ function EscapeList({
           commandId: crypto.randomUUID(),
           expectedVersion: encounterVersion,
           actorId,
+          ...(choice.heldActorId && { heldActorId: choice.heldActorId }),
           activeEffectId: choice.activeEffectId,
           checkDefinitionId,
           acknowledgedWarnings
@@ -130,7 +131,7 @@ function EscapeList({
                 variant='default'
                 onClick={() => void escape(choice, [])}
               >
-                Escape
+                {choice.heldActorId ? 'Free' : 'Escape'}
               </Button>
             </li>
           )

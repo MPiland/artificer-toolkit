@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
   characterActor,
@@ -112,6 +113,19 @@ async function bite(room: SanctuaryRoom) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
+/** The Druid's source immunities, with the creature each frees from the ward. */
+async function wardImmunities(room: SanctuaryRoom) {
+  const { characterEffects } = await readRoomHistory(room.room.base.stub)
+  return characterEffects.flatMap((effect) => {
+    const definition = activeRuleEffectDefinitionDtoSchema.parse(JSON.parse(effect.definitionJson))
+    return definition.schemaVersion === 2 &&
+      definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY') &&
+      definition.origin.kind === 'ENCOUNTER'
+      ? [definition.origin.sourceActorId]
+      : []
+  })
+}
+
 async function retargetOffer(room: SanctuaryRoom) {
   const decision = await readPendingActionDecision(room.room.base.stub)
   if (decision?.pending.kind !== 'ATTACK_RETARGET_CHOICE')
@@ -182,5 +196,48 @@ describe("room Nature's Sanctuary (SPELLS-31.T4k2b)", () => {
     await bite(room)
 
     expect((await standing(room)).druidHitPoints).toBe(before.druidHitPoints - 1)
+  })
+
+  it('leaves the Druid immune-checked for a beast that passed, so it attacks again without a save (T4k2c)', async () => {
+    const room = await sanctuaryRoom({ rolls: [SAVE_PASSES, ATTACK_HITS, ATTACK_HITS] })
+    const before = await standing(room)
+    expect(await wardImmunities(room)).toEqual([])
+
+    await bite(room)
+    expect(await wardImmunities(room)).toEqual([ATTACKER_ID])
+    for (let turn = 0; turn < 3; turn += 1) await room.advanceTurn()
+    await bite(room)
+
+    const after = await standing(room)
+    expect(after.gated).toEqual([])
+    expect(after.druidHitPoints).toBe(before.druidHitPoints - 2)
+    expect(await wardImmunities(room)).toEqual([ATTACKER_ID])
+  })
+
+  it('takes the immunity back when the GM undoes the attack that left it', async () => {
+    const room = await sanctuaryRoom({ rolls: [SAVE_PASSES, ATTACK_HITS] })
+    const before = await standing(room)
+    await bite(room)
+    expect(await wardImmunities(room)).toEqual([ATTACKER_ID])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await wardImmunities(room)).toEqual([])
+    expect((await standing(room)).druidHitPoints).toBe(before.druidHitPoints)
+  })
+
+  it('leaves no immunity behind a beast that failed the save', async () => {
+    const room = await sanctuaryRoom({ rolls: [SAVE_FAILS, ATTACK_HITS] })
+    await bite(room)
+    const { decision } = await retargetOffer(room)
+    await room.resolve(decision, { kind: 'DECLINE' })
+
+    expect(await wardImmunities(room)).toEqual([])
   })
 })

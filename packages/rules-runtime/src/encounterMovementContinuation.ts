@@ -21,7 +21,7 @@ import { startEncounterMovementReactionAtBoundary } from './encounterMovementRea
 import { createReactionChoiceDefinition } from './reactionChoiceDefinition.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
+import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import { retainedMovementSpatialExecutions } from './encounterSpatialMovementResult.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 export {
@@ -52,6 +52,7 @@ export type MovementContinuationInput<
   root: SpatialMovementRuleRoot
   sceneVersion: number
   sceneTokens: readonly SceneToken[]
+  sceneGrid: SceneGrid
   actorIdByTokenId: ReadonlyMap<string, string>
   currentPosition: SceneToken['position']
   occurrenceId: string
@@ -250,6 +251,7 @@ export async function prepareEncounterMovementContinuation<
         sceneTokens: input.sceneTokens.map((token) =>
           token.id === root.tokenId ? { ...token, position } : token
         ),
+        sceneGrid: input.sceneGrid,
         actorIdByTokenId: input.actorIdByTokenId,
         currentPosition: position,
         occurrenceId: input.occurrenceId,

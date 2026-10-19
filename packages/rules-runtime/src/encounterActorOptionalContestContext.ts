@@ -186,6 +186,89 @@ export function applyEncounterActorOptionalContestSuccess<
   }
 }
 
+/** Moves a carried loadout item into a hand: the draw an attack makes (D107). */
+export function applyEncounterActorItemDraw<
+  TActor extends EncounterActorOptionalContestActor
+>(input: {
+  actor: TActor
+  loadoutEntryId: string
+  slot: HandSlotCode
+}): {
+  readonly actor: TActor
+  readonly equipmentId: string
+  readonly beforeStateChecksum: string
+  readonly afterStateChecksum: string
+} {
+  const { actor, loadoutEntryId, slot } = input
+  const snapshot = snapshotRecord(actor)
+  if (!snapshot) throw new EncounterConflictError('Creature weapon to draw is unavailable.')
+  const loadout = snapshotCreatureEquipmentLoadout(actor)
+  if (loadout.find((entry) => entry.id === loadoutEntryId)?.useState !== 'CARRIED')
+    throw new EncounterConflictError('Creature weapon to draw is no longer carried.')
+  const nextActor = {
+    ...actor,
+    snapshot: {
+      ...snapshot,
+      equipmentLoadoutOverride: loadout.map((entry) =>
+        entry.id === loadoutEntryId ? { ...entry, useState: slot } : entry
+      )
+    }
+  }
+  const drawn = readEncounterActorOptionalContestContext({ actor: nextActor, loadoutEntryId })
+  if (!drawn) throw new EncounterConflictError('Creature weapon draw is invalid.')
+  return {
+    actor: nextActor,
+    equipmentId: drawn.equipment.equipmentId,
+    beforeStateChecksum: checksumRuleDocument({
+      actorId: drawn.actorId,
+      equipment: { ...drawn.equipment, state: 'CARRIED' },
+      ruleFacts: drawn.ruleFacts,
+      size: drawn.size
+    }),
+    afterStateChecksum: drawn.stateChecksum
+  }
+}
+
+/**
+ * Puts a drawn item back to carried (the undo of a draw), or null when the loadout entry no
+ * longer reproduces the held state the transition recorded.
+ */
+export function revertEncounterActorItemDraw<
+  TActor extends EncounterActorOptionalContestActor
+>(input: {
+  actor: TActor
+  transition: {
+    loadoutEntryId: string
+    equipmentId: string
+    slot: HandSlotCode
+    beforeStateChecksum: string
+    afterStateChecksum: string
+  }
+}): TActor | null {
+  const { actor, transition } = input
+  const snapshot = snapshotRecord(actor)
+  const drawn = readEncounterActorOptionalContestContext({
+    actor,
+    loadoutEntryId: transition.loadoutEntryId
+  })
+  if (
+    !snapshot ||
+    drawn?.equipment.state !== transition.slot ||
+    drawn.equipment.equipmentId !== transition.equipmentId ||
+    drawn.stateChecksum !== transition.afterStateChecksum
+  )
+    return null
+  return {
+    ...actor,
+    snapshot: {
+      ...snapshot,
+      equipmentLoadoutOverride: snapshotCreatureEquipmentLoadout(actor).map((entry) =>
+        entry.id === transition.loadoutEntryId ? { ...entry, useState: 'CARRIED' as const } : entry
+      )
+    }
+  }
+}
+
 /**
  * Puts a dropped item back in the hand it left (the undo of a release), or null when the loadout
  * entry no longer reproduces the held state the transition recorded.

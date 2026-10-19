@@ -574,6 +574,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
 
 const escapeChoices = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
+    heldActorId: null,
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
     label: 'Escape from Giant Toad',
     dc: 13,
@@ -661,6 +662,97 @@ describe('CampaignTabletopActionDrawer releases (D152)', () => {
     expect(await screen.findByText('Released.')).toBeVisible()
   })
 
+  describe('freeing a hand for the attack (ATTACK-19.2)', () => {
+    const secondHold = {
+      heldActorId: '00000000-0000-4000-8000-000000000f21',
+      activeEffectId: '00000000-0000-4000-8000-000000000f22',
+      label: 'Release Boar'
+    }
+    const handRelease = (...holds: { heldActorId: string; activeEffectId: string }[]) =>
+      validatedChoices([{ ...actions[0]!, handRelease: { holds } }])
+    const wolf = {
+      heldActorId: releaseChoices[0].heldActorId,
+      activeEffectId: releaseChoices[0].activeEffectId
+    }
+
+    it('preselects the only hold, releases it for free, then sends the attack', async () => {
+      const user = userEvent.setup()
+      const onRelease = vi.fn().mockResolvedValue(resolved)
+      const onResolve = vi
+        .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+        .mockResolvedValue(resolved)
+      renderDrawer(onResolve, {
+        choices: handRelease(wolf),
+        releases: releaseChoices,
+        onRelease
+      })
+
+      await chooseActionAndTarget(user)
+      expect(onResolve).not.toHaveBeenCalled()
+      expect(screen.getByRole('radio', { name: 'Release Wolf' })).toBeChecked()
+      await user.click(screen.getByRole('button', { name: 'Release and attack' }))
+
+      await waitFor(() => expect(onResolve).toHaveBeenCalledTimes(1))
+      expect(onRelease).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'RELEASE_RELATIONSHIP',
+          heldActorId: wolf.heldActorId,
+          activeEffectId: wolf.activeEffectId
+        })
+      )
+      expect(onRelease.mock.invocationCallOrder[0]).toBeLessThan(
+        onResolve.mock.invocationCallOrder[0]!
+      )
+      expect(onResolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionId: actions[0]!.id,
+          expectedVersion: resolved.projection.version
+        })
+      )
+    })
+
+    it('asks which of several holds to release and sends nothing until one is chosen', async () => {
+      const user = userEvent.setup()
+      const onRelease = vi.fn().mockResolvedValue(resolved)
+      const onResolve = vi
+        .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+        .mockResolvedValue(resolved)
+      renderDrawer(onResolve, {
+        choices: handRelease(wolf, {
+          heldActorId: secondHold.heldActorId,
+          activeEffectId: secondHold.activeEffectId
+        }),
+        releases: validated(encounterActionChoicesDtoSchema.shape.releases)([
+          releaseChoices[0],
+          secondHold
+        ]),
+        onRelease
+      })
+
+      await chooseActionAndTarget(user)
+      expect(screen.getByRole('button', { name: 'Release and attack' })).toBeDisabled()
+      await user.click(screen.getByRole('radio', { name: 'Release Boar' }))
+      await user.click(screen.getByRole('button', { name: 'Release and attack' }))
+
+      await waitFor(() => expect(onResolve).toHaveBeenCalledTimes(1))
+      expect(onRelease).toHaveBeenCalledWith(
+        expect.objectContaining({ activeEffectId: secondHold.activeEffectId })
+      )
+    })
+
+    it('releases and attacks nothing on cancel', async () => {
+      const user = userEvent.setup()
+      const onRelease = vi.fn().mockResolvedValue(resolved)
+      const onResolve = vi.fn().mockResolvedValue(resolved)
+      renderDrawer(onResolve, { choices: handRelease(wolf), releases: releaseChoices, onRelease })
+
+      await chooseActionAndTarget(user)
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(onRelease).not.toHaveBeenCalled()
+      expect(onResolve).not.toHaveBeenCalled()
+    })
+  })
+
   it('shows no section when the actor holds no creature', async () => {
     renderDrawer(vi.fn())
     await screen.findByRole('button', { name: 'Resolve action' })
@@ -710,6 +802,26 @@ describe('CampaignTabletopActionDrawer escapes', () => {
     await user.click(screen.getByRole('button', { name: 'Escape from Giant Toad' }))
     expect(onEscape).toHaveBeenLastCalledWith(
       expect.objectContaining({ checkDefinitionId: escapeChoices[0].checks[1].checkDefinitionId })
+    )
+  })
+
+  it('names the held creature when freeing it, and sends it with the escape (ATTACK-7.9)', async () => {
+    const user = userEvent.setup()
+    const onEscape = vi.fn().mockResolvedValue(resolved)
+    const heldActorId = '00000000-0000-4000-8000-000000000e31'
+    renderDrawer(vi.fn(), {
+      escapes: [{ ...escapeChoices[0], heldActorId, label: 'Free Ally' }],
+      onEscape
+    })
+
+    await user.click(await screen.findByRole('button', { name: 'Free Ally' }))
+    expect(onEscape).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'ESCAPE',
+        actorId: tabletopGmEncounter.currentActorId,
+        heldActorId,
+        activeEffectId: escapeChoices[0].activeEffectId
+      })
     )
   })
 

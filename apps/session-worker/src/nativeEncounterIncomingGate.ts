@@ -76,11 +76,16 @@ export async function advanceNativeIncomingGate(input: {
     holderActorId: input.holderActorId,
     effects: input.holderEffects,
     grantFold: input.holderGrantFold,
-    attackerCreatureTypeId: input.attackerCreatureTypeId
+    attackerCreatureTypeId: input.attackerCreatureTypeId,
+    attacker: {
+      actorId: input.attacker.actor.id,
+      characterId: input.attacker.actor.kind === 'CHARACTER' ? input.attacker.actor.sourceId : null
+    }
   })
   if (!held || held.wardId === input.passedEffectId) {
     if (input.answer) throw new Error('The incoming gate is no longer owed.')
-    return { kind: 'NONE' as const }
+    // A ward an earlier request of this action passed still owes its success immunity at the commit.
+    return { kind: 'NONE' as const, passed: held }
   }
   const owner = await input.owner(held.ownerActorId)
   if (!owner) throw new Error('The owner of the incoming gate is no longer in the encounter.')
@@ -121,7 +126,7 @@ export async function advanceNativeIncomingGate(input: {
     expectedOccurrenceId: input.occurrenceId
   })
   return evaluated.reachesDc
-    ? { kind: 'PASSED' as const, effectId: offer.effectId }
+    ? { kind: 'PASSED' as const, effectId: offer.effectId, passed: held }
     : {
         kind: 'FAILED' as const,
         gate: {

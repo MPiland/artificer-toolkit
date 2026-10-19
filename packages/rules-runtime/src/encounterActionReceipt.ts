@@ -77,7 +77,7 @@ export function buildEncounterActionStoredExecution(input: {
   >['activeEffectTransitions']
   /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
   meleeRetaliation?: MeleeRetaliationEvidenceDto | null
-  /** The timed grants the creature target's own passive damage triggers made from this hit. */
+  /** The timed effects the target's own rules made from this action: damage-trigger grants, a passed ward's immunity. */
   grantEffectTransitions?: ReturnType<
     typeof projectNativeActionEffectTransitions
   >['activeEffectTransitions']
@@ -154,6 +154,7 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            sourceItemDraw: settled.sourceItemDraw,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,
@@ -162,6 +163,9 @@ export function buildEncounterActionStoredExecution(input: {
               characterEffectReceipt(transition, input.maintainedState?.id ?? null)
             ),
             reactionEffectTransitions: (input.reactionEffectTransitions ?? []).map((transition) =>
+              characterEffectReceipt(transition, null)
+            ),
+            grantEffectTransitions: (input.grantEffectTransitions ?? []).map((transition) =>
               characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,
@@ -187,6 +191,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetActorId: target.id,
             ...(input.maintenanceTransition ||
             settled.sourceItemUseStateTransition ||
+            settled.sourceItemDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
             settled.itemConsumptionReceipt ||
             settled.spellConsumptionReceipt ||
             settled.sourceApplications.length
@@ -202,6 +207,7 @@ export function buildEncounterActionStoredExecution(input: {
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
             reaction: reactionReceipt((transition) => transition),
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            sourceItemDraw: settled.sourceItemDraw,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,

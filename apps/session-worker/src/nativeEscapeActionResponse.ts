@@ -64,8 +64,10 @@ export async function planNativeLiveEscapeResponse(
     state,
     capture
   })
-  const holder = actors.find((entry) => entry.id === context.actorId)
-  const heldEffects = activeEffectsByActorId.get(context.actorId)
+  // The roller is the held creature, or the rescuer who frees it (ATTACK-7.9).
+  const heldActorId = context.heldActorId ?? context.actorId
+  const holder = actors.find((entry) => entry.id === heldActorId)
+  const heldEffects = activeEffectsByActorId.get(heldActorId)
   if (!holder || !heldEffects) throw new Error('Escape check actors are unavailable.')
   // A freed Character's Sheet changes, so its revision joins the commit's fence.
   const prepared = await prepareNativeLiveMovementTarget({
@@ -107,7 +109,7 @@ export async function planNativeLiveEscapeResponse(
       ? encounterActorsAfterEscape({
           encounterId: state.id,
           actors,
-          holderId: context.actorId,
+          holderId: heldActorId,
           holderEffects: heldEffects,
           activeEffectId: context.activeEffectId
         })

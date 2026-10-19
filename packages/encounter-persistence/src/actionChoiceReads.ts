@@ -15,7 +15,13 @@ import {
   type DefaultAttackChoice
 } from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
 import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
+import {
+  characterActionDrawWeapon,
+  creatureActionDrawWeapon,
+  evaluateEncounterWeaponDraw
+} from '@artificer-toolkit/rules-runtime/encounterWeaponDraw'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { readEncounterBoundSceneTokens } from './actionSceneInputs.js'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
@@ -23,7 +29,8 @@ import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   findEncounterHolderContestEscape,
-  findEncounterHolderEscape
+  findEncounterHolderEscape,
+  findEncounterRescues
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
@@ -165,6 +172,35 @@ export async function readEncounterActionChoices(
       : actor.kind === 'CREATURE'
         ? actor
         : null
+  // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
+  const heldByActor = await readHeldRelationships(tx, {
+    state,
+    membership,
+    sourceActorIds: new Set([actor.id])
+  })
+  const releases: EncounterActionChoicesDto['releases'] = heldByActor.map(
+    ({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label })
+  )
+  // An attack that must draw its weapon while only the holds that fill a hand keep one from it asks
+  // the actor to release one first (D107, D152).
+  const handHolds = heldByActor.filter(({ occupiesHand }) => occupiesHand)
+  const heldItems = encounterActorHeldItems({
+    actor: creature ?? actor,
+    characterFacts: actorTarget?.characterFacts ?? null
+  })
+  const handReleaseChoice = (draw: ReturnType<typeof evaluateEncounterWeaponDraw>) =>
+    draw.kind === 'RELEASE_REQUIRED'
+      ? {
+          handRelease: {
+            holds: handHolds.map(({ activeEffectId, heldActorId }) => ({
+              activeEffectId,
+              heldActorId
+            }))
+          }
+        }
+      : {}
+  const handReleaseFor = (weapon: Parameters<typeof evaluateEncounterWeaponDraw>[0]['weapon']) =>
+    evaluateEncounterWeaponDraw({ weapon, hands: heldItems, holds: handHolds.length })
   if (actor.kind === 'CHARACTER' && creature === null) {
     const facts = actorTarget?.characterFacts
     const mechanics = actorTarget?.characterReactionSource?.mechanics
@@ -242,6 +278,7 @@ export async function readEncounterActionChoices(
           candidate?.mechanicFacts.invocation.activation ?? null,
           candidate?.mechanicFacts.invocation.triggerCode
         )
+        const draw = handReleaseFor(characterActionDrawWeapon(candidate?.equipment ?? null))
         if (candidate?.equipment)
           itemBindings.set(action.id, {
             itemId: candidate.equipment.itemInstanceId,
@@ -275,6 +312,7 @@ export async function readEncounterActionChoices(
               }
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
+          ...handReleaseChoice(draw),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,
@@ -289,7 +327,8 @@ export async function readEncounterActionChoices(
           ),
           warnings: [
             ...economy.warnings,
-            ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
+            // An attack draws its carried weapon itself (D107), so a carried weapon is no warning.
+            ...(reasonCode === 'SOURCE_NOT_EQUIPPED' && draw.kind !== 'DRAW'
               ? [
                   {
                     code: 'SOURCE_NOT_EQUIPPED' as const,
@@ -345,6 +384,11 @@ export async function readEncounterActionChoices(
                 }
               : null,
             wieldConflict: null,
+            ...handReleaseChoice(
+              handReleaseFor(
+                creatureActionDrawWeapon(heldItems, action.equipmentBinding?.loadoutEntryId)
+              )
+            ),
             attackSlot: economy.attackSlot,
             target: encounterActionChoiceTarget(
               targetPolicy,
@@ -426,31 +470,41 @@ export async function readEncounterActionChoices(
     const escape = contested
       ? { activation: contested.activation, checks: contested.checks, dc: null, zoneLabel: null }
       : findEncounterHolderEscape(effect)
-    return escape ? [{ effect, ...escape }] : []
+    return escape ? [{ effect, heldActorId: null, ...escape }] : []
   })
+  const runActors = await readRunActors(tx, state)
+  // The holds on creatures within reach that the actor may break for them (ATTACK-7.9).
+  const rescues =
+    actor.kind === 'CUSTOM' ? [] : await readEncounterRescues(tx, state, actor, runActors)
   const escapes: EncounterActionChoicesDto['escapes'] = []
-  if (heldEscapes.length > 0) {
-    const [system, runActors] = await Promise.all([
-      tx.ports.requireSystem(state.gameSystemId),
-      readRunActors(tx, state)
-    ])
-    for (const { effect, activation, checks, dc, zoneLabel } of heldEscapes) {
+  if (heldEscapes.length > 0 || rescues.length > 0) {
+    const system = await tx.ports.requireSystem(state.gameSystemId)
+    for (const { effect, heldActorId, activation, checks, dc, zoneLabel } of [
+      ...heldEscapes,
+      ...rescues
+    ]) {
       const { origin } = effect.definition
       const grappler =
         origin.kind === 'ENCOUNTER'
           ? runActors.find((candidate) => candidate.id === origin.sourceActorId)
           : undefined
+      const held = heldActorId ? runActors.find((candidate) => candidate.id === heldActorId) : null
       const economy = await readEconomy({
         code: activation.code,
         amount: 'amount' in activation ? activation.amount : null
       })
       escapes.push({
+        heldActorId,
         activeEffectId: effect.id,
-        label: zoneLabel
-          ? `Escape ${zoneLabel}`
-          : grappler && (membership.role === 'OWNER' || grappler.public)
-            ? `Escape from ${grappler.label}`
-            : 'Escape a grapple',
+        label: held
+          ? membership.role === 'OWNER' || held.public
+            ? `Free ${held.label}`
+            : 'Free a creature'
+          : zoneLabel
+            ? `Escape ${zoneLabel}`
+            : grappler && (membership.role === 'OWNER' || grappler.public)
+              ? `Escape from ${grappler.label}`
+              : 'Escape a grapple',
         dc,
         actionCost: activation.code,
         checks: [...checks.skillIds, ...checks.abilityDefinitionIds].map((id) => ({
@@ -485,10 +539,6 @@ export async function readEncounterActionChoices(
       warnings: economy.warnings
     })
   }
-  // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
-  const releases: EncounterActionChoicesDto['releases'] = (
-    await readHeldRelationships(tx, { state, membership, sourceActorIds: new Set([actor.id]) })
-  ).map(({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label }))
   const attackActionThisTurn =
     openAttackAction && openAttackAction.turnSequence === state.turnSequence
       ? openAttackAction
@@ -544,6 +594,31 @@ export async function readEncounterActionChoices(
   })
 }
 
+/**
+ * The holds the Run's acting actor may break for a creature within reach of it (ATTACK-7.9),
+ * measured on the Scene the Run is bound to; none when the Run has no Scene.
+ */
+async function readEncounterRescues(
+  tx: EncounterTurnReadTransaction,
+  state: ReturnType<typeof readRunState>,
+  actor: { id: string },
+  runActors: Awaited<ReturnType<typeof readRunActors>>
+) {
+  const activeEffectsByActorId = new Map(
+    await Promise.all(
+      runActors.map(
+        async (held) =>
+          [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
+      )
+    )
+  )
+  return findEncounterRescues({
+    actorId: actor.id,
+    activeEffectsByActorId,
+    scene: await readEncounterBoundSceneTokens(tx, state, tx.ports.sceneReaders)
+  })
+}
+
 /** The holds `sourceActorIds` apply in the Run, each labelled for the member who may release it. */
 async function readHeldRelationships(
   tx: EncounterTurnReadTransaction,
@@ -552,7 +627,9 @@ async function readHeldRelationships(
     membership: CampaignAuthority['membership']
     sourceActorIds: ReadonlySet<string>
   }
-): Promise<(Omit<EncounterHeldRelationshipDto, 'drag'> & { drags: boolean })[]> {
+): Promise<
+  (Omit<EncounterHeldRelationshipDto, 'drag'> & { drags: boolean; occupiesHand: boolean })[]
+> {
   const { state, membership, sourceActorIds } = input
   const runActors = await readRunActors(tx, state)
   const activeEffectsByActorId = new Map(
@@ -575,7 +652,8 @@ async function readHeldRelationships(
           held && (membership.role === 'OWNER' || held.public)
             ? `Release ${held.label}`
             : 'Release a creature',
-        drags: contribution.modules.some(({ kind }) => kind === 'TARGET_DRAGGED')
+        drags: contribution.modules.some(({ kind }) => kind === 'TARGET_DRAGGED'),
+        occupiesHand: contribution.modules.some(({ kind }) => kind === 'SOURCE_OCCUPIES_HAND')
       }
     })
 }
@@ -615,7 +693,7 @@ export async function readEncounterHeldRelationships(
     return target ? encounterActorEffectiveSize(target) : null
   }
   // The route preview prices a drag from the sizes now; settlement recomputes them (D105).
-  return holds.map(({ drags, ...hold }) => ({
+  return holds.map(({ drags, occupiesHand: _occupiesHand, ...hold }) => ({
     ...hold,
     drag: drags
       ? {

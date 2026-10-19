@@ -38,7 +38,10 @@ import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encoun
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
-import { revertEncounterActorItemRelease } from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
+import {
+  revertEncounterActorItemDraw,
+  revertEncounterActorItemRelease
+} from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
 import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -100,6 +103,8 @@ type CharacterInverse = {
   resource: ActionBatch['resourceConsumption']
   /** The one item this action unequipped from the Character: a stow it accepted, or a drop. */
   unequipped: ActionBatch['sourceItemUseStateTransition']
+  /** The carried weapon this action's attack equipped (D107); undo takes it back to carried. */
+  drawn: Extract<ActionBatch['sourceItemDraw'], { kind: 'CHARACTER_ITEM_DRAW' }> | null
   item: ActionBatch['sourceItemConsumption']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
@@ -474,6 +479,7 @@ export async function revertLastEncounterAction(
           restoredConditionIds: new Set(),
           resource: null,
           unequipped: null,
+          drawn: null,
           item: null,
           spells: [],
           expectedStreamVersion: streamVersion
@@ -634,7 +640,7 @@ export async function revertLastEncounterAction(
       ...action.activeEffectTransitions,
       ...(reaction?.activeEffectTransitions ?? []),
       ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : []),
-      ...(action.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? action.grantEffectTransitions : [])
+      ...action.grantEffectTransitions
     ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,
@@ -682,12 +688,24 @@ export async function revertLastEncounterAction(
       removal: 'REMOVED'
     })
 
+  // The weapon the source's attack drew from carried: a Creature's goes back to carried here.
+  const sourceDraw = batch?.sourceItemDraw ?? null
+  if (sourceDraw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW') {
+    const carried = revertEncounterActorItemDraw({
+      actor: actorsById.get(sourceDraw.actorId)!,
+      transition: sourceDraw
+    })
+    if (!carried)
+      unavailable(`${source.label}'s equipment changed after this action; adjust manually.`)
+    updateActor(sourceDraw.actorId, { snapshot: carried.snapshot })
+  }
   // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
   const sourceCharacterId =
     source.kind === 'CHARACTER' && source.sourceId !== null ? source.sourceId : null
   if (
     (spend.resourceConsumption ||
       spend.sourceItemUseStateTransition ||
+      sourceDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
       spend.sourceItemConsumption ||
       spend.spellCastConsumption) &&
     sourceCharacterId
@@ -697,6 +715,7 @@ export async function revertLastEncounterAction(
     const inverse = characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion)
     inverse.resource = spend.resourceConsumption
     if (spend.sourceItemUseStateTransition) inverse.unequipped = spend.sourceItemUseStateTransition
+    if (sourceDraw?.kind === 'CHARACTER_ITEM_DRAW') inverse.drawn = sourceDraw
     inverse.item = spend.sourceItemConsumption
     if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
   }
@@ -968,6 +987,7 @@ async function revertCheckAction(
         restoredConditionIds: new Set(),
         resource: null,
         unequipped: null,
+        drawn: null,
         item: null,
         spells: [],
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
@@ -1206,6 +1226,20 @@ async function restoreCharacter(
       spell.slotKey,
       () => spell.beforeUsed
     ).state
+  // A draw undoes before the stow it followed, so the equipment retraces its checksums.
+  const drawn = inverse.drawn
+  if (drawn) {
+    const equipment = {
+      ...state.equipment,
+      equipped: state.equipment.equipped.filter((entry) => entry.itemId !== drawn.itemInstanceId)
+    }
+    if (
+      checksumRuleDocument(state.equipment) !== drawn.afterStateChecksum ||
+      checksumRuleDocument(equipment) !== drawn.beforeStateChecksum
+    )
+      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
+    state = { ...state, equipment }
+  }
   const unequipped = inverse.unequipped
   if (unequipped) {
     const equipped = state.equipment.equipped

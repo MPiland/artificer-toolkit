@@ -338,7 +338,11 @@ export async function persistEncounterActionCommit(
     // The accepted stow must be exactly the one the room planned and this commit applied.
     checksumCanonicalJson(
       (source.id === target.id ? mechanics : sourceMechanics)?.itemUseStateTransition ?? null
-    ) !== checksumCanonicalJson(batch.sourceItemUseStateTransition)
+    ) !== checksumCanonicalJson(batch.sourceItemUseStateTransition) ||
+    // The weapon the source drew must be exactly the one the room planned and this commit applied.
+    checksumCanonicalJson(
+      (source.id === target.id ? mechanics : sourceMechanics)?.itemDrawTransition ?? null
+    ) !== checksumCanonicalJson(batch.sourceItemDraw)
   )
     throw new Error('Live Session mechanics receipt mismatch.')
   // A Legendary Resistance the target used spends one of its own charges with the outcome.

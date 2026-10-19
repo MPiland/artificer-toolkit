@@ -66,6 +66,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'requiresFullyWithin',
   'requiredSight',
   'movementCostMultiplier',
+  'perDistanceMoved',
   'blockingRules',
   'automaticSaveSuccessImmunityDamageTypeId',
   'occupantSaveBonus',

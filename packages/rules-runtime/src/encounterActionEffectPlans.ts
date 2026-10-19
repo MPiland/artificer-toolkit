@@ -668,8 +668,43 @@ function prepareSourceImmunityEffect(
   const plan = input.activeEffectPlan
   const immunity = plan?.sourceImmunity
   if (!plan || !immunity) return null
+  const sourceLabel = input.sourceLabel?.trim() ?? ''
+  if (!sourceLabel || input.sourceCharacterId === undefined)
+    throw new EncounterActionEffectPlanError(
+      'A source immunity requires its action label and source Character.'
+    )
+  return sourceImmunityEffect({
+    authoredEffectId: plan.authoredEffectId,
+    capabilityContractVersion: plan.capabilityContractVersion,
+    immunity,
+    origin: {
+      encounterId: input.encounterId,
+      occurrenceId: input.occurrenceId,
+      commandId: input.commandId,
+      sourceActorId: input.sourceActorId
+    },
+    sourceCharacterId: input.sourceCharacterId,
+    sourceLabel,
+    lifetimeScope: input.target.lifetimeScope
+  })
+}
+
+/**
+ * The immunity effect a source leaves on its holder: a saved action's, a grant's lockout, or the
+ * immunity a creature that passed a holder's ward leaves on that holder.
+ */
+export function sourceImmunityEffect(input: {
+  authoredEffectId: string
+  capabilityContractVersion: number
+  immunity: NonNullable<CharacterRuleActionActiveEffectPlan['sourceImmunity']>
+  origin: { encounterId: string; occurrenceId: string; commandId: string; sourceActorId: string }
+  sourceCharacterId: string | null
+  sourceLabel: string
+  lifetimeScope: 'OWNER' | 'ENCOUNTER'
+}): EffectPlan {
+  const { immunity, origin } = input
   if (
-    immunity.frozenGraph.id !== plan.authoredEffectId ||
+    immunity.frozenGraph.id !== input.authoredEffectId ||
     immunity.frozenGraph.definition.sourceEntryBindings?.filter(
       (binding) =>
         binding.sourceEntryId === immunity.compiledEntryId &&
@@ -677,24 +712,19 @@ function prepareSourceImmunityEffect(
     ).length !== 1
   )
     throw new EncounterActionEffectPlanError('Encounter source-immunity plan is stale.')
-  const sourceLabel = input.sourceLabel?.trim() ?? ''
-  if (!sourceLabel || input.sourceCharacterId === undefined)
-    throw new EncounterActionEffectPlanError(
-      'A source immunity requires its action label and source Character.'
-    )
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     origin: {
       kind: 'ENCOUNTER',
-      sourceAggregateId: input.encounterId,
-      sourceOccurrenceId: input.occurrenceId,
-      rootCommandId: input.commandId,
-      sourceActorId: input.sourceActorId
+      sourceAggregateId: origin.encounterId,
+      sourceOccurrenceId: origin.occurrenceId,
+      rootCommandId: origin.commandId,
+      sourceActorId: origin.sourceActorId
     },
-    authoredEffectId: plan.authoredEffectId,
+    authoredEffectId: input.authoredEffectId,
     compiledEntryId: immunity.compiledEntryId,
     frozenGraphNodeId: immunity.frozenGraphNodeId,
-    frozenGraph: compileEffectGraph(immunity.frozenGraph, plan.capabilityContractVersion),
+    frozenGraph: compileEffectGraph(immunity.frozenGraph, input.capabilityContractVersion),
     adapterFacts: {},
     perceptionContributions: [],
     recurrence: {
@@ -705,7 +735,7 @@ function prepareSourceImmunityEffect(
       endOnConditionIds: [],
       holderEnd: null,
       // A Run holds no rest, so a lockout lasts the Run, ending before the source's long rest can.
-      lifetimeScope: immunity.initialRemaining === null ? 'ENCOUNTER' : input.target.lifetimeScope,
+      lifetimeScope: immunity.initialRemaining === null ? 'ENCOUNTER' : input.lifetimeScope,
       expiration:
         immunity.initialRemaining === null
           ? { kind: 'INDEFINITE' }
@@ -721,7 +751,7 @@ function prepareSourceImmunityEffect(
         kind: 'SOURCE_IMMUNITY' as const,
         immuneToId: immunity.immuneToId,
         sourceCharacterId: input.sourceCharacterId,
-        sourceLabel
+        sourceLabel: input.sourceLabel
       }
     ]
   })

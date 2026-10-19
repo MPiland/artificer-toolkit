@@ -15,9 +15,11 @@ type EscapeContext = LiveSessionEncounterEscapeResponseCommitInput['settlement']
 export type StoredEscape = NonNullable<ReturnType<typeof findEncounterHolderEscape>>
 
 /**
- * The holder's stored fixed-DC escape that a frozen check context was derived from, or null once the
- * effect has ended. Rejects a context whose DC, escape source or chosen check the
- * stored effect does not carry: the room's plan is never trusted for the effect's own terms.
+ * The held creature's stored fixed-DC escape that a frozen check context was derived from, or null
+ * once the effect has ended. `holder` is the creature carrying the effect: the context's actor, or
+ * its `heldActorId` when a rescuer rolls. Rejects a context whose DC, escape source or chosen check
+ * the stored effect does not carry for that roller: the room's plan is never trusted for the
+ * effect's own terms.
  */
 export async function findStoredEscape(
   ctx: EncounterWriteContext,
@@ -33,7 +35,10 @@ export async function findStoredEscape(
     context.activeEffectId
   )
   if (!effect) return null
-  const escape = findEncounterHolderEscape(effect)
+  const escape = findEncounterHolderEscape(
+    effect,
+    context.heldActorId ? 'CREATURE_WITHIN_REACH' : 'TARGET'
+  )
   if (
     !escape ||
     escape.escapeSourceId !== context.escapeSourceId ||

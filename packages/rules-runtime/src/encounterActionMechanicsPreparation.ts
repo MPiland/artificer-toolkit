@@ -24,7 +24,17 @@ import {
 } from './encounterActiveGrants.js'
 import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
-import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
+import {
+  CastChoiceUnavailableError,
+  HandReleaseRequiredError,
+  StaleCharacterActionError
+} from './encounterErrors.js'
+import { encounterActorHeldItems } from './encounterHolderDefense.js'
+import {
+  characterActionDrawWeapon,
+  creatureActionDrawWeapon,
+  evaluateEncounterWeaponDraw
+} from './encounterWeaponDraw.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { pickedCastChoiceEffect } from './encounterCastChoice.js'
 import {
@@ -81,6 +91,7 @@ import type {
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
+  encounterStowedItemInstanceId,
   evaluateEncounterCharacterActionWieldConflict,
   type EncounterWieldConflictAcceptance
 } from './encounterWieldConflict.js'
@@ -440,6 +451,24 @@ export async function prepareEncounterActionMechanics<
         : 'This attack does not stow a shield.'
     )
   const acceptedWieldConflict = heldWeaponStow ?? shieldStow
+  // A directly resolved attack draws its bound weapon (D107) after any shield it stows, which
+  // frees the hand the weapon takes.
+  const stowedItemId = acceptedWieldConflict && encounterStowedItemInstanceId(acceptedWieldConflict)
+  const hands = encounterActorHeldItems(sourceFacts).filter(({ id }) => id !== stowedItemId)
+  const boundWeapon =
+    source.kind === 'CHARACTER_ACTION'
+      ? characterActionDrawWeapon(source.candidate.equipment)
+      : creatureActionDrawWeapon(
+          hands,
+          source.kind === 'CREATURE'
+            ? source.capability.equipmentBinding?.loadoutEntryId
+            : undefined
+        )
+  const weaponDraw =
+    acceptance.kind === 'PROMPTED'
+      ? evaluateEncounterWeaponDraw({ weapon: boundWeapon, hands, holds: acceptance.handHolds })
+      : ({ kind: 'NONE' } as const)
+  if (weaponDraw.kind === 'RELEASE_REQUIRED') throw new HandReleaseRequiredError()
   const facts = buildEncounterActorRuleFacts({ actors })
   const actorRules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
@@ -640,6 +669,7 @@ export async function prepareEncounterActionMechanics<
     plan,
     characterActionState,
     acceptedWieldConflict,
+    weaponDraw,
     actorRules,
     resourceUse,
     featureResource,

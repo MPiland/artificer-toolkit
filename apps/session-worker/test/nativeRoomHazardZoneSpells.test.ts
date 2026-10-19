@@ -16,6 +16,7 @@ import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-p
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { sleetStorm } from '@artificer-toolkit/source-data/srd/spells/sleet-storm.js'
+import { spikeGrowth } from '@artificer-toolkit/source-data/srd/spells/spike-growth.js'
 import { stinkingCloud } from '@artificer-toolkit/source-data/srd/spells/stinking-cloud.js'
 import { web } from '@artificer-toolkit/source-data/srd/spells/web.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -26,6 +27,9 @@ import {
 import type { CreatureAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { runInDurableObject } from 'cloudflare:test'
+
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -592,5 +596,72 @@ describe.each(HELD_ZONES)('the SRD $spell.label zone (SPELLS-4.T1e)', (subject) 
     })
     expect(await conditionsOf(zoneRoomed, WOLF_ID)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
     expect(await heldEffectsOf(zoneRoomed)).toHaveLength(1)
+  })
+})
+
+/**
+ * SPELLS-4.T1h (D156): the SRD Spike Growth, authored from core options, deals its 2d4 piercing to
+ * a creature for every 5 feet it moves within the area, each step its own damage, and doubles the
+ * cost of moving there. A creature standing at the center walks 15 feet east, all inside the
+ * 400-unit radius.
+ */
+describe('the SRD Spike Growth zone (SPELLS-4.T1h)', () => {
+  const subject = { spell: spikeGrowth }
+  const castLabel = 'Spike Growth (2nd level)'
+  const fifteenFeetEast = { x: ZONE_CENTER.x + 300, y: ZONE_CENTER.y }
+
+  async function wolfFeetMoved(room: Room) {
+    const movements = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage).documents('encounterTurnMovements')
+    )
+    return movements
+      .filter(({ actorId }) => actorId === WOLF_ID)
+      .reduce((total, { usedFeet }) => total + usedFeet, 0)
+  }
+
+  it('is placed at the chosen point as a doubled-cost zone acting per 5 feet moved', async () => {
+    const room = await zoneRoom(subject, castLabel, OUTSIDE_THE_ZONE)
+    const zone = await castAtTheCenter(room)
+
+    expect(zone.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: 'Spike Growth',
+      triggerModes: ['ENTER', 'CROSS'],
+      movementKinds: ['VOLUNTARY', 'FORCED'],
+      movementCostMultiplier: 2,
+      distanceStep: 5
+    })
+    expect(zone.placement).not.toHaveProperty('maxApplicationsPerTurn')
+  })
+
+  it('deals 2d4 for each 5 feet walked within the area and charges double the movement', async () => {
+    const room = await zoneRoom(subject, castLabel, ZONE_CENTER)
+    await castAtTheCenter(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [ZONE_CENTER, fifteenFeetEast])
+
+    expect(walk.terminalPosition).toEqual(fifteenFeetEast)
+    expect(walk.executions).toHaveLength(3)
+    for (const execution of walk.executions)
+      expect(execution).toMatchObject({
+        applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 2 })]
+      })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - 6)
+    expect(await wolfFeetMoved(room)).toBe(30)
+  })
+
+  it('stops a creature its step drops to 0 Hit Points where that step completes', async () => {
+    // Each of the first two steps rolls two 4s: 16 damage, past the Wolf's hit points.
+    const room = await zoneRoom(subject, castLabel, ZONE_CENTER, [3, 3, 3, 3])
+    await castAtTheCenter(room)
+    await room.advanceTurn()
+
+    const walk = await walkerMoves(room, [ZONE_CENTER, fifteenFeetEast])
+
+    expect(walk.terminalPosition).toEqual({ x: ZONE_CENTER.x + 200, y: ZONE_CENTER.y })
+    expect(walk.executions).toHaveLength(2)
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(0)
   })
 })
