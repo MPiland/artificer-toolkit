@@ -6,6 +6,8 @@ import type {
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import {
   grantsEndedByHolderState,
+  grantsEndedBySourceState,
+  sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -150,7 +152,21 @@ export async function persistEncounterConcentrationChildren(
     previousOwnerId = end.ownerActorId
     ends.push({ end, slot, holder })
   }
-  // The grants the holder's state ends must be stored as sent and be ones the committed state ends.
+  // The committed reason each actor that applied a grant to another can't act, read once.
+  const sourceReasons = new Map<string, Awaited<ReturnType<typeof readHolderEndState>>['reason']>()
+  async function readSourceReason(sourceActorId: string) {
+    if (!sourceReasons.has(sourceActorId)) {
+      const source = actors.find((actor) => actor.id === sourceActorId)
+      sourceReasons.set(
+        sourceActorId,
+        source
+          ? (await readHolderEndState(ctx, { state, actor: source, userId: args.userId })).reason
+          : null
+      )
+    }
+    return sourceReasons
+  }
+  // The grants the holder's or source's state ends must be stored as sent and be ones the committed state ends.
   for (const grant of args.endedGrants) {
     const stored = await store.findById(grant.owner, grant.id)
     const holder = actors.find(
@@ -165,7 +181,15 @@ export async function persistEncounterConcentrationChildren(
       !stored ||
       checksumCanonicalJson(stored) !== checksumCanonicalJson(grant) ||
       !holderState ||
-      !grantsEndedByHolderState([stored], holderState).length
+      (!grantsEndedByHolderState([stored], holderState).length &&
+        !grantsEndedBySourceState(
+          [stored],
+          await readSourceReason(
+            stored.definition.origin.kind === 'ENCOUNTER'
+              ? (stored.definition.origin.sourceActorId ?? '')
+              : ''
+          )
+        ).length)
     )
       throw new Error('Live Session grant end is unexpected.')
   }
@@ -182,6 +206,22 @@ export async function persistEncounterConcentrationChildren(
       })
       if (grantsEndedByHolderState(stateBound, holderState).some(({ id }) => !sent.has(id)))
         throw new Error('Live Session grant end is missing.')
+    }
+    // A damaged source that can no longer act ends the grants it applied, on whichever actor holds them.
+    for (const holder of actors) {
+      const sourceBound = sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
+      for (const grant of sourceBound) {
+        const sourceActorId =
+          grant.definition.origin.kind === 'ENCOUNTER'
+            ? grant.definition.origin.sourceActorId
+            : null
+        if (sourceActorId === null || !args.damagedActorIds.has(sourceActorId)) continue
+        if (
+          !sent.has(grant.id) &&
+          grantsEndedBySourceState([grant], await readSourceReason(sourceActorId)).length
+        )
+          throw new Error('Live Session grant end is missing.')
+      }
     }
   }
   for (const { end, slot, holder } of ends) {

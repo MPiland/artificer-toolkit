@@ -87,6 +87,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Knight Leadership limits (SPELLS-33.T4c):** a creature can benefit from only one Leadership die at a time (a second Knight's die stacks), and the die is not limited to creatures that can hear and understand the Knight. Leadership is a Bless-style grant on chosen willing creatures within 30 feet when used, ended by the Knight's incapacitation.
 - **Added damage dice on other attack paths (D156, SPELLS-4.T2d):** ON_HIT bonus dice (Divine Favor, Hex, Hunter's Mark, Enlarge) are consumed and added only on the single-target attack path. Early-return branches add no dice, and Reduce's d4 penalty floors damage at 0 rather than 1. Multi-target attack actions with an active rider are uncommon, and the GM adds the die by hand.
 - **Passage edge cases (SPELLS-33.T6k1):** a creature that ends its turn inside an object (Incorporeal Movement) takes no 1d10 force damage, so the GM applies it. The Tiny creature and two-sizes-apart crossings wait on Q26. The drag-route label doesn't show the passage multiplier.
 - **Legendary cast pick (SPELLS-33.T3a6):** a Legendary use of a damage-or-grapple action, such as the Vampire's legendary Unarmed Strike, always runs its first authored option, because the `LEGENDARY_OPTION` command carries no pick. The default is pinned in `creatureCastChoiceDiscovery.test.ts`. The GM can grapple by hand afterwards.

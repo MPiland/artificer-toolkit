@@ -31,6 +31,7 @@ import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
+import { knight } from '@artificer-toolkit/source-data/srd/creatures/knight.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { youngGoldDragon } from '@artificer-toolkit/source-data/srd/creatures/young-gold-dragon.js'
 import {
@@ -55,6 +56,7 @@ import {
   effectsEndedBy,
   expiredCarriedOverGrants,
   grantsEndedByHolderState,
+  grantsEndedBySourceState,
   planCarriedOverEffects,
   planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
@@ -62,6 +64,7 @@ import {
   planIdleTurnCheck,
   planReinstatedConcentrations,
   planResumedCarriedEffects,
+  sourceBoundGrants,
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
@@ -840,6 +843,44 @@ describe('a grant that ends on incapacitation', () => {
         conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
       })
     ).toEqual([])
+  })
+})
+
+describe('a grant that ends when its source is incapacitated (Knight Leadership)', () => {
+  const leadership = knight.features?.find(({ label }) => label.startsWith('Leadership'))
+    ?.effects?.[0]
+  if (!leadership) throw new Error('The Knight must author Leadership.')
+  const heldBy = (id: number, holderId: string) =>
+    grantRecord(
+      storedGrant({ lifecycle: {}, currentActorId: null, effect: leadership, holderId }),
+      { id, holderId }
+    )
+  const dice = [heldBy(0xc380, TARGET_ID), heldBy(0xc381, OTHER_ID)]
+  const idsOf = (effects: readonly ActiveRuleEffectRecord[]) => effects.map(({ id }) => id)
+
+  it('follows its source, not its holder', () => {
+    expect(idsOf(sourceBoundGrants(dice))).toEqual(idsOf(dice))
+    expect(stateBoundGrants(dice)).toEqual([])
+    expect(grantsEndedByHolderState(dice, { reason: 'DEFEATED', conditionIds: [] })).toEqual([])
+  })
+
+  it.each([['INCAPACITATED' as const], ['DEFEATED' as const]])(
+    'ends on every holder when its source is %s',
+    (reason) => {
+      expect(idsOf(grantsEndedBySourceState(dice, new Map([[SOURCE_ID, reason]])))).toEqual(
+        idsOf(dice)
+      )
+    }
+  )
+
+  it.each([[null], ['SPELLCASTING_LOCKED' as const]])('stays when its source is %s', (reason) => {
+    expect(grantsEndedBySourceState(dice, new Map([[SOURCE_ID, reason]]))).toEqual([])
+  })
+
+  it('stays when only another actor is incapacitated', () => {
+    expect(grantsEndedBySourceState(dice, new Map([[OTHER_ID, 'INCAPACITATED' as const]]))).toEqual(
+      []
+    )
   })
 })
 

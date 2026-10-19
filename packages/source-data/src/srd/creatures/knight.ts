@@ -1,4 +1,12 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import {
+  ATTACK_DOMAIN_CODE,
+  DURATION_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  ROLLED_DIE_SIGN,
+  VALUE_DOMAIN_CODE,
+  type CreatureAuthored
+} from '@artificer-toolkit/shared'
 import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
 import * as S from './shared.js'
 
@@ -213,10 +221,11 @@ export const knight: CreatureAuthored = {
         amount: 1
       },
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(178, 505),
+          order: 1,
           invocation: {
-            kind: 'ACTION',
+            kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
@@ -226,13 +235,99 @@ export const knight: CreatureAuthored = {
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
               dispositionKind: S.TARGET_DISPOSITION_KIND.WILLING
             },
             resourceUse: { chargeId: S.actionId(178, 605), cost: 1 }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KNIGHT_LEADERSHIP
-        })
+          paths: [
+            {
+              id: S.actionId(178, 607),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(178, 608),
+                resultKind: 'SINGLE' as const,
+                duration: {
+                  id: S.actionId(178, 609),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
+                lifecycle: {
+                  endOnTriggers: [{ event: 'INCAPACITATED' as const, of: 'SOURCE' as const }]
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(178, 615),
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(178, 610),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                          domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                          modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(178, 611),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                          domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                          modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                          order: 2
+                        },
+                        {
+                          id: S.actionId(178, 612),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                          domain: { attackDomain: ATTACK_DOMAIN_CODE.SPELL },
+                          modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                          order: 3
+                        },
+                        {
+                          id: S.actionId(178, 613),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                          domain: { attackDomain: ATTACK_DOMAIN_CODE.UNARMED },
+                          modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                          order: 4
+                        },
+                        {
+                          id: S.actionId(178, 614),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                          domain: {},
+                          modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                          order: 5
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 5
     },

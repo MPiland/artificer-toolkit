@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
+import { knight } from '@artificer-toolkit/source-data/srd/creatures/knight.js'
 import { lamia } from '@artificer-toolkit/source-data/srd/creatures/lamia.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -46,6 +47,37 @@ describe('a creature’s curse touch through the creature node map (SPELLS-33 T4
     const block = curseBlock(authored)
     if (!block.duration) throw new Error('The curse must author a duration.')
     block.duration.amount = 8
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+})
+
+describe('a creature’s ally die that ends with its source through the creature node map (SPELLS-33 T4c)', () => {
+  const leadershipBlock = (creature: CreatureAuthored) => {
+    const path = creature.features
+      ?.find(({ label }) => label.startsWith('Leadership'))
+      ?.effects?.[0]?.paths.find(({ pathCode }) => pathCode === 'ON_USE')
+    if (path?.selectionKind !== 'FIXED') throw new Error('Leadership must author a fixed path.')
+    return path.resultBlock
+  }
+
+  it('keeps the Knight’s Leadership exactly as authored, with no closed rule', async () => {
+    const feature = knight.features?.find(({ label }) => label.startsWith('Leadership'))
+    expect(JSON.stringify(feature)).not.toContain('CLOSED_RULE')
+    expect(leadershipBlock(knight).lifecycle?.endOnTriggers).toEqual([
+      { event: 'INCAPACITATED', of: 'SOURCE' }
+    ])
+    const result = await normalize(knight)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(knight.features)
+  })
+
+  it('keeps the die with another duration the same way', async () => {
+    const authored = structuredClone(knight)
+    const block = leadershipBlock(authored)
+    if (!block.duration) throw new Error('Leadership must author a duration.')
+    block.duration.amount = 10
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)

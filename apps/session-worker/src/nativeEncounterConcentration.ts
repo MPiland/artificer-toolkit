@@ -32,6 +32,8 @@ import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/enco
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import {
   grantsEndedByHolderState,
+  grantsEndedBySourceState,
+  sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
@@ -296,12 +298,23 @@ export async function planNativeLiveConcentration(input: {
     const heldTargets = [...projection.projectedTargets.values()].sort((left, right) =>
       left.actor.id.localeCompare(right.actor.id)
     )
+    // Why each changed actor can no longer act, for the grants it applied to others.
+    const sourceReasons = new Map<
+      string,
+      Awaited<ReturnType<typeof encounterConcentrationEndReason>>
+    >()
     for (const target of heldTargets) {
       const actor = projection.actors.find((value) => value.id === target.actor.id)
       if (!actor) throw new Error('Concentration actor is unavailable.')
       const maintained = await slotFor(actor.id)
       const stateBound = stateBoundGrants(target.activeEffects)
-      if (!maintained && !stateBound.length) continue
+      const sourcesGrants = [...projection.activeEffectsByActorId.values()].some((effects) =>
+        sourceBoundGrants(effects).some(
+          ({ definition }) =>
+            definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId === actor.id
+        )
+      )
+      if (!maintained && !stateBound.length && !sourcesGrants) continue
       const reason = await encounterConcentrationEndReason({
         actor,
         deadCharacterIds: deadCharacterIdsOfTargets([target]),
@@ -317,10 +330,16 @@ export async function planNativeLiveConcentration(input: {
           reason,
           cleanup: await loseConcentration(maintained)
         })
+      sourceReasons.set(actor.id, reason)
       endedGrants.push(
         ...grantsEndedByHolderState(stateBound, { reason, conditionIds: target.state.conditions })
       )
     }
+    // Grants on other actors end with their source, in the same commit as its incapacitation.
+    const endedIds = new Set(endedGrants.map(({ id }) => id))
+    for (const effects of projection.activeEffectsByActorId.values())
+      for (const grant of grantsEndedBySourceState(effects, sourceReasons))
+        if (!endedIds.has(grant.id)) endedGrants.push(grant)
   }
   if (!input.applications.length)
     return {

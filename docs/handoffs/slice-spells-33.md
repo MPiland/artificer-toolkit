@@ -459,3 +459,12 @@ Deferred edge cases for the orchestrator to move at merge: "Grapple on an opport
 ### T7b: Deferred edge case
 
 Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a target that saves against one mummy is still affected by other mummies. The SRD text makes the target immune to the glare of all mummies and mummy lords. Move to future-enhancements (Deferred edge cases) at merge.
+
+## T4c: Knight Leadership and Lamia Intoxicating Touch
+
+Class B (core options), branch `spells-33-t4c`, pushed to `ci/spells-33-t4c`. Both kinds deleted.
+
+- Lamia Intoxicating Touch is an ON_HIT apply-grant of Wisdom save and ability check disadvantage for 1 hour, authored with existing options only.
+- Knight Leadership is a Bless-style d4 grant (attack rolls and saving throws) on chosen willing creatures within 30 feet, 1 minute, one charge. It carries the new end trigger `{ event: 'INCAPACITATED', of: 'SOURCE' }` (orchestrator ruling), evaluated with the Concentration end fan-out, not the holder path; see `rules-runtime.md`.
+- Parity proof: `creatureCurseAuthoringParity.test.ts` normalizes both creatures through the creature node map unchanged.
+- Deferred edge cases for the orchestrator to move at merge (already in future-enhancements): "one Leadership die at a time" and "can hear and understand".
