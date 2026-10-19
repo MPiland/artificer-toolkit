@@ -12397,11 +12397,24 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 5,
                 "after": ["SPELLS-33.T6e"]
               },
               "text": "Balor Death Throes: runtime for the existing ON_HP_ZERO passive trigger. Auto-roll victims settle in the defeating commit; manual rollers get an area-save pending created in that same commit, queued behind Concentration as deferredCleaving is (2026-10-18 ruling, option A; 1 kind). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6e1b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T6e1"]
+              },
+              "text": "Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact)."
             },
             {
               "id": "SPELLS-33.T6e2",
