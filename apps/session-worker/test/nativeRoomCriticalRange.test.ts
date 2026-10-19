@@ -51,9 +51,7 @@ async function biteOnNatural19(effect: EffectAuthored, damageRolls: readonly num
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   const history = await readRoomHistory(room.room.base.stub)
   const damageCards = (await readRoomRollCards(room.room.base.stub)).flatMap(({ roll }) =>
-    roll.source.kind === 'DAMAGE'
-      ? [{ label: roll.source.label, expression: roll.normalizedExpression }]
-      : []
+    roll.source.kind === 'DAMAGE' ? [{ label: roll.source.label, total: roll.evidence.total }] : []
   )
   return { lost: before - readActorHitPoints(history, TARGET_ID), damageCards }
 }
@@ -63,7 +61,7 @@ describe('a lowered critical threshold on an Encounter attack (SPELLS-31.T5d, D1
     const bitten = await biteOnNatural19(criticalThresholdEffect(19), [1, 3])
     expect(bitten.lost).toBe(1 + 2 + 4)
     expect(bitten.damageCards).toEqual(
-      expect.arrayContaining([expect.objectContaining({ expression: '2d4' })])
+      expect.arrayContaining([{ label: 'Critical Focus: Radiant damage', total: 6 }])
     )
   })
 
@@ -71,7 +69,7 @@ describe('a lowered critical threshold on an Encounter attack (SPELLS-31.T5d, D1
     const bitten = await biteOnNatural19(DIVINE_FAVOR_EFFECT, [1])
     expect(bitten.lost).toBe(1 + 2)
     expect(bitten.damageCards).toEqual(
-      expect.arrayContaining([expect.objectContaining({ expression: '1d4' })])
+      expect.arrayContaining([{ label: 'Critical Focus: Radiant damage', total: 2 }])
     )
   })
 })
