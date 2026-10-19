@@ -115,10 +115,16 @@ import {
 } from './nativeEncounterAttackReaction.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import {
+  advanceNativeIncomingGate,
+  planNativeGatedAction,
+  type NativeIncomingGateAnswer
+} from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
-  buildEncounterCastReactionPendingSnapshot
+  buildEncounterCastReactionPendingSnapshot,
+  buildEncounterIncomingGatePendingSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
   withEncounterAppRoll,
@@ -280,6 +286,7 @@ export async function planNativeLiveEncounterAction(
     selection: EncounterReactionSelection
   } | null = null
   let castAnswer: NativeCastReactionAnswer | null = null
+  let gateAnswer: NativeIncomingGateAnswer | null = null
   let onHitAnswer: {
     offer: EncounterOnHitOfferDto
     selection: EncounterOnHitSelection
@@ -312,6 +319,18 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a reaction decision.')
       reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
+    } else if (snapshot.applicationContext.incomingGate) {
+      // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
+      if (
+        (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL') ||
+        snapshot.request.requestId !== resolution.requestId
+      )
+        throw new Error('The ward requires dice evidence.')
+      gateAnswer = {
+        offer: snapshot.applicationContext.incomingGate,
+        continuation: pendingSnapshotContinuation(snapshot),
+        evidence: resolution
+      }
     } else if (snapshot.applicationContext.castReaction?.check) {
       // A counter's check is its own d20: the answer settles it and never resumes the cast's graphs.
       if (
@@ -895,18 +914,21 @@ export async function planNativeLiveEncounterAction(
   // Concentration already ends its replaced dependents, and releases their conditions, with the
   // maintenance transition, so those are not ended a second time here.
   const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
+  const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
+  const castsSpell = preparedCastsSpell(prepared)
+  const againstEnemy = actsAgainstEnemy({
+    actorId: prepared.actor.id,
+    targetActorIds: [prepared.target.id],
+    dispositions
+  })
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
       (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
     ),
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: preparedCastsSpell(prepared),
-    againstEnemy: actsAgainstEnemy({
-      actorId: prepared.actor.id,
-      targetActorIds: [prepared.target.id],
-      dispositions
-    })
+    makesAttackRoll,
+    castsSpell,
+    againstEnemy
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
@@ -958,6 +980,44 @@ export async function planNativeLiveEncounterAction(
       throw new Error('Legendary Resistance evidence is stale.')
     return { candidate, currentFeatureResource, targetStateChecksum }
   }
+  // An attack, or a harmful spell cast at an enemy, aimed at a warded creature (Sanctuary) is lost unless
+  // its attacker passes the ward's save first. An area that merely catches the creature is not aimed at it.
+  const gateOwed =
+    prepared.actor.id !== prepared.target.id && (makesAttackRoll || (castsSpell && againstEnemy))
+  if (gateAnswer && !gateOwed) throw new Error('The incoming gate is no longer owed.')
+  const gate = gateOwed
+    ? await advanceNativeIncomingGate({
+        runtime: executionOptions.runtime,
+        random: executionOptions.random,
+        gameSystemId: state.gameSystemId,
+        occurrenceId,
+        holderActorId: prepared.target.id,
+        holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+        attacker: actorTarget,
+        casterSaveDc: async (casterActorId) => {
+          const caster = actors.find((actor) => actor.id === casterActorId)
+          if (!caster) return null
+          const casterTarget = movementTargets.get(caster.id) ?? (await loadTarget(caster))
+          return (
+            casterTarget.effectiveRulePolicyOutput?.derivedStats.spellcasting?.saveDc.effective ??
+            null
+          )
+        },
+        autoRoll: requireAutoRoll(prepared.actor.id),
+        passedEffectId:
+          snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+            ? snapshot.applicationContext.passedIncomingGate
+            : undefined,
+        answer: gateAnswer
+      })
+    : { kind: 'NONE' as const }
+  /** The ward whose save the attacker has passed, carried by every later pause of this action. */
+  const passedIncomingGate =
+    gate.kind === 'PASSED'
+      ? gate.effectId
+      : snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+        ? snapshot.applicationContext.passedIncomingGate
+        : undefined
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
   const preflight = () => ({
@@ -981,9 +1041,30 @@ export async function planNativeLiveEncounterAction(
     currentnessChecksum,
     activeEffectsByActorId,
     consumedGrants,
+    passedIncomingGate,
     dependencies,
     revisions
   })
+  if (gate.kind === 'PENDING') return { ...preflight(), ...gate, kind: 'GATE_PENDING' as const }
+  if (gate.kind === 'FAILED')
+    return {
+      ...preflight(),
+      kind: 'GATED' as const,
+      gated: planNativeGatedAction({
+        state,
+        actors,
+        prepared,
+        sourceEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+        actionEconomy,
+        ruleOverrides: ruleWarnings.overrides,
+        occurrenceId,
+        occurrenceVersion,
+        commandId: command.commandId,
+        occurredAt,
+        userId: initial.expectedUserId,
+        failed: gate
+      })
+    }
   const castPause = createNativeCastPause({
     runtime: executionOptions.runtime,
     random: executionOptions.random,
@@ -1020,7 +1101,8 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     userId: initial.expectedUserId,
     answer: castAnswer,
-    resumed: snapshot !== null,
+    // A gate pause held the action before any counter was offered, so its answer replays them all.
+    resumed: snapshot !== null && !gateAnswer,
     // The counters that failed against this cast so far; its terminal commit spends them (D127).
     failedCounters:
       snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
@@ -1616,7 +1698,7 @@ export function buildNativeLiveEncounterActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<
     Awaited<ReturnType<typeof planNativeLiveEncounterAction>>,
-    { kind: 'PENDING' | 'CAST_PENDING' }
+    { kind: 'PENDING' | 'CAST_PENDING' | 'GATE_PENDING' }
   >
 ) {
   const pinned = {
@@ -1635,21 +1717,30 @@ export function buildNativeLiveEncounterActionPendingInput(
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
     snapshot:
-      plan.kind === 'CAST_PENDING'
-        ? buildEncounterCastReactionPendingSnapshot({
+      plan.kind === 'GATE_PENDING'
+        ? buildEncounterIncomingGatePendingSnapshot({
             ...pinned,
             continuation: plan.continuation,
-            castReaction: plan.castReaction,
-            rollerActorId: plan.rollerActorId,
-            failedCounters: plan.failedCounters
+            incomingGate: plan.incomingGate,
+            rollerActorId: plan.rollerActorId
           })
-        : buildEncounterActionPendingSnapshot({
-            ...pinned,
-            execution: plan.execution,
-            sourceActorId: plan.prepared.actor.id,
-            targetActorId: plan.prepared.target.id,
-            failedCounters: plan.failedCounters
-          })
+        : plan.kind === 'CAST_PENDING'
+          ? buildEncounterCastReactionPendingSnapshot({
+              ...pinned,
+              continuation: plan.continuation,
+              castReaction: plan.castReaction,
+              rollerActorId: plan.rollerActorId,
+              failedCounters: plan.failedCounters,
+              passedIncomingGate: plan.passedIncomingGate
+            })
+          : buildEncounterActionPendingSnapshot({
+              ...pinned,
+              execution: plan.execution,
+              sourceActorId: plan.prepared.actor.id,
+              targetActorId: plan.prepared.target.id,
+              failedCounters: plan.failedCounters,
+              passedIncomingGate: plan.passedIncomingGate
+            })
   })
 }
 

@@ -22,6 +22,7 @@ import {
   VALUE_DOMAIN_OPTIONS
 } from '#core'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
+import { SAVING_THROW_NODE_MAP } from '../../shared/maps/savingThrow.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
@@ -887,6 +888,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           }
         )
       )
+      .set(
+        'savingThrow',
+        groupObject(['savingThrow'], 'Attacker Saving Throw', () => SAVING_THROW_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true,
+          showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
+        })
+      )
   }
 )
 
@@ -1017,7 +1026,10 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
             and([
               local.field(['modifierKind']).eq('ENABLE'),
-              local.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+              or([
+                local.field(['valueDomainCode']).eq('ATTACK_DECOYS'),
+                local.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
+              ])
             ])
           ])
         })

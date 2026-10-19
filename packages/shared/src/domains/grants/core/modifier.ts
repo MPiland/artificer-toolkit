@@ -1,4 +1,4 @@
-import type { ChargeLimitPayload } from '#authored'
+import type { ChargeLimitPayload, SavingThrowAuthored } from '#authored'
 import type {
   AbilityCode,
   AbilityModifierReference,
@@ -261,6 +261,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   ACTION_BONUS_ACTION_EXCLUSIVITY: [MODIFIER_KIND.ENABLE],
 
   ATTACK_DECOYS: [MODIFIER_KIND.ENABLE],
+
+  INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
@@ -566,12 +568,20 @@ export type ModifierAttackDecoysAuthored = {
   thresholds: { id: string; remaining: number; minimumRoll: number }[]
 }
 
+/**
+ * While held, a creature that targets the holder with a single-target attack or harmful spell must
+ * first make this save against the holder's source; on a failure the attack or spell is lost.
+ */
+export type ModifierIncomingAttackGateAuthored = { savingThrow: SavingThrowAuthored }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
   K extends 'ENABLE'
     ? V extends 'ATTACK_DECOYS'
       ? ModifierAttackDecoysAuthored
-      : undefined
+      : V extends 'INCOMING_ATTACK_GATE'
+        ? ModifierIncomingAttackGateAuthored
+        : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'

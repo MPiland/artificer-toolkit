@@ -2367,6 +2367,13 @@ function sourceImmunityPlan(
   }
 }
 
+/** The end triggers a timed modifier grant carries: its source's incapacitation, or its holder attacking or casting at an enemy (Sanctuary). */
+const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
+  'INCAPACITATED',
+  'ATTACK_ROLL',
+  'SPELL_CAST'
+])
+
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
 function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
@@ -2677,7 +2684,7 @@ function modifierGrantEntryPlan(input: {
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
-    endOnTriggers.some(({ event }) => event !== 'INCAPACITATED') ||
+    endOnTriggers.some(({ event }) => !GRANT_END_TRIGGER_EVENTS.has(event)) ||
     !UUID.test(entry.entryId)
   )
     return null
