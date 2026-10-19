@@ -871,7 +871,7 @@
             },
             {
               "id": "PLATFORM-13.T13",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 3,
@@ -881,7 +881,7 @@
                 "after": []
               },
               "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test. Also the Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" flake: its console.error spy catches a stray room alarm log (seen on ci/spells-4-t2t twice); fix the leak at its source, not the spy.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Merged m147 (1a07eb060)."
             }
           ]
         },
@@ -8370,7 +8370,7 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2t",
               "wsjf": {
@@ -8381,7 +8381,7 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B; T2a2 ruling): Effect-owned temporary hit points: temporary hit points an effect gave are lost when it ends (Heroism regression test red first), and one CHOICE option can hold a grant beside temporary hit points. Converts ENHANCE_ABILITY (six options, Bear's 2d6 temporary hit points), and REGENERATE (an immediate heal beside a recurring one; fix its SRD data: no Concentration, a 1-minute cast, a 1-hour duration), with parity proofs; each kind deleted. T2t ruling: temporary hit points record their source effect; the compiler accepts SEQUENTIAL entries with one effect-bearing entry; Heroism becomes castable.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m146 (fac2cf216)."
             },
             {
               "status": "TODO",
@@ -11635,7 +11635,7 @@
             },
             {
               "id": "SPELLS-33.T3a4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11644,7 +11644,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Generic direct-save damage then hit point maximum reduction (failed and halved successful save), beside the follow-up-save Life Drain shape; convert Succubus/Incubus Draining Kiss (1 kind; Harm reuses it). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "note": "Merged m145 (d50a136d5)."
             },
             {
               "id": "SPELLS-33.T3a5",
