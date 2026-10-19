@@ -12353,7 +12353,7 @@
             },
             {
               "id": "SPELLS-33.T6k2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12363,11 +12363,11 @@
                 "after": ["SPELLS-33.T6k2"]
               },
               "text": "Whirlwind collision part 2 (D159): own-space area for a Self area action with no shape, the authored `collision` block (schema, node map, compiler port, spatial echo) and the mover's own collision damage of floor(feet/10) dice at full distance or on an object or creature stop; the struck-creature effect fails closed or stays on the old kind until T6k2b2 (2026-10-19 split; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m177 (104005deb)."
             },
             {
               "id": "SPELLS-33.T6k2b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12376,7 +12376,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6k2b"]
               },
-              "text": "new: Whirlwind collision part 3 (D159): the struck creature's Dex save as a second compiled plan and sealed pending step (rolled ray plus struck save; player rolls their own) with damage and PRONE, answer routing through the snapshot schema, actionAreaPending and areaCommitPersistence, replay/revert fences and snapshot determinism; the two-mover landing-order test with actor-id tie-break; deletes CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with the authoring-parity proof (2026-10-19 split; workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 3 (D159): the struck creature's Dex save as a second compiled plan and sealed pending step (rolled ray plus struck save; player rolls their own) with damage and PRONE, answer routing through the snapshot schema, actionAreaPending and areaCommitPersistence, replay/revert fences and snapshot determinism; the two-mover landing-order test with actor-id tie-break; deletes CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with the authoring-parity proof (2026-10-19 split; workbook slice-spells-33.md). Also: the forced-movement schema refuses unknown keys inside collision (strict collision schema on the intersection path), with a schema test that fails before the fix.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k3",
