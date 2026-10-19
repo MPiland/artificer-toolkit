@@ -21,6 +21,7 @@ import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
@@ -65,9 +66,13 @@ import {
   stateBoundGrants
 } from '../encounterGrantLifetimes.js'
 import { endedMaintenanceConditions } from '../encounterActionMaintenance.js'
+import { targetEndedEffects } from '../encounterEndedEffectRelease.js'
 import { isTurnEffectEligible } from '../encounterTurnEffectState.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID } from '../systems/dnd5e/identity.js'
+import {
+  DND5E_ABILITY_DEFINITION_ID_BY_CODE,
+  DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
+} from '../systems/dnd5e/identity.js'
 import {
   ENCOUNTER_ID,
   TIMESTAMP,
@@ -698,20 +703,32 @@ describe('a Rage made on the Barbarian’s own turn', () => {
     expect(
       grantsEndedByHolderState([record], {
         reason: null,
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       }).map(({ id }) => id)
     ).toEqual([record.id])
     expect(
-      grantsEndedByHolderState([record], { reason: 'INCAPACITATED', conditionIds: [stunned] })
+      grantsEndedByHolderState([record], {
+        reason: 'INCAPACITATED',
+        conditionIds: [stunned],
+        heldItemInstanceIds: []
+      })
     ).toEqual([])
-    expect(grantsEndedByHolderState([record], { reason: 'DEFEATED', conditionIds: [] })).toEqual([])
+    expect(
+      grantsEndedByHolderState([record], {
+        reason: 'DEFEATED',
+        conditionIds: [],
+        heldItemInstanceIds: []
+      })
+    ).toEqual([])
   })
 
   it('reads no conditions from a defeated holder, as persistence does', () => {
     expect(
       grantsEndedByHolderState([record], {
         reason: 'DEFEATED',
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       })
     ).toEqual([])
   })
@@ -828,7 +845,11 @@ describe('a grant that ends on incapacitation', () => {
     'ends when its holder is %s, whatever conditions it has',
     (reason) => {
       expect(
-        grantsEndedByHolderState([incapacitation], { reason, conditionIds: [] }).map(({ id }) => id)
+        grantsEndedByHolderState([incapacitation], {
+          reason,
+          conditionIds: [],
+          heldItemInstanceIds: []
+        }).map(({ id }) => id)
       ).toEqual([incapacitation.id])
     }
   )
@@ -837,9 +858,57 @@ describe('a grant that ends on incapacitation', () => {
     expect(
       grantsEndedByHolderState([incapacitation], {
         reason,
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       })
     ).toEqual([])
+  })
+})
+
+describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', () => {
+  const ITEM_ID = testUuid(0xc3a1)
+  const bound = (endOnEvents: 'ON_CHOSEN_ITEM_RELEASED'[]) => {
+    const record = grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
+      id: 0xc3a2,
+      holderId: TARGET_ID
+    })
+    if (record.definition.schemaVersion !== 2) throw new Error('Expected a v2 grant definition.')
+    return {
+      ...record,
+      definition: {
+        ...record.definition,
+        stateContributions: record.definition.stateContributions.map((contribution) =>
+          contribution.kind === 'MODIFIER_GRANT'
+            ? {
+                ...contribution,
+                boundItem: {
+                  kind: 'EQUIPMENT_INSTANCE' as const,
+                  equipmentId: testUuid(0xc3a3),
+                  itemInstanceId: ITEM_ID
+                }
+              }
+            : contribution
+        )
+      }
+    }
+  }
+  const ended = (record: ActiveRuleEffectRecord, heldItemInstanceIds: string[]) =>
+    grantsEndedByHolderState([record], { reason: null, conditionIds: [], heldItemInstanceIds }).map(
+      ({ id }) => id
+    )
+
+  it('ends when no hand of its holder holds the bound item', () => {
+    const record = bound(['ON_CHOSEN_ITEM_RELEASED'])
+    expect(ended(record, [])).toEqual([record.id])
+    expect(ended(record, [testUuid(0xc3a4)])).toEqual([record.id])
+  })
+
+  it('stays while a hand holds the bound item', () => {
+    expect(ended(bound(['ON_CHOSEN_ITEM_RELEASED']), [ITEM_ID])).toEqual([])
+  })
+
+  it('stays when dropped if it does not end on release (Magic Weapon)', () => {
+    expect(ended(bound([]), [])).toEqual([])
   })
 })
 
@@ -930,6 +999,148 @@ describe('effectsEndedBy for an ability check (D156)', () => {
     expect(
       idsOf(effectsEndedBy([wholly], { event: 'ON_ABILITY_CHECK', abilityCode: 'DEXTERITY' }))
     ).toEqual([wholly.id])
+  })
+})
+
+describe('effectsEndedBy for a saving throw (D156)', () => {
+  /** The real Resistance effect, its die limited to one ability when `ability` is given. */
+  function dieEffect(ability?: 'STRENGTH') {
+    const effect = structuredClone(onlyEffect(resistance.effects))
+    for (const path of effect.paths)
+      if (path.selectionKind === 'FIXED')
+        for (const outcome of path.resultBlock.outcomes)
+          if (outcome.effectKind === 'APPLY_GRANT' && ability)
+            for (const modifier of outcome.grants.modifiers ?? []) modifier.domain = { ability }
+    return effect
+  }
+  const heldDie = (id: number, ability?: 'STRENGTH') =>
+    grantRecord(storedGrant({ lifecycle: {}, currentActorId: null, effect: dieEffect(ability) }), {
+      id,
+      holderId: TARGET_ID
+    })
+  const idsOf = (effects: readonly ActiveRuleEffectRecord[]) => effects.map(({ id }) => id)
+
+  it('spends a die on any saving throw when it names no ability', () => {
+    const die = heldDie(0xc370)
+    for (const abilityCode of ['STRENGTH', 'DEXTERITY'])
+      expect(idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode }))).toEqual([
+        die.id
+      ])
+  })
+
+  it('does not spend a Strength die on a Dexterity save, but does on a Strength save', () => {
+    const die = heldDie(0xc371, 'STRENGTH')
+    expect(
+      idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: 'DEXTERITY' }))
+    ).toEqual([])
+    expect(
+      idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: 'STRENGTH' }))
+    ).toEqual([die.id])
+  })
+
+  it('spends an unfiltered die on an ability-less save such as a death save', () => {
+    const die = heldDie(0xc372)
+    expect(idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: null }))).toEqual([
+      die.id
+    ])
+  })
+
+  it('does not spend an ability-limited die on an ability-less save', () => {
+    const die = heldDie(0xc373, 'STRENGTH')
+    expect(idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: null }))).toEqual(
+      []
+    )
+  })
+
+  it('does not spend a held die on a bare saving-throw event', () => {
+    expect(idsOf(effectsEndedBy([heldDie(0xc374)], 'ON_SAVING_THROW'))).toEqual([])
+  })
+
+  it('keeps a saving-throw die through an ability check, and a check die through a save', () => {
+    const saveDie = heldDie(0xc375)
+    const checkDie = grantRecord(
+      storedGrant({ lifecycle: {}, currentActorId: null, effect: onlyEffect(guidance.effects) }),
+      { id: 0xc376, holderId: TARGET_ID }
+    )
+    expect(
+      idsOf(effectsEndedBy([saveDie], { event: 'ON_ABILITY_CHECK', abilityCode: 'STRENGTH' }))
+    ).toEqual([])
+    expect(
+      idsOf(effectsEndedBy([checkDie], { event: 'ON_SAVING_THROW', abilityCode: 'STRENGTH' }))
+    ).toEqual([])
+  })
+})
+
+describe('what a saving throw ends for its holder (SPELLS-4.T2c2b)', () => {
+  const dieFor = (id: number, ability?: 'STRENGTH') => {
+    const effect = structuredClone(onlyEffect(resistance.effects))
+    for (const path of effect.paths)
+      if (path.selectionKind === 'FIXED')
+        for (const outcome of path.resultBlock.outcomes)
+          if (outcome.effectKind === 'APPLY_GRANT' && ability)
+            for (const modifier of outcome.grants.modifiers ?? []) modifier.domain = { ability }
+    return grantRecord(storedGrant({ lifecycle: {}, currentActorId: null, effect }), {
+      id,
+      holderId: TARGET_ID
+    })
+  }
+  const saveEvidence = (ability: string | undefined, resultPath = 'ON_SAVE_FAIL') => ({
+    requestId: 'save-request',
+    rollMode: 'NORMAL' as const,
+    derivedRollMode: 'NORMAL' as const,
+    rawFaces: [9],
+    selectedNatural: 9,
+    contributors: [],
+    contributorChecksum: 'checksum',
+    modifier: 1,
+    total: 10,
+    defenseOrDc: 14,
+    resultPath,
+    ...(ability ? { savingThrowAbilityDefinitionId: ability } : {})
+  })
+  const ended = (
+    held: ActiveRuleEffectRecord[],
+    testEvidence: Parameters<typeof targetEndedEffects>[0]['testEvidence']
+  ) =>
+    targetEndedEffects({
+      holderActorId: TARGET_ID,
+      held,
+      attacked: false,
+      testEvidence,
+      turnActorId: null,
+      applications: [],
+      damagerActorId: null,
+      dispositions: new Map()
+    }).endedEffects.map(({ id }) => id)
+  const STRENGTH = DND5E_ABILITY_DEFINITION_ID_BY_CODE.STRENGTH!
+  const DEXTERITY = DND5E_ABILITY_DEFINITION_ID_BY_CODE.DEXTERITY!
+
+  it('spends the die of a Resistance effect on a save of any ability', () => {
+    const die = dieFor(0xc380)
+    expect(ended([die], [saveEvidence(DEXTERITY)])).toEqual([die.id])
+  })
+
+  it('spends a die on a save evidenced as a success too', () => {
+    const die = dieFor(0xc381)
+    expect(ended([die], [saveEvidence(STRENGTH, 'ON_SAVE_SUCCESS')])).toEqual([die.id])
+  })
+
+  it('keeps a Strength die through a Dexterity save and spends it on a Strength save', () => {
+    const die = dieFor(0xc382, 'STRENGTH')
+    expect(ended([die], [saveEvidence(DEXTERITY)])).toEqual([])
+    expect(ended([die], [saveEvidence(STRENGTH)])).toEqual([die.id])
+  })
+
+  it('spends nothing when no save was rolled', () => {
+    const die = dieFor(0xc383)
+    expect(ended([die], [])).toEqual([])
+    expect(ended([die], [null, undefined])).toEqual([])
+    expect(ended([die], [saveEvidence(undefined)])).toEqual([])
+  })
+
+  it('spends the die once when the action and its nested outcome both rolled saves', () => {
+    const die = dieFor(0xc384)
+    expect(ended([die], [saveEvidence(STRENGTH), saveEvidence(DEXTERITY)])).toEqual([die.id])
   })
 })
 

@@ -1,3 +1,4 @@
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
@@ -84,7 +85,8 @@ const DEX_SAVE_POLICY = {
   contributors: [],
   contributorChecksum: checksumRuleDocument([]),
   modifier: 2,
-  dc: 30
+  dc: 30,
+  savingThrowAbilityDefinitionId: DND5E_ABILITY_DEFINITION_ID_BY_CODE.DEXTERITY
 }
 
 /** The turn-effect selection identity, in createdOrdinal order. */

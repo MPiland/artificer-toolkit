@@ -11,7 +11,8 @@ export const trident: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
     S.EQUIPMENT_PROPERTY_CODE.THROWN,
-    S.EQUIPMENT_PROPERTY_CODE.VERSATILE
+    S.EQUIPMENT_PROPERTY_CODE.VERSATILE,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.thrownWeaponAbilityModifiers(S.equipId(29)),
   effects: S.thrownVersatileWeaponEffects(S.equipId(29), 'PIERCING', '1d6', '1d8', 20, 60),

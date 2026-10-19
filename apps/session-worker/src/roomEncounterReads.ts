@@ -1,5 +1,6 @@
 import {
   readEncounterActionChoices,
+  readEncounterActionItemChoices,
   readEncounterHeldRelationships,
   readEncounterOptionalActionChoices
 } from '@artificer-toolkit/encounter-persistence/actionChoiceReads'
@@ -71,6 +72,15 @@ async function readEncounter(
       return {
         kind: read.kind,
         result: await readEncounterOptionalActionChoices(tx, {
+          run,
+          ...authority,
+          request: { ...read.input, expectedVersion: run.version }
+        })
+      }
+    case 'ACTION_ITEM_CHOICES':
+      return {
+        kind: read.kind,
+        result: await readEncounterActionItemChoices(tx, {
           run,
           ...authority,
           request: { ...read.input, expectedVersion: run.version }

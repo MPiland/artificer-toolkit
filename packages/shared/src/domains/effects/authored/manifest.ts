@@ -56,6 +56,16 @@ export const MANIFEST_BLOCKING_RULE_OPTIONS = [
   { code: MANIFEST_BLOCKING_RULE.BLOCKS_SIGHT, label: 'Blocks Sight' }
 ] as const
 
+export const MANIFEST_REQUIRED_SIGHT = {
+  OCCUPANT_SEES_SOURCE: 'OCCUPANT_SEES_SOURCE',
+  SOURCE_SEES_OCCUPANT: 'SOURCE_SEES_OCCUPANT'
+} as const
+
+export const MANIFEST_REQUIRED_SIGHT_OPTIONS = [
+  { code: MANIFEST_REQUIRED_SIGHT.OCCUPANT_SEES_SOURCE, label: 'Occupant Sees the Source' },
+  { code: MANIFEST_REQUIRED_SIGHT.SOURCE_SEES_OCCUPANT, label: 'Source Sees the Occupant' }
+] as const
+
 export const MANIFEST_SUPPRESSION_IMMUNITY = {
   ANTIMAGIC_FIELD: 'ANTIMAGIC_FIELD'
 } as const
@@ -167,6 +177,12 @@ export type ManifestComponentAuthored = {
   choosesUnaffected?: boolean
   movementCostMultiplier?: number
   requiresFullyWithin?: boolean
+  /**
+   * An occupant is put through the component's save only with this sight between it and the zone's
+   * source; one without it succeeds on the save unrolled (Unnerving Mask: the creature must see the
+   * devil, and the devil the creature).
+   */
+  requiredSight?: Array<keyof typeof MANIFEST_REQUIRED_SIGHT>
   /** A target immune to this damage type succeeds on the component's save unrolled. */
   automaticSaveSuccessImmunityDamageTypeId?: string
   occupantSaveBonus?: ManifestOccupantSaveBonusAuthored

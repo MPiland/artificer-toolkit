@@ -4,10 +4,12 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
   grantsEndedByHolderState,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   concentrationCommandId,
@@ -37,6 +39,9 @@ type ConcentrationDamageApplication = ReturnType<
   typeof nativeConcentrationDamageApplications
 >[number]
 type BoundConcentrationApplication = ConcentrationDamageApplication & { maintainedStateId: string }
+type ConcentrationCheckOutput = ReturnType<
+  typeof concentrationCheckApplicationOutputDtoSchema.parse
+>
 
 /**
  * Binds a parent's damage to the concentration each target currently maintains. The effect store
@@ -93,6 +98,8 @@ export async function persistEncounterConcentrationChildren(
      * had to end. A continuation settles the checks of damage already committed, so it names none.
      */
     damagedActorIds: ReadonlySet<string>
+    /** The check a response commit answered, whose spent saving-throw dice (D156) it also ends. */
+    answeredCheck?: ConcentrationCheckOutput
   } & Pick<
     LiveSessionEncounterActionCommitInput,
     'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
@@ -150,6 +157,26 @@ export async function persistEncounterConcentrationChildren(
     previousOwnerId = end.ownerActorId
     ends.push({ end, slot, holder })
   }
+  // The saving-throw dice (D156) the settled checks spend from their holders, by the same rule an
+  // action's saves use.
+  const spentDice = new Set<string>()
+  const checks = [
+    ...args.concentration.flatMap(({ result }) =>
+      result.status === 'COMPLETE' && result.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+        ? [result.applicationOutputs]
+        : []
+    ),
+    ...(args.answeredCheck ? [args.answeredCheck] : [])
+  ]
+  for (const check of checks) {
+    const holder = actors.find((actor) => actor.id === check.application.targetActorId)
+    if (!holder) continue
+    for (const die of savingThrowSpentEffects(
+      await store.list(turnEffectOwner(holder, state.id)),
+      dnd5eAbilityCode(check.savingThrowAbilityDefinitionId)
+    ))
+      spentDice.add(die.id)
+  }
   // The grants the holder's state ends must be stored as sent and be ones the committed state ends.
   for (const grant of args.endedGrants) {
     const stored = await store.findById(grant.owner, grant.id)
@@ -165,13 +192,16 @@ export async function persistEncounterConcentrationChildren(
       !stored ||
       checksumCanonicalJson(stored) !== checksumCanonicalJson(grant) ||
       !holderState ||
-      !grantsEndedByHolderState([stored], holderState).length
+      (!spentDice.has(grant.id) && !grantsEndedByHolderState([stored], holderState).length)
     )
       throw new Error('Live Session grant end is unexpected.')
   }
-  // And the plan must omit none: every grant a damaged holder's committed state ends is sent.
+  // And the plan must omit none: every grant a damaged holder's committed state ends is sent,
+  // and every die a settled check spent.
   if (state.automationMode !== 'MANUAL') {
     const sent = new Set(args.endedGrants.map(({ id }) => id))
+    if ([...spentDice].some((id) => !sent.has(id)))
+      throw new Error('Live Session grant end is missing.')
     for (const holder of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
       const stateBound = stateBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
       if (!stateBound.length) continue

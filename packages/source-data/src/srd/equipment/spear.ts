@@ -11,7 +11,8 @@ export const spear: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
     S.EQUIPMENT_PROPERTY_CODE.THROWN,
-    S.EQUIPMENT_PROPERTY_CODE.VERSATILE
+    S.EQUIPMENT_PROPERTY_CODE.VERSATILE,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.thrownWeaponAbilityModifiers(S.equipId(10)),
   effects: S.thrownVersatileWeaponEffects(S.equipId(10), 'PIERCING', '1d6', '1d8', 20, 60),

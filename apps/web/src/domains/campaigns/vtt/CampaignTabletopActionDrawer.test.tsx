@@ -176,6 +176,7 @@ function drawerElement(
       onPickAreaOrigin={onPickAreaOrigin}
       onClose={vi.fn()}
       onLoadOptionalChoices={vi.fn()}
+      onLoadItemChoices={vi.fn()}
       onOpen={vi.fn()}
       onResolve={async (command) => {
         await onResolve(command)

@@ -481,7 +481,7 @@ export async function prepareEncounterActionMechanics<
         ? dnd5eCharacterAttackTraits({
             candidate: source.candidate,
             attackKind,
-            itemMechanics: source.effectivePolicyOutput.itemMechanics
+            policy: source.effectivePolicyOutput
           })
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
   // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it

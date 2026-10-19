@@ -42,18 +42,7 @@ export const cultist: CreatureAuthored = {
       label: 'Dark Devotion',
       description:
         'Dark Devotion. The cultist has advantage on saving throws against being charmed or frightened.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(75, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(75, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DARK_DEVOTION
-        })
-      ],
+      grants: S.advantageGrants(75, 1, { savesAgainst: ['CHARMED', 'FRIGHTENED'] }),
       order: 1
     },
     {

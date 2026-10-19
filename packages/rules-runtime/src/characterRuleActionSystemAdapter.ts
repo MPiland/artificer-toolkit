@@ -34,6 +34,7 @@ import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/s
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type {
+  CompiledActionActiveEffectPlan,
   CompiledActionCompilerSource,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -118,6 +119,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
     uses?: number
   }
+  /**
+   * The item the action is used on, chosen at use from what its target holds or wears; null for
+   * none. See the compiled plan schema for each field.
+   */
+  chosenItem?: CompiledActionActiveEffectPlan['chosenItem']
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it
    * (Hide). The settled check total and the observers it beats are added when the effect is created.
@@ -664,6 +670,8 @@ export interface CharacterRuleActionSystemAdapter {
       defenseOrDc: number
       /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
       addedDice: readonly D20AddedDieDto[]
+      /** The ability a saving throw is made with; absent on an attack roll. */
+      savingThrowAbilityDefinitionId?: string
     }
   }
   /**

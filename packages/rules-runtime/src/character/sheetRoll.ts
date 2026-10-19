@@ -3,14 +3,15 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ExecuteRollInputDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
+import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
 import { effectsEndedBy } from '../encounterGrantLifetimes.js'
-import { activeAbilityCheckDice } from './activeEffectGrantTotals.js'
+import { activeAbilityCheckDice, activeSavingThrowDice } from './activeEffectGrantTotals.js'
 
 type ResolvedRoll = {
   expression: string
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   source: RollSourceDto
-  /** The ability an ability or skill check is made with: the dice its carried effects add key on it. */
+  /** The ability a check or saving throw is made with: the dice its carried effects add key on it. */
   abilityCode?: string
 }
 
@@ -79,6 +80,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
     ...sheet.overview.savingThrows.map((save) => ({
       expression: withModifier('1d20', save.total),
       rollMode: save.rollMode,
+      abilityCode: save.ability,
       source: { kind: 'SAVING_THROW' as const, label: `${save.label} saving throw` }
     })),
     ...sheet.overview.skills.map((skill) => ({
@@ -171,20 +173,23 @@ export function resolveCharacterSheetRoll(
 }
 
 /**
- * The dice the Character's carried effects add to a resolved ability or skill check (Guidance), and
- * the effects the check spends: those whose die applied to its ability (D156). Any other roll adds
- * none.
+ * The dice the Character's carried effects add to a resolved ability check, skill check or saving
+ * throw (Guidance, Resistance), and the effects the test spends: those whose die applied to its
+ * ability (D156). Any other roll adds none.
  */
-export function carriedCheckDice(
+export function carriedTestDice(
   resolved: ResolvedRoll,
   activeEffects: readonly ActiveRuleEffectRecord[]
 ) {
-  if (resolved.abilityCode === undefined) return { addedDice: [], spent: [] }
+  const { abilityCode } = resolved
+  if (abilityCode === undefined) return { addedDice: [], spent: [] }
+  if (resolved.source.kind === 'SAVING_THROW')
+    return {
+      addedDice: activeSavingThrowDice(activeEffects, abilityCode),
+      spent: savingThrowSpentEffects(activeEffects, abilityCode)
+    }
   return {
-    addedDice: activeAbilityCheckDice(activeEffects, resolved.abilityCode),
-    spent: effectsEndedBy(activeEffects, {
-      event: 'ON_ABILITY_CHECK',
-      abilityCode: resolved.abilityCode
-    })
+    addedDice: activeAbilityCheckDice(activeEffects, abilityCode),
+    spent: effectsEndedBy(activeEffects, { event: 'ON_ABILITY_CHECK', abilityCode })
   }
 }

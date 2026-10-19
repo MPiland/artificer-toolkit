@@ -3,7 +3,7 @@ import {
   CREATURE_MOUNT_TYPE_CODE,
   CREATURE_COMPANION_BOND_TYPE_CODE,
   CREATURE_INITIATIVE_MODE_CODE,
-  DAMAGE_DEFENSE_BYPASS_CODE,
+  DAMAGE_DEFENSE_BYPASS_OPTIONS,
   MEASUREMENT_UNIT_OPTIONS,
   SIZE_OPTIONS,
   type DiceExpression
@@ -267,11 +267,7 @@ export const CREATURE_QUALIFIED_DAMAGE_DEFENSE_NODE_MAP = qualifiedDamageDefense
         'bypassedBy',
         nodes.selectMulti(['bypassedBy'], 'Except Attacks That Are', {
           kind: 'INLINE_OPTIONS',
-          options: [
-            { code: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL, label: 'Magical' },
-            { code: DAMAGE_DEFENSE_BYPASS_CODE.SILVERED, label: 'Silvered' },
-            { code: DAMAGE_DEFENSE_BYPASS_CODE.ADAMANTINE, label: 'Adamantine' }
-          ]
+          options: DAMAGE_DEFENSE_BYPASS_OPTIONS
         })
       )
   }
