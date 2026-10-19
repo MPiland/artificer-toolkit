@@ -432,3 +432,7 @@ Open points for the ruling:
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
+
+### T7b: Deferred edge case
+
+Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a target that saves against one mummy is still affected by other mummies. The SRD text makes the target immune to the glare of all mummies and mummy lords. Move to future-enhancements (Deferred edge cases) at merge.
