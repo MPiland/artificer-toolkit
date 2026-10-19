@@ -495,6 +495,12 @@ describe('persistEncounterConcentrationChildren ends a source grants on every ho
     expect(held()).toHaveLength(2)
   })
 
+  it('refuses a commit that omits every die its damaged Knight state ends', async () => {
+    const { persist, held } = await endLeadership(incapacitated, { sendGrants: 'NONE' })
+    await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
+    expect(held()).toHaveLength(2)
+  })
+
   it('refuses a commit that sends one holder die but omits another', async () => {
     const { persist, held } = await endLeadership(incapacitated, { sendGrants: 'FIRST' })
     await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
