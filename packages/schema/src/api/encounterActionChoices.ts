@@ -329,7 +329,15 @@ export const encounterReleaseChoiceDtoSchema = lazySchema(() =>
 
 /** A hold a creature the requester controls applied, which its source may release on any turn (D152). */
 export const encounterHeldRelationshipDtoSchema = lazySchema(() =>
-  z.extend(encounterReleaseChoiceDtoSchema, { sourceActorId: postgresUuidSchema })
+  z.extend(encounterReleaseChoiceDtoSchema, {
+    sourceActorId: postgresUuidSchema,
+    /**
+     * A `TARGET_DRAGGED` hold's drag: whether its source's moves cost double (D105), from the sizes
+     * at read time. Null for a hold that does not drag. The route preview reads it; settlement
+     * recomputes it.
+     */
+    drag: z.nullable(z.strictObject({ doublesCost: z.boolean() }))
+  })
 )
 
 export const encounterActionChoicesDtoSchema = lazySchema(() =>
@@ -347,6 +355,11 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
       })
     ),
     actions: z.array(encounterActionChoiceDtoSchema),
+    /**
+     * The action the drawer starts on (D107): the open Attack action's last weapon, else the
+     * main-hand weapon's Action attack, else the off-hand weapon's bonus attack. Null for none.
+     */
+    defaultActionId: z.nullable(characterSheetActionDtoSchema.shape.id),
     /** Creature actions whose authored mechanics cannot run, with the reason. They never resolve. */
     unavailableActions: z.array(
       z.strictObject({

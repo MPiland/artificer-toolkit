@@ -1,5 +1,9 @@
-import type { FeatureEffectAuthored, FeatureSpellCastAuthored } from '#authored'
-import { EQUIPMENT_GRIP_OPTIONS } from '#core'
+import type {
+  FeatureEffectAuthored,
+  FeatureSpellCastAuthored,
+  FeatureWeaponAttackAuthored
+} from '#authored'
+import { EQUIPMENT_GRIP_OPTIONS, EQUIPMENT_PROPERTY_OPTIONS } from '#core'
 import { EFFECT_NODE_MAP } from '../../effects/maps/effect.js'
 import { buildNodeMap, type NodeMap } from '#utils'
 
@@ -13,11 +17,25 @@ const SPELL_CAST_NODE_MAP = spellCast.define('spellCast', ({ map, nodes }) => {
   )
 })
 
+const weaponAttack = buildNodeMap<FeatureWeaponAttackAuthored>()
+
+/** An attack made with each wielded weapon that has these properties (D156). */
+const WEAPON_ATTACK_NODE_MAP = weaponAttack.define('featureWeaponAttack', ({ map, nodes }) => {
+  map.set(
+    'requiredPropertyCodes',
+    nodes.selectMulti(['requiredPropertyCodes'], 'Weapon properties', {
+      kind: 'INLINE_OPTIONS',
+      options: EQUIPMENT_PROPERTY_OPTIONS
+    })
+  )
+})
+
 const featureEffect = buildNodeMap<FeatureEffectAuthored>()
 
 /**
  * The shared effect editor plus the optional grip of a versatile weapon attack, which authors one
- * effect per grip, and the spell an action casts. The Creature schema enforces both on save.
+ * effect per grip, the spell an action casts, and an attack made with each wielded weapon. The
+ * Feature and Creature schemas enforce them on save.
  */
 export const FEATURE_EFFECT_NODE_MAP = featureEffect.define(
   'featureEffect',
@@ -36,6 +54,15 @@ export const FEATURE_EFFECT_NODE_MAP = featureEffect.define(
         nodes.groupObject(['spellCast'], 'Casts a spell', () => SPELL_CAST_NODE_MAP, {
           presentation: 'inline'
         })
+      )
+      .set(
+        'weaponAttack',
+        nodes.groupObject(
+          ['weaponAttack'],
+          'Attacks with each wielded weapon',
+          () => WEAPON_ATTACK_NODE_MAP,
+          { presentation: 'inline' }
+        )
       )
   },
   EFFECT_NODE_MAP.authoring

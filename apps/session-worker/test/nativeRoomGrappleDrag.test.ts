@@ -4,12 +4,14 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { escapeGrappleEffectDefinition } from '@artificer-toolkit/rules-runtime/testing/escapeGrappleEffectFixture'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf, reactionWolf } from '../src/testing/movementPlannerFixture.js'
+import { readRoomEncounter } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 
@@ -31,7 +33,10 @@ afterEach(() => {
 
 /** A HOSTILE grappler holds a FRIENDLY Wolf whose Bite is an opportunity attack, just behind it. */
 async function dragRoom(
-  options: { dragged: boolean } & Pick<MovementRoomConfig, 'sceneOverrides'>
+  options: { dragged: boolean; heldSize?: CreatureAuthored['size'] } & Pick<
+    MovementRoomConfig,
+    'sceneOverrides'
+  >
 ) {
   let heldTokenId = ''
   const room = await movementRoom({
@@ -39,7 +44,7 @@ async function dragRoom(
       srdCreatureActor({ id: GRAPPLER_ID, creature: plainWolf }),
       srdCreatureActor({
         id: HELD_ID,
-        creature: reactionWolf,
+        creature: options.heldSize ? { ...reactionWolf, size: options.heldSize } : reactionWolf,
         disposition: 'FRIENDLY',
         conditionIds: [GRAPPLED]
       })
@@ -104,6 +109,29 @@ describe('a grappler drags the creature it holds (ATTACK-7.T7, D105), in the roo
     // 300 px is 15 ft; both Wolves are Medium, so the drag costs double.
     expect(await feetMoved(room, GRAPPLER_ID)).toBe(30)
     expect(await feetMoved(room, HELD_ID)).toBe(0)
+  }, 60_000)
+
+  it('tells the route preview whether each hold’s drag doubles the cost, from the creatures’ sizes', async () => {
+    const holds = async (options: Parameters<typeof dragRoom>[0]) => {
+      const { room } = await dragRoom(options)
+      return (
+        await readRoomEncounter(room.base, {
+          kind: 'HELD_RELATIONSHIPS',
+          input: { encounterId: room.encounterId }
+        })
+      ).map(({ sourceActorId, heldActorId, drag }) => ({ sourceActorId, heldActorId, drag }))
+    }
+
+    expect(await holds({ dragged: true })).toEqual([
+      { sourceActorId: GRAPPLER_ID, heldActorId: HELD_ID, drag: { doublesCost: true } }
+    ])
+    // A Tiny creature is two sizes smaller than the Medium Wolf, so dragging it costs nothing extra.
+    expect(await holds({ dragged: true, heldSize: 'TINY' })).toEqual([
+      { sourceActorId: GRAPPLER_ID, heldActorId: HELD_ID, drag: { doublesCost: false } }
+    ])
+    expect(await holds({ dragged: false })).toEqual([
+      { sourceActorId: GRAPPLER_ID, heldActorId: HELD_ID, drag: null }
+    ])
   }, 60_000)
 
   it('lets the held creature react to a grappler whose hold does not drag', async () => {

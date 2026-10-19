@@ -506,8 +506,9 @@ export function formatSceneMeasurement(grid: SceneGrid, path: readonly ScenePoin
 }
 
 /**
- * A dragged token's route: its distance and, for an Encounter mover whose terrain or a zone that
- * slows it makes the walk dearer, the movement it costs, priced as the room charges it (D154, D156).
+ * A dragged token's route: its distance and, for an Encounter mover whose terrain, a zone that
+ * slows it or a creature it drags makes the walk dearer, the movement it costs, priced as the room
+ * charges it (D105, D154, D156).
  */
 export function formatSceneRoute(
   scene: CampaignSceneStateDto,
@@ -516,6 +517,8 @@ export function formatSceneRoute(
     actorId: string
     tokenId: string
     zones: EncounterSessionStateDto['movementCostZones']
+    /** The mover drags a creature not two sizes smaller (D105). */
+    dragDoublesCost: boolean
   } | null
 ): string {
   const distance = measureScenePathDistance(scene.grid, path)
@@ -525,7 +528,12 @@ export function formatSceneRoute(
       scene.grid,
       scene,
       path,
-      zoneMovementSegmentMultiplier({ zones: mover.zones, mover, tokens: scene.tokens })
+      zoneMovementSegmentMultiplier({
+        zones: mover.zones,
+        mover,
+        tokens: scene.tokens,
+        dragDoublesCost: mover.dragDoublesCost
+      })
     )
   return cost && cost > distance
     ? `${formatSceneDistance(scene.grid, distance)} · costs ${formatSceneDistance(scene.grid, cost)}`

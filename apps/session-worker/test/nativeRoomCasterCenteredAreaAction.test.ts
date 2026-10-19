@@ -1,4 +1,5 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -12,7 +13,12 @@ import {
 } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readPendingActionDecision, readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
+import {
+  readPendingActionDecision,
+  readRoomHistory,
+  readRoomTimeline,
+  type RoomHistory
+} from './roomHistoryReads.js'
 
 const CASTER_ID = testUuid(0xa00)
 const FIRST_ID = testUuid(0xa01)
@@ -227,5 +233,83 @@ describe('room radius centered on the caster that leaves a condition (SPELLS-19.
     const reverted = await readRoomHistory(stub)
     expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
     expect(reverted.activeEffects).toEqual([])
+  })
+})
+
+describe('room radius centered on the caster that excludes a creature type (SPELLS-33.T3a3)', () => {
+  const cloaker = srdCreatureRecords.find((record) => record.label === 'Cloaker')
+  const moanId = cloaker?.features.find((feature) => feature.label === 'Moan')?.id
+  if (!cloaker || !moanId) throw new Error('The SRD Cloaker must author its Moan.')
+  // The Moan's after-save immunity is still a closed rule until SPELLS-33.T7a, so this caster
+  // moans without its success path.
+  const moaningCloaker = {
+    ...cloaker,
+    features: cloaker.features.map((feature) =>
+      feature.id === moanId
+        ? {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              paths: effect.paths.filter(({ pathCode }) => pathCode !== 'ON_SAVE_SUCCESS')
+            }))
+          }
+        : feature
+    )
+  }
+
+  /**
+   * The Cloaker moans with two Wolves and a second Cloaker beside it, all within its 60 ft, and a
+   * Wolf beyond it. Only the Wolves inside save; the other Cloaker, an aberration, is caught but
+   * unaffected.
+   */
+  const moanRoom = () =>
+    actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: moaningCloaker }),
+        srdCreatureActor({ id: FIRST_ID, creature: plainWolf }),
+        srdCreatureActor({ id: SECOND_ID, creature: plainWolf }),
+        srdCreatureActor({ id: THIRD_ID, creature: cloaker }),
+        srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+      ],
+      positions: { [FAR_ID]: { x: 2500, y: 150 } },
+      ownerFeatureId: moanId
+    })
+
+  it('saves only the Wolves inside, frightens the one that fails, and tells the GM the aberration was unaffected', async () => {
+    const room = await moanRoom()
+    const stub = room.room.base.stub
+    const started = await room.startCasterCenteredAreaAction()
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    expect(await pendingSaves(room)).toEqual([FIRST_ID, SECOND_ID].sort())
+
+    for (const [actorId, face] of [
+      [FIRST_ID, 1],
+      [SECOND_ID, 20]
+    ] as const) {
+      const decision = await room.pendingDecision()
+      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+      const save = decision.pending.saves.find((entry) => entry.actorId === actorId)
+      if (!save) throw new Error('The creature has no pending save.')
+      const answered = await room.send(
+        room.resolveCommand(decision, {
+          kind: 'ENTER_DICE',
+          requestId: save.request.requestId,
+          rawFaces: [face],
+          rollMode: save.request.rollMode
+        })
+      )
+      expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    }
+
+    expect(await readPendingActionDecision(stub)).toBeNull()
+    const committed = await readRoomHistory(stub)
+    expect(committed.activeEffects.map((effect) => effect.targetActorId)).toEqual([FIRST_ID])
+    const { roots, children } = areaReceipts(committed)
+    expect(roots[0]?.outputs).toMatchObject({ sourceActorId: CASTER_ID, removedActorIds: [] })
+    expect(children).toHaveLength(2)
+    const gm = await readRoomTimeline(stub, { player: false, userId: room.room.base.userId })
+    expect(gm.entries.find((entry) => entry.commandType === 'RESOLVE_ACTION')?.gmLines).toEqual([
+      'Cloaker was unaffected'
+    ])
   })
 })

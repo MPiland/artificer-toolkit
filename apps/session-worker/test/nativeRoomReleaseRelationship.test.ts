@@ -116,7 +116,12 @@ describe('a source releases the creature it holds (D152), in the room', () => {
   })
 
   it("offers each member the holds its creatures source on another creature's turn, and releases one there", async () => {
-    const hold = { sourceActorId: GRAPPLER_ID, heldActorId: HELD_ID, activeEffectId: EFFECT_ID }
+    const hold = {
+      sourceActorId: GRAPPLER_ID,
+      heldActorId: HELD_ID,
+      activeEffectId: EFFECT_ID,
+      drag: null
+    }
     const stranger = await releaseRoom({ heldHidden: true })
     expect(await stranger.heldRelationships(true)).toEqual([])
     expect(await stranger.heldRelationships()).toEqual([{ ...hold, label: 'Release Wolf' }])
