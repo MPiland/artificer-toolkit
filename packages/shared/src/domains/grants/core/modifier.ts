@@ -32,6 +32,7 @@ export const MODIFIER_KIND = {
   // Roll state
   ADVANTAGE: 'ADVANTAGE',
   DISADVANTAGE: 'DISADVANTAGE',
+  MINIMUM_ROLL: 'MINIMUM_ROLL',
 
   // Switches a domain's rule on; the domain says what it enables
   ENABLE: 'ENABLE',
@@ -114,6 +115,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.DISADVANTAGE,
     label: 'Disadvantage',
     description: 'Grant disadvantage on the roll.'
+  },
+
+  MINIMUM_ROLL: {
+    code: MODIFIER_KIND.MINIMUM_ROLL,
+    label: 'Minimum Roll',
+    description: 'Treat each d20 rolled for the test as at least this number.'
   },
 
   ENABLE: {
@@ -222,7 +229,12 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.DISADVANTAGE
   ],
 
-  ABILITY_CHECK: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE, MODIFIER_KIND.ADD_BONUS_DIE],
+  ABILITY_CHECK: [
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ADD_BONUS_DIE,
+    MODIFIER_KIND.MINIMUM_ROLL
+  ],
 
   SAVE_DC: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
@@ -601,27 +613,33 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
           ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
           : K extends 'MODIFY_CHARGE_LIMIT'
             ? ChargeLimitPayload
-            : K extends 'ADD_BONUS_DIE'
-              ? V extends 'DAMAGE'
-                ? ModifierDamageDieAuthored
-                : ModifierRolledDieAuthored
-              : K extends 'REPLACE_DAMAGE_TYPE'
-                ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-                : K extends 'REPLACE_RANGE_KIND'
-                  ? { rangeKind: RangeKind }
-                  : K extends 'REPLACE_DURATION_KIND'
-                    ? { durationKind: DurationKind }
-                    : K extends 'REPLACE_SHAPE_KIND'
-                      ? { shapeKind: ShapeKind }
-                      : K extends 'REPLACE_CHARGE_RESET_KIND'
-                        ? { resetKind: ChargeResetKind }
-                        : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                          ? undefined
-                          : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                            ? { abilities: AbilityModifierReference[]; min?: number; max?: number }
-                            : // option-like operations must be domain-supported
-                              K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                              ? V extends keyof ValueDomainOptionPayloadByDomain
-                                ? ValueDomainOptionPayloadByDomain[V]
+            : K extends 'MINIMUM_ROLL'
+              ? { amount: number }
+              : K extends 'ADD_BONUS_DIE'
+                ? V extends 'DAMAGE'
+                  ? ModifierDamageDieAuthored
+                  : ModifierRolledDieAuthored
+                : K extends 'REPLACE_DAMAGE_TYPE'
+                  ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+                  : K extends 'REPLACE_RANGE_KIND'
+                    ? { rangeKind: RangeKind }
+                    : K extends 'REPLACE_DURATION_KIND'
+                      ? { durationKind: DurationKind }
+                      : K extends 'REPLACE_SHAPE_KIND'
+                        ? { shapeKind: ShapeKind }
+                        : K extends 'REPLACE_CHARGE_RESET_KIND'
+                          ? { resetKind: ChargeResetKind }
+                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                            ? undefined
+                            : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                              ? {
+                                  abilities: AbilityModifierReference[]
+                                  min?: number
+                                  max?: number
+                                }
+                              : // option-like operations must be domain-supported
+                                K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                                ? V extends keyof ValueDomainOptionPayloadByDomain
+                                  ? ValueDomainOptionPayloadByDomain[V]
+                                  : never
                                 : never
-                              : never

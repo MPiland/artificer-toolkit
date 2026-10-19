@@ -108,19 +108,7 @@ export const ironGolem: CreatureAuthored = {
       id: S.featureId(175, 4),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(175, 504),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(175, 605), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(175, 504),
       order: 4
     },
     {

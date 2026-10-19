@@ -133,18 +133,7 @@ export const fleshGolem: CreatureAuthored = {
       id: S.featureId(103, 6),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(103, 206),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(103, 1206), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(103, 206),
       order: 6
     },
     {

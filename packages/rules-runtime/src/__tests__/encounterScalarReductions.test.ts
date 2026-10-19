@@ -263,6 +263,8 @@ describe('Creature movement target', () => {
       sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: [],
+      attackTraitGrants: [],
+      innateConditionIds: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,
         creatureTypeId: null,

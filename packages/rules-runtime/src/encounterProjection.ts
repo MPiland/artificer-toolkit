@@ -32,6 +32,7 @@ import {
   resolveDnd5eCreatureArmorClass
 } from './systems/dnd5e/armorClass.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
+import { creatureInnateConditionRows } from './encounterInnateConditions.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 
@@ -261,7 +262,10 @@ export function projectEncounterActorFacts(
       currentHitPoints: actor.currentHitPoints,
       maxHitPoints: actor.maxHitPoints,
       tempHitPoints: actor.tempHitPoints,
-      conditions: actor.conditions,
+      conditions: [
+        ...(Array.isArray(actor.conditions) ? actor.conditions : []),
+        ...creatureInnateConditionRows(actor.snapshot)
+      ],
       defeated: actor.defeated,
       form: storedActorForm(actor.form),
       absence: actor.absence,

@@ -36,6 +36,12 @@ describe('the collision of an authored forced movement (D159)', () => {
     expect(forcedMovementDtoSchema.parse(forcedMovement)).not.toHaveProperty('collision')
   })
 
+  it('refuses a collision field it does not know', () => {
+    expect(() =>
+      forcedMovementDtoSchema.parse({ ...forcedMovement, collision: { ...collision, extra: 1 } })
+    ).toThrow()
+  })
+
   it('refuses a collision without its save', () => {
     const { savingThrow: _savingThrow, ...withoutSave } = collision
     expect(() =>

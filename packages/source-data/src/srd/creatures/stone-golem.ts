@@ -91,18 +91,7 @@ export const stoneGolem: CreatureAuthored = {
       id: S.featureId(265, 3),
       label: 'Magic Weapons',
       description: 'Magic Weapons. The golem’s weapon attacks are magical.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(265, 204),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(265, 205), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(265, 204),
       order: 3
     },
     {

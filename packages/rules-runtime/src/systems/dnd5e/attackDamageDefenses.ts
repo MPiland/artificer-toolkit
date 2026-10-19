@@ -6,7 +6,9 @@ import { isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   dnd5eAcceptedModifierApplicability,
   dnd5eCharacterActionTarget,
-  dnd5eModifierApplies
+  dnd5eModifierApplies,
+  type Dnd5eModifierApplicability,
+  type Dnd5eModifierTarget
 } from './modifierApplicability.js'
 
 type DamageDefense = {
@@ -62,6 +64,38 @@ export function dnd5eAttackDamageDefenses(
   return [...applicable.values()]
 }
 
+/** An `ATTACK_TRAIT` grant: the trait it gives and where it applies. */
+export type Dnd5eAttackTraitGrant = {
+  readonly trait: DamageDefenseBypassCode
+  readonly applicability: Dnd5eModifierApplicability
+}
+
+/** The `ATTACK_TRAIT` grants among a holder's modifiers, whichever fold shape they come in. */
+export function dnd5eAttackTraitGrants<
+  M extends { valueDomainCode: string; domain: { trait?: DamageDefenseBypassCode } }
+>(
+  modifiers: readonly M[],
+  applicability: (modifier: M) => Dnd5eModifierApplicability
+): Dnd5eAttackTraitGrant[] {
+  return modifiers.flatMap((modifier) =>
+    modifier.valueDomainCode === 'ATTACK_TRAIT' && modifier.domain.trait !== undefined
+      ? [{ trait: modifier.domain.trait, applicability: applicability(modifier) }]
+      : []
+  )
+}
+
+/** The traits the grants that apply to this attack give it. */
+export function dnd5eGrantedAttackTraits(
+  grants: readonly Dnd5eAttackTraitGrant[],
+  target: Dnd5eModifierTarget
+): ReadonlySet<DamageDefenseBypassCode> {
+  return new Set(
+    grants.flatMap(({ trait, applicability }) =>
+      dnd5eModifierApplies(applicability, target) ? [trait] : []
+    )
+  )
+}
+
 /**
  * A Character attack is magical when it is a spell attack or made with a magic item; silvered and
  * adamantine come from the item's Sheet properties. An ATTACK_TRAIT grant that applies to the
@@ -82,15 +116,9 @@ export function dnd5eCharacterAttackTraits(input: {
       : input.policy.itemMechanics.find(
           (entry) => entry.itemInstanceId === equipment.itemInstanceId
         )
-  const target = dnd5eCharacterActionTarget(input.candidate)
-  const granted = new Set(
-    input.policy.grantFold.modifiers.flatMap((modifier) =>
-      modifier.valueDomainCode === 'ATTACK_TRAIT' &&
-      modifier.domain.trait !== undefined &&
-      dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
-        ? [modifier.domain.trait]
-        : []
-    )
+  const granted = dnd5eGrantedAttackTraits(
+    dnd5eAttackTraitGrants(input.policy.grantFold.modifiers, dnd5eAcceptedModifierApplicability),
+    dnd5eCharacterActionTarget(input.candidate)
   )
   return {
     magical:

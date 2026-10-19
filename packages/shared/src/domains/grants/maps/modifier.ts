@@ -822,6 +822,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
+        'minimumRollAmount',
+        number(['amount'], 'Minimum Roll', {
+          constraints: { minimum: 2, maximum: 20 },
+          showIf: parent.field(['modifierKind']).eq('MINIMUM_ROLL'),
+          requiredIf: true
+        })
+      )
+      .set(
         'lengthAmount',
         number(['amount'], 'Amount', {
           constraints: { minimum: 0, maximum: AUTHORED_LENGTH_AMOUNT_MAX },
@@ -1014,6 +1022,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('CAP_VALUE'),
             local.field(['modifierKind']).eq('MULTIPLY'),
             local.field(['modifierKind']).eq('ADD_BONUS_DIE'),
+            local.field(['modifierKind']).eq('MINIMUM_ROLL'),
             local.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
             local.field(['modifierKind']).eq('REPLACE_RANGE_KIND'),
             local.field(['modifierKind']).eq('REPLACE_DURATION_KIND'),

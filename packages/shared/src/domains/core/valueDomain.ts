@@ -343,7 +343,8 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
   [VALUE_DOMAIN_CODE.CONDITION]: {
     code: VALUE_DOMAIN_CODE.CONDITION,
     label: 'Condition',
-    description: 'A status effect applied to a creature.'
+    description:
+      'A condition the holder always has (a feature adds it): held beside the conditions applied to it and never removable.'
   },
 
   [VALUE_DOMAIN_CODE.ATTRIBUTE]: {
@@ -580,8 +581,7 @@ export type ValueDomainOptionPayloadByDomain = {
   DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
-  // Your CONDITION domain is “applied conditions on character”.
-  // If you model as conditionTypeId, use that. If you model as conditionId, switch.
+  // An innate condition the holder always has.
   CONDITION: { conditionTypeId: string }
 
   // Condition immunity: prevents a specific condition from being applied
