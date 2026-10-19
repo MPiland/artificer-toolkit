@@ -605,26 +605,31 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
             ? ChargeLimitPayload
             : K extends 'MINIMUM_ROLL'
               ? { amount: number }
-            : K extends 'ADD_BONUS_DIE'
-              ? V extends 'DAMAGE'
-                ? ModifierDamageDieAuthored
-                : ModifierRolledDieAuthored
-              : K extends 'REPLACE_DAMAGE_TYPE'
-                ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-                : K extends 'REPLACE_RANGE_KIND'
-                  ? { rangeKind: RangeKind }
-                  : K extends 'REPLACE_DURATION_KIND'
-                    ? { durationKind: DurationKind }
-                    : K extends 'REPLACE_SHAPE_KIND'
-                      ? { shapeKind: ShapeKind }
-                      : K extends 'REPLACE_CHARGE_RESET_KIND'
-                        ? { resetKind: ChargeResetKind }
-                        : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                          ? undefined
-                          : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                            ? { abilities: AbilityModifierReference[]; min?: number; max?: number }
-                            : // option-like operations must be domain-supported
-                              K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                              ? V extends keyof ValueDomainOptionPayloadByDomain
-                                ? ValueDomainOptionPayloadByDomain[V]
+              : K extends 'ADD_BONUS_DIE'
+                ? V extends 'DAMAGE'
+                  ? ModifierDamageDieAuthored
+                  : ModifierRolledDieAuthored
+                : K extends 'REPLACE_DAMAGE_TYPE'
+                  ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+                  : K extends 'REPLACE_RANGE_KIND'
+                    ? { rangeKind: RangeKind }
+                    : K extends 'REPLACE_DURATION_KIND'
+                      ? { durationKind: DurationKind }
+                      : K extends 'REPLACE_SHAPE_KIND'
+                        ? { shapeKind: ShapeKind }
+                        : K extends 'REPLACE_CHARGE_RESET_KIND'
+                          ? { resetKind: ChargeResetKind }
+                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                            ? undefined
+                            : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                              ? {
+                                  abilities: AbilityModifierReference[]
+                                  min?: number
+                                  max?: number
+                                }
+                              : // option-like operations must be domain-supported
+                                K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                                ? V extends keyof ValueDomainOptionPayloadByDomain
+                                  ? ValueDomainOptionPayloadByDomain[V]
+                                  : never
                                 : never
