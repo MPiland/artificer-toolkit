@@ -1,3 +1,5 @@
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import {
   characterActor,
   creatureFeature,
@@ -6,7 +8,10 @@ import {
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
+import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
+import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
@@ -14,13 +19,17 @@ import {
 import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
+import { damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { seededSrdCreature } from './seededSrdCreature.js'
 import {
+  parseReceiptExecution,
   readActorHitPoints,
   readPendingActionContext,
   readPendingApplicationContext,
@@ -294,5 +303,175 @@ describe('room Mind Blank (SPELLS-4.T2a3)', () => {
     expect(characterEffects.map(({ lifecycle }) => lifecycle.remainingTicks)).toEqual([
       MAX_ACTIVE_EFFECT_STORED_TICKS
     ])
+  }, 120000)
+})
+
+/** The Character's actor, whose frozen identity a turn change checks. */
+const casterActor = () => ({
+  ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+  snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+})
+
+/** The damage the receipt of the command `commandId` applied, by amount and type. */
+async function appliedDamage(room: ActionRoom, commandId: string) {
+  const receipt = (await readRoomHistory(room.room.base.stub)).receipts.find(
+    (row) => row.commandId === commandId && row.commandType === 'RESOLVE_ACTION'
+  )
+  if (!receipt) throw new Error('The action receipt is missing.')
+  const result = parseReceiptExecution(receipt)
+  if (result.status !== 'COMPLETE') throw new Error('Expected a settled action.')
+  const outputs = result.applicationOutputs
+  if (outputs.kind !== 'CHARACTER_MECHANICS_BATCH')
+    throw new Error(`Expected a mechanics batch, not ${outputs.kind}.`)
+  return outputs.applications.flatMap((application) =>
+    application.kind === 'DAMAGE' ? [[application.requestedAmount, application.damageTypeId]] : []
+  )
+}
+
+describe('room Shillelagh (SPELLS-4.T2e)', () => {
+  /** The Character holding its Club, who prepares Shillelagh, then a Wolf. */
+  const shillelaghRoom = () =>
+    actionRoom({
+      // The Club's d20 shows 19 and hits; its damage die shows 8.
+      rolls: [18, 7],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { equipped: true },
+      characterSpellcasting: { spells: [shillelagh], prepared: [shillelagh.id] },
+      characterAction: (action) => action.label.startsWith(shillelagh.label)
+    })
+
+  it('offers the held Club, and the Club then deals a d8 instead of its d4', async () => {
+    const room = await shillelaghRoom()
+    const items = await room.actionItemChoices(CHARACTER_ACTOR_ID)
+    expect(items.map(({ label }) => label)).toEqual(['Club'])
+    const cast = await room.startAction(
+      CHARACTER_ACTOR_ID,
+      [],
+      null,
+      null,
+      room.actionId,
+      CHARACTER_ACTOR_ID,
+      undefined,
+      items[0]!.id
+    )
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+
+    const club = (await room.actionChoices()).actions.find(({ label }) => label.includes('Club'))
+    if (!club) throw new Error('The Character offers no Club attack.')
+    const attack = await room.startAction(WOLF_ID, RANGE, null, null, club.id)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+
+    // 8 on the d8, plus Strength (+2), the higher of Strength and the spellcasting ability.
+    expect(await appliedDamage(room, attack.command.commandId)).toEqual([
+      [10, damageTypeId('BLUDGEONING')]
+    ])
+  }, 120000)
+
+  it('refuses the cast without the item it is used on', async () => {
+    const room = await shillelaghRoom()
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, [], null, null, room.actionId)
+    expect(cast.answer.type).not.toBe('COMMAND_COMMITTED')
+    expect(JSON.stringify(cast.answer)).toContain('Choose the item this action is used on.')
+  }, 120000)
+})
+
+describe('room Heat Metal (SPELLS-4.T2e)', () => {
+  const OGRE_ID = testUuid(0xa35)
+
+  /**
+   * The Character, who prepares Heat Metal, then an Ogre holding a Longsword in its main hand, or
+   * with `armor` wearing Chain Mail instead. The Ogre's Constitution save shows `saveFace`.
+   */
+  async function heatMetalRoom(saveFace: number, armor = false) {
+    const seeded = seededSrdCreature('Ogre')
+    const ogre = {
+      ...seeded,
+      equipmentLoadout: seeded.equipmentLoadout?.map((entry) =>
+        entry.useState === 'MAIN_HAND'
+          ? armor
+            ? { ...entry, equipmentId: chainMail.id, useState: 'WORN' as const }
+            : { ...entry, equipmentId: longsword.id }
+          : entry
+      )
+    }
+    const ogreActor = srdCreatureActor({ id: OGRE_ID, creature: ogre })
+    const itemEntryId = snapshotCreatureEquipmentLoadout(ogreActor).find(
+      (entry) => entry.equipmentId === (armor ? chainMail.id : longsword.id)
+    )?.id
+    if (!itemEntryId) throw new Error('The Ogre has no metal item.')
+    const room = await actionRoom({
+      rolls: [saveFace - 1],
+      fallbackRoll: 0,
+      actors: [casterActor(), ogreActor],
+      characterSpellcasting: { spells: [heatMetal], prepared: [heatMetal.id] },
+      characterAction: (action) => action.label.startsWith(heatMetal.label)
+    })
+    return { room, itemEntryId }
+  }
+
+  /** Casts Heat Metal on the Ogre's metal item and settles every roll. */
+  async function castHeatMetal({ room, itemEntryId }: Awaited<ReturnType<typeof heatMetalRoom>>) {
+    const items = await room.actionItemChoices(OGRE_ID)
+    expect(items.map(({ id }) => id)).toEqual([itemEntryId])
+    const cast = await room.startAction(
+      OGRE_ID,
+      RANGE,
+      null,
+      null,
+      room.actionId,
+      CHARACTER_ACTOR_ID,
+      undefined,
+      itemEntryId
+    )
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    return cast.command.commandId
+  }
+
+  async function ogreItemState(room: ActionRoom, itemEntryId: string) {
+    const row = (await readRoomHistory(room.room.base.stub)).actors.find(({ id }) => id === OGRE_ID)
+    if (!row) throw new Error('The Ogre is not in the stored Run.')
+    return snapshotCreatureEquipmentLoadout(readStoredRunActor(row)).find(
+      (entry) => entry.id === itemEntryId
+    )?.useState
+  }
+
+  const ogreGrants = async (room: ActionRoom) =>
+    (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
+      ({ targetActorId }) => targetActorId === OGRE_ID
+    )
+
+  it('makes the Ogre drop the held Longsword on a failed save, with no disadvantage, and one undo puts it back', async () => {
+    const fixture = await heatMetalRoom(1)
+    const commandId = await castHeatMetal(fixture)
+    // 2d8 fire, every die showing 1.
+    expect(await appliedDamage(fixture.room, commandId)).toEqual([[2, damageTypeId('FIRE')]])
+    expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('CARRIED')
+    expect(await ogreGrants(fixture.room)).toEqual([])
+
+    const undone = await fixture.room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: fixture.room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await fixture.room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('MAIN_HAND')
+  }, 120000)
+
+  it('gives the Ogre disadvantage when it fails the save but cannot drop the worn Chain Mail', async () => {
+    const fixture = await heatMetalRoom(1, true)
+    await castHeatMetal(fixture)
+    expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('WORN')
+    expect(await ogreGrants(fixture.room)).toHaveLength(1)
+  }, 120000)
+
+  it('gives the Ogre disadvantage when it keeps the Longsword on a successful save', async () => {
+    const fixture = await heatMetalRoom(20)
+    await castHeatMetal(fixture)
+    expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('MAIN_HAND')
+    expect(await ogreGrants(fixture.room)).toHaveLength(1)
   }, 120000)
 })

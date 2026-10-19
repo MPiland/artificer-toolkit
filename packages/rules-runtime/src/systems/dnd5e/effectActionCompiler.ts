@@ -2278,8 +2278,8 @@ function saveGrantPlan(
     repeatingDirectFollowUpSavePlan(action) !== null
   )
     return null
-  const [entry, other, ...rest] = action.compiledEffect.entries.filter(
-    (candidate) => 'outcome' in candidate && candidate.outcome.effectKind === 'APPLY_GRANT'
+  const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
+    'outcome' in candidate && candidate.outcome.effectKind === 'APPLY_GRANT' ? [candidate] : []
   )
   if (
     !entry ||
@@ -2297,7 +2297,9 @@ function saveGrantPlan(
  * A grant entry as authored, without its identities or its release flag, so two paths' grants
  * compare alike.
  */
-function authoredAlike(entry: CompiledEffectGroup['entries'][number]): string {
+function authoredAlike(
+  entry: Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
+): string {
   const withoutIdentities = (value: unknown): unknown =>
     Array.isArray(value)
       ? value.map(withoutIdentities)
@@ -2312,7 +2314,7 @@ function authoredAlike(entry: CompiledEffectGroup['entries'][number]): string {
         : value
   return JSON.stringify(
     withoutIdentities({
-      outcome: 'outcome' in entry ? entry.outcome : null,
+      outcome: entry.outcome,
       duration: entry.duration,
       lifecycle: entry.lifecycle,
       maintenanceDefinitionId: entry.maintenanceDefinitionId
@@ -2329,20 +2331,20 @@ function authoredAlike(entry: CompiledEffectGroup['entries'][number]): string {
 function chosenItemPlan(
   action: Dnd5eCompiledEffectActionSource
 ): NonNullable<CharacterRuleActionActiveEffectPlan['chosenItem']> | null {
-  const { entries } = action.compiledEffect
+  const entries = action.compiledEffect.entries.flatMap((entry) =>
+    'outcome' in entry ? [entry] : []
+  )
   const items = new Set(
     entries.flatMap(({ chosenItem }) => (chosenItem ? [JSON.stringify(chosenItem)] : []))
   )
   const grants = entries.flatMap((entry) =>
-    'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
+    entry.outcome.effectKind === 'APPLY_GRANT'
       ? [{ pathCode: entry.pathCode, outcome: entry.outcome }]
       : []
   )
   const [releasedOn, ...otherReleasePaths] = new Set(
     entries.flatMap((entry) =>
-      'outcome' in entry && entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM'
-        ? [entry.pathCode]
-        : []
+      entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ? [entry.pathCode] : []
     )
   )
   const bound = grants.filter(({ outcome }) => outcome.bindsChosenItem)
@@ -9203,11 +9205,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       !plan?.chosenItem &&
       action.compiledEffect.entries.some(
         (entry) =>
-          entry.chosenItem ||
-          ('outcome' in entry &&
-            (entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
-              (entry.outcome.effectKind === 'APPLY_GRANT' &&
-                (entry.outcome.bindsChosenItem || entry.outcome.unlessChosenItemReleased))))
+          'outcome' in entry &&
+          (entry.chosenItem !== undefined ||
+            entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
+            (entry.outcome.effectKind === 'APPLY_GRANT' &&
+              (entry.outcome.bindsChosenItem || entry.outcome.unlessChosenItemReleased)))
       )
     )
       unsupported('D&D chosen item needs a timed grant it rides.')

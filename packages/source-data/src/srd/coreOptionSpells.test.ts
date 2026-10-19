@@ -21,6 +21,13 @@ describe.each([
     label: 'Pass without Trace',
     ruleKind: 'PASS_WITHOUT_TRACE',
     effectKinds: ['APPLY_GRANT', 'MANUAL_ADJUDICATION']
+  },
+  { label: 'Shillelagh', ruleKind: 'SHILLELAGH', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Magic Weapon', ruleKind: 'MAGIC_WEAPON', effectKinds: ['APPLY_GRANT'] },
+  {
+    label: 'Heat Metal',
+    ruleKind: 'HEAT_METAL',
+    effectKinds: ['DAMAGE', 'RELEASE_CHOSEN_ITEM', 'APPLY_GRANT', 'DAMAGE', 'APPLY_GRANT']
   }
 ])('SRD $label (D156 T2a3)', ({ label, ruleKind, effectKinds }) => {
   const spell = srdSpells.find((entry) => entry.label === label)

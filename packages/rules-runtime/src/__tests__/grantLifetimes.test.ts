@@ -859,6 +859,53 @@ describe('a grant that ends on incapacitation', () => {
   })
 })
 
+describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', () => {
+  const ITEM_ID = testUuid(0xc3a1)
+  const bound = (endOnEvents: 'ON_CHOSEN_ITEM_RELEASED'[]) => {
+    const record = grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
+      id: 0xc3a2,
+      holderId: TARGET_ID
+    })
+    if (record.definition.schemaVersion !== 2) throw new Error('Expected a v2 grant definition.')
+    return {
+      ...record,
+      definition: {
+        ...record.definition,
+        stateContributions: record.definition.stateContributions.map((contribution) =>
+          contribution.kind === 'MODIFIER_GRANT'
+            ? {
+                ...contribution,
+                boundItem: {
+                  kind: 'EQUIPMENT_INSTANCE' as const,
+                  equipmentId: testUuid(0xc3a3),
+                  itemInstanceId: ITEM_ID
+                }
+              }
+            : contribution
+        )
+      }
+    }
+  }
+  const ended = (record: ActiveRuleEffectRecord, heldItemInstanceIds: string[]) =>
+    grantsEndedByHolderState([record], { reason: null, conditionIds: [], heldItemInstanceIds }).map(
+      ({ id }) => id
+    )
+
+  it('ends when no hand of its holder holds the bound item', () => {
+    const record = bound(['ON_CHOSEN_ITEM_RELEASED'])
+    expect(ended(record, [])).toEqual([record.id])
+    expect(ended(record, [testUuid(0xc3a4)])).toEqual([record.id])
+  })
+
+  it('stays while a hand holds the bound item', () => {
+    expect(ended(bound(['ON_CHOSEN_ITEM_RELEASED']), [ITEM_ID])).toEqual([])
+  })
+
+  it('stays when dropped if it does not end on release (Magic Weapon)', () => {
+    expect(ended(bound([]), [])).toEqual([])
+  })
+})
+
 describe('effectsEndedBy', () => {
   const held = (id: number, events: ('ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK')[]) =>
     grantRecord(

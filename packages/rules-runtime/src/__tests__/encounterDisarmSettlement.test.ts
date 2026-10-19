@@ -8,14 +8,27 @@ import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { readEncounterActorOptionalContestContext } from '../encounterActorOptionalContestContext.js'
+import {
+  readEncounterActorOptionalContestContext,
+  revertEncounterActorItemRelease
+} from '../encounterActorOptionalContestContext.js'
+import {
+  encounterHeldItemInstanceIds,
+  listEncounterChosenItems,
+  readEncounterChosenItem
+} from '../encounterChosenItem.js'
 import {
   contestApplicationOutputs,
   contestSourceWins,
   planEncounterDisarmSuccess
 } from '../encounterDisarmPreparation.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
-import { characterActor, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
+import {
+  characterActor,
+  creatureActor,
+  creatureRuleFacts,
+  srdCreatureTarget
+} from '../testing/dnd5eSrdEncounter.js'
 
 const SOURCE_ACTOR_ID = '00000000-0000-4000-8000-00000000d101'
 const TARGET_ACTOR_ID = '00000000-0000-4000-8000-00000000d102'
@@ -632,4 +645,106 @@ describe('Disarm receipt outputs', () => {
     expect(settled.sealedContextChecksum).toBe(checksumRuleDocument(withEvidence))
     expect(settled.sealedContextChecksum).not.toBe(checksumRuleDocument(contest))
   })
+})
+
+describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
+  const metalItem = {
+    category: null,
+    requiredProperties: ['METAL'],
+    excludedProperties: [],
+    equipmentIds: [],
+    bindsGrant: false,
+    releasedOn: 'ON_SAVE_FAIL' as const,
+    grantUnlessReleased: true
+  }
+  const daggerItem = {
+    kind: 'EQUIPMENT_INSTANCE' as const,
+    equipmentId: heldWeapon.id,
+    itemInstanceId: HELD_ENTRY_ID
+  }
+
+  it.each(['MAIN_HAND', 'OFF_HAND'] as const)(
+    "lists a Creature's metal dagger held in its %s as releasable, and not its carried club",
+    (heldState) => {
+      const target = srdCreatureTarget(creatureTarget(heldState))
+      expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([
+        { item: daggerItem, releasable: true }
+      ])
+      expect(encounterHeldItemInstanceIds(target)).toEqual([HELD_ENTRY_ID])
+    }
+  )
+
+  it('lists nothing once the dagger is put away, and refuses to read it', () => {
+    const target = srdCreatureTarget(creatureTarget('CARRIED'))
+    expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([])
+    expect(() =>
+      readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
+    ).toThrow('The chosen item is not one this action can be used on.')
+  })
+
+  it('filters by equipment, category and excluded properties', () => {
+    const target = srdCreatureTarget(creatureTarget())
+    const plan = { ...metalItem, requiredProperties: [] }
+    expect(
+      listEncounterChosenItems({ plan: { ...plan, equipmentIds: [carriedWeapon.id] }, target })
+    ).toEqual([])
+    expect(
+      listEncounterChosenItems({ plan: { ...plan, equipmentIds: [heldWeapon.id] }, target })
+    ).toEqual([{ item: daggerItem, releasable: true }])
+    expect(listEncounterChosenItems({ plan: { ...plan, category: 'ARMOR' }, target })).toEqual([])
+    expect(
+      listEncounterChosenItems({ plan: { ...plan, excludedProperties: ['METAL'] }, target })
+    ).toEqual([])
+  })
+
+  it('lists no item for a grant bound to it on a Creature, whose modifiers do not read the item it attacks with', () => {
+    const target = srdCreatureTarget(creatureTarget())
+    expect(listEncounterChosenItems({ plan: { ...metalItem, bindsGrant: true }, target })).toEqual(
+      []
+    )
+  })
+
+  it('reads the chosen item, and requires one exactly when the action chooses an item', () => {
+    const target = srdCreatureTarget(creatureTarget())
+    expect(
+      readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
+    ).toEqual({ item: daggerItem, releasable: true })
+    expect(() =>
+      readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: undefined })
+    ).toThrow('Choose the item this action is used on.')
+    expect(() =>
+      readEncounterChosenItem({ plan: null, target, itemInstanceId: HELD_ENTRY_ID })
+    ).toThrow('This action is not used on an item.')
+    expect(readEncounterChosenItem({ plan: null, target, itemInstanceId: undefined })).toBeNull()
+  })
+
+  it.each(['MAIN_HAND', 'OFF_HAND'] as const)(
+    'puts a dropped item back in the %s it left when the release is undone',
+    (heldState) => {
+      const target = creatureTarget(heldState)
+      const before = readEncounterActorOptionalContestContext({
+        actor: target,
+        loadoutEntryId: HELD_ENTRY_ID
+      })
+      const planned = planEncounterDisarmSuccess({
+        target,
+        contest: creatureContest(heldState),
+        character: null
+      })
+      if (planned.kind !== 'CREATURE') throw new Error('Expected a Creature settlement.')
+      const reverted = revertEncounterActorItemRelease({
+        actor: planned.actor,
+        transition: planned.stateTransition
+      })
+      if (!reverted) throw new Error('The release must revert.')
+      expect(
+        readEncounterActorOptionalContestContext({ actor: reverted, loadoutEntryId: HELD_ENTRY_ID })
+          ?.stateChecksum
+      ).toBe(before?.stateChecksum)
+      // Nothing to undo on an actor that still holds the item.
+      expect(
+        revertEncounterActorItemRelease({ actor: target, transition: planned.stateTransition })
+      ).toBeNull()
+    }
+  )
 })
