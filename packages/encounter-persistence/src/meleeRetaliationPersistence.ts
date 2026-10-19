@@ -3,6 +3,8 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
+import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import {
@@ -17,7 +19,7 @@ import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnE
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
-import { deleteGrants } from './consumedGrantPersistence.js'
+import { createIncomingDamageGrants, deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -132,13 +134,25 @@ export async function persistEncounterMeleeRetaliation(
   const applications = executions.flatMap((execution) =>
     execution.applications.map((application) => ({ ...application, targetActorId: attacker.id }))
   )
-  // The zones' damage ends the effects that end on damage, as the plan released them.
+  // The zones' damage ends the effects that end on damage and gives the timed grants the attacker's
+  // passive features owe it, as the plan settled them.
+  const owner = turnEffectOwner(attacker, state.id)
+  const held = await createActiveRuleEffectStore(ctx).list(owner)
   const ends = spatialDamageEnds({
     holderActorId: attacker.id,
-    held: await createActiveRuleEffectStore(ctx).list(turnEffectOwner(attacker, state.id)),
+    held,
     executions,
     turnActorId: state.currentActorId,
-    dispositions: new Map(input.initialActors.map(({ id, disposition }) => [id, disposition]))
+    dispositions: new Map(input.initialActors.map(({ id, disposition }) => [id, disposition])),
+    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      encounter: state,
+      holder: attacker,
+      held,
+      occurrenceId: input.occurrenceId,
+      commandId: input.sourceCommandId,
+      ordinal: 'MELEE_RETALIATION',
+      activeEffectsByActorId: new Map([[attacker.id, held]])
+    })
   })
   const applied = await callbacks.applyMechanics({
     encounterId: state.id,
@@ -182,5 +196,23 @@ export async function persistEncounterMeleeRetaliation(
   )
     throw new Error('Melee retaliation settlement differs from its plan.')
   await deleteGrants(ctx, ends.endedEffects)
+  const grants = await createIncomingDamageGrants(ctx, {
+    grants: ends.grants,
+    owner,
+    occurredAt: input.occurredAt
+  })
+  if (
+    checksumRuleDocument(
+      grants.flatMap(
+        (grant) =>
+          projectNativeActionEffectTransitions({
+            state: null,
+            recurring: grant,
+            targetActorId: attacker.id
+          }).activeEffectTransitions
+      )
+    ) !== checksumRuleDocument(evidence.grantEffectTransitions)
+  )
+    throw new Error('Melee retaliation grants differ from its plan.')
   return applied.updatedActor
 }

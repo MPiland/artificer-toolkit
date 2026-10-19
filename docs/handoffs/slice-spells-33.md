@@ -494,7 +494,7 @@ Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a targe
 
 - Zone and melee-retaliation damage ended no until-damaged effect (T6e4 wired both: see `spatialDamageEnds`). Occupant save auras deal no damage, so they are not a damage root. Spatial movement contacts (`planNativeSpatialMovementPrefix` without `damageEnds`) still end nothing; they are the one root left.
 - T6e1 (Balor Death Throes): a death-throes defeat does not retrigger `ON_HP_ZERO`.
-- T6e3 (Flesh Golem Aversion of Fire, Water Elemental Freeze) is the passive damage-type trigger that creates a timed self grant on every damage root; it needs effect-creation slots, receipts, persistence and revert per root.
+- T6e3 (Flesh Golem Aversion of Fire, Water Elemental Freeze) is the passive damage-type trigger that creates a timed self grant on every damage root; it needs effect-creation slots, receipts, persistence and revert per root. T6e3a did the action root; T6e3b wired the turn-zone, melee-retaliation (evidence `grantEffectTransitions`, undo deletes them), legendary and movement-reaction roots. Left: the area root, and spatial movement contacts with T6e4's gap. Retaliation undo does not restore an effect the retaliation ended or a grant it replaced.
 
 ## T4c: Knight Leadership and Lamia Intoxicating Touch
 

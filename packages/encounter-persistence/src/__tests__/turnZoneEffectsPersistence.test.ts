@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -57,10 +58,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
+  diceDamage,
   failedSaveOnly,
   lostActionOutcome,
   noSave
 } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { createActiveRuleEffectStore } from '../effectStore.js'
 import {
   SLEEP_CONDITION_ID,
@@ -77,6 +80,7 @@ import type { EncounterCharacterWriteTransaction } from '../ports.js'
 import { createSpatialRuleEffectStore } from '../spatialEffectStore.js'
 import { persistEncounterTurnZoneEffects } from '../turnZoneEffectsPersistence.js'
 
+const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
 const STALE_SELECTION = 'Staged turn zone selection is stale.'
 const OCCURRED_AT = '2026-10-17T00:00:00.000Z'
 const COMMAND_ID = '00000000-0000-4000-8000-0000000c0001'
@@ -348,6 +352,66 @@ describe('persisting a turn zone phase inside the terminal transaction (SPELLS-2
     const stored = creature(await readRunActor(scene.ctx, runState(), GOBLIN_ID))
     expect(stored.conditions).toEqual([])
     expect(settled?.phase.encounterActorTransitions[0]?.after.conditionIds).toEqual([])
+  })
+
+  it('gives the timed grant the creature’s passive trigger owes the zone’s fire (SPELLS-33.T6e3b)', async () => {
+    const golem = srdCreatureActor({
+      id: GOBLIN_ID,
+      creature: srdByLabel(SRD.creatures, 'Flesh Golem')
+    })
+    const runActors = [golem, source]
+    const scene = await seededScene(
+      authoredZone(['START_TURN_IN_SPACE'], undefined, {}, (parts) =>
+        diceDamage('1d4', (damage) => {
+          damage.damageTypeId = FIRE
+        })(parts)
+      ),
+      { runActors }
+    )
+    const plan = await stagedPlan(scene, {
+      runActors,
+      state: runState({}, { runActors })
+    })
+    const { result } = persist(scene, { plan, state: runState({}, { runActors }) })
+    await result
+
+    const held = await createActiveRuleEffectStore(scene.ctx).list({
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: ENCOUNTER_ID,
+      targetActorId: GOBLIN_ID
+    })
+    const [trigger] = prepareNativeIncomingDamageGrantTriggers({
+      encounter: runState({}, { runActors }),
+      holder: golem,
+      held: [],
+      occurrenceId: OCCURRENCE_ID,
+      commandId: root.rootCommandId,
+      ordinal: 'TURN_ZONE_EFFECT',
+      activeEffectsByActorId: new Map()
+    })
+    expect(held.map(({ id, definition }) => [id, definition.authoredEffectId])).toEqual([
+      [trigger!.id, trigger!.authoredEffectId]
+    ])
+  })
+
+  it('gives a creature without the passive trigger no grant from the zone’s fire (SPELLS-33.T6e3b)', async () => {
+    const scene = await seededScene(
+      authoredZone(['START_TURN_IN_SPACE'], undefined, {}, (parts) =>
+        diceDamage('1d4', (damage) => {
+          damage.damageTypeId = FIRE
+        })(parts)
+      )
+    )
+    const plan = await stagedPlan(scene)
+    await persist(scene, { plan }).result
+
+    expect(
+      await createActiveRuleEffectStore(scene.ctx).list({
+        kind: 'ENCOUNTER_ACTOR',
+        encounterId: ENCOUNTER_ID,
+        targetActorId: GOBLIN_ID
+      })
+    ).toEqual([])
   })
 
   it('refuses a plan made before the creature left the zone, without settling', async () => {

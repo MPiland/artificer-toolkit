@@ -459,7 +459,10 @@ turn). It is derived, not stored: `discoverEncounterFeatureActions` returns it a
 `{endedEffects, releases, grants}` for the damage dealt: ended effects release first, then grants are created, and a held grant from the same
 source feature (`authoredEffectId`) is ended in the same call, so a repeat hit replaces the expiry. The action root writes the grants through
 the settlement and the receipt's `grantEffectTransitions`; persistence checks their origin is the holder, and undo deletes them. Creature
-holders only; the area, zone, melee-retaliation, legendary and movement-reaction roots do not yet call this seam.
+holders only. The turn-zone, melee-retaliation, legendary and movement-reaction roots call the same seam (T6e3b): melee retaliation records
+the grants as `grantEffectTransitions` on its evidence (persistence refuses a settlement whose created grants differ, undo deletes them), and
+the movement-reaction root records them as `grantEffectTransitions` beside `ended`. The area root and spatial movement contacts (opt-in via
+`damageEnds.incomingDamageGrants`, unset for contacts) do not yet call it; contacts wait with T6e4's gap.
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source

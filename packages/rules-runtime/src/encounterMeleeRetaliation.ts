@@ -8,6 +8,7 @@ import {
   type SpatialTokenFootprint
 } from '@artificer-toolkit/shared/vtt'
 
+import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { NativeEncounterActionSource } from './encounterActionSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -200,11 +201,20 @@ export async function planEncounterMeleeRetaliation<
     occurredAt: input.occurredAt,
     userId: input.userId,
     commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 },
-    damageEnds: input.damageEnds
+    damageEnds: { ...input.damageEnds, incomingDamageGrants: true }
   })
+  const settlement = settled.settlements[0] ?? null
   const evidence: MeleeRetaliationEvidenceDto = {
     selectionChecksum: selected.selectionChecksum,
-    executions
+    executions,
+    grantEffectTransitions: (settlement?.grants ?? []).flatMap(
+      (grant) =>
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: attacker.actor.id
+        }).activeEffectTransitions
+    )
   }
   if (
     retained &&
@@ -214,7 +224,7 @@ export async function planEncounterMeleeRetaliation<
   return {
     evidence,
     /** Null when the zones left the attacker unchanged, so no batch is written. */
-    settlement: settled.settlements[0] ?? null,
+    settlement,
     projectedAttacker: settled.projectedTargets.get(attacker.actor.id)!
   }
 }
