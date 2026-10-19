@@ -8398,8 +8398,21 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Granted actions (D160): an extra restricted allowance on APPLY_GRANT (cost, uses per turn, allowed basic actions with an attack limit, or a repeat of a source path) and a generic onEnd grant list. Converts HASTE (lethargy through onEnd), EXPEDITIOUS_RETREAT, the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; each fully converted kind deleted. Split 2026-10-19 into T2l, T2l2, T2l3.",
+              "text": "Haste (D160, split 2026-10-19): restricted extra action, speed multiply, and a generic onEnd grant list fired from one shared effect-release seam used by every end path (expiry, Concentration drop, early end, spatial end), delivering lethargy. Parity proof; HASTE deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2lb",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2l"]
+              },
+              "text": "Granted-action offers (D160, split from T2l): a later action offered while an effect is held, which converts EXPEDITIOUS_RETREAT, the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; each fully converted kind deleted."
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -8436,7 +8449,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb"]
               },
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, CONTAGION (Encounter compiler runs THRESHOLDS repeat saves; Slimy Doom stunned when damaged; Mindfire moved to T2l2 per D160; T2a1 ruling), with parity proofs; each kind deleted."
             },
