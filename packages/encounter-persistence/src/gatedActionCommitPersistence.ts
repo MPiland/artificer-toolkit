@@ -199,7 +199,7 @@ export async function persistEncounterGatedActionCommit(
     execution: rootExecution,
     definitionId: input.initialDefinitionId,
     // No graph ran: the receipt names the facts the held action was prepared against.
-    factsChecksum: resume?.pending.context.currentnessChecksum,
+    factsChecksum: input.currentnessChecksum,
     result,
     commandFields: {
       label: input.label,

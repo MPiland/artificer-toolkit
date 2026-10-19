@@ -752,7 +752,9 @@ export async function openReachCastWindow(
         occurredAt,
         prepared: lead,
         ruleOverrides,
-        currentnessChecksum
+        currentnessChecksum,
+        // Area effects are not gated by an incoming-attack ward.
+        passedIncomingGate: undefined
       }
     }
   return {

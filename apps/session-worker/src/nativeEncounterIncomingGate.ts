@@ -190,6 +190,7 @@ export function buildNativeLiveEncounterGatedActionCommitInput(
     revisions: LiveSessionRulesRevisions
     occurredAt: string
     prepared: Prepared
+    currentnessChecksum: string
     ruleOverrides: Parameters<typeof overridesActionEconomy>[0]
     gated: ReturnType<typeof planNativeGatedAction>
   }
@@ -201,6 +202,7 @@ export function buildNativeLiveEncounterGatedActionCommitInput(
     response: plan.response,
     revisions: plan.revisions,
     occurredAt: plan.occurredAt,
+    currentnessChecksum: plan.currentnessChecksum,
     initialDefinitionId:
       prepared.plan.kind === 'SINGLE_GRAPH'
         ? prepared.plan.published.id

@@ -29,7 +29,7 @@ const ATTACKER_ID = testUuid(0x930)
 const WARDED_ID = testUuid(0x931)
 const CASTER_ACTOR_ID = testUuid(0x932)
 const CASTER_ID = testUuid(0x933)
-/** The save faces (zero-based dice) that pass any Sanctuary DC and fail it. */
+/** The save faces (zero-based dice; a player enters one more) that pass any Sanctuary DC and fail it. */
 const SAVE_PASSES = 19
 const SAVE_FAILS = 0
 /** The attack d20 face the Bite adds 4 to: a hit on any armor class. */
@@ -42,6 +42,14 @@ afterEach(() => {
   closeTrackedSockets()
   vi.restoreAllMocks()
 })
+
+/** The request id of the d20 evidence a decision is waiting on. */
+function diceRequestId(
+  decision: Awaited<ReturnType<typeof readPendingActionDecision>>
+): string {
+  if (decision?.pending.kind !== 'D20_EVIDENCE') throw new Error('No d20 request is pending.')
+  return decision.pending.request.requestId
+}
 
 /** The Wolf attacker bites the Wolf the Character cast Sanctuary on. */
 async function wardedRoom(
@@ -83,9 +91,11 @@ async function standing(room: WardedRoom) {
     history,
     wards: history.activeEffects.length,
     wardedHitPoints: readActorHitPoints(history, WARDED_ID),
+    // The action's root; a prompted save's answer leaves its own evidence receipt beside it.
     gated: history.receipts.flatMap((receipt) => {
       const execution = parseReceiptExecution(receipt)
-      return execution.status === 'AGGREGATE_CHOICE_COMPLETE' &&
+      return receipt.commandType === 'RESOLVE_ACTION' &&
+        execution.status === 'AGGREGATE_CHOICE_COMPLETE' &&
         execution.applicationOutputs.kind === 'ENCOUNTER_GATED_ACTION'
         ? [execution.applicationOutputs]
         : []
@@ -138,8 +148,8 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     const passed = await room.send(
       room.resolveCommand(gate!, {
         kind: 'ENTER_DICE',
-        requestId: gate!.pending.requestId,
-        rawFaces: [SAVE_PASSES],
+        requestId: diceRequestId(gate),
+        rawFaces: [SAVE_PASSES + 1],
         rollMode: 'NORMAL'
       })
     )
@@ -147,12 +157,12 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
 
     const attack = await readPendingActionDecision(room.room.base.stub)
     expect(attack?.pending.kind).toBe('D20_EVIDENCE')
-    expect(attack?.pending.requestId).not.toBe(gate?.pending.requestId)
+    expect(attack!.occurrence.version).toBeGreaterThan(gate!.occurrence.version)
     const hit = await room.send(
       room.resolveCommand(attack!, {
         kind: 'ENTER_DICE',
-        requestId: attack!.pending.requestId,
-        rawFaces: [ATTACK_HITS],
+        requestId: diceRequestId(attack),
+        rawFaces: [ATTACK_HITS + 1],
         rollMode: 'NORMAL'
       })
     )
@@ -172,8 +182,8 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     const failed = await room.send(
       room.resolveCommand(gate!, {
         kind: 'ENTER_DICE',
-        requestId: gate!.pending.requestId,
-        rawFaces: [SAVE_FAILS],
+        requestId: diceRequestId(gate),
+        rawFaces: [SAVE_FAILS + 1],
         rollMode: 'NORMAL'
       })
     )
@@ -211,7 +221,7 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     })
     const before = await standing(room)
 
-    const answer = await room.startAreaAction({ x: 250, y: 150 })
+    const { answer } = await room.startAreaAction({ x: 250, y: 150 })
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 
     const after = await standing(room)

@@ -28,6 +28,7 @@ import {
 } from './liveSessionEncounterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { ruleExecutionChecksumSchema } from '../shared/ruleExecutionPrimitives.js'
 import { characterResourceUsageOwnerSchema } from '../projections/characterSheetState.js'
 import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 import {
@@ -338,10 +339,18 @@ export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<L
 export type LiveSessionEncounterGatedActionCommitInput = Omit<
   LiveSessionEncounterCounteredCastCommitInput,
   'reactionSpellConsumption' | 'failedCounters'
->
+> & {
+  /** The facts the gated action was prepared against; its receipt names them, as no graph ran. */
+  currentnessChecksum: string
+}
 
 export const liveSessionEncounterGatedActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterGatedActionCommitInput> =
-  lazySchema(() => z.extend(lostActionCommitBase(), lostActionCommitFields()))
+  lazySchema(() =>
+    z.extend(lostActionCommitBase(), {
+      ...lostActionCommitFields(),
+      currentnessChecksum: ruleExecutionChecksumSchema
+    })
+  )
 
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
 export type LiveSessionPlacedSpatialEffect = {
