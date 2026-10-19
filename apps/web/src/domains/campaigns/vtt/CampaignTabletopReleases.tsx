@@ -39,7 +39,7 @@ function ReleaseList({
   const titleId = useId()
   const { submittingId, feedback, error, run, cancelConfirmation } = useWarnedCommand(encounterId)
 
-  function release(choice: EncounterHeldRelationshipDto) {
+  function release(choice: ReleasesProps['releases'][number]) {
     return run(
       choice.activeEffectId,
       () =>
