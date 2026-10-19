@@ -670,7 +670,7 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
       expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([
         { item: daggerItem, releasable: true }
       ])
-      expect(encounterHeldItemInstanceIds(target)).toEqual([HELD_ENTRY_ID])
+      expect(encounterHeldItemInstanceIds(target.actor, undefined)).toEqual([HELD_ENTRY_ID])
     }
   )
 

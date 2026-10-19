@@ -1,5 +1,6 @@
 import type { EquipmentInstanceMechanicSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CompiledActionActiveEffectPlan } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorOptionalContestContext } from './encounterActorOptionalContestContext.js'
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
@@ -15,6 +16,13 @@ type EquippedItem = {
   properties: readonly string[]
   held: boolean
 }
+
+/** Only what a hand holds can be dropped; worn items stay (Disarm's rule). */
+const isHeldSlot = (slot: string) => slot !== 'WORN'
+
+/** The same fact a Disarm reads: a hand of the Creature holds the entry and its loadout can carry it. */
+const isCreatureEntryHeld = (actor: EncounterRunActorState, loadoutEntryId: string) =>
+  readEncounterActorOptionalContestContext({ actor, loadoutEntryId }) !== null
 
 function equippedItems(target: MovementTarget<CharacterMovementFacts>): EquippedItem[] {
   const facts = target.characterFacts
@@ -37,8 +45,7 @@ function equippedItems(target: MovementTarget<CharacterMovementFacts>): Equipped
           ],
           category: compiledItem.category,
           properties: compiledItem.properties ?? [],
-          // Only what a hand holds can be dropped; worn items stay (Disarm's rule).
-          held: slot !== 'WORN'
+          held: isHeldSlot(slot)
         }
       ]
     })
@@ -57,12 +64,7 @@ function equippedItems(target: MovementTarget<CharacterMovementFacts>): Equipped
             equipmentIds: [entry.equipmentId, ...source.compiled.parentEquipmentIds],
             category: source.compiled.category,
             properties: source.compiled.properties,
-            // The same fact a Disarm reads: a hand holds it and its loadout can carry it.
-            held:
-              readEncounterActorOptionalContestContext({
-                actor: target.actor,
-                loadoutEntryId: entry.id
-              }) !== null
+            held: isCreatureEntryHeld(target.actor, entry.id)
           }
         ]
   )
@@ -113,9 +115,20 @@ export function readEncounterChosenItem(input: {
   return chosen
 }
 
-/** The item instances a hand of the creature holds now. */
+/**
+ * The item instances a hand of the actor holds now: a Character's from its equipped items
+ * (`characterEquipped`, required for a Character), a Creature's from its loadout.
+ */
 export function encounterHeldItemInstanceIds(
-  target: MovementTarget<CharacterMovementFacts>
+  actor: EncounterRunActorState,
+  characterEquipped: readonly { itemId: string; slot: string }[] | undefined
 ): string[] {
-  return equippedItems(target).flatMap(({ item, held }) => (held ? [item.itemInstanceId] : []))
+  if (actor.kind === 'CHARACTER') {
+    if (!characterEquipped) throw new Error('Held item Character equipment is unavailable.')
+    return characterEquipped.flatMap(({ itemId, slot }) => (isHeldSlot(slot) ? [itemId] : []))
+  }
+  if (actor.kind !== 'CREATURE') return []
+  return snapshotCreatureEquipmentItems(actor).flatMap(({ entry }) =>
+    entry.useState !== 'CARRIED' && isCreatureEntryHeld(actor, entry.id) ? [entry.id] : []
+  )
 }

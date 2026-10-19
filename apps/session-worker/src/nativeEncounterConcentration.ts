@@ -322,7 +322,10 @@ export async function planNativeLiveConcentration(input: {
         ...grantsEndedByHolderState(stateBound, {
           reason,
           conditionIds: target.state.conditions,
-          heldItemInstanceIds: encounterHeldItemInstanceIds(target)
+          heldItemInstanceIds: encounterHeldItemInstanceIds(
+            target.actor,
+            target.characterFacts?.character.state.equipment.equipped
+          )
         })
       )
     }
