@@ -19,6 +19,7 @@ import type {
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
+  PathChosenItemAuthored,
   EffectPathAuthored,
   ManifestBehaviorAuthored,
   NonManifestOutcomeAuthored,
@@ -71,6 +72,8 @@ import {
   CLOSED_RULE_KIND_OPTIONS,
   SIZE_OPTIONS,
   ACTIVATION_OPTIONS,
+  EQUIPMENT_CATEGORY_OPTIONS,
+  EQUIPMENT_PROPERTY_OPTIONS,
   type Trigger
 } from '#core'
 import {
@@ -209,6 +212,7 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 )
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
+const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
@@ -2046,6 +2050,20 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'bindsChosenItem',
+      toggle(['bindsChosenItem'], 'Grants Apply Only to the Chosen Item', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.APPLY_GRANT),
+        hiddenBehavior: 'CLEAR'
+      })
+    )
+    .set(
+      'unlessChosenItemReleased',
+      toggle(['unlessChosenItemReleased'], 'Only If the Chosen Item Is Not Released', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.APPLY_GRANT),
+        hiddenBehavior: 'CLEAR'
+      })
+    )
+    .set(
       'direction',
       selectSingle(
         ['direction'],
@@ -3340,6 +3358,44 @@ const NON_MANIFEST_ROLL_TABLE_ROW_NODE_MAP: NodeMap<
     )
 })
 
+const PATH_CHOSEN_ITEM_NODE_MAP: NodeMap<PathChosenItemAuthored> = pathChosenItem.define(
+  'pathChosenItem',
+  ({ map, nodes, data }) => {
+    const { selectSingle, selectMulti } = nodes
+    const { table } = data
+
+    map
+      .set(
+        'category',
+        selectSingle(['category'], 'Category', {
+          kind: 'INLINE_OPTIONS',
+          options: EQUIPMENT_CATEGORY_OPTIONS
+        })
+      )
+      .set(
+        'requiredProperties',
+        selectMulti(['requiredProperties'], 'Required Properties', {
+          kind: 'INLINE_OPTIONS',
+          options: EQUIPMENT_PROPERTY_OPTIONS
+        })
+      )
+      .set(
+        'excludedProperties',
+        selectMulti(['excludedProperties'], 'Excluded Properties', {
+          kind: 'INLINE_OPTIONS',
+          options: EQUIPMENT_PROPERTY_OPTIONS
+        })
+      )
+      .set(
+        'equipmentIds',
+        selectMulti(['equipmentIds'], 'Equipment', {
+          kind: 'DATA',
+          relationship: table('equipment', { selectColumns: ['id', 'label'] })
+        })
+      )
+  }
+)
+
 export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
   'effectPath',
   ({ map, nodes, cond }) => {
@@ -3434,6 +3490,12 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
       .set(
         'targetingOverride',
         groupObject(['targetingOverride'], 'Targeting Override', () => TARGETING_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set(
+        'chosenItem',
+        groupObject(['chosenItem'], 'Chosen Item', () => PATH_CHOSEN_ITEM_NODE_MAP, {
           presentation: 'inline'
         })
       )

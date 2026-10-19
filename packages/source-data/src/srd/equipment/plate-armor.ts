@@ -8,7 +8,7 @@ export const plateArmor: EquipmentAuthored = {
   description:
     'Plate consists of shaped, interlocking metal plates to cover the entire body. A suit of plate includes gauntlets, heavy leather boots, a visored helmet, and thick layers of padding underneath the armor. Buckles and straps distribute the weight over the body.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
+  properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY, S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 18,
   cost: S.gp(1500),
   weight: S.lbs(65),

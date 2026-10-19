@@ -31,6 +31,8 @@ export type EncounterMechanicsBatchResult = {
   }
   characterStreamVersion: number | null
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
+  /** The item the target dropped (`releaseHeldItemInstanceId`); null when it dropped none. */
+  itemReleaseTransition: EncounterMechanicsBatchPlan['itemReleaseTransition']
   /** The "until healed" grants a heal in this batch ended: the action's undo gives them back. */
   endedGrants: ActiveRuleEffectRecord[]
 }
@@ -186,6 +188,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
       itemUseStateTransition: null,
+      itemReleaseTransition: plan.itemReleaseTransition,
       endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
     }
   }
@@ -243,6 +246,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,
     itemUseStateTransition: plan.itemUseStateTransition,
+    itemReleaseTransition: plan.itemReleaseTransition,
     endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
   }
 }

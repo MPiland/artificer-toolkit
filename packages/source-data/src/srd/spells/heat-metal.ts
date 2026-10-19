@@ -1,4 +1,15 @@
 import {
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  DAMAGE_VALUE_KIND,
+  DURATION_KIND,
+  EQUIPMENT_PROPERTY_CODE,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  SCALING,
+  SCALING_SOURCE,
+  VALUE_DOMAIN_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -15,8 +26,13 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_MAGIC_SCHOOLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
+import { damageTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -42,7 +58,12 @@ export const heatMetal: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.HEAT_METAL, 0x217, 1),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -60,20 +81,310 @@ export const heatMetal: SpellAuthored = {
       },
       paths: [
         {
-          id: spellChildId(SPELL_IDS.HEAT_METAL, 0x212, 1),
+          id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
+          chosenItem: { requiredProperties: [EQUIPMENT_PROPERTY_CODE.METAL] },
           resultBlock: {
-            id: spellChildId(SPELL_IDS.HEAT_METAL, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.HEAT_METAL, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'HEAT_METAL' as const
+                id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('FIRE'),
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                levels: [
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 2),
+                    level: 2,
+                    order: 1,
+                    diceConfig: '2d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 3),
+                    level: 3,
+                    order: 2,
+                    diceConfig: '3d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 4),
+                    level: 4,
+                    order: 3,
+                    diceConfig: '4d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 5),
+                    level: 5,
+                    order: 4,
+                    diceConfig: '5d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 6),
+                    level: 6,
+                    order: 5,
+                    diceConfig: '6d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 7),
+                    level: 7,
+                    order: 6,
+                    diceConfig: '7d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 8),
+                    level: 8,
+                    order: 7,
+                    diceConfig: '8d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 9),
+                    level: 9,
+                    order: 8,
+                    diceConfig: '9d8'
+                  }
+                ]
+              },
+              {
+                id: spellChildId(SPELL_IDS.HEAT_METAL, 0x213, 20),
+                effectKind: EFFECT_KIND.RELEASE_CHOSEN_ITEM
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          chosenItem: { requiredProperties: [EQUIPMENT_PROPERTY_CODE.METAL] },
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 2),
+              durationKind: DURATION_KIND.ROUND,
+              amount: 1
+            },
+            lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                unlessChosenItemReleased: true,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 4),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 5),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.SPELL },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 3
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 6),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.UNARMED },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 4
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x214, 7),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 1),
+          order: 3,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          chosenItem: { requiredProperties: [EQUIPMENT_PROPERTY_CODE.METAL] },
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('FIRE'),
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                levels: [
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 2),
+                    level: 2,
+                    order: 1,
+                    diceConfig: '2d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 3),
+                    level: 3,
+                    order: 2,
+                    diceConfig: '3d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 4),
+                    level: 4,
+                    order: 3,
+                    diceConfig: '4d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 5),
+                    level: 5,
+                    order: 4,
+                    diceConfig: '5d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 6),
+                    level: 6,
+                    order: 5,
+                    diceConfig: '6d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 7),
+                    level: 7,
+                    order: 6,
+                    diceConfig: '7d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 8),
+                    level: 8,
+                    order: 7,
+                    diceConfig: '8d8'
+                  },
+                  {
+                    id: spellChildId(SPELL_IDS.HEAT_METAL, 0x215, 9),
+                    level: 9,
+                    order: 8,
+                    diceConfig: '9d8'
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 1),
+          order: 4,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          chosenItem: { requiredProperties: [EQUIPMENT_PROPERTY_CODE.METAL] },
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 2),
+              durationKind: DURATION_KIND.ROUND,
+              amount: 1
+            },
+            lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 4),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 5),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.SPELL },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 3
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 6),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.UNARMED },
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 4
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.HEAT_METAL, 0x216, 7),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 5
+                    }
+                  ]
+                }
               }
             ]
           }

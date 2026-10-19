@@ -245,6 +245,44 @@ export function movementPassageGrants(
   }
 }
 
+/**
+ * A feature's advantage on saving throws against being <conditions> and on checks of <skills>.
+ * A condition's save can use any ability, so each condition gets one grant per ability. The grants
+ * take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
+ */
+export function advantageGrants(
+  creatureIndex: number,
+  firstLocalIndex: number,
+  input: { savesAgainst: readonly SrdConditionCode[]; skills?: readonly string[] }
+): NonNullable<FeatureAuthored['grants']> {
+  const common = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    modifierKind: MODIFIER_KIND.ADVANTAGE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+  } as const
+  const domains = [
+    ...(input.skills ?? []).map((code) => ({
+      valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
+      domain: { skillId: skillId(code) }
+    })),
+    ...input.savesAgainst.flatMap((code) =>
+      Object.values(ABILITY_CODE).map((ability) => ({
+        valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+        domain: { ability, conditionTypeId: vocabularyId(SRD_CONDITION_TYPES, code) }
+      }))
+    )
+  ]
+  return {
+    modifiers: domains.map((entry, order) => ({
+      ...common,
+      ...entry,
+      id: grantId(creatureIndex, firstLocalIndex + order),
+      order
+    }))
+  }
+}
+
 /** A breath weapon's cone: a Self area that starts at the creature and catches everyone in it. */
 export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   return {
@@ -344,6 +382,10 @@ function proficiencyId(creatureIndex: number, localIndex: number) {
 
 export function equipmentLoadoutId(creatureIndex: number, localIndex: number) {
   return localId(8, creatureIndex, localIndex)
+}
+
+function grantId(creatureIndex: number, localIndex: number) {
+  return localId(6, creatureIndex, localIndex)
 }
 
 function grappleId(creatureIndex: number, localIndex: number) {
