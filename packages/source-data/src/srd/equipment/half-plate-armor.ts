@@ -8,7 +8,7 @@ export const halfPlateArmor: EquipmentAuthored = {
   description:
     "Half plate consists of shaped metal plates that cover most of the wearer's body. It does not include leg protection beyond simple greaves that are attached with leather straps.",
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
+  properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM, S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 15,
   cost: S.gp(750),
   weight: S.lbs(40),

@@ -121,7 +121,10 @@ export function effectsEndedBy(
   )
 }
 
-/** Grants whose lifetime follows their holder's state: they end on incapacitation or on a named condition. */
+/**
+ * Grants whose lifetime follows their holder's state: they end on incapacitation, on a named
+ * condition, or when the holder lets go of the item they are bound to.
+ */
 export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[]
 ) {
@@ -129,29 +132,45 @@ export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
     (effect) =>
       isModifierGrant(effect) &&
       (effect.definition.recurrence.endOnEvents.includes('ON_INCAPACITATED') ||
+        effect.definition.recurrence.endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') ||
         effect.definition.recurrence.endOnConditionIds.length > 0)
   )
 }
 
+/** The item a grant is bound to (Shillelagh's club); null for an unbound grant. */
+function boundItemInstanceId(effect: ActiveRuleEffectRecord) {
+  if (effect.definition.schemaVersion !== 2) return null
+  for (const contribution of effect.definition.stateContributions)
+    if (contribution.kind === 'MODIFIER_GRANT' && contribution.boundItem)
+      return contribution.boundItem.itemInstanceId
+  return null
+}
+
 /**
  * The holder's grants its state ends (D95): those that end on incapacitation when it is
- * incapacitated or defeated, and those that name a condition it has, whatever else is true of them.
+ * incapacitated or defeated, those that name a condition it has, and those that end on release
+ * when no hand of it holds their bound item, whatever else is true of them.
  */
 export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   state: {
     reason: Exclude<ConcentrationEndReason, 'CHOSEN'> | null
     conditionIds: readonly string[]
+    heldItemInstanceIds: readonly string[]
   }
 ) {
   const incapacitated = state.reason === 'INCAPACITATED' || state.reason === 'DEFEATED'
   // A defeated holder's conditions are not read (readHolderEndState), so none can end a grant.
   const conditionIds = state.reason === 'DEFEATED' ? [] : state.conditionIds
-  return stateBoundGrants(effects).filter(({ definition }) => {
-    const { endOnEvents, endOnConditionIds } = definition.recurrence
+  return stateBoundGrants(effects).filter((effect) => {
+    const { endOnEvents, endOnConditionIds } = effect.definition.recurrence
+    const boundItemId = boundItemInstanceId(effect)
     return (
       (incapacitated && endOnEvents.includes('ON_INCAPACITATED')) ||
-      endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId))
+      endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId)) ||
+      (endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') &&
+        boundItemId !== null &&
+        !state.heldItemInstanceIds.includes(boundItemId))
     )
   })
 }

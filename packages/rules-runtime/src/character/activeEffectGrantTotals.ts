@@ -1,6 +1,7 @@
 import type {
   CharacterGrantFoldModifier,
-  CharacterGrantFoldSense
+  CharacterGrantFoldSense,
+  EquipmentInstanceMechanicSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
@@ -28,6 +29,8 @@ type ActiveEffectGrant = {
   senses: readonly CharacterGrantFoldSense[]
   sourceLabel: string
   sourceHidden: boolean
+  /** The holder's item the grant is bound to; absent for an unbound grant. */
+  boundItem?: EquipmentInstanceMechanicSource
 }
 
 export function listActiveEffectGrants(
@@ -43,7 +46,8 @@ export function listActiveEffectGrants(
                   modifiers: contribution.modifiers,
                   senses: contribution.senses,
                   sourceLabel: contribution.sourceLabel,
-                  sourceHidden: contribution.sourceHidden
+                  sourceHidden: contribution.sourceHidden,
+                  ...(contribution.boundItem && { boundItem: contribution.boundItem })
                 }
               ]
             : []

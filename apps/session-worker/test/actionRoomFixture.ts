@@ -567,9 +567,18 @@ export async function actionRoom(config: ActionRoomConfig) {
         targetTokenId: targetToken.id
       }
     },
+    /** The items of `targetActorId` the acting actor's action may be used on, as the GM reads them. */
+    async actionItemChoices(targetActorId: string, chosenActionId = actionId, actorId = source.id) {
+      const choices = await readRoomEncounter(room.base, {
+        kind: 'ACTION_ITEM_CHOICES',
+        input: { encounterId: room.encounterId, actorId, actionId: chosenActionId, targetActorId }
+      })
+      if (!choices) throw new Error('The room offers no item choices.')
+      return choices.items
+    },
     /**
      * The acting actor's action at `targetActorId`, with `choiceOptionId` the option a cast-time pick
-     * names (D148); the room's answer, not yet checked.
+     * names (D148) and `boundItemInstanceId` the item it is used on; the room's answer, not yet checked.
      */
     async startAction(
       targetActorId: string,
@@ -578,7 +587,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       optionalCombatIntent: ResolveEncounterActionInputDto['optionalCombatIntent'] = null,
       chosenActionId = actionId,
       actorId = source.id,
-      choiceOptionId?: string
+      choiceOptionId?: string,
+      boundItemInstanceId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -591,7 +601,8 @@ export async function actionRoom(config: ActionRoomConfig) {
         target: {
           kind: 'ACTOR',
           actorId: targetActorId,
-          ...(choiceOptionId && { choiceOptionId })
+          ...(choiceOptionId && { choiceOptionId }),
+          ...(boundItemInstanceId && { boundItemInstanceId })
         },
         actionId: chosenActionId,
         optionalCombatIntent,

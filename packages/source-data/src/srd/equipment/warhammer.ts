@@ -10,7 +10,8 @@ export const warhammer: EquipmentAuthored = {
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
-    S.EQUIPMENT_PROPERTY_CODE.VERSATILE
+    S.EQUIPMENT_PROPERTY_CODE.VERSATILE,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(31)),
   effects: S.meleeVersatileWeaponEffects(S.equipId(31), 'BLUDGEONING', '1d8', '1d10'),

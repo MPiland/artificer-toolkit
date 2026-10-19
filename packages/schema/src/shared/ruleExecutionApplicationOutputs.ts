@@ -98,6 +98,11 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         null
       ),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
+      /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
+      targetItemUseStateTransition: z._default(
+        z.nullable(characterItemUseStateTransitionDtoSchema),
+        null
+      ),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
@@ -494,8 +499,21 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         const hasActiveEffectCreation =
           value.activeEffectTransitions.length > 0 || value.reactionEffectTransitions.length > 0
         const reaction = value.reaction
+        const release = value.targetItemUseStateTransition
+        if (
+          release &&
+          (release.afterStreamVersion !== value.targetCharacterStreamVersion ||
+            (stow !== null && value.sourceActorId === value.targetActorId))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['targetItemUseStateTransition'],
+            message: 'Target item state transition must match the target Character version.'
+          })
         const hasReactionMutation =
-          reaction?.spellCastConsumption != null || value.targetFailedCounterSpend
+          reaction?.spellCastConsumption != null ||
+          value.targetFailedCounterSpend ||
+          release !== null
         if (
           reaction &&
           (reaction.reaction.reactorActorId !== value.targetActorId ||

@@ -7,7 +7,11 @@ export const flail: EquipmentAuthored = {
   label: 'Flail',
   description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE],
+  properties: [
+    S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
+    S.EQUIPMENT_PROPERTY_CODE.MELEE,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
+  ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(16)),
   effects: S.meleeWeaponEffects(S.equipId(16), 'BLUDGEONING', '1d8', S.EQUIPMENT_GRIP.ONE_HANDED),
   cost: S.gp(10),

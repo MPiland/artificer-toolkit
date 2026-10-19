@@ -300,8 +300,11 @@ export function encounterActionChoiceTarget(
    */
   zonePlacement?: CompiledActionZonePlacement | CompiledActionZoneChoice | null,
   /** The options a cast or a basic action (Shove) picks one of on the creatures it targets (D148). */
-  castChoice?: { options: readonly { optionId: string; label: string }[] } | null
+  castChoice?: { options: readonly { optionId: string; label: string }[] } | null,
+  /** The action is used on an item its creature has equipped (Shillelagh, Heat Metal). */
+  choosesItem?: boolean
 ): EncounterActionChoiceDto['target'] {
+  const itemChoice = choosesItem ? { choosesItem: true as const } : {}
   const forms = formContribution?.forms
   const offered = (options: readonly { optionId: string; label: string }[] | undefined) =>
     options
@@ -339,7 +342,7 @@ export function encounterActionChoiceTarget(
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
   const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
-  return { kind: 'ACTOR', self: self ?? 'ALLOWED', ...choiceOptions }
+  return { kind: 'ACTOR', self: self ?? 'ALLOWED', ...choiceOptions, ...itemChoice }
 }
 
 /**
