@@ -62,6 +62,6 @@ export function encounterCommandRefusal(error: unknown): {
   if (status === 503) return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   return {
     code: status === 401 || status === 403 ? 'FORBIDDEN' : 'UNAVAILABLE',
-    message: 'The Encounter command could not be completed.'
+    message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 1500) // TEMP
   }
 }
