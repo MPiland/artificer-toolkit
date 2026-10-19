@@ -562,6 +562,32 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'magicSchoolId',
+        selectSingle(
+          ['magicSchoolId'],
+          'Magic School',
+          {
+            kind: 'DATA',
+            relationship: table('magic_schools', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('SPELL_SCHOOL_IMMUNITY') }
+        )
+      )
+      .set(
+        'skillId',
+        selectSingle(
+          ['skillId'],
+          'Skill',
+          {
+            kind: 'DATA',
+            relationship: table('skills', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('CHECKS_AGAINST_HOLDER') }
+        )
+      )
+      .set(
         'attributeId',
         text(['attributeId'], 'Attribute ID', {
           showIf: parent.field(['valueDomainCode']).eq('ATTRIBUTE')
