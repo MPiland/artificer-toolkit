@@ -87,7 +87,8 @@ export function sourceSightSaveAuthoredEffect(): EffectAuthored {
                       grants: {
                         ...outcome.grants,
                         modifiers: outcome.grants.modifiers?.flatMap((modifier) =>
-                          modifier.valueDomainCode === 'SAVING_THROW_MODIFIER'
+                          modifier.valueDomainCode === 'SAVING_THROW_MODIFIER' &&
+                          modifier.modifierKind === 'ADVANTAGE'
                             ? [
                                 {
                                   ...modifier,

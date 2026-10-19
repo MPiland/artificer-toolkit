@@ -216,10 +216,41 @@ function checkPathRestrictions(
   })
 }
 
+/**
+ * A failure-margin rider reads the margin of the saving throw the Effect itself makes, so only the
+ * fixed ON_SAVE_FAIL result of a saving-throw action carries one (a follow-up save carries its own).
+ */
+function checkFailureMarginRiders(
+  effect: Pick<EffectAuthored, 'invocation' | 'paths'>,
+  context: z.core.$RefinementCtx
+) {
+  effect.paths.forEach((path, index) => {
+    const resultBlocks =
+      path.selectionKind === 'FIXED'
+        ? [path.resultBlock]
+        : path.selectionKind === 'CHOICE'
+          ? path.options.map((option) => option.resultBlock)
+          : path.rows.flatMap((row) => (row.resolutionKind === 'RESULT' ? [row.resultBlock] : []))
+    const allowed =
+      path.selectionKind === 'FIXED' &&
+      path.pathCode === 'ON_SAVE_FAIL' &&
+      effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE &&
+      effect.invocation.triggerCode === 'SAVING_THROW'
+    if (!allowed && resultBlocks.some((block) => block.failureMarginRider))
+      context.addIssue({
+        code: 'custom',
+        path: ['paths', index],
+        message:
+          'Only the fixed ON_SAVE_FAIL result of a saving-throw action can carry a failure margin rider.'
+      })
+  })
+}
+
 export const effectDtoSchema = lazySchema(() =>
   (createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>).check(
     z.superRefine(checkWeaponDamageTypeChoices),
-    z.superRefine(checkPathRestrictions)
+    z.superRefine(checkPathRestrictions),
+    z.superRefine(checkFailureMarginRiders)
   )
 )
 
@@ -307,7 +338,11 @@ export const featureEffectDtoSchema = lazySchema(() =>
             })
         })
       ) as z.ZodMiniType<FeatureEffectAuthored>
-  ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
+  ).check(
+    z.superRefine(checkWeaponDamageTypeChoices),
+    z.superRefine(checkPathRestrictions),
+    z.superRefine(checkFailureMarginRiders)
+  )
 )
 
 /** Equipment effects name a grip exactly when they are weapon attacks, never on passive effects. */
@@ -332,7 +367,11 @@ export const equipmentEffectDtoSchema = lazySchema(() =>
             })
         })
       ) as z.ZodMiniType<EquipmentEffectAuthored>
-  ).check(z.superRefine(checkWeaponDamageTypeChoices), z.superRefine(checkPathRestrictions))
+  ).check(
+    z.superRefine(checkWeaponDamageTypeChoices),
+    z.superRefine(checkPathRestrictions),
+    z.superRefine(checkFailureMarginRiders)
+  )
 )
 
 export const manifestNestedBehaviorDtoSchema = lazySchema(() =>

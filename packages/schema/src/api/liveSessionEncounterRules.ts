@@ -5,6 +5,7 @@ import {
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { sceneActorLightSchema } from './characterMechanicsRead.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { MAX_TURN_TELEPORT_ALLOWANCES } from '../shared/teleportAllowance.js'
 import { reusableDefinitionCurrentDtoSchema } from '../shared/reusableDefinitions.js'
@@ -386,7 +387,11 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
         z.strictObject({
           header: sceneLiveStateHeaderSchema,
           observerTokenId: postgresUuidSchema,
-          subjectTokenId: postgresUuidSchema
+          subjectTokenId: postgresUuidSchema,
+          // The light each bound actor sheds, composed onto its token like the room's Scene vision.
+          tokenLights: z
+            .array(z.strictObject({ tokenId: postgresUuidSchema, light: sceneActorLightSchema }))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
     }),

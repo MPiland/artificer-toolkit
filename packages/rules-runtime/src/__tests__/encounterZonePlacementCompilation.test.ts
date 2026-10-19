@@ -65,6 +65,7 @@ describe('placed-space zone compilation from real SRD Caltrops', () => {
     const zone = zonePlacementOf()
     expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual([
       'd20',
+      'd20-added-dice',
       'test',
       'proposal-on_save_fail',
       'movement-interruption'
@@ -444,6 +445,7 @@ describe('a zone whose failed entry save deals dice damage (D133)', () => {
     const { nodes, outputs } = zonePlacementOf(authored).entry.frozenGraph.definition
     expect(nodes.map((node) => node.id)).toEqual([
       'd20',
+      'd20-added-dice',
       'test',
       'damage-enabled',
       'damage-die-1',
@@ -543,6 +545,7 @@ describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () 
     const { nodes } = zonePlacementOf(authored).entry.frozenGraph.definition
     expect(nodes.map((node) => node.id)).toEqual([
       'd20',
+      'd20-added-dice',
       'test',
       'damage-enabled',
       'damage-die-1',
@@ -662,7 +665,7 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
     expect(zone).toMatchObject({ failedSaveLosesAction: true, turnTriggers: ['START_OF_TURN'] })
     expect(zone.grant).toBeNull()
     const { nodes, sourceEntryBindings } = zone.entry.frozenGraph.definition
-    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test'])
+    expect(nodes.map((node) => node.id)).toEqual(['d20', 'd20-added-dice', 'test'])
     expect(zone.entry.frozenGraphNodeId).toBe('test')
     expect(sourceEntryBindings).toEqual([
       { sourceEntryId: zone.entry.compiledEntryId, nodeId: 'test' }
@@ -704,7 +707,12 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
     const zone = zonePlacementOf(startOfTurnZone(failedSaveOnly(conditionOutcome())))
     expect(zone).not.toHaveProperty('failedSaveLosesAction')
     const { nodes } = zone.entry.frozenGraph.definition
-    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test', 'proposal-on_save_fail'])
+    expect(nodes.map((node) => node.id)).toEqual([
+      'd20',
+      'd20-added-dice',
+      'test',
+      'proposal-on_save_fail'
+    ])
     expect(zone.entry.frozenGraphNodeId).toBe('proposal-on_save_fail')
   })
 
@@ -871,7 +879,12 @@ describe('a zone a mover enters whose failed save applies a condition alone (SPE
   it('applies the condition from the one frozen entry graph, only on the failed save', () => {
     const zone = zonePlacementOf(authored)
     const { nodes, outputs } = zone.entry.frozenGraph.definition
-    expect(nodes.map((node) => node.id)).toEqual(['d20', 'test', 'proposal-on_save_fail'])
+    expect(nodes.map((node) => node.id)).toEqual([
+      'd20',
+      'd20-added-dice',
+      'test',
+      'proposal-on_save_fail'
+    ])
     expect(nodes.find((node) => node.id === 'proposal-on_save_fail')).toMatchObject({
       inputs: { conditionId: { kind: 'LITERAL', value: PRONE_ID } }
     })

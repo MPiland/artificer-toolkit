@@ -771,7 +771,7 @@
                 "after": []
               },
               "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18.",
-              "note": "Merged m152 (86d12d1d2). Convex 3-worker trial clean 3 of 3 (39184861302, 39185817174, 39186776489) but not faster (slowest shard 8.6-8.7 min vs 7.6-10.4; run 10.7-12.5 vs 10.5-12.2 min); config stays at 2."
+              "note": "Merged m152 (86d12d1d2). Convex 3-worker trial clean 3 of 3 (39184861302, 39185817174, 39186776489) but not faster (slowest shard 8.6-8.7 min vs 7.6-10.4; run 10.7-12.5 vs 10.5-12.2 min); config stays at 2. Trial record merged m157 (1cb431574)."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -8127,7 +8127,7 @@
             },
             {
               "id": "SPELLS-4.T2c1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8137,11 +8137,11 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Rolled-die modifier (one kind, sign ADD or SUBTRACT) on attack rolls and saves for Characters and Creatures through one evaluation, addedDice transport, server rolls, receipt faces and the roll row; converts BLESS and BANE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m158 (0c9acbd87)."
             },
             {
               "id": "SPELLS-4.T2c2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8150,7 +8150,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2c1"]
               },
-              "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
+              "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2c3",
@@ -8286,7 +8287,7 @@
               "text": "Incoming-attack roll modes from existing options: BLUR (ATTACKS_AGAINST with exemptAttackerSenses), TRUE_STRIKE (PATH_TARGET-scoped advantage from the holder’s next turn), ENTHRALL (Perception disadvantage; two clauses MANUAL_ADJUDICATION), with parity proofs; each kind deleted. Split from SPELLS-4.T2k (2026-10-18 ruling)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2k",
               "wsjf": {
@@ -8296,7 +8297,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2k1"]
               },
-              "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1."
+              "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -11235,7 +11237,7 @@
             },
             {
               "id": "SPELLS-31.T5d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11244,7 +11246,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): critical range and extra critical dice; Improved, Superior and Brutal Critical. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): critical range and extra critical dice; Improved, Superior and Brutal Critical. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5e",
@@ -11641,7 +11644,7 @@
             },
             {
               "id": "SPELLS-33.T3a2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11650,7 +11653,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
               },
-              "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use (reusing the creature feature-grant fold SPELLS-33.T6k1 adds), then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use (reusing the creature feature-grant fold SPELLS-33.T6k1 adds), then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3a3",
@@ -11696,7 +11700,7 @@
             },
             {
               "id": "SPELLS-33.T3a6",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11705,7 +11709,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "Creature feature discovery compiles per cast-choice option like the character entry point (pick at use, D148); convert Vampire Spawn Claws and Vampire Unarmed Strike damage-or-grapple (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Creature feature discovery compiles per cast-choice option like the character entry point (pick at use, D148); convert Vampire Spawn Claws and Vampire Unarmed Strike damage-or-grapple (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3b",
@@ -12113,7 +12118,7 @@
             },
             {
               "id": "SPELLS-33.T6e",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12122,7 +12127,34 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: event triggers (holder death, holder takes a damage type, another creature starts its turn in range, touched) (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: event triggers (holder takes a damage type, another creature starts its turn in range): Chain Devil Unnerving Mask, Flesh Golem Aversion of Fire, Water Elemental Freeze (3 kinds); the DAMAGE_TAKEN hook also reaches turn-zone, retaliation and aura damage. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 rulings: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2, Balor to T6e1; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6e1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T6e"]
+              },
+              "text": "Balor Death Throes: runtime for the existing ON_HP_ZERO passive trigger. Auto-roll victims settle in the defeating commit; manual rollers get an area-save pending created in that same commit, queued behind Concentration as deferredCleaving is (2026-10-18 ruling, option A; 1 kind). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6e2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-33.T6e", "SPELLS-4.T2m"]
+              },
+              "text": "Vampire Charm: repeat save when harmed by the source side through the SPELLS-4.T2m on-damage repeat timing (1 kind). Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6f",
@@ -12178,7 +12210,7 @@
             },
             {
               "id": "SPELLS-33.T6j",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12188,7 +12220,7 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: token light emission (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m161 (10b03d8fa)."
             },
             {
               "id": "SPELLS-33.T6k1",
@@ -12245,7 +12277,7 @@
             },
             {
               "id": "SPELLS-33.T7a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12255,11 +12287,11 @@
                 "after": ["SPELLS-31.T5l"]
               },
               "text": "Data-only: creature after-save immunities authored with SOURCE_IMMUNITY: Cloaker Moan, the 20 dragons’ Frightful Presence, Tarrasque and Nalfeshnee (4 kinds). Hezrou Stench and Sea Hag Horrific Appearance moved to SPELLS-33.T4pr; the Mummies’ Dreadful Glare to SPELLS-33.T7b. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m159 (9cbca7efb)."
             },
             {
               "id": "SPELLS-33.T7b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12269,7 +12301,7 @@
                 "after": ["SPELLS-33.T7a"]
               },
               "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m160 (5d8288291)."
             }
           ]
         }

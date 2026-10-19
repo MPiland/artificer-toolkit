@@ -16,6 +16,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 
 const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
@@ -147,8 +149,10 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       contributors: readonly D20Contributor[]
     }[]
   }
+  /** The dice the holder rolls with the save (D156). */
+  addedDice: readonly D20AddedDieDto[]
 }): {
-  facts: Record<string, string | number>
+  facts: Record<string, string | number | boolean>
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   modifier: number
   contributors: ReadonlyArray<D20Contributor>
@@ -192,7 +196,8 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       [DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY]: input.targetActorId,
       [DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY]: appliedDamage,
       [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: savingThrow[0]!.modifier,
-      [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
+      [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+      ...dnd5eAddedDiceFacts(input.addedDice)
     },
     rollMode,
     modifier: savingThrow[0]!.modifier,
@@ -233,15 +238,17 @@ export function createDnd5eConcentrationCheckDefinition() {
           max: { kind: 'LITERAL', value: 20 }
         }
       },
+      dnd5eAddedDiceNode('d20'),
       {
         id: 'save',
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 2 },
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
         inputs: {
           targetActorId: {
             kind: 'FACT',
             factKey: DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY
           },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
           modifier: {
             kind: 'FACT',
             factKey: DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY

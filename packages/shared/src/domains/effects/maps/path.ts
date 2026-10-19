@@ -4,6 +4,7 @@ import type {
   ActorRelationshipModuleAuthored,
   ConditionAuthored,
   DamageAuthored,
+  FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
   FollowUpSaveRepeatAttemptGateAuthored,
@@ -250,10 +251,9 @@ const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInflu
 const followUpSaveRepeatAttemptGate = buildNodeMap<FollowUpSaveRepeatAttemptGateAuthored>()
 const followUpSaveRepeatPerception = buildNodeMap<FollowUpSaveRepeatPerceptionAuthored>()
 /** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
-type FollowUpSaveFailureMarginRiderNode = Omit<
-  NonNullable<FollowUpSaveAuthored['failureMarginRider']>,
-  'outcomes'
-> & { outcomes: OutcomeNode[] }
+type FollowUpSaveFailureMarginRiderNode = Omit<FailureMarginRiderAuthored, 'outcomes'> & {
+  outcomes: OutcomeNode[]
+}
 const followUpSaveFailureMarginRider = buildNodeMap<FollowUpSaveFailureMarginRiderNode>()
 const followUpSaveFailureMarginRiderLifecycle =
   buildNodeMap<FollowUpSaveFailureMarginRiderNode['lifecycle']>()
@@ -3036,6 +3036,15 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
         })
       )
       .set(
+        'failureMarginRider',
+        groupObject(
+          ['failureMarginRider'],
+          'Failure Margin Rider',
+          () => FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP,
+          { presentation: 'inline' }
+        )
+      )
+      .set(
         'outcomes',
         groupArray(['outcomes'], 'Outcomes', () => OUTCOME_NODE_MAP, {
           presentation: 'summary'
@@ -3073,6 +3082,15 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
         groupObject(['lifecycle'], 'Lifecycle', () => PATH_LIFECYCLE_NODE_MAP, {
           presentation: 'inline'
         })
+      )
+      .set(
+        'failureMarginRider',
+        groupObject(
+          ['failureMarginRider'],
+          'Failure Margin Rider',
+          () => FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP,
+          { presentation: 'inline' }
+        )
       )
       .set(
         'outcomes',

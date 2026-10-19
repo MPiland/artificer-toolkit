@@ -20,6 +20,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { selectEncounterActionD20Natural } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { withAddedDiceTerms } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
@@ -51,7 +52,8 @@ function presentEvidenceRoll(roll: EncounterStoredEvidenceRoll): EncounterEviden
     faces: roll.faces,
     value: roll.value,
     rollMode: roll.rollMode,
-    derivedRollMode: roll.derivedRollMode
+    derivedRollMode: roll.derivedRollMode,
+    ...(roll.addedFaces ? { addedFaces: roll.addedFaces } : {})
   })
 }
 
@@ -202,8 +204,8 @@ async function admitEvidenceRoll(
 }
 
 /**
- * Records one "Roll dice" with the room's draws (`nextInt`, D41) and posts it to the table roll
- * log. It settles nothing; rerolls are further attempts.
+ * Records one "Roll dice" with the room's draws (`nextInt`, D41), the request's added dice (D156)
+ * included, and posts it to the table roll log. It settles nothing; rerolls are further attempts.
  */
 export async function rollEncounterRuleEvidence(
   ctx: EncounterWriteTransaction,
@@ -222,6 +224,13 @@ export async function rollEncounterRuleEvidence(
     ? evaluated.evidence.terms[0]!.rolls
     : [admitted.request.min + nextInt(admitted.request.max - admitted.request.min + 1)]
   const value = rollMode ? selectEncounterActionD20Natural(rollMode, faces) : faces[0]!
+  const addedDice = ('addedDice' in admitted.request ? (admitted.request.addedDice ?? []) : []).map(
+    (die) => ({
+      ...die,
+      rolledFaces: Array.from({ length: die.count }, () => nextInt(die.faces) + 1)
+    })
+  )
+  const addedFaces = addedDice.flatMap(({ rolledFaces }) => rolledFaces)
   const latest = await readLatestAttempt(ctx, {
     occurrenceId: input.occurrenceId,
     occurrenceVersion: pending.occurrenceVersion,
@@ -244,6 +253,7 @@ export async function rollEncounterRuleEvidence(
     value,
     rollMode,
     derivedRollMode,
+    ...(addedFaces.length > 0 ? { addedFaces } : {}),
     createdAt: now
   })
   await ctx.db.insert('encounterEvidenceRolls', roll)
@@ -274,7 +284,7 @@ export async function rollEncounterRuleEvidence(
           .slice(0, 80)
       },
       ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
-      ...evaluated,
+      ...withAddedDiceTerms(evaluated, addedDice),
       createdAt: now
     })
     const card = await recordRuleRollCard(ctx, {
@@ -361,7 +371,12 @@ export async function readEncounterSettledAppRoll(
   )
     rejectDomain('ROLL_UNAVAILABLE')
   const roll = readStoredRoll(row)
-  return { rollId: roll.id, faces: roll.faces, rollMode: roll.rollMode }
+  return {
+    rollId: roll.id,
+    faces: roll.faces,
+    rollMode: roll.rollMode,
+    ...(roll.addedFaces ? { addedFaces: roll.addedFaces } : {})
+  }
 }
 
 /** The member's latest app roll for each request of their current pending decision. */

@@ -143,25 +143,7 @@ export const cloaker: CreatureAuthored = {
                 ]
               }
             },
-            {
-              id: S.actionId(65, 114),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(65, 114)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(65, 115),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_MOAN_IMMUNITY
-                  }
-                ]
-              }
-            }
+            S.saveImmunityPath(65, 128)
           ]
         }
       ],

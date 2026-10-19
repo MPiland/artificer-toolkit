@@ -116,6 +116,7 @@ describe('native movement target scalar facts', () => {
     expect(effectiveAbility.score.effective).toBe(baseAbility.score.effective - 2)
     expect(after.targetDerivedFacts).toEqual({
       ...after.effectiveRulePolicyOutput,
+      savingThrowAddedDice: {},
       targetProtection: {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,

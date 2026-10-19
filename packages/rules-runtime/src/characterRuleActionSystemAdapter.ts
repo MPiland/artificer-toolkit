@@ -1,3 +1,4 @@
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   CharacterGrantFoldModifier,
@@ -517,6 +518,8 @@ export interface CharacterRuleActionSystemAdapter {
     testTemplate: CharacterRuleActionTestTemplate
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
+    /** The outputs of the completed TEST, which an outcome that depends on its margin reads. */
+    testOutputs?: Readonly<Record<string, RuleValue>>
     /** The mode the TEST d20 was settled in, which may differ from the mode the rules derived. */
     testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   }): CharacterRuleActionOutcomeTemplate | null
@@ -655,6 +658,8 @@ export interface CharacterRuleActionSystemAdapter {
       contributorChecksum: string
       modifier: number
       defenseOrDc: number
+      /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
+      addedDice: readonly D20AddedDieDto[]
     }
   }
   /**

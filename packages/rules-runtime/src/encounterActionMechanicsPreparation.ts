@@ -16,6 +16,7 @@ import {
 import {
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
+  encounterAttackAddedDice,
   withSourceSightSave
 } from './encounterActiveGrants.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
@@ -597,6 +598,12 @@ export async function prepareEncounterActionMechanics<
           : sourceFacts.targetDerivedFacts),
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
+        attackAddedDice: encounterAttackAddedDice(
+          sourceFacts.activeEffects,
+          source.kind === 'CHARACTER_ACTION'
+            ? (characterActionState?.actionMechanic.attackAbility ?? null)
+            : creatureAttackAbility(source.capability.mechanicFacts.outcomes)
+        ),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(

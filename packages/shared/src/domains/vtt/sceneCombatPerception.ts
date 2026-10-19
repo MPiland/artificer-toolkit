@@ -9,6 +9,7 @@ import {
   canMoveBetween,
   measureSceneDistance,
   SceneBarrierIndex,
+  sceneDistanceAsCoordinateLength,
   scenePointInPolygon
 } from './geometry.js'
 import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
@@ -30,10 +31,13 @@ const obscurementRank: Readonly<Record<CombatPerceptionObscurement, number>> = {
 
 type PerceptionSceneState = Pick<
   CampaignSceneState,
-  'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights'
+  'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights' | 'tokens'
 >
 
 type PerceptionSceneToken = Pick<SceneToken, 'height' | 'position' | 'width'>
+
+const TOKEN_LIGHT_COLOR = '#f6c56f'
+const TOKEN_LIGHT_INTENSITY = 0.8
 
 function closestIntervalCoordinates(
   leftStart: number,
@@ -169,6 +173,31 @@ function strongerObscurement(
 }
 
 /**
+ * A POINT light centred on each token that sheds light, its radii measured from the token's
+ * footprint edge. Token lights are composed at runtime, so the Scene's own lights stay the GM's;
+ * perception and drawing both add these to them (D108).
+ */
+export function sceneTokenLights(
+  scene: Pick<CampaignSceneState, 'grid' | 'tokens'>
+): readonly SceneLight[] {
+  return scene.tokens.flatMap((token): SceneLight[] => {
+    if (!token.light) return []
+    const edge = token.width / 2
+    return [
+      {
+        brightRadius: edge + sceneDistanceAsCoordinateLength(scene.grid, token.light.brightRadius),
+        color: TOKEN_LIGHT_COLOR,
+        dimRadius: edge + sceneDistanceAsCoordinateLength(scene.grid, token.light.dimRadius),
+        id: `TOKEN_LIGHT:${token.id}`,
+        intensity: TOKEN_LIGHT_INTENSITY,
+        kind: 'POINT',
+        position: token.position
+      }
+    ]
+  })
+}
+
+/**
  * Illumination and obscurement at one Scene point (D108). Illumination precedence: ambient light;
  * then DIM / ORDINARY_DARKNESS zones darken it (darker wins); then lights that reach the point
  * (cone, radii, barriers) brighten it (brighter wins); MAGICAL_DARKNESS (ambient or zone) applies last and
@@ -188,7 +217,7 @@ export function resolveSceneIlluminationAt(
     if (zone.mechanicalObscurement)
       obscurement = strongerObscurement(obscurement, zone.mechanicalObscurement)
   }
-  for (const light of scene.lights) {
+  for (const light of [...scene.lights, ...sceneTokenLights(scene)]) {
     if (!canLightPassBetween(scene, light.position, point, barrierIndex)) continue
     const candidate = illuminationFromLight(light, point)
     if (candidate) illumination = brighterIllumination(illumination, candidate)
